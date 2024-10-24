@@ -54,9 +54,13 @@ async def test_central_full(central_unit_full) -> None:
         assert info_config_props
 
     custom_entities = []
+    channel_type_names = set()
     for device in central_unit_full.devices:
         custom_entities.extend(device.custom_entities)
-
+        for channel in device.channels.values():
+            channel_type_names.add(channel.type_name)
+    channel_type_names = sorted(channel_type_names)
+    assert len(channel_type_names) == 538
     ce_channels = {}
     for custom_entity in custom_entities:
         if custom_entity.device.model not in ce_channels:

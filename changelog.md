@@ -1,3 +1,7 @@
+# Version 2024.10.13 (2024-10-24)
+
+- Disable climate temperature validation when turning off
+
 # Version 2024.10.12 (2024-10-19)
 
 - Small tweaks to improve central link management

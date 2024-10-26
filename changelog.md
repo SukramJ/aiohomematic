@@ -1,3 +1,7 @@
+# Version 2024.10.14 (2024-10-26)
+
+- Use version from module hahomematic
+
 # Version 2024.10.13 (2024-10-24)
 
 - Disable climate temperature validation when turning off

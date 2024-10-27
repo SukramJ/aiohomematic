@@ -57,7 +57,7 @@ from hahomematic.platforms.support import (
     get_channel_name_data,
     get_device_name,
 )
-from hahomematic.platforms.update import HmUpdate
+from hahomematic.platforms.update import DpUpdate
 from hahomematic.support import (
     CacheEntry,
     check_or_create_directory,
@@ -128,7 +128,7 @@ class HmDevice(PayloadMixin):
         }
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
         self._rooms: Final = central.device_details.get_device_rooms(device_address=device_address)
-        self._update_data_point: Final = HmUpdate(device=self) if self.is_updatable else None
+        self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
             self._interface_id,
@@ -331,7 +331,7 @@ class HmDevice(PayloadMixin):
         return self._sub_model
 
     @property
-    def update_data_point(self) -> HmUpdate | None:
+    def update_data_point(self) -> DpUpdate | None:
         """Return the device firmware update data_point of the device."""
         return self._update_data_point
 

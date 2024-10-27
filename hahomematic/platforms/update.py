@@ -24,10 +24,10 @@ from hahomematic.platforms.data_point import CallbackDataPoint
 from hahomematic.platforms.decorators import config_property, get_service_calls, state_property
 from hahomematic.platforms.support import PayloadMixin, generate_unique_id
 
-__all__ = ["HmUpdate"]
+__all__ = ["DpUpdate"]
 
 
-class HmUpdate(CallbackDataPoint, PayloadMixin):
+class DpUpdate(CallbackDataPoint, PayloadMixin):
     """
     Implementation of a update.
 

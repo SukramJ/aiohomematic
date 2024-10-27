@@ -1,8 +1,4 @@
-"""
-Module for hub data points implemented using the select category.
-
-See https://www.home-assistant.io/integrations/select/.
-"""
+"""Module for hub data points implemented using the select category."""
 
 from __future__ import annotations
 

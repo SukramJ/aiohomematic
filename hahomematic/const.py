@@ -169,7 +169,7 @@ class DataPointCategory(StrEnum):
 
 
 class DataPointUsage(StrEnum):
-    """Enum with information about usage in Home Assistant."""
+    """Enum with usage information."""
 
     CDP_PRIMARY = "ce_primary"
     CDP_SECONDARY = "ce_secondary"

@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the siren category.
-
-See https://www.home-assistant.io/integrations/siren/.
-"""
+"""Module for data points implemented using the siren category."""
 
 from __future__ import annotations
 

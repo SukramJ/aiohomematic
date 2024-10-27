@@ -1,8 +1,4 @@
-"""
-Module for hub data points implemented using the sensor category.
-
-See https://www.home-assistant.io/integrations/sensor/.
-"""
+"""Module for hub data points implemented using the sensor category."""
 
 from __future__ import annotations
 
@@ -38,8 +34,8 @@ def _check_length_and_warn(name: str | None, value: Any) -> Any:
     """Check the length of a variable and warn if too long."""
     if isinstance(value, str) and len(value) > 255:
         _LOGGER.warning(
-            "Value of sysvar %s exceedes maximum allowed length of "
-            "255 chars by Home Assistant. Value will be limited to 255 chars",
+            "Value of sysvar %s exceedes maximum allowed length of 255 chars. "
+            "Value will be limited to 255 chars",
             name,
         )
         return value[0:255:1]

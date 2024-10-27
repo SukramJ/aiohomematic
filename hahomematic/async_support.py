@@ -27,7 +27,7 @@ class Looper:
         self._loop = asyncio.get_event_loop()
 
     async def block_till_done(self) -> None:
-        """Code from HA. Block until all pending work is done."""
+        """Block until all pending work is done."""
         # To flush out any call_soon_threadsafe
         await asyncio.sleep(0)
         start_time: float | None = None
@@ -53,7 +53,7 @@ class Looper:
                     _LOGGER.debug("Waiting for task: %s", task)
 
     async def _await_and_log_pending(self, pending: Collection[asyncio.Future[Any]]) -> None:
-        """Code from HA. Await and log tasks that take a long time."""
+        """Await and log tasks that take a long time."""
         wait_time = 0
         while pending:
             _, pending = await asyncio.wait(pending, timeout=BLOCK_LOG_TIMEOUT)

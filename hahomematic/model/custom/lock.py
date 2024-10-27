@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the lock category.
-
-See https://www.home-assistant.io/integrations/lock/.
-"""
+"""Module for data points implemented using the lock category."""
 
 from __future__ import annotations
 

@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the light category.
-
-See https://www.home-assistant.io/integrations/light/.
-"""
+"""Module for data points implemented using the light category."""
 
 from __future__ import annotations
 

@@ -533,7 +533,7 @@
 - Add faultCode and faultString to xmlrpc.client.Fault
 - Use Mapping/Set for readonly access
 - Use enum for CE fields
-- Use Parameter for CDPD
+- Use Parameter for ED
 
 # Version 2023.10.5 (2023-10-07)
 
@@ -1046,7 +1046,7 @@
 # Version 2022.12.2 (2022-12-09)
 
 - Add HM-LC-AO-SM as light
-- Remove hub from DataPointCategory
+- Remove hub from HmPlatform
 - Hub is no longer an entity
 
 # Version 2022.12.1 (2022-12-01)
@@ -2076,7 +2076,7 @@
 - Remove variables that are covered by other sensors (CCU only)
 - Remove dummy from service message (HmIP-RF always sends 0001D3C98DD4B6:3 unreach)
 - Rename Bidcos thermostats to SimpleRfThermostat and RfThermostat
-- Use more Enums (like HA does): DataPointCategory, HmEventType
+- Use more Enums (like HA does): HmPlatform, HmEventType
 - Use assignment expressions
 - Add more type hints (fix most mypy errors)
 

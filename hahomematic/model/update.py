@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the update category.
-
-See https://www.home-assistant.io/integrations/update/.
-"""
+"""Module for data points implemented using the update category."""
 
 from __future__ import annotations
 

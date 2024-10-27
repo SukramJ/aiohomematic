@@ -587,7 +587,7 @@ class CustomDpGarage(CustomDataPoint):
 
 
 def make_ip_cover(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP cover data points."""
@@ -600,7 +600,7 @@ def make_ip_cover(
 
 
 def make_rf_cover(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic cover data points."""
@@ -613,7 +613,7 @@ def make_rf_cover(
 
 
 def make_ip_blind(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP cover data points."""
@@ -626,7 +626,7 @@ def make_ip_blind(
 
 
 def make_ip_garage(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP garage data points."""
@@ -639,7 +639,7 @@ def make_ip_garage(
 
 
 def make_ip_hdm(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP cover data points."""
@@ -652,7 +652,7 @@ def make_ip_hdm(
 
 
 def make_rf_blind(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic cover data points."""
@@ -665,7 +665,7 @@ def make_rf_blind(
 
 
 def make_rf_window_drive(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic window drive data points."""

@@ -18,7 +18,7 @@ from hahomematic.const import (
     EVENT_AVAILABLE,
     DataPointCategory,
     DataPointUsage,
-    HomematicEventType,
+    EventType,
     InterfaceEventType,
     Operations,
     Parameter,
@@ -945,7 +945,7 @@ async def test_pending_pong_failure(
         count += 1
     assert client.ping_pong_cache.pending_pong_count == max_count
     assert factory.ha_event_mock.mock_calls[-1] == call(
-        HomematicEventType.INTERFACE,
+        EventType.INTERFACE,
         {
             "data": {
                 "instance_name": "CentralTest",

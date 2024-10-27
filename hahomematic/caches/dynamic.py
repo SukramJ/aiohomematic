@@ -24,13 +24,13 @@ from hahomematic.const import (
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
     CallSource,
-    HomematicEventType,
+    EventType,
     InterfaceEventType,
     InterfaceName,
     ParamsetKey,
 )
 from hahomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from hahomematic.model.device import HmDevice
+from hahomematic.model.device import Device
 from hahomematic.support import changed_within_seconds, get_data_point_key
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -213,7 +213,7 @@ class DeviceDetailsCache:
             return ",".join(functions)
         return None
 
-    def remove_device(self, device: HmDevice) -> None:
+    def remove_device(self, device: Device) -> None:
         """Remove name from cache."""
         if device.address in self._names_cache:
             del self._names_cache[device.address]
@@ -430,7 +430,7 @@ class PingPongCache:
 
         def _fire_event(mismatch_count: int) -> None:
             self._central.fire_homematic_callback(
-                event_type=HomematicEventType.INTERFACE,
+                event_type=EventType.INTERFACE,
                 event_data=cast(
                     dict[str, Any],
                     hmcu.INTERFACE_EVENT_SCHEMA(

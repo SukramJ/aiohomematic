@@ -54,7 +54,7 @@ _SWITCH_DP_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
 
 
 def create_data_point_and_append_to_channel(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     paramset_key: ParamsetKey,
     parameter: str,
     parameter_data: ParameterData,

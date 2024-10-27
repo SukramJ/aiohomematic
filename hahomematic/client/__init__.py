@@ -41,7 +41,7 @@ from hahomematic.const import (
 )
 from hahomematic.exceptions import BaseHomematicException, ClientException, NoConnection
 from hahomematic.model.decorators import service
-from hahomematic.model.device import HmDevice
+from hahomematic.model.device import Device
 from hahomematic.model.support import convert_value
 from hahomematic.performance import measure_execution_time
 from hahomematic.support import (
@@ -368,7 +368,7 @@ class Client(ABC):
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
 
-    def get_virtual_remote(self) -> HmDevice | None:
+    def get_virtual_remote(self) -> Device | None:
         """Get the virtual remote for the Client."""
         for model in VIRTUAL_REMOTE_MODELS:
             for device in self.central.devices:
@@ -1328,7 +1328,7 @@ def get_client(interface_id: str) -> Client | None:
 
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
-    device: HmDevice,
+    device: Device,
     data_point_keys: set[DP_KEY],
     values: dict[str, Any],
     wait_for_callback: int,
@@ -1348,7 +1348,7 @@ async def _wait_for_state_change_or_timeout(
 
 @measure_execution_time
 async def _track_single_data_point_state_change_or_timeout(
-    device: HmDevice, data_point_key: DP_KEY, value: Any, wait_for_callback: int
+    device: Device, data_point_key: DP_KEY, value: Any, wait_for_callback: int
 ) -> None:
     """Wait for a data_point to change state."""
     ev = asyncio.Event()

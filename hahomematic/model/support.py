@@ -214,7 +214,7 @@ def _get_generic_name(address: str, model: str) -> str:
     return f"{model}_{address}"
 
 
-def get_channel_name_data(channel: hmd.HmChannel) -> ChannelNameData:
+def get_channel_name_data(channel: hmd.Channel) -> ChannelNameData:
     """Get name for data_point."""
     if channel_base_name := _get_base_name_from_channel_or_device(channel=channel):
         return ChannelNameData(
@@ -231,7 +231,7 @@ def get_channel_name_data(channel: hmd.HmChannel) -> ChannelNameData:
 
 
 def get_data_point_name_data(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     parameter: str,
 ) -> DataPointNameData:
     """Get name for data_point."""
@@ -268,7 +268,7 @@ def get_data_point_name_data(
 
 
 def get_event_name(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     parameter: str,
 ) -> DataPointNameData:
     """Get name for event."""
@@ -299,7 +299,7 @@ def get_event_name(
 
 
 def get_custom_data_point_name(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     is_only_primary_channel: bool,
     usage: DataPointUsage,
     postfix: str = "",
@@ -369,7 +369,7 @@ def generate_channel_unique_id(
     return unique_id.lower()
 
 
-def _get_base_name_from_channel_or_device(channel: hmd.HmChannel) -> str | None:
+def _get_base_name_from_channel_or_device(channel: hmd.Channel) -> str | None:
     """Get the name from channel if it's not default, otherwise from device."""
     default_channel_name = f"{channel.device.model} {channel.address}"
     name = channel.central.device_details.get_name(address=channel.address)

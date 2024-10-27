@@ -13,7 +13,7 @@ from hahomematic.const import (
     IMPULSE_EVENTS,
     DataPointCategory,
     DataPointUsage,
-    HomematicEventType,
+    EventType,
     Operations,
     ParameterData,
     ParamsetKey,
@@ -37,11 +37,11 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
     """Base class for events."""
 
     _category = DataPointCategory.EVENT
-    _event_type: HomematicEventType
+    _event_type: EventType
 
     def __init__(
         self,
-        channel: hmd.HmChannel,
+        channel: hmd.Channel,
         parameter: str,
         parameter_data: ParameterData,
     ) -> None:
@@ -62,7 +62,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE
 
     @property
-    def event_type(self) -> HomematicEventType:
+    def event_type(self) -> EventType:
         """Return the event_type of the event."""
         return self._event_type
 
@@ -95,13 +95,13 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
 class ClickEvent(GenericEvent):
     """class for handling click events."""
 
-    _event_type = HomematicEventType.KEYPRESS
+    _event_type = EventType.KEYPRESS
 
 
 class DeviceErrorEvent(GenericEvent):
     """class for handling device error events."""
 
-    _event_type = HomematicEventType.DEVICE_ERROR
+    _event_type = EventType.DEVICE_ERROR
 
     async def event(self, value: Any) -> None:
         """Handle event for which this handler has subscribed."""
@@ -127,11 +127,11 @@ class DeviceErrorEvent(GenericEvent):
 class ImpulseEvent(GenericEvent):
     """class for handling impulse events."""
 
-    _event_type = HomematicEventType.IMPULSE
+    _event_type = EventType.IMPULSE
 
 
 def create_event_and_append_to_channel(
-    channel: hmd.HmChannel, parameter: str, parameter_data: ParameterData
+    channel: hmd.Channel, parameter: str, parameter_data: ParameterData
 ) -> None:
     """Create action event data_point."""
     _LOGGER.debug(

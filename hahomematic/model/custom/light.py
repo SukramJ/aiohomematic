@@ -868,7 +868,7 @@ def _convert_color(color: tuple[float, float]) -> str:
 
 
 def make_ip_dimmer(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP dimmer data points."""
@@ -881,7 +881,7 @@ def make_ip_dimmer(
 
 
 def make_rf_dimmer(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic dimmer data points."""
@@ -894,7 +894,7 @@ def make_rf_dimmer(
 
 
 def make_rf_dimmer_color(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic dimmer with color data points."""
@@ -907,7 +907,7 @@ def make_rf_dimmer_color(
 
 
 def make_rf_dimmer_color_fixed(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic dimmer with fixed color data points."""
@@ -920,7 +920,7 @@ def make_rf_dimmer_color_fixed(
 
 
 def make_rf_dimmer_color_effect(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic dimmer and effect with color data points."""
@@ -933,7 +933,7 @@ def make_rf_dimmer_color_effect(
 
 
 def make_rf_dimmer_color_temp(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic dimmer with color temperature data points."""
@@ -946,7 +946,7 @@ def make_rf_dimmer_color_temp(
 
 
 def make_rf_dimmer_with_virt_channel(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic classic dimmer data points."""
@@ -959,7 +959,7 @@ def make_rf_dimmer_with_virt_channel(
 
 
 def make_ip_fixed_color_light(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create fixed color light data points like HmIP-BSL."""
@@ -972,7 +972,7 @@ def make_ip_fixed_color_light(
 
 
 def make_ip_simple_fixed_color_light_wired(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create simple fixed color light data points like HmIPW-WRC6."""
@@ -985,7 +985,7 @@ def make_ip_simple_fixed_color_light_wired(
 
 
 def make_ip_rgbw_light(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create simple fixed color light data points like HmIP-RGBW."""
@@ -998,7 +998,7 @@ def make_ip_rgbw_light(
 
 
 def make_ip_drg_dali_light(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create color light data points like HmIP-DRG-DALI."""

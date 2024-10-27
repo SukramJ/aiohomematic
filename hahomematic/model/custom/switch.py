@@ -92,7 +92,7 @@ class CustomDpSwitch(CustomDataPoint, OnTimeMixin):
 
 
 def make_ip_switch(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP switch data points."""

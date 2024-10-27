@@ -54,7 +54,7 @@ from hahomematic.const import (
     DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
-    HomematicEventType,
+    EventType,
     InterfaceEventType,
     InterfaceName,
     Operations,
@@ -74,7 +74,7 @@ from hahomematic.model import create_data_points_and_events
 from hahomematic.model.custom import CustomDataPoint, create_custom_data_points
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
 from hahomematic.model.decorators import info_property, service
-from hahomematic.model.device import HmDevice
+from hahomematic.model.device import Device
 from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
 from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton
@@ -137,7 +137,7 @@ class CentralUnit(PayloadMixin):
             dict[DP_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
         ] = {}
         # {device_address, device}
-        self._devices: Final[dict[str, HmDevice]] = {}
+        self._devices: Final[dict[str, Device]] = {}
         # {sysvar_name, sysvar_data_point}
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {sysvar_name, program_button}U
@@ -203,7 +203,7 @@ class CentralUnit(PayloadMixin):
         return self._device_descriptions
 
     @property
-    def devices(self) -> tuple[HmDevice, ...]:
+    def devices(self) -> tuple[Device, ...]:
         """Return all devices."""
         return tuple(self._devices.values())
 
@@ -593,7 +593,7 @@ class CentralUnit(PayloadMixin):
         }
 
         self.fire_homematic_callback(
-            event_type=HomematicEventType.INTERFACE,
+            event_type=EventType.INTERFACE,
             event_data=cast(dict[str, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
@@ -651,7 +651,7 @@ class CentralUnit(PayloadMixin):
             )
         return self._clients[interface_id]
 
-    def get_device(self, address: str) -> HmDevice | None:
+    def get_device(self, address: str) -> Device | None:
         """Return homematic device."""
         d_address = get_device_address(address=address)
         return self._devices.get(d_address)
@@ -716,7 +716,7 @@ class CentralUnit(PayloadMixin):
         )
 
     def get_events(
-        self, event_type: HomematicEventType, registered: bool | None = None
+        self, event_type: EventType, registered: bool | None = None
     ) -> tuple[tuple[GenericEvent, ...], ...]:
         """Return all channel event data points."""
         hm_channel_events: list[tuple[GenericEvent, ...]] = []
@@ -727,7 +727,7 @@ class CentralUnit(PayloadMixin):
                     continue
         return tuple(hm_channel_events)
 
-    def get_virtual_remotes(self) -> tuple[HmDevice, ...]:
+    def get_virtual_remotes(self) -> tuple[Device, ...]:
         """Get the virtual remote for the Client."""
         return tuple(
             cl.get_virtual_remote()  # type: ignore[misc]
@@ -765,16 +765,16 @@ class CentralUnit(PayloadMixin):
             )
         _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self.name)
 
-        new_devices = set[HmDevice]()
+        new_devices = set[Device]()
 
         for interface_id, device_addresses in new_device_addresses.items():
             for device_address in device_addresses:
                 # Do we check for duplicates here? For now, we do.
                 if device_address in self._devices:
                     continue
-                device: HmDevice | None = None
+                device: Device | None = None
                 try:
-                    device = HmDevice(
+                    device = Device(
                         central=self,
                         interface_id=interface_id,
                         device_address=device_address,
@@ -1030,7 +1030,7 @@ class CentralUnit(PayloadMixin):
         for device in self.devices:
             await device.remove_central_links()
 
-    def remove_device(self, device: HmDevice) -> None:
+    def remove_device(self, device: Device) -> None:
         """Remove device to central collections."""
         if device.address not in self._devices:
             _LOGGER.debug(
@@ -1164,7 +1164,7 @@ class CentralUnit(PayloadMixin):
 
         return list(parameters)
 
-    def _get_virtual_remote(self, device_address: str) -> HmDevice | None:
+    def _get_virtual_remote(self, device_address: str) -> Device | None:
         """Get the virtual remote for the Client."""
         for client in self._clients.values():
             virtual_remote = client.get_virtual_remote()
@@ -1264,9 +1264,7 @@ class CentralUnit(PayloadMixin):
             self._homematic_callbacks.remove(cb)
 
     @loop_check
-    def fire_homematic_callback(
-        self, event_type: HomematicEventType, event_data: dict[str, str]
-    ) -> None:
+    def fire_homematic_callback(self, event_type: EventType, event_data: dict[str, str]) -> None:
         """
         Fire homematic_callback in central.
 
@@ -1622,7 +1620,7 @@ class CentralConnectionState:
 
 
 def _get_new_data_points(
-    new_devices: set[HmDevice],
+    new_devices: set[Device],
 ) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPoint]]:
     """Return new data points by category."""
 
@@ -1639,7 +1637,7 @@ def _get_new_data_points(
     return data_points_by_category
 
 
-def _get_new_channel_events(new_devices: set[HmDevice]) -> tuple[tuple[GenericEvent, ...], ...]:
+def _get_new_channel_events(new_devices: set[Device]) -> tuple[tuple[GenericEvent, ...], ...]:
     """Return new channel events by category."""
     channel_events: list[tuple[GenericEvent, ...]] = []
 

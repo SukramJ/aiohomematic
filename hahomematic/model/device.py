@@ -35,8 +35,8 @@ from hahomematic.const import (
     DataPointUsage,
     DeviceDescription,
     DeviceFirmwareState,
+    EventType,
     ForcedDeviceAvailability,
-    HomematicEventType,
     Manufacturer,
     Parameter,
     ParameterData,
@@ -68,12 +68,12 @@ from hahomematic.support import (
     reduce_args,
 )
 
-__all__ = ["HmChannel", "HmDevice"]
+__all__ = ["Channel", "Device"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmDevice(PayloadMixin):
+class Device(PayloadMixin):
     """Object to hold information about a device and associated data points."""
 
     def __init__(self, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
@@ -122,9 +122,8 @@ class HmDevice(PayloadMixin):
             [device_address]
             + [address for address in self._description["CHILDREN"] if address != ""]
         )
-        self._channels: Final[dict[str, HmChannel]] = {
-            address: HmChannel(device=self, channel_address=address)
-            for address in channel_addresses
+        self._channels: Final[dict[str, Channel]] = {
+            address: Channel(device=self, channel_address=address) for address in channel_addresses
         }
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
         self._rooms: Final = central.device_details.get_device_rooms(device_address=device_address)
@@ -183,7 +182,7 @@ class HmDevice(PayloadMixin):
         return self._central
 
     @property
-    def channels(self) -> dict[str, HmChannel]:
+    def channels(self) -> dict[str, Channel]:
         """Return the channels."""
         return self._channels
 
@@ -396,7 +395,7 @@ class HmDevice(PayloadMixin):
         """Return the sub device channel."""
         return self._sub_device_channels.get(channel_no)
 
-    def get_channel(self, channel_address: str) -> HmChannel | None:
+    def get_channel(self, channel_address: str) -> Channel | None:
         """Get channel of device."""
         return self._channels.get(channel_address)
 
@@ -459,7 +458,7 @@ class HmDevice(PayloadMixin):
         return tuple(all_data_points)
 
     def get_events(
-        self, event_type: HomematicEventType, registered: bool | None = None
+        self, event_type: EventType, registered: bool | None = None
     ) -> Mapping[int | None, tuple[GenericEvent, ...]]:
         """Return a list of specific events of a channel."""
         events: dict[int | None, tuple[GenericEvent, ...]] = {}
@@ -605,10 +604,10 @@ class HmDevice(PayloadMixin):
         )
 
 
-class HmChannel(PayloadMixin):
+class Channel(PayloadMixin):
     """Object to hold information about a channel and associated data points."""
 
-    def __init__(self, device: HmDevice, channel_address: str) -> None:
+    def __init__(self, device: Device, channel_address: str) -> None:
         """Initialize the channel object."""
         PayloadMixin.__init__(self)
 
@@ -676,7 +675,7 @@ class HmChannel(PayloadMixin):
         return self._description
 
     @property
-    def device(self) -> HmDevice:
+    def device(self) -> Device:
         """Return the device of the channel."""
         return self._device
 
@@ -806,9 +805,7 @@ class HmChannel(PayloadMixin):
     def _has_key_press_events(self) -> bool:
         """Return if channel has KEYPRESS events."""
         return any(
-            event
-            for event in self.generic_events
-            if event.event_type is HomematicEventType.KEYPRESS
+            event for event in self.generic_events if event.event_type is EventType.KEYPRESS
         )
 
     def add_data_point(self, data_point: CallbackDataPoint) -> None:
@@ -880,7 +877,7 @@ class HmChannel(PayloadMixin):
         )
 
     def get_events(
-        self, event_type: HomematicEventType, registered: bool | None = None
+        self, event_type: EventType, registered: bool | None = None
     ) -> tuple[GenericEvent, ...]:
         """Return a list of specific events of a channel."""
         return tuple(
@@ -955,7 +952,7 @@ class _ValueCache:
 
     _NO_VALUE_CACHE_ENTRY: Final = "NO_VALUE_CACHE_ENTRY"
 
-    def __init__(self, device: HmDevice) -> None:
+    def __init__(self, device: Device) -> None:
         """Init the value cache."""
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
@@ -1113,7 +1110,7 @@ class _ValueCache:
 class _DefinitionExporter:
     """Export device definitions from cache."""
 
-    def __init__(self, device: HmDevice) -> None:
+    def __init__(self, device: Device) -> None:
         """Init the device exporter."""
         self._client: Final = device.client
         self._central: Final = device.client.central

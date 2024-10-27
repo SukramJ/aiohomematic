@@ -264,7 +264,7 @@ class CustomDpRfLock(BaseCustomDpLock):
 
 
 def make_ip_lock(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP lock data points."""
@@ -277,7 +277,7 @@ def make_ip_lock(
 
 
 def make_ip_button_lock(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP ip button lock data points."""
@@ -290,7 +290,7 @@ def make_ip_button_lock(
 
 
 def make_rf_button_lock(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP rf button lock data points."""
@@ -303,7 +303,7 @@ def make_rf_button_lock(
 
 
 def make_rf_lock(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomeMatic rf lock data points."""

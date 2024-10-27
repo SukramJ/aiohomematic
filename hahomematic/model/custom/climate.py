@@ -1176,7 +1176,7 @@ def _add_to_schedule_data(
 
 
 def make_simple_thermostat(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create SimpleRfThermostat data points."""
@@ -1189,7 +1189,7 @@ def make_simple_thermostat(
 
 
 def make_thermostat(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create RfThermostat data points."""
@@ -1202,7 +1202,7 @@ def make_thermostat(
 
 
 def make_thermostat_group(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create RfThermostat group data points."""
@@ -1215,7 +1215,7 @@ def make_thermostat_group(
 
 
 def make_ip_thermostat(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create IPThermostat data points."""
@@ -1228,7 +1228,7 @@ def make_ip_thermostat(
 
 
 def make_ip_thermostat_group(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create IPThermostat group data points."""

@@ -30,7 +30,7 @@ class CustomDataPoint(BaseDataPoint):
 
     def __init__(
         self,
-        channel: hmd.HmChannel,
+        channel: hmd.Channel,
         unique_id: str,
         device_profile: DeviceProfile,
         device_def: Mapping[str, Any],

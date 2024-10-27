@@ -8,7 +8,7 @@ from typing import Any, Final
 from hahomematic.const import (
     CallSource,
     DataPointUsage,
-    HomematicEventType,
+    EventType,
     Parameter,
     ParameterData,
     ParamsetKey,
@@ -34,7 +34,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
 
     def __init__(
         self,
-        channel: hmd.HmChannel,
+        channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
         parameter_data: ParameterData,
@@ -88,7 +88,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         ):
             self._device.fire_device_updated_callback(self._unique_id)
             self._central.fire_homematic_callback(
-                event_type=HomematicEventType.DEVICE_AVAILABILITY,
+                event_type=EventType.DEVICE_AVAILABILITY,
                 event_data=self.get_event_data(new_value),
             )
 

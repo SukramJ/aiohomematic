@@ -241,7 +241,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
 
 
 def make_ip_siren(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP siren data points."""
@@ -254,7 +254,7 @@ def make_ip_siren(
 
 
 def make_ip_siren_smoke(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP siren data points."""

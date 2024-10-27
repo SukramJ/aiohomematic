@@ -293,15 +293,15 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
     def __init__(
         self,
-        channel: hmd.HmChannel,
+        channel: hmd.Channel,
         unique_id: str,
         is_in_multiple_channels: bool,
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)
         super().__init__(central=channel.central, unique_id=unique_id)
-        self._channel: Final[hmd.HmChannel] = channel
-        self._device: Final[hmd.HmDevice] = channel.device
+        self._channel: Final[hmd.Channel] = channel
+        self._device: Final[hmd.Device] = channel.device
         self._is_in_multiple_channels: Final = is_in_multiple_channels
         self._client: Final[hmcl.Client] = channel.device.client
         self._forced_usage: DataPointUsage | None = None
@@ -318,12 +318,12 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         return f"{self._channel.path}/{self._category}"
 
     @property
-    def channel(self) -> hmd.HmChannel:
+    def channel(self) -> hmd.Channel:
         """Return the channel the data_point."""
         return self._channel
 
     @property
-    def device(self) -> hmd.HmDevice:
+    def device(self) -> hmd.Device:
         """Return the device of the data_point."""
         return self._device
 
@@ -396,7 +396,7 @@ class BaseParameterDataPoint[
 
     def __init__(
         self,
-        channel: hmd.HmChannel,
+        channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
         parameter_data: ParameterData,

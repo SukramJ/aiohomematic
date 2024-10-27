@@ -35,7 +35,7 @@ TEST_DEVICES: dict[str, str] = {}
     ],
 )
 async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> None:
-    """Test HmText. There are currently no text data points."""
+    """Test DpText. There are currently no text data points."""
     central, _ = central_client
     text: DpText = cast(DpText, central.get_generic_data_point("VCU7981740:1", "STATE"))
     assert text.usage == DataPointUsage.DATA_POINT
@@ -55,10 +55,10 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
         ({}, True, True, False, None, None),
     ],
 )
-async def test_hmsysvartext(
+async def test_sysvardptext(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test HmSysvarText. There are currently no text data points."""
+    """Test SysvarDpText. There are currently no text data points."""
     central, mock_client, _ = central_client_factory
     text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point("sv_string_ext"))
     assert text.usage == DataPointUsage.DATA_POINT

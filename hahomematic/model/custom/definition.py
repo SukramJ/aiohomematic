@@ -554,7 +554,7 @@ def validate_custom_data_point_definition() -> Any:
 
 
 def make_custom_data_point(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     data_point_class: type,
     device_profile: DeviceProfile,
     custom_config: CustomConfig,
@@ -584,7 +584,7 @@ def make_custom_data_point(
 
 
 def _create_custom_data_point(
-    channel: hmd.HmChannel,
+    channel: hmd.Channel,
     custom_data_point_class: type,
     device_profile: DeviceProfile,
     device_def: Mapping[CDPD, Any],
@@ -649,7 +649,7 @@ def _relevant_channels(
 
 
 def add_sub_device_channels_to_device(
-    device: hmd.HmDevice, device_profile: DeviceProfile, custom_config: CustomConfig
+    device: hmd.Device, device_profile: DeviceProfile, custom_config: CustomConfig
 ) -> None:
     """Return the relevant channels."""
     device_def = _get_device_group(device_profile, 0)
@@ -671,7 +671,7 @@ def add_sub_device_channels_to_device(
                 )
 
 
-def get_sub_device_base_channel(device: hmd.HmDevice, channel_no: int | None) -> int | None:
+def get_sub_device_base_channel(device: hmd.Device, channel_no: int | None) -> int | None:
     """Get base channel of sub_device."""
     return device.get_sub_device_base_channel(channel_no=channel_no)
 

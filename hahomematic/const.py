@@ -141,6 +141,33 @@ class DataOperationResult(Enum):
     NO_SAVE = 21
 
 
+class DataPointCategory(StrEnum):
+    """Enum with data point types."""
+
+    ACTION = "action"
+    BINARY_SENSOR = "binary_sensor"
+    BUTTON = "button"
+    CLIMATE = "climate"
+    COVER = "cover"
+    EVENT = "event"
+    HUB_BINARY_SENSOR = "hub_binary_sensor"
+    HUB_BUTTON = "hub_button"
+    HUB_NUMBER = "hub_number"
+    HUB_SELECT = "hub_select"
+    HUB_SENSOR = "hub_sensor"
+    HUB_SWITCH = "hub_switch"
+    HUB_TEXT = "hub_text"
+    LIGHT = "light"
+    LOCK = "lock"
+    NUMBER = "number"
+    SELECT = "select"
+    SENSOR = "sensor"
+    SIREN = "siren"
+    SWITCH = "switch"
+    TEXT = "text"
+    UPDATE = "update"
+
+
 class DataPointUsage(StrEnum):
     """Enum with information about usage in Home Assistant."""
 
@@ -168,6 +195,16 @@ class DeviceFirmwareState(StrEnum):
     BACKGROUND_UPDATE_NOT_SUPPORTED = "BACKGROUND_UPDATE_NOT_SUPPORTED"
 
 
+class EventType(StrEnum):
+    """Enum with hahomematic event types."""
+
+    DEVICE_AVAILABILITY = "homematic.device_availability"
+    DEVICE_ERROR = "homematic.device_error"
+    IMPULSE = "homematic.impulse"
+    INTERFACE = "homematic.interface"
+    KEYPRESS = "homematic.keypress"
+
+
 class Flag(IntEnum):
     """Enum with homematic flags."""
 
@@ -184,16 +221,6 @@ class ForcedDeviceAvailability(StrEnum):
     FORCE_FALSE = "forced_not_available"
     FORCE_TRUE = "forced_available"
     NOT_SET = "not_set"
-
-
-class HomematicEventType(StrEnum):
-    """Enum with hahomematic event types."""
-
-    DEVICE_AVAILABILITY = "homematic.device_availability"
-    DEVICE_ERROR = "homematic.device_error"
-    IMPULSE = "homematic.impulse"
-    INTERFACE = "homematic.interface"
-    KEYPRESS = "homematic.keypress"
 
 
 class Manufacturer(StrEnum):
@@ -333,33 +360,6 @@ class ParamsetKey(StrEnum):
     VALUES = "VALUES"
 
 
-class DataPointCategory(StrEnum):
-    """Enum with data point types."""
-
-    ACTION = "action"
-    BINARY_SENSOR = "binary_sensor"
-    BUTTON = "button"
-    CLIMATE = "climate"
-    COVER = "cover"
-    EVENT = "event"
-    HUB_BINARY_SENSOR = "hub_binary_sensor"
-    HUB_BUTTON = "hub_button"
-    HUB_NUMBER = "hub_number"
-    HUB_SELECT = "hub_select"
-    HUB_SENSOR = "hub_sensor"
-    HUB_SWITCH = "hub_switch"
-    HUB_TEXT = "hub_text"
-    LIGHT = "light"
-    LOCK = "lock"
-    NUMBER = "number"
-    SELECT = "select"
-    SENSOR = "sensor"
-    SIREN = "siren"
-    SWITCH = "switch"
-    TEXT = "text"
-    UPDATE = "update"
-
-
 class ProductGroup(StrEnum):
     """Enum with homematic product groups."""
 
@@ -454,9 +454,9 @@ CLICK_EVENTS: Final[tuple[Parameter, ...]] = (
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-DATA_POINT_EVENTS: Final[tuple[HomematicEventType, ...]] = (
-    HomematicEventType.IMPULSE,
-    HomematicEventType.KEYPRESS,
+DATA_POINT_EVENTS: Final[tuple[EventType, ...]] = (
+    EventType.IMPULSE,
+    EventType.KEYPRESS,
 )
 
 # channel_address, paramset_key,parameter

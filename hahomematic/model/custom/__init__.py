@@ -106,7 +106,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def create_custom_data_points(device: hmd.HmDevice) -> None:
+def create_custom_data_points(device: hmd.Device) -> None:
     """Decides which data point category should be used, and creates the required data points."""
 
     if device.ignore_for_custom_data_point:

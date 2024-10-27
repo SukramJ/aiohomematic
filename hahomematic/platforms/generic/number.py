@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.generic.data_point import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericDataPoint
 
 
 class BaseNumber[NumberParameterT: int | float | None](
-    GenericEntity[NumberParameterT, int | float | str]
+    GenericDataPoint[NumberParameterT, int | float | str]
 ):
     """
     Implementation of a number.

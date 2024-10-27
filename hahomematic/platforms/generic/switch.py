@@ -11,12 +11,12 @@ from typing import Final
 from hahomematic.const import HmPlatform, ParameterType
 from hahomematic.platforms.data_point import CallParameterCollector
 from hahomematic.platforms.decorators import service, state_property
-from hahomematic.platforms.generic.data_point import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericDataPoint
 
 _PARAM_ON_TIME: Final = "ON_TIME"
 
 
-class HmSwitch(GenericEntity[bool | None, bool]):
+class HmSwitch(GenericDataPoint[bool | None, bool]):
     """
     Implementation of a switch.
 

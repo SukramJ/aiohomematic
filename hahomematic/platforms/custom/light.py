@@ -11,16 +11,16 @@ from enum import IntEnum, StrEnum
 import math
 from typing import Any, Final, TypedDict, Unpack
 
-from hahomematic.const import EntityUsage, HmPlatform, Parameter
+from hahomematic.const import DataPointUsage, HmPlatform, Parameter
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.custom import definition as hmed
 from hahomematic.platforms.custom.const import DeviceProfile, Field
-from hahomematic.platforms.custom.data_point import CustomEntity
+from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
 from hahomematic.platforms.generic import (
-    GenericEntity,
+    GenericDataPoint,
     HmAction,
     HmFloat,
     HmInteger,
@@ -137,7 +137,7 @@ class LightOffArgs(TypedDict, total=False):
     ramp_time: float
 
 
-class CeDimmer(CustomEntity, OnTimeMixin):
+class CeDimmer(CustomDataPoint, OnTimeMixin):
     """Base class for HomeMatic light entities."""
 
     _platform = HmPlatform.LIGHT
@@ -480,7 +480,7 @@ class CeIpRGBWLight(CeDimmer):
         return None
 
     @property
-    def _relevant_entities(self) -> tuple[GenericEntity, ...]:
+    def _relevant_entities(self) -> tuple[GenericDataPoint, ...]:
         """Returns the list of relevant entities. To be overridden by subclasses."""
         if self._e_device_operation_mode.value == _DeviceOperationMode.RGBW:
             return self._e_hue, self._e_level, self._e_saturation, self._e_color_temperature_kelvin
@@ -513,7 +513,7 @@ class CeIpRGBWLight(CeDimmer):
         )
 
     @property
-    def usage(self) -> EntityUsage:
+    def usage(self) -> DataPointUsage:
         """
         Return the entity usage.
 
@@ -527,7 +527,7 @@ class CeIpRGBWLight(CeDimmer):
             self._e_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE
             and self._channel.no in (3, 4)
         ):
-            return EntityUsage.NO_CREATE
+            return DataPointUsage.NO_CREATE
         return self._get_entity_usage()
 
     @state_property
@@ -639,7 +639,7 @@ class CeIpDrgDaliLight(CeDimmer):
         return None
 
     @property
-    def _relevant_entities(self) -> tuple[GenericEntity, ...]:
+    def _relevant_entities(self) -> tuple[GenericDataPoint, ...]:
         """Returns the list of relevant entities. To be overridden by subclasses."""
         return (self._e_level,)
 

@@ -7,7 +7,7 @@ from typing import Any, Final
 
 from hahomematic.const import (
     CallSource,
-    EntityUsage,
+    DataPointUsage,
     HomematicEventType,
     Parameter,
     ParameterData,
@@ -16,7 +16,7 @@ from hahomematic.const import (
 from hahomematic.platforms import data_point as hme, device as hmd
 from hahomematic.platforms.decorators import service
 from hahomematic.platforms.support import (
-    EntityNameData,
+    DataPointNameData,
     GenericParameterType,
     get_entity_name_data,
 )
@@ -24,8 +24,8 @@ from hahomematic.platforms.support import (
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class GenericEntity[ParameterT: GenericParameterType, InputParameterT: GenericParameterType](
-    hme.BaseParameterEntity
+class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: GenericParameterType](
+    hme.BaseParameterDataPoint
 ):
     """Base class for generic entities."""
 
@@ -48,13 +48,13 @@ class GenericEntity[ParameterT: GenericParameterType, InputParameterT: GenericPa
         )
 
     @property
-    def usage(self) -> EntityUsage:
+    def usage(self) -> DataPointUsage:
         """Return the entity usage."""
         if self._is_forced_sensor or self._is_un_ignored:
-            return EntityUsage.ENTITY
+            return DataPointUsage.DATA_POINT
         if (force_enabled := self._enabled_by_channel_operation_mode) is None:
             return self._get_entity_usage()
-        return EntityUsage.ENTITY if force_enabled else EntityUsage.NO_CREATE
+        return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE
 
     async def event(self, value: Any) -> None:
         """Handle event for which this entity has subscribed."""
@@ -131,14 +131,14 @@ class GenericEntity[ParameterT: GenericParameterType, InputParameterT: GenericPa
         """Prepare value, if required, before send."""
         return value  # type: ignore[return-value]
 
-    def _get_entity_name(self) -> EntityNameData:
+    def _get_entity_name(self) -> DataPointNameData:
         """Create the name for the entity."""
         return get_entity_name_data(
             channel=self._channel,
             parameter=self._parameter,
         )
 
-    def _get_entity_usage(self) -> EntityUsage:
+    def _get_entity_usage(self) -> DataPointUsage:
         """Generate the usage for the entity."""
         if self._forced_usage:
             return self._forced_usage
@@ -148,15 +148,15 @@ class GenericEntity[ParameterT: GenericParameterType, InputParameterT: GenericPa
             paramset_key=self._paramset_key,
             parameter=self._parameter,
         ):
-            return EntityUsage.NO_CREATE
+            return DataPointUsage.NO_CREATE
 
         return (
-            EntityUsage.NO_CREATE
+            DataPointUsage.NO_CREATE
             if (
                 self._device.has_custom_entity_definition
                 and not self._device.allow_undefined_generic_entities
             )
-            else EntityUsage.ENTITY
+            else DataPointUsage.DATA_POINT
         )
 
     def is_state_change(self, value: ParameterT) -> bool:

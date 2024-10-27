@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.generic import HmBinarySensor
 from hahomematic.platforms.hub import HmSysvarBinarySensor
 
@@ -45,7 +45,7 @@ async def test_hmbinarysensor(
         HmBinarySensor,
         central.get_generic_entity("VCU5864966:1", "STATE"),
     )
-    assert binary_sensor.usage == EntityUsage.ENTITY
+    assert binary_sensor.usage == DataPointUsage.DATA_POINT
     assert binary_sensor.value is False
     assert binary_sensor.is_writeable is False
     assert binary_sensor.visible is True

@@ -16,7 +16,7 @@ from hahomematic.const import (
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     EVENT_AVAILABLE,
-    EntityUsage,
+    DataPointUsage,
     HmPlatform,
     HomematicEventType,
     InterfaceEventType,
@@ -184,7 +184,7 @@ async def test_device_un_ignore_etrv(
         )
         generic_entity = central.get_generic_entity(f"VCU3609622:{channel_no}", parameter)
         if generic_entity:
-            assert generic_entity.usage == EntityUsage.ENTITY
+            assert generic_entity.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 
@@ -226,7 +226,7 @@ async def test_device_un_ignore_broll(
         generic_entity = central.get_generic_entity(f"VCU8537918:{channel_no}", parameter)
         if expected_result:
             assert generic_entity
-            assert generic_entity.usage == EntityUsage.ENTITY
+            assert generic_entity.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 
@@ -271,7 +271,7 @@ async def test_device_un_ignore_hm(
         )
         if expected_result:
             assert generic_entity
-            assert generic_entity.usage == EntityUsage.ENTITY
+            assert generic_entity.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 
@@ -358,7 +358,7 @@ async def test_device_un_ignore_hm2(
         )
         if expected_result:
             assert generic_entity
-            assert generic_entity.usage == EntityUsage.ENTITY
+            assert generic_entity.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 

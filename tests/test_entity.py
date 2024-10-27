@@ -10,7 +10,7 @@ import pytest
 from hahomematic.caches.visibility import check_ignore_parameters_is_clean
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import CallSource, EntityUsage
+from hahomematic.const import CallSource, DataPointUsage
 from hahomematic.platforms.custom import (
     CeSwitch,
     get_required_parameters,
@@ -53,7 +53,7 @@ async def test_custom_entity_callback(
     """Test CeSwitch."""
     central, _, factory = central_client_factory
     switch: CeSwitch = cast(CeSwitch, helper.get_prepared_custom_entity(central, "VCU2128127", 4))
-    assert switch.usage == EntityUsage.CE_PRIMARY
+    assert switch.usage == DataPointUsage.CE_PRIMARY
 
     device_updated_mock = MagicMock()
     device_removed_mock = MagicMock()
@@ -106,7 +106,7 @@ async def test_generic_entity_callback(
     """Test CeSwitch."""
     central, _, factory = central_client_factory
     switch: HmSwitch = cast(HmSwitch, central.get_generic_entity("VCU2128127:4", "STATE"))
-    assert switch.usage == EntityUsage.NO_CREATE
+    assert switch.usage == DataPointUsage.NO_CREATE
 
     device_updated_mock = MagicMock()
     device_removed_mock = MagicMock()
@@ -222,7 +222,7 @@ async def test_generic_wrapped_entity(
     assert wrapped_entity._platform == "number"
     assert wrapped_entity._is_forced_sensor is True
     assert wrapped_entity.platform == "sensor"
-    assert wrapped_entity.usage == EntityUsage.ENTITY
+    assert wrapped_entity.usage == DataPointUsage.DATA_POINT
 
 
 def test_custom_required_entities() -> None:

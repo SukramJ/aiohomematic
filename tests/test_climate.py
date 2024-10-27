@@ -13,10 +13,10 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage, ParamsetKey
+from hahomematic.const import DataPointUsage, ParamsetKey
 from hahomematic.exceptions import ValidationException
 from hahomematic.platforms.custom import (
-    BaseClimateEntity,
+    BaseClimateDataPoint,
     CeIpThermostat,
     CeRfThermostat,
     CeSimpleRfThermostat,
@@ -67,7 +67,7 @@ async def test_cesimplerfthermostat(
     climate: CeSimpleRfThermostat = cast(
         CeSimpleRfThermostat, helper.get_prepared_custom_entity(central, "VCU0000054", 1)
     )
-    assert climate.usage == EntityUsage.CE_PRIMARY
+    assert climate.usage == DataPointUsage.CE_PRIMARY
 
     assert climate.is_valid is False
     assert climate.service_method_names == (
@@ -157,7 +157,7 @@ async def test_cerfthermostat(
     climate: CeRfThermostat = cast(
         CeRfThermostat, helper.get_prepared_custom_entity(central, "VCU0000050", 4)
     )
-    assert climate.usage == EntityUsage.CE_PRIMARY
+    assert climate.usage == DataPointUsage.CE_PRIMARY
     assert climate.service_method_names == (
         "copy_schedule",
         "copy_schedule_profile",
@@ -334,7 +334,7 @@ async def test_ceipthermostat(
     climate: CeIpThermostat = cast(
         CeIpThermostat, helper.get_prepared_custom_entity(central, "VCU1769958", 1)
     )
-    assert climate.usage == EntityUsage.CE_PRIMARY
+    assert climate.usage == DataPointUsage.CE_PRIMARY
     assert climate.service_method_names == (
         "copy_schedule",
         "copy_schedule_profile",
@@ -521,11 +521,13 @@ async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
     """Test the central."""
     assert central_unit_mini
 
-    climate_bwth: BaseClimateEntity = cast(
-        BaseClimateEntity, central_unit_mini.get_custom_entity(address="VCU1769958", channel_no=1)
+    climate_bwth: BaseClimateDataPoint = cast(
+        BaseClimateDataPoint,
+        central_unit_mini.get_custom_entity(address="VCU1769958", channel_no=1),
     )
-    climate_etrv: BaseClimateEntity = cast(
-        BaseClimateEntity, central_unit_mini.get_custom_entity(address="VCU3609622", channel_no=1)
+    climate_etrv: BaseClimateDataPoint = cast(
+        BaseClimateDataPoint,
+        central_unit_mini.get_custom_entity(address="VCU3609622", channel_no=1),
     )
     assert climate_bwth
     profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)

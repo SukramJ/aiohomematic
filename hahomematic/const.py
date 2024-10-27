@@ -115,7 +115,7 @@ class BackendSystemEvent(StrEnum):
     DELETE_DEVICES = "deleteDevices"
     DEVICES_CREATED = "devicesCreated"
     ERROR = "error"
-    HUB_REFRESHED = "hubEntityRefreshed"
+    HUB_REFRESHED = "hubDataPointRefreshed"
     LIST_DEVICES = "listDevices"
     NEW_DEVICES = "newDevices"
     REPLACE_DEVICE = "replaceDevice"
@@ -158,15 +158,15 @@ class DeviceFirmwareState(StrEnum):
     BACKGROUND_UPDATE_NOT_SUPPORTED = "BACKGROUND_UPDATE_NOT_SUPPORTED"
 
 
-class EntityUsage(StrEnum):
+class DataPointUsage(StrEnum):
     """Enum with information about usage in Home Assistant."""
 
     CE_PRIMARY = "ce_primary"
     CE_SECONDARY = "ce_secondary"
     CE_VISIBLE = "ce_visible"
-    ENTITY = "entity"
+    DATA_POINT = "data_point"
     EVENT = "event"
-    NO_CREATE = "entity_no_create"
+    NO_CREATE = "no_create"
 
 
 class Flag(IntEnum):

@@ -11,7 +11,7 @@ from hahomematic.const import (
     DEVICE_ERROR_EVENTS,
     ENTITY_EVENTS,
     IMPULSE_EVENTS,
-    EntityUsage,
+    DataPointUsage,
     HmPlatform,
     HomematicEventType,
     Operations,
@@ -19,8 +19,8 @@ from hahomematic.const import (
     ParamsetKey,
 )
 from hahomematic.platforms import device as hmd
-from hahomematic.platforms.data_point import BaseParameterEntity
-from hahomematic.platforms.support import EntityNameData, get_event_name
+from hahomematic.platforms.data_point import BaseParameterDataPoint
+from hahomematic.platforms.support import DataPointNameData, get_event_name
 
 __all__ = [
     "ClickEvent",
@@ -33,7 +33,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class GenericEvent(BaseParameterEntity[Any, Any]):
+class GenericEvent(BaseParameterDataPoint[Any, Any]):
     """Base class for events."""
 
     _platform = HmPlatform.EVENT
@@ -55,11 +55,11 @@ class GenericEvent(BaseParameterEntity[Any, Any]):
         )
 
     @property
-    def usage(self) -> EntityUsage:
+    def usage(self) -> DataPointUsage:
         """Return the entity usage."""
         if (forced_by_com := self._enabled_by_channel_operation_mode) is None:
             return self._get_entity_usage()
-        return EntityUsage.EVENT if forced_by_com else EntityUsage.NO_CREATE
+        return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE
 
     @property
     def event_type(self) -> HomematicEventType:
@@ -80,16 +80,16 @@ class GenericEvent(BaseParameterEntity[Any, Any]):
             event_type=self.event_type, event_data=self.get_event_data(value=value)
         )
 
-    def _get_entity_name(self) -> EntityNameData:
+    def _get_entity_name(self) -> DataPointNameData:
         """Create the name for the entity."""
         return get_event_name(
             channel=self._channel,
             parameter=self._parameter,
         )
 
-    def _get_entity_usage(self) -> EntityUsage:
+    def _get_entity_usage(self) -> DataPointUsage:
         """Generate the usage for the entity."""
-        return EntityUsage.EVENT
+        return DataPointUsage.EVENT
 
 
 class ClickEvent(GenericEvent):

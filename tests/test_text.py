@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.generic import HmText
 from hahomematic.platforms.hub import HmSysvarText
 
@@ -38,7 +38,7 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
     """Test HmText. There are currently no text entities."""
     central, _ = central_client
     text: HmText = cast(HmText, central.get_generic_entity("VCU7981740:1", "STATE"))
-    assert text.usage == EntityUsage.ENTITY
+    assert text.usage == DataPointUsage.DATA_POINT
 
 
 @pytest.mark.asyncio
@@ -61,7 +61,7 @@ async def test_hmsysvartext(
     """Test HmSysvarText. There are currently no text entities."""
     central, mock_client, _ = central_client_factory
     text: HmSysvarText = cast(HmSysvarText, central.get_sysvar_entity("sv_string_ext"))
-    assert text.usage == EntityUsage.ENTITY
+    assert text.usage == DataPointUsage.DATA_POINT
 
     assert text.unit is None
     assert text.values is None

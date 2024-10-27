@@ -12,12 +12,12 @@ from enum import IntEnum, StrEnum
 import logging
 from typing import Any, Final
 
-from hahomematic.const import EntityUsage, HmPlatform, Parameter
+from hahomematic.const import DataPointUsage, HmPlatform, Parameter
 from hahomematic.converter import convert_hm_level_to_cpv
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.custom import definition as hmed
 from hahomematic.platforms.custom.const import DeviceProfile, Field
-from hahomematic.platforms.custom.data_point import CustomEntity
+from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
@@ -84,7 +84,7 @@ class _StateChangeArg(StrEnum):
     VENT = "vent"
 
 
-class CeCover(CustomEntity):
+class CeCover(CustomDataPoint):
     """Class for HomeMatic cover entities."""
 
     _platform = HmPlatform.COVER
@@ -107,7 +107,7 @@ class CeCover(CustomEntity):
     @property
     def _channel_level(self) -> float:
         """Return the channel level of the cover."""
-        if self._e_channel_level.value is not None and self.usage == EntityUsage.CE_PRIMARY:
+        if self._e_channel_level.value is not None and self.usage == DataPointUsage.CE_PRIMARY:
             return float(self._e_channel_level.value)
         return self._e_level.value if self._e_level.value is not None else self._closed_level
 
@@ -251,7 +251,7 @@ class CeBlind(CeCover):
     @property
     def _channel_tilt_level(self) -> float:
         """Return the channel level of the tilt."""
-        if self._e_channel_level_2.value is not None and self.usage == EntityUsage.CE_PRIMARY:
+        if self._e_channel_level_2.value is not None and self.usage == DataPointUsage.CE_PRIMARY:
             return float(self._e_channel_level_2.value)
         return self._e_level_2.value if self._e_level_2.value is not None else self._closed_level
 
@@ -469,7 +469,7 @@ class CeIpBlind(CeBlind):
         return None
 
 
-class CeGarage(CustomEntity):
+class CeGarage(CustomDataPoint):
     """Class for HomeMatic garage entities."""
 
     _platform = HmPlatform.COVER

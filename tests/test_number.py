@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.generic import HmFloat, HmInteger
 from hahomematic.platforms.hub import HmSysvarNumber
 
@@ -47,7 +47,7 @@ async def test_hmfloat(
         HmFloat,
         central.get_generic_entity("VCU0000011:3", "LEVEL"),
     )
-    assert efloat.usage == EntityUsage.NO_CREATE
+    assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "%"
     assert efloat.values is None
     assert efloat.value is None
@@ -93,7 +93,7 @@ async def test_hmfloat_special(
         HmFloat,
         central.get_generic_entity("VCU0000054:2", "SETPOINT"),
     )
-    assert efloat.usage == EntityUsage.NO_CREATE
+    assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "°C"
     assert efloat.values is None
     assert efloat.value is None
@@ -139,7 +139,7 @@ async def test_hminteger(
         HmInteger,
         central.get_generic_entity("VCU4984404:1", "SET_POINT_MODE"),
     )
-    assert einteger.usage == EntityUsage.NO_CREATE
+    assert einteger.usage == DataPointUsage.NO_CREATE
     assert einteger.unit is None
     assert einteger.min == 0
     assert einteger.max == 3
@@ -203,7 +203,7 @@ async def test_hmsysvarnumber(
         HmSysvarNumber,
         central.get_sysvar_entity("sv_float_ext"),
     )
-    assert enumber.usage == EntityUsage.ENTITY
+    assert enumber.usage == DataPointUsage.DATA_POINT
     assert enumber.unit == "°C"
     assert enumber.min == 5.0
     assert enumber.max == 30.0

@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.generic import HmAction
 
 from tests import helper
@@ -44,7 +44,7 @@ async def test_hmaction(
         HmAction,
         central.get_generic_entity("VCU9724704:1", "LOCK_TARGET_LEVEL"),
     )
-    assert action.usage == EntityUsage.NO_CREATE
+    assert action.usage == DataPointUsage.NO_CREATE
     assert action.is_readable is False
     assert action.value is None
     assert action.values == ("LOCKED", "UNLOCKED", "OPEN")

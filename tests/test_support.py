@@ -17,7 +17,7 @@ from hahomematic.const import (
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     VIRTUAL_REMOTE_ADDRESSES,
-    EntityUsage,
+    DataPointUsage,
     ParameterType,
     SysvarType,
 )
@@ -292,7 +292,7 @@ async def test_custom_entity_name(
     name_data = get_custom_entity_name(
         channel=channel4,
         is_only_primary_channel=True,
-        usage=EntityUsage.CE_PRIMARY,
+        usage=DataPointUsage.CE_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127"
     assert name_data.entity_name == ""
@@ -300,7 +300,7 @@ async def test_custom_entity_name(
     name_data = get_custom_entity_name(
         channel=channel4,
         is_only_primary_channel=False,
-        usage=EntityUsage.CE_SECONDARY,
+        usage=DataPointUsage.CE_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 vch4"
     assert name_data.entity_name == "vch4"
@@ -310,7 +310,7 @@ async def test_custom_entity_name(
     name_data = get_custom_entity_name(
         channel=channel5,
         is_only_primary_channel=True,
-        usage=EntityUsage.CE_PRIMARY,
+        usage=DataPointUsage.CE_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
     assert name_data.entity_name == "Roof"
@@ -318,7 +318,7 @@ async def test_custom_entity_name(
     name_data = get_custom_entity_name(
         channel=channel5,
         is_only_primary_channel=False,
-        usage=EntityUsage.CE_SECONDARY,
+        usage=DataPointUsage.CE_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
     assert name_data.entity_name == "Roof"
@@ -330,7 +330,7 @@ async def test_custom_entity_name(
         name_data = get_custom_entity_name(
             channel=channel5,
             is_only_primary_channel=False,
-            usage=EntityUsage.CE_SECONDARY,
+            usage=DataPointUsage.CE_SECONDARY,
         )
         assert name_data.full_name == ""
         assert name_data.entity_name is None

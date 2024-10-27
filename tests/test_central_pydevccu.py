@@ -7,13 +7,13 @@ import os
 import orjson
 import pytest
 
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
     get_public_attributes_for_state_property,
 )
-from hahomematic.platforms.generic import GenericEntity
+from hahomematic.platforms.generic import GenericDataPoint
 
 from tests import const
 
@@ -81,7 +81,7 @@ async def test_central_full(central_unit_full) -> None:
 
             entity_types[entity.hmtype][type(entity).__name__].append(entity)
 
-        if isinstance(entity, GenericEntity):
+        if isinstance(entity, GenericDataPoint):
             pub_value_props = get_public_attributes_for_state_property(data_object=entity)
             assert pub_value_props
             pub_config_props = get_public_attributes_for_config_property(data_object=entity)
@@ -101,7 +101,7 @@ async def test_central_full(central_unit_full) -> None:
         if hasattr(entity, "unit"):
             units.add(entity.unit)
 
-    usage_types: dict[EntityUsage, int] = {}
+    usage_types: dict[DataPointUsage, int] = {}
     for entity in central_unit_full.get_entities(exclude_no_create=False):
         if hasattr(entity, "usage"):
             if entity.usage not in usage_types:
@@ -119,11 +119,11 @@ async def test_central_full(central_unit_full) -> None:
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    assert usage_types[EntityUsage.NO_CREATE] == 3172
-    assert usage_types[EntityUsage.CE_PRIMARY] == 208
-    assert usage_types[EntityUsage.ENTITY] == 3638
-    assert usage_types[EntityUsage.CE_VISIBLE] == 125
-    assert usage_types[EntityUsage.CE_SECONDARY] == 146
+    assert usage_types[DataPointUsage.NO_CREATE] == 3172
+    assert usage_types[DataPointUsage.CE_PRIMARY] == 208
+    assert usage_types[DataPointUsage.DATA_POINT] == 3638
+    assert usage_types[DataPointUsage.CE_VISIBLE] == 125
+    assert usage_types[DataPointUsage.CE_SECONDARY] == 146
 
     assert len(ce_channels) == 121
     assert len(entity_types) == 6

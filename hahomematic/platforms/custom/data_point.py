@@ -7,16 +7,16 @@ from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
-from hahomematic.const import CALLBACK_TYPE, ENTITY_KEY, INIT_DATETIME, CallSource, EntityUsage
+from hahomematic.const import CALLBACK_TYPE, ENTITY_KEY, INIT_DATETIME, CallSource, DataPointUsage
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.custom import definition as hmed
 from hahomematic.platforms.custom.const import ED, DeviceProfile, Field
 from hahomematic.platforms.custom.support import CustomConfig
-from hahomematic.platforms.data_point import BaseEntity, CallParameterCollector
+from hahomematic.platforms.data_point import BaseDataPoint, CallParameterCollector
 from hahomematic.platforms.decorators import get_service_calls, state_property
 from hahomematic.platforms.generic import data_point as hmge
 from hahomematic.platforms.support import (
-    EntityNameData,
+    DataPointNameData,
     check_channel_is_the_only_primary_channel,
     get_custom_entity_name,
 )
@@ -25,7 +25,7 @@ from hahomematic.support import get_channel_address
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CustomEntity(BaseEntity):
+class CustomDataPoint(BaseDataPoint):
     """Base class for custom entities."""
 
     def __init__(
@@ -41,7 +41,7 @@ class CustomEntity(BaseEntity):
         """Initialize the entity."""
         self._unregister_callbacks: list[CALLBACK_TYPE] = []
         self._device_profile: Final = device_profile
-        # required for name in BaseEntity
+        # required for name in BaseDataPoint
         self._device_def: Final = device_def
         self._entity_def: Final = entity_def
         self._base_no: int = base_channel_no
@@ -57,7 +57,7 @@ class CustomEntity(BaseEntity):
         self._allow_undefined_generic_entities: Final[bool] = self._device_def[
             ED.ALLOW_UNDEFINED_GENERIC_ENTITIES
         ]
-        self._data_entities: Final[dict[Field, hmge.GenericEntity]] = {}
+        self._data_entities: Final[dict[Field, hmge.GenericDataPoint]] = {}
         self._init_entities()
         self._init_entity_fields()
         self._service_methods = get_service_calls(obj=self)
@@ -121,12 +121,12 @@ class CustomEntity(BaseEntity):
         return any(entity.state_uncertain for entity in self._relevant_entities)
 
     @property
-    def _readable_entities(self) -> tuple[hmge.GenericEntity, ...]:
+    def _readable_entities(self) -> tuple[hmge.GenericDataPoint, ...]:
         """Returns the list of readable entities."""
         return tuple(ge for ge in self._data_entities.values() if ge.is_readable)
 
     @property
-    def _relevant_entities(self) -> tuple[hmge.GenericEntity, ...]:
+    def _relevant_entities(self) -> tuple[hmge.GenericDataPoint, ...]:
         """Returns the list of relevant entities. To be overridden by subclasses."""
         return self._readable_entities
 
@@ -135,7 +135,7 @@ class CustomEntity(BaseEntity):
         """Return the entity name postfix."""
         return ""
 
-    def _get_entity_name(self) -> EntityNameData:
+    def _get_entity_name(self) -> DataPointNameData:
         """Create the name for the entity."""
         is_only_primary_channel = check_channel_is_the_only_primary_channel(
             current_channel_no=self._channel.no,
@@ -149,13 +149,13 @@ class CustomEntity(BaseEntity):
             postfix=self.entity_name_postfix.replace("_", " ").title(),
         )
 
-    def _get_entity_usage(self) -> EntityUsage:
+    def _get_entity_usage(self) -> DataPointUsage:
         """Generate the usage for the entity."""
         if self._forced_usage:
             return self._forced_usage
         if self._channel.no in self._custom_config.channels:
-            return EntityUsage.CE_PRIMARY
-        return EntityUsage.CE_SECONDARY
+            return DataPointUsage.CE_PRIMARY
+        return DataPointUsage.CE_SECONDARY
 
     async def load_entity_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the entity values."""
@@ -236,15 +236,15 @@ class CustomEntity(BaseEntity):
                     self._add_entity(field=field, entity=entity, is_visible=is_visible)
 
     def _add_entity(
-        self, field: Field, entity: hmge.GenericEntity | None, is_visible: bool | None = None
+        self, field: Field, entity: hmge.GenericDataPoint | None, is_visible: bool | None = None
     ) -> None:
         """Add entity to collection and register callback."""
         if not entity:
             return
         if is_visible is True and entity.is_forced_sensor is False:
-            entity.force_usage(forced_usage=EntityUsage.CE_VISIBLE)
+            entity.force_usage(forced_usage=DataPointUsage.CE_VISIBLE)
         elif is_visible is False and entity.is_forced_sensor is False:
-            entity.force_usage(forced_usage=EntityUsage.NO_CREATE)
+            entity.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unregister_callbacks.append(
             entity.register_internal_entity_updated_callback(cb=self.fire_entity_updated_callback)
@@ -280,11 +280,11 @@ class CustomEntity(BaseEntity):
             if entity := self._device.get_generic_entity(
                 channel_address=channel_address, parameter=parameter
             ):
-                entity.force_usage(forced_usage=EntityUsage.ENTITY)
+                entity.force_usage(forced_usage=DataPointUsage.DATA_POINT)
 
-    def _get_entity[_EntityT: hmge.GenericEntity](
-        self, field: Field, entity_type: type[_EntityT]
-    ) -> _EntityT:
+    def _get_entity[_DataPointT: hmge.GenericDataPoint](
+        self, field: Field, entity_type: type[_DataPointT]
+    ) -> _DataPointT:
         """Get entity."""
         if entity := self._data_entities.get(field):
             if type(entity).__name__ != entity_type.__name__:
@@ -300,7 +300,7 @@ class CustomEntity(BaseEntity):
             return cast(entity_type, entity)  # type: ignore[valid-type]
         return cast(
             entity_type,  # type:ignore[valid-type]
-            NoneTypeEntity(),
+            NoneTypeDataPoint(),
         )
 
     def has_entity_key(self, entity_keys: set[ENTITY_KEY]) -> bool:
@@ -311,8 +311,8 @@ class CustomEntity(BaseEntity):
         return len(result) > 0
 
 
-class NoneTypeEntity:
-    """Entity to return an empty value."""
+class NoneTypeDataPoint:
+    """DataPoint to return an empty value."""
 
     default: Any = None
     hmtype: Any = None

@@ -15,7 +15,7 @@ from hahomematic.const import HmPlatform, Parameter
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.custom import definition as hmed
 from hahomematic.platforms.custom.const import DeviceProfile, Field
-from hahomematic.platforms.custom.data_point import CustomEntity
+from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
@@ -33,7 +33,7 @@ class _SwitchStateChangeArg(StrEnum):
     ON_TIME = "on_time"
 
 
-class CeSwitch(CustomEntity, OnTimeMixin):
+class CeSwitch(CustomDataPoint, OnTimeMixin):
     """Class for HomeMatic switch entities."""
 
     _platform = HmPlatform.SWITCH

@@ -19,7 +19,7 @@ from hahomematic.const import (
 )
 from hahomematic.platforms.hub.binary_sensor import HmSysvarBinarySensor
 from hahomematic.platforms.hub.button import HmProgramButton
-from hahomematic.platforms.hub.data_point import GenericHubEntity, GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericHubDataPoint, GenericSystemVariable
 from hahomematic.platforms.hub.number import HmSysvarNumber
 from hahomematic.platforms.hub.select import HmSysvarSelect
 from hahomematic.platforms.hub.sensor import HmSysvarSensor
@@ -27,7 +27,7 @@ from hahomematic.platforms.hub.switch import HmSysvarSwitch
 from hahomematic.platforms.hub.text import HmSysvarText
 
 __all__ = [
-    "GenericHubEntity",
+    "GenericHubDataPoint",
     "GenericSystemVariable",
     "HmProgramButton",
     "HmSysvarBinarySensor",
@@ -237,10 +237,10 @@ def _clean_variables(variables: tuple[SystemVariableData, ...]) -> tuple[SystemV
 
 
 def _get_new_hub_entities(
-    entities: Collection[GenericHubEntity],
-) -> Mapping[HmPlatform, AbstractSet[GenericHubEntity]]:
+    entities: Collection[GenericHubDataPoint],
+) -> Mapping[HmPlatform, AbstractSet[GenericHubDataPoint]]:
     """Return entities as platform dict."""
-    hm_hub_entities: dict[HmPlatform, set[GenericHubEntity]] = {}
+    hm_hub_entities: dict[HmPlatform, set[GenericHubDataPoint]] = {}
     for hm_hub_platform in HUB_PLATFORMS:
         hm_hub_entities[hm_hub_platform] = set()
 

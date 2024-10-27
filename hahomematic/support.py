@@ -243,7 +243,7 @@ def get_split_channel_address(channel_address: str) -> tuple[str, int | None]:
 
 
 def changed_within_seconds(last_change: datetime, max_age: int = MAX_CACHE_AGE) -> bool:
-    """Entity has been modified within X minutes."""
+    """DataPoint has been modified within X minutes."""
     if last_change == INIT_DATETIME:
         return False
     delta = datetime.now() - last_change

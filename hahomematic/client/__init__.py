@@ -1373,7 +1373,7 @@ async def _track_single_entity_state_change_or_timeout(
     ):
         if not entity.supports_events:
             _LOGGER.debug(
-                "TRACK_SINGLE_ENTITY_STATE_CHANGE_OR_TIMEOUT: Entity supports no events %s",
+                "TRACK_SINGLE_ENTITY_STATE_CHANGE_OR_TIMEOUT: DataPoint supports no events %s",
                 entity_key,
             )
             return

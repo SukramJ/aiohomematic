@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.generic import HmSelect
 from hahomematic.platforms.hub import HmSysvarSelect
 
@@ -45,7 +45,7 @@ async def test_hmselect(
         HmSelect,
         central.get_generic_entity("VCU6354483:1", "WINDOW_STATE"),
     )
-    assert select.usage == EntityUsage.NO_CREATE
+    assert select.usage == DataPointUsage.NO_CREATE
     assert select.unit is None
     assert select.min == "CLOSED"
     assert select.max == "OPEN"
@@ -101,7 +101,7 @@ async def test_hmsysvarselect(
     """Test HmSysvarSelect."""
     central, mock_client, _ = central_client_factory
     select: HmSysvarSelect = cast(HmSysvarSelect, central.get_sysvar_entity("sv_list_ext"))
-    assert select.usage == EntityUsage.ENTITY
+    assert select.usage == DataPointUsage.DATA_POINT
     assert select.unit is None
     assert select.min is None
     assert select.max is None

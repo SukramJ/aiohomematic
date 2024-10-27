@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.generic.data_point import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericDataPoint
 from hahomematic.platforms.support import get_value_from_value_list
 
 
-class HmSelect(GenericEntity[int | str, int | float | str]):
+class HmSelect(GenericDataPoint[int | str, int | float | str]):
     """
     Implementation of a select entity.
 

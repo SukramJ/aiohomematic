@@ -12,13 +12,13 @@ from typing import Any, Final
 
 from hahomematic.const import HmPlatform, Parameter
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.generic.data_point import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericDataPoint
 from hahomematic.platforms.support import get_value_from_value_list
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmSensor[SensorT: float | int | str | None](GenericEntity[SensorT, None]):
+class HmSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None]):
     """
     Implementation of a sensor.
 

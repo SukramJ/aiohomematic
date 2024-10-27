@@ -16,7 +16,7 @@ from hahomematic import const as hahomematic_const
 from hahomematic.central import CentralConfig, CentralUnit
 from hahomematic.client import Client, InterfaceConfig, _ClientConfig
 from hahomematic.const import BackendSystemEvent, InterfaceName
-from hahomematic.platforms.custom import CustomEntity
+from hahomematic.platforms.custom import CustomDataPoint
 from hahomematic.platforms.decorators import _get_public_attributes_by_class_decorator
 from hahomematic_support.client_local import ClientLocal, LocalRessources
 
@@ -146,7 +146,7 @@ class Factory:
 
 def get_prepared_custom_entity(
     central: CentralUnit, address: str, channel_no: int | None
-) -> CustomEntity | None:
+) -> CustomDataPoint | None:
     """Return the hm custom_entity."""
     if custom_entity := central.get_custom_entity(address=address, channel_no=channel_no):
         for data_entity in custom_entity._data_entities.values():

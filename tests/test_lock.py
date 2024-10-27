@@ -10,7 +10,7 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.custom import CeIpLock, CeRfLock
 
 from tests import const, helper
@@ -45,7 +45,7 @@ async def test_cerflock(
     """Test CeRfLock."""
     central, mock_client, _ = central_client_factory
     lock: CeRfLock = cast(CeRfLock, helper.get_prepared_custom_entity(central, "VCU0000146", 1))
-    assert lock.usage == EntityUsage.CE_PRIMARY
+    assert lock.usage == DataPointUsage.CE_PRIMARY
 
     assert lock.is_locked is True
     await lock.unlock()
@@ -119,7 +119,7 @@ async def test_ceiplock(
     """Test CeIpLock."""
     central, mock_client, _ = central_client_factory
     lock: CeIpLock = cast(CeIpLock, helper.get_prepared_custom_entity(central, "VCU9724704", 1))
-    assert lock.usage == EntityUsage.CE_PRIMARY
+    assert lock.usage == DataPointUsage.CE_PRIMARY
     assert lock.service_method_names == ("lock", "open", "unlock")
 
     assert lock.is_locked is False

@@ -10,7 +10,7 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage
+from hahomematic.const import DataPointUsage
 from hahomematic.platforms.custom import CeSwitch
 from hahomematic.platforms.generic import HmSwitch
 from hahomematic.platforms.hub import HmSysvarSwitch
@@ -44,7 +44,7 @@ async def test_ceswitch(
     """Test CeSwitch."""
     central, mock_client, _ = central_client_factory
     switch: CeSwitch = cast(CeSwitch, helper.get_prepared_custom_entity(central, "VCU2128127", 4))
-    assert switch.usage == EntityUsage.CE_PRIMARY
+    assert switch.usage == DataPointUsage.CE_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
 
     await switch.turn_off()
@@ -118,7 +118,7 @@ async def test_hmswitch(
     """Test HmSwitch."""
     central, mock_client, _ = central_client_factory
     switch: HmSwitch = cast(HmSwitch, central.get_generic_entity("VCU2128127:4", "STATE"))
-    assert switch.usage == EntityUsage.NO_CREATE
+    assert switch.usage == DataPointUsage.NO_CREATE
     assert switch.service_method_names == (
         "send_value",
         "set_on_time",
@@ -196,7 +196,7 @@ async def test_hmsysvarswitch(
     """Test HmSysvarSwitch."""
     central, mock_client, _ = central_client_factory
     switch: HmSysvarSwitch = cast(HmSysvarSwitch, central.get_sysvar_entity("sv_alarm_ext"))
-    assert switch.usage == EntityUsage.ENTITY
+    assert switch.usage == DataPointUsage.DATA_POINT
 
     assert switch.value is False
     await switch.send_variable(True)

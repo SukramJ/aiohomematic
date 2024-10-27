@@ -22,7 +22,7 @@ from hahomematic.exceptions import ClientException, ValidationException
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.custom import definition as hmed
 from hahomematic.platforms.custom.const import DeviceProfile, Field
-from hahomematic.platforms.custom.data_point import CustomEntity
+from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import config_property, service, state_property
@@ -154,7 +154,7 @@ PROFILE_DICT = dict[ScheduleWeekday, WEEKDAY_DICT]
 _SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
 
 
-class BaseClimateEntity(CustomEntity):
+class BaseClimateDataPoint(CustomDataPoint):
     """Base HomeMatic climate entity."""
 
     _platform = HmPlatform.CLIMATE
@@ -343,7 +343,7 @@ class BaseClimateEntity(CustomEntity):
         return super().is_state_change(**kwargs)
 
     @service()
-    async def copy_schedule(self, target_climate_entity: BaseClimateEntity) -> None:
+    async def copy_schedule(self, target_climate_entity: BaseClimateDataPoint) -> None:
         """Copy schedule to target device."""
 
         if self.device.product_group != target_climate_entity.device.product_group:
@@ -366,7 +366,7 @@ class BaseClimateEntity(CustomEntity):
         self,
         source_profile: ScheduleProfile,
         target_profile: ScheduleProfile,
-        target_climate_entity: BaseClimateEntity | None = None,
+        target_climate_entity: BaseClimateDataPoint | None = None,
     ) -> None:
         """Copy schedule profile to target device."""
         same_device = False
@@ -694,11 +694,11 @@ class BaseClimateEntity(CustomEntity):
                 previous_endtime = endtime
 
 
-class CeSimpleRfThermostat(BaseClimateEntity):
+class CeSimpleRfThermostat(BaseClimateDataPoint):
     """Simple classic HomeMatic thermostat HM-CC-TC."""
 
 
-class CeRfThermostat(BaseClimateEntity):
+class CeRfThermostat(BaseClimateDataPoint):
     """Classic HomeMatic thermostat like HM-CC-RT-DN."""
 
     def _init_entity_fields(self) -> None:
@@ -861,7 +861,7 @@ def _party_mode_code(start: datetime, end: datetime, away_temperature: float) ->
     return f"{away_temperature:.1f},{start.hour*60+start.minute},{start.strftime('%d,%m,%y')},{end.hour*60+end.minute},{end.strftime('%d,%m,%y')}"
 
 
-class CeIpThermostat(BaseClimateEntity):
+class CeIpThermostat(BaseClimateDataPoint):
     """HomematicIP thermostat like HmIP-eTRV-B."""
 
     _supports_schedule = True

@@ -11,10 +11,10 @@ from typing import Final
 from hahomematic import central as hmcu
 from hahomematic.const import PROGRAM_ADDRESS, HmPlatform, HubData, ProgramData
 from hahomematic.platforms.decorators import get_service_calls, service, state_property
-from hahomematic.platforms.hub.data_point import GenericHubEntity
+from hahomematic.platforms.hub.data_point import GenericHubDataPoint
 
 
-class HmProgramButton(GenericHubEntity):
+class HmProgramButton(GenericHubDataPoint):
     """Class for a HomeMatic program button."""
 
     _platform = HmPlatform.HUB_BUTTON

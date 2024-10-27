@@ -20,14 +20,14 @@ from hahomematic.const import (
 )
 from hahomematic.exceptions import HaHomematicException
 from hahomematic.platforms import device as hmd
-from hahomematic.platforms.data_point import CallbackEntity
+from hahomematic.platforms.data_point import CallbackDataPoint
 from hahomematic.platforms.decorators import config_property, get_service_calls, state_property
 from hahomematic.platforms.support import PayloadMixin, generate_unique_id
 
 __all__ = ["HmUpdate"]
 
 
-class HmUpdate(CallbackEntity, PayloadMixin):
+class HmUpdate(CallbackDataPoint, PayloadMixin):
     """
     Implementation of a update.
 

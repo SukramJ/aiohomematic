@@ -72,13 +72,18 @@ from hahomematic.exceptions import (
 )
 from hahomematic.performance import measure_execution_time
 from hahomematic.platforms import create_entities_and_events
-from hahomematic.platforms.custom import CustomEntity, create_custom_entities
-from hahomematic.platforms.data_point import BaseParameterEntity, CallbackEntity
+from hahomematic.platforms.custom import CustomDataPoint, create_custom_entities
+from hahomematic.platforms.data_point import BaseParameterDataPoint, CallbackDataPoint
 from hahomematic.platforms.decorators import info_property, service
 from hahomematic.platforms.device import HmDevice
 from hahomematic.platforms.event import GenericEvent
-from hahomematic.platforms.generic import GenericEntity
-from hahomematic.platforms.hub import GenericHubEntity, GenericSystemVariable, HmProgramButton, Hub
+from hahomematic.platforms.generic import GenericDataPoint
+from hahomematic.platforms.hub import (
+    GenericHubDataPoint,
+    GenericSystemVariable,
+    HmProgramButton,
+    Hub,
+)
 from hahomematic.platforms.support import PayloadMixin
 from hahomematic.support import (
     check_config,
@@ -656,7 +661,7 @@ class CentralUnit(PayloadMixin):
         d_address = get_device_address(address=address)
         return self._devices.get(d_address)
 
-    def get_entity_by_custom_id(self, custom_id: str) -> CallbackEntity | None:
+    def get_entity_by_custom_id(self, custom_id: str) -> CallbackDataPoint | None:
         """Return homematic entity by custom_id."""
         for entity in self.get_entities(registered=True):
             if entity.custom_id == custom_id:
@@ -668,9 +673,9 @@ class CentralUnit(PayloadMixin):
         platform: HmPlatform | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
-    ) -> tuple[CallbackEntity, ...]:
+    ) -> tuple[CallbackDataPoint, ...]:
         """Return all externally registered entities."""
-        all_entities: list[CallbackEntity] = []
+        all_entities: list[CallbackDataPoint] = []
         for device in self._devices.values():
             all_entities.extend(
                 device.get_entities(
@@ -681,13 +686,13 @@ class CentralUnit(PayloadMixin):
 
     def get_readable_generic_entities(
         self, paramset_key: ParamsetKey | None = None
-    ) -> tuple[GenericEntity, ...]:
+    ) -> tuple[GenericDataPoint, ...]:
         """Return the readable generic entities."""
         return tuple(
             ge
             for ge in self.get_entities()
             if (
-                isinstance(ge, GenericEntity)
+                isinstance(ge, GenericDataPoint)
                 and ge.is_readable
                 and ((paramset_key and ge.paramset_key == paramset_key) or paramset_key is None)
             )
@@ -706,7 +711,7 @@ class CentralUnit(PayloadMixin):
 
     def get_hub_entities(
         self, platform: HmPlatform | None = None, registered: bool | None = None
-    ) -> tuple[GenericHubEntity, ...]:
+    ) -> tuple[GenericHubDataPoint, ...]:
         """Return the hub entities."""
         return tuple(
             he
@@ -1009,9 +1014,9 @@ class CentralUnit(PayloadMixin):
         )
         return result
 
-    def add_event_subscription(self, entity: BaseParameterEntity) -> None:
+    def add_event_subscription(self, entity: BaseParameterDataPoint) -> None:
         """Add entity to central event subscription."""
-        if isinstance(entity, (GenericEntity, GenericEvent)) and entity.supports_events:
+        if isinstance(entity, (GenericDataPoint, GenericEvent)) and entity.supports_events:
             if entity.entity_key not in self._entity_event_subscriptions:
                 self._entity_event_subscriptions[entity.entity_key] = []
             self._entity_event_subscriptions[entity.entity_key].append(entity.event)
@@ -1043,10 +1048,10 @@ class CentralUnit(PayloadMixin):
         self._device_details.remove_device(device=device)
         del self._devices[device.address]
 
-    def remove_event_subscription(self, entity: BaseParameterEntity) -> None:
+    def remove_event_subscription(self, entity: BaseParameterDataPoint) -> None:
         """Remove event subscription from central collections."""
         if (
-            isinstance(entity, (GenericEntity, GenericEvent))
+            isinstance(entity, (GenericDataPoint, GenericEvent))
             and entity.supports_events
             and entity.entity_key in self._entity_event_subscriptions
         ):
@@ -1170,7 +1175,7 @@ class CentralUnit(PayloadMixin):
 
     def get_generic_entity(
         self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericEntity | None:
+    ) -> GenericDataPoint | None:
         """Get entity by channel_address and parameter."""
         if device := self.get_device(address=channel_address):
             return device.get_generic_entity(
@@ -1184,7 +1189,7 @@ class CentralUnit(PayloadMixin):
             return device.get_generic_event(channel_address=channel_address, parameter=parameter)
         return None
 
-    def get_custom_entity(self, address: str, channel_no: int) -> CustomEntity | None:
+    def get_custom_entity(self, address: str, channel_no: int) -> CustomDataPoint | None:
         """Return the hm custom_entity."""
         if device := self.get_device(address=address):
             return device.get_custom_entity(channel_no=channel_no)
@@ -1619,10 +1624,10 @@ class CentralConnectionState:
 
 def _get_new_entities(
     new_devices: set[HmDevice],
-) -> Mapping[HmPlatform, AbstractSet[CallbackEntity]]:
+) -> Mapping[HmPlatform, AbstractSet[CallbackDataPoint]]:
     """Return new entities by platform."""
 
-    entities_by_platform: dict[HmPlatform, set[CallbackEntity]] = {
+    entities_by_platform: dict[HmPlatform, set[CallbackDataPoint]] = {
         platform: set() for platform in PLATFORMS if platform != HmPlatform.EVENT
     }
 

@@ -12,7 +12,7 @@ from hahomematic.platforms.custom.climate import (
     SIMPLE_PROFILE_DICT,
     SIMPLE_WEEKDAY_LIST,
     WEEKDAY_DICT,
-    BaseClimateEntity,
+    BaseClimateDataPoint,
     CeIpThermostat,
     CeRfThermostat,
     CeSimpleRfThermostat,
@@ -21,7 +21,7 @@ from hahomematic.platforms.custom.climate import (
     HmPresetMode,
 )
 from hahomematic.platforms.custom.cover import CeBlind, CeCover, CeGarage, CeIpBlind, CeWindowDrive
-from hahomematic.platforms.custom.data_point import CustomEntity
+from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.definition import (
     entity_definition_exists,
     get_custom_configs,
@@ -44,7 +44,7 @@ from hahomematic.platforms.custom.siren import BaseSiren, CeIpSiren, CeIpSirenSm
 from hahomematic.platforms.custom.switch import CeSwitch
 
 __all__ = [
-    "BaseClimateEntity",
+    "BaseClimateDataPoint",
     "BaseLock",
     "BaseSiren",
     "CeBlind",
@@ -68,7 +68,7 @@ __all__ = [
     "CeSimpleRfThermostat",
     "CeSwitch",
     "CeWindowDrive",
-    "CustomEntity",
+    "CustomDataPoint",
     "HM_PRESET_MODE_PREFIX",
     "HmHvacAction",
     "HmHvacMode",

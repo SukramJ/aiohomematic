@@ -11,7 +11,7 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage, ParamsetKey
+from hahomematic.const import DataPointUsage, ParamsetKey
 from hahomematic.platforms.custom import CeBlind, CeCover, CeGarage, CeIpBlind, CeWindowDrive
 from hahomematic.platforms.custom.cover import (
     _CLOSED_LEVEL,
@@ -58,7 +58,7 @@ async def test_cecover(
     """Test CeCover."""
     central, mock_client, _ = central_client_factory
     cover: CeCover = cast(CeCover, helper.get_prepared_custom_entity(central, "VCU8537918", 4))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _CLOSED_LEVEL
     assert cover.is_closed is True
@@ -142,7 +142,7 @@ async def test_ceipblind_dr(
     cover: CeIpBlind = cast(
         CeIpBlind, helper.get_prepared_custom_entity(central, "VCU7807849", 14)
     )
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -236,7 +236,7 @@ async def test_cewindowdrive(
     cover: CeWindowDrive = cast(
         CeWindowDrive, helper.get_prepared_custom_entity(central, "VCU0000350", 1)
     )
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _WD_CLOSED_LEVEL
     assert cover.is_closed is True
@@ -303,7 +303,7 @@ async def test_ceblind(
     """Test CeBlind."""
     central, mock_client, _ = central_client_factory
     cover: CeBlind = cast(CeBlind, helper.get_prepared_custom_entity(central, "VCU0000144", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -505,7 +505,7 @@ async def test_ceipblind(
     """Test CeIpBlind."""
     central, mock_client, _ = central_client_factory
     cover: CeIpBlind = cast(CeIpBlind, helper.get_prepared_custom_entity(central, "VCU1223813", 4))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
 
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
@@ -645,7 +645,7 @@ async def test_ceipblind_hdm(
     """Test CeIpBlind HDM."""
     central, mock_client, _ = central_client_factory
     cover: CeIpBlind = cast(CeIpBlind, helper.get_prepared_custom_entity(central, "VCU3560967", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -778,7 +778,7 @@ async def test_cegarageho(
     """Test CeGarageHO."""
     central, mock_client, _ = central_client_factory
     cover: CeGarage = cast(CeGarage, helper.get_prepared_custom_entity(central, "VCU3574044", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
     assert cover.service_method_names == ("close", "open", "set_position", "stop", "vent")
 
     assert cover.current_position is None
@@ -896,7 +896,7 @@ async def test_cegaragetm(
     """Test CeGarageTM."""
     central, mock_client, _ = central_client_factory
     cover: CeGarage = cast(CeGarage, helper.get_prepared_custom_entity(central, "VCU6166407", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CE_PRIMARY
 
     assert cover.current_position is None
     await cover.set_position(position=81)

@@ -9,7 +9,7 @@ from slugify import slugify
 
 from hahomematic import central as hmcu
 from hahomematic.const import HUB_PATH, SYSVAR_ADDRESS, HubData, SystemVariableData
-from hahomematic.platforms.data_point import CallbackEntity
+from hahomematic.platforms.data_point import CallbackDataPoint
 from hahomematic.platforms.decorators import (
     config_property,
     get_service_calls,
@@ -20,7 +20,7 @@ from hahomematic.platforms.support import PayloadMixin, generate_unique_id
 from hahomematic.support import parse_sys_var
 
 
-class GenericHubEntity(CallbackEntity, PayloadMixin):
+class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     """Class for a HomeMatic system variable."""
 
     def __init__(
@@ -60,7 +60,7 @@ class GenericHubEntity(CallbackEntity, PayloadMixin):
         return f"{self._central.path}/{HUB_PATH}/{self.platform}/{self.name}"
 
 
-class GenericSystemVariable(GenericHubEntity):
+class GenericSystemVariable(GenericHubDataPoint):
     """Class for a HomeMatic system variable."""
 
     _is_extended = False

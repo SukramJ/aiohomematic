@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import service
-from hahomematic.platforms.generic.data_point import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericDataPoint
 
 
-class HmButton(GenericEntity[None, bool]):
+class HmButton(GenericDataPoint[None, bool]):
     """
     Implementation of a button.
 

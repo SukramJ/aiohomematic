@@ -31,7 +31,7 @@ from hahomematic.const import (
     KWARGS_ARG_ENTITY,
     NO_CACHE_ENTRY,
     CallSource,
-    EntityUsage,
+    DataPointUsage,
     Flag,
     HmPlatform,
     Operations,
@@ -45,7 +45,7 @@ from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.decorators import config_property, get_service_calls, state_property
 from hahomematic.platforms.support import (
-    EntityNameData,
+    DataPointNameData,
     GenericParameterType,
     PayloadMixin,
     convert_value,
@@ -54,10 +54,10 @@ from hahomematic.platforms.support import (
 from hahomematic.support import get_entity_key, reduce_args
 
 __all__ = [
-    "BaseEntity",
-    "BaseParameterEntity",
+    "BaseDataPoint",
+    "BaseParameterDataPoint",
     "CallParameterCollector",
-    "CallbackEntity",
+    "CallbackDataPoint",
     "EVENT_DATA_SCHEMA",
     "bind_collector",
 ]
@@ -112,7 +112,7 @@ EVENT_DATA_SCHEMA = vol.Schema(
 )
 
 
-class CallbackEntity(ABC):
+class CallbackDataPoint(ABC):
     """Base class for callback entities."""
 
     _platform: HmPlatform
@@ -184,18 +184,18 @@ class CallbackEntity(ABC):
         return self._unique_id
 
     @property
-    def usage(self) -> EntityUsage:
+    def usage(self) -> DataPointUsage:
         """Return the entity usage."""
-        return EntityUsage.ENTITY
+        return DataPointUsage.DATA_POINT
 
     @property
     def enabled_default(self) -> bool:
         """Return, if entity should be enabled based on usage attribute."""
         return self.usage in (
-            EntityUsage.CE_PRIMARY,
-            EntityUsage.CE_VISIBLE,
-            EntityUsage.ENTITY,
-            EntityUsage.EVENT,
+            DataPointUsage.CE_PRIMARY,
+            DataPointUsage.CE_VISIBLE,
+            DataPointUsage.DATA_POINT,
+            DataPointUsage.EVENT,
         )
 
     @property
@@ -284,7 +284,7 @@ class CallbackEntity(ABC):
         return f"path: {self.path}, name: {self.full_name}"
 
 
-class BaseEntity(CallbackEntity, PayloadMixin):
+class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     """Base class for regular entities."""
 
     def __init__(
@@ -300,7 +300,7 @@ class BaseEntity(CallbackEntity, PayloadMixin):
         self._device: Final[hmd.HmDevice] = channel.device
         self._is_in_multiple_channels: Final = is_in_multiple_channels
         self._client: Final[hmcl.Client] = channel.device.client
-        self._forced_usage: EntityUsage | None = None
+        self._forced_usage: DataPointUsage | None = None
         self._entity_name_data: Final = self._get_entity_name()
 
     @state_property
@@ -344,7 +344,7 @@ class BaseEntity(CallbackEntity, PayloadMixin):
         return self._entity_name_data.entity_name
 
     @property
-    def name_data(self) -> EntityNameData:
+    def name_data(self) -> DataPointNameData:
         """Return the entity name data of the entity."""
         return self._entity_name_data
 
@@ -359,11 +359,11 @@ class BaseEntity(CallbackEntity, PayloadMixin):
         return self._channel.rooms
 
     @property
-    def usage(self) -> EntityUsage:
+    def usage(self) -> DataPointUsage:
         """Return the entity usage."""
         return self._get_entity_usage()
 
-    def force_usage(self, forced_usage: EntityUsage) -> None:
+    def force_usage(self, forced_usage: DataPointUsage) -> None:
         """Set the entity usage."""
         self._forced_usage = forced_usage
 
@@ -372,18 +372,18 @@ class BaseEntity(CallbackEntity, PayloadMixin):
         """Init the entity data."""
 
     @abstractmethod
-    def _get_entity_name(self) -> EntityNameData:
+    def _get_entity_name(self) -> DataPointNameData:
         """Generate the name for the entity."""
 
     @abstractmethod
-    def _get_entity_usage(self) -> EntityUsage:
+    def _get_entity_usage(self) -> DataPointUsage:
         """Generate the usage for the entity."""
 
 
-class BaseParameterEntity[
+class BaseParameterDataPoint[
     ParameterT: GenericParameterType,
     InputParameterT: GenericParameterType,
-](BaseEntity):
+](BaseDataPoint):
     """Base class for stateless entities."""
 
     _unique_id_prefix: str = ""
@@ -397,7 +397,7 @@ class BaseParameterEntity[
     ) -> None:
         """Initialize the entity."""
         self._paramset_key: Final = paramset_key
-        # required for name in BaseEntity
+        # required for name in BaseDataPoint
         self._parameter: Final[str] = parameter
 
         super().__init__(
@@ -754,7 +754,7 @@ class CallParameterCollector:
 
     def add_entity(
         self,
-        entity: BaseParameterEntity,
+        entity: BaseParameterDataPoint,
         value: Any,
         collector_order: int,
     ) -> None:

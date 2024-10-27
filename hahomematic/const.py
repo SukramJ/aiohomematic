@@ -60,7 +60,7 @@ DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
 IP_ANY_V4: Final = "0.0.0.0"
-KWARGS_ARG_ENTITY = "entity"
+KWARGS_ARG_DATA_POINT = "data_point"
 PATH_JSON_RPC: Final = "/api/homematic.cgi"
 PORT_ANY: Final = 0
 
@@ -455,13 +455,13 @@ CLICK_EVENTS: Final[tuple[Parameter, ...]] = (
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-ENTITY_EVENTS: Final[tuple[HomematicEventType, ...]] = (
+DATA_POINT_EVENTS: Final[tuple[HomematicEventType, ...]] = (
     HomematicEventType.IMPULSE,
     HomematicEventType.KEYPRESS,
 )
 
 # channel_address, paramset_key,parameter
-ENTITY_KEY = tuple[str, ParamsetKey, str]
+DATA_POINT_KEY = tuple[str, ParamsetKey, str]
 
 HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
     DeviceFirmwareState.DO_UPDATE_PENDING,
@@ -546,7 +546,7 @@ VIRTUAL_REMOTE_ADDRESSES: Final[tuple[str, ...]] = (
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class HubData:
-    """Dataclass for hub entities."""
+    """Dataclass for hub data points."""
 
     name: str
 

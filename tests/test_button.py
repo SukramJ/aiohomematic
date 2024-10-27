@@ -1,4 +1,4 @@
-"""Tests for button entities of hahomematic."""
+"""Tests for button data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ async def test_hmbutton(
     central, mock_client, _ = central_client_factory
     button: HmButton = cast(
         HmButton,
-        central.get_generic_entity("VCU1437294:1", "RESET_MOTION"),
+        central.get_generic_data_point("VCU1437294:1", "RESET_MOTION"),
     )
     assert button.usage == DataPointUsage.DATA_POINT
     assert button.available is True

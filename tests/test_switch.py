@@ -1,4 +1,4 @@
-"""Tests for switch entities of hahomematic."""
+"""Tests for switch data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -43,7 +43,9 @@ async def test_ceswitch(
 ) -> None:
     """Test CeSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: CeSwitch = cast(CeSwitch, helper.get_prepared_custom_entity(central, "VCU2128127", 4))
+    switch: CeSwitch = cast(
+        CeSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
+    )
     assert switch.usage == DataPointUsage.CE_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
 
@@ -117,7 +119,7 @@ async def test_hmswitch(
 ) -> None:
     """Test HmSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: HmSwitch = cast(HmSwitch, central.get_generic_entity("VCU2128127:4", "STATE"))
+    switch: HmSwitch = cast(HmSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
     assert switch.service_method_names == (
         "send_value",
@@ -195,7 +197,7 @@ async def test_hmsysvarswitch(
 ) -> None:
     """Test HmSysvarSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: HmSysvarSwitch = cast(HmSysvarSwitch, central.get_sysvar_entity("sv_alarm_ext"))
+    switch: HmSysvarSwitch = cast(HmSysvarSwitch, central.get_sysvar_data_point("sv_alarm_ext"))
     assert switch.usage == DataPointUsage.DATA_POINT
 
     assert switch.value is False

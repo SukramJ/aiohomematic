@@ -1,4 +1,4 @@
-"""Tests for select entities of hahomematic."""
+"""Tests for select data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ async def test_hmselect(
     central, mock_client, _ = central_client_factory
     select: HmSelect = cast(
         HmSelect,
-        central.get_generic_entity("VCU6354483:1", "WINDOW_STATE"),
+        central.get_generic_data_point("VCU6354483:1", "WINDOW_STATE"),
     )
     assert select.usage == DataPointUsage.NO_CREATE
     assert select.unit is None
@@ -100,7 +100,7 @@ async def test_hmsysvarselect(
 ) -> None:
     """Test HmSysvarSelect."""
     central, mock_client, _ = central_client_factory
-    select: HmSysvarSelect = cast(HmSysvarSelect, central.get_sysvar_entity("sv_list_ext"))
+    select: HmSysvarSelect = cast(HmSysvarSelect, central.get_sysvar_data_point("sv_list_ext"))
     assert select.usage == DataPointUsage.DATA_POINT
     assert select.unit is None
     assert select.min is None

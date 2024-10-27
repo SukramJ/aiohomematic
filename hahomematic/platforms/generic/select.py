@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the select platform.
+Module for data points implemented using the select platform.
 
 See https://www.home-assistant.io/integrations/select/.
 """
@@ -14,7 +14,7 @@ from hahomematic.platforms.support import get_value_from_value_list
 
 class HmSelect(GenericDataPoint[int | str, int | float | str]):
     """
-    Implementation of a select entity.
+    Implementation of a select data_point.
 
     This is a default platform that gets automatically generated.
     """
@@ -23,7 +23,7 @@ class HmSelect(GenericDataPoint[int | str, int | float | str]):
 
     @state_property
     def value(self) -> str | None:  # type: ignore[override]
-        """Get the value of the entity."""
+        """Get the value of the data_point."""
         if (
             value := get_value_from_value_list(value=self._value, value_list=self.values)
         ) is not None:

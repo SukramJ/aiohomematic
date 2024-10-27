@@ -1,4 +1,4 @@
-"""Support classes used by hahomematic custom entities."""
+"""Support classes used by hahomematic custom data points."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from hahomematic.platforms.custom.const import Field
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class CustomConfig:
-    """Data for custom entity creation."""
+    """Data for custom data_point creation."""
 
     make_ce_func: Callable
     channels: tuple[int | None, ...] = (1,)
@@ -20,10 +20,10 @@ class CustomConfig:
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class ExtendedConfig:
-    """Extended data for custom entity creation."""
+    """Extended data for custom data_point creation."""
 
     fixed_channels: Mapping[int, Mapping[Field, Parameter]] | None = None
-    additional_entities: Mapping[int | tuple[int, ...], tuple[Parameter, ...]] | None = None
+    additional_data_points: Mapping[int | tuple[int, ...], tuple[Parameter, ...]] | None = None
 
     @property
     def required_parameters(self) -> tuple[Parameter, ...]:
@@ -33,8 +33,8 @@ class ExtendedConfig:
             for mapping in fixed_channels.values():
                 required_parameters.extend(mapping.values())
 
-        if additional_entities := self.additional_entities:
-            for parameters in additional_entities.values():
+        if additional_data_points := self.additional_data_points:
+            for parameters in additional_data_points.values():
                 required_parameters.extend(parameters)
 
         return tuple(required_parameters)

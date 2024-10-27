@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the button platform.
+Module for data points implemented using the button platform.
 
 See https://www.home-assistant.io/integrations/boton/.
 """

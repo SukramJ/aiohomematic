@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the switch platform.
+Module for data points implemented using the switch platform.
 
 See https://www.home-assistant.io/integrations/switch/.
 """
@@ -27,7 +27,7 @@ class HmSwitch(GenericDataPoint[bool | None, bool]):
 
     @state_property
     def value(self) -> bool | None:  # type: ignore[override]
-        """Get the value of the entity."""
+        """Get the value of the data_point."""
         if self._type == ParameterType.ACTION:
             return False
         return self._value  # type: ignore[no-any-return]

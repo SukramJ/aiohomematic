@@ -1,4 +1,4 @@
-"""Tests for button entities of hahomematic."""
+"""Tests for button data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -44,7 +44,9 @@ async def test_cerflock(
 ) -> None:
     """Test CeRfLock."""
     central, mock_client, _ = central_client_factory
-    lock: CeRfLock = cast(CeRfLock, helper.get_prepared_custom_entity(central, "VCU0000146", 1))
+    lock: CeRfLock = cast(
+        CeRfLock, helper.get_prepared_custom_data_point(central, "VCU0000146", 1)
+    )
     assert lock.usage == DataPointUsage.CE_PRIMARY
 
     assert lock.is_locked is True
@@ -118,7 +120,9 @@ async def test_ceiplock(
 ) -> None:
     """Test CeIpLock."""
     central, mock_client, _ = central_client_factory
-    lock: CeIpLock = cast(CeIpLock, helper.get_prepared_custom_entity(central, "VCU9724704", 1))
+    lock: CeIpLock = cast(
+        CeIpLock, helper.get_prepared_custom_data_point(central, "VCU9724704", 1)
+    )
     assert lock.usage == DataPointUsage.CE_PRIMARY
     assert lock.service_method_names == ("lock", "open", "unlock")
 

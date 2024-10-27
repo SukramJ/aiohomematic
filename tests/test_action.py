@@ -1,4 +1,4 @@
-"""Tests for action entities of hahomematic."""
+"""Tests for action data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ async def test_hmaction(
     central, mock_client, _ = central_client_factory
     action: HmAction = cast(
         HmAction,
-        central.get_generic_entity("VCU9724704:1", "LOCK_TARGET_LEVEL"),
+        central.get_generic_data_point("VCU9724704:1", "LOCK_TARGET_LEVEL"),
     )
     assert action.usage == DataPointUsage.NO_CREATE
     assert action.is_readable is False

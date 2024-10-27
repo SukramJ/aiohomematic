@@ -1,4 +1,4 @@
-"""Tests for sensor entities of hahomematic."""
+"""Tests for sensor data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ async def test_hmsensor_psm(
 ) -> None:
     """Test HmSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSensor = cast(HmSensor, central.get_generic_entity("VCU3941846:6", "VOLTAGE"))
+    sensor: HmSensor = cast(HmSensor, central.get_generic_data_point("VCU3941846:6", "VOLTAGE"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit == "V"
     assert sensor.values is None
@@ -55,7 +55,7 @@ async def test_hmsensor_psm(
 
     sensor2: HmSensor = cast(
         HmSensor,
-        central.get_generic_entity("VCU3941846:0", "RSSI_DEVICE"),
+        central.get_generic_data_point("VCU3941846:0", "RSSI_DEVICE"),
     )
     assert sensor2.usage == DataPointUsage.DATA_POINT
     assert sensor2.unit == "dBm"
@@ -74,7 +74,7 @@ async def test_hmsensor_psm(
 
     sensor3: HmSensor = cast(
         HmSensor,
-        central.get_generic_entity("VCU8205532:1", "CONCENTRATION"),
+        central.get_generic_data_point("VCU8205532:1", "CONCENTRATION"),
     )
     assert sensor3.usage == DataPointUsage.DATA_POINT
     assert sensor3.unit == "ppm"
@@ -101,7 +101,7 @@ async def test_hmsensor_srh(
 ) -> None:
     """Test HmSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSensor = cast(HmSensor, central.get_generic_entity("VCU7981740:1", "STATE"))
+    sensor: HmSensor = cast(HmSensor, central.get_generic_data_point("VCU7981740:1", "STATE"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit is None
     assert sensor.values == ("CLOSED", "TILTED", "OPEN")
@@ -131,14 +131,14 @@ async def test_hmsysvarsensor(
 ) -> None:
     """Test HmSysvarSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_entity("sv_list"))
+    sensor: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_data_point("sv_list"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.available is True
     assert sensor.unit is None
     assert sensor.values == ("v1", "v2", "v3")
     assert sensor.value == "v1"
 
-    sensor2: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_entity("sv_float"))
+    sensor2: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_data_point("sv_float"))
     assert sensor2.usage == DataPointUsage.DATA_POINT
     assert sensor2.unit is None
     assert sensor2.values is None

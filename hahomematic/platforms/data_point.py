@@ -1,4 +1,4 @@
-"""Functions for entity creation."""
+"""Functions for data_point creation."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ from hahomematic.async_support import loop_check
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
     CALLBACK_TYPE,
+    DATA_POINT_KEY,
     DEFAULT_CUSTOM_ID,
-    ENTITY_KEY,
     EVENT_ADDRESS,
     EVENT_CHANNEL_NO,
     EVENT_INTERFACE_ID,
@@ -28,7 +28,7 @@ from hahomematic.const import (
     EVENT_VALUE,
     INIT_DATETIME,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
-    KWARGS_ARG_ENTITY,
+    KWARGS_ARG_DATA_POINT,
     NO_CACHE_ENTRY,
     CallSource,
     DataPointUsage,
@@ -51,7 +51,7 @@ from hahomematic.platforms.support import (
     convert_value,
     generate_unique_id,
 )
-from hahomematic.support import get_entity_key, reduce_args
+from hahomematic.support import get_data_point_key, reduce_args
 
 __all__ = [
     "BaseDataPoint",
@@ -113,15 +113,15 @@ EVENT_DATA_SCHEMA = vol.Schema(
 
 
 class CallbackDataPoint(ABC):
-    """Base class for callback entities."""
+    """Base class for callback data points."""
 
     _platform: HmPlatform
 
     def __init__(self, central: hmcu.CentralUnit, unique_id: str) -> None:
-        """Init the callback entity."""
+        """Init the callback data_point."""
         self._central: Final = central
         self._unique_id: Final = unique_id
-        self._entity_updated_callbacks: dict[Callable, str] = {}
+        self._data_point_updated_callbacks: dict[Callable, str] = {}
         self._device_removed_callbacks: list[Callable] = []
         self._custom_id: str | None = None
         self._modified_at: datetime = INIT_DATETIME
@@ -140,7 +140,7 @@ class CallbackDataPoint(ABC):
 
     @classmethod
     def default_platform(cls) -> HmPlatform:
-        """Return, the platform of the entity."""
+        """Return, the platform of the data_point."""
         return cls._platform
 
     @property
@@ -151,7 +151,7 @@ class CallbackDataPoint(ABC):
     @property
     @abstractmethod
     def full_name(self) -> str:
-        """Return the full name of the entity."""
+        """Return the full name of the data_point."""
 
     @state_property
     def modified_at(self) -> datetime:
@@ -166,16 +166,16 @@ class CallbackDataPoint(ABC):
     @config_property
     @abstractmethod
     def name(self) -> str | None:
-        """Return the name of the entity."""
+        """Return the name of the data_point."""
 
     @property
     @abstractmethod
     def path(self) -> str:
-        """Return the path of the entity."""
+        """Return the path of the data_point."""
 
     @property
     def platform(self) -> HmPlatform:
-        """Return, the platform of the entity."""
+        """Return, the platform of the data_point."""
         return self._platform
 
     @config_property
@@ -185,12 +185,12 @@ class CallbackDataPoint(ABC):
 
     @property
     def usage(self) -> DataPointUsage:
-        """Return the entity usage."""
+        """Return the data_point usage."""
         return DataPointUsage.DATA_POINT
 
     @property
     def enabled_default(self) -> bool:
-        """Return, if entity should be enabled based on usage attribute."""
+        """Return, if data_point should be enabled based on usage attribute."""
         return self.usage in (
             DataPointUsage.CE_PRIMARY,
             DataPointUsage.CE_VISIBLE,
@@ -200,7 +200,7 @@ class CallbackDataPoint(ABC):
 
     @property
     def is_registered(self) -> bool:
-        """Return if entity is registered externally."""
+        """Return if data_point is registered externally."""
         return self._custom_id is not None
 
     # @property
@@ -214,28 +214,30 @@ class CallbackDataPoint(ABC):
         """Return all service methods."""
         return tuple(self._service_methods.keys())
 
-    def register_internal_entity_updated_callback(self, cb: Callable) -> CALLBACK_TYPE:
-        """Register internal entity updated callback."""
-        return self.register_entity_updated_callback(cb=cb, custom_id=DEFAULT_CUSTOM_ID)
+    def register_internal_data_point_updated_callback(self, cb: Callable) -> CALLBACK_TYPE:
+        """Register internal data_point updated callback."""
+        return self.register_data_point_updated_callback(cb=cb, custom_id=DEFAULT_CUSTOM_ID)
 
-    def register_entity_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
-        """Register entity updated callback."""
+    def register_data_point_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
+        """Register data_point updated callback."""
         if custom_id != DEFAULT_CUSTOM_ID:
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise HaHomematicException(
-                    f"REGISTER_entity_updated_CALLBACK failed: hm_entity: {self.full_name} is already registered by {self._custom_id}"
+                    f"REGISTER_data_point_updated_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
                 )
             self._custom_id = custom_id
 
-        if callable(cb) and cb not in self._entity_updated_callbacks:
-            self._entity_updated_callbacks[cb] = custom_id
-            return partial(self._unregister_entity_updated_callback, cb=cb, custom_id=custom_id)
+        if callable(cb) and cb not in self._data_point_updated_callbacks:
+            self._data_point_updated_callbacks[cb] = custom_id
+            return partial(
+                self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id
+            )
         return None
 
-    def _unregister_entity_updated_callback(self, cb: Callable, custom_id: str) -> None:
-        """Unregister entity updated callback."""
-        if cb in self._entity_updated_callbacks:
-            del self._entity_updated_callbacks[cb]
+    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
+        """Unregister data_point updated callback."""
+        if cb in self._data_point_updated_callbacks:
+            del self._data_point_updated_callbacks[cb]
         if self.custom_id == custom_id:
             self._custom_id = None
 
@@ -252,18 +254,20 @@ class CallbackDataPoint(ABC):
             self._device_removed_callbacks.remove(cb)
 
     @loop_check
-    def fire_entity_updated_callback(self, *args: Any, **kwargs: Any) -> None:
-        """Do what is needed when the value of the entity has been updated/refreshed."""
-        for callback_handler in self._entity_updated_callbacks:
+    def fire_data_point_updated_callback(self, *args: Any, **kwargs: Any) -> None:
+        """Do what is needed when the value of the data_point has been updated/refreshed."""
+        for callback_handler in self._data_point_updated_callbacks:
             try:
-                kwargs[KWARGS_ARG_ENTITY] = self
+                kwargs[KWARGS_ARG_DATA_POINT] = self
                 callback_handler(*args, **kwargs)
             except Exception as ex:
-                _LOGGER.warning("FIRE_entity_updated_EVENT failed: %s", reduce_args(args=ex.args))
+                _LOGGER.warning(
+                    "FIRE_data_point_updated_EVENT failed: %s", reduce_args(args=ex.args)
+                )
 
     @loop_check
     def fire_device_removed_callback(self, *args: Any) -> None:
-        """Do what is needed when the entity has been removed."""
+        """Do what is needed when the data_point has been removed."""
         for callback_handler in self._device_removed_callbacks:
             try:
                 callback_handler(*args)
@@ -285,7 +289,7 @@ class CallbackDataPoint(ABC):
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
-    """Base class for regular entities."""
+    """Base class for regular data points."""
 
     def __init__(
         self,
@@ -293,7 +297,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         unique_id: str,
         is_in_multiple_channels: bool,
     ) -> None:
-        """Initialize the entity."""
+        """Initialize the data_point."""
         PayloadMixin.__init__(self)
         super().__init__(central=channel.central, unique_id=unique_id)
         self._channel: Final[hmd.HmChannel] = channel
@@ -301,7 +305,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         self._is_in_multiple_channels: Final = is_in_multiple_channels
         self._client: Final[hmcl.Client] = channel.device.client
         self._forced_usage: DataPointUsage | None = None
-        self._entity_name_data: Final = self._get_entity_name()
+        self._data_point_name_data: Final = self._get_data_point_name()
 
     @state_property
     def available(self) -> bool:
@@ -310,23 +314,23 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
     @property
     def path(self) -> str:
-        """Return the base path of the entity."""
+        """Return the base path of the data_point."""
         return f"{self._channel.path}/{self._platform}"
 
     @property
     def channel(self) -> hmd.HmChannel:
-        """Return the channel the entity."""
+        """Return the channel the data_point."""
         return self._channel
 
     @property
     def device(self) -> hmd.HmDevice:
-        """Return the device of the entity."""
+        """Return the device of the data_point."""
         return self._device
 
     @property
     def full_name(self) -> str:
-        """Return the full name of the entity."""
-        return self._entity_name_data.full_name
+        """Return the full name of the data_point."""
+        return self._data_point_name_data.full_name
 
     @property
     def function(self) -> str | None:
@@ -340,13 +344,13 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
     @config_property
     def name(self) -> str | None:
-        """Return the name of the entity."""
-        return self._entity_name_data.entity_name
+        """Return the name of the data_point."""
+        return self._data_point_name_data.data_point_name
 
     @property
     def name_data(self) -> DataPointNameData:
-        """Return the entity name data of the entity."""
-        return self._entity_name_data
+        """Return the data_point name data of the data_point."""
+        return self._data_point_name_data
 
     @property
     def room(self) -> str | None:
@@ -355,36 +359,38 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
     @property
     def rooms(self) -> set[str]:
-        """Return the rooms assigned to an entity."""
+        """Return the rooms assigned to a data_point."""
         return self._channel.rooms
 
     @property
     def usage(self) -> DataPointUsage:
-        """Return the entity usage."""
-        return self._get_entity_usage()
+        """Return the data_point usage."""
+        return self._get_data_point_usage()
 
     def force_usage(self, forced_usage: DataPointUsage) -> None:
-        """Set the entity usage."""
+        """Set the data_point usage."""
         self._forced_usage = forced_usage
 
     @abstractmethod
-    async def load_entity_value(self, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the entity data."""
+    async def load_data_point_value(
+        self, call_source: CallSource, direct_call: bool = False
+    ) -> None:
+        """Init the data_point data."""
 
     @abstractmethod
-    def _get_entity_name(self) -> DataPointNameData:
-        """Generate the name for the entity."""
+    def _get_data_point_name(self) -> DataPointNameData:
+        """Generate the name for the data_point."""
 
     @abstractmethod
-    def _get_entity_usage(self) -> DataPointUsage:
-        """Generate the usage for the entity."""
+    def _get_data_point_usage(self) -> DataPointUsage:
+        """Generate the usage for the data_point."""
 
 
 class BaseParameterDataPoint[
     ParameterT: GenericParameterType,
     InputParameterT: GenericParameterType,
 ](BaseDataPoint):
-    """Base class for stateless entities."""
+    """Base class for stateless data points."""
 
     _unique_id_prefix: str = ""
 
@@ -395,7 +401,7 @@ class BaseParameterDataPoint[
         parameter: str,
         parameter_data: ParameterData,
     ) -> None:
-        """Initialize the entity."""
+        """Initialize the data_point."""
         self._paramset_key: Final = paramset_key
         # required for name in BaseDataPoint
         self._parameter: Final[str] = parameter
@@ -469,9 +475,9 @@ class BaseParameterDataPoint[
         return self._is_un_ignored
 
     @property
-    def entity_key(self) -> ENTITY_KEY:
-        """Return entity key value."""
-        return get_entity_key(
+    def data_point_key(self) -> DATA_POINT_KEY:
+        """Return data_point key value."""
+        return get_data_point_key(
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
             parameter=self._parameter,
@@ -504,7 +510,7 @@ class BaseParameterDataPoint[
 
     @property
     def path(self) -> str:
-        """Return the path of the entity."""
+        """Return the path of the data_point."""
         return f"{super().path}/{self._parameter.lower()}"
 
     @property
@@ -514,22 +520,22 @@ class BaseParameterDataPoint[
 
     @property
     def is_forced_sensor(self) -> bool:
-        """Return, if entity is forced to read only."""
+        """Return, if data_point is forced to read only."""
         return self._is_forced_sensor
 
     @property
     def is_readable(self) -> bool:
-        """Return, if entity is readable."""
+        """Return, if data_point is readable."""
         return bool(self._operations & Operations.READ)
 
     @property
     def is_valid(self) -> bool:
-        """Return, if the value of the entity is valid based on the refreshed at datetime."""
+        """Return, if the value of the data_point is valid based on the refreshed at datetime."""
         return self._refreshed_at > INIT_DATETIME
 
     @property
     def is_writeable(self) -> bool:
-        """Return, if entity is writeable."""
+        """Return, if data_point is writeable."""
         return False if self._is_forced_sensor else bool(self._operations & Operations.WRITE)
 
     @state_property
@@ -544,20 +550,22 @@ class BaseParameterDataPoint[
 
     @property
     def unconfirmed_last_value_send(self) -> ParameterT:
-        """Return the unconfirmed value send for the entity."""
+        """Return the unconfirmed value send for the data_point."""
         return cast(
             ParameterT,
-            self._client.last_value_send_cache.get_last_value_send(entity_key=self.entity_key),
+            self._client.last_value_send_cache.get_last_value_send(
+                data_point_key=self.data_point_key
+            ),
         )
 
     @property
     def old_value(self) -> ParameterT:
-        """Return the old value of the entity."""
+        """Return the old value of the data_point."""
         return self._old_value
 
     @property
     def platform(self) -> HmPlatform:
-        """Return, the platform of the entity."""
+        """Return, the platform of the data_point."""
         return HmPlatform.SENSOR if self._is_forced_sensor else self._platform
 
     @property
@@ -567,12 +575,12 @@ class BaseParameterDataPoint[
 
     @state_property
     def value(self) -> ParameterT:
-        """Return the value of the entity."""
+        """Return the value of the data_point."""
         return self._value
 
     @property
     def supports_events(self) -> bool:
-        """Return, if entity is supports events."""
+        """Return, if data_point is supports events."""
         return bool(self._operations & Operations.EVENT)
 
     @config_property
@@ -594,12 +602,12 @@ class BaseParameterDataPoint[
 
     @property
     def visible(self) -> bool:
-        """Return the if entity is visible in ccu."""
+        """Return the if data_point is visible in ccu."""
         return self._visible
 
     @property
     def _enabled_by_channel_operation_mode(self) -> bool | None:
-        """Return, if the entity/event must be enabled."""
+        """Return, if the data_point/event must be enabled."""
         if self._channel.type_name not in _CONFIGURABLE_CHANNEL:
             return None
         if self._parameter not in KEY_CHANNEL_OPERATION_MODE_VISIBILITY:
@@ -609,7 +617,7 @@ class BaseParameterDataPoint[
         return cop in KEY_CHANNEL_OPERATION_MODE_VISIBILITY[self._parameter]
 
     def force_to_sensor(self) -> None:
-        """Change the platform of the entity."""
+        """Change the platform of the data_point."""
         if self.platform == HmPlatform.SENSOR:
             _LOGGER.debug(
                 "Platform for %s is already %s. Doing nothing", self.full_name, HmPlatform.SENSOR
@@ -650,12 +658,14 @@ class BaseParameterDataPoint[
     async def event(self, value: Any) -> None:
         """Handle event for which this handler has subscribed."""
 
-    async def load_entity_value(self, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the entity data."""
+    async def load_data_point_value(
+        self, call_source: CallSource, direct_call: bool = False
+    ) -> None:
+        """Init the data_point data."""
         if direct_call is False and hms.changed_within_seconds(last_change=self._refreshed_at):
             return
 
-        # Check, if entity is readable
+        # Check, if data_point is readable
         if not self.is_readable:
             return
 
@@ -670,12 +680,12 @@ class BaseParameterDataPoint[
         )
 
     def write_value(self, value: Any) -> tuple[ParameterT, ParameterT]:
-        """Update value of the entity."""
+        """Update value of the data_point."""
         old_value = self._value
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
-                self.fire_entity_updated_callback()
+                self.fire_data_point_updated_callback()
             return (old_value, None)  # type: ignore[return-value]
 
         new_value = self._convert_value(value)
@@ -686,7 +696,7 @@ class BaseParameterDataPoint[
             self._old_value = old_value
             self._value = new_value
             self._state_uncertain = False
-        self.fire_entity_updated_callback()
+        self.fire_data_point_updated_callback()
         return (old_value, new_value)
 
     def update_parameter_data(self) -> None:
@@ -743,7 +753,7 @@ class BaseParameterDataPoint[
 
 
 class CallParameterCollector:
-    """Create a Paramset based on given generic entities."""
+    """Create a Paramset based on given generic data points."""
 
     def __init__(self, client: hmcl.Client) -> None:
         """Init the generator."""
@@ -752,21 +762,26 @@ class CallParameterCollector:
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}
         self._paramsets: Final[dict[ParamsetKey, dict[int, dict[str, dict[str, Any]]]]] = {}
 
-    def add_entity(
+    def add_data_point(
         self,
-        entity: BaseParameterDataPoint,
+        data_point: BaseParameterDataPoint,
         value: Any,
         collector_order: int,
     ) -> None:
-        """Add a generic entity."""
-        if entity.paramset_key not in self._paramsets:
-            self._paramsets[entity.paramset_key] = {}
-        if collector_order not in self._paramsets[entity.paramset_key]:
-            self._paramsets[entity.paramset_key][collector_order] = {}
-        if entity.channel.address not in self._paramsets[entity.paramset_key][collector_order]:
-            self._paramsets[entity.paramset_key][collector_order][entity.channel.address] = {}
-        self._paramsets[entity.paramset_key][collector_order][entity.channel.address][
-            entity.parameter
+        """Add a generic data_point."""
+        if data_point.paramset_key not in self._paramsets:
+            self._paramsets[data_point.paramset_key] = {}
+        if collector_order not in self._paramsets[data_point.paramset_key]:
+            self._paramsets[data_point.paramset_key][collector_order] = {}
+        if (
+            data_point.channel.address
+            not in self._paramsets[data_point.paramset_key][collector_order]
+        ):
+            self._paramsets[data_point.paramset_key][collector_order][
+                data_point.channel.address
+            ] = {}
+        self._paramsets[data_point.paramset_key][collector_order][data_point.channel.address][
+            data_point.parameter
         ] = value
 
     async def send_data(self, wait_for_callback: int | None) -> bool:

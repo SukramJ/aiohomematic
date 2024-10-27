@@ -100,7 +100,7 @@ def callback_event[**_P, _R](
         return return_value
 
     def _exec_event_callback(*args: Any, **kwargs: Any) -> None:
-        """Execute the callback for an entity event."""
+        """Execute the callback for a data_point event."""
         try:
             args = args[1:]
             interface_id: str = args[0] if len(args) > 1 else str(kwargs[_INTERFACE_ID])
@@ -109,7 +109,7 @@ def callback_event[**_P, _R](
                 client.central.fire_backend_parameter_callback(*args, **kwargs)
         except Exception as ex:  # pragma: no cover
             _LOGGER.warning(
-                "EXEC_ENTITY_EVENT_CALLBACK failed: Unable to reduce kwargs for event_callback"
+                "EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to reduce kwargs for event_callback"
             )
             raise HaHomematicException(
                 f"args-exception event_callback [{reduce_args(args=ex.args)}]"

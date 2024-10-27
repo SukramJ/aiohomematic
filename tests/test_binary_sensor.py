@@ -1,4 +1,4 @@
-"""Tests for binary_sensor entities of hahomematic."""
+"""Tests for binary_sensor data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ async def test_hmbinarysensor(
     central, mock_client, _ = central_client_factory
     binary_sensor: HmBinarySensor = cast(
         HmBinarySensor,
-        central.get_generic_entity("VCU5864966:1", "STATE"),
+        central.get_generic_data_point("VCU5864966:1", "STATE"),
     )
     assert binary_sensor.usage == DataPointUsage.DATA_POINT
     assert binary_sensor.value is False
@@ -82,7 +82,7 @@ async def test_hmsysvarbinarysensor(
     central, _, _ = central_client_factory
     binary_sensor: HmSysvarBinarySensor = cast(
         HmSysvarBinarySensor,
-        central.get_sysvar_entity("sv_logic"),
+        central.get_sysvar_data_point("sv_logic"),
     )
     assert binary_sensor.name == "sv_logic"
     assert binary_sensor.full_name == "CentralTest_sv_logic"

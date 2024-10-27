@@ -1,5 +1,5 @@
 """
-Module for action entities.
+Module for action data points.
 
 Actions are used to send data for write only parameters to backend.
 There is no corresponding HA platform.

@@ -144,14 +144,14 @@ class Factory:
         return central, client
 
 
-def get_prepared_custom_entity(
+def get_prepared_custom_data_point(
     central: CentralUnit, address: str, channel_no: int | None
 ) -> CustomDataPoint | None:
-    """Return the hm custom_entity."""
-    if custom_entity := central.get_custom_entity(address=address, channel_no=channel_no):
-        for data_entity in custom_entity._data_entities.values():
-            data_entity._state_uncertain = False
-        return custom_entity
+    """Return the hm custom_data_point."""
+    if custom_data_point := central.get_custom_data_point(address=address, channel_no=channel_no):
+        for data_data_point in custom_data_point._data_data_points.values():
+            data_data_point._state_uncertain = False
+        return custom_data_point
     return None
 
 
@@ -214,8 +214,8 @@ async def get_pydev_ccu_central_unit_full(client_session: ClientSession | None) 
         if (
             system_event == BackendSystemEvent.DEVICES_CREATED
             and kwargs
-            and kwargs.get("new_entities")
-            and len(kwargs["new_entities"]) > 0
+            and kwargs.get("new_data_points")
+            and len(kwargs["new_data_points"]) > 0
         ):
             global GOT_DEVICES  # pylint: disable=global-statement
             GOT_DEVICES = True

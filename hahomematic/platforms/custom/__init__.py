@@ -23,10 +23,10 @@ from hahomematic.platforms.custom.climate import (
 from hahomematic.platforms.custom.cover import CeBlind, CeCover, CeGarage, CeIpBlind, CeWindowDrive
 from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.definition import (
-    entity_definition_exists,
+    data_point_definition_exists,
     get_custom_configs,
     get_required_parameters,
-    validate_entity_definition,
+    validate_data_point_definition,
 )
 from hahomematic.platforms.custom.light import (
     CeColorDimmer,
@@ -81,28 +81,28 @@ __all__ = [
     "PROFILE_DICT",
     "SIMPLE_PROFILE_DICT",
     "SIMPLE_WEEKDAY_LIST",
-    "create_custom_entities",
+    "create_custom_data_points",
     "get_required_parameters",
-    "validate_entity_definition",
+    "validate_data_point_definition",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def create_custom_entities(device: hmd.HmDevice) -> None:
-    """Decides which default platform should be used, and creates the required entities."""
+def create_custom_data_points(device: hmd.HmDevice) -> None:
+    """Decides which default platform should be used, and creates the required data points."""
 
-    if device.ignore_for_custom_entity:
+    if device.ignore_for_custom_data_point:
         _LOGGER.debug(
-            "CREATE_ENTITIES: Ignoring for custom entity: %s, %s, %s due to ignored",
+            "CREATE_DATA_POINTS: Ignoring for custom data_point: %s, %s, %s due to ignored",
             device.interface_id,
             device,
             device.model,
         )
         return
-    if entity_definition_exists(device.model):
+    if data_point_definition_exists(device.model):
         _LOGGER.debug(
-            "CREATE_ENTITIES: Handling custom entity integration: %s, %s, %s",
+            "CREATE_DATA_POINTS: Handling custom data_point integration: %s, %s, %s",
             device.interface_id,
             device,
             device.model,

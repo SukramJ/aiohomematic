@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the switch platform.
+Module for data points implemented using the switch platform.
 
 See https://www.home-assistant.io/integrations/switch/.
 """
@@ -34,20 +34,20 @@ class _SwitchStateChangeArg(StrEnum):
 
 
 class CeSwitch(CustomDataPoint, OnTimeMixin):
-    """Class for HomeMatic switch entities."""
+    """Class for HomeMatic switch data points."""
 
     _platform = HmPlatform.SWITCH
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
         OnTimeMixin.__init__(self)
-        super()._init_entity_fields()
-        self._e_state: HmSwitch = self._get_entity(field=Field.STATE, entity_type=HmSwitch)
-        self._e_on_time_value: HmAction = self._get_entity(
-            field=Field.ON_TIME_VALUE, entity_type=HmAction
+        super()._init_data_point_fields()
+        self._e_state: HmSwitch = self._get_data_point(field=Field.STATE, data_point_type=HmSwitch)
+        self._e_on_time_value: HmAction = self._get_data_point(
+            field=Field.ON_TIME_VALUE, data_point_type=HmAction
         )
-        self._e_channel_state: HmBinarySensor = self._get_entity(
-            field=Field.CHANNEL_STATE, entity_type=HmBinarySensor
+        self._e_channel_state: HmBinarySensor = self._get_data_point(
+            field=Field.CHANNEL_STATE, data_point_type=HmBinarySensor
         )
 
     @property
@@ -93,10 +93,10 @@ def make_ip_switch(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP switch entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP switch data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeSwitch,
+        data_point_class=CeSwitch,
         device_profile=DeviceProfile.IP_SWITCH,
         custom_config=custom_config,
     )
@@ -113,7 +113,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_ip_switch,
         channels=(3,),
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 0: (Parameter.ACTUAL_TEMPERATURE,),
             }
         ),
@@ -122,7 +122,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_ip_switch,
         channels=(6, 10, 14, 18),
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 0: (Parameter.ACTUAL_TEMPERATURE,),
             }
         ),
@@ -144,7 +144,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_ip_switch,
         channels=(2, 6, 10, 14, 18, 22, 26, 30),
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 0: (Parameter.ACTUAL_TEMPERATURE,),
             }
         ),

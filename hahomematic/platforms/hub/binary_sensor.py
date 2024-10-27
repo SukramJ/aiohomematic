@@ -1,5 +1,5 @@
 """
-Module for hub entities implemented using the binary_sensor platform.
+Module for hub data points implemented using the binary_sensor platform.
 
 See https://www.home-assistant.io/integrations/binary_sensor/.
 """
@@ -18,7 +18,7 @@ class HmSysvarBinarySensor(GenericSystemVariable):
 
     @state_property
     def value(self) -> bool | None:
-        """Return the value of the entity."""
+        """Return the value of the data_point."""
         if self._value is not None:
             return bool(self._value)
         return None

@@ -1,4 +1,4 @@
-"""Support for entities used within hahomematic."""
+"""Support for data points used within hahomematic."""
 
 from __future__ import annotations
 
@@ -38,9 +38,9 @@ __all__ = [
     "generate_channel_unique_id",
     "generate_unique_id",
     "get_channel_name_data",
-    "get_custom_entity_name",
+    "get_custom_data_point_name",
     "get_device_name",
-    "get_entity_name_data",
+    "get_data_point_name_data",
     "get_event_name",
     "get_index_of_value_from_value_list",
     "get_value_from_value_list",
@@ -138,7 +138,7 @@ class ChannelNameData:
 
     @staticmethod
     def _get_channel_name(device_name: str, channel_name: str) -> str:
-        """Return the channel_name of the entity only name."""
+        """Return the channel_name of the data_point only name."""
         if device_name and channel_name and channel_name.startswith(device_name):
             c_name = channel_name.replace(device_name, "").strip()
             if c_name.startswith(":"):
@@ -148,7 +148,7 @@ class ChannelNameData:
 
 
 class DataPointNameData(ChannelNameData):
-    """Dataclass for entity name parts."""
+    """Dataclass for data_point name parts."""
 
     def __init__(
         self, device_name: str, channel_name: str, parameter_name: str | None = None
@@ -156,11 +156,13 @@ class DataPointNameData(ChannelNameData):
         """Init the DataPointNameData class."""
         super().__init__(device_name=device_name, channel_name=channel_name)
 
-        self.entity_name: Final = self._get_entity_name(
+        self.data_point_name: Final = self._get_data_point_name(
             device_name=device_name, channel_name=channel_name, parameter_name=parameter_name
         )
         self.full_name = (
-            f"{device_name} {self.entity_name}".strip() if self.entity_name else device_name
+            f"{device_name} {self.data_point_name}".strip()
+            if self.data_point_name
+            else device_name
         )
         self.parameter_name = parameter_name
 
@@ -171,17 +173,17 @@ class DataPointNameData(ChannelNameData):
 
     @staticmethod
     def _get_channel_parameter_name(channel_name: str, parameter_name: str | None) -> str | None:
-        """Return the channel parameter name of the entity."""
+        """Return the channel parameter name of the data_point."""
         if channel_name and parameter_name:
             return f"{channel_name} {parameter_name}".strip()
         if channel_name:
             return channel_name.strip()
         return None
 
-    def _get_entity_name(
+    def _get_data_point_name(
         self, device_name: str, channel_name: str, parameter_name: str | None
     ) -> str | None:
-        """Return the name of the entity only name."""
+        """Return the name of the data_point only name."""
         channel_parameter_name = self._get_channel_parameter_name(
             channel_name=channel_name, parameter_name=parameter_name
         )
@@ -213,7 +215,7 @@ def _get_generic_name(address: str, model: str) -> str:
 
 
 def get_channel_name_data(channel: hmd.HmChannel) -> ChannelNameData:
-    """Get name for entity."""
+    """Get name for data_point."""
     if channel_base_name := _get_base_name_from_channel_or_device(channel=channel):
         return ChannelNameData(
             device_name=channel.device.name,
@@ -228,11 +230,11 @@ def get_channel_name_data(channel: hmd.HmChannel) -> ChannelNameData:
     return ChannelNameData.empty()
 
 
-def get_entity_name_data(
+def get_data_point_name_data(
     channel: hmd.HmChannel,
     parameter: str,
 ) -> DataPointNameData:
-    """Get name for entity."""
+    """Get name for data_point."""
     if channel_name := _get_base_name_from_channel_or_device(channel=channel):
         p_name = parameter.title().replace("_", " ")
 
@@ -243,21 +245,21 @@ def get_entity_name_data(
                 channel_address=channel.address, parameter=parameter
             ):
                 c_postfix = "" if channel.no in (0, None) else f" ch{channel.no}"
-            entity_name = DataPointNameData(
+            data_point_name = DataPointNameData(
                 device_name=channel.device.name,
                 channel_name=c_name,
                 parameter_name=f"{p_name}{c_postfix}",
             )
         else:
-            entity_name = DataPointNameData(
+            data_point_name = DataPointNameData(
                 device_name=channel.device.name,
                 channel_name=channel_name,
                 parameter_name=p_name,
             )
-        return entity_name
+        return data_point_name
 
     _LOGGER.debug(
-        "GET_ENTITY_NAME: Using unique_id for %s %s %s",
+        "GET_DATA_POINT_NAME: Using unique_id for %s %s %s",
         channel.device.model,
         channel.address,
         parameter,
@@ -296,13 +298,13 @@ def get_event_name(
     return DataPointNameData.empty()
 
 
-def get_custom_entity_name(
+def get_custom_data_point_name(
     channel: hmd.HmChannel,
     is_only_primary_channel: bool,
     usage: DataPointUsage,
     postfix: str = "",
 ) -> DataPointNameData:
-    """Get name for custom entity."""
+    """Get name for custom data_point."""
     if channel_name := _get_base_name_from_channel_or_device(channel=channel):
         if is_only_primary_channel and _check_channel_name_with_channel_no(name=channel_name):
             return DataPointNameData(
@@ -321,7 +323,7 @@ def get_custom_entity_name(
         return DataPointNameData(device_name=channel.device.name, channel_name=channel_name)
 
     _LOGGER.debug(
-        "GET_CUSTOM_ENTITY_NAME: Using unique_id for %s %s %s",
+        "GET_CUSTOM_DATA_POINT_NAME: Using unique_id for %s %s %s",
         channel.device.model,
         channel.address,
         channel.no,

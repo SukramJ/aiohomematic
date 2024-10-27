@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the number platform.
+Module for data points implemented using the number platform.
 
 See https://www.home-assistant.io/integrations/number/.
 """
@@ -24,7 +24,7 @@ class HmSysvarNumber(GenericSystemVariable):
 
     @service()
     async def send_variable(self, value: float) -> None:
-        """Set the value of the entity."""
+        """Set the value of the data_point."""
         if value is not None and self.max is not None and self.min is not None:
             if self.min <= float(value) <= self.max:
                 await super().send_variable(value)

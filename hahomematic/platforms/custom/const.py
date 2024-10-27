@@ -1,4 +1,4 @@
-"""Constants used by hahomematic custom entities."""
+"""Constants used by hahomematic custom data points."""
 
 from __future__ import annotations
 
@@ -40,14 +40,14 @@ class DeviceProfile(StrEnum):
 
 
 class ED(StrEnum):
-    """Enum for entity definitions."""
+    """Enum for data_point definitions."""
 
-    ALLOW_UNDEFINED_GENERIC_ENTITIES = "allow_undefined_generic_entities"
-    DEFAULT_ENTITIES = "default_entities"
-    INCLUDE_DEFAULT_ENTITIES = "include_default_entities"
+    ALLOW_UNDEFINED_GENERIC_DATA_POINTS = "allow_undefined_generic_data_points"
+    DEFAULT_DATA_POINTS = "default_data_points"
+    INCLUDE_DEFAULT_DATA_POINTS = "include_default_data_points"
     DEVICE_GROUP = "device_group"
     DEVICE_DEFINITIONS = "device_definitions"
-    ADDITIONAL_ENTITIES = "additional_entities"
+    ADDITIONAL_DATA_POINTS = "additional_data_points"
     FIELDS = "fields"
     REPEATABLE_FIELDS = "repeatable_fields"
     VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"

@@ -1,5 +1,5 @@
 """
-Module for hub entities implemented using the sensor platform.
+Module for hub data points implemented using the sensor platform.
 
 See https://www.home-assistant.io/integrations/sensor/.
 """

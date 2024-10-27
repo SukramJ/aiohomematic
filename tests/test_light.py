@@ -1,4 +1,4 @@
-"""Tests for light entities of hahomematic."""
+"""Tests for light data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -57,7 +57,9 @@ async def test_cedimmer(
 ) -> None:
     """Test CeDimmer."""
     central, mock_client, _ = central_client_factory
-    light: CeDimmer = cast(CeDimmer, helper.get_prepared_custom_entity(central, "VCU1399816", 4))
+    light: CeDimmer = cast(
+        CeDimmer, helper.get_prepared_custom_data_point(central, "VCU1399816", 4)
+    )
     assert light.usage == DataPointUsage.CE_PRIMARY
     assert light.service_method_names == ("turn_off", "turn_on")
     assert light.color_temp is None
@@ -173,7 +175,7 @@ async def test_cecolordimmereffect(
     """Test CeColorDimmerEffect."""
     central, mock_client, _ = central_client_factory
     light: CeColorDimmerEffect = cast(
-        CeColorDimmerEffect, helper.get_prepared_custom_entity(central, "VCU3747418", 1)
+        CeColorDimmerEffect, helper.get_prepared_custom_data_point(central, "VCU3747418", 1)
     )
     assert light.usage == DataPointUsage.CE_PRIMARY
     assert light.color_temp is None
@@ -329,7 +331,7 @@ async def test_cecolortempdimmer(
     """Test CeColorTempDimmer."""
     central, mock_client, _ = central_client_factory
     light: CeColorTempDimmer = cast(
-        CeColorTempDimmer, helper.get_prepared_custom_entity(central, "VCU0000115", 1)
+        CeColorTempDimmer, helper.get_prepared_custom_data_point(central, "VCU0000115", 1)
     )
     assert light.usage == DataPointUsage.CE_PRIMARY
     assert light.color_temp == 500
@@ -419,7 +421,7 @@ async def test_ceipfixedcolorlight(
     """Test CeIpFixedColorLight."""
     central, mock_client, _ = central_client_factory
     light: CeIpFixedColorLight = cast(
-        CeIpFixedColorLight, helper.get_prepared_custom_entity(central, "VCU3716619", 8)
+        CeIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU3716619", 8)
     )
     assert light.usage == DataPointUsage.CE_PRIMARY
     assert light.color_temp is None
@@ -619,7 +621,7 @@ async def test_ceipfixedcolorlightwired(
     """Test CeIpFixedColorLight."""
     central, mock_client, _ = central_client_factory
     light: CeIpFixedColorLight = cast(
-        CeIpFixedColorLight, helper.get_prepared_custom_entity(central, "VCU4704397", 8)
+        CeIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU4704397", 8)
     )
     assert light.usage == DataPointUsage.CE_PRIMARY
     assert light.color_temp is None
@@ -907,7 +909,7 @@ async def test_ceiprgbwlight(
     """Test CeIpRGBWLight."""
     central, mock_client, _ = central_client_factory
     light: CeIpRGBWLight = cast(
-        CeIpRGBWLight, helper.get_prepared_custom_entity(central, "VCU5629873", 1)
+        CeIpRGBWLight, helper.get_prepared_custom_data_point(central, "VCU5629873", 1)
     )
     assert light.usage == DataPointUsage.CE_PRIMARY
     assert light.color_temp is None
@@ -1084,7 +1086,7 @@ async def test_cecolordimmer(
     """Test CeColorDimmer."""
     central, mock_client, _ = central_client_factory
     light: CeColorDimmer = cast(
-        CeColorDimmer, helper.get_prepared_custom_entity(central, "VCU9973336", 13)
+        CeColorDimmer, helper.get_prepared_custom_data_point(central, "VCU9973336", 13)
     )
     assert light.usage == DataPointUsage.CE_PRIMARY
     assert light.color_temp is None

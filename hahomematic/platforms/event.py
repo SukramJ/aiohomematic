@@ -8,8 +8,8 @@ from typing import Any, Final
 from hahomematic.async_support import loop_check
 from hahomematic.const import (
     CLICK_EVENTS,
+    DATA_POINT_EVENTS,
     DEVICE_ERROR_EVENTS,
-    ENTITY_EVENTS,
     IMPULSE_EVENTS,
     DataPointUsage,
     HmPlatform,
@@ -56,9 +56,9 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
 
     @property
     def usage(self) -> DataPointUsage:
-        """Return the entity usage."""
+        """Return the data_point usage."""
         if (forced_by_com := self._enabled_by_channel_operation_mode) is None:
-            return self._get_entity_usage()
+            return self._get_data_point_usage()
         return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE
 
     @property
@@ -68,8 +68,8 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
 
     async def event(self, value: Any) -> None:
         """Handle event for which this handler has subscribed."""
-        if self.event_type in ENTITY_EVENTS:
-            self.fire_entity_updated_callback(parameter=self.parameter.lower())
+        if self.event_type in DATA_POINT_EVENTS:
+            self.fire_data_point_updated_callback(parameter=self.parameter.lower())
         self._set_modified_at()
         self.fire_event(value)
 
@@ -80,15 +80,15 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
             event_type=self.event_type, event_data=self.get_event_data(value=value)
         )
 
-    def _get_entity_name(self) -> DataPointNameData:
-        """Create the name for the entity."""
+    def _get_data_point_name(self) -> DataPointNameData:
+        """Create the name for the data_point."""
         return get_event_name(
             channel=self._channel,
             parameter=self._parameter,
         )
 
-    def _get_entity_usage(self) -> DataPointUsage:
-        """Generate the usage for the entity."""
+    def _get_data_point_usage(self) -> DataPointUsage:
+        """Generate the usage for the data_point."""
         return DataPointUsage.EVENT
 
 
@@ -133,7 +133,7 @@ class ImpulseEvent(GenericEvent):
 def create_event_and_append_to_channel(
     channel: hmd.HmChannel, parameter: str, parameter_data: ParameterData
 ) -> None:
-    """Create action event entity."""
+    """Create action event data_point."""
     _LOGGER.debug(
         "CREATE_EVENT_AND_APPEND_TO_DEVICE: Creating event for %s, %s, %s",
         channel.address,
@@ -154,4 +154,4 @@ def create_event_and_append_to_channel(
             parameter=parameter,
             parameter_data=parameter_data,
         )
-        channel.add_entity(event)
+        channel.add_data_point(event)

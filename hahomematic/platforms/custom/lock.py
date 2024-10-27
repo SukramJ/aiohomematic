@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the lock platform.
+Module for data points implemented using the lock platform.
 
 See https://www.home-assistant.io/integrations/lock/.
 """
@@ -53,7 +53,7 @@ class LockState(StrEnum):
 
 
 class BaseLock(CustomDataPoint):
-    """Class for HomematicIP lock entities."""
+    """Class for HomematicIP lock data points."""
 
     _platform = HmPlatform.LOCK
 
@@ -99,19 +99,19 @@ class BaseLock(CustomDataPoint):
 
 
 class CeIpLock(BaseLock):
-    """Class for HomematicIP lock entities."""
+    """Class for HomematicIP lock data points."""
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_lock_state: HmSensor[str | None] = self._get_entity(
-            field=Field.LOCK_STATE, entity_type=HmSensor[str | None]
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_lock_state: HmSensor[str | None] = self._get_data_point(
+            field=Field.LOCK_STATE, data_point_type=HmSensor[str | None]
         )
-        self._e_lock_target_level: HmAction = self._get_entity(
-            field=Field.LOCK_TARGET_LEVEL, entity_type=HmAction
+        self._e_lock_target_level: HmAction = self._get_data_point(
+            field=Field.LOCK_TARGET_LEVEL, data_point_type=HmAction
         )
-        self._e_direction: HmSensor[str | None] = self._get_entity(
-            field=Field.DIRECTION, entity_type=HmSensor[str | None]
+        self._e_direction: HmSensor[str | None] = self._get_data_point(
+            field=Field.DIRECTION, data_point_type=HmSensor[str | None]
         )
 
     @state_property
@@ -161,18 +161,18 @@ class CeIpLock(BaseLock):
 
 
 class CeButtonLock(BaseLock):
-    """Class for HomematicIP button lock entities."""
+    """Class for HomematicIP button lock data points."""
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_button_lock: HmSwitch = self._get_entity(
-            field=Field.BUTTON_LOCK, entity_type=HmSwitch
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_button_lock: HmSwitch = self._get_data_point(
+            field=Field.BUTTON_LOCK, data_point_type=HmSwitch
         )
 
     @property
-    def entity_name_postfix(self) -> str:
-        """Return the entity name postfix."""
+    def data_point_name_postfix(self) -> str:
+        """Return the data_point name postfix."""
         return "BUTTON_LOCK"
 
     @state_property
@@ -202,18 +202,18 @@ class CeButtonLock(BaseLock):
 
 
 class CeRfLock(BaseLock):
-    """Class for classic HomeMatic lock entities."""
+    """Class for classic HomeMatic lock data points."""
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_state: HmSwitch = self._get_entity(field=Field.STATE, entity_type=HmSwitch)
-        self._e_open: HmAction = self._get_entity(field=Field.OPEN, entity_type=HmAction)
-        self._e_direction: HmSensor[str | None] = self._get_entity(
-            field=Field.DIRECTION, entity_type=HmSensor[str | None]
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_state: HmSwitch = self._get_data_point(field=Field.STATE, data_point_type=HmSwitch)
+        self._e_open: HmAction = self._get_data_point(field=Field.OPEN, data_point_type=HmAction)
+        self._e_direction: HmSensor[str | None] = self._get_data_point(
+            field=Field.DIRECTION, data_point_type=HmSensor[str | None]
         )
-        self._e_error: HmSensor[str | None] = self._get_entity(
-            field=Field.ERROR, entity_type=HmSensor[str | None]
+        self._e_error: HmSensor[str | None] = self._get_data_point(
+            field=Field.ERROR, data_point_type=HmSensor[str | None]
         )
 
     @state_property
@@ -265,10 +265,10 @@ def make_ip_lock(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP lock entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP lock data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeIpLock,
+        data_point_class=CeIpLock,
         device_profile=DeviceProfile.IP_LOCK,
         custom_config=custom_config,
     )
@@ -278,10 +278,10 @@ def make_ip_button_lock(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP ip button lock entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP ip button lock data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeButtonLock,
+        data_point_class=CeButtonLock,
         device_profile=DeviceProfile.IP_BUTTON_LOCK,
         custom_config=custom_config,
     )
@@ -291,10 +291,10 @@ def make_rf_button_lock(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP rf button lock entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP rf button lock data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeButtonLock,
+        data_point_class=CeButtonLock,
         device_profile=DeviceProfile.RF_BUTTON_LOCK,
         custom_config=custom_config,
     )
@@ -304,10 +304,10 @@ def make_rf_lock(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic rf lock entities."""
-    hmed.make_custom_entity(
+    """Create HomeMatic rf lock data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeRfLock,
+        data_point_class=CeRfLock,
         device_profile=DeviceProfile.RF_LOCK,
         custom_config=custom_config,
     )
@@ -320,7 +320,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_rf_lock,
         channels=(1,),
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 1: (
                     Parameter.DIRECTION,
                     Parameter.ERROR,
@@ -331,7 +331,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-DLD": CustomConfig(
         make_ce_func=make_ip_lock,
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 0: (Parameter.ERROR_JAMMED,),
             }
         ),

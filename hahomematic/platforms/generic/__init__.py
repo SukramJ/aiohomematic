@@ -41,68 +41,68 @@ __all__ = [
     "HmSensor",
     "HmSwitch",
     "HmText",
-    "create_entity_and_append_to_channel",
+    "create_data_point_and_append_to_channel",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
 _BUTTON_ACTIONS: Final[tuple[str, ...]] = ("RESET_MOTION", "RESET_PRESENCE")
 
-# Entities that should be wrapped in a new entity on a new platform.
-_SWITCH_ENTITY_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
+# data points that should be wrapped in a new data_point on a new platform.
+_SWITCH_DATA_POINT_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
     ("HmIP-eTRV", "HmIP-HEATING"): Parameter.LEVEL,
 }
 
 
-def create_entity_and_append_to_channel(
+def create_data_point_and_append_to_channel(
     channel: hmd.HmChannel,
     paramset_key: ParamsetKey,
     parameter: str,
     parameter_data: ParameterData,
 ) -> None:
-    """Decides which default platform should be used, and creates the required entities."""
+    """Decides which default platform should be used, and creates the required data points."""
     _LOGGER.debug(
-        "CREATE_ENTITIES: Creating entity for %s, %s, %s",
+        "CREATE_DATA_POINTS: Creating data_point for %s, %s, %s",
         channel.address,
         parameter,
         channel.device.interface_id,
     )
     p_type = parameter_data["TYPE"]
     p_operations = parameter_data["OPERATIONS"]
-    entity_t: type[GenericDataPoint] | None = None
+    data_point_t: type[GenericDataPoint] | None = None
     if p_operations & Operations.WRITE:
         if p_type == ParameterType.ACTION:
             if p_operations == Operations.WRITE:
                 if parameter in _BUTTON_ACTIONS or channel.device.model in VIRTUAL_REMOTE_MODELS:
-                    entity_t = HmButton
+                    data_point_t = HmButton
                 else:
-                    entity_t = HmAction
+                    data_point_t = HmAction
             elif parameter in CLICK_EVENTS:
-                entity_t = HmButton
+                data_point_t = HmButton
             else:
-                entity_t = HmSwitch
+                data_point_t = HmSwitch
         elif p_operations == Operations.WRITE:
-            entity_t = HmAction
+            data_point_t = HmAction
         elif p_type == ParameterType.BOOL:
-            entity_t = HmSwitch
+            data_point_t = HmSwitch
         elif p_type == ParameterType.ENUM:
-            entity_t = HmSelect
+            data_point_t = HmSelect
         elif p_type == ParameterType.FLOAT:
-            entity_t = HmFloat
+            data_point_t = HmFloat
         elif p_type == ParameterType.INTEGER:
-            entity_t = HmInteger
+            data_point_t = HmInteger
         elif p_type == ParameterType.STRING:
-            entity_t = HmText
+            data_point_t = HmText
     elif parameter not in CLICK_EVENTS:
         # Also check, if sensor could be a binary_sensor due to.
         if is_binary_sensor(parameter_data):
             parameter_data["TYPE"] = ParameterType.BOOL
-            entity_t = HmBinarySensor
+            data_point_t = HmBinarySensor
         else:
-            entity_t = HmSensor
+            data_point_t = HmSensor
 
-    if entity_t:
+    if data_point_t:
         try:
-            entity = entity_t(
+            data_point = data_point_t(
                 channel=channel,
                 paramset_key=paramset_key,
                 parameter=parameter,
@@ -110,35 +110,35 @@ def create_entity_and_append_to_channel(
             )
         except Exception as ex:
             raise HaHomematicException(
-                f"CREATE_ENTITY_AND_APPEND_TO_CHANNEL: Unable to create entity:{hms.reduce_args(args=ex.args)}"
+                f"CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: Unable to create data_point:{hms.reduce_args(args=ex.args)}"
             ) from ex
         _LOGGER.debug(
-            "CREATE_ENTITY_AND_APPEND_TO_CHANNEL: %s: %s %s",
-            entity.platform,
+            "CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: %s: %s %s",
+            data_point.platform,
             channel.address,
             parameter,
         )
-        channel.add_entity(entity)
-        if _check_switch_to_sensor(entity=entity):
-            entity.force_to_sensor()
+        channel.add_data_point(data_point)
+        if _check_switch_to_sensor(data_point=data_point):
+            data_point.force_to_sensor()
 
 
-def _check_switch_to_sensor(entity: GenericDataPoint) -> bool:
+def _check_switch_to_sensor(data_point: GenericDataPoint) -> bool:
     """Check if parameter of a device should be wrapped to a different platform."""
-    if entity.device.central.parameter_visibility.parameter_is_un_ignored(
-        model=entity.device.model,
-        channel_no=entity.channel.no,
-        paramset_key=entity.paramset_key,
-        parameter=entity.parameter,
+    if data_point.device.central.parameter_visibility.parameter_is_un_ignored(
+        model=data_point.device.model,
+        channel_no=data_point.channel.no,
+        paramset_key=data_point.paramset_key,
+        parameter=data_point.parameter,
     ):
         return False
-    for devices, parameter in _SWITCH_ENTITY_TO_SENSOR.items():
+    for devices, parameter in _SWITCH_DATA_POINT_TO_SENSOR.items():
         if (
             hms.element_matches_key(
                 search_elements=devices,
-                compare_with=entity.device.model,
+                compare_with=data_point.device.model,
             )
-            and entity.parameter == parameter
+            and data_point.parameter == parameter
         ):
             return True
     return False

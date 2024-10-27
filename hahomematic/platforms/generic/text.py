@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the text platform.
+Module for data points implemented using the text platform.
 
 See https://www.home-assistant.io/integrations/text/.
 """

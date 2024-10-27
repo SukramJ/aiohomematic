@@ -29,7 +29,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         address: str,
         data: HubData,
     ) -> None:
-        """Initialize the entity."""
+        """Initialize the data_point."""
         PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
             central=central,
@@ -42,21 +42,21 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
 
     @abstractmethod
     def get_name(self, data: HubData) -> str:
-        """Return the name of the hub entity."""
+        """Return the name of the hub data_point."""
 
     @property
     def full_name(self) -> str:
-        """Return the fullname of the entity."""
+        """Return the fullname of the data_point."""
         return self._full_name
 
     @config_property
     def name(self) -> str | None:
-        """Return the name of the entity."""
+        """Return the name of the data_point."""
         return self._name
 
     @property
     def path(self) -> str:
-        """Return the path of the entity."""
+        """Return the path of the data_point."""
         return f"{self._central.path}/{HUB_PATH}/{self.platform}/{self.name}"
 
 
@@ -70,7 +70,7 @@ class GenericSystemVariable(GenericHubDataPoint):
         central: hmcu.CentralUnit,
         data: SystemVariableData,
     ) -> None:
-        """Initialize the entity."""
+        """Initialize the data_point."""
         super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
         self.ccu_var_name: Final = data.name
         self.data_type: Final = data.data_type
@@ -114,16 +114,16 @@ class GenericSystemVariable(GenericHubDataPoint):
 
     @config_property
     def unit(self) -> str | None:
-        """Return the unit of the entity."""
+        """Return the unit of the data_point."""
         return self._unit
 
     @property
     def is_extended(self) -> bool:
-        """Return if the entity is an extended type."""
+        """Return if the data_point is an extended type."""
         return self._is_extended
 
     def get_name(self, data: HubData) -> str:
-        """Return the name of the sysvar entity."""
+        """Return the name of the sysvar data_point."""
         if data.name.lower().startswith(tuple({"v_", "sv_", "sv"})):
             return data.name
         return f"Sv_{data.name}"
@@ -149,7 +149,7 @@ class GenericSystemVariable(GenericHubDataPoint):
             self._old_value = old_value
             self._value = value
 
-        self.fire_entity_updated_callback()
+        self.fire_data_point_updated_callback()
 
     @service()
     async def send_variable(self, value: Any) -> None:

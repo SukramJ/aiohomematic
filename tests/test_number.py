@@ -1,4 +1,4 @@
-"""Tests for number entities of hahomematic."""
+"""Tests for number data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ async def test_hmfloat(
     central, mock_client, _ = central_client_factory
     efloat: HmFloat = cast(
         HmFloat,
-        central.get_generic_entity("VCU0000011:3", "LEVEL"),
+        central.get_generic_data_point("VCU0000011:3", "LEVEL"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "%"
@@ -91,7 +91,7 @@ async def test_hmfloat_special(
     central, mock_client, _ = central_client_factory
     efloat: HmFloat = cast(
         HmFloat,
-        central.get_generic_entity("VCU0000054:2", "SETPOINT"),
+        central.get_generic_data_point("VCU0000054:2", "SETPOINT"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "°C"
@@ -137,7 +137,7 @@ async def test_hminteger(
     central, mock_client, _ = central_client_factory
     einteger: HmInteger = cast(
         HmInteger,
-        central.get_generic_entity("VCU4984404:1", "SET_POINT_MODE"),
+        central.get_generic_data_point("VCU4984404:1", "SET_POINT_MODE"),
     )
     assert einteger.usage == DataPointUsage.NO_CREATE
     assert einteger.unit is None
@@ -201,7 +201,7 @@ async def test_hmsysvarnumber(
     central, mock_client, _ = central_client_factory
     enumber: HmSysvarNumber = cast(
         HmSysvarNumber,
-        central.get_sysvar_entity("sv_float_ext"),
+        central.get_sysvar_data_point("sv_float_ext"),
     )
     assert enumber.usage == DataPointUsage.DATA_POINT
     assert enumber.unit == "°C"

@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the update platform.
+Module for data points implemented using the update platform.
 
 See https://www.home-assistant.io/integrations/update/.
 """
@@ -37,7 +37,7 @@ class HmUpdate(CallbackDataPoint, PayloadMixin):
     _platform = HmPlatform.UPDATE
 
     def __init__(self, device: hmd.HmDevice) -> None:
-        """Init the callback entity."""
+        """Init the callback data_point."""
         PayloadMixin.__init__(self)
         self._device: Final = device
         super().__init__(
@@ -56,17 +56,17 @@ class HmUpdate(CallbackDataPoint, PayloadMixin):
 
     @property
     def device(self) -> hmd.HmDevice:
-        """Return the device of the entity."""
+        """Return the device of the data_point."""
         return self._device
 
     @property
     def full_name(self) -> str:
-        """Return the full name of the entity."""
+        """Return the full name of the data_point."""
         return f"{self._device.name} Update"
 
     @config_property
     def name(self) -> str | None:
-        """Return the name of the entity."""
+        """Return the name of the data_point."""
         return "Update"
 
     @state_property
@@ -101,23 +101,25 @@ class HmUpdate(CallbackDataPoint, PayloadMixin):
 
     @property
     def path(self) -> str:
-        """Return the path of the entity."""
+        """Return the path of the data_point."""
         return f"{self._device.path}/{HmPlatform.UPDATE}"
 
-    def register_entity_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
+    def register_data_point_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register update callback."""
         if custom_id != DEFAULT_CUSTOM_ID:
             if self._custom_id is not None:
                 raise HaHomematicException(
-                    f"REGISTER_UPDATE_CALLBACK failed: hm_entity: {self.full_name} is already registered by {self._custom_id}"
+                    f"REGISTER_UPDATE_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
                 )
             self._custom_id = custom_id
 
         if self._device.register_firmware_update_callback(cb) is not None:
-            return partial(self._unregister_entity_updated_callback, cb=cb, custom_id=custom_id)
+            return partial(
+                self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id
+            )
         return None
 
-    def _unregister_entity_updated_callback(self, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""
         if custom_id is not None:
             self._custom_id = None

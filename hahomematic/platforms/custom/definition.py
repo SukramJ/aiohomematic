@@ -1,4 +1,4 @@
-"""The module contains device descriptions for custom entities."""
+"""The module contains device descriptions for custom data points."""
 
 from __future__ import annotations
 
@@ -20,12 +20,12 @@ from hahomematic.support import reduce_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-DEFAULT_INCLUDE_DEFAULT_ENTITIES: Final = True
+DEFAULT_INCLUDE_DEFAULT_DATA_POINTS: Final = True
 
 ALL_DEVICES: dict[HmPlatform, Mapping[str, CustomConfig | tuple[CustomConfig, ...]]] = {}
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
-_SCHEMA_ED_ADDITIONAL_ENTITIES = vol.Schema(
+_SCHEMA_ED_ADDITIONAL_DATA_POINTS = vol.Schema(
     {
         vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema(
             (vol.Optional(Parameter),)
@@ -40,7 +40,7 @@ _SCHEMA_ED_FIELD = vol.Schema({vol.Required(int): _SCHEMA_ED_FIELD_DETAILS})
 _SCHEMA_ED_DEVICE_GROUP = vol.Schema(
     {
         vol.Required(ED.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
-        vol.Required(ED.ALLOW_UNDEFINED_GENERIC_ENTITIES.value, default=False): bool,
+        vol.Required(ED.ALLOW_UNDEFINED_GENERIC_DATA_POINTS.value, default=False): bool,
         vol.Optional(ED.SECONDARY_CHANNELS.value): (val.positive_int,),
         vol.Optional(ED.REPEATABLE_FIELDS.value): _SCHEMA_ED_FIELD_DETAILS,
         vol.Optional(ED.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_ED_FIELD_DETAILS,
@@ -52,16 +52,16 @@ _SCHEMA_ED_DEVICE_GROUP = vol.Schema(
 _SCHEMA_ED_DEVICE_GROUPS = vol.Schema(
     {
         vol.Required(ED.DEVICE_GROUP.value): _SCHEMA_ED_DEVICE_GROUP,
-        vol.Optional(ED.ADDITIONAL_ENTITIES.value): _SCHEMA_ED_ADDITIONAL_ENTITIES,
+        vol.Optional(ED.ADDITIONAL_DATA_POINTS.value): _SCHEMA_ED_ADDITIONAL_DATA_POINTS,
         vol.Optional(
-            ED.INCLUDE_DEFAULT_ENTITIES.value, default=DEFAULT_INCLUDE_DEFAULT_ENTITIES
+            ED.INCLUDE_DEFAULT_DATA_POINTS.value, default=DEFAULT_INCLUDE_DEFAULT_DATA_POINTS
         ): bool,
     }
 )
 
 _SCHEMA_DEVICE_DESCRIPTION = vol.Schema(
     {
-        vol.Required(ED.DEFAULT_ENTITIES.value): _SCHEMA_ED_ADDITIONAL_ENTITIES,
+        vol.Required(ED.DEFAULT_DATA_POINTS.value): _SCHEMA_ED_ADDITIONAL_DATA_POINTS,
         vol.Required(ED.DEVICE_DEFINITIONS.value): vol.Schema(
             {
                 vol.Required(DeviceProfile): _SCHEMA_ED_DEVICE_GROUPS,
@@ -70,8 +70,8 @@ _SCHEMA_DEVICE_DESCRIPTION = vol.Schema(
     }
 )
 
-_ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
-    ED.DEFAULT_ENTITIES: {
+_DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
+    ED.DEFAULT_DATA_POINTS: {
         0: (
             Parameter.DUTY_CYCLE,
             Parameter.DUTYCYCLE,
@@ -88,7 +88,7 @@ _ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
     ED.DEVICE_DEFINITIONS: {
         DeviceProfile.IP_BUTTON_LOCK: {
             ED.DEVICE_GROUP: {
-                ED.ALLOW_UNDEFINED_GENERIC_ENTITIES: True,
+                ED.ALLOW_UNDEFINED_GENERIC_DATA_POINTS: True,
                 ED.REPEATABLE_FIELDS: {
                     Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
                 },
@@ -142,7 +142,7 @@ _ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.DOOR_STATE: Parameter.DOOR_STATE,
                 },
             },
-            ED.ADDITIONAL_ENTITIES: {
+            ED.ADDITIONAL_DATA_POINTS: {
                 1: (Parameter.STATE,),
             },
         },
@@ -257,7 +257,7 @@ _ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     },
                 },
             },
-            ED.ADDITIONAL_ENTITIES: {
+            ED.ADDITIONAL_DATA_POINTS: {
                 3: (
                     Parameter.CURRENT,
                     Parameter.ENERGY_COUNTER,
@@ -364,12 +364,12 @@ _ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     },
                 },
             },
-            ED.INCLUDE_DEFAULT_ENTITIES: False,
+            ED.INCLUDE_DEFAULT_DATA_POINTS: False,
         },
         DeviceProfile.RF_BUTTON_LOCK: {
             ED.DEVICE_GROUP: {
                 ED.PRIMARY_CHANNEL: None,
-                ED.ALLOW_UNDEFINED_GENERIC_ENTITIES: True,
+                ED.ALLOW_UNDEFINED_GENERIC_DATA_POINTS: True,
                 ED.REPEATABLE_FIELDS: {
                     Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
                 },
@@ -462,7 +462,7 @@ _ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                 },
             },
-            ED.ADDITIONAL_ENTITIES: {
+            ED.ADDITIONAL_DATA_POINTS: {
                 1: (
                     Parameter.CURRENT,
                     Parameter.ENERGY_COUNTER,
@@ -523,7 +523,7 @@ _ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     },
                 },
             },
-            ED.INCLUDE_DEFAULT_ENTITIES: False,
+            ED.INCLUDE_DEFAULT_DATA_POINTS: False,
         },
         DeviceProfile.SIMPLE_RF_THERMOSTAT: {
             ED.DEVICE_GROUP: {
@@ -541,26 +541,28 @@ _ENTITY_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
     },
 }
 
-VALID_ENTITY_DEFINITION = _SCHEMA_DEVICE_DESCRIPTION(_ENTITY_DEFINITION)
+VALID_DATA_POINT_DEFINITION = _SCHEMA_DEVICE_DESCRIPTION(_DATA_POINT_DEFINITION)
 
 
-def validate_entity_definition() -> Any:
-    """Validate the entity_definition."""
+def validate_data_point_definition() -> Any:
+    """Validate the data_point_definition."""
     try:
-        return _SCHEMA_DEVICE_DESCRIPTION(_ENTITY_DEFINITION)
+        return _SCHEMA_DEVICE_DESCRIPTION(_DATA_POINT_DEFINITION)
     except vol.Invalid as err:  # pragma: no cover
-        _LOGGER.error("The entity definition could not be validated. %s, %s", err.path, err.msg)
+        _LOGGER.error(
+            "The data_point definition could not be validated. %s, %s", err.path, err.msg
+        )
         return None
 
 
-def make_custom_entity(
+def make_custom_data_point(
     channel: hmd.HmChannel,
-    entity_class: type,
+    data_point_class: type,
     device_profile: DeviceProfile,
     custom_config: CustomConfig,
 ) -> None:
     """
-    Create custom_entities.
+    Create custom_data_points.
 
     We use a helper-function to avoid raising exceptions during object-init.
     """
@@ -570,12 +572,12 @@ def make_custom_entity(
     base_channel_no = get_sub_device_base_channel(device=channel.device, channel_no=channel.no)
     channels = _relevant_channels(device_profile=device_profile, custom_config=custom_config)
     if channel.no in set(channels):
-        _create_entity(
+        _create_data_point(
             channel=channel,
-            custom_entity_class=entity_class,
+            custom_data_point_class=data_point_class,
             device_profile=device_profile,
             device_def=_get_device_group(device_profile, base_channel_no),
-            entity_def=_get_device_entities(device_profile, base_channel_no),
+            data_point_def=_get_device_data_points(device_profile, base_channel_no),
             base_channel_no=base_channel_no,
             custom_config=_rebase_pri_channels(
                 device_profile=device_profile, custom_config=custom_config
@@ -583,34 +585,34 @@ def make_custom_entity(
         )
 
 
-def _create_entity(
+def _create_data_point(
     channel: hmd.HmChannel,
-    custom_entity_class: type,
+    custom_data_point_class: type,
     device_profile: DeviceProfile,
     device_def: Mapping[ED, Any],
-    entity_def: Mapping[int, tuple[Parameter, ...]],
+    data_point_def: Mapping[int, tuple[Parameter, ...]],
     base_channel_no: int | None,
     custom_config: CustomConfig,
 ) -> None:
-    """Create custom entities."""
+    """Create custom data points."""
     unique_id = generate_unique_id(central=channel.central, address=channel.address)
 
     try:
         if (
-            entity := custom_entity_class(
+            data_point := custom_data_point_class(
                 channel=channel,
                 unique_id=unique_id,
                 device_profile=device_profile,
                 device_def=device_def,
-                entity_def=entity_def,
+                data_point_def=data_point_def,
                 base_channel_no=base_channel_no,
                 custom_config=custom_config,
             )
-        ) and entity.has_data_entities:
-            channel.add_entity(entity)
+        ) and data_point.has_data_data_points:
+            channel.add_data_point(data_point)
     except Exception as ex:
         raise HaHomematicException(
-            f"_CREATE_ENTITY: unable to create entity: {reduce_args(args=ex.args)}"
+            f"_CREATE_DATA_POINT: unable to create data_point: {reduce_args(args=ex.args)}"
         ) from ex
 
 
@@ -676,20 +678,22 @@ def get_sub_device_base_channel(device: hmd.HmDevice, channel_no: int | None) ->
     return device.get_sub_device_base_channel(channel_no=channel_no)
 
 
-def get_default_entities() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:
-    """Return the default entities."""
-    return VALID_ENTITY_DEFINITION[ED.DEFAULT_ENTITIES]  # type: ignore[no-any-return]
+def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:
+    """Return the default data points."""
+    return VALID_DATA_POINT_DEFINITION[ED.DEFAULT_DATA_POINTS]  # type: ignore[no-any-return]
 
 
-def get_include_default_entities(device_profile: DeviceProfile) -> bool:
-    """Return if default entities should be included."""
+def get_include_default_data_points(device_profile: DeviceProfile) -> bool:
+    """Return if default data points should be included."""
     device = _get_device_definition(device_profile)
-    return device.get(ED.INCLUDE_DEFAULT_ENTITIES, DEFAULT_INCLUDE_DEFAULT_ENTITIES)
+    return device.get(ED.INCLUDE_DEFAULT_DATA_POINTS, DEFAULT_INCLUDE_DEFAULT_DATA_POINTS)
 
 
 def _get_device_definition(device_profile: DeviceProfile) -> Mapping[ED, Any]:
-    """Return device from entity definitions."""
-    return cast(Mapping[ED, Any], VALID_ENTITY_DEFINITION[ED.DEVICE_DEFINITIONS][device_profile])
+    """Return device from data_point definitions."""
+    return cast(
+        Mapping[ED, Any], VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS][device_profile]
+    )
 
 
 def _get_device_group(
@@ -711,49 +715,49 @@ def _get_device_group(
     if secondary_channel := group.get(ED.SECONDARY_CHANNELS):
         group[ED.SECONDARY_CHANNELS] = [x + base_channel_no for x in secondary_channel]
 
-    group[ED.VISIBLE_FIELDS] = _rebase_entity_dict(
-        entity_dict=ED.VISIBLE_FIELDS, group=group, base_channel_no=base_channel_no
+    group[ED.VISIBLE_FIELDS] = _rebase_data_point_dict(
+        data_point_dict=ED.VISIBLE_FIELDS, group=group, base_channel_no=base_channel_no
     )
-    group[ED.FIELDS] = _rebase_entity_dict(
-        entity_dict=ED.FIELDS, group=group, base_channel_no=base_channel_no
+    group[ED.FIELDS] = _rebase_data_point_dict(
+        data_point_dict=ED.FIELDS, group=group, base_channel_no=base_channel_no
     )
     return group
 
 
-def _rebase_entity_dict(
-    entity_dict: ED, group: Mapping[ED, Any], base_channel_no: int
+def _rebase_data_point_dict(
+    data_point_dict: ED, group: Mapping[ED, Any], base_channel_no: int
 ) -> Mapping[int, Any]:
-    """Rebase entity_dict with base_channel_no."""
+    """Rebase data_point_dict with base_channel_no."""
     new_fields = {}
-    if fields := group.get(entity_dict):
+    if fields := group.get(data_point_dict):
         for channel_no, field in fields.items():
             new_fields[channel_no + base_channel_no] = field
     return new_fields
 
 
-def _get_device_entities(
+def _get_device_data_points(
     device_profile: DeviceProfile, base_channel_no: int | None
 ) -> Mapping[int, tuple[Parameter, ...]]:
-    """Return the device entities."""
-    additional_entities = (
-        VALID_ENTITY_DEFINITION[ED.DEVICE_DEFINITIONS]
+    """Return the device data points."""
+    additional_data_points = (
+        VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS]
         .get(device_profile, {})
-        .get(ED.ADDITIONAL_ENTITIES, {})
+        .get(ED.ADDITIONAL_DATA_POINTS, {})
     )
     if not base_channel_no:
-        return additional_entities  # type: ignore[no-any-return]
-    new_entities: dict[int, tuple[Parameter, ...]] = {}
-    if additional_entities:
-        for channel_no, field in additional_entities.items():
-            new_entities[channel_no + base_channel_no] = field
-    return new_entities
+        return additional_data_points  # type: ignore[no-any-return]
+    new_data_points: dict[int, tuple[Parameter, ...]] = {}
+    if additional_data_points:
+        for channel_no, field in additional_data_points.items():
+            new_data_points[channel_no + base_channel_no] = field
+    return new_data_points
 
 
 def get_custom_configs(
     model: str,
     platform: HmPlatform | None = None,
 ) -> tuple[CustomConfig, ...]:
-    """Return the entity configs to create custom entities."""
+    """Return the data_point configs to create custom data points."""
     model = model.lower().replace("hb-", "hm-")
     custom_configs: list[CustomConfig] = []
     for platform_blacklisted_devices in ALL_BLACKLISTED_DEVICES:
@@ -766,7 +770,7 @@ def get_custom_configs(
     for pf, platform_devices in ALL_DEVICES.items():
         if platform is not None and pf != platform:
             continue
-        if func := _get_entity_config_by_platform(
+        if func := _get_data_point_config_by_platform(
             platform_devices=platform_devices,
             model=model,
         ):
@@ -777,11 +781,11 @@ def get_custom_configs(
     return tuple(custom_configs)
 
 
-def _get_entity_config_by_platform(
+def _get_data_point_config_by_platform(
     platform_devices: Mapping[str, CustomConfig | tuple[CustomConfig, ...]],
     model: str,
 ) -> CustomConfig | tuple[CustomConfig, ...] | None:
-    """Return the entity configs to create custom entities."""
+    """Return the data_point configs to create custom data points."""
     for d_type, custom_configs in platform_devices.items():
         if model.lower() == d_type.lower():
             return custom_configs
@@ -801,27 +805,27 @@ def is_multi_channel_device(model: str, platform: HmPlatform) -> bool:
     return len(channels) > 1
 
 
-def entity_definition_exists(model: str) -> bool:
+def data_point_definition_exists(model: str) -> bool:
     """Check if device desc exits."""
     return len(get_custom_configs(model)) > 0
 
 
 def get_required_parameters() -> tuple[Parameter, ...]:
-    """Return all required parameters for custom entities."""
+    """Return all required parameters for custom data points."""
     required_parameters: list[Parameter] = []
-    for channel in VALID_ENTITY_DEFINITION[ED.DEFAULT_ENTITIES]:
-        required_parameters.extend(VALID_ENTITY_DEFINITION[ED.DEFAULT_ENTITIES][channel])
-    for device in VALID_ENTITY_DEFINITION[ED.DEVICE_DEFINITIONS]:
-        device_def = VALID_ENTITY_DEFINITION[ED.DEVICE_DEFINITIONS][device][ED.DEVICE_GROUP]
+    for channel in VALID_DATA_POINT_DEFINITION[ED.DEFAULT_DATA_POINTS]:
+        required_parameters.extend(VALID_DATA_POINT_DEFINITION[ED.DEFAULT_DATA_POINTS][channel])
+    for device in VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS]:
+        device_def = VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS][device][ED.DEVICE_GROUP]
         required_parameters.extend(list(device_def.get(ED.REPEATABLE_FIELDS, {}).values()))
         required_parameters.extend(list(device_def.get(ED.VISIBLE_REPEATABLE_FIELDS, {}).values()))
         required_parameters.extend(list(device_def.get(ED.REPEATABLE_FIELDS, {}).values()))
-        for additional_entities in list(
-            VALID_ENTITY_DEFINITION[ED.DEVICE_DEFINITIONS][device]
-            .get(ED.ADDITIONAL_ENTITIES, {})
+        for additional_data_points in list(
+            VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS][device]
+            .get(ED.ADDITIONAL_DATA_POINTS, {})
             .values()
         ):
-            required_parameters.extend(additional_entities)
+            required_parameters.extend(additional_data_points)
 
     for platform_spec in ALL_DEVICES.values():
         for custom_configs in platform_spec.values():

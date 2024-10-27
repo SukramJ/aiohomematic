@@ -19,9 +19,9 @@ from hahomematic.async_support import loop_check
 from hahomematic.const import (
     CALLBACK_TYPE,
     CLICK_EVENTS,
+    DATA_POINT_KEY,
     DEFAULT_DEVICE_DESCRIPTIONS_DIR,
     DEFAULT_PARAMSET_DESCRIPTIONS_DIR,
-    ENTITY_KEY,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
     NO_CACHE_ENTRY,
@@ -63,7 +63,7 @@ from hahomematic.support import (
     check_or_create_directory,
     get_channel_address,
     get_channel_no,
-    get_entity_key,
+    get_data_point_key,
     get_rx_modes,
     reduce_args,
 )
@@ -74,7 +74,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class HmDevice(PayloadMixin):
-    """Object to hold information about a device and associated entities."""
+    """Object to hold information about a device and associated data points."""
 
     def __init__(self, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
         """Initialize the device object."""
@@ -103,14 +103,15 @@ class HmDevice(PayloadMixin):
         self._is_updatable: Final = self._description.get("UPDATABLE") or False
         self._rx_modes: Final = get_rx_modes(mode=self._description.get("RX_MODE", 0))
         self._sub_model: Final = self._description.get("SUBTYPE")
-        self._ignore_for_custom_entity: Final[bool] = (
+        self._ignore_for_custom_data_point: Final[bool] = (
             central.parameter_visibility.model_is_ignored(model=self._model)
         )
         self._manufacturer = self._identify_manufacturer()
         self._product_group: Final = self._client.get_product_group(self._model)
-        # marker if device will be created as custom entity
-        self._has_custom_entity_definition: Final = (
-            hmed.entity_definition_exists(model=self._model) and not self._ignore_for_custom_entity
+        # marker if device will be created as custom data_point
+        self._has_custom_data_point_definition: Final = (
+            hmed.data_point_definition_exists(model=self._model)
+            and not self._ignore_for_custom_data_point
         )
         self._name: Final = get_device_name(
             central=central,
@@ -127,7 +128,7 @@ class HmDevice(PayloadMixin):
         }
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
         self._rooms: Final = central.device_details.get_device_rooms(device_address=device_address)
-        self._update_entity: Final = HmUpdate(device=self) if self.is_updatable else None
+        self._update_data_point: Final = HmUpdate(device=self) if self.is_updatable else None
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
             self._interface_id,
@@ -150,13 +151,13 @@ class HmDevice(PayloadMixin):
         return self._address
 
     @property
-    def allow_undefined_generic_entities(self) -> bool:
-        """Return if undefined generic entities of this device are allowed."""
+    def allow_undefined_generic_data_points(self) -> bool:
+        """Return if undefined generic data points of this device are allowed."""
         return bool(
             all(
-                channel.custom_entity.allow_undefined_generic_entities
+                channel.custom_data_point.allow_undefined_generic_data_points
                 for channel in self._channels.values()
-                if channel.custom_entity is not None
+                if channel.custom_data_point is not None
             )
         )
 
@@ -199,12 +200,12 @@ class HmDevice(PayloadMixin):
         return False
 
     @property
-    def custom_entities(self) -> tuple[hmce.CustomDataPoint, ...]:
-        """Return the custom entities."""
+    def custom_data_points(self) -> tuple[hmce.CustomDataPoint, ...]:
+        """Return the custom data points."""
         return tuple(
-            channel.custom_entity
+            channel.custom_data_point
             for channel in self._channels.values()
-            if channel.custom_entity is not None
+            if channel.custom_data_point is not None
         )
 
     @info_property
@@ -233,17 +234,17 @@ class HmDevice(PayloadMixin):
         return tuple(events)
 
     @property
-    def generic_entities(self) -> tuple[GenericDataPoint, ...]:
-        """Return the generic entities."""
-        entities: list[GenericDataPoint] = []
+    def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
+        """Return the generic data points."""
+        data_points: list[GenericDataPoint] = []
         for channel in self._channels.values():
-            entities.extend(channel.generic_entities)
-        return tuple(entities)
+            data_points.extend(channel.generic_data_points)
+        return tuple(data_points)
 
     @property
-    def has_custom_entity_definition(self) -> bool:
-        """Return if custom_entity definition is available for the device."""
-        return self._has_custom_entity_definition
+    def has_custom_data_point_definition(self) -> bool:
+        """Return if custom_data_point definition is available for the device."""
+        return self._has_custom_data_point_definition
 
     @property
     def has_sub_devices(self) -> bool:
@@ -266,9 +267,9 @@ class HmDevice(PayloadMixin):
         return self._interface_id
 
     @property
-    def ignore_for_custom_entity(self) -> bool:
-        """Return if device should be ignored for custom entity."""
-        return self._ignore_for_custom_entity
+    def ignore_for_custom_data_point(self) -> bool:
+        """Return if device should be ignored for custom data_point."""
+        return self._ignore_for_custom_data_point
 
     @property
     def info(self) -> dict[str, Any]:
@@ -299,7 +300,7 @@ class HmDevice(PayloadMixin):
 
     @property
     def path(self) -> str:
-        """Return the base path of the entity."""
+        """Return the base path of the data_point."""
         return f"{self._central.path}/{self._address}"
 
     @property
@@ -330,9 +331,9 @@ class HmDevice(PayloadMixin):
         return self._sub_model
 
     @property
-    def update_entity(self) -> HmUpdate | None:
-        """Return the device firmware update entity of the device."""
-        return self._update_entity
+    def update_data_point(self) -> HmUpdate | None:
+        """Return the device firmware update data_point of the device."""
+        return self._update_data_point
 
     @property
     def value_cache(self) -> _ValueCache:
@@ -341,22 +342,22 @@ class HmDevice(PayloadMixin):
 
     @property
     def _e_unreach(self) -> GenericDataPoint | None:
-        """Return th UNREACH entity."""
-        return self.get_generic_entity(
+        """Return th UNREACH data_point."""
+        return self.get_generic_data_point(
             channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH
         )
 
     @property
     def _e_sticky_un_reach(self) -> GenericDataPoint | None:
-        """Return th STICKY_UN_REACH entity."""
-        return self.get_generic_entity(
+        """Return th STICKY_UN_REACH data_point."""
+        return self.get_generic_data_point(
             channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH
         )
 
     @property
     def _e_config_pending(self) -> GenericDataPoint | None:
-        """Return th CONFIG_PENDING entity."""
-        return self.get_generic_entity(
+        """Return th CONFIG_PENDING data_point."""
+        return self.get_generic_data_point(
             channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING
         )
 
@@ -400,7 +401,7 @@ class HmDevice(PayloadMixin):
         return self._channels.get(channel_address)
 
     def remove(self) -> None:
-        """Remove entities from collections and central."""
+        """Remove data points from collections and central."""
         for channel in self._channels.values():
             channel.remove()
 
@@ -431,31 +432,31 @@ class HmDevice(PayloadMixin):
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
 
-    def get_entities(
+    def get_data_points(
         self,
         platform: HmPlatform | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
     ) -> tuple[CallbackDataPoint, ...]:
-        """Get all entities of the device."""
-        all_entities: list[CallbackDataPoint] = []
+        """Get all data points of the device."""
+        all_data_points: list[CallbackDataPoint] = []
         if (
-            self._update_entity
-            and (platform is None or self._update_entity.platform == platform)
+            self._update_data_point
+            and (platform is None or self._update_data_point.platform == platform)
             and (
-                (exclude_no_create and self._update_entity.usage != DataPointUsage.NO_CREATE)
+                (exclude_no_create and self._update_data_point.usage != DataPointUsage.NO_CREATE)
                 or exclude_no_create is False
             )
-            and (registered is None or self._update_entity.is_registered == registered)
+            and (registered is None or self._update_data_point.is_registered == registered)
         ):
-            all_entities.append(self._update_entity)
+            all_data_points.append(self._update_data_point)
         for channel in self._channels.values():
-            all_entities.extend(
-                channel.get_entities(
+            all_data_points.extend(
+                channel.get_data_points(
                     platform=platform, exclude_no_create=exclude_no_create, registered=registered
                 )
             )
-        return tuple(all_entities)
+        return tuple(all_data_points)
 
     def get_events(
         self, event_type: HomematicEventType, registered: bool | None = None
@@ -469,22 +470,22 @@ class HmDevice(PayloadMixin):
                 events[channel.no] = values
         return events
 
-    def get_custom_entity(self, channel_no: int) -> hmce.CustomDataPoint | None:
-        """Return an entity from device."""
+    def get_custom_data_point(self, channel_no: int) -> hmce.CustomDataPoint | None:
+        """Return a data_point from device."""
         if channel := self.get_channel(
             channel_address=get_channel_address(
                 device_address=self._address, channel_no=channel_no
             )
         ):
-            return channel.custom_entity
+            return channel.custom_data_point
         return None
 
-    def get_generic_entity(
+    def get_generic_data_point(
         self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
-        """Return an entity from device."""
+        """Return a data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
-            return channel.get_generic_entity(parameter=parameter, paramset_key=paramset_key)
+            return channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key)
         return None
 
     def get_generic_event(self, channel_address: str, parameter: str) -> GenericEvent | None:
@@ -493,19 +494,19 @@ class HmDevice(PayloadMixin):
             return channel.get_generic_event(parameter=parameter)
         return None
 
-    def get_readable_entities(self, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
-        """Return the list of readable master entities."""
-        entities: list[GenericDataPoint] = []
+    def get_readable_data_points(self, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
+        """Return the list of readable master data points."""
+        data_points: list[GenericDataPoint] = []
         for channel in self._channels.values():
-            entities.extend(channel.get_readable_entities(paramset_key=paramset_key))
-        return tuple(entities)
+            data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
+        return tuple(data_points)
 
     def set_forced_availability(self, forced_availability: ForcedDeviceAvailability) -> None:
         """Set the availability of the device."""
         if self._forced_availability != forced_availability:
             self._forced_availability = forced_availability
-            for entity in self.generic_entities:
-                entity.fire_entity_updated_callback()
+            for data_point in self.generic_data_points:
+                data_point.fire_data_point_updated_callback()
 
     @service()
     async def export_device_definition(self) -> None:
@@ -554,12 +555,12 @@ class HmDevice(PayloadMixin):
 
     async def load_value_cache(self) -> None:
         """Init the parameter cache."""
-        if len(self.generic_entities) > 0:
-            await self._value_cache.init_base_entities()
+        if len(self.generic_data_points) > 0:
+            await self._value_cache.init_base_data_points()
         if len(self.generic_events) > 0:
             await self._value_cache.init_readable_events()
         _LOGGER.debug(
-            "INIT_DATA: Skipping load_data, missing entities for %s",
+            "INIT_DATA: Skipping load_data, missing data points for %s",
             self._address,
         )
 
@@ -578,8 +579,8 @@ class HmDevice(PayloadMixin):
                     paramset_key=paramset_key,
                 )
         await self._central.save_caches(save_paramset_descriptions=True)
-        for entity in self.generic_entities:
-            entity.update_parameter_data()
+        for data_point in self.generic_data_points:
+            data_point.update_parameter_data()
         self.fire_device_updated_callback()
 
     @loop_check
@@ -598,14 +599,14 @@ class HmDevice(PayloadMixin):
             f"address: {self._address}, "
             f"model: {len(self._model)}, "
             f"name: {self._name}, "
-            f"generic_entities: {len(self.generic_entities)}, "
-            f"custom_entities: {len(self.custom_entities)}, "
+            f"generic_data_points: {len(self.generic_data_points)}, "
+            f"custom_data_points: {len(self.custom_data_points)}, "
             f"events: {len(self.generic_events)}"
         )
 
 
 class HmChannel(PayloadMixin):
-    """Object to hold information about a channel and associated entities."""
+    """Object to hold information about a channel and associated data points."""
 
     def __init__(self, device: HmDevice, channel_address: str) -> None:
         """Initialize the channel object."""
@@ -629,9 +630,9 @@ class HmChannel(PayloadMixin):
             central=self._central, address=channel_address
         )
         self._base_no: Final = self._device.get_sub_device_base_channel(channel_no=self._no)
-        self._custom_entity: hmce.CustomDataPoint | None = None
-        self._generic_entities: Final[dict[ENTITY_KEY, GenericDataPoint]] = {}
-        self._generic_events: Final[dict[ENTITY_KEY, GenericEvent]] = {}
+        self._custom_data_point: hmce.CustomDataPoint | None = None
+        self._generic_data_points: Final[dict[DATA_POINT_KEY, GenericDataPoint]] = {}
+        self._generic_events: Final[dict[DATA_POINT_KEY, GenericEvent]] = {}
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(
             channel_address=channel_address
@@ -659,15 +660,15 @@ class HmChannel(PayloadMixin):
     def operation_mode(self) -> str | None:
         """Return the channel operation mode if available."""
         if (
-            cop := self.get_generic_entity(parameter=Parameter.CHANNEL_OPERATION_MODE)
+            cop := self.get_generic_data_point(parameter=Parameter.CHANNEL_OPERATION_MODE)
         ) is not None and cop.value is not None:
             return str(cop.value)
         return None
 
     @property
-    def custom_entity(self) -> hmce.CustomDataPoint | None:
-        """Return the custom entities."""
-        return self._custom_entity
+    def custom_data_point(self) -> hmce.CustomDataPoint | None:
+        """Return the custom data points."""
+        return self._custom_data_point
 
     @property
     def description(self) -> DeviceDescription:
@@ -690,9 +691,9 @@ class HmChannel(PayloadMixin):
         return self._name_data.full_name
 
     @property
-    def generic_entities(self) -> tuple[GenericDataPoint, ...]:
-        """Return the generic entities."""
-        return tuple(self._generic_entities.values())
+    def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
+        """Return the generic data points."""
+        return tuple(self._generic_data_points.values())
 
     @property
     def generic_events(self) -> tuple[GenericEvent, ...]:
@@ -810,68 +811,72 @@ class HmChannel(PayloadMixin):
             if event.event_type is HomematicEventType.KEYPRESS
         )
 
-    def add_entity(self, entity: CallbackDataPoint) -> None:
-        """Add an entity to a channel."""
-        if isinstance(entity, BaseParameterDataPoint):
-            self._central.add_event_subscription(entity=entity)
-        if isinstance(entity, GenericDataPoint):
-            self._generic_entities[entity.entity_key] = entity
-            self._device.register_device_updated_callback(cb=entity.fire_entity_updated_callback)
-        if isinstance(entity, hmce.CustomDataPoint):
-            self._custom_entity = entity
-        if isinstance(entity, GenericEvent):
-            self._generic_events[entity.entity_key] = entity
+    def add_data_point(self, data_point: CallbackDataPoint) -> None:
+        """Add a data_point to a channel."""
+        if isinstance(data_point, BaseParameterDataPoint):
+            self._central.add_event_subscription(data_point=data_point)
+        if isinstance(data_point, GenericDataPoint):
+            self._generic_data_points[data_point.data_point_key] = data_point
+            self._device.register_device_updated_callback(
+                cb=data_point.fire_data_point_updated_callback
+            )
+        if isinstance(data_point, hmce.CustomDataPoint):
+            self._custom_data_point = data_point
+        if isinstance(data_point, GenericEvent):
+            self._generic_events[data_point.data_point_key] = data_point
 
-    def _remove_entity(self, entity: CallbackDataPoint) -> None:
-        """Remove an entity from a channel."""
-        if isinstance(entity, BaseParameterDataPoint):
-            self._central.remove_event_subscription(entity=entity)
-        if isinstance(entity, GenericDataPoint):
-            del self._generic_entities[entity.entity_key]
-            self._device.unregister_device_updated_callback(cb=entity.fire_entity_updated_callback)
-        if isinstance(entity, hmce.CustomDataPoint):
-            self._custom_entity = None
-        if isinstance(entity, GenericEvent):
-            del self._generic_events[entity.entity_key]
-        entity.fire_device_removed_callback()
+    def _remove_data_point(self, data_point: CallbackDataPoint) -> None:
+        """Remove a data_point from a channel."""
+        if isinstance(data_point, BaseParameterDataPoint):
+            self._central.remove_event_subscription(data_point=data_point)
+        if isinstance(data_point, GenericDataPoint):
+            del self._generic_data_points[data_point.data_point_key]
+            self._device.unregister_device_updated_callback(
+                cb=data_point.fire_data_point_updated_callback
+            )
+        if isinstance(data_point, hmce.CustomDataPoint):
+            self._custom_data_point = None
+        if isinstance(data_point, GenericEvent):
+            del self._generic_events[data_point.data_point_key]
+        data_point.fire_device_removed_callback()
 
     def remove(self) -> None:
-        """Remove entities from collections and central."""
+        """Remove data points from collections and central."""
         for event in self.generic_events:
-            self._remove_entity(event)
+            self._remove_data_point(event)
         self._generic_events.clear()
 
-        for entity in self.generic_entities:
-            self._remove_entity(entity)
-        self._generic_entities.clear()
+        for data_point in self.generic_data_points:
+            self._remove_data_point(data_point)
+        self._generic_data_points.clear()
 
-        if self._custom_entity:
-            self._remove_entity(self._custom_entity)
+        if self._custom_data_point:
+            self._remove_data_point(self._custom_data_point)
 
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
 
-    def get_entities(
+    def get_data_points(
         self,
         platform: HmPlatform | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
     ) -> tuple[CallbackDataPoint, ...]:
-        """Get all entities of the device."""
-        all_entities: list[CallbackDataPoint] = list(self._generic_entities.values())
-        if self._custom_entity:
-            all_entities.append(self._custom_entity)
+        """Get all data points of the device."""
+        all_data_points: list[CallbackDataPoint] = list(self._generic_data_points.values())
+        if self._custom_data_point:
+            all_data_points.append(self._custom_data_point)
 
         return tuple(
-            entity
-            for entity in all_entities
-            if entity is not None
-            and (platform is None or entity.platform == platform)
+            data_point
+            for data_point in all_data_points
+            if data_point is not None
+            and (platform is None or data_point.platform == platform)
             and (
-                (exclude_no_create and entity.usage != DataPointUsage.NO_CREATE)
+                (exclude_no_create and data_point.usage != DataPointUsage.NO_CREATE)
                 or exclude_no_create is False
             )
-            and (registered is None or entity.is_registered == registered)
+            and (registered is None or data_point.is_registered == registered)
         )
 
     def get_events(
@@ -887,29 +892,29 @@ class HmChannel(PayloadMixin):
             )
         )
 
-    def get_generic_entity(
+    def get_generic_data_point(
         self, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
-        """Return an entity from device."""
+        """Return a data_point from device."""
         if paramset_key:
-            return self._generic_entities.get(
-                get_entity_key(
+            return self._generic_data_points.get(
+                get_data_point_key(
                     channel_address=self._address,
                     paramset_key=paramset_key,
                     parameter=parameter,
                 )
             )
 
-        if entity := self._generic_entities.get(
-            get_entity_key(
+        if data_point := self._generic_data_points.get(
+            get_data_point_key(
                 channel_address=self._address,
                 paramset_key=ParamsetKey.VALUES,
                 parameter=parameter,
             )
         ):
-            return entity
-        return self._generic_entities.get(
-            get_entity_key(
+            return data_point
+        return self._generic_data_points.get(
+            get_data_point_key(
                 channel_address=self._address,
                 paramset_key=ParamsetKey.MASTER,
                 parameter=parameter,
@@ -919,18 +924,18 @@ class HmChannel(PayloadMixin):
     def get_generic_event(self, parameter: str) -> GenericEvent | None:
         """Return a generic event from device."""
         return self._generic_events.get(
-            get_entity_key(
+            get_data_point_key(
                 channel_address=self._address,
                 paramset_key=ParamsetKey.VALUES,
                 parameter=parameter,
             )
         )
 
-    def get_readable_entities(self, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
-        """Return the list of readable master entities."""
+    def get_readable_data_points(self, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
+        """Return the list of readable master data points."""
         return tuple(
             ge
-            for ge in self._generic_entities.values()
+            for ge in self._generic_data_points.values()
             if ge.is_readable and ge.paramset_key == paramset_key
         )
 
@@ -939,8 +944,8 @@ class HmChannel(PayloadMixin):
         return (
             f"address: {self._address}, "
             f"type: {self._type_name}, "
-            f"generic_entities: {len(self._generic_entities)}, "
-            f"custom_entity: {self._custom_entity is not None}, "
+            f"generic_data_points: {len(self._generic_data_points)}, "
+            f"custom_data_point: {self._custom_data_point is not None}, "
             f"events: {len(self._generic_events)}"
         )
 
@@ -955,38 +960,38 @@ class _ValueCache:
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
         # {key, CacheEntry}
-        self._device_cache: Final[dict[ENTITY_KEY, CacheEntry]] = {}
+        self._device_cache: Final[dict[DATA_POINT_KEY, CacheEntry]] = {}
 
-    async def init_base_entities(self) -> None:
+    async def init_base_data_points(self) -> None:
         """Load data by get_value."""
         try:
-            for entity in self._get_base_entities():
+            for data_point in self._get_base_data_points():
                 value = await self.get_value(
-                    channel_address=entity.channel.address,
-                    paramset_key=entity.paramset_key,
-                    parameter=entity.parameter,
+                    channel_address=data_point.channel.address,
+                    paramset_key=data_point.paramset_key,
+                    parameter=data_point.parameter,
                     call_source=CallSource.HM_INIT,
                 )
-                entity.write_value(value=value)
+                data_point.write_value(value=value)
         except BaseHomematicException as ex:
             _LOGGER.debug(
-                "init_base_entities: Failed to init cache for channel0 %s, %s [%s]",
+                "init_base_data_points: Failed to init cache for channel0 %s, %s [%s]",
                 self._device.model,
                 self._device.address,
                 ex,
             )
 
-    def _get_base_entities(self) -> set[GenericDataPoint]:
-        """Get entities of channel 0 and master."""
+    def _get_base_data_points(self) -> set[GenericDataPoint]:
+        """Get data points of channel 0 and master."""
         return {
-            entity
-            for entity in self._device.generic_entities
+            data_point
+            for data_point in self._device.generic_data_points
             if (
-                entity.channel.no == 0
-                and entity.paramset_key == ParamsetKey.VALUES
-                and entity.parameter in RELEVANT_INIT_PARAMETERS
+                data_point.channel.no == 0
+                and data_point.paramset_key == ParamsetKey.VALUES
+                and data_point.parameter in RELEVANT_INIT_PARAMETERS
             )
-            or entity.paramset_key == ParamsetKey.MASTER
+            or data_point.paramset_key == ParamsetKey.MASTER
         }
 
     async def init_readable_events(self) -> None:
@@ -1066,7 +1071,7 @@ class _ValueCache:
         self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any
     ) -> None:
         """Add value to cache."""
-        key = get_entity_key(
+        key = get_data_point_key(
             channel_address=channel_address, paramset_key=paramset_key, parameter=parameter
         )
         # write value to cache even if an exception has occurred
@@ -1095,7 +1100,7 @@ class _ValueCache:
             return global_value
 
         # Try to get data from device cache
-        key = get_entity_key(
+        key = get_data_point_key(
             channel_address=channel_address, paramset_key=paramset_key, parameter=parameter
         )
         if (

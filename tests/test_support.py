@@ -1,4 +1,4 @@
-"""Tests for switch entities of hahomematic."""
+"""Tests for switch data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -27,9 +27,9 @@ from hahomematic.platforms.support import (
     _check_channel_name_with_channel_no,
     convert_value,
     generate_unique_id,
-    get_custom_entity_name,
+    get_custom_data_point_name,
+    get_data_point_name_data,
     get_device_name,
-    get_entity_name_data,
     get_event_name,
 )
 from hahomematic.support import (
@@ -197,31 +197,31 @@ async def test_to_bool() -> None:
         (TEST_DEVICES, True, False, False, None, None),
     ],
 )
-async def test_get_entity_name(
+async def test_get_data_point_name(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test get_entity_name."""
+    """Test get_data_point_name."""
     central, _, _ = central_client_factory
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:5")
-    name_data = get_entity_name_data(channel=channel4, parameter="LEVEL")
+    name_data = get_data_point_name_data(channel=channel4, parameter="LEVEL")
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
-    assert name_data.entity_name == "Level"
+    assert name_data.data_point_name == "Level"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
-    name_data = get_entity_name_data(channel=channel5, parameter="LEVEL")
+    name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
-    assert name_data.entity_name == "Roof Level"
+    assert name_data.data_point_name == "Roof Level"
 
     with patch(
         "hahomematic.platforms.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
-        name_data = get_entity_name_data(channel=channel5, parameter="LEVEL")
+        name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == ""
-        assert name_data.entity_name is None
+        assert name_data.data_point_name is None
 
 
 @pytest.mark.asyncio
@@ -248,14 +248,14 @@ async def test_get_event_name(
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
     name_data = get_event_name(channel=channel4, parameter="LEVEL")
     assert name_data.channel_name == "ch4"
-    assert name_data.entity_name == "ch4 Level"
+    assert name_data.data_point_name == "ch4 Level"
     assert name_data.full_name == "HmIP-BSM_VCU2128127 ch4 Level"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_event_name(channel=channel5, parameter="LEVEL")
     assert name_data.channel_name == "Roof"
-    assert name_data.entity_name == "Roof Level"
+    assert name_data.data_point_name == "Roof Level"
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
 
     with patch(
@@ -264,7 +264,7 @@ async def test_get_event_name(
     ):
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == ""
-        assert name_data.entity_name is None
+        assert name_data.data_point_name is None
 
 
 @pytest.mark.asyncio
@@ -281,59 +281,59 @@ async def test_get_event_name(
         (TEST_DEVICES, True, False, False, None, None),
     ],
 )
-async def test_custom_entity_name(
+async def test_custom_data_point_name(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test get_custom_entity_name."""
+    """Test get_custom_data_point_name."""
     central, _, _ = central_client_factory
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel4,
         is_only_primary_channel=True,
         usage=DataPointUsage.CE_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127"
-    assert name_data.entity_name == ""
+    assert name_data.data_point_name == ""
 
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel4,
         is_only_primary_channel=False,
         usage=DataPointUsage.CE_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 vch4"
-    assert name_data.entity_name == "vch4"
+    assert name_data.data_point_name == "vch4"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel5,
         is_only_primary_channel=True,
         usage=DataPointUsage.CE_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
-    assert name_data.entity_name == "Roof"
+    assert name_data.data_point_name == "Roof"
 
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel5,
         is_only_primary_channel=False,
         usage=DataPointUsage.CE_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
-    assert name_data.entity_name == "Roof"
+    assert name_data.data_point_name == "Roof"
 
     with patch(
         "hahomematic.platforms.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
-        name_data = get_custom_entity_name(
+        name_data = get_custom_data_point_name(
             channel=channel5,
             is_only_primary_channel=False,
             usage=DataPointUsage.CE_SECONDARY,
         )
         assert name_data.full_name == ""
-        assert name_data.entity_name is None
+        assert name_data.data_point_name is None
 
 
 @pytest.mark.asyncio

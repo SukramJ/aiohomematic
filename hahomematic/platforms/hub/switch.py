@@ -1,5 +1,5 @@
 """
-Module for hub entities implemented using the switch platform.
+Module for hub data points implemented using the switch platform.
 
 See https://www.home-assistant.io/integrations/switch/.
 """
@@ -11,7 +11,7 @@ from hahomematic.platforms.hub.data_point import GenericSystemVariable
 
 
 class HmSysvarSwitch(GenericSystemVariable):
-    """Implementation of a sysvar switch entity."""
+    """Implementation of a sysvar switch data_point."""
 
     _platform = HmPlatform.HUB_SWITCH
     _is_extended = True

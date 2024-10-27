@@ -1,4 +1,4 @@
-"""Tests for text entities of hahomematic."""
+"""Tests for text data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -35,9 +35,9 @@ TEST_DEVICES: dict[str, str] = {}
     ],
 )
 async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> None:
-    """Test HmText. There are currently no text entities."""
+    """Test HmText. There are currently no text data points."""
     central, _ = central_client
-    text: HmText = cast(HmText, central.get_generic_entity("VCU7981740:1", "STATE"))
+    text: HmText = cast(HmText, central.get_generic_data_point("VCU7981740:1", "STATE"))
     assert text.usage == DataPointUsage.DATA_POINT
 
 
@@ -58,9 +58,9 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
 async def test_hmsysvartext(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test HmSysvarText. There are currently no text entities."""
+    """Test HmSysvarText. There are currently no text data points."""
     central, mock_client, _ = central_client_factory
-    text: HmSysvarText = cast(HmSysvarText, central.get_sysvar_entity("sv_string_ext"))
+    text: HmSysvarText = cast(HmSysvarText, central.get_sysvar_data_point("sv_string_ext"))
     assert text.usage == DataPointUsage.DATA_POINT
 
     assert text.unit is None

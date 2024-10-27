@@ -1,4 +1,4 @@
-"""Module with base class for custom entities."""
+"""Module with base class for custom data points."""
 
 from __future__ import annotations
 
@@ -7,7 +7,13 @@ from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
-from hahomematic.const import CALLBACK_TYPE, ENTITY_KEY, INIT_DATETIME, CallSource, DataPointUsage
+from hahomematic.const import (
+    CALLBACK_TYPE,
+    DATA_POINT_KEY,
+    INIT_DATETIME,
+    CallSource,
+    DataPointUsage,
+)
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.custom import definition as hmed
 from hahomematic.platforms.custom.const import ED, DeviceProfile, Field
@@ -18,7 +24,7 @@ from hahomematic.platforms.generic import data_point as hmge
 from hahomematic.platforms.support import (
     DataPointNameData,
     check_channel_is_the_only_primary_channel,
-    get_custom_entity_name,
+    get_custom_data_point_name,
 )
 from hahomematic.support import get_channel_address
 
@@ -26,7 +32,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class CustomDataPoint(BaseDataPoint):
-    """Base class for custom entities."""
+    """Base class for custom data points."""
 
     def __init__(
         self,
@@ -34,16 +40,16 @@ class CustomDataPoint(BaseDataPoint):
         unique_id: str,
         device_profile: DeviceProfile,
         device_def: Mapping[str, Any],
-        entity_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
+        data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
         base_channel_no: int,
         custom_config: CustomConfig,
     ) -> None:
-        """Initialize the entity."""
+        """Initialize the data_point."""
         self._unregister_callbacks: list[CALLBACK_TYPE] = []
         self._device_profile: Final = device_profile
         # required for name in BaseDataPoint
         self._device_def: Final = device_def
-        self._entity_def: Final = entity_def
+        self._data_point_def: Final = data_point_def
         self._base_no: int = base_channel_no
         self._custom_config: Final = custom_config
         self._extended: Final = custom_config.extended
@@ -54,114 +60,123 @@ class CustomDataPoint(BaseDataPoint):
                 model=channel.device.model, platform=self.platform
             ),
         )
-        self._allow_undefined_generic_entities: Final[bool] = self._device_def[
-            ED.ALLOW_UNDEFINED_GENERIC_ENTITIES
+        self._allow_undefined_generic_data_points: Final[bool] = self._device_def[
+            ED.ALLOW_UNDEFINED_GENERIC_DATA_POINTS
         ]
-        self._data_entities: Final[dict[Field, hmge.GenericDataPoint]] = {}
-        self._init_entities()
-        self._init_entity_fields()
+        self._data_data_points: Final[dict[Field, hmge.GenericDataPoint]] = {}
+        self._init_data_points()
+        self._init_data_point_fields()
         self._service_methods = get_service_calls(obj=self)
 
     @property
-    def allow_undefined_generic_entities(self) -> bool:
-        """Return if undefined generic entities of this device are allowed."""
-        return self._allow_undefined_generic_entities
+    def allow_undefined_generic_data_points(self) -> bool:
+        """Return if undefined generic data points of this device are allowed."""
+        return self._allow_undefined_generic_data_points
 
     @property
     def base_no(self) -> int | None:
-        """Return the base channel no of the entity."""
+        """Return the base channel no of the data_point."""
         return self._base_no
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
         _LOGGER.debug(
-            "INIT_ENTITY_FIELDS: Initialising the custom entity fields for %s", self.full_name
+            "INIT_DATA_POINT_FIELDS: Initialising the custom data_point fields for %s",
+            self.full_name,
         )
 
     @state_property
     def modified_at(self) -> datetime:
         """Return the latest last update timestamp."""
         modified_at: datetime = INIT_DATETIME
-        for entity in self._readable_entities:
-            if (entity_modified_at := entity.modified_at) and entity_modified_at > modified_at:
-                modified_at = entity_modified_at
+        for data_point in self._readable_data_points:
+            if (
+                data_point_modified_at := data_point.modified_at
+            ) and data_point_modified_at > modified_at:
+                modified_at = data_point_modified_at
         return modified_at
 
     @state_property
     def refreshed_at(self) -> datetime:
         """Return the latest last refresh timestamp."""
         refreshed_at: datetime = INIT_DATETIME
-        for entity in self._readable_entities:
-            if (entity_refreshed_at := entity.refreshed_at) and entity_refreshed_at > refreshed_at:
-                refreshed_at = entity_refreshed_at
+        for data_point in self._readable_data_points:
+            if (
+                data_point_refreshed_at := data_point.refreshed_at
+            ) and data_point_refreshed_at > refreshed_at:
+                refreshed_at = data_point_refreshed_at
         return refreshed_at
 
     @property
     def unconfirmed_last_values_send(self) -> dict[Field, Any]:
-        """Return the unconfirmed values send for the entity."""
+        """Return the unconfirmed values send for the data_point."""
         unconfirmed_values: dict[Field, Any] = {}
-        for field, entity in self._data_entities.items():
-            if (unconfirmed_value := entity.unconfirmed_last_value_send) is not None:
+        for field, data_point in self._data_data_points.items():
+            if (unconfirmed_value := data_point.unconfirmed_last_value_send) is not None:
                 unconfirmed_values[field] = unconfirmed_value
         return unconfirmed_values
 
     @property
-    def has_data_entities(self) -> bool:
-        """Return if there are data entities."""
-        return len(self._data_entities) > 0
+    def has_data_data_points(self) -> bool:
+        """Return if there are data data points."""
+        return len(self._data_data_points) > 0
 
     @property
     def is_valid(self) -> bool:
         """Return if the state is valid."""
-        return all(entity.is_valid for entity in self._relevant_entities)
+        return all(data_point.is_valid for data_point in self._relevant_data_points)
 
     @property
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
-        return any(entity.state_uncertain for entity in self._relevant_entities)
+        return any(data_point.state_uncertain for data_point in self._relevant_data_points)
 
     @property
-    def _readable_entities(self) -> tuple[hmge.GenericDataPoint, ...]:
-        """Returns the list of readable entities."""
-        return tuple(ge for ge in self._data_entities.values() if ge.is_readable)
+    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+        """Returns the list of readable data points."""
+        return tuple(ge for ge in self._data_data_points.values() if ge.is_readable)
 
     @property
-    def _relevant_entities(self) -> tuple[hmge.GenericDataPoint, ...]:
-        """Returns the list of relevant entities. To be overridden by subclasses."""
-        return self._readable_entities
+    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+        """Returns the list of relevant data points. To be overridden by subclasses."""
+        return self._readable_data_points
 
     @property
-    def entity_name_postfix(self) -> str:
-        """Return the entity name postfix."""
+    def data_point_name_postfix(self) -> str:
+        """Return the data_point name postfix."""
         return ""
 
-    def _get_entity_name(self) -> DataPointNameData:
-        """Create the name for the entity."""
+    def _get_data_point_name(self) -> DataPointNameData:
+        """Create the name for the data_point."""
         is_only_primary_channel = check_channel_is_the_only_primary_channel(
             current_channel_no=self._channel.no,
             device_def=self._device_def,
             device_has_multiple_channels=self.is_in_multiple_channels,
         )
-        return get_custom_entity_name(
+        return get_custom_data_point_name(
             channel=self._channel,
             is_only_primary_channel=is_only_primary_channel,
-            usage=self._get_entity_usage(),
-            postfix=self.entity_name_postfix.replace("_", " ").title(),
+            usage=self._get_data_point_usage(),
+            postfix=self.data_point_name_postfix.replace("_", " ").title(),
         )
 
-    def _get_entity_usage(self) -> DataPointUsage:
-        """Generate the usage for the entity."""
+    def _get_data_point_usage(self) -> DataPointUsage:
+        """Generate the usage for the data_point."""
         if self._forced_usage:
             return self._forced_usage
         if self._channel.no in self._custom_config.channels:
             return DataPointUsage.CE_PRIMARY
         return DataPointUsage.CE_SECONDARY
 
-    async def load_entity_value(self, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the entity values."""
-        for entity in self._readable_entities:
-            await entity.load_entity_value(call_source=call_source, direct_call=direct_call)
-        self.fire_entity_updated_callback()
+    async def load_data_point_value(
+        self, call_source: CallSource, direct_call: bool = False
+    ) -> None:
+        """Init the data_point values."""
+        for data_point in self._readable_data_points:
+            await data_point.load_data_point_value(
+                call_source=call_source, direct_call=direct_call
+            )
+        self.fire_data_point_updated_callback()
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """
@@ -174,23 +189,23 @@ class CustomDataPoint(BaseDataPoint):
         _LOGGER.debug("NO_STATE_CHANGE: %s", self.name)
         return False
 
-    def _init_entities(self) -> None:
-        """Init entity collection."""
+    def _init_data_points(self) -> None:
+        """Init data_point collection."""
         # Add repeating fields
         for field_name, parameter in self._device_def.get(hmed.ED.REPEATABLE_FIELDS, {}).items():
-            entity = self._device.get_generic_entity(
+            data_point = self._device.get_generic_data_point(
                 channel_address=self._channel.address, parameter=parameter
             )
-            self._add_entity(field=field_name, entity=entity, is_visible=False)
+            self._add_data_point(field=field_name, data_point=data_point, is_visible=False)
 
         # Add visible repeating fields
         for field_name, parameter in self._device_def.get(
             hmed.ED.VISIBLE_REPEATABLE_FIELDS, {}
         ).items():
-            entity = self._device.get_generic_entity(
+            data_point = self._device.get_generic_data_point(
                 channel_address=self._channel.address, parameter=parameter
             )
-            self._add_entity(field=field_name, entity=entity, is_visible=True)
+            self._add_data_point(field=field_name, data_point=data_point, is_visible=True)
 
         if self._extended:
             if fixed_channels := self._extended.fixed_channels:
@@ -199,114 +214,123 @@ class CustomDataPoint(BaseDataPoint):
                         channel_address = get_channel_address(
                             device_address=self._device.address, channel_no=channel_no
                         )
-                        entity = self._device.get_generic_entity(
+                        data_point = self._device.get_generic_data_point(
                             channel_address=channel_address, parameter=parameter
                         )
-                        self._add_entity(field=field_name, entity=entity)
-            if additional_entities := self._extended.additional_entities:
-                self._mark_entities(entity_def=additional_entities)
+                        self._add_data_point(field=field_name, data_point=data_point)
+            if additional_data_points := self._extended.additional_data_points:
+                self._mark_data_points(data_point_def=additional_data_points)
 
         # Add device fields
-        self._add_entities(
+        self._add_data_points(
             field_dict_name=hmed.ED.FIELDS,
         )
         # Add visible device fields
-        self._add_entities(
+        self._add_data_points(
             field_dict_name=hmed.ED.VISIBLE_FIELDS,
             is_visible=True,
         )
 
-        # Add default device entities
-        self._mark_entities(entity_def=self._entity_def)
-        # add default entities
-        if hmed.get_include_default_entities(device_profile=self._device_profile):
-            self._mark_entities(entity_def=hmed.get_default_entities())
+        # Add default device data points
+        self._mark_data_points(data_point_def=self._data_point_def)
+        # add default data points
+        if hmed.get_include_default_data_points(device_profile=self._device_profile):
+            self._mark_data_points(data_point_def=hmed.get_default_data_points())
 
-    def _add_entities(self, field_dict_name: hmed.ED, is_visible: bool | None = None) -> None:
-        """Add entities to custom entity."""
+    def _add_data_points(self, field_dict_name: hmed.ED, is_visible: bool | None = None) -> None:
+        """Add data points to custom data_point."""
         fields = self._device_def.get(field_dict_name, {})
         for channel_no, channel in fields.items():
             for field, parameter in channel.items():
                 channel_address = get_channel_address(
                     device_address=self._device.address, channel_no=channel_no
                 )
-                if entity := self._device.get_generic_entity(
+                if data_point := self._device.get_generic_data_point(
                     channel_address=channel_address, parameter=parameter
                 ):
-                    self._add_entity(field=field, entity=entity, is_visible=is_visible)
+                    self._add_data_point(field=field, data_point=data_point, is_visible=is_visible)
 
-    def _add_entity(
-        self, field: Field, entity: hmge.GenericDataPoint | None, is_visible: bool | None = None
+    def _add_data_point(
+        self,
+        field: Field,
+        data_point: hmge.GenericDataPoint | None,
+        is_visible: bool | None = None,
     ) -> None:
-        """Add entity to collection and register callback."""
-        if not entity:
+        """Add data_point to collection and register callback."""
+        if not data_point:
             return
-        if is_visible is True and entity.is_forced_sensor is False:
-            entity.force_usage(forced_usage=DataPointUsage.CE_VISIBLE)
-        elif is_visible is False and entity.is_forced_sensor is False:
-            entity.force_usage(forced_usage=DataPointUsage.NO_CREATE)
+        if is_visible is True and data_point.is_forced_sensor is False:
+            data_point.force_usage(forced_usage=DataPointUsage.CE_VISIBLE)
+        elif is_visible is False and data_point.is_forced_sensor is False:
+            data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unregister_callbacks.append(
-            entity.register_internal_entity_updated_callback(cb=self.fire_entity_updated_callback)
+            data_point.register_internal_data_point_updated_callback(
+                cb=self.fire_data_point_updated_callback
+            )
         )
-        self._data_entities[field] = entity
+        self._data_data_points[field] = data_point
 
-    def _unregister_entity_updated_callback(self, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:
                 unregister()
 
-        super()._unregister_entity_updated_callback(cb=cb, custom_id=custom_id)
+        super()._unregister_data_point_updated_callback(cb=cb, custom_id=custom_id)
 
-    def _mark_entities(self, entity_def: Mapping[int | tuple[int, ...], tuple[str, ...]]) -> None:
-        """Mark entities to be created in HA."""
-        if not entity_def:
+    def _mark_data_points(
+        self, data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]
+    ) -> None:
+        """Mark data points to be created in HA."""
+        if not data_point_def:
             return
-        for channel_nos, parameters in entity_def.items():
+        for channel_nos, parameters in data_point_def.items():
             if isinstance(channel_nos, int):
-                self._mark_entity(channel_no=channel_nos, parameters=parameters)
+                self._mark_data_point(channel_no=channel_nos, parameters=parameters)
             else:
                 for channel_no in channel_nos:
-                    self._mark_entity(channel_no=channel_no, parameters=parameters)
+                    self._mark_data_point(channel_no=channel_no, parameters=parameters)
 
-    def _mark_entity(self, channel_no: int | None, parameters: tuple[str, ...]) -> None:
-        """Mark entity to be created in HA."""
+    def _mark_data_point(self, channel_no: int | None, parameters: tuple[str, ...]) -> None:
+        """Mark data_point to be created in HA."""
         channel_address = get_channel_address(
             device_address=self._device.address, channel_no=channel_no
         )
 
         for parameter in parameters:
-            if entity := self._device.get_generic_entity(
+            if data_point := self._device.get_generic_data_point(
                 channel_address=channel_address, parameter=parameter
             ):
-                entity.force_usage(forced_usage=DataPointUsage.DATA_POINT)
+                data_point.force_usage(forced_usage=DataPointUsage.DATA_POINT)
 
-    def _get_entity[_DataPointT: hmge.GenericDataPoint](
-        self, field: Field, entity_type: type[_DataPointT]
+    def _get_data_point[_DataPointT: hmge.GenericDataPoint](
+        self, field: Field, data_point_type: type[_DataPointT]
     ) -> _DataPointT:
-        """Get entity."""
-        if entity := self._data_entities.get(field):
-            if type(entity).__name__ != entity_type.__name__:
-                # not isinstance(entity, entity_type): # does not work with generic type
+        """Get data_point."""
+        if data_point := self._data_data_points.get(field):
+            if type(data_point).__name__ != data_point_type.__name__:
+                # not isinstance(data_point, data_point_type): # does not work with generic type
                 _LOGGER.debug(  # pragma: no cover
-                    "GET_ENTITY: type mismatch for requested sub entity: "
-                    "expected: %s, but is %s for field name %s of entity %s",
-                    entity_type.name,
-                    type(entity),
+                    "GET_DATA_POINT: type mismatch for requested sub data_point: "
+                    "expected: %s, but is %s for field name %s of data_point %s",
+                    data_point_type.name,
+                    type(data_point),
                     field,
                     self.name,
                 )
-            return cast(entity_type, entity)  # type: ignore[valid-type]
+            return cast(data_point_type, data_point)  # type: ignore[valid-type]
         return cast(
-            entity_type,  # type:ignore[valid-type]
+            data_point_type,  # type:ignore[valid-type]
             NoneTypeDataPoint(),
         )
 
-    def has_entity_key(self, entity_keys: set[ENTITY_KEY]) -> bool:
-        """Return if an entity with one of the entities is part of this entity."""
+    def has_data_point_key(self, data_point_keys: set[DATA_POINT_KEY]) -> bool:
+        """Return if a data_point with one of the data points is part of this data_point."""
         result = [
-            entity for entity in self._data_entities.values() if entity.entity_key in entity_keys
+            data_point
+            for data_point in self._data_data_points.values()
+            if data_point.data_point_key in data_point_keys
         ]
         return len(result) > 0
 

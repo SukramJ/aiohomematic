@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the climate platform.
+Module for data points implemented using the climate platform.
 
 See https://www.home-assistant.io/integrations/climate/.
 """
@@ -155,29 +155,31 @@ _SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
 
 
 class BaseClimateDataPoint(CustomDataPoint):
-    """Base HomeMatic climate entity."""
+    """Base HomeMatic climate data_point."""
 
     _platform = HmPlatform.CLIMATE
     _supports_schedule = False
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_humidity: HmSensor[int | None] = self._get_entity(
-            field=Field.HUMIDITY, entity_type=HmSensor[int | None]
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_humidity: HmSensor[int | None] = self._get_data_point(
+            field=Field.HUMIDITY, data_point_type=HmSensor[int | None]
         )
-        self._e_min_max_value_not_relevant_for_manu_mode: HmBinarySensor = self._get_entity(
-            field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, entity_type=HmBinarySensor
+        self._e_min_max_value_not_relevant_for_manu_mode: HmBinarySensor = self._get_data_point(
+            field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, data_point_type=HmBinarySensor
         )
-        self._e_setpoint: HmFloat = self._get_entity(field=Field.SETPOINT, entity_type=HmFloat)
-        self._e_temperature: HmSensor[float | None] = self._get_entity(
-            field=Field.TEMPERATURE, entity_type=HmSensor[float | None]
+        self._e_setpoint: HmFloat = self._get_data_point(
+            field=Field.SETPOINT, data_point_type=HmFloat
         )
-        self._e_temperature_maximum: HmFloat = self._get_entity(
-            field=Field.TEMPERATURE_MAXIMUM, entity_type=HmFloat
+        self._e_temperature: HmSensor[float | None] = self._get_data_point(
+            field=Field.TEMPERATURE, data_point_type=HmSensor[float | None]
         )
-        self._e_temperature_minimum: HmFloat = self._get_entity(
-            field=Field.TEMPERATURE_MINIMUM, entity_type=HmFloat
+        self._e_temperature_maximum: HmFloat = self._get_data_point(
+            field=Field.TEMPERATURE_MAXIMUM, data_point_type=HmFloat
+        )
+        self._e_temperature_minimum: HmFloat = self._get_data_point(
+            field=Field.TEMPERATURE_MINIMUM, data_point_type=HmFloat
         )
 
     @state_property
@@ -343,20 +345,20 @@ class BaseClimateDataPoint(CustomDataPoint):
         return super().is_state_change(**kwargs)
 
     @service()
-    async def copy_schedule(self, target_climate_entity: BaseClimateDataPoint) -> None:
+    async def copy_schedule(self, target_climate_data_point: BaseClimateDataPoint) -> None:
         """Copy schedule to target device."""
 
-        if self.device.product_group != target_climate_entity.device.product_group:
+        if self.device.product_group != target_climate_data_point.device.product_group:
             raise ValidationException(
                 "Copy schedule profile is only possible within the same product group"
             )
-        if self.schedule_profile_nos != target_climate_entity.schedule_profile_nos:
+        if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
             raise ValidationException(
                 "Copy schedule profile is only: No of schedule profile must be identical"
             )
         raw_schedule = await self._get_raw_schedule()
         await self._client.put_paramset(
-            channel_address=target_climate_entity.channel.address,
+            channel_address=target_climate_data_point.channel.address,
             paramset_key=ParamsetKey.MASTER,
             values=raw_schedule,
         )
@@ -366,18 +368,18 @@ class BaseClimateDataPoint(CustomDataPoint):
         self,
         source_profile: ScheduleProfile,
         target_profile: ScheduleProfile,
-        target_climate_entity: BaseClimateDataPoint | None = None,
+        target_climate_data_point: BaseClimateDataPoint | None = None,
     ) -> None:
         """Copy schedule profile to target device."""
         same_device = False
         if not self._supports_schedule:
             raise ValidationException(f"Schedule is not supported by device {self._device.name}")
-        if target_climate_entity is None:
-            target_climate_entity = self
-        if self is target_climate_entity:
+        if target_climate_data_point is None:
+            target_climate_data_point = self
+        if self is target_climate_data_point:
             same_device = True
 
-        if self.device.product_group != target_climate_entity.device.product_group:
+        if self.device.product_group != target_climate_data_point.device.product_group:
             raise ValidationException(
                 "Copy schedule profile is only possible within the same product group"
             )
@@ -393,7 +395,7 @@ class BaseClimateDataPoint(CustomDataPoint):
         ) is None:
             raise ValidationException(f"Source profile {source_profile} could not be loaded.")
         await self._set_schedule_profile(
-            target_channel_address=target_climate_entity.channel.address,
+            target_channel_address=target_climate_data_point.channel.address,
             profile=target_profile,
             profile_data=source_profile_data,
             do_validate=False,
@@ -701,28 +703,32 @@ class CeSimpleRfThermostat(BaseClimateDataPoint):
 class CeRfThermostat(BaseClimateDataPoint):
     """Classic HomeMatic thermostat like HM-CC-RT-DN."""
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_boost_mode: HmAction = self._get_entity(
-            field=Field.BOOST_MODE, entity_type=HmAction
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_boost_mode: HmAction = self._get_data_point(
+            field=Field.BOOST_MODE, data_point_type=HmAction
         )
-        self._e_auto_mode: HmAction = self._get_entity(field=Field.AUTO_MODE, entity_type=HmAction)
-        self._e_manu_mode: HmAction = self._get_entity(field=Field.MANU_MODE, entity_type=HmAction)
-        self._e_comfort_mode: HmAction = self._get_entity(
-            field=Field.COMFORT_MODE, entity_type=HmAction
+        self._e_auto_mode: HmAction = self._get_data_point(
+            field=Field.AUTO_MODE, data_point_type=HmAction
         )
-        self._e_lowering_mode: HmAction = self._get_entity(
-            field=Field.LOWERING_MODE, entity_type=HmAction
+        self._e_manu_mode: HmAction = self._get_data_point(
+            field=Field.MANU_MODE, data_point_type=HmAction
         )
-        self._e_control_mode: HmSensor[str | None] = self._get_entity(
-            field=Field.CONTROL_MODE, entity_type=HmSensor[str | None]
+        self._e_comfort_mode: HmAction = self._get_data_point(
+            field=Field.COMFORT_MODE, data_point_type=HmAction
         )
-        self._e_temperature_offset: HmSelect = self._get_entity(
-            field=Field.TEMPERATURE_OFFSET, entity_type=HmSelect
+        self._e_lowering_mode: HmAction = self._get_data_point(
+            field=Field.LOWERING_MODE, data_point_type=HmAction
         )
-        self._e_valve_state: HmSensor[int | None] = self._get_entity(
-            field=Field.VALVE_STATE, entity_type=HmSensor[int | None]
+        self._e_control_mode: HmSensor[str | None] = self._get_data_point(
+            field=Field.CONTROL_MODE, data_point_type=HmSensor[str | None]
+        )
+        self._e_temperature_offset: HmSelect = self._get_data_point(
+            field=Field.TEMPERATURE_OFFSET, data_point_type=HmSelect
+        )
+        self._e_valve_state: HmSensor[int | None] = self._get_data_point(
+            field=Field.VALVE_STATE, data_point_type=HmSensor[int | None]
         )
 
     @state_property
@@ -866,36 +872,36 @@ class CeIpThermostat(BaseClimateDataPoint):
 
     _supports_schedule = True
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_active_profile: HmInteger = self._get_entity(
-            field=Field.ACTIVE_PROFILE, entity_type=HmInteger
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_active_profile: HmInteger = self._get_data_point(
+            field=Field.ACTIVE_PROFILE, data_point_type=HmInteger
         )
-        self._e_boost_mode: HmSwitch = self._get_entity(
-            field=Field.BOOST_MODE, entity_type=HmSwitch
+        self._e_boost_mode: HmSwitch = self._get_data_point(
+            field=Field.BOOST_MODE, data_point_type=HmSwitch
         )
-        self._e_control_mode: HmAction = self._get_entity(
-            field=Field.CONTROL_MODE, entity_type=HmAction
+        self._e_control_mode: HmAction = self._get_data_point(
+            field=Field.CONTROL_MODE, data_point_type=HmAction
         )
-        self._e_heating_mode: HmSelect = self._get_entity(
-            field=Field.HEATING_COOLING, entity_type=HmSelect
+        self._e_heating_mode: HmSelect = self._get_data_point(
+            field=Field.HEATING_COOLING, data_point_type=HmSelect
         )
-        self._e_level: HmFloat = self._get_entity(field=Field.LEVEL, entity_type=HmFloat)
-        self._e_optimum_start_stop: HmBinarySensor = self._get_entity(
-            field=Field.OPTIMUM_START_STOP, entity_type=HmBinarySensor
+        self._e_level: HmFloat = self._get_data_point(field=Field.LEVEL, data_point_type=HmFloat)
+        self._e_optimum_start_stop: HmBinarySensor = self._get_data_point(
+            field=Field.OPTIMUM_START_STOP, data_point_type=HmBinarySensor
         )
-        self._e_party_mode: HmBinarySensor = self._get_entity(
-            field=Field.PARTY_MODE, entity_type=HmBinarySensor
+        self._e_party_mode: HmBinarySensor = self._get_data_point(
+            field=Field.PARTY_MODE, data_point_type=HmBinarySensor
         )
-        self._e_set_point_mode: HmInteger = self._get_entity(
-            field=Field.SET_POINT_MODE, entity_type=HmInteger
+        self._e_set_point_mode: HmInteger = self._get_data_point(
+            field=Field.SET_POINT_MODE, data_point_type=HmInteger
         )
-        self._e_state: HmBinarySensor = self._get_entity(
-            field=Field.STATE, entity_type=HmBinarySensor
+        self._e_state: HmBinarySensor = self._get_data_point(
+            field=Field.STATE, data_point_type=HmBinarySensor
         )
-        self._e_temperature_offset: HmFloat = self._get_entity(
-            field=Field.TEMPERATURE_OFFSET, entity_type=HmFloat
+        self._e_temperature_offset: HmFloat = self._get_data_point(
+            field=Field.TEMPERATURE_OFFSET, data_point_type=HmFloat
         )
 
     @property
@@ -1173,10 +1179,10 @@ def make_simple_thermostat(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create SimpleRfThermostat entities."""
-    hmed.make_custom_entity(
+    """Create SimpleRfThermostat data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeSimpleRfThermostat,
+        data_point_class=CeSimpleRfThermostat,
         device_profile=DeviceProfile.SIMPLE_RF_THERMOSTAT,
         custom_config=custom_config,
     )
@@ -1186,10 +1192,10 @@ def make_thermostat(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create RfThermostat entities."""
-    hmed.make_custom_entity(
+    """Create RfThermostat data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeRfThermostat,
+        data_point_class=CeRfThermostat,
         device_profile=DeviceProfile.RF_THERMOSTAT,
         custom_config=custom_config,
     )
@@ -1199,10 +1205,10 @@ def make_thermostat_group(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create RfThermostat group entities."""
-    hmed.make_custom_entity(
+    """Create RfThermostat group data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeRfThermostat,
+        data_point_class=CeRfThermostat,
         device_profile=DeviceProfile.RF_THERMOSTAT_GROUP,
         custom_config=custom_config,
     )
@@ -1212,10 +1218,10 @@ def make_ip_thermostat(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create IPThermostat entities."""
-    hmed.make_custom_entity(
+    """Create IPThermostat data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeIpThermostat,
+        data_point_class=CeIpThermostat,
         device_profile=DeviceProfile.IP_THERMOSTAT,
         custom_config=custom_config,
     )
@@ -1225,10 +1231,10 @@ def make_ip_thermostat_group(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create IPThermostat group entities."""
-    hmed.make_custom_entity(
+    """Create IPThermostat group data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeIpThermostat,
+        data_point_class=CeIpThermostat,
         device_profile=DeviceProfile.IP_THERMOSTAT_GROUP,
         custom_config=custom_config,
     )

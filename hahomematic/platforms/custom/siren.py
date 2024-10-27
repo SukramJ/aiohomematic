@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the siren platform.
+Module for data points implemented using the siren platform.
 
 See https://www.home-assistant.io/integrations/siren/.
 """
@@ -40,7 +40,7 @@ class SirenOnArgs(TypedDict, total=False):
 
 
 class BaseSiren(CustomDataPoint):
-    """Class for HomeMatic siren entities."""
+    """Class for HomeMatic siren data points."""
 
     _platform = HmPlatform.SIREN
 
@@ -90,26 +90,28 @@ class BaseSiren(CustomDataPoint):
 
 
 class CeIpSiren(BaseSiren):
-    """Class for HomematicIP siren entities."""
+    """Class for HomematicIP siren data points."""
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_acoustic_alarm_active: HmBinarySensor = self._get_entity(
-            field=Field.ACOUSTIC_ALARM_ACTIVE, entity_type=HmBinarySensor
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_acoustic_alarm_active: HmBinarySensor = self._get_data_point(
+            field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=HmBinarySensor
         )
-        self._e_acoustic_alarm_selection: HmAction = self._get_entity(
-            field=Field.ACOUSTIC_ALARM_SELECTION, entity_type=HmAction
+        self._e_acoustic_alarm_selection: HmAction = self._get_data_point(
+            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=HmAction
         )
-        self._e_optical_alarm_active: HmBinarySensor = self._get_entity(
-            field=Field.OPTICAL_ALARM_ACTIVE, entity_type=HmBinarySensor
+        self._e_optical_alarm_active: HmBinarySensor = self._get_data_point(
+            field=Field.OPTICAL_ALARM_ACTIVE, data_point_type=HmBinarySensor
         )
-        self._e_optical_alarm_selection: HmAction = self._get_entity(
-            field=Field.OPTICAL_ALARM_SELECTION, entity_type=HmAction
+        self._e_optical_alarm_selection: HmAction = self._get_data_point(
+            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=HmAction
         )
-        self._e_duration: HmAction = self._get_entity(field=Field.DURATION, entity_type=HmAction)
-        self._e_duration_unit: HmAction = self._get_entity(
-            field=Field.DURATION_UNIT, entity_type=HmAction
+        self._e_duration: HmAction = self._get_data_point(
+            field=Field.DURATION, data_point_type=HmAction
+        )
+        self._e_duration_unit: HmAction = self._get_data_point(
+            field=Field.DURATION_UNIT, data_point_type=HmAction
         )
 
     @state_property
@@ -146,14 +148,14 @@ class CeIpSiren(BaseSiren):
         acoustic_alarm = kwargs.get("acoustic_alarm", self._e_acoustic_alarm_selection.default)
         if self.available_tones and acoustic_alarm and acoustic_alarm not in self.available_tones:
             raise ValueError(
-                f"Invalid tone specified for entity {self.full_name}: {acoustic_alarm}, "
+                f"Invalid tone specified for data_point {self.full_name}: {acoustic_alarm}, "
                 "check the available_tones attribute for valid tones to pass in"
             )
 
         optical_alarm = kwargs.get("optical_alarm", self._e_optical_alarm_selection.default)
         if self.available_lights and optical_alarm and optical_alarm not in self.available_lights:
             raise ValueError(
-                f"Invalid light specified for entity {self.full_name}: {optical_alarm}, "
+                f"Invalid light specified for data_point {self.full_name}: {optical_alarm}, "
                 "check the available_lights attribute for valid tones to pass in"
             )
 
@@ -183,16 +185,16 @@ class CeIpSiren(BaseSiren):
 
 
 class CeIpSirenSmoke(BaseSiren):
-    """Class for HomematicIP siren smoke entities."""
+    """Class for HomematicIP siren smoke data points."""
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_smoke_detector_alarm_status: HmSensor[str | None] = self._get_entity(
-            field=Field.SMOKE_DETECTOR_ALARM_STATUS, entity_type=HmSensor[str | None]
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_smoke_detector_alarm_status: HmSensor[str | None] = self._get_data_point(
+            field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=HmSensor[str | None]
         )
-        self._e_smoke_detector_command: HmAction = self._get_entity(
-            field=Field.SMOKE_DETECTOR_COMMAND, entity_type=HmAction
+        self._e_smoke_detector_command: HmAction = self._get_data_point(
+            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=HmAction
         )
 
     @state_property
@@ -242,10 +244,10 @@ def make_ip_siren(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP siren entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP siren data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeIpSiren,
+        data_point_class=CeIpSiren,
         device_profile=DeviceProfile.IP_SIREN,
         custom_config=custom_config,
     )
@@ -255,10 +257,10 @@ def make_ip_siren_smoke(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP siren entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP siren data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeIpSirenSmoke,
+        data_point_class=CeIpSirenSmoke,
         device_profile=DeviceProfile.IP_SIREN_SMOKE,
         custom_config=custom_config,
     )

@@ -1,4 +1,4 @@
-"""Tests for climate entities of hahomematic."""
+"""Tests for climate data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ async def test_cesimplerfthermostat(
     """Test CeSimpleRfThermostat."""
     central, mock_client, _ = central_client_factory
     climate: CeSimpleRfThermostat = cast(
-        CeSimpleRfThermostat, helper.get_prepared_custom_entity(central, "VCU0000054", 1)
+        CeSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
     )
     assert climate.usage == DataPointUsage.CE_PRIMARY
 
@@ -155,7 +155,7 @@ async def test_cerfthermostat(
     """Test CeRfThermostat."""
     central, mock_client, _ = central_client_factory
     climate: CeRfThermostat = cast(
-        CeRfThermostat, helper.get_prepared_custom_entity(central, "VCU0000050", 4)
+        CeRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
     )
     assert climate.usage == DataPointUsage.CE_PRIMARY
     assert climate.service_method_names == (
@@ -332,7 +332,7 @@ async def test_ceipthermostat(
     """Test CeIpThermostat."""
     central, mock_client, _ = central_client_factory
     climate: CeIpThermostat = cast(
-        CeIpThermostat, helper.get_prepared_custom_entity(central, "VCU1769958", 1)
+        CeIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)
     )
     assert climate.usage == DataPointUsage.CE_PRIMARY
     assert climate.service_method_names == (
@@ -523,11 +523,11 @@ async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
 
     climate_bwth: BaseClimateDataPoint = cast(
         BaseClimateDataPoint,
-        central_unit_mini.get_custom_entity(address="VCU1769958", channel_no=1),
+        central_unit_mini.get_custom_data_point(address="VCU1769958", channel_no=1),
     )
     climate_etrv: BaseClimateDataPoint = cast(
         BaseClimateDataPoint,
-        central_unit_mini.get_custom_entity(address="VCU3609622", channel_no=1),
+        central_unit_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
     )
     assert climate_bwth
     profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)
@@ -795,10 +795,10 @@ async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
     await climate_bwth.copy_schedule_profile(
         source_profile=ScheduleProfile.P1,
         target_profile=ScheduleProfile.P2,
-        target_climate_entity=climate_etrv,
+        target_climate_data_point=climate_etrv,
     )
 
-    await climate_bwth.copy_schedule(target_climate_entity=climate_bwth)
+    await climate_bwth.copy_schedule(target_climate_data_point=climate_bwth)
 
     with pytest.raises(ValidationException):
-        await climate_bwth.copy_schedule(target_climate_entity=climate_etrv)
+        await climate_bwth.copy_schedule(target_climate_data_point=climate_etrv)

@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the number platform.
+Module for data points implemented using the number platform.
 
 See https://www.home-assistant.io/integrations/number/.
 """
@@ -57,7 +57,7 @@ class HmFloat(BaseNumber[float | None]):
 
     @state_property
     def value(self) -> float | None:  # type: ignore[override]
-        """Return the value of the entity."""
+        """Return the value of the data_point."""
         return self._value  # type: ignore[no-any-return]
 
 
@@ -78,5 +78,5 @@ class HmInteger(BaseNumber[int | None]):
 
     @state_property
     def value(self) -> int | None:  # type: ignore[override]
-        """Return the value of the entity."""
+        """Return the value of the data_point."""
         return self._value  # type: ignore[no-any-return]

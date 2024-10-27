@@ -1,4 +1,4 @@
-"""Tests for siren entities of hahomematic."""
+"""Tests for siren data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -42,7 +42,9 @@ async def test_ceipsiren(
 ) -> None:
     """Test CeIpSiren."""
     central, mock_client, _ = central_client_factory
-    siren: CeIpSiren = cast(CeIpSiren, helper.get_prepared_custom_entity(central, "VCU8249617", 3))
+    siren: CeIpSiren = cast(
+        CeIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3)
+    )
     assert siren.usage == DataPointUsage.CE_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
 
@@ -143,7 +145,7 @@ async def test_ceipsirensmoke(
     """Test CeIpSirenSmoke."""
     central, mock_client, _ = central_client_factory
     siren: CeIpSirenSmoke = cast(
-        CeIpSirenSmoke, helper.get_prepared_custom_entity(central, "VCU2822385", 1)
+        CeIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
     )
     assert siren.usage == DataPointUsage.CE_PRIMARY
 

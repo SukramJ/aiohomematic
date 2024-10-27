@@ -1,4 +1,4 @@
-"""Decorators for entities used within hahomematic."""
+"""Decorators for data points used within hahomematic."""
 
 from __future__ import annotations
 

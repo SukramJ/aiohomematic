@@ -1,5 +1,5 @@
 """
-Module for entities implemented using the cover platform.
+Module for data points implemented using the cover platform.
 
 See https://www.home-assistant.io/integrations/cover/.
 """
@@ -85,23 +85,23 @@ class _StateChangeArg(StrEnum):
 
 
 class CeCover(CustomDataPoint):
-    """Class for HomeMatic cover entities."""
+    """Class for HomeMatic cover data points."""
 
     _platform = HmPlatform.COVER
     _closed_level: float = _CLOSED_LEVEL
     _open_level: float = _OPEN_LEVEL
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
         self._command_processing_lock = asyncio.Lock()
-        self._e_direction: HmSensor[str | None] = self._get_entity(
-            field=Field.DIRECTION, entity_type=HmSensor[str | None]
+        self._e_direction: HmSensor[str | None] = self._get_data_point(
+            field=Field.DIRECTION, data_point_type=HmSensor[str | None]
         )
-        self._e_level: HmFloat = self._get_entity(field=Field.LEVEL, entity_type=HmFloat)
-        self._e_stop: HmAction = self._get_entity(field=Field.STOP, entity_type=HmAction)
-        self._e_channel_level: HmSensor[float | None] = self._get_entity(
-            field=Field.CHANNEL_LEVEL, entity_type=HmSensor[float | None]
+        self._e_level: HmFloat = self._get_data_point(field=Field.LEVEL, data_point_type=HmFloat)
+        self._e_stop: HmAction = self._get_data_point(field=Field.STOP, data_point_type=HmAction)
+        self._e_channel_level: HmSensor[float | None] = self._get_data_point(
+            field=Field.CHANNEL_LEVEL, data_point_type=HmSensor[float | None]
         )
 
     @property
@@ -233,19 +233,21 @@ class CeWindowDrive(CeCover):
 
 
 class CeBlind(CeCover):
-    """Class for HomeMatic blind entities."""
+    """Class for HomeMatic blind data points."""
 
     _open_tilt_level: float = _OPEN_TILT_LEVEL
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_channel_level_2: HmSensor[float | None] = self._get_entity(
-            field=Field.CHANNEL_LEVEL_2, entity_type=HmSensor[float | None]
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_channel_level_2: HmSensor[float | None] = self._get_data_point(
+            field=Field.CHANNEL_LEVEL_2, data_point_type=HmSensor[float | None]
         )
-        self._e_level_2: HmFloat = self._get_entity(field=Field.LEVEL_2, entity_type=HmFloat)
-        self._e_combined: HmAction = self._get_entity(
-            field=Field.LEVEL_COMBINED, entity_type=HmAction
+        self._e_level_2: HmFloat = self._get_data_point(
+            field=Field.LEVEL_2, data_point_type=HmFloat
+        )
+        self._e_combined: HmAction = self._get_data_point(
+            field=Field.LEVEL_COMBINED, data_point_type=HmAction
         )
 
     @property
@@ -435,16 +437,16 @@ class CeBlind(CeCover):
 
 
 class CeIpBlind(CeBlind):
-    """Class for HomematicIP blind entities."""
+    """Class for HomematicIP blind data points."""
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_operation_mode: HmSelect = self._get_entity(
-            field=Field.OPERATION_MODE, entity_type=HmSelect
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_operation_mode: HmSelect = self._get_data_point(
+            field=Field.OPERATION_MODE, data_point_type=HmSelect
         )
-        self._e_combined: HmAction = self._get_entity(
-            field=Field.COMBINED_PARAMETER, entity_type=HmAction
+        self._e_combined: HmAction = self._get_data_point(
+            field=Field.COMBINED_PARAMETER, data_point_type=HmAction
         )
 
     @property
@@ -470,21 +472,21 @@ class CeIpBlind(CeBlind):
 
 
 class CeGarage(CustomDataPoint):
-    """Class for HomeMatic garage entities."""
+    """Class for HomeMatic garage data points."""
 
     _platform = HmPlatform.COVER
 
-    def _init_entity_fields(self) -> None:
-        """Init the entity fields."""
-        super()._init_entity_fields()
-        self._e_door_state: HmSensor[str | None] = self._get_entity(
-            field=Field.DOOR_STATE, entity_type=HmSensor[str | None]
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+        self._e_door_state: HmSensor[str | None] = self._get_data_point(
+            field=Field.DOOR_STATE, data_point_type=HmSensor[str | None]
         )
-        self._e_door_command: HmAction = self._get_entity(
-            field=Field.DOOR_COMMAND, entity_type=HmAction
+        self._e_door_command: HmAction = self._get_data_point(
+            field=Field.DOOR_COMMAND, data_point_type=HmAction
         )
-        self._e_section: HmSensor[str | None] = self._get_entity(
-            field=Field.SECTION, entity_type=HmSensor[str | None]
+        self._e_section: HmSensor[str | None] = self._get_data_point(
+            field=Field.SECTION, data_point_type=HmSensor[str | None]
         )
 
     @state_property
@@ -588,10 +590,10 @@ def make_ip_cover(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP cover entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP cover data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeCover,
+        data_point_class=CeCover,
         device_profile=DeviceProfile.IP_COVER,
         custom_config=custom_config,
     )
@@ -601,10 +603,10 @@ def make_rf_cover(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic cover entities."""
-    hmed.make_custom_entity(
+    """Create HomeMatic classic cover data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeCover,
+        data_point_class=CeCover,
         device_profile=DeviceProfile.RF_COVER,
         custom_config=custom_config,
     )
@@ -614,10 +616,10 @@ def make_ip_blind(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP cover entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP cover data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeIpBlind,
+        data_point_class=CeIpBlind,
         device_profile=DeviceProfile.IP_COVER,
         custom_config=custom_config,
     )
@@ -627,10 +629,10 @@ def make_ip_garage(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP garage entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP garage data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeGarage,
+        data_point_class=CeGarage,
         device_profile=DeviceProfile.IP_GARAGE,
         custom_config=custom_config,
     )
@@ -640,10 +642,10 @@ def make_ip_hdm(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP cover entities."""
-    hmed.make_custom_entity(
+    """Create HomematicIP cover data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeIpBlind,
+        data_point_class=CeIpBlind,
         device_profile=DeviceProfile.IP_HDM,
         custom_config=custom_config,
     )
@@ -653,10 +655,10 @@ def make_rf_blind(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic cover entities."""
-    hmed.make_custom_entity(
+    """Create HomeMatic classic cover data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeBlind,
+        data_point_class=CeBlind,
         device_profile=DeviceProfile.RF_COVER,
         custom_config=custom_config,
     )
@@ -666,10 +668,10 @@ def make_rf_window_drive(
     channel: hmd.HmChannel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic window drive entities."""
-    hmed.make_custom_entity(
+    """Create HomeMatic classic window drive data points."""
+    hmed.make_custom_data_point(
         channel=channel,
-        entity_class=CeWindowDrive,
+        data_point_class=CeWindowDrive,
         device_profile=DeviceProfile.RF_COVER,
         custom_config=custom_config,
     )
@@ -694,7 +696,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_rf_window_drive,
         channels=(1,),
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 1: (
                     Parameter.DIRECTION,
                     Parameter.WORKING,
@@ -714,7 +716,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_ip_blind,
         channels=(10, 14, 18, 22),
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 0: (Parameter.ACTUAL_TEMPERATURE,),
             }
         ),
@@ -728,7 +730,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_ip_blind,
         channels=(2, 6, 10, 14),
         extended=ExtendedConfig(
-            additional_entities={
+            additional_data_points={
                 0: (Parameter.ACTUAL_TEMPERATURE,),
             }
         ),

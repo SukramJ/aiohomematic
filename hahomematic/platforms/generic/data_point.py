@@ -18,7 +18,7 @@ from hahomematic.platforms.decorators import service
 from hahomematic.platforms.support import (
     DataPointNameData,
     GenericParameterType,
-    get_entity_name_data,
+    get_data_point_name_data,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: GenericParameterType](
     hme.BaseParameterDataPoint
 ):
-    """Base class for generic entities."""
+    """Base class for generic data points."""
 
     _validate_state_change: bool = True
     is_hmtype: Final = True
@@ -39,7 +39,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         parameter: str,
         parameter_data: ParameterData,
     ) -> None:
-        """Init the generic entity."""
+        """Init the generic data_point."""
         super().__init__(
             channel=channel,
             paramset_key=paramset_key,
@@ -49,17 +49,17 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
 
     @property
     def usage(self) -> DataPointUsage:
-        """Return the entity usage."""
+        """Return the data_point usage."""
         if self._is_forced_sensor or self._is_un_ignored:
             return DataPointUsage.DATA_POINT
         if (force_enabled := self._enabled_by_channel_operation_mode) is None:
-            return self._get_entity_usage()
+            return self._get_data_point_usage()
         return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE
 
     async def event(self, value: Any) -> None:
-        """Handle event for which this entity has subscribed."""
+        """Handle event for which this data_point has subscribed."""
         self._device.client.last_value_send_cache.remove_last_value_send(
-            entity_key=self.entity_key,
+            data_point_key=self.data_point_key,
             value=value,
         )
         old_value, new_value = self.write_value(value=value)
@@ -74,8 +74,10 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         ):
             await self._device.reload_paramset_descriptions()
 
-            for entity in self._device.get_readable_entities(paramset_key=ParamsetKey.MASTER):
-                await entity.load_entity_value(
+            for data_point in self._device.get_readable_data_points(
+                paramset_key=ParamsetKey.MASTER
+            ):
+                await data_point.load_data_point_value(
                     call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True
                 )
 
@@ -101,7 +103,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         """Send value to ccu, or use collector if set."""
         if not self.is_writeable:
             _LOGGER.error(
-                "SEND_VALUE: writing to non-writable entity %s is not possible", self.full_name
+                "SEND_VALUE: writing to non-writable data_point %s is not possible", self.full_name
             )
             return
         try:
@@ -112,7 +114,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
 
         converted_value = self._convert_value(value=prepared_value)
         if collector:
-            collector.add_entity(self, value=converted_value, collector_order=collector_order)
+            collector.add_data_point(self, value=converted_value, collector_order=collector_order)
             return
 
         if self._validate_state_change and not self.is_state_change(value=converted_value):
@@ -131,15 +133,15 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         """Prepare value, if required, before send."""
         return value  # type: ignore[return-value]
 
-    def _get_entity_name(self) -> DataPointNameData:
-        """Create the name for the entity."""
-        return get_entity_name_data(
+    def _get_data_point_name(self) -> DataPointNameData:
+        """Create the name for the data_point."""
+        return get_data_point_name_data(
             channel=self._channel,
             parameter=self._parameter,
         )
 
-    def _get_entity_usage(self) -> DataPointUsage:
-        """Generate the usage for the entity."""
+    def _get_data_point_usage(self) -> DataPointUsage:
+        """Generate the usage for the data_point."""
         if self._forced_usage:
             return self._forced_usage
         if self._central.parameter_visibility.parameter_is_hidden(
@@ -153,8 +155,8 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         return (
             DataPointUsage.NO_CREATE
             if (
-                self._device.has_custom_entity_definition
-                and not self._device.allow_undefined_generic_entities
+                self._device.has_custom_data_point_definition
+                and not self._device.allow_undefined_generic_data_points
             )
             else DataPointUsage.DATA_POINT
         )

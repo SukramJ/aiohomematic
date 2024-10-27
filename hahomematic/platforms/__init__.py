@@ -16,9 +16,9 @@ from hahomematic.const import (
 )
 from hahomematic.platforms import device as hmd
 from hahomematic.platforms.event import create_event_and_append_to_channel
-from hahomematic.platforms.generic import create_entity_and_append_to_channel
+from hahomematic.platforms.generic import create_data_point_and_append_to_channel
 
-__all__ = ["create_entities_and_events"]
+__all__ = ["create_data_points_and_events"]
 
 # Some parameters are marked as INTERNAL in the paramset and not considered by default,
 # but some are required and should be added here.
@@ -26,8 +26,8 @@ _ALLOWED_INTERNAL_PARAMETERS: Final[tuple[Parameter, ...]] = (Parameter.DIRECTIO
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def create_entities_and_events(device: hmd.HmDevice) -> None:
-    """Create the entities associated to this device."""
+def create_data_points_and_events(device: hmd.HmDevice) -> None:
+    """Create the data points associated to this device."""
     for channel in device.channels.values():
         for paramset_key, paramsset_key_descriptions in channel.paramsset_descriptions.items():
             if not device.central.parameter_visibility.is_relevant_paramset(
@@ -47,7 +47,7 @@ def create_entities_and_events(device: hmd.HmDevice) -> None:
                     parameter=parameter,
                 ):
                     _LOGGER.debug(
-                        "CREATE_ENTITIES_AND_APPEND_TO_DEVICE: Ignoring parameter: %s [%s]",
+                        "CREATE_DATA_POINTS_AND_APPEND_TO_DEVICE: Ignoring parameter: %s [%s]",
                         parameter,
                         channel.address,
                     )
@@ -89,7 +89,7 @@ def create_entities_and_events(device: hmd.HmDevice) -> None:
                     and not parameter_is_un_ignored
                 ):
                     _LOGGER.debug(
-                        "CREATE_ENTITIES: Skipping %s (no event or internal)",
+                        "CREATE_DATA_POINTS: Skipping %s (no event or internal)",
                         parameter,
                     )
                     continue
@@ -97,7 +97,7 @@ def create_entities_and_events(device: hmd.HmDevice) -> None:
                 if parameter not in IMPULSE_EVENTS and (
                     not parameter.startswith(DEVICE_ERROR_EVENTS) or parameter_is_un_ignored
                 ):
-                    create_entity_and_append_to_channel(
+                    create_data_point_and_append_to_channel(
                         channel=channel,
                         paramset_key=paramset_key,
                         parameter=parameter,

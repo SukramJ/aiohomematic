@@ -790,7 +790,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         self, mode: ClimateMode, collector: CallParameterCollector | None = None
     ) -> None:
         """Set new target hvac mode."""
-        if not self.is_state_change(hvac_mode=mode):
+        if not self.is_state_change(mode=mode):
             return
         if mode == ClimateMode.AUTO:
             await self._dp_auto_mode.send_value(value=True, collector=collector)
@@ -983,7 +983,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         self, mode: ClimateMode, collector: CallParameterCollector | None = None
     ) -> None:
         """Set new target hvac mode."""
-        if not self.is_state_change(hvac_mode=mode):
+        if not self.is_state_change(mode=mode):
             return
         # if switching hvac_mode then disable boost_mode
         if self._dp_boost_mode.value:
@@ -1007,7 +1007,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         self, profile: ClimateProfile, collector: CallParameterCollector | None = None
     ) -> None:
         """Set new control mode."""
-        if not self.is_state_change(control_mode=profile):
+        if not self.is_state_change(profile=profile):
             return
         if profile == ClimateProfile.BOOST:
             await self._dp_boost_mode.send_value(value=True, collector=collector)

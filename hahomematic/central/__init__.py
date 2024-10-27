@@ -31,6 +31,7 @@ from hahomematic.client.json_rpc import JsonRpcAioHttpClient
 from hahomematic.client.xml_rpc import XmlRpcProxy
 from hahomematic.const import (
     CALLBACK_TYPE,
+    CATEGORIES,
     DATA_POINT_EVENTS,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
@@ -47,13 +48,12 @@ from hahomematic.const import (
     EVENT_TYPE,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
-    PLATFORMS,
     PORT_ANY,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
+    DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
-    HmPlatform,
     HomematicEventType,
     InterfaceEventType,
     InterfaceName,
@@ -70,21 +70,16 @@ from hahomematic.exceptions import (
     NoClients,
     NoConnection,
 )
+from hahomematic.model import create_data_points_and_events
+from hahomematic.model.custom import CustomDataPoint, create_custom_data_points
+from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
+from hahomematic.model.decorators import info_property, service
+from hahomematic.model.device import HmDevice
+from hahomematic.model.event import GenericEvent
+from hahomematic.model.generic import GenericDataPoint
+from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton
+from hahomematic.model.support import PayloadMixin
 from hahomematic.performance import measure_execution_time
-from hahomematic.platforms import create_data_points_and_events
-from hahomematic.platforms.custom import CustomDataPoint, create_custom_data_points
-from hahomematic.platforms.data_point import BaseParameterDataPoint, CallbackDataPoint
-from hahomematic.platforms.decorators import info_property, service
-from hahomematic.platforms.device import HmDevice
-from hahomematic.platforms.event import GenericEvent
-from hahomematic.platforms.generic import GenericDataPoint
-from hahomematic.platforms.hub import (
-    GenericHubDataPoint,
-    GenericSysvarDataPoint,
-    Hub,
-    ProgramDpButton,
-)
-from hahomematic.platforms.support import PayloadMixin
 from hahomematic.support import (
     check_config,
     get_channel_no,
@@ -670,7 +665,7 @@ class CentralUnit(PayloadMixin):
 
     def get_data_points(
         self,
-        platform: HmPlatform | None = None,
+        category: DataPointCategory | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
     ) -> tuple[CallbackDataPoint, ...]:
@@ -679,7 +674,7 @@ class CentralUnit(PayloadMixin):
         for device in self._devices.values():
             all_data_points.extend(
                 device.get_data_points(
-                    platform=platform, exclude_no_create=exclude_no_create, registered=registered
+                    category=category, exclude_no_create=exclude_no_create, registered=registered
                 )
             )
         return tuple(all_data_points)
@@ -710,13 +705,13 @@ class CentralUnit(PayloadMixin):
         return client
 
     def get_hub_data_points(
-        self, platform: HmPlatform | None = None, registered: bool | None = None
+        self, category: DataPointCategory | None = None, registered: bool | None = None
     ) -> tuple[GenericHubDataPoint, ...]:
         """Return the hub data points."""
         return tuple(
             he
             for he in (self.program_buttons + self.sysvar_data_points)
-            if (platform is None or he.platform == platform)
+            if (category is None or he.category == category)
             and (registered is None or he.is_registered == registered)
         )
 
@@ -1628,24 +1623,24 @@ class CentralConnectionState:
 
 def _get_new_data_points(
     new_devices: set[HmDevice],
-) -> Mapping[HmPlatform, AbstractSet[CallbackDataPoint]]:
-    """Return new data points by platform."""
+) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPoint]]:
+    """Return new data points by category."""
 
-    data_points_by_platform: dict[HmPlatform, set[CallbackDataPoint]] = {
-        platform: set() for platform in PLATFORMS if platform != HmPlatform.EVENT
+    data_points_by_category: dict[DataPointCategory, set[CallbackDataPoint]] = {
+        category: set() for category in CATEGORIES if category != DataPointCategory.EVENT
     }
 
     for device in new_devices:
-        for platform in data_points_by_platform:
-            data_points_by_platform[platform].update(
-                device.get_data_points(platform=platform, exclude_no_create=True, registered=False)
+        for category in data_points_by_category:
+            data_points_by_category[category].update(
+                device.get_data_points(category=category, exclude_no_create=True, registered=False)
             )
 
-    return data_points_by_platform
+    return data_points_by_category
 
 
 def _get_new_channel_events(new_devices: set[HmDevice]) -> tuple[tuple[GenericEvent, ...], ...]:
-    """Return new channel events by platform."""
+    """Return new channel events by category."""
     channel_events: list[tuple[GenericEvent, ...]] = []
 
     for device in new_devices:

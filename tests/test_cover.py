@@ -12,14 +12,14 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage, ParamsetKey
-from hahomematic.platforms.custom import (
+from hahomematic.model.custom import (
     CustomDpBlind,
     CustomDpCover,
     CustomDpGarage,
     CustomDpIpBlind,
     CustomDpWindowDrive,
 )
-from hahomematic.platforms.custom.cover import (
+from hahomematic.model.custom.cover import (
     _CLOSED_LEVEL,
     _OPEN_LEVEL,
     _OPEN_TILT_LEVEL,

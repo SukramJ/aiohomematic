@@ -8,12 +8,12 @@ import orjson
 import pytest
 
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.decorators import (
+from hahomematic.model.decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
     get_public_attributes_for_state_property,
 )
-from hahomematic.platforms.generic import GenericDataPoint
+from hahomematic.model.generic import GenericDataPoint
 
 from tests import const
 

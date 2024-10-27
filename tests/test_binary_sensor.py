@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import DpBinarySensor
-from hahomematic.platforms.hub import SysvarDpBinarySensor
+from hahomematic.model.generic import DpBinarySensor
+from hahomematic.model.hub import SysvarDpBinarySensor
 
 from tests import const, helper
 

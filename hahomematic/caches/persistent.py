@@ -25,7 +25,7 @@ from hahomematic.const import (
     ParameterData,
     ParamsetKey,
 )
-from hahomematic.platforms.device import HmDevice
+from hahomematic.model.device import HmDevice
 from hahomematic.support import (
     check_or_create_directory,
     delete_file,

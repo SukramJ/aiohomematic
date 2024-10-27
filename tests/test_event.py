@@ -10,7 +10,7 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage, HomematicEventType
-from hahomematic.platforms.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
+from hahomematic.model.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
 
 from tests import const, helper
 

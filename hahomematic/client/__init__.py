@@ -40,10 +40,10 @@ from hahomematic.const import (
     SystemVariableData,
 )
 from hahomematic.exceptions import BaseHomematicException, ClientException, NoConnection
+from hahomematic.model.decorators import service
+from hahomematic.model.device import HmDevice
+from hahomematic.model.support import convert_value
 from hahomematic.performance import measure_execution_time
-from hahomematic.platforms.decorators import service
-from hahomematic.platforms.device import HmDevice
-from hahomematic.platforms.support import convert_value
 from hahomematic.support import (
     build_headers,
     build_xml_rpc_uri,

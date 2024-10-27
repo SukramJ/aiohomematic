@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage, ProgramData
-from hahomematic.platforms.generic import DpButton
-from hahomematic.platforms.hub import ProgramDpButton
+from hahomematic.model.generic import DpButton
+from hahomematic.model.hub import ProgramDpButton
 
 from tests import helper
 

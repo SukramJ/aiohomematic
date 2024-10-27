@@ -11,12 +11,12 @@ from hahomematic.caches.visibility import check_ignore_parameters_is_clean
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import CallSource, DataPointUsage
-from hahomematic.platforms.custom import (
+from hahomematic.model.custom import (
     CustomDpSwitch,
     get_required_parameters,
     validate_custom_data_point_definition,
 )
-from hahomematic.platforms.generic import DpSensor, DpSwitch
+from hahomematic.model.generic import DpSensor, DpSwitch
 
 from tests import const, helper
 
@@ -225,9 +225,9 @@ async def test_generic_wrapped_data_point(
     wrapped_data_point: DpSensor = cast(
         DpSensor, central.get_generic_data_point("VCU3609622:1", "LEVEL")
     )
-    assert wrapped_data_point._platform == "number"
+    assert wrapped_data_point.default_category == "number"
     assert wrapped_data_point._is_forced_sensor is True
-    assert wrapped_data_point.platform == "sensor"
+    assert wrapped_data_point.category == "sensor"
     assert wrapped_data_point.usage == DataPointUsage.DATA_POINT
 
 

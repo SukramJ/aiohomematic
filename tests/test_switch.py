@@ -11,9 +11,9 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.custom import CustomDpSwitch
-from hahomematic.platforms.generic import DpSwitch
-from hahomematic.platforms.hub import SysvarDpSwitch
+from hahomematic.model.custom import CustomDpSwitch
+from hahomematic.model.generic import DpSwitch
+from hahomematic.model.hub import SysvarDpSwitch
 
 from tests import helper
 

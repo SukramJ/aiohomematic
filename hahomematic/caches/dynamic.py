@@ -30,7 +30,7 @@ from hahomematic.const import (
     ParamsetKey,
 )
 from hahomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from hahomematic.platforms.device import HmDevice
+from hahomematic.model.device import HmDevice
 from hahomematic.support import changed_within_seconds, get_data_point_key
 
 _LOGGER: Final = logging.getLogger(__name__)

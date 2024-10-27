@@ -11,7 +11,7 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
+from hahomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 
 from tests import const, helper
 

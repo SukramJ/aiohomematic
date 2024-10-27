@@ -15,7 +15,7 @@ from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage, ParamsetKey
 from hahomematic.exceptions import ValidationException
-from hahomematic.platforms.custom import (
+from hahomematic.model.custom import (
     BaseCustomDpClimate,
     CustomDpIpThermostat,
     CustomDpRfThermostat,
@@ -24,7 +24,7 @@ from hahomematic.platforms.custom import (
     HmHvacMode,
     HmPresetMode,
 )
-from hahomematic.platforms.custom.climate import (
+from hahomematic.model.custom.climate import (
     ScheduleProfile,
     ScheduleSlotType,
     ScheduleWeekday,

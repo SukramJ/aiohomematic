@@ -16,8 +16,8 @@ from hahomematic.const import (
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     EVENT_AVAILABLE,
+    DataPointCategory,
     DataPointUsage,
-    HmPlatform,
     HomematicEventType,
     InterfaceEventType,
     Operations,
@@ -492,12 +492,12 @@ async def test_all_parameters_with_un_ignore(
         (TEST_DEVICES, True, False, False, None, None),
     ],
 )
-async def test_data_points_by_platform(
+async def test_data_points_by_category(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test data_points_by_platform."""
+    """Test data_points_by_category."""
     central, _, _ = central_client_factory
-    ebp_sensor = central.get_data_points(platform=HmPlatform.SENSOR)
+    ebp_sensor = central.get_data_points(category=DataPointCategory.SENSOR)
     assert ebp_sensor
     assert len(ebp_sensor) == 12
 
@@ -505,7 +505,7 @@ async def test_data_points_by_platform(
         """Handle device state changes."""
 
     ebp_sensor[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
-    ebp_sensor2 = central.get_data_points(platform=HmPlatform.SENSOR, registered=False)
+    ebp_sensor2 = central.get_data_points(category=DataPointCategory.SENSOR, registered=False)
     assert ebp_sensor2
     assert len(ebp_sensor2) == 11
 
@@ -524,12 +524,12 @@ async def test_data_points_by_platform(
         ({}, True, True, True, None, None),
     ],
 )
-async def test_hub_data_points_by_platform(
+async def test_hub_data_points_by_category(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test hub_data_points_by_platform."""
+    """Test hub_data_points_by_category."""
     central, _, _ = central_client_factory
-    ebp_sensor = central.get_hub_data_points(platform=HmPlatform.HUB_SENSOR)
+    ebp_sensor = central.get_hub_data_points(category=DataPointCategory.HUB_SENSOR)
     assert ebp_sensor
     assert len(ebp_sensor) == 4
 
@@ -538,17 +538,19 @@ async def test_hub_data_points_by_platform(
 
     ebp_sensor[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
     ebp_sensor2 = central.get_hub_data_points(
-        platform=HmPlatform.HUB_SENSOR,
+        category=DataPointCategory.HUB_SENSOR,
         registered=False,
     )
     assert ebp_sensor2
     assert len(ebp_sensor2) == 3
 
-    ebp_sensor3 = central.get_hub_data_points(platform=HmPlatform.HUB_BUTTON)
+    ebp_sensor3 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON)
     assert ebp_sensor3
     assert len(ebp_sensor3) == 2
     ebp_sensor3[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
-    ebp_sensor4 = central.get_hub_data_points(platform=HmPlatform.HUB_BUTTON, registered=False)
+    ebp_sensor4 = central.get_hub_data_points(
+        category=DataPointCategory.HUB_BUTTON, registered=False
+    )
     assert ebp_sensor4
     assert len(ebp_sensor4) == 1
 

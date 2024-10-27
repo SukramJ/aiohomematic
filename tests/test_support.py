@@ -23,7 +23,7 @@ from hahomematic.const import (
 )
 from hahomematic.converter import _COMBINED_PARAMETER_TO_HM_CONVERTER, convert_hm_level_to_cpv
 from hahomematic.exceptions import HaHomematicException
-from hahomematic.platforms.support import (
+from hahomematic.model.support import (
     _check_channel_name_with_channel_no,
     convert_value,
     generate_unique_id,
@@ -216,7 +216,7 @@ async def test_get_data_point_name(
     assert name_data.data_point_name == "Roof Level"
 
     with patch(
-        "hahomematic.platforms.support._get_base_name_from_channel_or_device",
+        "hahomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
         name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
@@ -259,7 +259,7 @@ async def test_get_event_name(
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
 
     with patch(
-        "hahomematic.platforms.support._get_base_name_from_channel_or_device",
+        "hahomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
@@ -324,7 +324,7 @@ async def test_custom_data_point_name(
     assert name_data.data_point_name == "Roof"
 
     with patch(
-        "hahomematic.platforms.support._get_base_name_from_channel_or_device",
+        "hahomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
         name_data = get_custom_data_point_name(

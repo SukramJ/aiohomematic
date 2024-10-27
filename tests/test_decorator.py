@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hahomematic.platforms.decorators import (
+from hahomematic.model.decorators import (
     config_property,
     get_public_attributes_for_config_property,
     get_public_attributes_for_state_property,

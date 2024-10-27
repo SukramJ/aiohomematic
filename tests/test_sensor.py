@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import DpSensor
-from hahomematic.platforms.hub import SysvarDpSensor
+from hahomematic.model.generic import DpSensor
+from hahomematic.model.hub import SysvarDpSensor
 
 from tests import const, helper
 

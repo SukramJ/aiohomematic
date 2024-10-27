@@ -12,7 +12,7 @@ from aiohttp import ClientSession, TCPConnector
 from hahomematic import config, const
 from hahomematic.central import CentralConfig
 from hahomematic.client import InterfaceConfig
-from hahomematic.platforms.custom import validate_custom_data_point_definition
+from hahomematic.model.custom import validate_custom_data_point_definition
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)

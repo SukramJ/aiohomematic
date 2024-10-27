@@ -11,7 +11,7 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage, ParamsetKey
-from hahomematic.platforms.custom import (
+from hahomematic.model.custom import (
     CustomDpColorDimmer,
     CustomDpColorDimmerEffect,
     CustomDpColorTempDimmer,
@@ -19,7 +19,7 @@ from hahomematic.platforms.custom import (
     CustomDpIpFixedColorLight,
     CustomDpIpRGBWLight,
 )
-from hahomematic.platforms.custom.light import _ColorBehaviour, _FixedColor, _TimeUnit
+from hahomematic.model.custom.light import _ColorBehaviour, _FixedColor, _TimeUnit
 
 from tests import const, helper
 

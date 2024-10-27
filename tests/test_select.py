@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import DpSelect
-from hahomematic.platforms.hub import SysvarDpSelect
+from hahomematic.model.generic import DpSelect
+from hahomematic.model.hub import SysvarDpSelect
 
 from tests import const, helper
 

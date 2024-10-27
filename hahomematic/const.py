@@ -333,8 +333,8 @@ class ParamsetKey(StrEnum):
     VALUES = "VALUES"
 
 
-class HmPlatform(StrEnum):
-    """Enum with platforms relevant for Home Assistant."""
+class DataPointCategory(StrEnum):
+    """Enum with data point types."""
 
     ACTION = "action"
     BINARY_SENSOR = "binary_sensor"
@@ -484,31 +484,31 @@ KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, tuple[str, ...]]] = {
 }
 
 
-HUB_PLATFORMS: Final[tuple[HmPlatform, ...]] = (
-    HmPlatform.HUB_BINARY_SENSOR,
-    HmPlatform.HUB_BUTTON,
-    HmPlatform.HUB_NUMBER,
-    HmPlatform.HUB_SELECT,
-    HmPlatform.HUB_SENSOR,
-    HmPlatform.HUB_SWITCH,
-    HmPlatform.HUB_TEXT,
+HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.HUB_BINARY_SENSOR,
+    DataPointCategory.HUB_BUTTON,
+    DataPointCategory.HUB_NUMBER,
+    DataPointCategory.HUB_SELECT,
+    DataPointCategory.HUB_SENSOR,
+    DataPointCategory.HUB_SWITCH,
+    DataPointCategory.HUB_TEXT,
 )
 
-PLATFORMS: Final[tuple[HmPlatform, ...]] = (
-    HmPlatform.BINARY_SENSOR,
-    HmPlatform.BUTTON,
-    HmPlatform.CLIMATE,
-    HmPlatform.COVER,
-    HmPlatform.EVENT,
-    HmPlatform.LIGHT,
-    HmPlatform.LOCK,
-    HmPlatform.NUMBER,
-    HmPlatform.SELECT,
-    HmPlatform.SENSOR,
-    HmPlatform.SIREN,
-    HmPlatform.SWITCH,
-    HmPlatform.TEXT,
-    HmPlatform.UPDATE,
+CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.BINARY_SENSOR,
+    DataPointCategory.BUTTON,
+    DataPointCategory.CLIMATE,
+    DataPointCategory.COVER,
+    DataPointCategory.EVENT,
+    DataPointCategory.LIGHT,
+    DataPointCategory.LOCK,
+    DataPointCategory.NUMBER,
+    DataPointCategory.SELECT,
+    DataPointCategory.SENSOR,
+    DataPointCategory.SIREN,
+    DataPointCategory.SWITCH,
+    DataPointCategory.TEXT,
+    DataPointCategory.UPDATE,
 )
 
 RELEVANT_INIT_PARAMETERS: Final[tuple[Parameter, ...]] = (

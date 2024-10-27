@@ -48,10 +48,10 @@ _PARTY_DATE_FORMAT: Final = "%Y_%m_%d %H:%M"
 _PARTY_INIT_DATE: Final = "2000_01_01 00:00"
 _RAW_SCHEDULE_DICT = dict[str, float | int]
 _TEMP_CELSIUS: Final = "°C"
+PROFILE_PREFIX: Final = "week_program_"
 SCHEDULE_SLOT_RANGE: Final = range(1, 13)
 SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
 SCHEDULE_TIME_RANGE: Final = range(1441)
-HM_PRESET_MODE_PREFIX: Final = "week_program_"
 
 
 class _ModeHm(StrEnum):
@@ -74,12 +74,12 @@ class _ModeHmIP(IntEnum):
 class _StateChangeArg(StrEnum):
     """Enum with climate state change arguments."""
 
-    HVAC_MODE = "hvac_mode"
-    PRESET_MODE = "preset_mode"
+    MODE = "mode"
+    PROFILE = "profile"
     TEMPERATURE = "temperature"
 
 
-class HmHvacAction(StrEnum):
+class ClimateActivity(StrEnum):
     """Enum with the hvac actions."""
 
     COOL = "cooling"
@@ -88,8 +88,8 @@ class HmHvacAction(StrEnum):
     OFF = "off"
 
 
-class HmHvacMode(StrEnum):
-    """Enum with the hvac modes."""
+class ClimateMode(StrEnum):
+    """Enum with the thermostat modes."""
 
     AUTO = "auto"
     COOL = "cool"
@@ -97,8 +97,8 @@ class HmHvacMode(StrEnum):
     OFF = "off"
 
 
-class HmPresetMode(StrEnum):
-    """Enum with preset modes."""
+class ClimateProfile(StrEnum):
+    """Enum with profiles."""
 
     AWAY = "away"
     BOOST = "boost"
@@ -193,19 +193,19 @@ class BaseCustomDpClimate(CustomDataPoint):
         return self._dp_temperature.value
 
     @state_property
-    def hvac_action(self) -> HmHvacAction | None:
-        """Return the hvac action."""
+    def activity(self) -> ClimateActivity | None:
+        """Return the current activity."""
         return None
 
     @state_property
-    def hvac_mode(self) -> HmHvacMode:
-        """Return hvac operation mode."""
-        return HmHvacMode.HEAT
+    def mode(self) -> ClimateMode:
+        """Return current operation mode."""
+        return ClimateMode.HEAT
 
     @state_property
-    def hvac_modes(self) -> tuple[HmHvacMode, ...]:
-        """Return the available hvac operation modes."""
-        return (HmHvacMode.HEAT,)
+    def modes(self) -> tuple[ClimateMode, ...]:
+        """Return the available operation modes."""
+        return (ClimateMode.HEAT,)
 
     @state_property
     def min_max_value_not_relevant_for_manu_mode(self) -> bool:
@@ -234,14 +234,14 @@ class BaseCustomDpClimate(CustomDataPoint):
         return self._dp_setpoint.max  # type: ignore[no-any-return]
 
     @state_property
-    def preset_mode(self) -> HmPresetMode:
-        """Return the current preset mode."""
-        return HmPresetMode.NONE
+    def profile(self) -> ClimateProfile:
+        """Return the current profile."""
+        return ClimateProfile.NONE
 
     @state_property
-    def preset_modes(self) -> tuple[HmPresetMode, ...]:
-        """Return available preset modes."""
-        return (HmPresetMode.NONE,)
+    def profiles(self) -> tuple[ClimateProfile, ...]:
+        """Return available profiles."""
+        return (ClimateProfile.NONE,)
 
     @state_property
     def target_temperature(self) -> float | None:
@@ -254,8 +254,8 @@ class BaseCustomDpClimate(CustomDataPoint):
         return _DEFAULT_TEMPERATURE_STEP
 
     @property
-    def supports_preset(self) -> bool:
-        """Flag if climate supports preset."""
+    def supports_profiles(self) -> bool:
+        """Flag if climate supports profiles."""
         return False
 
     @config_property
@@ -288,7 +288,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
         if (
             do_validate
-            and self.hvac_mode == HmHvacMode.HEAT
+            and self.mode == ClimateMode.HEAT
             and self.min_max_value_not_relevant_for_manu_mode
         ):
             do_validate = False
@@ -303,16 +303,16 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
 
     @bind_collector()
-    async def set_hvac_mode(
-        self, hvac_mode: HmHvacMode, collector: CallParameterCollector | None = None
+    async def set_mode(
+        self, mode: ClimateMode, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set new target hvac mode."""
+        """Set new target mode."""
 
     @bind_collector()
-    async def set_preset_mode(
-        self, preset_mode: HmPresetMode, collector: CallParameterCollector | None = None
+    async def set_profile(
+        self, profile: ClimateProfile, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set new preset mode."""
+        """Set new profile."""
 
     @service()
     async def enable_away_mode_by_calendar(
@@ -334,13 +334,11 @@ class BaseCustomDpClimate(CustomDataPoint):
             temperature := kwargs.get(_StateChangeArg.TEMPERATURE)
         ) is not None and temperature != self.target_temperature:
             return True
-        if (
-            hvac_mode := kwargs.get(_StateChangeArg.HVAC_MODE)
-        ) is not None and hvac_mode != self.hvac_mode:
+        if (mode := kwargs.get(_StateChangeArg.MODE)) is not None and mode != self.mode:
             return True
         if (
-            preset_mode := kwargs.get(_StateChangeArg.PRESET_MODE)
-        ) is not None and preset_mode != self.preset_mode:
+            profile := kwargs.get(_StateChangeArg.PROFILE)
+        ) is not None and profile != self.profile:
             return True
         return super().is_state_change(**kwargs)
 
@@ -732,54 +730,54 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         )
 
     @state_property
-    def hvac_action(self) -> HmHvacAction | None:
-        """Return the hvac action."""
+    def activity(self) -> ClimateActivity | None:
+        """Return the current activity."""
         if self._dp_valve_state.value is None:
             return None
-        if self.hvac_mode == HmHvacMode.OFF:
-            return HmHvacAction.OFF
+        if self.mode == ClimateMode.OFF:
+            return ClimateActivity.OFF
         if self._dp_valve_state.value and self._dp_valve_state.value > 0:
-            return HmHvacAction.HEAT
-        return HmHvacAction.IDLE
+            return ClimateActivity.HEAT
+        return ClimateActivity.IDLE
 
     @state_property
-    def hvac_mode(self) -> HmHvacMode:
-        """Return hvac operation mode."""
+    def mode(self) -> ClimateMode:
+        """Return current operation mode."""
         if self.target_temperature and self.target_temperature <= _OFF_TEMPERATURE:
-            return HmHvacMode.OFF
+            return ClimateMode.OFF
         if self._dp_control_mode.value == _ModeHm.MANU:
-            return HmHvacMode.HEAT
-        return HmHvacMode.AUTO
+            return ClimateMode.HEAT
+        return ClimateMode.AUTO
 
     @state_property
-    def hvac_modes(self) -> tuple[HmHvacMode, ...]:
-        """Return the available hvac operation modes."""
-        return (HmHvacMode.AUTO, HmHvacMode.HEAT, HmHvacMode.OFF)
+    def modes(self) -> tuple[ClimateMode, ...]:
+        """Return the available operation modes."""
+        return (ClimateMode.AUTO, ClimateMode.HEAT, ClimateMode.OFF)
 
     @state_property
-    def preset_mode(self) -> HmPresetMode:
-        """Return the current preset mode."""
+    def profile(self) -> ClimateProfile:
+        """Return the current profile."""
         if self._dp_control_mode.value is None:
-            return HmPresetMode.NONE
+            return ClimateProfile.NONE
         if self._dp_control_mode.value == _ModeHm.BOOST:
-            return HmPresetMode.BOOST
+            return ClimateProfile.BOOST
         if self._dp_control_mode.value == _ModeHm.AWAY:
-            return HmPresetMode.AWAY
-        return HmPresetMode.NONE
+            return ClimateProfile.AWAY
+        return ClimateProfile.NONE
 
     @state_property
-    def preset_modes(self) -> tuple[HmPresetMode, ...]:
-        """Return available preset modes."""
+    def profiles(self) -> tuple[ClimateProfile, ...]:
+        """Return available profile."""
         return (
-            HmPresetMode.BOOST,
-            HmPresetMode.COMFORT,
-            HmPresetMode.ECO,
-            HmPresetMode.NONE,
+            ClimateProfile.BOOST,
+            ClimateProfile.COMFORT,
+            ClimateProfile.ECO,
+            ClimateProfile.NONE,
         )
 
     @property
-    def supports_preset(self) -> bool:
-        """Flag if climate supports preset."""
+    def supports_profiles(self) -> bool:
+        """Flag if climate supports profiles."""
         return True
 
     @state_property
@@ -788,19 +786,19 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         return self._dp_temperature_offset.value
 
     @bind_collector()
-    async def set_hvac_mode(
-        self, hvac_mode: HmHvacMode, collector: CallParameterCollector | None = None
+    async def set_mode(
+        self, mode: ClimateMode, collector: CallParameterCollector | None = None
     ) -> None:
         """Set new target hvac mode."""
-        if not self.is_state_change(hvac_mode=hvac_mode):
+        if not self.is_state_change(hvac_mode=mode):
             return
-        if hvac_mode == HmHvacMode.AUTO:
+        if mode == ClimateMode.AUTO:
             await self._dp_auto_mode.send_value(value=True, collector=collector)
-        elif hvac_mode == HmHvacMode.HEAT:
+        elif mode == ClimateMode.HEAT:
             await self._dp_manu_mode.send_value(
                 value=self._min_or_target_temperature, collector=collector
             )
-        elif hvac_mode == HmHvacMode.OFF:
+        elif mode == ClimateMode.OFF:
             await self._dp_manu_mode.send_value(value=self.target_temperature, collector=collector)
             # Disable validation here to allow setting a value,
             # that is out of the validation range.
@@ -809,17 +807,17 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             )
 
     @bind_collector()
-    async def set_preset_mode(
-        self, preset_mode: HmPresetMode, collector: CallParameterCollector | None = None
+    async def set_profile(
+        self, profile: ClimateProfile, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set new preset mode."""
-        if not self.is_state_change(preset_mode=preset_mode):
+        """Set new profile."""
+        if not self.is_state_change(profile=profile):
             return
-        if preset_mode == HmPresetMode.BOOST:
+        if profile == ClimateProfile.BOOST:
             await self._dp_boost_mode.send_value(value=True, collector=collector)
-        elif preset_mode == HmPresetMode.COMFORT:
+        elif profile == ClimateProfile.COMFORT:
             await self._dp_comfort_mode.send_value(value=True, collector=collector)
-        elif preset_mode == HmPresetMode.ECO:
+        elif profile == ClimateProfile.ECO:
             await self._dp_lowering_mode.send_value(value=True, collector=collector)
 
     @service()
@@ -912,56 +910,58 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         return True
 
     @state_property
-    def hvac_action(self) -> HmHvacAction | None:
+    def activity(self) -> ClimateActivity | None:
         """Return the hvac action."""
         if self._dp_state.value is None and self._dp_level.value is None:
             return None
-        if self.hvac_mode == HmHvacMode.OFF:
-            return HmHvacAction.OFF
+        if self.mode == ClimateMode.OFF:
+            return ClimateActivity.OFF
         if self._dp_state.value is True or (
             self._dp_level.value and self._dp_level.value > _CLOSED_LEVEL
         ):
-            return HmHvacAction.HEAT if self._is_heating_mode else HmHvacAction.COOL
-        return HmHvacAction.IDLE
+            return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL
+        return ClimateActivity.IDLE
 
     @state_property
-    def hvac_mode(self) -> HmHvacMode:
+    def mode(self) -> ClimateMode:
         """Return hvac operation mode."""
         if self.target_temperature and self.target_temperature <= _OFF_TEMPERATURE:
-            return HmHvacMode.OFF
+            return ClimateMode.OFF
         if self._dp_set_point_mode.value == _ModeHmIP.MANU:
-            return HmHvacMode.HEAT if self._is_heating_mode else HmHvacMode.COOL
+            return ClimateMode.HEAT if self._is_heating_mode else ClimateMode.COOL
         if self._dp_set_point_mode.value == _ModeHmIP.AUTO:
-            return HmHvacMode.AUTO
-        return HmHvacMode.AUTO
+            return ClimateMode.AUTO
+        return ClimateMode.AUTO
 
     @state_property
-    def hvac_modes(self) -> tuple[HmHvacMode, ...]:
+    def modes(self) -> tuple[ClimateMode, ...]:
         """Return the available hvac operation modes."""
         return (
-            HmHvacMode.AUTO,
-            HmHvacMode.HEAT if self._is_heating_mode else HmHvacMode.COOL,
-            HmHvacMode.OFF,
+            ClimateMode.AUTO,
+            ClimateMode.HEAT if self._is_heating_mode else ClimateMode.COOL,
+            ClimateMode.OFF,
         )
 
     @state_property
-    def preset_mode(self) -> HmPresetMode:
-        """Return the current preset mode."""
+    def profile(self) -> ClimateProfile:
+        """Return the current control mode."""
         if self._dp_boost_mode.value:
-            return HmPresetMode.BOOST
+            return ClimateProfile.BOOST
         if self._dp_set_point_mode.value == _ModeHmIP.AWAY:
-            return HmPresetMode.AWAY
-        if self.hvac_mode == HmHvacMode.AUTO:
-            return self._current_profile_name if self._current_profile_name else HmPresetMode.NONE
-        return HmPresetMode.NONE
+            return ClimateProfile.AWAY
+        if self.mode == ClimateMode.AUTO:
+            return (
+                self._current_profile_name if self._current_profile_name else ClimateProfile.NONE
+            )
+        return ClimateProfile.NONE
 
     @state_property
-    def preset_modes(self) -> tuple[HmPresetMode, ...]:
-        """Return available preset modes."""
-        presets = [HmPresetMode.BOOST, HmPresetMode.NONE]
-        if self.hvac_mode == HmHvacMode.AUTO:
-            presets.extend(self._profile_names)
-        return tuple(presets)
+    def profiles(self) -> tuple[ClimateProfile, ...]:
+        """Return available control modes."""
+        control_modes = [ClimateProfile.BOOST, ClimateProfile.NONE]
+        if self.mode == ClimateMode.AUTO:
+            control_modes.extend(self._profile_names)
+        return tuple(control_modes)
 
     @property
     def optimum_start_stop(self) -> bool | None:
@@ -969,8 +969,8 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         return self._dp_optimum_start_stop.value
 
     @property
-    def supports_preset(self) -> bool:
-        """Flag if climate supports preset."""
+    def supports_profiles(self) -> bool:
+        """Flag if climate supports control modes."""
         return True
 
     @state_property
@@ -979,45 +979,45 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         return self._dp_temperature_offset.value
 
     @bind_collector()
-    async def set_hvac_mode(
-        self, hvac_mode: HmHvacMode, collector: CallParameterCollector | None = None
+    async def set_mode(
+        self, mode: ClimateMode, collector: CallParameterCollector | None = None
     ) -> None:
         """Set new target hvac mode."""
-        if not self.is_state_change(hvac_mode=hvac_mode):
+        if not self.is_state_change(hvac_mode=mode):
             return
         # if switching hvac_mode then disable boost_mode
         if self._dp_boost_mode.value:
-            await self.set_preset_mode(preset_mode=HmPresetMode.NONE, collector=collector)
+            await self.set_profile(profile=ClimateProfile.NONE, collector=collector)
 
-        if hvac_mode == HmHvacMode.AUTO:
+        if mode == ClimateMode.AUTO:
             await self._dp_control_mode.send_value(value=_ModeHmIP.AUTO, collector=collector)
-        elif hvac_mode in (HmHvacMode.HEAT, HmHvacMode.COOL):
+        elif mode in (ClimateMode.HEAT, ClimateMode.COOL):
             await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
             await self.set_temperature(
                 temperature=self._min_or_target_temperature, collector=collector
             )
-        elif hvac_mode == HmHvacMode.OFF:
+        elif mode == ClimateMode.OFF:
             await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
             await self.set_temperature(
                 temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False
             )
 
     @bind_collector()
-    async def set_preset_mode(
-        self, preset_mode: HmPresetMode, collector: CallParameterCollector | None = None
+    async def set_profile(
+        self, profile: ClimateProfile, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set new preset mode."""
-        if not self.is_state_change(preset_mode=preset_mode):
+        """Set new control mode."""
+        if not self.is_state_change(control_mode=profile):
             return
-        if preset_mode == HmPresetMode.BOOST:
+        if profile == ClimateProfile.BOOST:
             await self._dp_boost_mode.send_value(value=True, collector=collector)
-        elif preset_mode == HmPresetMode.NONE:
+        elif profile == ClimateProfile.NONE:
             await self._dp_boost_mode.send_value(value=False, collector=collector)
-        elif preset_mode in self._profile_names:
-            if self.hvac_mode != HmHvacMode.AUTO:
-                await self.set_hvac_mode(hvac_mode=HmHvacMode.AUTO, collector=collector)
+        elif profile in self._profile_names:
+            if self.mode != ClimateMode.AUTO:
+                await self.set_mode(mode=ClimateMode.AUTO, collector=collector)
                 await self._dp_boost_mode.send_value(value=False, collector=collector)
-            if profile_idx := self._profiles.get(preset_mode):
+            if profile_idx := self._profiles.get(profile):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
 
     @service()
@@ -1059,12 +1059,12 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         )
 
     @property
-    def _profile_names(self) -> tuple[HmPresetMode, ...]:
+    def _profile_names(self) -> tuple[ClimateProfile, ...]:
         """Return a collection of profile names."""
         return tuple(self._profiles.keys())
 
     @property
-    def _current_profile_name(self) -> HmPresetMode | None:
+    def _current_profile_name(self) -> ClimateProfile | None:
         """Return a profile index by name."""
         inv_profiles = {v: k for k, v in self._profiles.items()}
         if self._dp_active_profile.value is not None:
@@ -1072,12 +1072,12 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         return None
 
     @property
-    def _profiles(self) -> Mapping[HmPresetMode, int]:
+    def _profiles(self) -> Mapping[ClimateProfile, int]:
         """Return the profile groups."""
-        profiles: dict[HmPresetMode, int] = {}
+        profiles: dict[ClimateProfile, int] = {}
         if self._dp_active_profile.min and self._dp_active_profile.max:
             for i in range(self._dp_active_profile.min, self._dp_active_profile.max + 1):
-                profiles[HmPresetMode(f"{HM_PRESET_MODE_PREFIX}{i}")] = i
+                profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i
 
         return profiles
 

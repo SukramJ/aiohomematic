@@ -11,7 +11,7 @@ from hahomematic.platforms.decorators import state_property
 from hahomematic.platforms.generic.data_point import GenericDataPoint
 
 
-class BaseNumber[NumberParameterT: int | float | None](
+class BaseDpNumber[NumberParameterT: int | float | None](
     GenericDataPoint[NumberParameterT, int | float | str]
 ):
     """
@@ -40,7 +40,7 @@ class BaseNumber[NumberParameterT: int | float | None](
         )
 
 
-class HmFloat(BaseNumber[float | None]):
+class DpFloat(BaseDpNumber[float | None]):
     """
     Implementation of a Float.
 
@@ -61,7 +61,7 @@ class HmFloat(BaseNumber[float | None]):
         return self._value  # type: ignore[no-any-return]
 
 
-class HmInteger(BaseNumber[int | None]):
+class DpInteger(BaseDpNumber[int | None]):
     """
     Implementation of an Integer.
 

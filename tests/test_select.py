@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import HmSelect
-from hahomematic.platforms.hub import HmSysvarSelect
+from hahomematic.platforms.generic import DpSelect
+from hahomematic.platforms.hub import SysvarDpSelect
 
 from tests import const, helper
 
@@ -41,8 +41,8 @@ async def test_hmselect(
 ) -> None:
     """Test HmSelect."""
     central, mock_client, _ = central_client_factory
-    select: HmSelect = cast(
-        HmSelect,
+    select: DpSelect = cast(
+        DpSelect,
         central.get_generic_data_point("VCU6354483:1", "WINDOW_STATE"),
     )
     assert select.usage == DataPointUsage.NO_CREATE
@@ -100,7 +100,7 @@ async def test_hmsysvarselect(
 ) -> None:
     """Test HmSysvarSelect."""
     central, mock_client, _ = central_client_factory
-    select: HmSysvarSelect = cast(HmSysvarSelect, central.get_sysvar_data_point("sv_list_ext"))
+    select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point("sv_list_ext"))
     assert select.usage == DataPointUsage.DATA_POINT
     assert select.unit is None
     assert select.min is None

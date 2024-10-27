@@ -17,26 +17,26 @@ from hahomematic.const import (
     SystemVariableData,
     SysvarType,
 )
-from hahomematic.platforms.hub.binary_sensor import HmSysvarBinarySensor
-from hahomematic.platforms.hub.button import HmProgramButton
-from hahomematic.platforms.hub.data_point import GenericHubDataPoint, GenericSystemVariable
-from hahomematic.platforms.hub.number import HmSysvarNumber
-from hahomematic.platforms.hub.select import HmSysvarSelect
-from hahomematic.platforms.hub.sensor import HmSysvarSensor
-from hahomematic.platforms.hub.switch import HmSysvarSwitch
-from hahomematic.platforms.hub.text import HmSysvarText
+from hahomematic.platforms.hub.binary_sensor import SysvarDpBinarySensor
+from hahomematic.platforms.hub.button import ProgramDpButton
+from hahomematic.platforms.hub.data_point import GenericHubDataPoint, GenericSysvarDataPoint
+from hahomematic.platforms.hub.number import SysvarDpNumber
+from hahomematic.platforms.hub.select import SysvarDpSelect
+from hahomematic.platforms.hub.sensor import SysvarDpSensor
+from hahomematic.platforms.hub.switch import SysvarDpSwitch
+from hahomematic.platforms.hub.text import SysvarDpText
 
 __all__ = [
     "GenericHubDataPoint",
-    "GenericSystemVariable",
-    "HmProgramButton",
-    "HmSysvarBinarySensor",
-    "HmSysvarNumber",
-    "HmSysvarSelect",
-    "HmSysvarSensor",
-    "HmSysvarSwitch",
-    "HmSysvarText",
+    "GenericSysvarDataPoint",
     "Hub",
+    "ProgramDpButton",
+    "SysvarDpBinarySensor",
+    "SysvarDpNumber",
+    "SysvarDpSelect",
+    "SysvarDpSensor",
+    "SysvarDpSwitch",
+    "SysvarDpText",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class Hub:
         if missing_program_ids := self._identify_missing_program_ids(programs=programs):
             self._remove_program_data_point(ids=missing_program_ids)
 
-        new_programs: list[HmProgramButton] = []
+        new_programs: list[ProgramDpButton] = []
 
         for program_data in programs:
             if dp := self._central.get_program_button(pid=program_data.pid):
@@ -144,7 +144,7 @@ class Hub:
         if missing_variable_names := self._identify_missing_variable_names(variables=variables):
             self._remove_sysvar_data_point(del_data_points=missing_variable_names)
 
-        new_sysvars: list[GenericSystemVariable] = []
+        new_sysvars: list[GenericSysvarDataPoint] = []
 
         for sysvar in variables:
             name = sysvar.name
@@ -161,35 +161,35 @@ class Hub:
                 new_hub_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )
 
-    def _create_program(self, data: ProgramData) -> HmProgramButton:
+    def _create_program(self, data: ProgramData) -> ProgramDpButton:
         """Create program as data_point."""
-        program_button = HmProgramButton(central=self._central, data=data)
+        program_button = ProgramDpButton(central=self._central, data=data)
         self._central.add_program_button(program_button=program_button)
         return program_button
 
-    def _create_system_variable(self, data: SystemVariableData) -> GenericSystemVariable:
+    def _create_system_variable(self, data: SystemVariableData) -> GenericSysvarDataPoint:
         """Create system variable as data_point."""
         sysvar_dp = self._create_sysvar_data_point(data=data)
         self._central.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
         return sysvar_dp
 
-    def _create_sysvar_data_point(self, data: SystemVariableData) -> GenericSystemVariable:
+    def _create_sysvar_data_point(self, data: SystemVariableData) -> GenericSysvarDataPoint:
         """Create sysvar data_point."""
         data_type = data.data_type
         extended_sysvar = data.extended_sysvar
         if data_type:
             if data_type in (SysvarType.ALARM, SysvarType.LOGIC):
                 if extended_sysvar:
-                    return HmSysvarSwitch(central=self._central, data=data)
-                return HmSysvarBinarySensor(central=self._central, data=data)
+                    return SysvarDpSwitch(central=self._central, data=data)
+                return SysvarDpBinarySensor(central=self._central, data=data)
             if data_type == SysvarType.LIST and extended_sysvar:
-                return HmSysvarSelect(central=self._central, data=data)
+                return SysvarDpSelect(central=self._central, data=data)
             if data_type in (SysvarType.FLOAT, SysvarType.INTEGER) and extended_sysvar:
-                return HmSysvarNumber(central=self._central, data=data)
+                return SysvarDpNumber(central=self._central, data=data)
             if data_type == SysvarType.STRING and extended_sysvar:
-                return HmSysvarText(central=self._central, data=data)
+                return SysvarDpText(central=self._central, data=data)
 
-        return HmSysvarSensor(central=self._central, data=data)
+        return SysvarDpSensor(central=self._central, data=data)
 
     def _remove_program_data_point(self, ids: tuple[str, ...]) -> None:
         """Remove sysvar data_point from hub."""

@@ -12,7 +12,13 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage, ParamsetKey
-from hahomematic.platforms.custom import CeBlind, CeCover, CeGarage, CeIpBlind, CeWindowDrive
+from hahomematic.platforms.custom import (
+    CustomDpBlind,
+    CustomDpCover,
+    CustomDpGarage,
+    CustomDpIpBlind,
+    CustomDpWindowDrive,
+)
 from hahomematic.platforms.custom.cover import (
     _CLOSED_LEVEL,
     _OPEN_LEVEL,
@@ -57,7 +63,9 @@ async def test_cecover(
 ) -> None:
     """Test CeCover."""
     central, mock_client, _ = central_client_factory
-    cover: CeCover = cast(CeCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4))
+    cover: CustomDpCover = cast(
+        CustomDpCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4)
+    )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _CLOSED_LEVEL
@@ -139,8 +147,8 @@ async def test_ceipblind_dr(
 ) -> None:
     """Test CeIpBlind DIN Rail."""
     central, mock_client, _ = central_client_factory
-    cover: CeIpBlind = cast(
-        CeIpBlind, helper.get_prepared_custom_data_point(central, "VCU7807849", 14)
+    cover: CustomDpIpBlind = cast(
+        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU7807849", 14)
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
@@ -233,8 +241,8 @@ async def test_cewindowdrive(
 ) -> None:
     """Test CeWindowDrive."""
     central, mock_client, _ = central_client_factory
-    cover: CeWindowDrive = cast(
-        CeWindowDrive, helper.get_prepared_custom_data_point(central, "VCU0000350", 1)
+    cover: CustomDpWindowDrive = cast(
+        CustomDpWindowDrive, helper.get_prepared_custom_data_point(central, "VCU0000350", 1)
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
@@ -302,7 +310,9 @@ async def test_ceblind(
 ) -> None:
     """Test CeBlind."""
     central, mock_client, _ = central_client_factory
-    cover: CeBlind = cast(CeBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1))
+    cover: CustomDpBlind = cast(
+        CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1)
+    )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
@@ -450,7 +460,9 @@ async def test_ceblind_separate_level_and_tilt_change(
 ) -> None:
     """Test if CeBlind sends correct commands even when rapidly changing level and tilt via separate service calls."""
     central, mock_client, _ = central_client_factory
-    cover: CeBlind = cast(CeBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1))
+    cover: CustomDpBlind = cast(
+        CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1)
+    )
 
     # In order for this test to make sense, communication with CCU must take some amount of time.
     # This is not the case with the default local client used during testing, so we add a slight delay.
@@ -504,8 +516,8 @@ async def test_ceipblind(
 ) -> None:
     """Test CeIpBlind."""
     central, mock_client, _ = central_client_factory
-    cover: CeIpBlind = cast(
-        CeIpBlind, helper.get_prepared_custom_data_point(central, "VCU1223813", 4)
+    cover: CustomDpIpBlind = cast(
+        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU1223813", 4)
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
 
@@ -646,8 +658,8 @@ async def test_ceipblind_hdm(
 ) -> None:
     """Test CeIpBlind HDM."""
     central, mock_client, _ = central_client_factory
-    cover: CeIpBlind = cast(
-        CeIpBlind, helper.get_prepared_custom_data_point(central, "VCU3560967", 1)
+    cover: CustomDpIpBlind = cast(
+        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU3560967", 1)
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
@@ -781,8 +793,8 @@ async def test_cegarageho(
 ) -> None:
     """Test CeGarageHO."""
     central, mock_client, _ = central_client_factory
-    cover: CeGarage = cast(
-        CeGarage, helper.get_prepared_custom_data_point(central, "VCU3574044", 1)
+    cover: CustomDpGarage = cast(
+        CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU3574044", 1)
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == ("close", "open", "set_position", "stop", "vent")
@@ -901,8 +913,8 @@ async def test_cegaragetm(
 ) -> None:
     """Test CeGarageTM."""
     central, mock_client, _ = central_client_factory
-    cover: CeGarage = cast(
-        CeGarage, helper.get_prepared_custom_data_point(central, "VCU6166407", 1)
+    cover: CustomDpGarage = cast(
+        CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU6166407", 1)
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
 

@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import HmBinarySensor
-from hahomematic.platforms.hub import HmSysvarBinarySensor
+from hahomematic.platforms.generic import DpBinarySensor
+from hahomematic.platforms.hub import SysvarDpBinarySensor
 
 from tests import const, helper
 
@@ -41,8 +41,8 @@ async def test_hmbinarysensor(
 ) -> None:
     """Test HmBinarySensor."""
     central, mock_client, _ = central_client_factory
-    binary_sensor: HmBinarySensor = cast(
-        HmBinarySensor,
+    binary_sensor: DpBinarySensor = cast(
+        DpBinarySensor,
         central.get_generic_data_point("VCU5864966:1", "STATE"),
     )
     assert binary_sensor.usage == DataPointUsage.DATA_POINT
@@ -80,8 +80,8 @@ async def test_hmsysvarbinarysensor(
 ) -> None:
     """Test HmSysvarBinarySensor."""
     central, _, _ = central_client_factory
-    binary_sensor: HmSysvarBinarySensor = cast(
-        HmSysvarBinarySensor,
+    binary_sensor: SysvarDpBinarySensor = cast(
+        SysvarDpBinarySensor,
         central.get_sysvar_data_point("sv_logic"),
     )
     assert binary_sensor.name == "sv_logic"

@@ -7,10 +7,10 @@ See https://www.home-assistant.io/integrations/switch/.
 from __future__ import annotations
 
 from hahomematic.const import HmPlatform
-from hahomematic.platforms.hub.data_point import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSysvarDataPoint
 
 
-class HmSysvarSwitch(GenericSystemVariable):
+class SysvarDpSwitch(GenericSysvarDataPoint):
     """Implementation of a sysvar switch data_point."""
 
     _platform = HmPlatform.HUB_SWITCH

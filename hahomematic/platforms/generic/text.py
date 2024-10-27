@@ -10,7 +10,7 @@ from hahomematic.const import HmPlatform
 from hahomematic.platforms.generic.data_point import GenericDataPoint
 
 
-class HmText(GenericDataPoint[str, str]):
+class DpText(GenericDataPoint[str, str]):
     """
     Implementation of a text.
 

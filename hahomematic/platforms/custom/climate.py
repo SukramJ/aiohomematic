@@ -27,13 +27,13 @@ from hahomematic.platforms.custom.support import CustomConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import config_property, service, state_property
 from hahomematic.platforms.generic import (
-    HmAction,
-    HmBinarySensor,
-    HmFloat,
-    HmInteger,
-    HmSelect,
-    HmSensor,
-    HmSwitch,
+    DpAction,
+    DpBinarySensor,
+    DpFloat,
+    DpInteger,
+    DpSelect,
+    DpSensor,
+    DpSwitch,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ PROFILE_DICT = dict[ScheduleWeekday, WEEKDAY_DICT]
 _SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
 
 
-class BaseClimateDataPoint(CustomDataPoint):
+class BaseCustomDpClimate(CustomDataPoint):
     """Base HomeMatic climate data_point."""
 
     _platform = HmPlatform.CLIMATE
@@ -163,23 +163,23 @@ class BaseClimateDataPoint(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_humidity: HmSensor[int | None] = self._get_data_point(
-            field=Field.HUMIDITY, data_point_type=HmSensor[int | None]
+        self._e_humidity: DpSensor[int | None] = self._get_data_point(
+            field=Field.HUMIDITY, data_point_type=DpSensor[int | None]
         )
-        self._e_min_max_value_not_relevant_for_manu_mode: HmBinarySensor = self._get_data_point(
-            field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, data_point_type=HmBinarySensor
+        self._e_min_max_value_not_relevant_for_manu_mode: DpBinarySensor = self._get_data_point(
+            field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, data_point_type=DpBinarySensor
         )
-        self._e_setpoint: HmFloat = self._get_data_point(
-            field=Field.SETPOINT, data_point_type=HmFloat
+        self._e_setpoint: DpFloat = self._get_data_point(
+            field=Field.SETPOINT, data_point_type=DpFloat
         )
-        self._e_temperature: HmSensor[float | None] = self._get_data_point(
-            field=Field.TEMPERATURE, data_point_type=HmSensor[float | None]
+        self._e_temperature: DpSensor[float | None] = self._get_data_point(
+            field=Field.TEMPERATURE, data_point_type=DpSensor[float | None]
         )
-        self._e_temperature_maximum: HmFloat = self._get_data_point(
-            field=Field.TEMPERATURE_MAXIMUM, data_point_type=HmFloat
+        self._e_temperature_maximum: DpFloat = self._get_data_point(
+            field=Field.TEMPERATURE_MAXIMUM, data_point_type=DpFloat
         )
-        self._e_temperature_minimum: HmFloat = self._get_data_point(
-            field=Field.TEMPERATURE_MINIMUM, data_point_type=HmFloat
+        self._e_temperature_minimum: DpFloat = self._get_data_point(
+            field=Field.TEMPERATURE_MINIMUM, data_point_type=DpFloat
         )
 
     @state_property
@@ -345,7 +345,7 @@ class BaseClimateDataPoint(CustomDataPoint):
         return super().is_state_change(**kwargs)
 
     @service()
-    async def copy_schedule(self, target_climate_data_point: BaseClimateDataPoint) -> None:
+    async def copy_schedule(self, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device."""
 
         if self.device.product_group != target_climate_data_point.device.product_group:
@@ -368,7 +368,7 @@ class BaseClimateDataPoint(CustomDataPoint):
         self,
         source_profile: ScheduleProfile,
         target_profile: ScheduleProfile,
-        target_climate_data_point: BaseClimateDataPoint | None = None,
+        target_climate_data_point: BaseCustomDpClimate | None = None,
     ) -> None:
         """Copy schedule profile to target device."""
         same_device = False
@@ -696,39 +696,39 @@ class BaseClimateDataPoint(CustomDataPoint):
                 previous_endtime = endtime
 
 
-class CeSimpleRfThermostat(BaseClimateDataPoint):
+class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
     """Simple classic HomeMatic thermostat HM-CC-TC."""
 
 
-class CeRfThermostat(BaseClimateDataPoint):
+class CustomDpRfThermostat(BaseCustomDpClimate):
     """Classic HomeMatic thermostat like HM-CC-RT-DN."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_boost_mode: HmAction = self._get_data_point(
-            field=Field.BOOST_MODE, data_point_type=HmAction
+        self._e_boost_mode: DpAction = self._get_data_point(
+            field=Field.BOOST_MODE, data_point_type=DpAction
         )
-        self._e_auto_mode: HmAction = self._get_data_point(
-            field=Field.AUTO_MODE, data_point_type=HmAction
+        self._e_auto_mode: DpAction = self._get_data_point(
+            field=Field.AUTO_MODE, data_point_type=DpAction
         )
-        self._e_manu_mode: HmAction = self._get_data_point(
-            field=Field.MANU_MODE, data_point_type=HmAction
+        self._e_manu_mode: DpAction = self._get_data_point(
+            field=Field.MANU_MODE, data_point_type=DpAction
         )
-        self._e_comfort_mode: HmAction = self._get_data_point(
-            field=Field.COMFORT_MODE, data_point_type=HmAction
+        self._e_comfort_mode: DpAction = self._get_data_point(
+            field=Field.COMFORT_MODE, data_point_type=DpAction
         )
-        self._e_lowering_mode: HmAction = self._get_data_point(
-            field=Field.LOWERING_MODE, data_point_type=HmAction
+        self._e_lowering_mode: DpAction = self._get_data_point(
+            field=Field.LOWERING_MODE, data_point_type=DpAction
         )
-        self._e_control_mode: HmSensor[str | None] = self._get_data_point(
-            field=Field.CONTROL_MODE, data_point_type=HmSensor[str | None]
+        self._e_control_mode: DpSensor[str | None] = self._get_data_point(
+            field=Field.CONTROL_MODE, data_point_type=DpSensor[str | None]
         )
-        self._e_temperature_offset: HmSelect = self._get_data_point(
-            field=Field.TEMPERATURE_OFFSET, data_point_type=HmSelect
+        self._e_temperature_offset: DpSelect = self._get_data_point(
+            field=Field.TEMPERATURE_OFFSET, data_point_type=DpSelect
         )
-        self._e_valve_state: HmSensor[int | None] = self._get_data_point(
-            field=Field.VALVE_STATE, data_point_type=HmSensor[int | None]
+        self._e_valve_state: DpSensor[int | None] = self._get_data_point(
+            field=Field.VALVE_STATE, data_point_type=DpSensor[int | None]
         )
 
     @state_property
@@ -867,7 +867,7 @@ def _party_mode_code(start: datetime, end: datetime, away_temperature: float) ->
     return f"{away_temperature:.1f},{start.hour*60+start.minute},{start.strftime('%d,%m,%y')},{end.hour*60+end.minute},{end.strftime('%d,%m,%y')}"
 
 
-class CeIpThermostat(BaseClimateDataPoint):
+class CustomDpIpThermostat(BaseCustomDpClimate):
     """HomematicIP thermostat like HmIP-eTRV-B."""
 
     _supports_schedule = True
@@ -875,33 +875,33 @@ class CeIpThermostat(BaseClimateDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_active_profile: HmInteger = self._get_data_point(
-            field=Field.ACTIVE_PROFILE, data_point_type=HmInteger
+        self._e_active_profile: DpInteger = self._get_data_point(
+            field=Field.ACTIVE_PROFILE, data_point_type=DpInteger
         )
-        self._e_boost_mode: HmSwitch = self._get_data_point(
-            field=Field.BOOST_MODE, data_point_type=HmSwitch
+        self._e_boost_mode: DpSwitch = self._get_data_point(
+            field=Field.BOOST_MODE, data_point_type=DpSwitch
         )
-        self._e_control_mode: HmAction = self._get_data_point(
-            field=Field.CONTROL_MODE, data_point_type=HmAction
+        self._e_control_mode: DpAction = self._get_data_point(
+            field=Field.CONTROL_MODE, data_point_type=DpAction
         )
-        self._e_heating_mode: HmSelect = self._get_data_point(
-            field=Field.HEATING_COOLING, data_point_type=HmSelect
+        self._e_heating_mode: DpSelect = self._get_data_point(
+            field=Field.HEATING_COOLING, data_point_type=DpSelect
         )
-        self._e_level: HmFloat = self._get_data_point(field=Field.LEVEL, data_point_type=HmFloat)
-        self._e_optimum_start_stop: HmBinarySensor = self._get_data_point(
-            field=Field.OPTIMUM_START_STOP, data_point_type=HmBinarySensor
+        self._e_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
+        self._e_optimum_start_stop: DpBinarySensor = self._get_data_point(
+            field=Field.OPTIMUM_START_STOP, data_point_type=DpBinarySensor
         )
-        self._e_party_mode: HmBinarySensor = self._get_data_point(
-            field=Field.PARTY_MODE, data_point_type=HmBinarySensor
+        self._e_party_mode: DpBinarySensor = self._get_data_point(
+            field=Field.PARTY_MODE, data_point_type=DpBinarySensor
         )
-        self._e_set_point_mode: HmInteger = self._get_data_point(
-            field=Field.SET_POINT_MODE, data_point_type=HmInteger
+        self._e_set_point_mode: DpInteger = self._get_data_point(
+            field=Field.SET_POINT_MODE, data_point_type=DpInteger
         )
-        self._e_state: HmBinarySensor = self._get_data_point(
-            field=Field.STATE, data_point_type=HmBinarySensor
+        self._e_state: DpBinarySensor = self._get_data_point(
+            field=Field.STATE, data_point_type=DpBinarySensor
         )
-        self._e_temperature_offset: HmFloat = self._get_data_point(
-            field=Field.TEMPERATURE_OFFSET, data_point_type=HmFloat
+        self._e_temperature_offset: DpFloat = self._get_data_point(
+            field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
     @property
@@ -1182,7 +1182,7 @@ def make_simple_thermostat(
     """Create SimpleRfThermostat data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeSimpleRfThermostat,
+        data_point_class=CustomDpSimpleRfThermostat,
         device_profile=DeviceProfile.SIMPLE_RF_THERMOSTAT,
         custom_config=custom_config,
     )
@@ -1195,7 +1195,7 @@ def make_thermostat(
     """Create RfThermostat data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeRfThermostat,
+        data_point_class=CustomDpRfThermostat,
         device_profile=DeviceProfile.RF_THERMOSTAT,
         custom_config=custom_config,
     )
@@ -1208,7 +1208,7 @@ def make_thermostat_group(
     """Create RfThermostat group data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeRfThermostat,
+        data_point_class=CustomDpRfThermostat,
         device_profile=DeviceProfile.RF_THERMOSTAT_GROUP,
         custom_config=custom_config,
     )
@@ -1221,7 +1221,7 @@ def make_ip_thermostat(
     """Create IPThermostat data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpThermostat,
+        data_point_class=CustomDpIpThermostat,
         device_profile=DeviceProfile.IP_THERMOSTAT,
         custom_config=custom_config,
     )
@@ -1234,7 +1234,7 @@ def make_ip_thermostat_group(
     """Create IPThermostat group data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpThermostat,
+        data_point_class=CustomDpIpThermostat,
         device_profile=DeviceProfile.IP_THERMOSTAT_GROUP,
         custom_config=custom_config,
     )

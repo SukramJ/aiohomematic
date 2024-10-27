@@ -18,29 +18,29 @@ from hahomematic.const import (
 )
 from hahomematic.exceptions import HaHomematicException
 from hahomematic.platforms import device as hmd
-from hahomematic.platforms.generic.action import HmAction
-from hahomematic.platforms.generic.binary_sensor import HmBinarySensor
-from hahomematic.platforms.generic.button import HmButton
+from hahomematic.platforms.generic.action import DpAction
+from hahomematic.platforms.generic.binary_sensor import DpBinarySensor
+from hahomematic.platforms.generic.button import DpButton
 from hahomematic.platforms.generic.data_point import GenericDataPoint
-from hahomematic.platforms.generic.number import BaseNumber, HmFloat, HmInteger
-from hahomematic.platforms.generic.select import HmSelect
-from hahomematic.platforms.generic.sensor import HmSensor
-from hahomematic.platforms.generic.switch import HmSwitch
-from hahomematic.platforms.generic.text import HmText
+from hahomematic.platforms.generic.number import BaseDpNumber, DpFloat, DpInteger
+from hahomematic.platforms.generic.select import DpSelect
+from hahomematic.platforms.generic.sensor import DpSensor
+from hahomematic.platforms.generic.switch import DpSwitch
+from hahomematic.platforms.generic.text import DpText
 from hahomematic.platforms.support import is_binary_sensor
 
 __all__ = [
-    "BaseNumber",
+    "BaseDpNumber",
+    "DpAction",
+    "DpBinarySensor",
+    "DpButton",
+    "DpFloat",
+    "DpInteger",
+    "DpSelect",
+    "DpSensor",
+    "DpSwitch",
+    "DpText",
     "GenericDataPoint",
-    "HmAction",
-    "HmBinarySensor",
-    "HmButton",
-    "HmFloat",
-    "HmInteger",
-    "HmSelect",
-    "HmSensor",
-    "HmSwitch",
-    "HmText",
     "create_data_point_and_append_to_channel",
 ]
 
@@ -73,32 +73,32 @@ def create_data_point_and_append_to_channel(
         if p_type == ParameterType.ACTION:
             if p_operations == Operations.WRITE:
                 if parameter in _BUTTON_ACTIONS or channel.device.model in VIRTUAL_REMOTE_MODELS:
-                    dp_t = HmButton
+                    dp_t = DpButton
                 else:
-                    dp_t = HmAction
+                    dp_t = DpAction
             elif parameter in CLICK_EVENTS:
-                dp_t = HmButton
+                dp_t = DpButton
             else:
-                dp_t = HmSwitch
+                dp_t = DpSwitch
         elif p_operations == Operations.WRITE:
-            dp_t = HmAction
+            dp_t = DpAction
         elif p_type == ParameterType.BOOL:
-            dp_t = HmSwitch
+            dp_t = DpSwitch
         elif p_type == ParameterType.ENUM:
-            dp_t = HmSelect
+            dp_t = DpSelect
         elif p_type == ParameterType.FLOAT:
-            dp_t = HmFloat
+            dp_t = DpFloat
         elif p_type == ParameterType.INTEGER:
-            dp_t = HmInteger
+            dp_t = DpInteger
         elif p_type == ParameterType.STRING:
-            dp_t = HmText
+            dp_t = DpText
     elif parameter not in CLICK_EVENTS:
         # Also check, if sensor could be a binary_sensor due to.
         if is_binary_sensor(parameter_data):
             parameter_data["TYPE"] = ParameterType.BOOL
-            dp_t = HmBinarySensor
+            dp_t = DpBinarySensor
         else:
-            dp_t = HmSensor
+            dp_t = DpSensor
 
     if dp_t:
         try:

@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.hub.data_point import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSysvarDataPoint
 
 
-class HmSysvarBinarySensor(GenericSystemVariable):
+class SysvarDpBinarySensor(GenericSysvarDataPoint):
     """Implementation of a sysvar binary_sensor."""
 
     _platform = HmPlatform.HUB_BINARY_SENSOR

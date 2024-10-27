@@ -19,7 +19,7 @@ from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.generic import HmAction, HmBinarySensor, HmSwitch
+from hahomematic.platforms.generic import DpAction, DpBinarySensor, DpSwitch
 from hahomematic.platforms.support import OnTimeMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class _SwitchStateChangeArg(StrEnum):
     ON_TIME = "on_time"
 
 
-class CeSwitch(CustomDataPoint, OnTimeMixin):
+class CustomDpSwitch(CustomDataPoint, OnTimeMixin):
     """Class for HomeMatic switch data points."""
 
     _platform = HmPlatform.SWITCH
@@ -42,12 +42,12 @@ class CeSwitch(CustomDataPoint, OnTimeMixin):
         """Init the data_point fields."""
         OnTimeMixin.__init__(self)
         super()._init_data_point_fields()
-        self._e_state: HmSwitch = self._get_data_point(field=Field.STATE, data_point_type=HmSwitch)
-        self._e_on_time_value: HmAction = self._get_data_point(
-            field=Field.ON_TIME_VALUE, data_point_type=HmAction
+        self._e_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
+        self._e_on_time_value: DpAction = self._get_data_point(
+            field=Field.ON_TIME_VALUE, data_point_type=DpAction
         )
-        self._e_channel_state: HmBinarySensor = self._get_data_point(
-            field=Field.CHANNEL_STATE, data_point_type=HmBinarySensor
+        self._e_channel_state: DpBinarySensor = self._get_data_point(
+            field=Field.CHANNEL_STATE, data_point_type=DpBinarySensor
         )
 
     @property
@@ -96,7 +96,7 @@ def make_ip_switch(
     """Create HomematicIP switch data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeSwitch,
+        data_point_class=CustomDpSwitch,
         device_profile=DeviceProfile.IP_SWITCH,
         custom_config=custom_config,
     )

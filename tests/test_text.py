@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import HmText
-from hahomematic.platforms.hub import HmSysvarText
+from hahomematic.platforms.generic import DpText
+from hahomematic.platforms.hub import SysvarDpText
 
 from tests import helper
 
@@ -37,7 +37,7 @@ TEST_DEVICES: dict[str, str] = {}
 async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> None:
     """Test HmText. There are currently no text data points."""
     central, _ = central_client
-    text: HmText = cast(HmText, central.get_generic_data_point("VCU7981740:1", "STATE"))
+    text: DpText = cast(DpText, central.get_generic_data_point("VCU7981740:1", "STATE"))
     assert text.usage == DataPointUsage.DATA_POINT
 
 
@@ -60,7 +60,7 @@ async def test_hmsysvartext(
 ) -> None:
     """Test HmSysvarText. There are currently no text data points."""
     central, mock_client, _ = central_client_factory
-    text: HmSysvarText = cast(HmSysvarText, central.get_sysvar_data_point("sv_string_ext"))
+    text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point("sv_string_ext"))
     assert text.usage == DataPointUsage.DATA_POINT
 
     assert text.unit is None

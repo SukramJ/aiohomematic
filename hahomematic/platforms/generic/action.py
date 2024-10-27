@@ -14,7 +14,7 @@ from hahomematic.platforms.generic.data_point import GenericDataPoint
 from hahomematic.platforms.support import get_index_of_value_from_value_list
 
 
-class HmAction(GenericDataPoint[None, Any]):
+class DpAction(GenericDataPoint[None, Any]):
     """
     Implementation of an action.
 

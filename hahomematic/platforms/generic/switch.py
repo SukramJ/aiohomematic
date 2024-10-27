@@ -16,7 +16,7 @@ from hahomematic.platforms.generic.data_point import GenericDataPoint
 _PARAM_ON_TIME: Final = "ON_TIME"
 
 
-class HmSwitch(GenericDataPoint[bool | None, bool]):
+class DpSwitch(GenericDataPoint[bool | None, bool]):
     """
     Implementation of a switch.
 

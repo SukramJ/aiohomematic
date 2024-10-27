@@ -18,7 +18,7 @@ from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.generic import HmAction, HmSensor, HmSwitch
+from hahomematic.platforms.generic import DpAction, DpSensor, DpSwitch
 
 
 class _LockActivity(StrEnum):
@@ -52,7 +52,7 @@ class LockState(StrEnum):
     UNLOCKED = "UNLOCKED"
 
 
-class BaseLock(CustomDataPoint):
+class BaseCustomDpLock(CustomDataPoint):
     """Class for HomematicIP lock data points."""
 
     _platform = HmPlatform.LOCK
@@ -98,20 +98,20 @@ class BaseLock(CustomDataPoint):
         """Open the lock."""
 
 
-class CeIpLock(BaseLock):
+class CustomDpIpLock(BaseCustomDpLock):
     """Class for HomematicIP lock data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_lock_state: HmSensor[str | None] = self._get_data_point(
-            field=Field.LOCK_STATE, data_point_type=HmSensor[str | None]
+        self._e_lock_state: DpSensor[str | None] = self._get_data_point(
+            field=Field.LOCK_STATE, data_point_type=DpSensor[str | None]
         )
-        self._e_lock_target_level: HmAction = self._get_data_point(
-            field=Field.LOCK_TARGET_LEVEL, data_point_type=HmAction
+        self._e_lock_target_level: DpAction = self._get_data_point(
+            field=Field.LOCK_TARGET_LEVEL, data_point_type=DpAction
         )
-        self._e_direction: HmSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=HmSensor[str | None]
+        self._e_direction: DpSensor[str | None] = self._get_data_point(
+            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
 
     @state_property
@@ -160,14 +160,14 @@ class CeIpLock(BaseLock):
         )
 
 
-class CeButtonLock(BaseLock):
+class CustomDpButtonLock(BaseCustomDpLock):
     """Class for HomematicIP button lock data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_button_lock: HmSwitch = self._get_data_point(
-            field=Field.BUTTON_LOCK, data_point_type=HmSwitch
+        self._e_button_lock: DpSwitch = self._get_data_point(
+            field=Field.BUTTON_LOCK, data_point_type=DpSwitch
         )
 
     @property
@@ -201,19 +201,19 @@ class CeButtonLock(BaseLock):
         return
 
 
-class CeRfLock(BaseLock):
+class CustomDpRfLock(BaseCustomDpLock):
     """Class for classic HomeMatic lock data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_state: HmSwitch = self._get_data_point(field=Field.STATE, data_point_type=HmSwitch)
-        self._e_open: HmAction = self._get_data_point(field=Field.OPEN, data_point_type=HmAction)
-        self._e_direction: HmSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=HmSensor[str | None]
+        self._e_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
+        self._e_open: DpAction = self._get_data_point(field=Field.OPEN, data_point_type=DpAction)
+        self._e_direction: DpSensor[str | None] = self._get_data_point(
+            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
-        self._e_error: HmSensor[str | None] = self._get_data_point(
-            field=Field.ERROR, data_point_type=HmSensor[str | None]
+        self._e_error: DpSensor[str | None] = self._get_data_point(
+            field=Field.ERROR, data_point_type=DpSensor[str | None]
         )
 
     @state_property
@@ -268,7 +268,7 @@ def make_ip_lock(
     """Create HomematicIP lock data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpLock,
+        data_point_class=CustomDpIpLock,
         device_profile=DeviceProfile.IP_LOCK,
         custom_config=custom_config,
     )
@@ -281,7 +281,7 @@ def make_ip_button_lock(
     """Create HomematicIP ip button lock data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeButtonLock,
+        data_point_class=CustomDpButtonLock,
         device_profile=DeviceProfile.IP_BUTTON_LOCK,
         custom_config=custom_config,
     )
@@ -294,7 +294,7 @@ def make_rf_button_lock(
     """Create HomematicIP rf button lock data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeButtonLock,
+        data_point_class=CustomDpButtonLock,
         device_profile=DeviceProfile.RF_BUTTON_LOCK,
         custom_config=custom_config,
     )
@@ -307,7 +307,7 @@ def make_rf_lock(
     """Create HomeMatic rf lock data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeRfLock,
+        data_point_class=CustomDpRfLock,
         device_profile=DeviceProfile.RF_LOCK,
         custom_config=custom_config,
     )

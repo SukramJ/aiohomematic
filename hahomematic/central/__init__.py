@@ -31,6 +31,7 @@ from hahomematic.client.json_rpc import JsonRpcAioHttpClient
 from hahomematic.client.xml_rpc import XmlRpcProxy
 from hahomematic.const import (
     CALLBACK_TYPE,
+    DATA_POINT_EVENTS,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
@@ -39,7 +40,6 @@ from hahomematic.const import (
     DEFAULT_SYSVAR_SCAN_ENABLED,
     DEFAULT_TLS,
     DEFAULT_VERIFY_TLS,
-    DP_EVENTS,
     DP_KEY,
     EVENT_AVAILABLE,
     EVENT_DATA,
@@ -80,9 +80,9 @@ from hahomematic.platforms.event import GenericEvent
 from hahomematic.platforms.generic import GenericDataPoint
 from hahomematic.platforms.hub import (
     GenericHubDataPoint,
-    GenericSystemVariable,
-    HmProgramButton,
+    GenericSysvarDataPoint,
     Hub,
+    ProgramDpButton,
 )
 from hahomematic.platforms.support import PayloadMixin
 from hahomematic.support import (
@@ -144,9 +144,9 @@ class CentralUnit(PayloadMixin):
         # {device_address, device}
         self._devices: Final[dict[str, HmDevice]] = {}
         # {sysvar_name, sysvar_data_point}
-        self._sysvar_data_points: Final[dict[str, GenericSystemVariable]] = {}
+        self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {sysvar_name, program_button}U
-        self._program_buttons: Final[dict[str, HmProgramButton]] = {}
+        self._program_buttons: Final[dict[str, ProgramDpButton]] = {}
         # Signature: (name, *args)
         # e.g. DEVICES_CREATED, HUB_REFRESHED
         self._backend_system_callbacks: Final[set[Callable]] = set()
@@ -290,7 +290,7 @@ class CentralUnit(PayloadMixin):
         return f"{self._config.base_path}{self.name}"
 
     @property
-    def program_buttons(self) -> tuple[HmProgramButton, ...]:
+    def program_buttons(self) -> tuple[ProgramDpButton, ...]:
         """Return the program data points."""
         return tuple(self._program_buttons.values())
 
@@ -314,7 +314,7 @@ class CentralUnit(PayloadMixin):
         return SystemInformation()
 
     @property
-    def sysvar_data_points(self) -> tuple[GenericSystemVariable, ...]:
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPoint, ...]:
         """Return the sysvar data points."""
         return tuple(self._sysvar_data_points.values())
 
@@ -326,7 +326,7 @@ class CentralUnit(PayloadMixin):
             self._version = max(versions) if versions else None
         return self._version
 
-    def add_sysvar_data_point(self, sysvar_data_point: GenericSystemVariable) -> None:
+    def add_sysvar_data_point(self, sysvar_data_point: GenericSysvarDataPoint) -> None:
         """Add new program button."""
         if (ccu_var_name := sysvar_data_point.ccu_var_name) is not None:
             self._sysvar_data_points[ccu_var_name] = sysvar_data_point
@@ -337,7 +337,7 @@ class CentralUnit(PayloadMixin):
             sysvar_dp.fire_device_removed_callback()
             del self._sysvar_data_points[name]
 
-    def add_program_button(self, program_button: HmProgramButton) -> None:
+    def add_program_button(self, program_button: ProgramDpButton) -> None:
         """Add new program button."""
         self._program_buttons[program_button.pid] = program_button
 
@@ -1199,7 +1199,7 @@ class CentralUnit(PayloadMixin):
             return device.get_custom_data_point(channel_no=channel_no)
         return None
 
-    def get_sysvar_data_point(self, name: str) -> GenericSystemVariable | None:
+    def get_sysvar_data_point(self, name: str) -> GenericSysvarDataPoint | None:
         """Return the sysvar data_point."""
         if sysvar := self._sysvar_data_points.get(name):
             return sysvar
@@ -1208,7 +1208,7 @@ class CentralUnit(PayloadMixin):
                 return sysvar
         return None
 
-    def get_program_button(self, pid: str) -> HmProgramButton | None:
+    def get_program_button(self, pid: str) -> ProgramDpButton | None:
         """Return the program button."""
         return self._program_buttons.get(pid)
 
@@ -1649,7 +1649,7 @@ def _get_new_channel_events(new_devices: set[HmDevice]) -> tuple[tuple[GenericEv
     channel_events: list[tuple[GenericEvent, ...]] = []
 
     for device in new_devices:
-        for event_type in DP_EVENTS:
+        for event_type in DATA_POINT_EVENTS:
             if (
                 hm_channel_events := list(
                     device.get_events(event_type=event_type, registered=False).values()

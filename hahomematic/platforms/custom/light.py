@@ -20,12 +20,12 @@ from hahomematic.platforms.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
 from hahomematic.platforms.generic import (
+    DpAction,
+    DpFloat,
+    DpInteger,
+    DpSelect,
+    DpSensor,
     GenericDataPoint,
-    HmAction,
-    HmFloat,
-    HmInteger,
-    HmSelect,
-    HmSensor,
 )
 from hahomematic.platforms.support import OnTimeMixin
 
@@ -137,7 +137,7 @@ class LightOffArgs(TypedDict, total=False):
     ramp_time: float
 
 
-class CeDimmer(CustomDataPoint, OnTimeMixin):
+class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
     """Base class for HomeMatic light data points."""
 
     _platform = HmPlatform.LIGHT
@@ -146,15 +146,15 @@ class CeDimmer(CustomDataPoint, OnTimeMixin):
         """Init the data_point fields."""
         OnTimeMixin.__init__(self)
         super()._init_data_point_fields()
-        self._e_level: HmFloat = self._get_data_point(field=Field.LEVEL, data_point_type=HmFloat)
-        self._e_channel_level: HmSensor[float | None] = self._get_data_point(
-            field=Field.CHANNEL_LEVEL, data_point_type=HmSensor[float | None]
+        self._e_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
+        self._e_channel_level: DpSensor[float | None] = self._get_data_point(
+            field=Field.CHANNEL_LEVEL, data_point_type=DpSensor[float | None]
         )
-        self._e_on_time_value: HmAction = self._get_data_point(
-            field=Field.ON_TIME_VALUE, data_point_type=HmAction
+        self._e_on_time_value: DpAction = self._get_data_point(
+            field=Field.ON_TIME_VALUE, data_point_type=DpAction
         )
-        self._e_ramp_time_value: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_VALUE, data_point_type=HmAction
+        self._e_ramp_time_value: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_VALUE, data_point_type=DpAction
         )
 
     @state_property
@@ -199,7 +199,7 @@ class CeDimmer(CustomDataPoint, OnTimeMixin):
     @property
     def supports_brightness(self) -> bool:
         """Flag if light supports brightness."""
-        return isinstance(self._e_level, HmFloat)
+        return isinstance(self._e_level, DpFloat)
 
     @property
     def supports_color_temperature(self) -> bool:
@@ -219,7 +219,7 @@ class CeDimmer(CustomDataPoint, OnTimeMixin):
     @property
     def supports_transition(self) -> bool:
         """Flag if light supports transition."""
-        return isinstance(self._e_ramp_time_value, HmAction)
+        return isinstance(self._e_ramp_time_value, DpAction)
 
     @state_property
     def effect(self) -> str | None:
@@ -314,14 +314,14 @@ class CeDimmer(CustomDataPoint, OnTimeMixin):
         return super().is_state_change(**kwargs)
 
 
-class CeColorDimmer(CeDimmer):
+class CustomDpColorDimmer(CustomDpDimmer):
     """Class for HomeMatic dimmer with color data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color: HmInteger = self._get_data_point(
-            field=Field.COLOR, data_point_type=HmInteger
+        self._e_color: DpInteger = self._get_data_point(
+            field=Field.COLOR, data_point_type=DpInteger
         )
 
     @state_property
@@ -354,7 +354,7 @@ class CeColorDimmer(CeDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
 
-class CeColorDimmerEffect(CeColorDimmer):
+class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     """Class for HomeMatic dimmer with color data points."""
 
     _effects: tuple[str, ...] = (
@@ -370,8 +370,8 @@ class CeColorDimmerEffect(CeColorDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_effect: HmInteger = self._get_data_point(
-            field=Field.PROGRAM, data_point_type=HmInteger
+        self._e_effect: DpInteger = self._get_data_point(
+            field=Field.PROGRAM, data_point_type=DpInteger
         )
 
     @state_property
@@ -409,14 +409,14 @@ class CeColorDimmerEffect(CeColorDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
 
-class CeColorTempDimmer(CeDimmer):
+class CustomDpColorTempDimmer(CustomDpDimmer):
     """Class for HomeMatic dimmer with color temperature data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color_level: HmFloat = self._get_data_point(
-            field=Field.COLOR_LEVEL, data_point_type=HmFloat
+        self._e_color_level: DpFloat = self._get_data_point(
+            field=Field.COLOR_LEVEL, data_point_type=DpFloat
         )
 
     @state_property
@@ -438,39 +438,39 @@ class CeColorTempDimmer(CeDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
 
-class CeIpRGBWLight(CeDimmer):
+class CustomDpIpRGBWLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-RGBW light data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_activity_state: HmSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=HmSensor[str | None]
+        self._e_activity_state: DpSensor[str | None] = self._get_data_point(
+            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
-        self._e_color_temperature_kelvin: HmInteger = self._get_data_point(
-            field=Field.COLOR_TEMPERATURE, data_point_type=HmInteger
+        self._e_color_temperature_kelvin: DpInteger = self._get_data_point(
+            field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
         )
-        self._e_device_operation_mode: HmSelect = self._get_data_point(
-            field=Field.DEVICE_OPERATION_MODE, data_point_type=HmSelect
+        self._e_device_operation_mode: DpSelect = self._get_data_point(
+            field=Field.DEVICE_OPERATION_MODE, data_point_type=DpSelect
         )
-        self._e_on_time_unit: HmAction = self._get_data_point(
-            field=Field.ON_TIME_UNIT, data_point_type=HmAction
+        self._e_on_time_unit: DpAction = self._get_data_point(
+            field=Field.ON_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_effect: HmAction = self._get_data_point(
-            field=Field.EFFECT, data_point_type=HmAction
+        self._e_effect: DpAction = self._get_data_point(
+            field=Field.EFFECT, data_point_type=DpAction
         )
-        self._e_hue: HmInteger = self._get_data_point(field=Field.HUE, data_point_type=HmInteger)
-        self._e_ramp_time_to_off_unit: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=HmAction
+        self._e_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
+        self._e_ramp_time_to_off_unit: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpAction
         )
-        self._e_ramp_time_to_off_value: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=HmAction
+        self._e_ramp_time_to_off_value: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
         )
-        self._e_ramp_time_unit: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_UNIT, data_point_type=HmAction
+        self._e_ramp_time_unit: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_saturation: HmFloat = self._get_data_point(
-            field=Field.SATURATION, data_point_type=HmFloat
+        self._e_saturation: DpFloat = self._get_data_point(
+            field=Field.SATURATION, data_point_type=DpFloat
         )
 
     @state_property
@@ -607,33 +607,33 @@ class CeIpRGBWLight(CeDimmer):
         await self._e_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 
-class CeIpDrgDaliLight(CeDimmer):
+class CustomDpIpDrgDaliLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-DRG-DALI light data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color_temperature_kelvin: HmInteger = self._get_data_point(
-            field=Field.COLOR_TEMPERATURE, data_point_type=HmInteger
+        self._e_color_temperature_kelvin: DpInteger = self._get_data_point(
+            field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
         )
-        self._e_on_time_unit: HmAction = self._get_data_point(
-            field=Field.ON_TIME_UNIT, data_point_type=HmAction
+        self._e_on_time_unit: DpAction = self._get_data_point(
+            field=Field.ON_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_effect: HmAction = self._get_data_point(
-            field=Field.EFFECT, data_point_type=HmAction
+        self._e_effect: DpAction = self._get_data_point(
+            field=Field.EFFECT, data_point_type=DpAction
         )
-        self._e_hue: HmInteger = self._get_data_point(field=Field.HUE, data_point_type=HmInteger)
-        self._e_ramp_time_to_off_unit: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=HmAction
+        self._e_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
+        self._e_ramp_time_to_off_unit: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpAction
         )
-        self._e_ramp_time_to_off_value: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=HmAction
+        self._e_ramp_time_to_off_value: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
         )
-        self._e_ramp_time_unit: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_UNIT, data_point_type=HmAction
+        self._e_ramp_time_unit: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_saturation: HmFloat = self._get_data_point(
-            field=Field.SATURATION, data_point_type=HmFloat
+        self._e_saturation: DpFloat = self._get_data_point(
+            field=Field.SATURATION, data_point_type=DpFloat
         )
 
     @state_property
@@ -714,7 +714,7 @@ class CeIpDrgDaliLight(CeDimmer):
         await self._e_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 
-class CeIpFixedColorLight(CeDimmer):
+class CustomDpIpFixedColorLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-BSL light data points."""
 
     @state_property
@@ -730,18 +730,18 @@ class CeIpFixedColorLight(CeDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color: HmSelect = self._get_data_point(field=Field.COLOR, data_point_type=HmSelect)
-        self._e_channel_color: HmSensor[str | None] = self._get_data_point(
-            field=Field.CHANNEL_COLOR, data_point_type=HmSensor[str | None]
+        self._e_color: DpSelect = self._get_data_point(field=Field.COLOR, data_point_type=DpSelect)
+        self._e_channel_color: DpSensor[str | None] = self._get_data_point(
+            field=Field.CHANNEL_COLOR, data_point_type=DpSensor[str | None]
         )
-        self._e_on_time_unit: HmAction = self._get_data_point(
-            field=Field.ON_TIME_UNIT, data_point_type=HmAction
+        self._e_on_time_unit: DpAction = self._get_data_point(
+            field=Field.ON_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_ramp_time_unit: HmAction = self._get_data_point(
-            field=Field.RAMP_TIME_UNIT, data_point_type=HmAction
+        self._e_ramp_time_unit: DpAction = self._get_data_point(
+            field=Field.RAMP_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_effect: HmSelect = self._get_data_point(
-            field=Field.COLOR_BEHAVIOUR, data_point_type=HmSelect
+        self._e_effect: DpSelect = self._get_data_point(
+            field=Field.COLOR_BEHAVIOUR, data_point_type=DpSelect
         )
         self._effect_list = (
             tuple(
@@ -867,7 +867,7 @@ def make_ip_dimmer(
     """Create HomematicIP dimmer data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeDimmer,
+        data_point_class=CustomDpDimmer,
         device_profile=DeviceProfile.IP_DIMMER,
         custom_config=custom_config,
     )
@@ -880,7 +880,7 @@ def make_rf_dimmer(
     """Create HomeMatic classic dimmer data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeDimmer,
+        data_point_class=CustomDpDimmer,
         device_profile=DeviceProfile.RF_DIMMER,
         custom_config=custom_config,
     )
@@ -893,7 +893,7 @@ def make_rf_dimmer_color(
     """Create HomeMatic classic dimmer with color data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeColorDimmer,
+        data_point_class=CustomDpColorDimmer,
         device_profile=DeviceProfile.RF_DIMMER_COLOR,
         custom_config=custom_config,
     )
@@ -906,7 +906,7 @@ def make_rf_dimmer_color_fixed(
     """Create HomeMatic classic dimmer with fixed color data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeColorDimmer,
+        data_point_class=CustomDpColorDimmer,
         device_profile=DeviceProfile.RF_DIMMER_COLOR_FIXED,
         custom_config=custom_config,
     )
@@ -919,7 +919,7 @@ def make_rf_dimmer_color_effect(
     """Create HomeMatic classic dimmer and effect with color data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeColorDimmerEffect,
+        data_point_class=CustomDpColorDimmerEffect,
         device_profile=DeviceProfile.RF_DIMMER_COLOR,
         custom_config=custom_config,
     )
@@ -932,7 +932,7 @@ def make_rf_dimmer_color_temp(
     """Create HomeMatic classic dimmer with color temperature data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeColorTempDimmer,
+        data_point_class=CustomDpColorTempDimmer,
         device_profile=DeviceProfile.RF_DIMMER_COLOR_TEMP,
         custom_config=custom_config,
     )
@@ -945,7 +945,7 @@ def make_rf_dimmer_with_virt_channel(
     """Create HomeMatic classic dimmer data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeDimmer,
+        data_point_class=CustomDpDimmer,
         device_profile=DeviceProfile.RF_DIMMER_WITH_VIRT_CHANNEL,
         custom_config=custom_config,
     )
@@ -958,7 +958,7 @@ def make_ip_fixed_color_light(
     """Create fixed color light data points like HmIP-BSL."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpFixedColorLight,
+        data_point_class=CustomDpIpFixedColorLight,
         device_profile=DeviceProfile.IP_FIXED_COLOR_LIGHT,
         custom_config=custom_config,
     )
@@ -971,7 +971,7 @@ def make_ip_simple_fixed_color_light_wired(
     """Create simple fixed color light data points like HmIPW-WRC6."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpFixedColorLight,
+        data_point_class=CustomDpIpFixedColorLight,
         device_profile=DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED,
         custom_config=custom_config,
     )
@@ -984,7 +984,7 @@ def make_ip_rgbw_light(
     """Create simple fixed color light data points like HmIP-RGBW."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpRGBWLight,
+        data_point_class=CustomDpIpRGBWLight,
         device_profile=DeviceProfile.IP_RGBW_LIGHT,
         custom_config=custom_config,
     )
@@ -997,7 +997,7 @@ def make_ip_drg_dali_light(
     """Create color light data points like HmIP-DRG-DALI."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpDrgDaliLight,
+        data_point_class=CustomDpIpDrgDaliLight,
         device_profile=DeviceProfile.IP_DRG_DALI,
         custom_config=custom_config,
     )

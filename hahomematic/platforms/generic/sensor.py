@@ -18,7 +18,7 @@ from hahomematic.platforms.support import get_value_from_value_list
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None]):
+class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None]):
     """
     Implementation of a sensor.
 

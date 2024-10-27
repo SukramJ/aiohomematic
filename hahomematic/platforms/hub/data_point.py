@@ -60,7 +60,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         return f"{self._central.path}/{HUB_PATH}/{self.platform}/{self.name}"
 
 
-class GenericSystemVariable(GenericHubDataPoint):
+class GenericSysvarDataPoint(GenericHubDataPoint):
     """Class for a HomeMatic system variable."""
 
     _is_extended = False

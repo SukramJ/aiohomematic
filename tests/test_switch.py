@@ -12,8 +12,8 @@ from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage
 from hahomematic.platforms.custom import CeSwitch
-from hahomematic.platforms.generic import HmSwitch
-from hahomematic.platforms.hub import HmSysvarSwitch
+from hahomematic.platforms.generic import DpSwitch
+from hahomematic.platforms.hub import SysvarDpSwitch
 
 from tests import helper
 
@@ -119,7 +119,7 @@ async def test_hmswitch(
 ) -> None:
     """Test HmSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: HmSwitch = cast(HmSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
+    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
     assert switch.service_method_names == (
         "send_value",
@@ -197,7 +197,7 @@ async def test_hmsysvarswitch(
 ) -> None:
     """Test HmSysvarSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: HmSysvarSwitch = cast(HmSysvarSwitch, central.get_sysvar_data_point("sv_alarm_ext"))
+    switch: SysvarDpSwitch = cast(SysvarDpSwitch, central.get_sysvar_data_point("sv_alarm_ext"))
     assert switch.usage == DataPointUsage.DATA_POINT
 
     assert switch.value is False

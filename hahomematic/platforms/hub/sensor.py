@@ -11,13 +11,13 @@ from typing import Any, Final
 
 from hahomematic.const import HmPlatform, SysvarType
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.hub.data_point import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSysvarDataPoint
 from hahomematic.platforms.support import get_value_from_value_list
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmSysvarSensor(GenericSystemVariable):
+class SysvarDpSensor(GenericSysvarDataPoint):
     """Implementation of a sysvar sensor."""
 
     _platform = HmPlatform.HUB_SENSOR

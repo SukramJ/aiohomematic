@@ -14,7 +14,7 @@ from hahomematic.platforms.decorators import get_service_calls, service, state_p
 from hahomematic.platforms.hub.data_point import GenericHubDataPoint
 
 
-class HmProgramButton(GenericHubDataPoint):
+class ProgramDpButton(GenericHubDataPoint):
     """Class for a HomeMatic program button."""
 
     _platform = HmPlatform.HUB_BUTTON

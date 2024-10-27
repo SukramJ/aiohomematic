@@ -454,7 +454,7 @@ CLICK_EVENTS: Final[tuple[Parameter, ...]] = (
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-DP_EVENTS: Final[tuple[HomematicEventType, ...]] = (
+DATA_POINT_EVENTS: Final[tuple[HomematicEventType, ...]] = (
     HomematicEventType.IMPULSE,
     HomematicEventType.KEYPRESS,
 )

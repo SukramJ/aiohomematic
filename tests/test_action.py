@@ -10,7 +10,7 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import HmAction
+from hahomematic.platforms.generic import DpAction
 
 from tests import helper
 
@@ -40,8 +40,8 @@ async def test_hmaction(
 ) -> None:
     """Test HmAction."""
     central, mock_client, _ = central_client_factory
-    action: HmAction = cast(
-        HmAction,
+    action: DpAction = cast(
+        DpAction,
         central.get_generic_data_point("VCU9724704:1", "LOCK_TARGET_LEVEL"),
     )
     assert action.usage == DataPointUsage.NO_CREATE

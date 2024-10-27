@@ -11,13 +11,13 @@ from typing import Final
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import service, state_property
-from hahomematic.platforms.hub.data_point import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSysvarDataPoint
 from hahomematic.platforms.support import get_value_from_value_list
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmSysvarSelect(GenericSystemVariable):
+class SysvarDpSelect(GenericSysvarDataPoint):
     """Implementation of a sysvar select data_point."""
 
     _platform = HmPlatform.HUB_SELECT

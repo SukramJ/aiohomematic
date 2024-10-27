@@ -11,7 +11,7 @@ from hahomematic.platforms.decorators import service
 from hahomematic.platforms.generic.data_point import GenericDataPoint
 
 
-class HmButton(GenericDataPoint[None, bool]):
+class DpButton(GenericDataPoint[None, bool]):
     """
     Implementation of a button.
 

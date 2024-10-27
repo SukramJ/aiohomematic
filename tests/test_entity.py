@@ -16,7 +16,7 @@ from hahomematic.platforms.custom import (
     get_required_parameters,
     validate_custom_data_point_definition,
 )
-from hahomematic.platforms.generic import HmSensor, HmSwitch
+from hahomematic.platforms.generic import DpSensor, DpSwitch
 
 from tests import const, helper
 
@@ -107,7 +107,7 @@ async def test_generic_data_point_callback(
 ) -> None:
     """Test CeSwitch."""
     central, _, factory = central_client_factory
-    switch: HmSwitch = cast(HmSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
+    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
 
     device_updated_mock = MagicMock()
@@ -156,8 +156,8 @@ async def test_load_custom_data_point(
 ) -> None:
     """Test load custom_data_point."""
     central, mock_client, _ = central_client_factory
-    switch: HmSwitch = cast(
-        HmSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
+    switch: DpSwitch = cast(
+        DpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
     )
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-2] == call.get_value(
@@ -193,7 +193,7 @@ async def test_load_generic_data_point(
 ) -> None:
     """Test load generic_data_point."""
     central, mock_client, _ = central_client_factory
-    switch: HmSwitch = cast(HmSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
+    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-1] == call.get_value(
         channel_address="VCU2128127:4",
@@ -222,8 +222,8 @@ async def test_generic_wrapped_data_point(
 ) -> None:
     """Test wrapped data_point."""
     central, _, _ = central_client_factory
-    wrapped_data_point: HmSensor = cast(
-        HmSensor, central.get_generic_data_point("VCU3609622:1", "LEVEL")
+    wrapped_data_point: DpSensor = cast(
+        DpSensor, central.get_generic_data_point("VCU3609622:1", "LEVEL")
     )
     assert wrapped_data_point._platform == "number"
     assert wrapped_data_point._is_forced_sensor is True

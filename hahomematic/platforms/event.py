@@ -8,8 +8,8 @@ from typing import Any, Final
 from hahomematic.async_support import loop_check
 from hahomematic.const import (
     CLICK_EVENTS,
+    DATA_POINT_EVENTS,
     DEVICE_ERROR_EVENTS,
-    DP_EVENTS,
     IMPULSE_EVENTS,
     DataPointUsage,
     HmPlatform,
@@ -68,7 +68,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
 
     async def event(self, value: Any) -> None:
         """Handle event for which this handler has subscribed."""
-        if self.event_type in DP_EVENTS:
+        if self.event_type in DATA_POINT_EVENTS:
             self.fire_data_point_updated_callback(parameter=self.parameter.lower())
         self._set_modified_at()
         self.fire_event(value)

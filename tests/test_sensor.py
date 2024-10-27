@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import HmSensor
-from hahomematic.platforms.hub import HmSysvarSensor
+from hahomematic.platforms.generic import DpSensor
+from hahomematic.platforms.hub import SysvarDpSensor
 
 from tests import const, helper
 
@@ -43,7 +43,7 @@ async def test_hmsensor_psm(
 ) -> None:
     """Test HmSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSensor = cast(HmSensor, central.get_generic_data_point("VCU3941846:6", "VOLTAGE"))
+    sensor: DpSensor = cast(DpSensor, central.get_generic_data_point("VCU3941846:6", "VOLTAGE"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit == "V"
     assert sensor.values is None
@@ -53,8 +53,8 @@ async def test_hmsensor_psm(
     await central.event(const.INTERFACE_ID, "VCU3941846:6", "VOLTAGE", 234.00)
     assert sensor.value == 234.00
 
-    sensor2: HmSensor = cast(
-        HmSensor,
+    sensor2: DpSensor = cast(
+        DpSensor,
         central.get_generic_data_point("VCU3941846:0", "RSSI_DEVICE"),
     )
     assert sensor2.usage == DataPointUsage.DATA_POINT
@@ -72,8 +72,8 @@ async def test_hmsensor_psm(
     await central.event(const.INTERFACE_ID, "VCU3941846:0", "RSSI_DEVICE", 400)
     assert sensor2.value is None
 
-    sensor3: HmSensor = cast(
-        HmSensor,
+    sensor3: DpSensor = cast(
+        DpSensor,
         central.get_generic_data_point("VCU8205532:1", "CONCENTRATION"),
     )
     assert sensor3.usage == DataPointUsage.DATA_POINT
@@ -101,7 +101,7 @@ async def test_hmsensor_srh(
 ) -> None:
     """Test HmSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSensor = cast(HmSensor, central.get_generic_data_point("VCU7981740:1", "STATE"))
+    sensor: DpSensor = cast(DpSensor, central.get_generic_data_point("VCU7981740:1", "STATE"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit is None
     assert sensor.values == ("CLOSED", "TILTED", "OPEN")
@@ -131,14 +131,14 @@ async def test_hmsysvarsensor(
 ) -> None:
     """Test HmSysvarSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_data_point("sv_list"))
+    sensor: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("sv_list"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.available is True
     assert sensor.unit is None
     assert sensor.values == ("v1", "v2", "v3")
     assert sensor.value == "v1"
 
-    sensor2: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_data_point("sv_float"))
+    sensor2: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("sv_float"))
     assert sensor2.usage == DataPointUsage.DATA_POINT
     assert sensor2.unit is None
     assert sensor2.values is None

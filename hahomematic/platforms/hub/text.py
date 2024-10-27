@@ -7,10 +7,10 @@ See https://www.home-assistant.io/integrations/text/.
 from __future__ import annotations
 
 from hahomematic.const import HmPlatform
-from hahomematic.platforms.hub.data_point import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSysvarDataPoint
 
 
-class HmSysvarText(GenericSystemVariable):
+class SysvarDpText(GenericSysvarDataPoint):
     """Implementation of a sysvar text data_point."""
 
     _platform = HmPlatform.HUB_TEXT

@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage, ProgramData
-from hahomematic.platforms.generic import HmButton
-from hahomematic.platforms.hub import HmProgramButton
+from hahomematic.platforms.generic import DpButton
+from hahomematic.platforms.hub import ProgramDpButton
 
 from tests import helper
 
@@ -41,8 +41,8 @@ async def test_hmbutton(
 ) -> None:
     """Test HmButton."""
     central, mock_client, _ = central_client_factory
-    button: HmButton = cast(
-        HmButton,
+    button: DpButton = cast(
+        DpButton,
         central.get_generic_data_point("VCU1437294:1", "RESET_MOTION"),
     )
     assert button.usage == DataPointUsage.DATA_POINT
@@ -83,7 +83,7 @@ async def test_hmprogrambutton(
 ) -> None:
     """Test HmProgramButton."""
     central, mock_client, _ = central_client_factory
-    button: HmProgramButton = cast(HmProgramButton, central.get_program_button("pid1"))
+    button: ProgramDpButton = cast(ProgramDpButton, central.get_program_button("pid1"))
     assert button.usage == DataPointUsage.DATA_POINT
     assert button.available is True
     assert button.is_active is True
@@ -103,7 +103,7 @@ async def test_hmprogrambutton(
     assert button.is_active is False
     assert button.is_internal is True
 
-    button2: HmProgramButton = cast(HmProgramButton, central.get_program_button("pid2"))
+    button2: ProgramDpButton = cast(ProgramDpButton, central.get_program_button("pid2"))
     assert button2.usage == DataPointUsage.DATA_POINT
     assert button2.is_active is False
     assert button2.is_internal is False

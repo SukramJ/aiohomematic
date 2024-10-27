@@ -11,7 +11,7 @@ from hahomematic.platforms.decorators import state_property
 from hahomematic.platforms.generic.data_point import GenericDataPoint
 
 
-class HmBinarySensor(GenericDataPoint[bool | None, bool]):
+class DpBinarySensor(GenericDataPoint[bool | None, bool]):
     """
     Implementation of a binary_sensor.
 

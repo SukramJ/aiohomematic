@@ -21,7 +21,7 @@ from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.generic import HmAction, HmFloat, HmSelect, HmSensor
+from hahomematic.platforms.generic import DpAction, DpFloat, DpSelect, DpSensor
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class _StateChangeArg(StrEnum):
     VENT = "vent"
 
 
-class CeCover(CustomDataPoint):
+class CustomDpCover(CustomDataPoint):
     """Class for HomeMatic cover data points."""
 
     _platform = HmPlatform.COVER
@@ -95,13 +95,13 @@ class CeCover(CustomDataPoint):
         """Init the data point fields."""
         super()._init_data_point_fields()
         self._command_processing_lock = asyncio.Lock()
-        self._e_direction: HmSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=HmSensor[str | None]
+        self._e_direction: DpSensor[str | None] = self._get_data_point(
+            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
-        self._e_level: HmFloat = self._get_data_point(field=Field.LEVEL, data_point_type=HmFloat)
-        self._e_stop: HmAction = self._get_data_point(field=Field.STOP, data_point_type=HmAction)
-        self._e_channel_level: HmSensor[float | None] = self._get_data_point(
-            field=Field.CHANNEL_LEVEL, data_point_type=HmSensor[float | None]
+        self._e_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
+        self._e_stop: DpAction = self._get_data_point(field=Field.STOP, data_point_type=DpAction)
+        self._e_channel_level: DpSensor[float | None] = self._get_data_point(
+            field=Field.CHANNEL_LEVEL, data_point_type=DpSensor[float | None]
         )
 
     @property
@@ -197,7 +197,7 @@ class CeCover(CustomDataPoint):
         return super().is_state_change(**kwargs)
 
 
-class CeWindowDrive(CeCover):
+class CustomDpWindowDrive(CustomDpCover):
     """Class for Homematic window drive."""
 
     _closed_level: float = _WD_CLOSED_LEVEL
@@ -232,7 +232,7 @@ class CeWindowDrive(CeCover):
         await self._e_level.send_value(value=wd_level, collector=collector, do_validate=False)
 
 
-class CeBlind(CeCover):
+class CustomDpBlind(CustomDpCover):
     """Class for HomeMatic blind data points."""
 
     _open_tilt_level: float = _OPEN_TILT_LEVEL
@@ -240,14 +240,14 @@ class CeBlind(CeCover):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._e_channel_level_2: HmSensor[float | None] = self._get_data_point(
-            field=Field.CHANNEL_LEVEL_2, data_point_type=HmSensor[float | None]
+        self._e_channel_level_2: DpSensor[float | None] = self._get_data_point(
+            field=Field.CHANNEL_LEVEL_2, data_point_type=DpSensor[float | None]
         )
-        self._e_level_2: HmFloat = self._get_data_point(
-            field=Field.LEVEL_2, data_point_type=HmFloat
+        self._e_level_2: DpFloat = self._get_data_point(
+            field=Field.LEVEL_2, data_point_type=DpFloat
         )
-        self._e_combined: HmAction = self._get_data_point(
-            field=Field.LEVEL_COMBINED, data_point_type=HmAction
+        self._e_combined: DpAction = self._get_data_point(
+            field=Field.LEVEL_COMBINED, data_point_type=DpAction
         )
 
     @property
@@ -436,17 +436,17 @@ class CeBlind(CeCover):
         return None
 
 
-class CeIpBlind(CeBlind):
+class CustomDpIpBlind(CustomDpBlind):
     """Class for HomematicIP blind data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._e_operation_mode: HmSelect = self._get_data_point(
-            field=Field.OPERATION_MODE, data_point_type=HmSelect
+        self._e_operation_mode: DpSelect = self._get_data_point(
+            field=Field.OPERATION_MODE, data_point_type=DpSelect
         )
-        self._e_combined: HmAction = self._get_data_point(
-            field=Field.COMBINED_PARAMETER, data_point_type=HmAction
+        self._e_combined: DpAction = self._get_data_point(
+            field=Field.COMBINED_PARAMETER, data_point_type=DpAction
         )
 
     @property
@@ -471,7 +471,7 @@ class CeIpBlind(CeBlind):
         return None
 
 
-class CeGarage(CustomDataPoint):
+class CustomDpGarage(CustomDataPoint):
     """Class for HomeMatic garage data points."""
 
     _platform = HmPlatform.COVER
@@ -479,14 +479,14 @@ class CeGarage(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._e_door_state: HmSensor[str | None] = self._get_data_point(
-            field=Field.DOOR_STATE, data_point_type=HmSensor[str | None]
+        self._e_door_state: DpSensor[str | None] = self._get_data_point(
+            field=Field.DOOR_STATE, data_point_type=DpSensor[str | None]
         )
-        self._e_door_command: HmAction = self._get_data_point(
-            field=Field.DOOR_COMMAND, data_point_type=HmAction
+        self._e_door_command: DpAction = self._get_data_point(
+            field=Field.DOOR_COMMAND, data_point_type=DpAction
         )
-        self._e_section: HmSensor[str | None] = self._get_data_point(
-            field=Field.SECTION, data_point_type=HmSensor[str | None]
+        self._e_section: DpSensor[str | None] = self._get_data_point(
+            field=Field.SECTION, data_point_type=DpSensor[str | None]
         )
 
     @state_property
@@ -593,7 +593,7 @@ def make_ip_cover(
     """Create HomematicIP cover data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeCover,
+        data_point_class=CustomDpCover,
         device_profile=DeviceProfile.IP_COVER,
         custom_config=custom_config,
     )
@@ -606,7 +606,7 @@ def make_rf_cover(
     """Create HomeMatic classic cover data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeCover,
+        data_point_class=CustomDpCover,
         device_profile=DeviceProfile.RF_COVER,
         custom_config=custom_config,
     )
@@ -619,7 +619,7 @@ def make_ip_blind(
     """Create HomematicIP cover data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpBlind,
+        data_point_class=CustomDpIpBlind,
         device_profile=DeviceProfile.IP_COVER,
         custom_config=custom_config,
     )
@@ -632,7 +632,7 @@ def make_ip_garage(
     """Create HomematicIP garage data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeGarage,
+        data_point_class=CustomDpGarage,
         device_profile=DeviceProfile.IP_GARAGE,
         custom_config=custom_config,
     )
@@ -645,7 +645,7 @@ def make_ip_hdm(
     """Create HomematicIP cover data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpBlind,
+        data_point_class=CustomDpIpBlind,
         device_profile=DeviceProfile.IP_HDM,
         custom_config=custom_config,
     )
@@ -658,7 +658,7 @@ def make_rf_blind(
     """Create HomeMatic classic cover data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeBlind,
+        data_point_class=CustomDpBlind,
         device_profile=DeviceProfile.RF_COVER,
         custom_config=custom_config,
     )
@@ -671,7 +671,7 @@ def make_rf_window_drive(
     """Create HomeMatic classic window drive data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeWindowDrive,
+        data_point_class=CustomDpWindowDrive,
         device_profile=DeviceProfile.RF_COVER,
         custom_config=custom_config,
     )

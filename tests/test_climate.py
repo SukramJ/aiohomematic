@@ -16,10 +16,10 @@ from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage, ParamsetKey
 from hahomematic.exceptions import ValidationException
 from hahomematic.platforms.custom import (
-    BaseClimateDataPoint,
-    CeIpThermostat,
-    CeRfThermostat,
-    CeSimpleRfThermostat,
+    BaseCustomDpClimate,
+    CustomDpIpThermostat,
+    CustomDpRfThermostat,
+    CustomDpSimpleRfThermostat,
     HmHvacAction,
     HmHvacMode,
     HmPresetMode,
@@ -64,8 +64,8 @@ async def test_cesimplerfthermostat(
 ) -> None:
     """Test CeSimpleRfThermostat."""
     central, mock_client, _ = central_client_factory
-    climate: CeSimpleRfThermostat = cast(
-        CeSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
+    climate: CustomDpSimpleRfThermostat = cast(
+        CustomDpSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
     )
     assert climate.usage == DataPointUsage.CDP_PRIMARY
 
@@ -154,8 +154,8 @@ async def test_cerfthermostat(
 ) -> None:
     """Test CeRfThermostat."""
     central, mock_client, _ = central_client_factory
-    climate: CeRfThermostat = cast(
-        CeRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
+    climate: CustomDpRfThermostat = cast(
+        CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
     )
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
@@ -331,8 +331,8 @@ async def test_ceipthermostat(
 ) -> None:
     """Test CeIpThermostat."""
     central, mock_client, _ = central_client_factory
-    climate: CeIpThermostat = cast(
-        CeIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)
+    climate: CustomDpIpThermostat = cast(
+        CustomDpIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)
     )
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
@@ -521,12 +521,12 @@ async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
     """Test the central."""
     assert central_unit_mini
 
-    climate_bwth: BaseClimateDataPoint = cast(
-        BaseClimateDataPoint,
+    climate_bwth: BaseCustomDpClimate = cast(
+        BaseCustomDpClimate,
         central_unit_mini.get_custom_data_point(address="VCU1769958", channel_no=1),
     )
-    climate_etrv: BaseClimateDataPoint = cast(
-        BaseClimateDataPoint,
+    climate_etrv: BaseCustomDpClimate = cast(
+        BaseCustomDpClimate,
         central_unit_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
     )
     assert climate_bwth

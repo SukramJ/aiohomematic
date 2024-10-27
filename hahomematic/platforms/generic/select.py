@@ -12,7 +12,7 @@ from hahomematic.platforms.generic.data_point import GenericDataPoint
 from hahomematic.platforms.support import get_value_from_value_list
 
 
-class HmSelect(GenericDataPoint[int | str, int | float | str]):
+class DpSelect(GenericDataPoint[int | str, int | float | str]):
     """
     Implementation of a select data_point.
 

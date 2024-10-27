@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.generic import HmFloat, HmInteger
-from hahomematic.platforms.hub import HmSysvarNumber
+from hahomematic.platforms.generic import DpFloat, DpInteger
+from hahomematic.platforms.hub import SysvarDpNumber
 
 from tests import const, helper
 
@@ -43,8 +43,8 @@ async def test_hmfloat(
 ) -> None:
     """Test HmFloat."""
     central, mock_client, _ = central_client_factory
-    efloat: HmFloat = cast(
-        HmFloat,
+    efloat: DpFloat = cast(
+        DpFloat,
         central.get_generic_data_point("VCU0000011:3", "LEVEL"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
@@ -89,8 +89,8 @@ async def test_hmfloat_special(
 ) -> None:
     """Test HmFloat."""
     central, mock_client, _ = central_client_factory
-    efloat: HmFloat = cast(
-        HmFloat,
+    efloat: DpFloat = cast(
+        DpFloat,
         central.get_generic_data_point("VCU0000054:2", "SETPOINT"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
@@ -135,8 +135,8 @@ async def test_hminteger(
 ) -> None:
     """Test HmInteger."""
     central, mock_client, _ = central_client_factory
-    einteger: HmInteger = cast(
-        HmInteger,
+    einteger: DpInteger = cast(
+        DpInteger,
         central.get_generic_data_point("VCU4984404:1", "SET_POINT_MODE"),
     )
     assert einteger.usage == DataPointUsage.NO_CREATE
@@ -199,8 +199,8 @@ async def test_hmsysvarnumber(
 ) -> None:
     """Test HmSysvarNumber."""
     central, mock_client, _ = central_client_factory
-    enumber: HmSysvarNumber = cast(
-        HmSysvarNumber,
+    enumber: SysvarDpNumber = cast(
+        SysvarDpNumber,
         central.get_sysvar_data_point("sv_float_ext"),
     )
     assert enumber.usage == DataPointUsage.DATA_POINT

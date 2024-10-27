@@ -19,7 +19,7 @@ from hahomematic.platforms.custom.data_point import CustomDataPoint
 from hahomematic.platforms.custom.support import CustomConfig
 from hahomematic.platforms.data_point import CallParameterCollector, bind_collector
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.generic import HmAction, HmBinarySensor, HmSensor
+from hahomematic.platforms.generic import DpAction, DpBinarySensor, DpSensor
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
 
@@ -39,7 +39,7 @@ class SirenOnArgs(TypedDict, total=False):
     duration: str
 
 
-class BaseSiren(CustomDataPoint):
+class BaseCustomDpSiren(CustomDataPoint):
     """Class for HomeMatic siren data points."""
 
     _platform = HmPlatform.SIREN
@@ -89,29 +89,29 @@ class BaseSiren(CustomDataPoint):
         """Turn the device off."""
 
 
-class CeIpSiren(BaseSiren):
+class CustomDpIpSiren(BaseCustomDpSiren):
     """Class for HomematicIP siren data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_acoustic_alarm_active: HmBinarySensor = self._get_data_point(
-            field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=HmBinarySensor
+        self._e_acoustic_alarm_active: DpBinarySensor = self._get_data_point(
+            field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=DpBinarySensor
         )
-        self._e_acoustic_alarm_selection: HmAction = self._get_data_point(
-            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=HmAction
+        self._e_acoustic_alarm_selection: DpAction = self._get_data_point(
+            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=DpAction
         )
-        self._e_optical_alarm_active: HmBinarySensor = self._get_data_point(
-            field=Field.OPTICAL_ALARM_ACTIVE, data_point_type=HmBinarySensor
+        self._e_optical_alarm_active: DpBinarySensor = self._get_data_point(
+            field=Field.OPTICAL_ALARM_ACTIVE, data_point_type=DpBinarySensor
         )
-        self._e_optical_alarm_selection: HmAction = self._get_data_point(
-            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=HmAction
+        self._e_optical_alarm_selection: DpAction = self._get_data_point(
+            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=DpAction
         )
-        self._e_duration: HmAction = self._get_data_point(
-            field=Field.DURATION, data_point_type=HmAction
+        self._e_duration: DpAction = self._get_data_point(
+            field=Field.DURATION, data_point_type=DpAction
         )
-        self._e_duration_unit: HmAction = self._get_data_point(
-            field=Field.DURATION_UNIT, data_point_type=HmAction
+        self._e_duration_unit: DpAction = self._get_data_point(
+            field=Field.DURATION_UNIT, data_point_type=DpAction
         )
 
     @state_property
@@ -184,17 +184,17 @@ class CeIpSiren(BaseSiren):
         await self._e_duration.send_value(value=self._e_duration.default, collector=collector)
 
 
-class CeIpSirenSmoke(BaseSiren):
+class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     """Class for HomematicIP siren smoke data points."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_smoke_detector_alarm_status: HmSensor[str | None] = self._get_data_point(
-            field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=HmSensor[str | None]
+        self._e_smoke_detector_alarm_status: DpSensor[str | None] = self._get_data_point(
+            field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=DpSensor[str | None]
         )
-        self._e_smoke_detector_command: HmAction = self._get_data_point(
-            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=HmAction
+        self._e_smoke_detector_command: DpAction = self._get_data_point(
+            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=DpAction
         )
 
     @state_property
@@ -247,7 +247,7 @@ def make_ip_siren(
     """Create HomematicIP siren data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpSiren,
+        data_point_class=CustomDpIpSiren,
         device_profile=DeviceProfile.IP_SIREN,
         custom_config=custom_config,
     )
@@ -260,7 +260,7 @@ def make_ip_siren_smoke(
     """Create HomematicIP siren data points."""
     hmed.make_custom_data_point(
         channel=channel,
-        data_point_class=CeIpSirenSmoke,
+        data_point_class=CustomDpIpSirenSmoke,
         device_profile=DeviceProfile.IP_SIREN_SMOKE,
         custom_config=custom_config,
     )

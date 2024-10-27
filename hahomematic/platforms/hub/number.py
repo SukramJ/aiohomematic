@@ -11,12 +11,12 @@ from typing import Final
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import service
-from hahomematic.platforms.hub.data_point import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSysvarDataPoint
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmSysvarNumber(GenericSystemVariable):
+class SysvarDpNumber(GenericSysvarDataPoint):
     """Implementation of a sysvar number."""
 
     _platform = HmPlatform.HUB_NUMBER

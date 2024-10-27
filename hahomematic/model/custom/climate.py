@@ -80,7 +80,7 @@ class _StateChangeArg(StrEnum):
 
 
 class ClimateActivity(StrEnum):
-    """Enum with the hvac actions."""
+    """Enum with the climate activities."""
 
     COOL = "cooling"
     HEAT = "heating"
@@ -789,7 +789,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     async def set_mode(
         self, mode: ClimateMode, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set new target hvac mode."""
+        """Set new mode."""
         if not self.is_state_change(mode=mode):
             return
         if mode == ClimateMode.AUTO:
@@ -911,7 +911,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
     @state_property
     def activity(self) -> ClimateActivity | None:
-        """Return the hvac action."""
+        """Return the current activity."""
         if self._dp_state.value is None and self._dp_level.value is None:
             return None
         if self.mode == ClimateMode.OFF:
@@ -924,7 +924,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
     @state_property
     def mode(self) -> ClimateMode:
-        """Return hvac operation mode."""
+        """Return current operation mode."""
         if self.target_temperature and self.target_temperature <= _OFF_TEMPERATURE:
             return ClimateMode.OFF
         if self._dp_set_point_mode.value == _ModeHmIP.MANU:
@@ -935,7 +935,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
     @state_property
     def modes(self) -> tuple[ClimateMode, ...]:
-        """Return the available hvac operation modes."""
+        """Return the available operation modes."""
         return (
             ClimateMode.AUTO,
             ClimateMode.HEAT if self._is_heating_mode else ClimateMode.COOL,
@@ -982,10 +982,10 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     async def set_mode(
         self, mode: ClimateMode, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set new target hvac mode."""
+        """Set new target mode."""
         if not self.is_state_change(mode=mode):
             return
-        # if switching hvac_mode then disable boost_mode
+        # if switching mode then disable boost_mode
         if self._dp_boost_mode.value:
             await self.set_profile(profile=ClimateProfile.NONE, collector=collector)
 

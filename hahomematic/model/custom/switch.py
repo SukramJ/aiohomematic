@@ -34,7 +34,7 @@ class _SwitchStateChangeArg(StrEnum):
 
 
 class CustomDpSwitch(CustomDataPoint, OnTimeMixin):
-    """Class for HomeMatic switch data points."""
+    """Class for HomeMatic switch data point."""
 
     _category = DataPointCategory.SWITCH
 
@@ -95,7 +95,7 @@ def make_ip_switch(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP switch data points."""
+    """Create HomematicIP switch data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpSwitch,

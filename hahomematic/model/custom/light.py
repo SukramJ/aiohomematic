@@ -138,7 +138,7 @@ class LightOffArgs(TypedDict, total=False):
 
 
 class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
-    """Base class for HomeMatic light data points."""
+    """Base class for HomeMatic light data point."""
 
     _category = DataPointCategory.LIGHT
 
@@ -315,7 +315,7 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
 
 
 class CustomDpColorDimmer(CustomDpDimmer):
-    """Class for HomeMatic dimmer with color data points."""
+    """Class for HomeMatic dimmer with color data point."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -355,7 +355,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
 
 
 class CustomDpColorDimmerEffect(CustomDpColorDimmer):
-    """Class for HomeMatic dimmer with color data points."""
+    """Class for HomeMatic dimmer with color data point."""
 
     _effects: tuple[str, ...] = (
         _EFFECT_OFF,
@@ -410,7 +410,7 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
 
 
 class CustomDpColorTempDimmer(CustomDpDimmer):
-    """Class for HomeMatic dimmer with color temperature data points."""
+    """Class for HomeMatic dimmer with color temperature."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -439,7 +439,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
 
 
 class CustomDpIpRGBWLight(CustomDpDimmer):
-    """Class for HomematicIP HmIP-RGBW light data points."""
+    """Class for HomematicIP HmIP-RGBW light data point."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -613,7 +613,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
 
 
 class CustomDpIpDrgDaliLight(CustomDpDimmer):
-    """Class for HomematicIP HmIP-DRG-DALI light data points."""
+    """Class for HomematicIP HmIP-DRG-DALI light data point."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -720,7 +720,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
 
 
 class CustomDpIpFixedColorLight(CustomDpDimmer):
-    """Class for HomematicIP HmIP-BSL light data points."""
+    """Class for HomematicIP HmIP-BSL light data point."""
 
     @state_property
     def color_name(self) -> str | None:
@@ -871,7 +871,7 @@ def make_ip_dimmer(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP dimmer data points."""
+    """Create HomematicIP dimmer data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpDimmer,
@@ -884,7 +884,7 @@ def make_rf_dimmer(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic dimmer data points."""
+    """Create HomeMatic classic dimmer data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpDimmer,
@@ -897,7 +897,7 @@ def make_rf_dimmer_color(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic dimmer with color data points."""
+    """Create HomeMatic classic dimmer with color data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpColorDimmer,
@@ -910,7 +910,7 @@ def make_rf_dimmer_color_fixed(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic dimmer with fixed color data points."""
+    """Create HomeMatic classic dimmer with fixed color data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpColorDimmer,
@@ -923,7 +923,7 @@ def make_rf_dimmer_color_effect(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic dimmer and effect with color data points."""
+    """Create HomeMatic classic dimmer and effect with color data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpColorDimmerEffect,
@@ -936,7 +936,7 @@ def make_rf_dimmer_color_temp(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic dimmer with color temperature data points."""
+    """Create HomeMatic classic dimmer with color temperature data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpColorTempDimmer,
@@ -949,7 +949,7 @@ def make_rf_dimmer_with_virt_channel(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic dimmer data points."""
+    """Create HomeMatic classic dimmer data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpDimmer,

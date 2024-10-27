@@ -27,7 +27,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: GenericParameterType](
     hme.BaseParameterDataPoint
 ):
-    """Base class for generic data points."""
+    """Base class for generic data point."""
 
     _validate_state_change: bool = True
     is_hmtype: Final = True

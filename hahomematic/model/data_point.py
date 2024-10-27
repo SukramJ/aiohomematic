@@ -113,7 +113,7 @@ EVENT_DATA_SCHEMA = vol.Schema(
 
 
 class CallbackDataPoint(ABC):
-    """Base class for callback data points."""
+    """Base class for callback data point."""
 
     _category: DataPointCategory
 
@@ -289,7 +289,7 @@ class CallbackDataPoint(ABC):
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
-    """Base class for regular data points."""
+    """Base class for regular data point."""
 
     def __init__(
         self,
@@ -390,7 +390,7 @@ class BaseParameterDataPoint[
     ParameterT: GenericParameterType,
     InputParameterT: GenericParameterType,
 ](BaseDataPoint):
-    """Base class for stateless data points."""
+    """Base class for stateless data point."""
 
     _unique_id_prefix: str = ""
 
@@ -763,7 +763,7 @@ class BaseParameterDataPoint[
 
 
 class CallParameterCollector:
-    """Create a Paramset based on given generic data points."""
+    """Create a Paramset based on given generic data point."""
 
     def __init__(self, client: hmcl.Client) -> None:
         """Init the generator."""

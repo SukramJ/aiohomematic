@@ -1179,7 +1179,7 @@ def make_simple_thermostat(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create SimpleRfThermostat data points."""
+    """Create SimpleRfThermostat data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpSimpleRfThermostat,
@@ -1192,7 +1192,7 @@ def make_thermostat(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create RfThermostat data points."""
+    """Create RfThermostat data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpRfThermostat,
@@ -1205,7 +1205,7 @@ def make_thermostat_group(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create RfThermostat group data points."""
+    """Create RfThermostat group data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpRfThermostat,
@@ -1218,7 +1218,7 @@ def make_ip_thermostat(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create IPThermostat data points."""
+    """Create IPThermostat data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpIpThermostat,
@@ -1231,7 +1231,7 @@ def make_ip_thermostat_group(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create IPThermostat group data points."""
+    """Create IPThermostat group data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpIpThermostat,

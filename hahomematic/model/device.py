@@ -666,7 +666,7 @@ class Channel(PayloadMixin):
 
     @property
     def custom_data_point(self) -> hmce.CustomDataPoint | None:
-        """Return the custom data points."""
+        """Return the custom data point."""
         return self._custom_data_point
 
     @property

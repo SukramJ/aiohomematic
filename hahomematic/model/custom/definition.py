@@ -560,7 +560,7 @@ def make_custom_data_point(
     custom_config: CustomConfig,
 ) -> None:
     """
-    Create custom data points.
+    Create custom data point.
 
     We use a helper-function to avoid raising exceptions during object-init.
     """
@@ -592,7 +592,7 @@ def _create_custom_data_point(
     base_channel_no: int | None,
     custom_config: CustomConfig,
 ) -> None:
-    """Create custom data points."""
+    """Create custom data point."""
     unique_id = generate_unique_id(central=channel.central, address=channel.address)
 
     try:
@@ -677,7 +677,7 @@ def get_sub_device_base_channel(device: hmd.Device, channel_no: int | None) -> i
 
 
 def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:
-    """Return the default data points."""
+    """Return the default data point."""
     return VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]  # type: ignore[no-any-return]
 
 

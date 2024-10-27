@@ -1,4 +1,4 @@
-"""Module for HaHomematic custom data points."""
+"""Module for HaHomematic custom data point."""
 
 from __future__ import annotations
 

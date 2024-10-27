@@ -26,7 +26,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class CustomDataPoint(BaseDataPoint):
-    """Base class for custom data points."""
+    """Base class for custom data point."""
 
     def __init__(
         self,

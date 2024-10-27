@@ -40,7 +40,7 @@ class SirenOnArgs(TypedDict, total=False):
 
 
 class BaseCustomDpSiren(CustomDataPoint):
-    """Class for HomeMatic siren data points."""
+    """Class for HomeMatic siren data point."""
 
     _category = DataPointCategory.SIREN
 
@@ -90,7 +90,7 @@ class BaseCustomDpSiren(CustomDataPoint):
 
 
 class CustomDpIpSiren(BaseCustomDpSiren):
-    """Class for HomematicIP siren data points."""
+    """Class for HomematicIP siren data point."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -185,7 +185,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
 
 
 class CustomDpIpSirenSmoke(BaseCustomDpSiren):
-    """Class for HomematicIP siren smoke data points."""
+    """Class for HomematicIP siren smoke data point."""
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -244,7 +244,7 @@ def make_ip_siren(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP siren data points."""
+    """Create HomematicIP siren data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpIpSiren,
@@ -257,7 +257,7 @@ def make_ip_siren_smoke(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP siren data points."""
+    """Create HomematicIP siren data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpIpSirenSmoke,

@@ -148,10 +148,10 @@ def get_prepared_custom_data_point(
     central: CentralUnit, address: str, channel_no: int | None
 ) -> CustomDataPoint | None:
     """Return the hm custom_data_point."""
-    if custom_data_point := central.get_custom_data_point(address=address, channel_no=channel_no):
-        for data_data_point in custom_data_point._data_data_points.values():
-            data_data_point._state_uncertain = False
-        return custom_data_point
+    if cdp := central.get_custom_data_point(address=address, channel_no=channel_no):
+        for dp in cdp._data_points.values():
+            dp._state_uncertain = False
+        return cdp
     return None
 
 

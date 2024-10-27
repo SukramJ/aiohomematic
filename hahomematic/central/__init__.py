@@ -31,8 +31,6 @@ from hahomematic.client.json_rpc import JsonRpcAioHttpClient
 from hahomematic.client.xml_rpc import XmlRpcProxy
 from hahomematic.const import (
     CALLBACK_TYPE,
-    DATA_POINT_EVENTS,
-    DATA_POINT_KEY,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
@@ -41,6 +39,8 @@ from hahomematic.const import (
     DEFAULT_SYSVAR_SCAN_ENABLED,
     DEFAULT_TLS,
     DEFAULT_VERIFY_TLS,
+    DP_EVENTS,
+    DP_KEY,
     EVENT_AVAILABLE,
     EVENT_DATA,
     EVENT_INTERFACE_ID,
@@ -139,7 +139,7 @@ class CentralUnit(PayloadMixin):
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
         self._data_point_event_subscriptions: Final[
-            dict[DATA_POINT_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
+            dict[DP_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
         ] = {}
         # {device_address, device}
         self._devices: Final[dict[str, HmDevice]] = {}
@@ -333,8 +333,8 @@ class CentralUnit(PayloadMixin):
 
     def remove_sysvar_data_point(self, name: str) -> None:
         """Remove a sysvar data_point."""
-        if (sysvar_data_point := self.get_sysvar_data_point(name=name)) is not None:
-            sysvar_data_point.fire_device_removed_callback()
+        if (sysvar_dp := self.get_sysvar_data_point(name=name)) is not None:
+            sysvar_dp.fire_device_removed_callback()
             del self._sysvar_data_points[name]
 
     def add_program_button(self, program_button: HmProgramButton) -> None:
@@ -810,11 +810,11 @@ class CentralUnit(PayloadMixin):
         _LOGGER.debug("CREATE_DEVICES: Finished creating devices for %s", self.name)
 
         if new_devices:
-            new_data_points = _get_new_data_points(new_devices=new_devices)
+            new_dps = _get_new_data_points(new_devices=new_devices)
             new_channel_events = _get_new_channel_events(new_devices=new_devices)
             self.fire_backend_system_callback(
                 system_event=BackendSystemEvent.DEVICES_CREATED,
-                new_data_points=new_data_points,
+                new_data_points=new_dps,
                 new_channel_events=new_channel_events,
             )
 
@@ -1090,8 +1090,8 @@ class CentralUnit(PayloadMixin):
 
     async def set_system_variable(self, name: str, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
-        if data_point := self.get_sysvar_data_point(name=name):
-            await data_point.send_variable(value=value)
+        if dp := self.get_sysvar_data_point(name=name):
+            await dp.send_variable(value=value)
         else:
             _LOGGER.warning("Variable %s not found on %s", name, self.name)
 
@@ -1139,14 +1139,14 @@ class CentralUnit(PayloadMixin):
                         if un_ignore_candidates_only and (
                             (
                                 (
-                                    generic_data_point := self.get_generic_data_point(
+                                    dp := self.get_generic_data_point(
                                         channel_address=channel_address,
                                         parameter=parameter,
                                         paramset_key=paramset_key,
                                     )
                                 )
-                                and generic_data_point.enabled_default
-                                and not generic_data_point.is_un_ignored
+                                and dp.enabled_default
+                                and not dp.is_un_ignored
                             )
                             or parameter in IGNORE_FOR_UN_IGNORE_PARAMETERS
                         ):
@@ -1649,7 +1649,7 @@ def _get_new_channel_events(new_devices: set[HmDevice]) -> tuple[tuple[GenericEv
     channel_events: list[tuple[GenericEvent, ...]] = []
 
     for device in new_devices:
-        for event_type in DATA_POINT_EVENTS:
+        for event_type in DP_EVENTS:
             if (
                 hm_channel_events := list(
                     device.get_events(event_type=event_type, registered=False).values()

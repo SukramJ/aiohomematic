@@ -45,7 +45,7 @@ async def test_ceipsiren(
     siren: CeIpSiren = cast(
         CeIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3)
     )
-    assert siren.usage == DataPointUsage.CE_PRIMARY
+    assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
 
     assert siren.is_on is False
@@ -147,7 +147,7 @@ async def test_ceipsirensmoke(
     siren: CeIpSirenSmoke = cast(
         CeIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
     )
-    assert siren.usage == DataPointUsage.CE_PRIMARY
+    assert siren.usage == DataPointUsage.CDP_PRIMARY
 
     assert siren.is_on is False
     await central.event(const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 1)

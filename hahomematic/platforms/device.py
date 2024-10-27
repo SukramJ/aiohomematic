@@ -19,9 +19,9 @@ from hahomematic.async_support import loop_check
 from hahomematic.const import (
     CALLBACK_TYPE,
     CLICK_EVENTS,
-    DATA_POINT_KEY,
     DEFAULT_DEVICE_DESCRIPTIONS_DIR,
     DEFAULT_PARAMSET_DESCRIPTIONS_DIR,
+    DP_KEY,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
     NO_CACHE_ENTRY,
@@ -631,8 +631,8 @@ class HmChannel(PayloadMixin):
         )
         self._base_no: Final = self._device.get_sub_device_base_channel(channel_no=self._no)
         self._custom_data_point: hmce.CustomDataPoint | None = None
-        self._generic_data_points: Final[dict[DATA_POINT_KEY, GenericDataPoint]] = {}
-        self._generic_events: Final[dict[DATA_POINT_KEY, GenericEvent]] = {}
+        self._generic_data_points: Final[dict[DP_KEY, GenericDataPoint]] = {}
+        self._generic_events: Final[dict[DP_KEY, GenericEvent]] = {}
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(
             channel_address=channel_address
@@ -905,14 +905,14 @@ class HmChannel(PayloadMixin):
                 )
             )
 
-        if data_point := self._generic_data_points.get(
+        if dp := self._generic_data_points.get(
             get_data_point_key(
                 channel_address=self._address,
                 paramset_key=ParamsetKey.VALUES,
                 parameter=parameter,
             )
         ):
-            return data_point
+            return dp
         return self._generic_data_points.get(
             get_data_point_key(
                 channel_address=self._address,
@@ -960,7 +960,7 @@ class _ValueCache:
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
         # {key, CacheEntry}
-        self._device_cache: Final[dict[DATA_POINT_KEY, CacheEntry]] = {}
+        self._device_cache: Final[dict[DP_KEY, CacheEntry]] = {}
 
     async def init_base_data_points(self) -> None:
         """Load data by get_value."""

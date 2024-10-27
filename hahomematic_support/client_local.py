@@ -13,8 +13,8 @@ import orjson
 from hahomematic.client import _LOGGER, Client, _ClientConfig
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
-    DATA_POINT_KEY,
     DEFAULT_ENCODING,
+    DP_KEY,
     CallSource,
     CommandRxMode,
     InterfaceName,
@@ -206,7 +206,7 @@ class ClientLocal(Client):  # pragma: no cover
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """Set single value on paramset VALUES."""
         # store the send value in the last_value_send_cache
         result = self._last_value_send_cache.add_set_value(
@@ -263,7 +263,7 @@ class ClientLocal(Client):  # pragma: no cover
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """
         Set paramsets manually.
 

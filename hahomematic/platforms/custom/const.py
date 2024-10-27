@@ -39,15 +39,15 @@ class DeviceProfile(StrEnum):
     SIMPLE_RF_THERMOSTAT = "SimpleRfThermostat"
 
 
-class ED(StrEnum):
-    """Enum for data_point definitions."""
+class CDPD(StrEnum):
+    """Enum for custom data point definitions."""
 
-    ALLOW_UNDEFINED_GENERIC_DATA_POINTS = "allow_undefined_generic_data_points"
-    DEFAULT_DATA_POINTS = "default_data_points"
-    INCLUDE_DEFAULT_DATA_POINTS = "include_default_data_points"
+    ALLOW_UNDEFINED_GENERIC_DPS = "allow_undefined_generic_dps"
+    DEFAULT_DPS = "default_dps"
+    INCLUDE_DEFAULT_DPS = "include_default_dps"
     DEVICE_GROUP = "device_group"
     DEVICE_DEFINITIONS = "device_definitions"
-    ADDITIONAL_DATA_POINTS = "additional_data_points"
+    ADDITIONAL_DPS = "additional_dps"
     FIELDS = "fields"
     REPEATABLE_FIELDS = "repeatable_fields"
     VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"

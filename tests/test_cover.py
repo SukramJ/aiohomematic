@@ -58,7 +58,7 @@ async def test_cecover(
     """Test CeCover."""
     central, mock_client, _ = central_client_factory
     cover: CeCover = cast(CeCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4))
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _CLOSED_LEVEL
     assert cover.is_closed is True
@@ -142,7 +142,7 @@ async def test_ceipblind_dr(
     cover: CeIpBlind = cast(
         CeIpBlind, helper.get_prepared_custom_data_point(central, "VCU7807849", 14)
     )
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -236,7 +236,7 @@ async def test_cewindowdrive(
     cover: CeWindowDrive = cast(
         CeWindowDrive, helper.get_prepared_custom_data_point(central, "VCU0000350", 1)
     )
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _WD_CLOSED_LEVEL
     assert cover.is_closed is True
@@ -303,7 +303,7 @@ async def test_ceblind(
     """Test CeBlind."""
     central, mock_client, _ = central_client_factory
     cover: CeBlind = cast(CeBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1))
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -507,7 +507,7 @@ async def test_ceipblind(
     cover: CeIpBlind = cast(
         CeIpBlind, helper.get_prepared_custom_data_point(central, "VCU1223813", 4)
     )
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
 
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
@@ -649,7 +649,7 @@ async def test_ceipblind_hdm(
     cover: CeIpBlind = cast(
         CeIpBlind, helper.get_prepared_custom_data_point(central, "VCU3560967", 1)
     )
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -784,7 +784,7 @@ async def test_cegarageho(
     cover: CeGarage = cast(
         CeGarage, helper.get_prepared_custom_data_point(central, "VCU3574044", 1)
     )
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == ("close", "open", "set_position", "stop", "vent")
 
     assert cover.current_position is None
@@ -904,7 +904,7 @@ async def test_cegaragetm(
     cover: CeGarage = cast(
         CeGarage, helper.get_prepared_custom_data_point(central, "VCU6166407", 1)
     )
-    assert cover.usage == DataPointUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
 
     assert cover.current_position is None
     await cover.set_position(position=81)

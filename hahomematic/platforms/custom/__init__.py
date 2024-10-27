@@ -26,7 +26,7 @@ from hahomematic.platforms.custom.definition import (
     data_point_definition_exists,
     get_custom_configs,
     get_required_parameters,
-    validate_data_point_definition,
+    validate_custom_data_point_definition,
 )
 from hahomematic.platforms.custom.light import (
     CeColorDimmer,
@@ -83,7 +83,7 @@ __all__ = [
     "SIMPLE_WEEKDAY_LIST",
     "create_custom_data_points",
     "get_required_parameters",
-    "validate_data_point_definition",
+    "validate_custom_data_point_definition",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ def create_custom_data_points(device: hmd.HmDevice) -> None:
 
     if device.ignore_for_custom_data_point:
         _LOGGER.debug(
-            "CREATE_DATA_POINTS: Ignoring for custom data_point: %s, %s, %s due to ignored",
+            "CREATE_CUSTOM_DATA_POINTS: Ignoring for custom data point: %s, %s, %s due to ignored",
             device.interface_id,
             device,
             device.model,
@@ -102,7 +102,7 @@ def create_custom_data_points(device: hmd.HmDevice) -> None:
         return
     if data_point_definition_exists(device.model):
         _LOGGER.debug(
-            "CREATE_DATA_POINTS: Handling custom data_point integration: %s, %s, %s",
+            "CREATE_CUSTOM_DATA_POINTS: Handling custom data point integration: %s, %s, %s",
             device.interface_id,
             device,
             device.model,

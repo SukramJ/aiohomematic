@@ -13,10 +13,10 @@ from hahomematic.caches.dynamic import CommandCache, PingPongCache
 from hahomematic.client.xml_rpc import XmlRpcProxy
 from hahomematic.config import CALLBACK_WARN_INTERVAL, RECONNECT_WAIT, WAIT_FOR_CALLBACK
 from hahomematic.const import (
-    DATA_POINT_KEY,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_CUSTOM_ID,
     DEFAULT_MAX_WORKERS,
+    DP_KEY,
     EVENT_AVAILABLE,
     EVENT_SECONDS_SINCE_LAST_EVENT,
     HOMEGEAR_SERIAL,
@@ -531,7 +531,7 @@ class Client(ABC):
         wait_for_callback: int | None,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """Set single value on paramset VALUES."""
         try:
             checked_value = (
@@ -594,7 +594,7 @@ class Client(ABC):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """Set single value on paramset VALUES."""
         if paramset_key == ParamsetKey.VALUES:
             return await self._set_value(  # type: ignore[no-any-return]
@@ -644,7 +644,7 @@ class Client(ABC):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """
         Set paramsets manually.
 
@@ -1329,7 +1329,7 @@ def get_client(interface_id: str) -> Client | None:
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
     device: HmDevice,
-    data_point_keys: set[DATA_POINT_KEY],
+    data_point_keys: set[DP_KEY],
     values: dict[str, Any],
     wait_for_callback: int,
 ) -> None:
@@ -1348,40 +1348,40 @@ async def _wait_for_state_change_or_timeout(
 
 @measure_execution_time
 async def _track_single_data_point_state_change_or_timeout(
-    device: HmDevice, data_point_key: DATA_POINT_KEY, value: Any, wait_for_callback: int
+    device: HmDevice, data_point_key: DP_KEY, value: Any, wait_for_callback: int
 ) -> None:
     """Wait for a data_point to change state."""
     ev = asyncio.Event()
 
     def _async_event_changed(*args: Any, **kwargs: Any) -> None:
-        if data_point:
+        if dp:
             _LOGGER.debug(
                 "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Received event %s with value %s",
                 data_point_key,
-                data_point.value,
+                dp.value,
             )
-            if _isclose(value, data_point.value):
+            if _isclose(value, dp.value):
                 _LOGGER.debug(
                     "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Finished event %s with value %s",
                     data_point_key,
-                    data_point.value,
+                    dp.value,
                 )
                 ev.set()
 
     channel_address, paramset_key, parameter = data_point_key
-    if data_point := device.get_generic_data_point(
+    if dp := device.get_generic_data_point(
         channel_address=channel_address,
         parameter=parameter,
         paramset_key=ParamsetKey(paramset_key),
     ):
-        if not data_point.supports_events:
+        if not dp.supports_events:
             _LOGGER.debug(
                 "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: DataPoint supports no events %s",
                 data_point_key,
             )
             return
         if (
-            unsub := data_point.register_data_point_updated_callback(
+            unsub := dp.register_data_point_updated_callback(
                 cb=_async_event_changed, custom_id=DEFAULT_CUSTOM_ID
             )
         ) is None:
@@ -1394,7 +1394,7 @@ async def _track_single_data_point_state_change_or_timeout(
             _LOGGER.debug(
                 "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Timeout waiting for event %s with value %s",
                 data_point_key,
-                data_point.value,
+                dp.value,
             )
         finally:
             unsub()

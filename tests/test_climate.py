@@ -67,7 +67,7 @@ async def test_cesimplerfthermostat(
     climate: CeSimpleRfThermostat = cast(
         CeSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
     )
-    assert climate.usage == DataPointUsage.CE_PRIMARY
+    assert climate.usage == DataPointUsage.CDP_PRIMARY
 
     assert climate.is_valid is False
     assert climate.service_method_names == (
@@ -157,7 +157,7 @@ async def test_cerfthermostat(
     climate: CeRfThermostat = cast(
         CeRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
     )
-    assert climate.usage == DataPointUsage.CE_PRIMARY
+    assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
         "copy_schedule",
         "copy_schedule_profile",
@@ -334,7 +334,7 @@ async def test_ceipthermostat(
     climate: CeIpThermostat = cast(
         CeIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)
     )
-    assert climate.usage == DataPointUsage.CE_PRIMARY
+    assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
         "copy_schedule",
         "copy_schedule_profile",

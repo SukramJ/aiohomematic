@@ -48,7 +48,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 _BUTTON_ACTIONS: Final[tuple[str, ...]] = ("RESET_MOTION", "RESET_PRESENCE")
 
 # data points that should be wrapped in a new data_point on a new platform.
-_SWITCH_DATA_POINT_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
+_SWITCH_DP_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
     ("HmIP-eTRV", "HmIP-HEATING"): Parameter.LEVEL,
 }
 
@@ -68,41 +68,41 @@ def create_data_point_and_append_to_channel(
     )
     p_type = parameter_data["TYPE"]
     p_operations = parameter_data["OPERATIONS"]
-    data_point_t: type[GenericDataPoint] | None = None
+    dp_t: type[GenericDataPoint] | None = None
     if p_operations & Operations.WRITE:
         if p_type == ParameterType.ACTION:
             if p_operations == Operations.WRITE:
                 if parameter in _BUTTON_ACTIONS or channel.device.model in VIRTUAL_REMOTE_MODELS:
-                    data_point_t = HmButton
+                    dp_t = HmButton
                 else:
-                    data_point_t = HmAction
+                    dp_t = HmAction
             elif parameter in CLICK_EVENTS:
-                data_point_t = HmButton
+                dp_t = HmButton
             else:
-                data_point_t = HmSwitch
+                dp_t = HmSwitch
         elif p_operations == Operations.WRITE:
-            data_point_t = HmAction
+            dp_t = HmAction
         elif p_type == ParameterType.BOOL:
-            data_point_t = HmSwitch
+            dp_t = HmSwitch
         elif p_type == ParameterType.ENUM:
-            data_point_t = HmSelect
+            dp_t = HmSelect
         elif p_type == ParameterType.FLOAT:
-            data_point_t = HmFloat
+            dp_t = HmFloat
         elif p_type == ParameterType.INTEGER:
-            data_point_t = HmInteger
+            dp_t = HmInteger
         elif p_type == ParameterType.STRING:
-            data_point_t = HmText
+            dp_t = HmText
     elif parameter not in CLICK_EVENTS:
         # Also check, if sensor could be a binary_sensor due to.
         if is_binary_sensor(parameter_data):
             parameter_data["TYPE"] = ParameterType.BOOL
-            data_point_t = HmBinarySensor
+            dp_t = HmBinarySensor
         else:
-            data_point_t = HmSensor
+            dp_t = HmSensor
 
-    if data_point_t:
+    if dp_t:
         try:
-            data_point = data_point_t(
+            dp = dp_t(
                 channel=channel,
                 paramset_key=paramset_key,
                 parameter=parameter,
@@ -114,13 +114,13 @@ def create_data_point_and_append_to_channel(
             ) from ex
         _LOGGER.debug(
             "CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: %s: %s %s",
-            data_point.platform,
+            dp.platform,
             channel.address,
             parameter,
         )
-        channel.add_data_point(data_point)
-        if _check_switch_to_sensor(data_point=data_point):
-            data_point.force_to_sensor()
+        channel.add_data_point(dp)
+        if _check_switch_to_sensor(data_point=dp):
+            dp.force_to_sensor()
 
 
 def _check_switch_to_sensor(data_point: GenericDataPoint) -> bool:
@@ -132,7 +132,7 @@ def _check_switch_to_sensor(data_point: GenericDataPoint) -> bool:
         parameter=data_point.parameter,
     ):
         return False
-    for devices, parameter in _SWITCH_DATA_POINT_TO_SENSOR.items():
+    for devices, parameter in _SWITCH_DP_TO_SENSOR.items():
         if (
             hms.element_matches_key(
                 search_elements=devices,

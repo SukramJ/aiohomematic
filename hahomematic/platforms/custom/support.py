@@ -33,8 +33,8 @@ class ExtendedConfig:
             for mapping in fixed_channels.values():
                 required_parameters.extend(mapping.values())
 
-        if additional_data_points := self.additional_data_points:
-            for parameters in additional_data_points.values():
+        if additional_dps := self.additional_data_points:
+            for parameters in additional_dps.values():
                 required_parameters.extend(parameters)
 
         return tuple(required_parameters)

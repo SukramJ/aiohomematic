@@ -106,8 +106,8 @@ class Hub:
         new_programs: list[HmProgramButton] = []
 
         for program_data in programs:
-            if data_point := self._central.get_program_button(pid=program_data.pid):
-                data_point.update_data(data=program_data)
+            if dp := self._central.get_program_button(pid=program_data.pid):
+                dp.update_data(data=program_data)
             else:
                 new_programs.append(self._create_program(data=program_data))
 
@@ -150,8 +150,8 @@ class Hub:
             name = sysvar.name
             value = sysvar.value
 
-            if data_point := self._central.get_sysvar_data_point(name=name):
-                data_point.write_value(value)
+            if dp := self._central.get_sysvar_data_point(name=name):
+                dp.write_value(value)
             else:
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 
@@ -169,9 +169,9 @@ class Hub:
 
     def _create_system_variable(self, data: SystemVariableData) -> GenericSystemVariable:
         """Create system variable as data_point."""
-        sysvar_data_point = self._create_sysvar_data_point(data=data)
-        self._central.add_sysvar_data_point(sysvar_data_point=sysvar_data_point)
-        return sysvar_data_point
+        sysvar_dp = self._create_sysvar_data_point(data=data)
+        self._central.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
+        return sysvar_dp
 
     def _create_sysvar_data_point(self, data: SystemVariableData) -> GenericSystemVariable:
         """Create sysvar data_point."""

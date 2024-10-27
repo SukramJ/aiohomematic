@@ -47,7 +47,7 @@ async def test_cerflock(
     lock: CeRfLock = cast(
         CeRfLock, helper.get_prepared_custom_data_point(central, "VCU0000146", 1)
     )
-    assert lock.usage == DataPointUsage.CE_PRIMARY
+    assert lock.usage == DataPointUsage.CDP_PRIMARY
 
     assert lock.is_locked is True
     await lock.unlock()
@@ -123,7 +123,7 @@ async def test_ceiplock(
     lock: CeIpLock = cast(
         CeIpLock, helper.get_prepared_custom_data_point(central, "VCU9724704", 1)
     )
-    assert lock.usage == DataPointUsage.CE_PRIMARY
+    assert lock.usage == DataPointUsage.CDP_PRIMARY
     assert lock.service_method_names == ("lock", "open", "unlock")
 
     assert lock.is_locked is False

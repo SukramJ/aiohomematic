@@ -14,7 +14,7 @@ from hahomematic.const import CallSource, DataPointUsage
 from hahomematic.platforms.custom import (
     CeSwitch,
     get_required_parameters,
-    validate_data_point_definition,
+    validate_custom_data_point_definition,
 )
 from hahomematic.platforms.generic import HmSensor, HmSwitch
 
@@ -30,7 +30,7 @@ TEST_DEVICES: dict[str, str] = {
 
 def test_validate_data_point_definition() -> None:
     """Test validate_data_point_definition."""
-    assert validate_data_point_definition() is not None
+    assert validate_custom_data_point_definition() is not None
 
 
 @pytest.mark.asyncio
@@ -55,7 +55,7 @@ async def test_custom_data_point_callback(
     switch: CeSwitch = cast(
         CeSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
     )
-    assert switch.usage == DataPointUsage.CE_PRIMARY
+    assert switch.usage == DataPointUsage.CDP_PRIMARY
 
     device_updated_mock = MagicMock()
     device_removed_mock = MagicMock()

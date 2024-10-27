@@ -95,7 +95,6 @@ MAX_CACHE_AGE: Final = 60
 
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
 
-
 CALLBACK_TYPE = Callable[[], None] | None
 
 UN_IGNORE_WILDCARD: Final = "all"
@@ -142,6 +141,17 @@ class DataOperationResult(Enum):
     NO_SAVE = 21
 
 
+class DataPointUsage(StrEnum):
+    """Enum with information about usage in Home Assistant."""
+
+    CDP_PRIMARY = "ce_primary"
+    CDP_SECONDARY = "ce_secondary"
+    CDP_VISIBLE = "ce_visible"
+    DATA_POINT = "data_point"
+    EVENT = "event"
+    NO_CREATE = "no_create"
+
+
 class DeviceFirmwareState(StrEnum):
     """Enum with homematic device firmware states."""
 
@@ -156,17 +166,6 @@ class DeviceFirmwareState(StrEnum):
     DO_UPDATE_PENDING = "DO_UPDATE_PENDING"
     PERFORMING_UPDATE = "PERFORMING_UPDATE"
     BACKGROUND_UPDATE_NOT_SUPPORTED = "BACKGROUND_UPDATE_NOT_SUPPORTED"
-
-
-class DataPointUsage(StrEnum):
-    """Enum with information about usage in Home Assistant."""
-
-    CE_PRIMARY = "ce_primary"
-    CE_SECONDARY = "ce_secondary"
-    CE_VISIBLE = "ce_visible"
-    DATA_POINT = "data_point"
-    EVENT = "event"
-    NO_CREATE = "no_create"
 
 
 class Flag(IntEnum):
@@ -455,13 +454,13 @@ CLICK_EVENTS: Final[tuple[Parameter, ...]] = (
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-DATA_POINT_EVENTS: Final[tuple[HomematicEventType, ...]] = (
+DP_EVENTS: Final[tuple[HomematicEventType, ...]] = (
     HomematicEventType.IMPULSE,
     HomematicEventType.KEYPRESS,
 )
 
 # channel_address, paramset_key,parameter
-DATA_POINT_KEY = tuple[str, ParamsetKey, str]
+DP_KEY = tuple[str, ParamsetKey, str]
 
 HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
     DeviceFirmwareState.DO_UPDATE_PENDING,

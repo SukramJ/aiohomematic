@@ -13,19 +13,19 @@ from hahomematic import support as hms, validator as val
 from hahomematic.const import HmPlatform, Parameter
 from hahomematic.exceptions import HaHomematicException
 from hahomematic.platforms import device as hmd
-from hahomematic.platforms.custom.const import ED, DeviceProfile, Field
+from hahomematic.platforms.custom.const import CDPD, DeviceProfile, Field
 from hahomematic.platforms.custom.support import CustomConfig
 from hahomematic.platforms.support import generate_unique_id
 from hahomematic.support import reduce_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-DEFAULT_INCLUDE_DEFAULT_DATA_POINTS: Final = True
+DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 
 ALL_DEVICES: dict[HmPlatform, Mapping[str, CustomConfig | tuple[CustomConfig, ...]]] = {}
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
-_SCHEMA_ED_ADDITIONAL_DATA_POINTS = vol.Schema(
+_SCHEMA_CDPD_ADDITIONAL_DPS = vol.Schema(
     {
         vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema(
             (vol.Optional(Parameter),)
@@ -33,45 +33,43 @@ _SCHEMA_ED_ADDITIONAL_DATA_POINTS = vol.Schema(
     }
 )
 
-_SCHEMA_ED_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
+_SCHEMA_CDPD_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
 
-_SCHEMA_ED_FIELD = vol.Schema({vol.Required(int): _SCHEMA_ED_FIELD_DETAILS})
+_SCHEMA_CDPD_FIELD = vol.Schema({vol.Required(int): _SCHEMA_CDPD_FIELD_DETAILS})
 
-_SCHEMA_ED_DEVICE_GROUP = vol.Schema(
+_SCHEMA_CDPD_DEVICE_GROUP = vol.Schema(
     {
-        vol.Required(ED.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
-        vol.Required(ED.ALLOW_UNDEFINED_GENERIC_DATA_POINTS.value, default=False): bool,
-        vol.Optional(ED.SECONDARY_CHANNELS.value): (val.positive_int,),
-        vol.Optional(ED.REPEATABLE_FIELDS.value): _SCHEMA_ED_FIELD_DETAILS,
-        vol.Optional(ED.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_ED_FIELD_DETAILS,
-        vol.Optional(ED.FIELDS.value): _SCHEMA_ED_FIELD,
-        vol.Optional(ED.VISIBLE_FIELDS.value): _SCHEMA_ED_FIELD,
+        vol.Required(CDPD.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
+        vol.Required(CDPD.ALLOW_UNDEFINED_GENERIC_DPS.value, default=False): bool,
+        vol.Optional(CDPD.SECONDARY_CHANNELS.value): (val.positive_int,),
+        vol.Optional(CDPD.REPEATABLE_FIELDS.value): _SCHEMA_CDPD_FIELD_DETAILS,
+        vol.Optional(CDPD.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_CDPD_FIELD_DETAILS,
+        vol.Optional(CDPD.FIELDS.value): _SCHEMA_CDPD_FIELD,
+        vol.Optional(CDPD.VISIBLE_FIELDS.value): _SCHEMA_CDPD_FIELD,
     }
 )
 
-_SCHEMA_ED_DEVICE_GROUPS = vol.Schema(
+_SCHEMA_CDPD_DEVICE_GROUPS = vol.Schema(
     {
-        vol.Required(ED.DEVICE_GROUP.value): _SCHEMA_ED_DEVICE_GROUP,
-        vol.Optional(ED.ADDITIONAL_DATA_POINTS.value): _SCHEMA_ED_ADDITIONAL_DATA_POINTS,
-        vol.Optional(
-            ED.INCLUDE_DEFAULT_DATA_POINTS.value, default=DEFAULT_INCLUDE_DEFAULT_DATA_POINTS
-        ): bool,
+        vol.Required(CDPD.DEVICE_GROUP.value): _SCHEMA_CDPD_DEVICE_GROUP,
+        vol.Optional(CDPD.ADDITIONAL_DPS.value): _SCHEMA_CDPD_ADDITIONAL_DPS,
+        vol.Optional(CDPD.INCLUDE_DEFAULT_DPS.value, default=DEFAULT_INCLUDE_DEFAULT_DPS): bool,
     }
 )
 
 _SCHEMA_DEVICE_DESCRIPTION = vol.Schema(
     {
-        vol.Required(ED.DEFAULT_DATA_POINTS.value): _SCHEMA_ED_ADDITIONAL_DATA_POINTS,
-        vol.Required(ED.DEVICE_DEFINITIONS.value): vol.Schema(
+        vol.Required(CDPD.DEFAULT_DPS.value): _SCHEMA_CDPD_ADDITIONAL_DPS,
+        vol.Required(CDPD.DEVICE_DEFINITIONS.value): vol.Schema(
             {
-                vol.Required(DeviceProfile): _SCHEMA_ED_DEVICE_GROUPS,
+                vol.Required(DeviceProfile): _SCHEMA_CDPD_DEVICE_GROUPS,
             }
         ),
     }
 )
 
-_DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
-    ED.DEFAULT_DATA_POINTS: {
+_CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] = {
+    CDPD.DEFAULT_DPS: {
         0: (
             Parameter.DUTY_CYCLE,
             Parameter.DUTYCYCLE,
@@ -85,31 +83,31 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
         2: (Parameter.BATTERY_STATE,),
         4: (Parameter.BATTERY_STATE,),
     },
-    ED.DEVICE_DEFINITIONS: {
+    CDPD.DEVICE_DEFINITIONS: {
         DeviceProfile.IP_BUTTON_LOCK: {
-            ED.DEVICE_GROUP: {
-                ED.ALLOW_UNDEFINED_GENERIC_DATA_POINTS: True,
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.ALLOW_UNDEFINED_GENERIC_DPS: True,
+                CDPD.REPEATABLE_FIELDS: {
                     Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
                 },
             },
         },
         DeviceProfile.IP_COVER: {
-            ED.DEVICE_GROUP: {
-                ED.SECONDARY_CHANNELS: (1, 2),
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.REPEATABLE_FIELDS: {
                     Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
                     Field.LEVEL: Parameter.LEVEL,
                     Field.LEVEL_2: Parameter.LEVEL_2,
                     Field.STOP: Parameter.STOP,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     -1: {
                         Field.DIRECTION: Parameter.ACTIVITY_STATE,
                         Field.OPERATION_MODE: Parameter.CHANNEL_OPERATION_MODE,
                     },
                 },
-                ED.VISIBLE_FIELDS: {
+                CDPD.VISIBLE_FIELDS: {
                     -1: {
                         Field.CHANNEL_LEVEL: Parameter.LEVEL,
                         Field.CHANNEL_LEVEL_2: Parameter.LEVEL_2,
@@ -118,14 +116,14 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_DIMMER: {
-            ED.DEVICE_GROUP: {
-                ED.SECONDARY_CHANNELS: (1, 2),
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
                 },
-                ED.VISIBLE_FIELDS: {
+                CDPD.VISIBLE_FIELDS: {
                     -1: {
                         Field.CHANNEL_LEVEL: Parameter.LEVEL,
                     },
@@ -133,22 +131,22 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_GARAGE: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.DOOR_COMMAND: Parameter.DOOR_COMMAND,
                     Field.SECTION: Parameter.SECTION,
                 },
-                ED.VISIBLE_REPEATABLE_FIELDS: {
+                CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.DOOR_STATE: Parameter.DOOR_STATE,
                 },
             },
-            ED.ADDITIONAL_DATA_POINTS: {
+            CDPD.ADDITIONAL_DPS: {
                 1: (Parameter.STATE,),
             },
         },
         DeviceProfile.IP_HDM: {
-            ED.DEVICE_GROUP: {
-                ED.FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.FIELDS: {
                     0: {
                         Field.DIRECTION: Parameter.ACTIVITY_STATE,
                         Field.LEVEL: Parameter.LEVEL,
@@ -159,9 +157,9 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_FIXED_COLOR_LIGHT: {
-            ED.DEVICE_GROUP: {
-                ED.SECONDARY_CHANNELS: (1, 2),
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.REPEATABLE_FIELDS: {
                     Field.COLOR: Parameter.COLOR,
                     Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
                     Field.LEVEL: Parameter.LEVEL,
@@ -170,7 +168,7 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
                 },
-                ED.VISIBLE_FIELDS: {
+                CDPD.VISIBLE_FIELDS: {
                     -1: {
                         Field.CHANNEL_COLOR: Parameter.COLOR,
                         Field.CHANNEL_LEVEL: Parameter.LEVEL,
@@ -179,8 +177,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.COLOR: Parameter.COLOR,
                     Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
                     Field.LEVEL: Parameter.LEVEL,
@@ -192,8 +190,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.COLOR: Parameter.COLOR,
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
@@ -204,9 +202,9 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_RGBW_LIGHT: {
-            ED.DEVICE_GROUP: {
-                ED.SECONDARY_CHANNELS: (1, 2, 3),
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2, 3),
+                CDPD.REPEATABLE_FIELDS: {
                     Field.COLOR_TEMPERATURE: Parameter.COLOR_TEMPERATURE,
                     Field.DIRECTION: Parameter.ACTIVITY_STATE,
                     Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
@@ -220,7 +218,7 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
                     Field.SATURATION: Parameter.SATURATION,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     -1: {
                         Field.DEVICE_OPERATION_MODE: Parameter.DEVICE_OPERATION_MODE,
                     },
@@ -228,8 +226,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_DRG_DALI: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.COLOR_TEMPERATURE: Parameter.COLOR_TEMPERATURE,
                     Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
                     Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
@@ -245,19 +243,19 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_SWITCH: {
-            ED.DEVICE_GROUP: {
-                ED.SECONDARY_CHANNELS: (1, 2),
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.REPEATABLE_FIELDS: {
                     Field.STATE: Parameter.STATE,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                 },
-                ED.VISIBLE_FIELDS: {
+                CDPD.VISIBLE_FIELDS: {
                     -1: {
                         Field.CHANNEL_STATE: Parameter.STATE,
                     },
                 },
             },
-            ED.ADDITIONAL_DATA_POINTS: {
+            CDPD.ADDITIONAL_DPS: {
                 3: (
                     Parameter.CURRENT,
                     Parameter.ENERGY_COUNTER,
@@ -269,13 +267,13 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_LOCK: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.DIRECTION: Parameter.ACTIVITY_STATE,
                     Field.LOCK_STATE: Parameter.LOCK_STATE,
                     Field.LOCK_TARGET_LEVEL: Parameter.LOCK_TARGET_LEVEL,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     -1: {
                         Field.ERROR: Parameter.ERROR_JAMMED,
                     },
@@ -283,8 +281,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_SIREN: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.ACOUSTIC_ALARM_ACTIVE: Parameter.ACOUSTIC_ALARM_ACTIVE,
                     Field.OPTICAL_ALARM_ACTIVE: Parameter.OPTICAL_ALARM_ACTIVE,
                     Field.ACOUSTIC_ALARM_SELECTION: Parameter.ACOUSTIC_ALARM_SELECTION,
@@ -295,18 +293,18 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_SIREN_SMOKE: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.SMOKE_DETECTOR_COMMAND: Parameter.SMOKE_DETECTOR_COMMAND,
                 },
-                ED.VISIBLE_REPEATABLE_FIELDS: {
+                CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.SMOKE_DETECTOR_ALARM_STATUS: Parameter.SMOKE_DETECTOR_ALARM_STATUS,
                 },
             },
         },
         DeviceProfile.IP_THERMOSTAT: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.ACTIVE_PROFILE: Parameter.ACTIVE_PROFILE,
                     Field.BOOST_MODE: Parameter.BOOST_MODE,
                     Field.CONTROL_MODE: Parameter.CONTROL_MODE,
@@ -319,12 +317,12 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
                     Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
                 },
-                ED.VISIBLE_REPEATABLE_FIELDS: {
+                CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.HEATING_COOLING: Parameter.HEATING_COOLING,
                     Field.HUMIDITY: Parameter.HUMIDITY,
                     Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
                 },
-                ED.VISIBLE_FIELDS: {
+                CDPD.VISIBLE_FIELDS: {
                     0: {
                         Field.LEVEL: Parameter.LEVEL,
                         Field.CONCENTRATION: Parameter.CONCENTRATION,
@@ -336,8 +334,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.IP_THERMOSTAT_GROUP: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.ACTIVE_PROFILE: Parameter.ACTIVE_PROFILE,
                     Field.BOOST_MODE: Parameter.BOOST_MODE,
                     Field.CONTROL_MODE: Parameter.CONTROL_MODE,
@@ -350,12 +348,12 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
                     Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
                 },
-                ED.VISIBLE_REPEATABLE_FIELDS: {
+                CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.HEATING_COOLING: Parameter.HEATING_COOLING,
                     Field.HUMIDITY: Parameter.HUMIDITY,
                     Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     0: {
                         Field.LEVEL: Parameter.LEVEL,
                     },
@@ -364,20 +362,20 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     },
                 },
             },
-            ED.INCLUDE_DEFAULT_DATA_POINTS: False,
+            CDPD.INCLUDE_DEFAULT_DPS: False,
         },
         DeviceProfile.RF_BUTTON_LOCK: {
-            ED.DEVICE_GROUP: {
-                ED.PRIMARY_CHANNEL: None,
-                ED.ALLOW_UNDEFINED_GENERIC_DATA_POINTS: True,
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.PRIMARY_CHANNEL: None,
+                CDPD.ALLOW_UNDEFINED_GENERIC_DPS: True,
+                CDPD.REPEATABLE_FIELDS: {
                     Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
                 },
             },
         },
         DeviceProfile.RF_COVER: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.DIRECTION: Parameter.DIRECTION,
                     Field.LEVEL: Parameter.LEVEL,
                     Field.LEVEL_2: Parameter.LEVEL_SLATS,
@@ -387,8 +385,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_DIMMER: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -396,13 +394,13 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_DIMMER_COLOR: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     1: {
                         Field.COLOR: Parameter.COLOR,
                     },
@@ -413,8 +411,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_DIMMER_COLOR_FIXED: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -422,13 +420,13 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_DIMMER_COLOR_TEMP: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     1: {
                         Field.COLOR_LEVEL: Parameter.LEVEL,
                     },
@@ -436,9 +434,9 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_DIMMER_WITH_VIRT_CHANNEL: {
-            ED.DEVICE_GROUP: {
-                ED.SECONDARY_CHANNELS: (1, 2),
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -446,8 +444,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_LOCK: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.DIRECTION: Parameter.DIRECTION,
                     Field.OPEN: Parameter.OPEN,
                     Field.STATE: Parameter.STATE,
@@ -456,13 +454,13 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_SWITCH: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.STATE: Parameter.STATE,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
                 },
             },
-            ED.ADDITIONAL_DATA_POINTS: {
+            CDPD.ADDITIONAL_DPS: {
                 1: (
                     Parameter.CURRENT,
                     Parameter.ENERGY_COUNTER,
@@ -473,8 +471,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_THERMOSTAT: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.AUTO_MODE: Parameter.AUTO_MODE,
                     Field.BOOST_MODE: Parameter.BOOST_MODE,
                     Field.COMFORT_MODE: Parameter.COMFORT_MODE,
@@ -487,11 +485,11 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
                     Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
                 },
-                ED.VISIBLE_REPEATABLE_FIELDS: {
+                CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
                     Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
                 },
-                ED.VISIBLE_FIELDS: {
+                CDPD.VISIBLE_FIELDS: {
                     0: {
                         Field.VALVE_STATE: Parameter.VALVE_STATE,
                     },
@@ -499,8 +497,8 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
             },
         },
         DeviceProfile.RF_THERMOSTAT_GROUP: {
-            ED.DEVICE_GROUP: {
-                ED.REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.REPEATABLE_FIELDS: {
                     Field.AUTO_MODE: Parameter.AUTO_MODE,
                     Field.BOOST_MODE: Parameter.BOOST_MODE,
                     Field.COMFORT_MODE: Parameter.COMFORT_MODE,
@@ -513,25 +511,25 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
                     Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
                     Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
                 },
-                ED.VISIBLE_REPEATABLE_FIELDS: {
+                CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
                     Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     0: {
                         Field.VALVE_STATE: Parameter.VALVE_STATE,
                     },
                 },
             },
-            ED.INCLUDE_DEFAULT_DATA_POINTS: False,
+            CDPD.INCLUDE_DEFAULT_DPS: False,
         },
         DeviceProfile.SIMPLE_RF_THERMOSTAT: {
-            ED.DEVICE_GROUP: {
-                ED.VISIBLE_REPEATABLE_FIELDS: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.HUMIDITY: Parameter.HUMIDITY,
                     Field.TEMPERATURE: Parameter.TEMPERATURE,
                 },
-                ED.FIELDS: {
+                CDPD.FIELDS: {
                     1: {
                         Field.SETPOINT: Parameter.SETPOINT,
                     },
@@ -541,16 +539,16 @@ _DATA_POINT_DEFINITION: Mapping[ED, Mapping[int | DeviceProfile, Any]] = {
     },
 }
 
-VALID_DATA_POINT_DEFINITION = _SCHEMA_DEVICE_DESCRIPTION(_DATA_POINT_DEFINITION)
+VALID_CUSTOM_DATA_POINT_DEFINITION = _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
 
 
-def validate_data_point_definition() -> Any:
-    """Validate the data_point_definition."""
+def validate_custom_data_point_definition() -> Any:
+    """Validate the custom data point definition."""
     try:
-        return _SCHEMA_DEVICE_DESCRIPTION(_DATA_POINT_DEFINITION)
+        return _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
     except vol.Invalid as err:  # pragma: no cover
         _LOGGER.error(
-            "The data_point definition could not be validated. %s, %s", err.path, err.msg
+            "The custom data point definition could not be validated. %s, %s", err.path, err.msg
         )
         return None
 
@@ -562,7 +560,7 @@ def make_custom_data_point(
     custom_config: CustomConfig,
 ) -> None:
     """
-    Create custom_data_points.
+    Create custom data points.
 
     We use a helper-function to avoid raising exceptions during object-init.
     """
@@ -572,12 +570,12 @@ def make_custom_data_point(
     base_channel_no = get_sub_device_base_channel(device=channel.device, channel_no=channel.no)
     channels = _relevant_channels(device_profile=device_profile, custom_config=custom_config)
     if channel.no in set(channels):
-        _create_data_point(
+        _create_custom_data_point(
             channel=channel,
             custom_data_point_class=data_point_class,
             device_profile=device_profile,
             device_def=_get_device_group(device_profile, base_channel_no),
-            data_point_def=_get_device_data_points(device_profile, base_channel_no),
+            custom_data_point_def=_get_device_data_points(device_profile, base_channel_no),
             base_channel_no=base_channel_no,
             custom_config=_rebase_pri_channels(
                 device_profile=device_profile, custom_config=custom_config
@@ -585,12 +583,12 @@ def make_custom_data_point(
         )
 
 
-def _create_data_point(
+def _create_custom_data_point(
     channel: hmd.HmChannel,
     custom_data_point_class: type,
     device_profile: DeviceProfile,
-    device_def: Mapping[ED, Any],
-    data_point_def: Mapping[int, tuple[Parameter, ...]],
+    device_def: Mapping[CDPD, Any],
+    custom_data_point_def: Mapping[int, tuple[Parameter, ...]],
     base_channel_no: int | None,
     custom_config: CustomConfig,
 ) -> None:
@@ -599,20 +597,20 @@ def _create_data_point(
 
     try:
         if (
-            data_point := custom_data_point_class(
+            dp := custom_data_point_class(
                 channel=channel,
                 unique_id=unique_id,
                 device_profile=device_profile,
                 device_def=device_def,
-                data_point_def=data_point_def,
+                custom_data_point_def=custom_data_point_def,
                 base_channel_no=base_channel_no,
                 custom_config=custom_config,
             )
-        ) and data_point.has_data_data_points:
-            channel.add_data_point(data_point)
+        ) and dp.has_data_points:
+            channel.add_data_point(data_point=dp)
     except Exception as ex:
         raise HaHomematicException(
-            f"_CREATE_DATA_POINT: unable to create data_point: {reduce_args(args=ex.args)}"
+            f"_CREATE_CUSTOM_DATA_POINT: unable to create custom data point: {reduce_args(args=ex.args)}"
         ) from ex
 
 
@@ -621,7 +619,7 @@ def _rebase_pri_channels(
 ) -> CustomConfig:
     """Re base primary channel of custom config."""
     device_def = _get_device_group(device_profile, 0)
-    if (pri_def := device_def[ED.PRIMARY_CHANNEL]) is None:
+    if (pri_def := device_def[CDPD.PRIMARY_CHANNEL]) is None:
         return custom_config
     pri_channels = [cu + pri_def for cu in custom_config.channels]
     return CustomConfig(
@@ -636,8 +634,8 @@ def _relevant_channels(
 ) -> tuple[int | None, ...]:
     """Return the relevant channels."""
     device_def = _get_device_group(device_profile, 0)
-    def_channels = [device_def[ED.PRIMARY_CHANNEL]]
-    if sec_channels := device_def.get(ED.SECONDARY_CHANNELS):
+    def_channels = [device_def[CDPD.PRIMARY_CHANNEL]]
+    if sec_channels := device_def.get(CDPD.SECONDARY_CHANNELS):
         def_channels.extend(sec_channels)
 
     channels: set[int | None] = set()
@@ -655,8 +653,8 @@ def add_sub_device_channels_to_device(
 ) -> None:
     """Return the relevant channels."""
     device_def = _get_device_group(device_profile, 0)
-    pri_channel = device_def[ED.PRIMARY_CHANNEL]
-    sec_channels = device_def.get(ED.SECONDARY_CHANNELS)
+    pri_channel = device_def[CDPD.PRIMARY_CHANNEL]
+    sec_channels = device_def.get(CDPD.SECONDARY_CHANNELS)
     if pri_channel is None:
         return
     for conf_channel in custom_config.channels:
@@ -680,52 +678,53 @@ def get_sub_device_base_channel(device: hmd.HmDevice, channel_no: int | None) ->
 
 def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:
     """Return the default data points."""
-    return VALID_DATA_POINT_DEFINITION[ED.DEFAULT_DATA_POINTS]  # type: ignore[no-any-return]
+    return VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]  # type: ignore[no-any-return]
 
 
 def get_include_default_data_points(device_profile: DeviceProfile) -> bool:
     """Return if default data points should be included."""
     device = _get_device_definition(device_profile)
-    return device.get(ED.INCLUDE_DEFAULT_DATA_POINTS, DEFAULT_INCLUDE_DEFAULT_DATA_POINTS)
+    return device.get(CDPD.INCLUDE_DEFAULT_DPS, DEFAULT_INCLUDE_DEFAULT_DPS)
 
 
-def _get_device_definition(device_profile: DeviceProfile) -> Mapping[ED, Any]:
+def _get_device_definition(device_profile: DeviceProfile) -> Mapping[CDPD, Any]:
     """Return device from data_point definitions."""
     return cast(
-        Mapping[ED, Any], VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS][device_profile]
+        Mapping[CDPD, Any],
+        VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device_profile],
     )
 
 
 def _get_device_group(
     device_profile: DeviceProfile, base_channel_no: int | None
-) -> Mapping[ED, Any]:
+) -> Mapping[CDPD, Any]:
     """Return the device group."""
     device = _get_device_definition(device_profile)
-    group = cast(dict[ED, Any], device[ED.DEVICE_GROUP])
+    group = cast(dict[CDPD, Any], device[CDPD.DEVICE_GROUP])
     # Create a deep copy of the group due to channel rebase
     group = deepcopy(group)
     if not base_channel_no:
         return group
     # Add base_channel_no to the primary_channel to get the real primary_channel number
-    if (primary_channel := group[ED.PRIMARY_CHANNEL]) is not None:
-        group[ED.PRIMARY_CHANNEL] = primary_channel + base_channel_no
+    if (primary_channel := group[CDPD.PRIMARY_CHANNEL]) is not None:
+        group[CDPD.PRIMARY_CHANNEL] = primary_channel + base_channel_no
 
     # Add base_channel_no to the secondary_channels
     # to get the real secondary_channel numbers
-    if secondary_channel := group.get(ED.SECONDARY_CHANNELS):
-        group[ED.SECONDARY_CHANNELS] = [x + base_channel_no for x in secondary_channel]
+    if secondary_channel := group.get(CDPD.SECONDARY_CHANNELS):
+        group[CDPD.SECONDARY_CHANNELS] = [x + base_channel_no for x in secondary_channel]
 
-    group[ED.VISIBLE_FIELDS] = _rebase_data_point_dict(
-        data_point_dict=ED.VISIBLE_FIELDS, group=group, base_channel_no=base_channel_no
+    group[CDPD.VISIBLE_FIELDS] = _rebase_data_point_dict(
+        data_point_dict=CDPD.VISIBLE_FIELDS, group=group, base_channel_no=base_channel_no
     )
-    group[ED.FIELDS] = _rebase_data_point_dict(
-        data_point_dict=ED.FIELDS, group=group, base_channel_no=base_channel_no
+    group[CDPD.FIELDS] = _rebase_data_point_dict(
+        data_point_dict=CDPD.FIELDS, group=group, base_channel_no=base_channel_no
     )
     return group
 
 
 def _rebase_data_point_dict(
-    data_point_dict: ED, group: Mapping[ED, Any], base_channel_no: int
+    data_point_dict: CDPD, group: Mapping[CDPD, Any], base_channel_no: int
 ) -> Mapping[int, Any]:
     """Rebase data_point_dict with base_channel_no."""
     new_fields = {}
@@ -739,18 +738,18 @@ def _get_device_data_points(
     device_profile: DeviceProfile, base_channel_no: int | None
 ) -> Mapping[int, tuple[Parameter, ...]]:
     """Return the device data points."""
-    additional_data_points = (
-        VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS]
+    additional_dps = (
+        VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]
         .get(device_profile, {})
-        .get(ED.ADDITIONAL_DATA_POINTS, {})
+        .get(CDPD.ADDITIONAL_DPS, {})
     )
     if not base_channel_no:
-        return additional_data_points  # type: ignore[no-any-return]
-    new_data_points: dict[int, tuple[Parameter, ...]] = {}
-    if additional_data_points:
-        for channel_no, field in additional_data_points.items():
-            new_data_points[channel_no + base_channel_no] = field
-    return new_data_points
+        return additional_dps  # type: ignore[no-any-return]
+    new_dps: dict[int, tuple[Parameter, ...]] = {}
+    if additional_dps:
+        for channel_no, field in additional_dps.items():
+            new_dps[channel_no + base_channel_no] = field
+    return new_dps
 
 
 def get_custom_configs(
@@ -813,16 +812,20 @@ def data_point_definition_exists(model: str) -> bool:
 def get_required_parameters() -> tuple[Parameter, ...]:
     """Return all required parameters for custom data points."""
     required_parameters: list[Parameter] = []
-    for channel in VALID_DATA_POINT_DEFINITION[ED.DEFAULT_DATA_POINTS]:
-        required_parameters.extend(VALID_DATA_POINT_DEFINITION[ED.DEFAULT_DATA_POINTS][channel])
-    for device in VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS]:
-        device_def = VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS][device][ED.DEVICE_GROUP]
-        required_parameters.extend(list(device_def.get(ED.REPEATABLE_FIELDS, {}).values()))
-        required_parameters.extend(list(device_def.get(ED.VISIBLE_REPEATABLE_FIELDS, {}).values()))
-        required_parameters.extend(list(device_def.get(ED.REPEATABLE_FIELDS, {}).values()))
+    for channel in VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]:
+        required_parameters.extend(VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS][channel])
+    for device in VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]:
+        device_def = VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device][
+            CDPD.DEVICE_GROUP
+        ]
+        required_parameters.extend(list(device_def.get(CDPD.REPEATABLE_FIELDS, {}).values()))
+        required_parameters.extend(
+            list(device_def.get(CDPD.VISIBLE_REPEATABLE_FIELDS, {}).values())
+        )
+        required_parameters.extend(list(device_def.get(CDPD.REPEATABLE_FIELDS, {}).values()))
         for additional_data_points in list(
-            VALID_DATA_POINT_DEFINITION[ED.DEVICE_DEFINITIONS][device]
-            .get(ED.ADDITIONAL_DATA_POINTS, {})
+            VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device]
+            .get(CDPD.ADDITIONAL_DPS, {})
             .values()
         ):
             required_parameters.extend(additional_data_points)

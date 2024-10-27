@@ -53,22 +53,22 @@ async def test_central_full(central_unit_full) -> None:
         info_config_props = get_public_attributes_for_info_property(data_object=device)
         assert info_config_props
 
-    custom_data_points = []
+    custom_dps = []
     channel_type_names = set()
     for device in central_unit_full.devices:
-        custom_data_points.extend(device.custom_data_points)
+        custom_dps.extend(device.custom_data_points)
         for channel in device.channels.values():
             channel_type_names.add(channel.type_name)
     channel_type_names = sorted(channel_type_names)
     assert len(channel_type_names) == 538
     ce_channels = {}
-    for custom_data_point in custom_data_points:
-        if custom_data_point.device.model not in ce_channels:
-            ce_channels[custom_data_point.device.model] = []
-        ce_channels[custom_data_point.device.model].append(custom_data_point.channel.no)
-        pub_value_props = get_public_attributes_for_state_property(data_object=custom_data_point)
+    for cdp in custom_dps:
+        if cdp.device.model not in ce_channels:
+            ce_channels[cdp.device.model] = []
+        ce_channels[cdp.device.model].append(cdp.channel.no)
+        pub_value_props = get_public_attributes_for_state_property(data_object=cdp)
         assert pub_value_props
-        pub_config_props = get_public_attributes_for_config_property(data_object=custom_data_point)
+        pub_config_props = get_public_attributes_for_config_property(data_object=cdp)
         assert pub_config_props
 
     data_point_types = {}
@@ -120,10 +120,10 @@ async def test_central_full(central_unit_full) -> None:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
     assert usage_types[DataPointUsage.NO_CREATE] == 3172
-    assert usage_types[DataPointUsage.CE_PRIMARY] == 208
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 208
     assert usage_types[DataPointUsage.DATA_POINT] == 3638
-    assert usage_types[DataPointUsage.CE_VISIBLE] == 125
-    assert usage_types[DataPointUsage.CE_SECONDARY] == 146
+    assert usage_types[DataPointUsage.CDP_VISIBLE] == 125
+    assert usage_types[DataPointUsage.CDP_SECONDARY] == 146
 
     assert len(ce_channels) == 121
     assert len(data_point_types) == 6

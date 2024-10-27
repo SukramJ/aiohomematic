@@ -46,7 +46,7 @@ async def test_ceswitch(
     switch: CeSwitch = cast(
         CeSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
     )
-    assert switch.usage == DataPointUsage.CE_PRIMARY
+    assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
 
     await switch.turn_off()

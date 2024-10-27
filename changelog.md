@@ -1,3 +1,7 @@
+# Version 2024.10.15 (2024-10-26)
+
+- Rename entity to data point to better distinguish from HA
+
 # Version 2024.10.14 (2024-10-26)
 
 - Use version from module hahomematic
@@ -529,7 +533,7 @@
 - Add faultCode and faultString to xmlrpc.client.Fault
 - Use Mapping/Set for readonly access
 - Use enum for CE fields
-- Use Parameter for ED
+- Use Parameter for CDPD
 
 # Version 2023.10.5 (2023-10-07)
 

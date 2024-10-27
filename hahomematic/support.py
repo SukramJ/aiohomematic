@@ -24,8 +24,8 @@ from hahomematic.const import (
     CACHE_PATH,
     CCU_PASSWORD_PATTERN,
     CHANNEL_ADDRESS_PATTERN,
-    DATA_POINT_KEY,
     DEVICE_ADDRESS_PATTERN,
+    DP_KEY,
     FILE_DEVICES,
     FILE_PARAMSETS,
     IDENTIFIER_SEPARATOR,
@@ -226,10 +226,8 @@ def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
     )
 
 
-def get_data_point_key(
-    channel_address: str, paramset_key: ParamsetKey, parameter: str
-) -> DATA_POINT_KEY:
-    """Return a data_point key."""
+def get_data_point_key(channel_address: str, paramset_key: ParamsetKey, parameter: str) -> DP_KEY:
+    """Return a data point key."""
     return (str(channel_address), paramset_key, str(parameter))
 
 

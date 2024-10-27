@@ -315,7 +315,7 @@ def get_custom_data_point_name(
         if _check_channel_name_with_channel_no(name=channel_name):
             c_name = channel_name.split(":")[0]
             p_name = channel_name.split(":")[1]
-            marker = "ch" if usage == DataPointUsage.CE_PRIMARY else "vch"
+            marker = "ch" if usage == DataPointUsage.CDP_PRIMARY else "vch"
             p_name = f"{marker}{p_name}"
             return DataPointNameData(
                 device_name=channel.device.name, channel_name=c_name, parameter_name=p_name
@@ -438,7 +438,7 @@ def check_channel_is_the_only_primary_channel(
     device_has_multiple_channels: bool,
 ) -> bool:
     """Check if this channel is the only primary channel."""
-    primary_channel: int = device_def[hmed.ED.PRIMARY_CHANNEL]
+    primary_channel: int = device_def[hmed.CDPD.PRIMARY_CHANNEL]
     return bool(primary_channel == current_channel_no and device_has_multiple_channels is False)
 
 

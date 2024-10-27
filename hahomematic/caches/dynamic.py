@@ -14,7 +14,7 @@ from hahomematic.config import (
     PING_PONG_MISMATCH_COUNT_TTL,
 )
 from hahomematic.const import (
-    DATA_POINT_KEY,
+    DP_KEY,
     EVENT_DATA,
     EVENT_INSTANCE_NAME,
     EVENT_INTERFACE_ID,
@@ -43,14 +43,14 @@ class CommandCache:
         """Init command cache."""
         self._interface_id: Final = interface_id
         # (paramset_key, device_address, channel_no, parameter)
-        self._last_send_command: Final[dict[DATA_POINT_KEY, tuple[Any, datetime]]] = {}
+        self._last_send_command: Final[dict[DP_KEY, tuple[Any, datetime]]] = {}
 
     def add_set_value(
         self,
         channel_address: str,
         parameter: str,
         value: Any,
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """Add data from set value command."""
         if parameter in CONVERTABLE_PARAMETERS:
             return self.add_combined_parameter(
@@ -67,9 +67,9 @@ class CommandCache:
 
     def add_put_paramset(
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """Add data from put paramset command."""
-        data_point_keys: set[DATA_POINT_KEY] = set()
+        data_point_keys: set[DP_KEY] = set()
         for parameter, value in values.items():
             data_point_key = get_data_point_key(
                 channel_address=channel_address,
@@ -82,7 +82,7 @@ class CommandCache:
 
     def add_combined_parameter(
         self, parameter: str, channel_address: str, combined_parameter: str
-    ) -> set[DATA_POINT_KEY]:
+    ) -> set[DP_KEY]:
         """Add data from combined parameter."""
         if values := convert_combined_parameter_to_paramset(
             parameter=parameter, cpv=combined_parameter
@@ -95,7 +95,7 @@ class CommandCache:
         return set()
 
     def get_last_value_send(
-        self, data_point_key: DATA_POINT_KEY, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT
+        self, data_point_key: DP_KEY, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT
     ) -> Any:
         """Return the last send values."""
         if result := self._last_send_command.get(data_point_key):
@@ -110,7 +110,7 @@ class CommandCache:
 
     def remove_last_value_send(
         self,
-        data_point_key: DATA_POINT_KEY,
+        data_point_key: DP_KEY,
         value: Any = None,
         max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT,
     ) -> None:

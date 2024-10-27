@@ -63,8 +63,8 @@ async def test_central_basics(
     assert system_information.serial == "0815_4711"
     device = central.get_device("VCU2128127")
     assert device
-    data_points = central.get_readable_generic_data_points()
-    assert data_points
+    dps = central.get_readable_generic_data_points()
+    assert dps
 
 
 @pytest.mark.asyncio
@@ -86,11 +86,11 @@ async def test_device_get_data_points(
 ) -> None:
     """Test central/device get_data_points."""
     central, _, _ = central_client_factory
-    data_points = central.get_data_points()
-    assert data_points
+    dps = central.get_data_points()
+    assert dps
 
-    data_points_reg = central.get_data_points(registered=True)
-    assert data_points_reg == ()
+    dps_reg = central.get_data_points(registered=True)
+    assert dps_reg == ()
 
 
 @pytest.mark.asyncio
@@ -182,9 +182,8 @@ async def test_device_un_ignore_etrv(
             )
             is expected_result
         )
-        generic_data_point = central.get_generic_data_point(f"VCU3609622:{channel_no}", parameter)
-        if generic_data_point:
-            assert generic_data_point.usage == DataPointUsage.DATA_POINT
+        if dp := central.get_generic_data_point(f"VCU3609622:{channel_no}", parameter):
+            assert dp.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 
@@ -223,10 +222,10 @@ async def test_device_un_ignore_broll(
             )
             is expected_result
         )
-        generic_data_point = central.get_generic_data_point(f"VCU8537918:{channel_no}", parameter)
+        dp = central.get_generic_data_point(f"VCU8537918:{channel_no}", parameter)
         if expected_result:
-            assert generic_data_point
-            assert generic_data_point.usage == DataPointUsage.DATA_POINT
+            assert dp
+            assert dp.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 
@@ -266,12 +265,12 @@ async def test_device_un_ignore_hm(
             )
             is expected_result
         )
-        generic_data_point = central.get_generic_data_point(
+        dp = central.get_generic_data_point(
             f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter
         )
         if expected_result:
-            assert generic_data_point
-            assert generic_data_point.usage == DataPointUsage.DATA_POINT
+            assert dp
+            assert dp.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 
@@ -353,12 +352,12 @@ async def test_device_un_ignore_hm2(
             )
             is expected_result
         )
-        generic_data_point = central.get_generic_data_point(
+        dp = central.get_generic_data_point(
             f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter
         )
         if expected_result:
-            assert generic_data_point
-            assert generic_data_point.usage == DataPointUsage.DATA_POINT
+            assert dp
+            assert dp.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
 

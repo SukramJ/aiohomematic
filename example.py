@@ -12,7 +12,7 @@ from aiohttp import ClientSession, TCPConnector
 from hahomematic import config, const
 from hahomematic.central import CentralConfig
 from hahomematic.client import InterfaceConfig
-from hahomematic.platforms.custom import validate_data_point_definition
+from hahomematic.platforms.custom import validate_custom_data_point_definition
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class Example:
 
 
 # validate the device description
-if validate_data_point_definition():
+if validate_custom_data_point_definition():
     example = Example()
     asyncio.run(example.example_run())
     sys.exit(0)

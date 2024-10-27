@@ -60,7 +60,7 @@ async def test_cedimmer(
     light: CeDimmer = cast(
         CeDimmer, helper.get_prepared_custom_data_point(central, "VCU1399816", 4)
     )
-    assert light.usage == DataPointUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.service_method_names == ("turn_off", "turn_on")
     assert light.color_temp is None
     assert light.hs_color is None
@@ -177,7 +177,7 @@ async def test_cecolordimmereffect(
     light: CeColorDimmerEffect = cast(
         CeColorDimmerEffect, helper.get_prepared_custom_data_point(central, "VCU3747418", 1)
     )
-    assert light.usage == DataPointUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
@@ -333,7 +333,7 @@ async def test_cecolortempdimmer(
     light: CeColorTempDimmer = cast(
         CeColorTempDimmer, helper.get_prepared_custom_data_point(central, "VCU0000115", 1)
     )
-    assert light.usage == DataPointUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp == 500
     assert light.hs_color is None
     assert light.supports_brightness is True
@@ -423,7 +423,7 @@ async def test_ceipfixedcolorlight(
     light: CeIpFixedColorLight = cast(
         CeIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU3716619", 8)
     )
-    assert light.usage == DataPointUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
@@ -623,7 +623,7 @@ async def test_ceipfixedcolorlightwired(
     light: CeIpFixedColorLight = cast(
         CeIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU4704397", 8)
     )
-    assert light.usage == DataPointUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
@@ -911,7 +911,7 @@ async def test_ceiprgbwlight(
     light: CeIpRGBWLight = cast(
         CeIpRGBWLight, helper.get_prepared_custom_data_point(central, "VCU5629873", 1)
     )
-    assert light.usage == DataPointUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color is None
     assert light.supports_brightness is True
@@ -1088,7 +1088,7 @@ async def test_cecolordimmer(
     light: CeColorDimmer = cast(
         CeColorDimmer, helper.get_prepared_custom_data_point(central, "VCU9973336", 13)
     )
-    assert light.usage == DataPointUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True

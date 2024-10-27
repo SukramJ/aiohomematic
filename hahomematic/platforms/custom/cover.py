@@ -92,7 +92,7 @@ class CeCover(CustomDataPoint):
     _open_level: float = _OPEN_LEVEL
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Init the data point fields."""
         super()._init_data_point_fields()
         self._command_processing_lock = asyncio.Lock()
         self._e_direction: HmSensor[str | None] = self._get_data_point(
@@ -107,7 +107,7 @@ class CeCover(CustomDataPoint):
     @property
     def _channel_level(self) -> float:
         """Return the channel level of the cover."""
-        if self._e_channel_level.value is not None and self.usage == DataPointUsage.CE_PRIMARY:
+        if self._e_channel_level.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
             return float(self._e_channel_level.value)
         return self._e_level.value if self._e_level.value is not None else self._closed_level
 
@@ -238,7 +238,7 @@ class CeBlind(CeCover):
     _open_tilt_level: float = _OPEN_TILT_LEVEL
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Init the data point fields."""
         super()._init_data_point_fields()
         self._e_channel_level_2: HmSensor[float | None] = self._get_data_point(
             field=Field.CHANNEL_LEVEL_2, data_point_type=HmSensor[float | None]
@@ -253,7 +253,7 @@ class CeBlind(CeCover):
     @property
     def _channel_tilt_level(self) -> float:
         """Return the channel level of the tilt."""
-        if self._e_channel_level_2.value is not None and self.usage == DataPointUsage.CE_PRIMARY:
+        if self._e_channel_level_2.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
             return float(self._e_channel_level_2.value)
         return self._e_level_2.value if self._e_level_2.value is not None else self._closed_level
 
@@ -440,7 +440,7 @@ class CeIpBlind(CeBlind):
     """Class for HomematicIP blind data points."""
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Init the data point fields."""
         super()._init_data_point_fields()
         self._e_operation_mode: HmSelect = self._get_data_point(
             field=Field.OPERATION_MODE, data_point_type=HmSelect
@@ -477,7 +477,7 @@ class CeGarage(CustomDataPoint):
     _platform = HmPlatform.COVER
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Init the data point fields."""
         super()._init_data_point_fields()
         self._e_door_state: HmSensor[str | None] = self._get_data_point(
             field=Field.DOOR_STATE, data_point_type=HmSensor[str | None]

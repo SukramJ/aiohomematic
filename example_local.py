@@ -11,7 +11,7 @@ from unittest.mock import patch
 from hahomematic import config, const
 from hahomematic.central import CentralConfig
 from hahomematic.client import InterfaceConfig, _ClientConfig
-from hahomematic.platforms.custom import validate_data_point_definition
+from hahomematic.platforms.custom import validate_custom_data_point_definition
 from hahomematic_support.client_local import ClientLocal, LocalRessources
 
 logging.basicConfig(level=logging.INFO)
@@ -490,7 +490,7 @@ class Example:
 
 
 # validate the device description
-if validate_data_point_definition():
+if validate_custom_data_point_definition():
     example = Example()
     asyncio.run(example.example_run())
     sys.exit(0)

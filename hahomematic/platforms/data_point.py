@@ -18,8 +18,8 @@ from hahomematic.async_support import loop_check
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
     CALLBACK_TYPE,
-    DATA_POINT_KEY,
     DEFAULT_CUSTOM_ID,
+    DP_KEY,
     EVENT_ADDRESS,
     EVENT_CHANNEL_NO,
     EVENT_INTERFACE_ID,
@@ -192,8 +192,8 @@ class CallbackDataPoint(ABC):
     def enabled_default(self) -> bool:
         """Return, if data_point should be enabled based on usage attribute."""
         return self.usage in (
-            DataPointUsage.CE_PRIMARY,
-            DataPointUsage.CE_VISIBLE,
+            DataPointUsage.CDP_PRIMARY,
+            DataPointUsage.CDP_VISIBLE,
             DataPointUsage.DATA_POINT,
             DataPointUsage.EVENT,
         )
@@ -475,7 +475,7 @@ class BaseParameterDataPoint[
         return self._is_un_ignored
 
     @property
-    def data_point_key(self) -> DATA_POINT_KEY:
+    def data_point_key(self) -> DP_KEY:
         """Return data_point key value."""
         return get_data_point_key(
             channel_address=self._channel.address,

@@ -25,7 +25,7 @@ from hahomematic.const import (
     CCU_PASSWORD_PATTERN,
     CHANNEL_ADDRESS_PATTERN,
     DEVICE_ADDRESS_PATTERN,
-    ENTITY_KEY,
+    DP_KEY,
     FILE_DEVICES,
     FILE_PARAMSETS,
     IDENTIFIER_SEPARATOR,
@@ -226,8 +226,8 @@ def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
     )
 
 
-def get_entity_key(channel_address: str, paramset_key: ParamsetKey, parameter: str) -> ENTITY_KEY:
-    """Return an entity key."""
+def get_data_point_key(channel_address: str, paramset_key: ParamsetKey, parameter: str) -> DP_KEY:
+    """Return a data point key."""
     return (str(channel_address), paramset_key, str(parameter))
 
 
@@ -243,7 +243,7 @@ def get_split_channel_address(channel_address: str) -> tuple[str, int | None]:
 
 
 def changed_within_seconds(last_change: datetime, max_age: int = MAX_CACHE_AGE) -> bool:
-    """Entity has been modified within X minutes."""
+    """DataPoint has been modified within X minutes."""
     if last_change == INIT_DATETIME:
         return False
     delta = datetime.now() - last_change

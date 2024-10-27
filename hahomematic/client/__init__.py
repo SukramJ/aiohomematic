@@ -16,7 +16,7 @@ from hahomematic.const import (
     DATETIME_FORMAT_MILLIS,
     DEFAULT_CUSTOM_ID,
     DEFAULT_MAX_WORKERS,
-    ENTITY_KEY,
+    DP_KEY,
     EVENT_AVAILABLE,
     EVENT_SECONDS_SINCE_LAST_EVENT,
     HOMEGEAR_SERIAL,
@@ -40,10 +40,10 @@ from hahomematic.const import (
     SystemVariableData,
 )
 from hahomematic.exceptions import BaseHomematicException, ClientException, NoConnection
+from hahomematic.model.decorators import service
+from hahomematic.model.device import Device
+from hahomematic.model.support import convert_value
 from hahomematic.performance import measure_execution_time
-from hahomematic.platforms.decorators import service
-from hahomematic.platforms.device import HmDevice
-from hahomematic.platforms.support import convert_value
 from hahomematic.support import (
     build_headers,
     build_xml_rpc_uri,
@@ -368,7 +368,7 @@ class Client(ABC):
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
 
-    def get_virtual_remote(self) -> HmDevice | None:
+    def get_virtual_remote(self) -> Device | None:
         """Get the virtual remote for the Client."""
         for model in VIRTUAL_REMOTE_MODELS:
             for device in self.central.devices:
@@ -531,7 +531,7 @@ class Client(ABC):
         wait_for_callback: int | None,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[ENTITY_KEY]:
+    ) -> set[DP_KEY]:
         """Set single value on paramset VALUES."""
         try:
             checked_value = (
@@ -553,7 +553,7 @@ class Client(ABC):
             else:
                 await self._proxy.setValue(channel_address, parameter, checked_value)
             # store the send value in the last_value_send_cache
-            entity_keys = self._last_value_send_cache.add_set_value(
+            data_point_keys = self._last_value_send_cache.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
             )
             if wait_for_callback is not None and (
@@ -563,11 +563,11 @@ class Client(ABC):
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
-                    entity_keys=entity_keys,
+                    data_point_keys=data_point_keys,
                     values={parameter: checked_value},
                     wait_for_callback=wait_for_callback,
                 )
-            return entity_keys  # noqa: TRY300
+            return data_point_keys  # noqa: TRY300
         except BaseHomematicException as ex:
             raise ClientException(
                 f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {reduce_args(args=ex.args)}"
@@ -594,7 +594,7 @@ class Client(ABC):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[ENTITY_KEY]:
+    ) -> set[DP_KEY]:
         """Set single value on paramset VALUES."""
         if paramset_key == ParamsetKey.VALUES:
             return await self._set_value(  # type: ignore[no-any-return]
@@ -644,7 +644,7 @@ class Client(ABC):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[ENTITY_KEY]:
+    ) -> set[DP_KEY]:
         """
         Set paramsets manually.
 
@@ -692,7 +692,7 @@ class Client(ABC):
                 return set()
 
             # store the send value in the last_value_send_cache
-            entity_keys = self._last_value_send_cache.add_put_paramset(
+            data_point_keys = self._last_value_send_cache.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey(paramset_key),
                 values=checked_values,
@@ -704,11 +704,11 @@ class Client(ABC):
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
-                    entity_keys=entity_keys,
+                    data_point_keys=data_point_keys,
                     values=checked_values,
                     wait_for_callback=wait_for_callback,
                 )
-            return entity_keys  # noqa: TRY300
+            return data_point_keys  # noqa: TRY300
         except BaseHomematicException as ex:
             raise ClientException(
                 f"PUT_PARAMSET failed for {channel_address}/{paramset_key}/{values}: {reduce_args(args=ex.args)}"
@@ -1328,57 +1328,60 @@ def get_client(interface_id: str) -> Client | None:
 
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
-    device: HmDevice, entity_keys: set[ENTITY_KEY], values: dict[str, Any], wait_for_callback: int
+    device: Device,
+    data_point_keys: set[DP_KEY],
+    values: dict[str, Any],
+    wait_for_callback: int,
 ) -> None:
-    """Wait for an entity to change state."""
+    """Wait for a data_point to change state."""
     waits = [
-        _track_single_entity_state_change_or_timeout(
+        _track_single_data_point_state_change_or_timeout(
             device=device,
-            entity_key=entity_key,
-            value=values.get(entity_key[1]),
+            data_point_key=data_point_key,
+            value=values.get(data_point_key[1]),
             wait_for_callback=wait_for_callback,
         )
-        for entity_key in entity_keys
+        for data_point_key in data_point_keys
     ]
     await asyncio.gather(*waits)
 
 
 @measure_execution_time
-async def _track_single_entity_state_change_or_timeout(
-    device: HmDevice, entity_key: ENTITY_KEY, value: Any, wait_for_callback: int
+async def _track_single_data_point_state_change_or_timeout(
+    device: Device, data_point_key: DP_KEY, value: Any, wait_for_callback: int
 ) -> None:
-    """Wait for an entity to change state."""
+    """Wait for a data_point to change state."""
     ev = asyncio.Event()
 
     def _async_event_changed(*args: Any, **kwargs: Any) -> None:
-        if entity:
+        if dp:
             _LOGGER.debug(
-                "TRACK_SINGLE_ENTITY_STATE_CHANGE_OR_TIMEOUT: Received event %s with value %s",
-                entity_key,
-                entity.value,
+                "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Received event %s with value %s",
+                data_point_key,
+                dp.value,
             )
-            if _isclose(value, entity.value):
+            if _isclose(value, dp.value):
                 _LOGGER.debug(
-                    "TRACK_SINGLE_ENTITY_STATE_CHANGE_OR_TIMEOUT: Finished event %s with value %s",
-                    entity_key,
-                    entity.value,
+                    "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Finished event %s with value %s",
+                    data_point_key,
+                    dp.value,
                 )
                 ev.set()
 
-    channel_address, paramset_key, parameter = entity_key
-    if entity := device.get_generic_entity(
+    channel_address, paramset_key, parameter = data_point_key
+    if dp := device.get_generic_data_point(
         channel_address=channel_address,
         parameter=parameter,
         paramset_key=ParamsetKey(paramset_key),
     ):
-        if not entity.supports_events:
+        if not dp.supports_events:
             _LOGGER.debug(
-                "TRACK_SINGLE_ENTITY_STATE_CHANGE_OR_TIMEOUT: Entity supports no events %s",
-                entity_key,
+                "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: DataPoint supports no events %s",
+                data_point_key,
             )
             return
         if (
-            unsub := entity.register_entity_updated_callback(
+            unsub := dp.register_data_point_updated_callback(
                 cb=_async_event_changed, custom_id=DEFAULT_CUSTOM_ID
             )
         ) is None:
@@ -1389,9 +1392,9 @@ async def _track_single_entity_state_change_or_timeout(
                 await ev.wait()
         except TimeoutError:
             _LOGGER.debug(
-                "TRACK_SINGLE_ENTITY_STATE_CHANGE_OR_TIMEOUT: Timeout waiting for event %s with value %s",
-                entity_key,
-                entity.value,
+                "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Timeout waiting for event %s with value %s",
+                data_point_key,
+                dp.value,
             )
         finally:
             unsub()

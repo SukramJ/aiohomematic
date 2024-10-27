@@ -1,4 +1,4 @@
-"""Tests for switch entities of hahomematic."""
+"""Tests for switch data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -17,19 +17,19 @@ from hahomematic.const import (
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     VIRTUAL_REMOTE_ADDRESSES,
-    EntityUsage,
+    DataPointUsage,
     ParameterType,
     SysvarType,
 )
 from hahomematic.converter import _COMBINED_PARAMETER_TO_HM_CONVERTER, convert_hm_level_to_cpv
 from hahomematic.exceptions import HaHomematicException
-from hahomematic.platforms.support import (
+from hahomematic.model.support import (
     _check_channel_name_with_channel_no,
     convert_value,
     generate_unique_id,
-    get_custom_entity_name,
+    get_custom_data_point_name,
+    get_data_point_name_data,
     get_device_name,
-    get_entity_name_data,
     get_event_name,
 )
 from hahomematic.support import (
@@ -60,7 +60,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -160,7 +160,7 @@ def test_parse_sys_var() -> None:
     assert parse_sys_var(data_type=SysvarType.LOGIC, raw_value="true") is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_to_bool() -> None:
     """Test to_bool."""
     assert to_bool(value=True) is True
@@ -183,7 +183,7 @@ async def test_to_bool() -> None:
         to_bool(value=2)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -197,34 +197,34 @@ async def test_to_bool() -> None:
         (TEST_DEVICES, True, False, False, None, None),
     ],
 )
-async def test_get_entity_name(
+async def test_get_data_point_name(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test get_entity_name."""
+    """Test get_data_point_name."""
     central, _, _ = central_client_factory
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:5")
-    name_data = get_entity_name_data(channel=channel4, parameter="LEVEL")
+    name_data = get_data_point_name_data(channel=channel4, parameter="LEVEL")
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
-    assert name_data.entity_name == "Level"
+    assert name_data.data_point_name == "Level"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
-    name_data = get_entity_name_data(channel=channel5, parameter="LEVEL")
+    name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
-    assert name_data.entity_name == "Roof Level"
+    assert name_data.data_point_name == "Roof Level"
 
     with patch(
-        "hahomematic.platforms.support._get_base_name_from_channel_or_device",
+        "hahomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
-        name_data = get_entity_name_data(channel=channel5, parameter="LEVEL")
+        name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == ""
-        assert name_data.entity_name is None
+        assert name_data.data_point_name is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -248,26 +248,26 @@ async def test_get_event_name(
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
     name_data = get_event_name(channel=channel4, parameter="LEVEL")
     assert name_data.channel_name == "ch4"
-    assert name_data.entity_name == "ch4 Level"
+    assert name_data.data_point_name == "ch4 Level"
     assert name_data.full_name == "HmIP-BSM_VCU2128127 ch4 Level"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_event_name(channel=channel5, parameter="LEVEL")
     assert name_data.channel_name == "Roof"
-    assert name_data.entity_name == "Roof Level"
+    assert name_data.data_point_name == "Roof Level"
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
 
     with patch(
-        "hahomematic.platforms.support._get_base_name_from_channel_or_device",
+        "hahomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == ""
-        assert name_data.entity_name is None
+        assert name_data.data_point_name is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -281,62 +281,62 @@ async def test_get_event_name(
         (TEST_DEVICES, True, False, False, None, None),
     ],
 )
-async def test_custom_entity_name(
+async def test_custom_data_point_name(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test get_custom_entity_name."""
+    """Test get_custom_data_point_name."""
     central, _, _ = central_client_factory
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel4,
         is_only_primary_channel=True,
-        usage=EntityUsage.CE_PRIMARY,
+        usage=DataPointUsage.CDP_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127"
-    assert name_data.entity_name == ""
+    assert name_data.data_point_name == ""
 
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel4,
         is_only_primary_channel=False,
-        usage=EntityUsage.CE_SECONDARY,
+        usage=DataPointUsage.CDP_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 vch4"
-    assert name_data.entity_name == "vch4"
+    assert name_data.data_point_name == "vch4"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel5,
         is_only_primary_channel=True,
-        usage=EntityUsage.CE_PRIMARY,
+        usage=DataPointUsage.CDP_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
-    assert name_data.entity_name == "Roof"
+    assert name_data.data_point_name == "Roof"
 
-    name_data = get_custom_entity_name(
+    name_data = get_custom_data_point_name(
         channel=channel5,
         is_only_primary_channel=False,
-        usage=EntityUsage.CE_SECONDARY,
+        usage=DataPointUsage.CDP_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
-    assert name_data.entity_name == "Roof"
+    assert name_data.data_point_name == "Roof"
 
     with patch(
-        "hahomematic.platforms.support._get_base_name_from_channel_or_device",
+        "hahomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
-        name_data = get_custom_entity_name(
+        name_data = get_custom_data_point_name(
             channel=channel5,
             is_only_primary_channel=False,
-            usage=EntityUsage.CE_SECONDARY,
+            usage=DataPointUsage.CDP_SECONDARY,
         )
         assert name_data.full_name == ""
-        assert name_data.entity_name is None
+        assert name_data.data_point_name is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -365,14 +365,14 @@ async def test_get_device_name(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_tls_context() -> None:
     """Test tls_context."""
     assert get_tls_context(verify_tls=False).check_hostname is False
     assert get_tls_context(verify_tls=True).check_hostname is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_changed_within_seconds() -> None:
     """Test changed_within_seconds."""
     assert (
@@ -386,7 +386,7 @@ async def test_changed_within_seconds() -> None:
     assert changed_within_seconds(last_change=INIT_DATETIME, max_age=60) is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_convert_value() -> None:
     """Test convert_value."""
     assert convert_value(value=None, target_type=ParameterType.BOOL, value_list=None) is None
@@ -411,7 +411,7 @@ async def test_convert_value() -> None:
     assert convert_value(value=True, target_type=ParameterType.ACTION, value_list=None) is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_element_matches_key() -> None:
     """Test element_matches_key."""
     assert element_matches_key(search_elements="HmIP-eTRV", compare_with=None) is False
@@ -446,7 +446,7 @@ async def test_element_matches_key() -> None:
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_value_from_dict_by_wildcard_key() -> None:
     """Test value_from_dict_by_wildcard_key."""
     assert (
@@ -479,7 +479,7 @@ async def test_value_from_dict_by_wildcard_key() -> None:
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_others() -> None:
     """Test find_free_port."""
     assert find_free_port()

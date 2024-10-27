@@ -60,7 +60,7 @@ DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
 IP_ANY_V4: Final = "0.0.0.0"
-KWARGS_ARG_ENTITY = "entity"
+KWARGS_ARG_DATA_POINT = "data_point"
 PATH_JSON_RPC: Final = "/api/homematic.cgi"
 PORT_ANY: Final = 0
 
@@ -95,7 +95,6 @@ MAX_CACHE_AGE: Final = 60
 
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
 
-
 CALLBACK_TYPE = Callable[[], None] | None
 
 UN_IGNORE_WILDCARD: Final = "all"
@@ -115,7 +114,7 @@ class BackendSystemEvent(StrEnum):
     DELETE_DEVICES = "deleteDevices"
     DEVICES_CREATED = "devicesCreated"
     ERROR = "error"
-    HUB_REFRESHED = "hubEntityRefreshed"
+    HUB_REFRESHED = "hubDataPointRefreshed"
     LIST_DEVICES = "listDevices"
     NEW_DEVICES = "newDevices"
     REPLACE_DEVICE = "replaceDevice"
@@ -142,6 +141,44 @@ class DataOperationResult(Enum):
     NO_SAVE = 21
 
 
+class DataPointCategory(StrEnum):
+    """Enum with data point types."""
+
+    ACTION = "action"
+    BINARY_SENSOR = "binary_sensor"
+    BUTTON = "button"
+    CLIMATE = "climate"
+    COVER = "cover"
+    EVENT = "event"
+    HUB_BINARY_SENSOR = "hub_binary_sensor"
+    HUB_BUTTON = "hub_button"
+    HUB_NUMBER = "hub_number"
+    HUB_SELECT = "hub_select"
+    HUB_SENSOR = "hub_sensor"
+    HUB_SWITCH = "hub_switch"
+    HUB_TEXT = "hub_text"
+    LIGHT = "light"
+    LOCK = "lock"
+    NUMBER = "number"
+    SELECT = "select"
+    SENSOR = "sensor"
+    SIREN = "siren"
+    SWITCH = "switch"
+    TEXT = "text"
+    UPDATE = "update"
+
+
+class DataPointUsage(StrEnum):
+    """Enum with information about usage in Home Assistant."""
+
+    CDP_PRIMARY = "ce_primary"
+    CDP_SECONDARY = "ce_secondary"
+    CDP_VISIBLE = "ce_visible"
+    DATA_POINT = "data_point"
+    EVENT = "event"
+    NO_CREATE = "no_create"
+
+
 class DeviceFirmwareState(StrEnum):
     """Enum with homematic device firmware states."""
 
@@ -158,15 +195,14 @@ class DeviceFirmwareState(StrEnum):
     BACKGROUND_UPDATE_NOT_SUPPORTED = "BACKGROUND_UPDATE_NOT_SUPPORTED"
 
 
-class EntityUsage(StrEnum):
-    """Enum with information about usage in Home Assistant."""
+class EventType(StrEnum):
+    """Enum with hahomematic event types."""
 
-    CE_PRIMARY = "ce_primary"
-    CE_SECONDARY = "ce_secondary"
-    CE_VISIBLE = "ce_visible"
-    ENTITY = "entity"
-    EVENT = "event"
-    NO_CREATE = "entity_no_create"
+    DEVICE_AVAILABILITY = "homematic.device_availability"
+    DEVICE_ERROR = "homematic.device_error"
+    IMPULSE = "homematic.impulse"
+    INTERFACE = "homematic.interface"
+    KEYPRESS = "homematic.keypress"
 
 
 class Flag(IntEnum):
@@ -185,16 +221,6 @@ class ForcedDeviceAvailability(StrEnum):
     FORCE_FALSE = "forced_not_available"
     FORCE_TRUE = "forced_available"
     NOT_SET = "not_set"
-
-
-class HomematicEventType(StrEnum):
-    """Enum with hahomematic event types."""
-
-    DEVICE_AVAILABILITY = "homematic.device_availability"
-    DEVICE_ERROR = "homematic.device_error"
-    IMPULSE = "homematic.impulse"
-    INTERFACE = "homematic.interface"
-    KEYPRESS = "homematic.keypress"
 
 
 class Manufacturer(StrEnum):
@@ -334,33 +360,6 @@ class ParamsetKey(StrEnum):
     VALUES = "VALUES"
 
 
-class HmPlatform(StrEnum):
-    """Enum with platforms relevant for Home Assistant."""
-
-    ACTION = "action"
-    BINARY_SENSOR = "binary_sensor"
-    BUTTON = "button"
-    CLIMATE = "climate"
-    COVER = "cover"
-    EVENT = "event"
-    HUB_BINARY_SENSOR = "hub_binary_sensor"
-    HUB_BUTTON = "hub_button"
-    HUB_NUMBER = "hub_number"
-    HUB_SELECT = "hub_select"
-    HUB_SENSOR = "hub_sensor"
-    HUB_SWITCH = "hub_switch"
-    HUB_TEXT = "hub_text"
-    LIGHT = "light"
-    LOCK = "lock"
-    NUMBER = "number"
-    SELECT = "select"
-    SENSOR = "sensor"
-    SIREN = "siren"
-    SWITCH = "switch"
-    TEXT = "text"
-    UPDATE = "update"
-
-
 class ProductGroup(StrEnum):
     """Enum with homematic product groups."""
 
@@ -455,13 +454,13 @@ CLICK_EVENTS: Final[tuple[Parameter, ...]] = (
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-ENTITY_EVENTS: Final[tuple[HomematicEventType, ...]] = (
-    HomematicEventType.IMPULSE,
-    HomematicEventType.KEYPRESS,
+DATA_POINT_EVENTS: Final[tuple[EventType, ...]] = (
+    EventType.IMPULSE,
+    EventType.KEYPRESS,
 )
 
 # channel_address, paramset_key,parameter
-ENTITY_KEY = tuple[str, ParamsetKey, str]
+DP_KEY = tuple[str, ParamsetKey, str]
 
 HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
     DeviceFirmwareState.DO_UPDATE_PENDING,
@@ -485,31 +484,31 @@ KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, tuple[str, ...]]] = {
 }
 
 
-HUB_PLATFORMS: Final[tuple[HmPlatform, ...]] = (
-    HmPlatform.HUB_BINARY_SENSOR,
-    HmPlatform.HUB_BUTTON,
-    HmPlatform.HUB_NUMBER,
-    HmPlatform.HUB_SELECT,
-    HmPlatform.HUB_SENSOR,
-    HmPlatform.HUB_SWITCH,
-    HmPlatform.HUB_TEXT,
+HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.HUB_BINARY_SENSOR,
+    DataPointCategory.HUB_BUTTON,
+    DataPointCategory.HUB_NUMBER,
+    DataPointCategory.HUB_SELECT,
+    DataPointCategory.HUB_SENSOR,
+    DataPointCategory.HUB_SWITCH,
+    DataPointCategory.HUB_TEXT,
 )
 
-PLATFORMS: Final[tuple[HmPlatform, ...]] = (
-    HmPlatform.BINARY_SENSOR,
-    HmPlatform.BUTTON,
-    HmPlatform.CLIMATE,
-    HmPlatform.COVER,
-    HmPlatform.EVENT,
-    HmPlatform.LIGHT,
-    HmPlatform.LOCK,
-    HmPlatform.NUMBER,
-    HmPlatform.SELECT,
-    HmPlatform.SENSOR,
-    HmPlatform.SIREN,
-    HmPlatform.SWITCH,
-    HmPlatform.TEXT,
-    HmPlatform.UPDATE,
+CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.BINARY_SENSOR,
+    DataPointCategory.BUTTON,
+    DataPointCategory.CLIMATE,
+    DataPointCategory.COVER,
+    DataPointCategory.EVENT,
+    DataPointCategory.LIGHT,
+    DataPointCategory.LOCK,
+    DataPointCategory.NUMBER,
+    DataPointCategory.SELECT,
+    DataPointCategory.SENSOR,
+    DataPointCategory.SIREN,
+    DataPointCategory.SWITCH,
+    DataPointCategory.TEXT,
+    DataPointCategory.UPDATE,
 )
 
 RELEVANT_INIT_PARAMETERS: Final[tuple[Parameter, ...]] = (
@@ -546,7 +545,7 @@ VIRTUAL_REMOTE_ADDRESSES: Final[tuple[str, ...]] = (
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class HubData:
-    """Dataclass for hub entities."""
+    """Dataclass for hub data points."""
 
     name: str
 

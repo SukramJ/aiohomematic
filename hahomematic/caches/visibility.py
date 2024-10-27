@@ -16,7 +16,7 @@ from hahomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from hahomematic.platforms.custom import get_required_parameters
+from hahomematic.model.custom import get_required_parameters
 from hahomematic.support import element_matches_key, reduce_args
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -24,9 +24,9 @@ _LOGGER: Final = logging.getLogger(__name__)
 _FILE_CUSTOM_UN_IGNORE_PARAMETERS: Final = "unignore"
 _IGNORE_MODEL: Final = "ignore_"
 
-# Define which additional parameters from MASTER paramset should be created as entity.
-# By default these are also on the _HIDDEN_PARAMETERS, which prevents these entities
-# from being display by default. Usually these enties are used within custom entities,
+# Define which additional parameters from MASTER paramset should be created as data_point.
+# By default these are also on the _HIDDEN_PARAMETERS, which prevents these data points
+# from being display by default. Usually these enties are used within custom data points,
 # and not for general display.
 # {model: (channel_no, parameter)}
 
@@ -74,11 +74,11 @@ _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[
 }
 
 # Ignore events for some devices
-_IGNORE_DEVICES_FOR_ENTITY_EVENTS: Final[Mapping[str, tuple[Parameter, ...]]] = {
+_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS: Final[Mapping[str, tuple[Parameter, ...]]] = {
     "HmIP-PS": CLICK_EVENTS,
 }
 
-# Entities that will be created, but should be hidden.
+# data points that will be created, but should be hidden.
 _HIDDEN_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.ACTIVITY_STATE,
     Parameter.CHANNEL_OPERATION_MODE,
@@ -97,7 +97,7 @@ _HIDDEN_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.WORKING,
 )
 
-# Parameters within the VALUES paramset for which we don't create entities.
+# Parameters within the VALUES paramset for which we don't create data points.
 _IGNORED_PARAMETERS: Final[tuple[str, ...]] = (
     "ACCESS_AUTHORIZATION",
     "ACOUSTIC_NOTIFICATION_SELECTION",
@@ -197,7 +197,7 @@ _IGNORED_PARAMETERS_WILDCARDS_START: Final[tuple[str, ...]] = (
 )
 
 
-# Parameters within the paramsets for which we create entities.
+# Parameters within the paramsets for which we create data points.
 _UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, tuple[Parameter, ...]]] = {
     "HmIP-DLD": (Parameter.ERROR_JAMMED,),
     "HmIP-SWSD": (Parameter.SMOKE_DETECTOR_ALARM_STATUS,),
@@ -210,7 +210,7 @@ _UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, tuple[Parameter, ...]]] = {
     ),  # To override ignore for HmIP-PCBS
 }
 
-# Parameters by device within the VALUES paramset for which we don't create entities.
+# Parameters by device within the VALUES paramset for which we don't create data points.
 _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
     Parameter.CURRENT_ILLUMINATION: (
         "HmIP-SMI",
@@ -283,9 +283,9 @@ class ParameterVisibilityCache:
             for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
         }
 
-        self._ignore_devices_for_entity_events_lower: Final[dict[str, tuple[str, ...]]] = {
+        self._ignore_devices_for_data_point_events_lower: Final[dict[str, tuple[str, ...]]] = {
             model.lower(): tuple(event for event in events)
-            for model, events in _IGNORE_DEVICES_FOR_ENTITY_EVENTS.items()
+            for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
         }
 
         self._un_ignore_parameters_by_device_lower: Final[dict[str, tuple[str, ...]]] = {
@@ -334,7 +334,7 @@ class ParameterVisibilityCache:
 
     @lru_cache(maxsize=128)
     def model_is_ignored(self, model: str) -> bool:
-        """Check if a model should be ignored for custom entities."""
+        """Check if a model should be ignored for custom data points."""
         return element_matches_key(
             search_elements=self._ignore_custom_,
             compare_with=model.lower(),
@@ -375,7 +375,7 @@ class ParameterVisibilityCache:
                     compare_with=model_l,
                 )
                 or hms.element_matches_key(
-                    search_elements=self._ignore_devices_for_entity_events_lower,
+                    search_elements=self._ignore_devices_for_data_point_events_lower,
                     compare_with=parameter,
                     search_key=model_l,
                     do_wildcard_search=False,
@@ -657,7 +657,7 @@ class ParameterVisibilityCache:
         """
         Return if parameter should be hidden.
 
-        This is required to determine the entity usage.
+        This is required to determine the data_point usage.
         Return only hidden parameters, that are no defined in the un_ignore file.
         """
         return parameter in _HIDDEN_PARAMETERS and not self._parameter_is_un_ignored(

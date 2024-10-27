@@ -1,4 +1,4 @@
-"""Tests for cover entities of hahomematic."""
+"""Tests for cover data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -11,9 +11,15 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage, ParamsetKey
-from hahomematic.platforms.custom import CeBlind, CeCover, CeGarage, CeIpBlind, CeWindowDrive
-from hahomematic.platforms.custom.cover import (
+from hahomematic.const import DataPointUsage, ParamsetKey
+from hahomematic.model.custom import (
+    CustomDpBlind,
+    CustomDpCover,
+    CustomDpGarage,
+    CustomDpIpBlind,
+    CustomDpWindowDrive,
+)
+from hahomematic.model.custom.cover import (
     _CLOSED_LEVEL,
     _OPEN_LEVEL,
     _OPEN_TILT_LEVEL,
@@ -38,7 +44,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -55,10 +61,12 @@ TEST_DEVICES: dict[str, str] = {
 async def test_cecover(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeCover."""
+    """Test CustomDpCover."""
     central, mock_client, _ = central_client_factory
-    cover: CeCover = cast(CeCover, helper.get_prepared_custom_entity(central, "VCU8537918", 4))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    cover: CustomDpCover = cast(
+        CustomDpCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4)
+    )
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _CLOSED_LEVEL
     assert cover.is_closed is True
@@ -120,7 +128,7 @@ async def test_cecover(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -137,12 +145,12 @@ async def test_cecover(
 async def test_ceipblind_dr(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpBlind DIN Rail."""
+    """Test CustomDpIpBlind DIN Rail."""
     central, mock_client, _ = central_client_factory
-    cover: CeIpBlind = cast(
-        CeIpBlind, helper.get_prepared_custom_entity(central, "VCU7807849", 14)
+    cover: CustomDpIpBlind = cast(
+        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU7807849", 14)
     )
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -166,12 +174,12 @@ async def test_ceipblind_dr(
     )
 
     # test unconfirmed values
-    assert cover._e_level.unconfirmed_last_value_send == 0.81
-    assert cover._e_level_2.unconfirmed_last_value_send == _CLOSED_LEVEL
+    assert cover._dp_level.unconfirmed_last_value_send == 0.81
+    assert cover._dp_level_2.unconfirmed_last_value_send == _CLOSED_LEVEL
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", 0.81)
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _CLOSED_LEVEL)
-    assert cover._e_level.unconfirmed_last_value_send is None
-    assert cover._e_level_2.unconfirmed_last_value_send is None
+    assert cover._dp_level.unconfirmed_last_value_send is None
+    assert cover._dp_level_2.unconfirmed_last_value_send is None
 
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", 0.81)
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _CLOSED_LEVEL)
@@ -184,14 +192,14 @@ async def test_ceipblind_dr(
         parameter="COMBINED_PARAMETER",
         value="L2=100,L=100",
     )
-    assert cover._e_level.unconfirmed_last_value_send == _OPEN_LEVEL
-    assert cover._e_level_2.unconfirmed_last_value_send == _OPEN_TILT_LEVEL
+    assert cover._dp_level.unconfirmed_last_value_send == _OPEN_LEVEL
+    assert cover._dp_level_2.unconfirmed_last_value_send == _OPEN_TILT_LEVEL
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", _OPEN_LEVEL)
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _OPEN_TILT_LEVEL)
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", _OPEN_LEVEL)
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _OPEN_TILT_LEVEL)
-    assert cover._e_level.unconfirmed_last_value_send is None
-    assert cover._e_level_2.unconfirmed_last_value_send is None
+    assert cover._dp_level.unconfirmed_last_value_send is None
+    assert cover._dp_level_2.unconfirmed_last_value_send is None
     assert cover.current_position == 100
     assert cover.current_tilt_position == 100
     await cover.close()
@@ -214,7 +222,7 @@ async def test_ceipblind_dr(
     assert cover.current_position == 50
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -231,12 +239,12 @@ async def test_ceipblind_dr(
 async def test_cewindowdrive(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeWindowDrive."""
+    """Test CustomDpWindowDrive."""
     central, mock_client, _ = central_client_factory
-    cover: CeWindowDrive = cast(
-        CeWindowDrive, helper.get_prepared_custom_entity(central, "VCU0000350", 1)
+    cover: CustomDpWindowDrive = cast(
+        CustomDpWindowDrive, helper.get_prepared_custom_data_point(central, "VCU0000350", 1)
     )
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _WD_CLOSED_LEVEL
     assert cover.is_closed is True
@@ -283,7 +291,7 @@ async def test_cewindowdrive(
     assert cover.is_closed is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -300,10 +308,12 @@ async def test_cewindowdrive(
 async def test_ceblind(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeBlind."""
+    """Test CustomDpBlind."""
     central, mock_client, _ = central_client_factory
-    cover: CeBlind = cast(CeBlind, helper.get_prepared_custom_entity(central, "VCU0000144", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    cover: CustomDpBlind = cast(
+        CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1)
+    )
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -431,7 +441,7 @@ async def test_ceblind(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -448,9 +458,11 @@ async def test_ceblind(
 async def test_ceblind_separate_level_and_tilt_change(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test if CeBlind sends correct commands even when rapidly changing level and tilt via separate service calls."""
+    """Test if CustomDpBlind sends correct commands even when rapidly changing level and tilt via separate service calls."""
     central, mock_client, _ = central_client_factory
-    cover: CeBlind = cast(CeBlind, helper.get_prepared_custom_entity(central, "VCU0000144", 1))
+    cover: CustomDpBlind = cast(
+        CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1)
+    )
 
     # In order for this test to make sense, communication with CCU must take some amount of time.
     # This is not the case with the default local client used during testing, so we add a slight delay.
@@ -485,7 +497,7 @@ async def test_ceblind_separate_level_and_tilt_change(
         assert cover.current_tilt_position == 19
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -502,10 +514,12 @@ async def test_ceblind_separate_level_and_tilt_change(
 async def test_ceipblind(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpBlind."""
+    """Test CustomDpIpBlind."""
     central, mock_client, _ = central_client_factory
-    cover: CeIpBlind = cast(CeIpBlind, helper.get_prepared_custom_entity(central, "VCU1223813", 4))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    cover: CustomDpIpBlind = cast(
+        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU1223813", 4)
+    )
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
 
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
@@ -625,7 +639,7 @@ async def test_ceipblind(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -642,10 +656,12 @@ async def test_ceipblind(
 async def test_ceipblind_hdm(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpBlind HDM."""
+    """Test CustomDpIpBlind HDM."""
     central, mock_client, _ = central_client_factory
-    cover: CeIpBlind = cast(CeIpBlind, helper.get_prepared_custom_entity(central, "VCU3560967", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    cover: CustomDpIpBlind = cast(
+        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU3560967", 1)
+    )
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
         "close_tilt",
@@ -758,7 +774,7 @@ async def test_ceipblind_hdm(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -775,10 +791,12 @@ async def test_ceipblind_hdm(
 async def test_cegarageho(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeGarageHO."""
+    """Test CustomDpGarageHO."""
     central, mock_client, _ = central_client_factory
-    cover: CeGarage = cast(CeGarage, helper.get_prepared_custom_entity(central, "VCU3574044", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    cover: CustomDpGarage = cast(
+        CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU3574044", 1)
+    )
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == ("close", "open", "set_position", "stop", "vent")
 
     assert cover.current_position is None
@@ -876,7 +894,7 @@ async def test_cegarageho(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -893,10 +911,12 @@ async def test_cegarageho(
 async def test_cegaragetm(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeGarageTM."""
+    """Test CustomDpGarageTM."""
     central, mock_client, _ = central_client_factory
-    cover: CeGarage = cast(CeGarage, helper.get_prepared_custom_entity(central, "VCU6166407", 1))
-    assert cover.usage == EntityUsage.CE_PRIMARY
+    cover: CustomDpGarage = cast(
+        CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU6166407", 1)
+    )
+    assert cover.usage == DataPointUsage.CDP_PRIMARY
 
     assert cover.current_position is None
     await cover.set_position(position=81)

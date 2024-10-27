@@ -1,4 +1,4 @@
-"""Tests for sensor entities of hahomematic."""
+"""Tests for sensor data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.generic import HmSensor
-from hahomematic.platforms.hub import HmSysvarSensor
+from hahomematic.const import DataPointUsage
+from hahomematic.model.generic import DpSensor
+from hahomematic.model.hub import SysvarDpSensor
 
 from tests import const, helper
 
@@ -24,7 +24,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -43,8 +43,8 @@ async def test_hmsensor_psm(
 ) -> None:
     """Test HmSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSensor = cast(HmSensor, central.get_generic_entity("VCU3941846:6", "VOLTAGE"))
-    assert sensor.usage == EntityUsage.ENTITY
+    sensor: DpSensor = cast(DpSensor, central.get_generic_data_point("VCU3941846:6", "VOLTAGE"))
+    assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit == "V"
     assert sensor.values is None
     assert sensor.value is None
@@ -53,11 +53,11 @@ async def test_hmsensor_psm(
     await central.event(const.INTERFACE_ID, "VCU3941846:6", "VOLTAGE", 234.00)
     assert sensor.value == 234.00
 
-    sensor2: HmSensor = cast(
-        HmSensor,
-        central.get_generic_entity("VCU3941846:0", "RSSI_DEVICE"),
+    sensor2: DpSensor = cast(
+        DpSensor,
+        central.get_generic_data_point("VCU3941846:0", "RSSI_DEVICE"),
     )
-    assert sensor2.usage == EntityUsage.ENTITY
+    assert sensor2.usage == DataPointUsage.DATA_POINT
     assert sensor2.unit == "dBm"
     assert sensor2.values is None
     assert sensor2.value is None
@@ -72,17 +72,17 @@ async def test_hmsensor_psm(
     await central.event(const.INTERFACE_ID, "VCU3941846:0", "RSSI_DEVICE", 400)
     assert sensor2.value is None
 
-    sensor3: HmSensor = cast(
-        HmSensor,
-        central.get_generic_entity("VCU8205532:1", "CONCENTRATION"),
+    sensor3: DpSensor = cast(
+        DpSensor,
+        central.get_generic_data_point("VCU8205532:1", "CONCENTRATION"),
     )
-    assert sensor3.usage == EntityUsage.ENTITY
+    assert sensor3.usage == DataPointUsage.DATA_POINT
     assert sensor3.unit == "ppm"
     assert sensor3.values is None
     assert sensor3.value is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -101,8 +101,8 @@ async def test_hmsensor_srh(
 ) -> None:
     """Test HmSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSensor = cast(HmSensor, central.get_generic_entity("VCU7981740:1", "STATE"))
-    assert sensor.usage == EntityUsage.ENTITY
+    sensor: DpSensor = cast(DpSensor, central.get_generic_data_point("VCU7981740:1", "STATE"))
+    assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit is None
     assert sensor.values == ("CLOSED", "TILTED", "OPEN")
     assert sensor.value is None
@@ -112,7 +112,7 @@ async def test_hmsensor_srh(
     assert sensor.value == "OPEN"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -131,15 +131,15 @@ async def test_hmsysvarsensor(
 ) -> None:
     """Test HmSysvarSensor."""
     central, _, _ = central_client_factory
-    sensor: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_entity("sv_list"))
-    assert sensor.usage == EntityUsage.ENTITY
+    sensor: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("sv_list"))
+    assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.available is True
     assert sensor.unit is None
     assert sensor.values == ("v1", "v2", "v3")
     assert sensor.value == "v1"
 
-    sensor2: HmSysvarSensor = cast(HmSysvarSensor, central.get_sysvar_entity("sv_float"))
-    assert sensor2.usage == EntityUsage.ENTITY
+    sensor2: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("sv_float"))
+    assert sensor2.usage == DataPointUsage.DATA_POINT
     assert sensor2.unit is None
     assert sensor2.values is None
     assert sensor2.value == 23.2

@@ -31,6 +31,8 @@ from hahomematic.client.json_rpc import JsonRpcAioHttpClient
 from hahomematic.client.xml_rpc import XmlRpcProxy
 from hahomematic.const import (
     CALLBACK_TYPE,
+    CATEGORIES,
+    DATA_POINT_EVENTS,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
@@ -39,22 +41,20 @@ from hahomematic.const import (
     DEFAULT_SYSVAR_SCAN_ENABLED,
     DEFAULT_TLS,
     DEFAULT_VERIFY_TLS,
-    ENTITY_EVENTS,
-    ENTITY_KEY,
+    DP_KEY,
     EVENT_AVAILABLE,
     EVENT_DATA,
     EVENT_INTERFACE_ID,
     EVENT_TYPE,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
-    PLATFORMS,
     PORT_ANY,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
+    DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
-    HmPlatform,
-    HomematicEventType,
+    EventType,
     InterfaceEventType,
     InterfaceName,
     Operations,
@@ -70,21 +70,21 @@ from hahomematic.exceptions import (
     NoClients,
     NoConnection,
 )
+from hahomematic.model import create_data_points_and_events
+from hahomematic.model.custom import CustomDataPoint, create_custom_data_points
+from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
+from hahomematic.model.decorators import info_property, service
+from hahomematic.model.device import Device
+from hahomematic.model.event import GenericEvent
+from hahomematic.model.generic import GenericDataPoint
+from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton
+from hahomematic.model.support import PayloadMixin
 from hahomematic.performance import measure_execution_time
-from hahomematic.platforms import create_entities_and_events
-from hahomematic.platforms.custom import CustomEntity, create_custom_entities
-from hahomematic.platforms.decorators import info_property, service
-from hahomematic.platforms.device import HmDevice
-from hahomematic.platforms.entity import BaseParameterEntity, CallbackEntity
-from hahomematic.platforms.event import GenericEvent
-from hahomematic.platforms.generic import GenericEntity
-from hahomematic.platforms.hub import GenericHubEntity, GenericSystemVariable, HmProgramButton, Hub
-from hahomematic.platforms.support import PayloadMixin
 from hahomematic.support import (
     check_config,
     get_channel_no,
+    get_data_point_key,
     get_device_address,
-    get_entity_key,
     get_ip_addr,
     reduce_args,
 )
@@ -133,15 +133,15 @@ class CentralUnit(PayloadMixin):
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
-        self._entity_event_subscriptions: Final[
-            dict[ENTITY_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
+        self._data_point_event_subscriptions: Final[
+            dict[DP_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
         ] = {}
         # {device_address, device}
-        self._devices: Final[dict[str, HmDevice]] = {}
-        # {sysvar_name, sysvar_entity}
-        self._sysvar_entities: Final[dict[str, GenericSystemVariable]] = {}
+        self._devices: Final[dict[str, Device]] = {}
+        # {sysvar_name, sysvar_data_point}
+        self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {sysvar_name, program_button}U
-        self._program_buttons: Final[dict[str, HmProgramButton]] = {}
+        self._program_buttons: Final[dict[str, ProgramDpButton]] = {}
         # Signature: (name, *args)
         # e.g. DEVICES_CREATED, HUB_REFRESHED
         self._backend_system_callbacks: Final[set[Callable]] = set()
@@ -203,7 +203,7 @@ class CentralUnit(PayloadMixin):
         return self._device_descriptions
 
     @property
-    def devices(self) -> tuple[HmDevice, ...]:
+    def devices(self) -> tuple[Device, ...]:
         """Return all devices."""
         return tuple(self._devices.values())
 
@@ -281,12 +281,12 @@ class CentralUnit(PayloadMixin):
 
     @property
     def path(self) -> str:
-        """Return the base path of the entity."""
+        """Return the base path of the data_point."""
         return f"{self._config.base_path}{self.name}"
 
     @property
-    def program_buttons(self) -> tuple[HmProgramButton, ...]:
-        """Return the program entities."""
+    def program_buttons(self) -> tuple[ProgramDpButton, ...]:
+        """Return the program data points."""
         return tuple(self._program_buttons.values())
 
     @property
@@ -309,9 +309,9 @@ class CentralUnit(PayloadMixin):
         return SystemInformation()
 
     @property
-    def sysvar_entities(self) -> tuple[GenericSystemVariable, ...]:
-        """Return the sysvar entities."""
-        return tuple(self._sysvar_entities.values())
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPoint, ...]:
+        """Return the sysvar data points."""
+        return tuple(self._sysvar_data_points.values())
 
     @info_property
     def version(self) -> str | None:
@@ -321,18 +321,18 @@ class CentralUnit(PayloadMixin):
             self._version = max(versions) if versions else None
         return self._version
 
-    def add_sysvar_entity(self, sysvar_entity: GenericSystemVariable) -> None:
+    def add_sysvar_data_point(self, sysvar_data_point: GenericSysvarDataPoint) -> None:
         """Add new program button."""
-        if (ccu_var_name := sysvar_entity.ccu_var_name) is not None:
-            self._sysvar_entities[ccu_var_name] = sysvar_entity
+        if (ccu_var_name := sysvar_data_point.ccu_var_name) is not None:
+            self._sysvar_data_points[ccu_var_name] = sysvar_data_point
 
-    def remove_sysvar_entity(self, name: str) -> None:
-        """Remove a sysvar entity."""
-        if (sysvar_entity := self.get_sysvar_entity(name=name)) is not None:
-            sysvar_entity.fire_device_removed_callback()
-            del self._sysvar_entities[name]
+    def remove_sysvar_data_point(self, name: str) -> None:
+        """Remove a sysvar data_point."""
+        if (sysvar_dp := self.get_sysvar_data_point(name=name)) is not None:
+            sysvar_dp.fire_device_removed_callback()
+            del self._sysvar_data_points[name]
 
-    def add_program_button(self, program_button: HmProgramButton) -> None:
+    def add_program_button(self, program_button: ProgramDpButton) -> None:
         """Add new program button."""
         self._program_buttons[program_button.pid] = program_button
 
@@ -593,7 +593,7 @@ class CentralUnit(PayloadMixin):
         }
 
         self.fire_homematic_callback(
-            event_type=HomematicEventType.INTERFACE,
+            event_type=EventType.INTERFACE,
             event_data=cast(dict[str, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
@@ -651,43 +651,43 @@ class CentralUnit(PayloadMixin):
             )
         return self._clients[interface_id]
 
-    def get_device(self, address: str) -> HmDevice | None:
+    def get_device(self, address: str) -> Device | None:
         """Return homematic device."""
         d_address = get_device_address(address=address)
         return self._devices.get(d_address)
 
-    def get_entity_by_custom_id(self, custom_id: str) -> CallbackEntity | None:
-        """Return homematic entity by custom_id."""
-        for entity in self.get_entities(registered=True):
-            if entity.custom_id == custom_id:
-                return entity
+    def get_data_point_by_custom_id(self, custom_id: str) -> CallbackDataPoint | None:
+        """Return homematic data_point by custom_id."""
+        for data_point in self.get_data_points(registered=True):
+            if data_point.custom_id == custom_id:
+                return data_point
         return None
 
-    def get_entities(
+    def get_data_points(
         self,
-        platform: HmPlatform | None = None,
+        category: DataPointCategory | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
-    ) -> tuple[CallbackEntity, ...]:
-        """Return all externally registered entities."""
-        all_entities: list[CallbackEntity] = []
+    ) -> tuple[CallbackDataPoint, ...]:
+        """Return all externally registered data points."""
+        all_data_points: list[CallbackDataPoint] = []
         for device in self._devices.values():
-            all_entities.extend(
-                device.get_entities(
-                    platform=platform, exclude_no_create=exclude_no_create, registered=registered
+            all_data_points.extend(
+                device.get_data_points(
+                    category=category, exclude_no_create=exclude_no_create, registered=registered
                 )
             )
-        return tuple(all_entities)
+        return tuple(all_data_points)
 
-    def get_readable_generic_entities(
+    def get_readable_generic_data_points(
         self, paramset_key: ParamsetKey | None = None
-    ) -> tuple[GenericEntity, ...]:
-        """Return the readable generic entities."""
+    ) -> tuple[GenericDataPoint, ...]:
+        """Return the readable generic data points."""
         return tuple(
             ge
-            for ge in self.get_entities()
+            for ge in self.get_data_points()
             if (
-                isinstance(ge, GenericEntity)
+                isinstance(ge, GenericDataPoint)
                 and ge.is_readable
                 and ((paramset_key and ge.paramset_key == paramset_key) or paramset_key is None)
             )
@@ -704,21 +704,21 @@ class CentralUnit(PayloadMixin):
                 return client
         return client
 
-    def get_hub_entities(
-        self, platform: HmPlatform | None = None, registered: bool | None = None
-    ) -> tuple[GenericHubEntity, ...]:
-        """Return the hub entities."""
+    def get_hub_data_points(
+        self, category: DataPointCategory | None = None, registered: bool | None = None
+    ) -> tuple[GenericHubDataPoint, ...]:
+        """Return the hub data points."""
         return tuple(
             he
-            for he in (self.program_buttons + self.sysvar_entities)
-            if (platform is None or he.platform == platform)
+            for he in (self.program_buttons + self.sysvar_data_points)
+            if (category is None or he.category == category)
             and (registered is None or he.is_registered == registered)
         )
 
     def get_events(
-        self, event_type: HomematicEventType, registered: bool | None = None
+        self, event_type: EventType, registered: bool | None = None
     ) -> tuple[tuple[GenericEvent, ...], ...]:
-        """Return all channel event entities."""
+        """Return all channel event data points."""
         hm_channel_events: list[tuple[GenericEvent, ...]] = []
         for device in self.devices:
             for channel_events in device.get_events(event_type=event_type).values():
@@ -727,7 +727,7 @@ class CentralUnit(PayloadMixin):
                     continue
         return tuple(hm_channel_events)
 
-    def get_virtual_remotes(self) -> tuple[HmDevice, ...]:
+    def get_virtual_remotes(self) -> tuple[Device, ...]:
         """Get the virtual remote for the Client."""
         return tuple(
             cl.get_virtual_remote()  # type: ignore[misc]
@@ -765,16 +765,16 @@ class CentralUnit(PayloadMixin):
             )
         _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self.name)
 
-        new_devices = set[HmDevice]()
+        new_devices = set[Device]()
 
         for interface_id, device_addresses in new_device_addresses.items():
             for device_address in device_addresses:
                 # Do we check for duplicates here? For now, we do.
                 if device_address in self._devices:
                     continue
-                device: HmDevice | None = None
+                device: Device | None = None
                 try:
-                    device = HmDevice(
+                    device = Device(
                         central=self,
                         interface_id=interface_id,
                         device_address=device_address,
@@ -789,14 +789,14 @@ class CentralUnit(PayloadMixin):
                     )
                 try:
                     if device:
-                        create_entities_and_events(device=device)
-                        create_custom_entities(device=device)
+                        create_data_points_and_events(device=device)
+                        create_custom_data_points(device=device)
                         await device.load_value_cache()
                         new_devices.add(device)
                         self._devices[device_address] = device
                 except Exception as ex:  # pragma: no cover
                     _LOGGER.error(
-                        "CREATE_DEVICES failed: %s [%s] Unable to create entities: %s, %s",
+                        "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
                         type(ex).__name__,
                         reduce_args(args=ex.args),
                         interface_id,
@@ -805,11 +805,11 @@ class CentralUnit(PayloadMixin):
         _LOGGER.debug("CREATE_DEVICES: Finished creating devices for %s", self.name)
 
         if new_devices:
-            new_entities = _get_new_entities(new_devices=new_devices)
+            new_dps = _get_new_data_points(new_devices=new_devices)
             new_channel_events = _get_new_channel_events(new_devices=new_devices)
             self.fire_backend_system_callback(
                 system_event=BackendSystemEvent.DEVICES_CREATED,
-                new_entities=new_entities,
+                new_data_points=new_dps,
                 new_channel_events=new_channel_events,
             )
 
@@ -972,15 +972,15 @@ class CentralUnit(PayloadMixin):
                     )
             return
 
-        entity_key = get_entity_key(
+        data_point_key = get_data_point_key(
             channel_address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
         )
 
-        if entity_key in self._entity_event_subscriptions:
+        if data_point_key in self._data_point_event_subscriptions:
             try:
-                for callback_handler in self._entity_event_subscriptions[entity_key]:
+                for callback_handler in self._data_point_event_subscriptions[data_point_key]:
                     if callable(callback_handler):
                         await callback_handler(value)
             except RuntimeError as rte:  # pragma: no cover
@@ -1009,12 +1009,14 @@ class CentralUnit(PayloadMixin):
         )
         return result
 
-    def add_event_subscription(self, entity: BaseParameterEntity) -> None:
-        """Add entity to central event subscription."""
-        if isinstance(entity, (GenericEntity, GenericEvent)) and entity.supports_events:
-            if entity.entity_key not in self._entity_event_subscriptions:
-                self._entity_event_subscriptions[entity.entity_key] = []
-            self._entity_event_subscriptions[entity.entity_key].append(entity.event)
+    def add_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
+        """Add data_point to central event subscription."""
+        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.supports_events:
+            if data_point.data_point_key not in self._data_point_event_subscriptions:
+                self._data_point_event_subscriptions[data_point.data_point_key] = []
+            self._data_point_event_subscriptions[data_point.data_point_key].append(
+                data_point.event
+            )
 
     @service()
     async def create_central_links(self) -> None:
@@ -1028,7 +1030,7 @@ class CentralUnit(PayloadMixin):
         for device in self.devices:
             await device.remove_central_links()
 
-    def remove_device(self, device: HmDevice) -> None:
+    def remove_device(self, device: Device) -> None:
         """Remove device to central collections."""
         if device.address not in self._devices:
             _LOGGER.debug(
@@ -1043,14 +1045,14 @@ class CentralUnit(PayloadMixin):
         self._device_details.remove_device(device=device)
         del self._devices[device.address]
 
-    def remove_event_subscription(self, entity: BaseParameterEntity) -> None:
+    def remove_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Remove event subscription from central collections."""
         if (
-            isinstance(entity, (GenericEntity, GenericEvent))
-            and entity.supports_events
-            and entity.entity_key in self._entity_event_subscriptions
+            isinstance(data_point, (GenericDataPoint, GenericEvent))
+            and data_point.supports_events
+            and data_point.data_point_key in self._data_point_event_subscriptions
         ):
-            del self._entity_event_subscriptions[entity.entity_key]
+            del self._data_point_event_subscriptions[data_point.data_point_key]
 
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
@@ -1067,11 +1069,13 @@ class CentralUnit(PayloadMixin):
         await self._hub.fetch_program_data(scheduled=scheduled)
 
     @measure_execution_time
-    async def load_and_refresh_entity_data(self, paramset_key: ParamsetKey | None = None) -> None:
-        """Refresh entity data."""
+    async def load_and_refresh_data_point_data(
+        self, paramset_key: ParamsetKey | None = None
+    ) -> None:
+        """Refresh data_point data."""
         if paramset_key != ParamsetKey.MASTER and self._data_cache.is_empty:
             await self._data_cache.load()
-        await self._data_cache.refresh_entity_data(paramset_key=paramset_key)
+        await self._data_cache.refresh_data_point_data(paramset_key=paramset_key)
 
     async def get_system_variable(self, name: str) -> Any | None:
         """Get system variable from CCU / Homegear."""
@@ -1081,8 +1085,8 @@ class CentralUnit(PayloadMixin):
 
     async def set_system_variable(self, name: str, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
-        if entity := self.get_sysvar_entity(name=name):
-            await entity.send_variable(value=value)
+        if dp := self.get_sysvar_data_point(name=name):
+            await dp.send_variable(value=value)
         else:
             _LOGGER.warning("Variable %s not found on %s", name, self.name)
 
@@ -1130,14 +1134,14 @@ class CentralUnit(PayloadMixin):
                         if un_ignore_candidates_only and (
                             (
                                 (
-                                    generic_entity := self.get_generic_entity(
+                                    dp := self.get_generic_data_point(
                                         channel_address=channel_address,
                                         parameter=parameter,
                                         paramset_key=paramset_key,
                                     )
                                 )
-                                and generic_entity.enabled_default
-                                and not generic_entity.is_un_ignored
+                                and dp.enabled_default
+                                and not dp.is_un_ignored
                             )
                             or parameter in IGNORE_FOR_UN_IGNORE_PARAMETERS
                         ):
@@ -1160,7 +1164,7 @@ class CentralUnit(PayloadMixin):
 
         return list(parameters)
 
-    def _get_virtual_remote(self, device_address: str) -> HmDevice | None:
+    def _get_virtual_remote(self, device_address: str) -> Device | None:
         """Get the virtual remote for the Client."""
         for client in self._clients.values():
             virtual_remote = client.get_virtual_remote()
@@ -1168,12 +1172,12 @@ class CentralUnit(PayloadMixin):
                 return virtual_remote
         return None
 
-    def get_generic_entity(
+    def get_generic_data_point(
         self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericEntity | None:
-        """Get entity by channel_address and parameter."""
+    ) -> GenericDataPoint | None:
+        """Get data_point by channel_address and parameter."""
         if device := self.get_device(address=channel_address):
-            return device.get_generic_entity(
+            return device.get_generic_data_point(
                 channel_address=channel_address, parameter=parameter, paramset_key=paramset_key
             )
         return None
@@ -1184,22 +1188,22 @@ class CentralUnit(PayloadMixin):
             return device.get_generic_event(channel_address=channel_address, parameter=parameter)
         return None
 
-    def get_custom_entity(self, address: str, channel_no: int) -> CustomEntity | None:
-        """Return the hm custom_entity."""
+    def get_custom_data_point(self, address: str, channel_no: int) -> CustomDataPoint | None:
+        """Return the hm custom_data_point."""
         if device := self.get_device(address=address):
-            return device.get_custom_entity(channel_no=channel_no)
+            return device.get_custom_data_point(channel_no=channel_no)
         return None
 
-    def get_sysvar_entity(self, name: str) -> GenericSystemVariable | None:
-        """Return the sysvar entity."""
-        if sysvar := self._sysvar_entities.get(name):
+    def get_sysvar_data_point(self, name: str) -> GenericSysvarDataPoint | None:
+        """Return the sysvar data_point."""
+        if sysvar := self._sysvar_data_points.get(name):
             return sysvar
-        for sysvar in self._sysvar_entities.values():
+        for sysvar in self._sysvar_data_points.values():
             if sysvar.name == name:
                 return sysvar
         return None
 
-    def get_program_button(self, pid: str) -> HmProgramButton | None:
+    def get_program_button(self, pid: str) -> ProgramDpButton | None:
         """Return the program button."""
         return self._program_buttons.get(pid)
 
@@ -1260,9 +1264,7 @@ class CentralUnit(PayloadMixin):
             self._homematic_callbacks.remove(cb)
 
     @loop_check
-    def fire_homematic_callback(
-        self, event_type: HomematicEventType, event_data: dict[str, str]
-    ) -> None:
+    def fire_homematic_callback(self, event_type: EventType, event_data: dict[str, str]) -> None:
         """
         Fire homematic_callback in central.
 
@@ -1399,7 +1401,7 @@ class _ConnectionChecker(threading.Thread):
                 if reconnects:
                     await asyncio.gather(*reconnects)
                     if self._central.available:
-                        await self._central.load_and_refresh_entity_data()
+                        await self._central.load_and_refresh_data_point_data()
         except NoConnection as nex:
             _LOGGER.error("CHECK_CONNECTION failed: no connection: %s", reduce_args(args=nex.args))
         except Exception as ex:
@@ -1617,30 +1619,30 @@ class CentralConnectionState:
             )
 
 
-def _get_new_entities(
-    new_devices: set[HmDevice],
-) -> Mapping[HmPlatform, AbstractSet[CallbackEntity]]:
-    """Return new entities by platform."""
+def _get_new_data_points(
+    new_devices: set[Device],
+) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPoint]]:
+    """Return new data points by category."""
 
-    entities_by_platform: dict[HmPlatform, set[CallbackEntity]] = {
-        platform: set() for platform in PLATFORMS if platform != HmPlatform.EVENT
+    data_points_by_category: dict[DataPointCategory, set[CallbackDataPoint]] = {
+        category: set() for category in CATEGORIES if category != DataPointCategory.EVENT
     }
 
     for device in new_devices:
-        for platform in entities_by_platform:
-            entities_by_platform[platform].update(
-                device.get_entities(platform=platform, exclude_no_create=True, registered=False)
+        for category in data_points_by_category:
+            data_points_by_category[category].update(
+                device.get_data_points(category=category, exclude_no_create=True, registered=False)
             )
 
-    return entities_by_platform
+    return data_points_by_category
 
 
-def _get_new_channel_events(new_devices: set[HmDevice]) -> tuple[tuple[GenericEvent, ...], ...]:
-    """Return new channel events by platform."""
+def _get_new_channel_events(new_devices: set[Device]) -> tuple[tuple[GenericEvent, ...], ...]:
+    """Return new channel events by category."""
     channel_events: list[tuple[GenericEvent, ...]] = []
 
     for device in new_devices:
-        for event_type in ENTITY_EVENTS:
+        for event_type in DATA_POINT_EVENTS:
             if (
                 hm_channel_events := list(
                     device.get_events(event_type=event_type, registered=False).values()

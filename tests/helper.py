@@ -16,8 +16,8 @@ from hahomematic import const as hahomematic_const
 from hahomematic.central import CentralConfig, CentralUnit
 from hahomematic.client import Client, InterfaceConfig, _ClientConfig
 from hahomematic.const import BackendSystemEvent, InterfaceName
-from hahomematic.platforms.custom import CustomEntity
-from hahomematic.platforms.decorators import _get_public_attributes_by_class_decorator
+from hahomematic.model.custom import CustomDataPoint
+from hahomematic.model.decorators import _get_public_attributes_by_class_decorator
 from hahomematic_support.client_local import ClientLocal, LocalRessources
 
 from tests import const
@@ -144,14 +144,14 @@ class Factory:
         return central, client
 
 
-def get_prepared_custom_entity(
+def get_prepared_custom_data_point(
     central: CentralUnit, address: str, channel_no: int | None
-) -> CustomEntity | None:
-    """Return the hm custom_entity."""
-    if custom_entity := central.get_custom_entity(address=address, channel_no=channel_no):
-        for data_entity in custom_entity._data_entities.values():
-            data_entity._state_uncertain = False
-        return custom_entity
+) -> CustomDataPoint | None:
+    """Return the hm custom_data_point."""
+    if cdp := central.get_custom_data_point(address=address, channel_no=channel_no):
+        for dp in cdp._data_points.values():
+            dp._state_uncertain = False
+        return cdp
     return None
 
 
@@ -214,8 +214,8 @@ async def get_pydev_ccu_central_unit_full(client_session: ClientSession | None) 
         if (
             system_event == BackendSystemEvent.DEVICES_CREATED
             and kwargs
-            and kwargs.get("new_entities")
-            and len(kwargs["new_entities"]) > 0
+            and kwargs.get("new_data_points")
+            and len(kwargs["new_data_points"]) > 0
         ):
             global GOT_DEVICES  # pylint: disable=global-statement
             GOT_DEVICES = True

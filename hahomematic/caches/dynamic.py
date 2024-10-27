@@ -14,7 +14,7 @@ from hahomematic.config import (
     PING_PONG_MISMATCH_COUNT_TTL,
 )
 from hahomematic.const import (
-    ENTITY_KEY,
+    DP_KEY,
     EVENT_DATA,
     EVENT_INSTANCE_NAME,
     EVENT_INTERFACE_ID,
@@ -24,14 +24,14 @@ from hahomematic.const import (
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
     CallSource,
-    HomematicEventType,
+    EventType,
     InterfaceEventType,
     InterfaceName,
     ParamsetKey,
 )
 from hahomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from hahomematic.platforms.device import HmDevice
-from hahomematic.support import changed_within_seconds, get_entity_key
+from hahomematic.model.device import Device
+from hahomematic.support import changed_within_seconds, get_data_point_key
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -43,46 +43,46 @@ class CommandCache:
         """Init command cache."""
         self._interface_id: Final = interface_id
         # (paramset_key, device_address, channel_no, parameter)
-        self._last_send_command: Final[dict[ENTITY_KEY, tuple[Any, datetime]]] = {}
+        self._last_send_command: Final[dict[DP_KEY, tuple[Any, datetime]]] = {}
 
     def add_set_value(
         self,
         channel_address: str,
         parameter: str,
         value: Any,
-    ) -> set[ENTITY_KEY]:
+    ) -> set[DP_KEY]:
         """Add data from set value command."""
         if parameter in CONVERTABLE_PARAMETERS:
             return self.add_combined_parameter(
                 parameter=parameter, channel_address=channel_address, combined_parameter=value
             )
 
-        entity_key = get_entity_key(
+        data_point_key = get_data_point_key(
             channel_address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
         )
-        self._last_send_command[entity_key] = (value, datetime.now())
-        return {entity_key}
+        self._last_send_command[data_point_key] = (value, datetime.now())
+        return {data_point_key}
 
     def add_put_paramset(
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
-    ) -> set[ENTITY_KEY]:
+    ) -> set[DP_KEY]:
         """Add data from put paramset command."""
-        entity_keys: set[ENTITY_KEY] = set()
+        data_point_keys: set[DP_KEY] = set()
         for parameter, value in values.items():
-            entity_key = get_entity_key(
+            data_point_key = get_data_point_key(
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 parameter=parameter,
             )
-            self._last_send_command[entity_key] = (value, datetime.now())
-            entity_keys.add(entity_key)
-        return entity_keys
+            self._last_send_command[data_point_key] = (value, datetime.now())
+            data_point_keys.add(data_point_key)
+        return data_point_keys
 
     def add_combined_parameter(
         self, parameter: str, channel_address: str, combined_parameter: str
-    ) -> set[ENTITY_KEY]:
+    ) -> set[DP_KEY]:
         """Add data from combined parameter."""
         if values := convert_combined_parameter_to_paramset(
             parameter=parameter, cpv=combined_parameter
@@ -95,32 +95,32 @@ class CommandCache:
         return set()
 
     def get_last_value_send(
-        self, entity_key: ENTITY_KEY, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT
+        self, data_point_key: DP_KEY, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT
     ) -> Any:
         """Return the last send values."""
-        if result := self._last_send_command.get(entity_key):
+        if result := self._last_send_command.get(data_point_key):
             value, last_send_dt = result
             if last_send_dt and changed_within_seconds(last_change=last_send_dt, max_age=max_age):
                 return value
             self.remove_last_value_send(
-                entity_key=entity_key,
+                data_point_key=data_point_key,
                 max_age=max_age,
             )
         return None
 
     def remove_last_value_send(
         self,
-        entity_key: ENTITY_KEY,
+        data_point_key: DP_KEY,
         value: Any = None,
         max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT,
     ) -> None:
         """Remove the last send value."""
-        if result := self._last_send_command.get(entity_key):
+        if result := self._last_send_command.get(data_point_key):
             stored_value, last_send_dt = result
             if not changed_within_seconds(last_change=last_send_dt, max_age=max_age) or (
                 value is not None and stored_value == value
             ):
-                del self._last_send_command[entity_key]
+                del self._last_send_command[data_point_key]
 
 
 class DeviceDetailsCache:
@@ -213,7 +213,7 @@ class DeviceDetailsCache:
             return ",".join(functions)
         return None
 
-    def remove_device(self, device: HmDevice) -> None:
+    def remove_device(self, device: Device) -> None:
         """Remove name from cache."""
         if device.address in self._names_cache:
             del self._names_cache[device.address]
@@ -260,10 +260,12 @@ class CentralDataCache:
         for client in self._central.clients:
             await client.fetch_all_device_data()
 
-    async def refresh_entity_data(self, paramset_key: ParamsetKey | None = None) -> None:
-        """Refresh entity data."""
-        for entity in self._central.get_readable_generic_entities(paramset_key=paramset_key):
-            await entity.load_entity_value(call_source=CallSource.HM_INIT)
+    async def refresh_data_point_data(self, paramset_key: ParamsetKey | None = None) -> None:
+        """Refresh data_point data."""
+        for data_point in self._central.get_readable_generic_data_points(
+            paramset_key=paramset_key
+        ):
+            await data_point.load_data_point_value(call_source=CallSource.HM_INIT)
 
     def add_data(self, all_device_data: dict[str, Any]) -> None:
         """Add data to cache."""
@@ -428,7 +430,7 @@ class PingPongCache:
 
         def _fire_event(mismatch_count: int) -> None:
             self._central.fire_homematic_callback(
-                event_type=HomematicEventType.INTERFACE,
+                event_type=EventType.INTERFACE,
                 event_data=cast(
                     dict[str, Any],
                     hmcu.INTERFACE_EVENT_SCHEMA(

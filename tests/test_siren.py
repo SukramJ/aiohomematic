@@ -1,4 +1,4 @@
-"""Tests for siren entities of hahomematic."""
+"""Tests for siren data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.custom import CeIpSiren, CeIpSirenSmoke
+from hahomematic.const import DataPointUsage
+from hahomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 
 from tests import const, helper
 
@@ -23,7 +23,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -40,10 +40,12 @@ TEST_DEVICES: dict[str, str] = {
 async def test_ceipsiren(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpSiren."""
+    """Test CustomDpIpSiren."""
     central, mock_client, _ = central_client_factory
-    siren: CeIpSiren = cast(CeIpSiren, helper.get_prepared_custom_entity(central, "VCU8249617", 3))
-    assert siren.usage == EntityUsage.CE_PRIMARY
+    siren: CustomDpIpSiren = cast(
+        CustomDpIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3)
+    )
+    assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
 
     assert siren.is_on is False
@@ -123,7 +125,7 @@ async def test_ceipsiren(
     assert (call_count + 1) == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -140,12 +142,12 @@ async def test_ceipsiren(
 async def test_ceipsirensmoke(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpSirenSmoke."""
+    """Test CustomDpIpSirenSmoke."""
     central, mock_client, _ = central_client_factory
-    siren: CeIpSirenSmoke = cast(
-        CeIpSirenSmoke, helper.get_prepared_custom_entity(central, "VCU2822385", 1)
+    siren: CustomDpIpSirenSmoke = cast(
+        CustomDpIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
     )
-    assert siren.usage == EntityUsage.CE_PRIMARY
+    assert siren.usage == DataPointUsage.CDP_PRIMARY
 
     assert siren.is_on is False
     await central.event(const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 1)

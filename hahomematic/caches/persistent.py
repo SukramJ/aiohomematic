@@ -25,7 +25,7 @@ from hahomematic.const import (
     ParameterData,
     ParamsetKey,
 )
-from hahomematic.platforms.device import HmDevice
+from hahomematic.model.device import Device
 from hahomematic.support import (
     check_or_create_directory,
     delete_file,
@@ -170,7 +170,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         """Find raw device in cache."""
         return self._raw_device_descriptions.get(interface_id, [])
 
-    def remove_device(self, device: HmDevice) -> None:
+    def remove_device(self, device: Device) -> None:
         """Remove device from cache."""
         self._remove_device(
             interface_id=device.interface_id,
@@ -328,7 +328,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
             channel_address=channel_address, paramsets=[paramset_description]
         )
 
-    def remove_device(self, device: HmDevice) -> None:
+    def remove_device(self, device: Device) -> None:
         """Remove device paramset descriptions from cache."""
         if interface := self._raw_paramset_descriptions.get(device.interface_id):
             for channel_address in device.channels:

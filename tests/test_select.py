@@ -1,4 +1,4 @@
-"""Tests for select entities of hahomematic."""
+"""Tests for select data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.generic import HmSelect
-from hahomematic.platforms.hub import HmSysvarSelect
+from hahomematic.const import DataPointUsage
+from hahomematic.model.generic import DpSelect
+from hahomematic.model.hub import SysvarDpSelect
 
 from tests import const, helper
 
@@ -22,7 +22,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -41,11 +41,11 @@ async def test_hmselect(
 ) -> None:
     """Test HmSelect."""
     central, mock_client, _ = central_client_factory
-    select: HmSelect = cast(
-        HmSelect,
-        central.get_generic_entity("VCU6354483:1", "WINDOW_STATE"),
+    select: DpSelect = cast(
+        DpSelect,
+        central.get_generic_data_point("VCU6354483:1", "WINDOW_STATE"),
     )
-    assert select.usage == EntityUsage.NO_CREATE
+    assert select.usage == DataPointUsage.NO_CREATE
     assert select.unit is None
     assert select.min == "CLOSED"
     assert select.max == "OPEN"
@@ -81,7 +81,7 @@ async def test_hmselect(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -100,8 +100,8 @@ async def test_hmsysvarselect(
 ) -> None:
     """Test HmSysvarSelect."""
     central, mock_client, _ = central_client_factory
-    select: HmSysvarSelect = cast(HmSysvarSelect, central.get_sysvar_entity("sv_list_ext"))
-    assert select.usage == EntityUsage.ENTITY
+    select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point("sv_list_ext"))
+    assert select.usage == DataPointUsage.DATA_POINT
     assert select.unit is None
     assert select.min is None
     assert select.max is None

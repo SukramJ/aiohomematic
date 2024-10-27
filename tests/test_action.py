@@ -1,4 +1,4 @@
-"""Tests for action entities of hahomematic."""
+"""Tests for action data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.generic import HmAction
+from hahomematic.const import DataPointUsage
+from hahomematic.model.generic import DpAction
 
 from tests import helper
 
@@ -21,7 +21,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -40,11 +40,11 @@ async def test_hmaction(
 ) -> None:
     """Test HmAction."""
     central, mock_client, _ = central_client_factory
-    action: HmAction = cast(
-        HmAction,
-        central.get_generic_entity("VCU9724704:1", "LOCK_TARGET_LEVEL"),
+    action: DpAction = cast(
+        DpAction,
+        central.get_generic_data_point("VCU9724704:1", "LOCK_TARGET_LEVEL"),
     )
-    assert action.usage == EntityUsage.NO_CREATE
+    assert action.usage == DataPointUsage.NO_CREATE
     assert action.is_readable is False
     assert action.value is None
     assert action.values == ("LOCKED", "UNLOCKED", "OPEN")

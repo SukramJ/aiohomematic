@@ -1,4 +1,4 @@
-"""Tests for number entities of hahomematic."""
+"""Tests for number data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.generic import HmFloat, HmInteger
-from hahomematic.platforms.hub import HmSysvarNumber
+from hahomematic.const import DataPointUsage
+from hahomematic.model.generic import DpFloat, DpInteger
+from hahomematic.model.hub import SysvarDpNumber
 
 from tests import const, helper
 
@@ -24,7 +24,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -43,11 +43,11 @@ async def test_hmfloat(
 ) -> None:
     """Test HmFloat."""
     central, mock_client, _ = central_client_factory
-    efloat: HmFloat = cast(
-        HmFloat,
-        central.get_generic_entity("VCU0000011:3", "LEVEL"),
+    efloat: DpFloat = cast(
+        DpFloat,
+        central.get_generic_data_point("VCU0000011:3", "LEVEL"),
     )
-    assert efloat.usage == EntityUsage.NO_CREATE
+    assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "%"
     assert efloat.values is None
     assert efloat.value is None
@@ -70,7 +70,7 @@ async def test_hmfloat(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -89,11 +89,11 @@ async def test_hmfloat_special(
 ) -> None:
     """Test HmFloat."""
     central, mock_client, _ = central_client_factory
-    efloat: HmFloat = cast(
-        HmFloat,
-        central.get_generic_entity("VCU0000054:2", "SETPOINT"),
+    efloat: DpFloat = cast(
+        DpFloat,
+        central.get_generic_data_point("VCU0000054:2", "SETPOINT"),
     )
-    assert efloat.usage == EntityUsage.NO_CREATE
+    assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "°C"
     assert efloat.values is None
     assert efloat.value is None
@@ -116,7 +116,7 @@ async def test_hmfloat_special(
     assert efloat.value == 100.0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -135,11 +135,11 @@ async def test_hminteger(
 ) -> None:
     """Test HmInteger."""
     central, mock_client, _ = central_client_factory
-    einteger: HmInteger = cast(
-        HmInteger,
-        central.get_generic_entity("VCU4984404:1", "SET_POINT_MODE"),
+    einteger: DpInteger = cast(
+        DpInteger,
+        central.get_generic_data_point("VCU4984404:1", "SET_POINT_MODE"),
     )
-    assert einteger.usage == EntityUsage.NO_CREATE
+    assert einteger.usage == DataPointUsage.NO_CREATE
     assert einteger.unit is None
     assert einteger.min == 0
     assert einteger.max == 3
@@ -180,7 +180,7 @@ async def test_hminteger(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -199,11 +199,11 @@ async def test_hmsysvarnumber(
 ) -> None:
     """Test HmSysvarNumber."""
     central, mock_client, _ = central_client_factory
-    enumber: HmSysvarNumber = cast(
-        HmSysvarNumber,
-        central.get_sysvar_entity("sv_float_ext"),
+    enumber: SysvarDpNumber = cast(
+        SysvarDpNumber,
+        central.get_sysvar_data_point("sv_float_ext"),
     )
-    assert enumber.usage == EntityUsage.ENTITY
+    assert enumber.usage == DataPointUsage.DATA_POINT
     assert enumber.unit == "°C"
     assert enumber.min == 5.0
     assert enumber.max == 30.0

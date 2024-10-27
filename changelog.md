@@ -1,3 +1,7 @@
+# Version 2024.10.15 (2024-10-26)
+
+- Rename model to better distinguish from HA
+
 # Version 2024.10.14 (2024-10-26)
 
 - Use version from module hahomematic
@@ -529,7 +533,7 @@
 - Add faultCode and faultString to xmlrpc.client.Fault
 - Use Mapping/Set for readonly access
 - Use enum for CE fields
-- Use Parameter for ED
+- Use Parameter for CDPD
 
 # Version 2023.10.5 (2023-10-07)
 
@@ -1042,7 +1046,7 @@
 # Version 2022.12.2 (2022-12-09)
 
 - Add HM-LC-AO-SM as light
-- Remove hub from HmPlatform
+- Remove hub from DataPointCategory
 - Hub is no longer an entity
 
 # Version 2022.12.1 (2022-12-01)
@@ -2072,7 +2076,7 @@
 - Remove variables that are covered by other sensors (CCU only)
 - Remove dummy from service message (HmIP-RF always sends 0001D3C98DD4B6:3 unreach)
 - Rename Bidcos thermostats to SimpleRfThermostat and RfThermostat
-- Use more Enums (like HA does): HmPlatform, HmEventType
+- Use more Enums (like HA does): DataPointCategory, HmEventType
 - Use assignment expressions
 - Add more type hints (fix most mypy errors)
 

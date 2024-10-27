@@ -1,4 +1,4 @@
-"""Tests for binary_sensor entities of hahomematic."""
+"""Tests for binary_sensor data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.generic import HmBinarySensor
-from hahomematic.platforms.hub import HmSysvarBinarySensor
+from hahomematic.const import DataPointUsage
+from hahomematic.model.generic import DpBinarySensor
+from hahomematic.model.hub import SysvarDpBinarySensor
 
 from tests import const, helper
 
@@ -22,7 +22,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -41,11 +41,11 @@ async def test_hmbinarysensor(
 ) -> None:
     """Test HmBinarySensor."""
     central, mock_client, _ = central_client_factory
-    binary_sensor: HmBinarySensor = cast(
-        HmBinarySensor,
-        central.get_generic_entity("VCU5864966:1", "STATE"),
+    binary_sensor: DpBinarySensor = cast(
+        DpBinarySensor,
+        central.get_generic_data_point("VCU5864966:1", "STATE"),
     )
-    assert binary_sensor.usage == EntityUsage.ENTITY
+    assert binary_sensor.usage == DataPointUsage.DATA_POINT
     assert binary_sensor.value is False
     assert binary_sensor.is_writeable is False
     assert binary_sensor.visible is True
@@ -61,7 +61,7 @@ async def test_hmbinarysensor(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -80,9 +80,9 @@ async def test_hmsysvarbinarysensor(
 ) -> None:
     """Test HmSysvarBinarySensor."""
     central, _, _ = central_client_factory
-    binary_sensor: HmSysvarBinarySensor = cast(
-        HmSysvarBinarySensor,
-        central.get_sysvar_entity("sv_logic"),
+    binary_sensor: SysvarDpBinarySensor = cast(
+        SysvarDpBinarySensor,
+        central.get_sysvar_data_point("sv_logic"),
     )
     assert binary_sensor.name == "sv_logic"
     assert binary_sensor.full_name == "CentralTest_sv_logic"

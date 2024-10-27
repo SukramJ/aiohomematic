@@ -1,4 +1,4 @@
-"""Tests for switch entities of hahomematic."""
+"""Tests for switch data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -10,10 +10,10 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.custom import CeSwitch
-from hahomematic.platforms.generic import HmSwitch
-from hahomematic.platforms.hub import HmSysvarSwitch
+from hahomematic.const import DataPointUsage
+from hahomematic.model.custom import CustomDpSwitch
+from hahomematic.model.generic import DpSwitch
+from hahomematic.model.hub import SysvarDpSwitch
 
 from tests import helper
 
@@ -24,7 +24,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -41,10 +41,12 @@ TEST_DEVICES: dict[str, str] = {
 async def test_ceswitch(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeSwitch."""
+    """Test CustomDpSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: CeSwitch = cast(CeSwitch, helper.get_prepared_custom_entity(central, "VCU2128127", 4))
-    assert switch.usage == EntityUsage.CE_PRIMARY
+    switch: CustomDpSwitch = cast(
+        CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
+    )
+    assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
 
     await switch.turn_off()
@@ -98,7 +100,7 @@ async def test_ceswitch(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -117,8 +119,8 @@ async def test_hmswitch(
 ) -> None:
     """Test HmSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: HmSwitch = cast(HmSwitch, central.get_generic_entity("VCU2128127:4", "STATE"))
-    assert switch.usage == EntityUsage.NO_CREATE
+    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
+    assert switch.usage == DataPointUsage.NO_CREATE
     assert switch.service_method_names == (
         "send_value",
         "set_on_time",
@@ -176,7 +178,7 @@ async def test_hmswitch(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -195,8 +197,8 @@ async def test_hmsysvarswitch(
 ) -> None:
     """Test HmSysvarSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: HmSysvarSwitch = cast(HmSysvarSwitch, central.get_sysvar_entity("sv_alarm_ext"))
-    assert switch.usage == EntityUsage.ENTITY
+    switch: SysvarDpSwitch = cast(SysvarDpSwitch, central.get_sysvar_data_point("sv_alarm_ext"))
+    assert switch.usage == DataPointUsage.DATA_POINT
 
     assert switch.value is False
     await switch.send_variable(True)

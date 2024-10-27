@@ -1,4 +1,4 @@
-"""Tests for light entities of hahomematic."""
+"""Tests for light data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -10,16 +10,16 @@ import pytest
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import EntityUsage, ParamsetKey
-from hahomematic.platforms.custom import (
-    CeColorDimmer,
-    CeColorDimmerEffect,
-    CeColorTempDimmer,
-    CeDimmer,
-    CeIpFixedColorLight,
-    CeIpRGBWLight,
+from hahomematic.const import DataPointUsage, ParamsetKey
+from hahomematic.model.custom import (
+    CustomDpColorDimmer,
+    CustomDpColorDimmerEffect,
+    CustomDpColorTempDimmer,
+    CustomDpDimmer,
+    CustomDpIpFixedColorLight,
+    CustomDpIpRGBWLight,
 )
-from hahomematic.platforms.custom.light import _ColorBehaviour, _FixedColor, _TimeUnit
+from hahomematic.model.custom.light import _ColorBehaviour, _FixedColor, _TimeUnit
 
 from tests import const, helper
 
@@ -38,7 +38,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -55,10 +55,12 @@ TEST_DEVICES: dict[str, str] = {
 async def test_cedimmer(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeDimmer."""
+    """Test CustomDpDimmer."""
     central, mock_client, _ = central_client_factory
-    light: CeDimmer = cast(CeDimmer, helper.get_prepared_custom_entity(central, "VCU1399816", 4))
-    assert light.usage == EntityUsage.CE_PRIMARY
+    light: CustomDpDimmer = cast(
+        CustomDpDimmer, helper.get_prepared_custom_data_point(central, "VCU1399816", 4)
+    )
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.service_method_names == ("turn_off", "turn_on")
     assert light.color_temp is None
     assert light.hs_color is None
@@ -153,7 +155,7 @@ async def test_cedimmer(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -170,12 +172,12 @@ async def test_cedimmer(
 async def test_cecolordimmereffect(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeColorDimmerEffect."""
+    """Test CustomDpColorDimmerEffect."""
     central, mock_client, _ = central_client_factory
-    light: CeColorDimmerEffect = cast(
-        CeColorDimmerEffect, helper.get_prepared_custom_entity(central, "VCU3747418", 1)
+    light: CustomDpColorDimmerEffect = cast(
+        CustomDpColorDimmerEffect, helper.get_prepared_custom_data_point(central, "VCU3747418", 1)
     )
-    assert light.usage == EntityUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
@@ -309,7 +311,7 @@ async def test_cecolordimmereffect(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -326,12 +328,12 @@ async def test_cecolordimmereffect(
 async def test_cecolortempdimmer(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeColorTempDimmer."""
+    """Test CustomDpColorTempDimmer."""
     central, mock_client, _ = central_client_factory
-    light: CeColorTempDimmer = cast(
-        CeColorTempDimmer, helper.get_prepared_custom_entity(central, "VCU0000115", 1)
+    light: CustomDpColorTempDimmer = cast(
+        CustomDpColorTempDimmer, helper.get_prepared_custom_data_point(central, "VCU0000115", 1)
     )
-    assert light.usage == EntityUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp == 500
     assert light.hs_color is None
     assert light.supports_brightness is True
@@ -399,7 +401,7 @@ async def test_cecolortempdimmer(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -416,12 +418,12 @@ async def test_cecolortempdimmer(
 async def test_ceipfixedcolorlight(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpFixedColorLight."""
+    """Test CustomDpIpFixedColorLight."""
     central, mock_client, _ = central_client_factory
-    light: CeIpFixedColorLight = cast(
-        CeIpFixedColorLight, helper.get_prepared_custom_entity(central, "VCU3716619", 8)
+    light: CustomDpIpFixedColorLight = cast(
+        CustomDpIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU3716619", 8)
     )
-    assert light.usage == EntityUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
@@ -599,7 +601,7 @@ async def test_ceipfixedcolorlight(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -616,12 +618,12 @@ async def test_ceipfixedcolorlight(
 async def test_ceipfixedcolorlightwired(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpFixedColorLight."""
+    """Test CustomDpIpFixedColorLight."""
     central, mock_client, _ = central_client_factory
-    light: CeIpFixedColorLight = cast(
-        CeIpFixedColorLight, helper.get_prepared_custom_entity(central, "VCU4704397", 8)
+    light: CustomDpIpFixedColorLight = cast(
+        CustomDpIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU4704397", 8)
     )
-    assert light.usage == EntityUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
@@ -887,7 +889,7 @@ async def test_ceipfixedcolorlightwired(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -904,12 +906,12 @@ async def test_ceipfixedcolorlightwired(
 async def test_ceiprgbwlight(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpRGBWLight."""
+    """Test CustomDpIpRGBWLight."""
     central, mock_client, _ = central_client_factory
-    light: CeIpRGBWLight = cast(
-        CeIpRGBWLight, helper.get_prepared_custom_entity(central, "VCU5629873", 1)
+    light: CustomDpIpRGBWLight = cast(
+        CustomDpIpRGBWLight, helper.get_prepared_custom_data_point(central, "VCU5629873", 1)
     )
-    assert light.usage == EntityUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color is None
     assert light.supports_brightness is True
@@ -1064,7 +1066,7 @@ async def test_ceiprgbwlight(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -1081,12 +1083,12 @@ async def test_ceiprgbwlight(
 async def test_cecolordimmer(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeColorDimmer."""
+    """Test CustomDpColorDimmer."""
     central, mock_client, _ = central_client_factory
-    light: CeColorDimmer = cast(
-        CeColorDimmer, helper.get_prepared_custom_entity(central, "VCU9973336", 13)
+    light: CustomDpColorDimmer = cast(
+        CustomDpColorDimmer, helper.get_prepared_custom_data_point(central, "VCU9973336", 13)
     )
-    assert light.usage == EntityUsage.CE_PRIMARY
+    assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True

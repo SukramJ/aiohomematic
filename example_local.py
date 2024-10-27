@@ -11,7 +11,7 @@ from unittest.mock import patch
 from hahomematic import config, const
 from hahomematic.central import CentralConfig
 from hahomematic.client import InterfaceConfig, _ClientConfig
-from hahomematic.platforms.custom import validate_entity_definition
+from hahomematic.model.custom import validate_custom_data_point_definition
 from hahomematic_support.client_local import ClientLocal, LocalRessources
 
 logging.basicConfig(level=logging.INFO)
@@ -47,10 +47,10 @@ class Example:
         if (
             name == const.BackendSystemEvent.DEVICES_CREATED
             and kwargs
-            and kwargs.get("new_entities")
-            and len(kwargs["new_entities"]) > 0
+            and kwargs.get("new_data_points")
+            and len(kwargs["new_data_points"]) > 0
         ):
-            if len(kwargs["new_entities"]) > 1:
+            if len(kwargs["new_data_points"]) > 1:
                 self.got_devices = True
             return
 
@@ -490,7 +490,7 @@ class Example:
 
 
 # validate the device description
-if validate_entity_definition():
+if validate_custom_data_point_definition():
     example = Example()
     asyncio.run(example.example_run())
     sys.exit(0)

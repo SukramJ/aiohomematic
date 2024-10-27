@@ -1,4 +1,4 @@
-"""Tests for text entities of hahomematic."""
+"""Tests for text data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage
-from hahomematic.platforms.generic import HmText
-from hahomematic.platforms.hub import HmSysvarText
+from hahomematic.const import DataPointUsage
+from hahomematic.model.generic import DpText
+from hahomematic.model.hub import SysvarDpText
 
 from tests import helper
 
@@ -20,7 +20,7 @@ TEST_DEVICES: dict[str, str] = {}
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -35,13 +35,13 @@ TEST_DEVICES: dict[str, str] = {}
     ],
 )
 async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> None:
-    """Test HmText. There are currently no text entities."""
+    """Test DpText. There are currently no text data points."""
     central, _ = central_client
-    text: HmText = cast(HmText, central.get_generic_entity("VCU7981740:1", "STATE"))
-    assert text.usage == EntityUsage.ENTITY
+    text: DpText = cast(DpText, central.get_generic_data_point("VCU7981740:1", "STATE"))
+    assert text.usage == DataPointUsage.DATA_POINT
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -55,13 +55,13 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
         ({}, True, True, False, None, None),
     ],
 )
-async def test_hmsysvartext(
+async def test_sysvardptext(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test HmSysvarText. There are currently no text entities."""
+    """Test SysvarDpText. There are currently no text data points."""
     central, mock_client, _ = central_client_factory
-    text: HmSysvarText = cast(HmSysvarText, central.get_sysvar_entity("sv_string_ext"))
-    assert text.usage == EntityUsage.ENTITY
+    text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point("sv_string_ext"))
+    assert text.usage == DataPointUsage.DATA_POINT
 
     assert text.unit is None
     assert text.values is None

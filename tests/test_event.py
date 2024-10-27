@@ -1,4 +1,4 @@
-"""Tests for switch entities of hahomematic."""
+"""Tests for switch data points of hahomematic."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import EntityUsage, HomematicEventType
-from hahomematic.platforms.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
+from hahomematic.const import DataPointUsage, EventType
+from hahomematic.model.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
 
 from tests import const, helper
 
@@ -22,7 +22,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -42,8 +42,8 @@ async def test_clickevent(
     """Test ClickEvent."""
     central, _, factory = central_client_factory
     event: ClickEvent = cast(ClickEvent, central.get_event("VCU2128127:1", "PRESS_SHORT"))
-    assert event.usage == EntityUsage.EVENT
-    assert event.event_type == HomematicEventType.KEYPRESS
+    assert event.usage == DataPointUsage.EVENT
+    assert event.event_type == EventType.KEYPRESS
     await central.event(const.INTERFACE_ID, "VCU2128127:1", "PRESS_SHORT", True)
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.keypress",
@@ -58,7 +58,7 @@ async def test_clickevent(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -78,8 +78,8 @@ async def test_impulseevent(
     """Test ImpulseEvent."""
     central, _, factory = central_client_factory
     event: ImpulseEvent = cast(ImpulseEvent, central.get_event("VCU0000263:1", "SEQUENCE_OK"))
-    assert event.usage == EntityUsage.EVENT
-    assert event.event_type == HomematicEventType.IMPULSE
+    assert event.usage == DataPointUsage.EVENT
+    assert event.event_type == EventType.IMPULSE
     await central.event(const.INTERFACE_ID, "VCU0000263:1", "SEQUENCE_OK", True)
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.impulse",
@@ -94,7 +94,7 @@ async def test_impulseevent(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -117,8 +117,8 @@ async def test_deviceerrorevent(
         DeviceErrorEvent,
         central.get_event("VCU2128127:0", "ERROR_OVERHEAT"),
     )
-    assert event.usage == EntityUsage.EVENT
-    assert event.event_type == HomematicEventType.DEVICE_ERROR
+    assert event.usage == DataPointUsage.EVENT
+    assert event.event_type == EventType.DEVICE_ERROR
     await central.event(const.INTERFACE_ID, "VCU2128127:0", "ERROR_OVERHEAT", True)
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.device_error",

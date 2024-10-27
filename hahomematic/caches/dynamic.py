@@ -459,11 +459,11 @@ class PingPongCache:
             _fire_event(mismatch_count=pong_mismatch_count)
             if self._pending_pong_logged is False:
                 _LOGGER.warning(
-                    "Pending PONG mismatch: There is a mismatch between send ping events and received pong events for HA instance %s. "
-                    "Possible reason 1: You are running multiple instances of HA with the same instance name configured for this integration. "
-                    "Re-add one instance! Otherwise this HA instance will not receive update events from your CCU. "
+                    "Pending PONG mismatch: There is a mismatch between send ping events and received pong events for instance %s. "
+                    "Possible reason 1: You are running multiple instances with the same instance name configured for this integration. "
+                    "Re-add one instance! Otherwise this instance will not receive update events from your CCU. "
                     "Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart."
-                    "Possible reason 3: Your setup is misconfigured and HA is not able to receive events from the CCU.",
+                    "Possible reason 3: Your setup is misconfigured and this instance is not able to receive events from the CCU.",
                     self._interface_id,
                 )
             self._pending_pong_logged = True
@@ -471,9 +471,9 @@ class PingPongCache:
         if self.high_unknown_pongs and event_type == InterfaceEventType.UNKNOWN_PONG:
             if self._unknown_pong_logged is False:
                 _LOGGER.warning(
-                    "Unknown PONG Mismatch: Your HA instance %s receives PONG events, that it hasn't send. "
-                    "Possible reason 1: You are running multiple instances of HA with the same instance name configured for this integration. "
-                    "Re-add one instance! Otherwise the other HA instance will not receive update events from your CCU. "
+                    "Unknown PONG Mismatch: Your instance %s receives PONG events, that it hasn't send. "
+                    "Possible reason 1: You are running multiple instances with the same instance name configured for this integration. "
+                    "Re-add one instance! Otherwise the other instance will not receive update events from your CCU. "
                     "Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart.",
                     self._interface_id,
                 )

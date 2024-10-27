@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the climate category.
-
-See https://www.home-assistant.io/integrations/climate/.
-"""
+"""Module for data points implemented using the climate category."""
 
 from __future__ import annotations
 
@@ -38,7 +34,6 @@ from hahomematic.model.generic import (
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-# HA constants
 _CLOSED_LEVEL: Final = 0.0
 _DEFAULT_TEMPERATURE_STEP: Final = 0.5
 _MAX_SCHEDULER_TIME: Final = "24:00"

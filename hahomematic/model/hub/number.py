@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the number category.
-
-See https://www.home-assistant.io/integrations/number/.
-"""
+"""Module for data points implemented using the number category."""
 
 from __future__ import annotations
 

@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the switch category.
-
-See https://www.home-assistant.io/integrations/switch/.
-"""
+"""Module for data points implemented using the switch category."""
 
 from __future__ import annotations
 

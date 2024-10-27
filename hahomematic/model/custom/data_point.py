@@ -276,7 +276,7 @@ class CustomDataPoint(BaseDataPoint):
     def _mark_data_points(
         self, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]
     ) -> None:
-        """Mark data points to be created in HA."""
+        """Mark data points to be created, even though a custom data point is present."""
         if not custom_data_point_def:
             return
         for channel_nos, parameters in custom_data_point_def.items():
@@ -287,7 +287,7 @@ class CustomDataPoint(BaseDataPoint):
                     self._mark_data_point(channel_no=channel_no, parameters=parameters)
 
     def _mark_data_point(self, channel_no: int | None, parameters: tuple[str, ...]) -> None:
-        """Mark data point to be created in HA."""
+        """Mark data point to be created, even though a custom data point is present."""
         channel_address = get_channel_address(
             device_address=self._device.address, channel_no=channel_no
         )

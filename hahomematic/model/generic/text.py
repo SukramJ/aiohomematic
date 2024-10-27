@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the text category.
-
-See https://www.home-assistant.io/integrations/text/.
-"""
+"""Module for data points implemented using the text category."""
 
 from __future__ import annotations
 

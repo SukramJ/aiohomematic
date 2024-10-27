@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the binary_sensor category.
-
-See https://www.home-assistant.io/integrations/binary_sensor/.
-"""
+"""Module for data points implemented using the binary_sensor category."""
 
 from __future__ import annotations
 

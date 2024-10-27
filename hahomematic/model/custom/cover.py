@@ -1,8 +1,4 @@
-"""
-Module for data points implemented using the cover category.
-
-See https://www.home-assistant.io/integrations/cover/.
-"""
+"""Module for data points implemented using the cover category."""
 
 from __future__ import annotations
 

@@ -1298,7 +1298,6 @@ class CentralUnit(PayloadMixin):
         """
         Fire backend_parameter callback in central.
 
-        Not used by HA.
         Re-Fired events from CCU for parameter updates.
         """
         for callback_handler in self._backend_parameter_callbacks:

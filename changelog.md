@@ -1,6 +1,6 @@
 # Version 2024.10.15 (2024-10-26)
 
-- Rename entity to data point to better distinguish from HA
+- Rename model to better distinguish from HA
 
 # Version 2024.10.14 (2024-10-26)
 

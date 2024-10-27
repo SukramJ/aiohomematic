@@ -12,7 +12,7 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import CallSource, DataPointUsage
 from hahomematic.platforms.custom import (
-    CeSwitch,
+    CustomDpSwitch,
     get_required_parameters,
     validate_custom_data_point_definition,
 )
@@ -50,10 +50,10 @@ def test_validate_data_point_definition() -> None:
 async def test_custom_data_point_callback(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeSwitch."""
+    """Test CustomDpSwitch."""
     central, _, factory = central_client_factory
-    switch: CeSwitch = cast(
-        CeSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
+    switch: CustomDpSwitch = cast(
+        CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
     )
     assert switch.usage == DataPointUsage.CDP_PRIMARY
 
@@ -105,7 +105,7 @@ async def test_custom_data_point_callback(
 async def test_generic_data_point_callback(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeSwitch."""
+    """Test CustomDpSwitch."""
     central, _, factory = central_client_factory
     switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE

@@ -13,7 +13,7 @@ from hahomematic.platforms.decorators import (
 
 
 def test_generic_property() -> None:
-    """Test CeSwitch."""
+    """Test CustomDpSwitch."""
     test_class = PropertyTestClazz()
     assert test_class.value == "test_value"
     assert test_class.config == "test_config"
@@ -28,7 +28,7 @@ def test_generic_property() -> None:
 
 
 def test_generic_property_read() -> None:
-    """Test CeSwitch."""
+    """Test CustomDpSwitch."""
     test_class = PropertyTestClazz()
     config_attributes = get_public_attributes_for_config_property(data_object=test_class)
     assert config_attributes == {"config": "test_config"}

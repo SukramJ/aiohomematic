@@ -11,7 +11,7 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.custom import CeIpSiren, CeIpSirenSmoke
+from hahomematic.platforms.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 
 from tests import const, helper
 
@@ -40,10 +40,10 @@ TEST_DEVICES: dict[str, str] = {
 async def test_ceipsiren(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpSiren."""
+    """Test CustomDpIpSiren."""
     central, mock_client, _ = central_client_factory
-    siren: CeIpSiren = cast(
-        CeIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3)
+    siren: CustomDpIpSiren = cast(
+        CustomDpIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3)
     )
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
@@ -142,10 +142,10 @@ async def test_ceipsiren(
 async def test_ceipsirensmoke(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpSirenSmoke."""
+    """Test CustomDpIpSirenSmoke."""
     central, mock_client, _ = central_client_factory
-    siren: CeIpSirenSmoke = cast(
-        CeIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
+    siren: CustomDpIpSirenSmoke = cast(
+        CustomDpIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
     )
     assert siren.usage == DataPointUsage.CDP_PRIMARY
 

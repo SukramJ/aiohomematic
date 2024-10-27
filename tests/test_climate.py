@@ -62,7 +62,7 @@ TEST_DEVICES: dict[str, str] = {
 async def test_cesimplerfthermostat(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeSimpleRfThermostat."""
+    """Test CustomDpSimpleRfThermostat."""
     central, mock_client, _ = central_client_factory
     climate: CustomDpSimpleRfThermostat = cast(
         CustomDpSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
@@ -152,7 +152,7 @@ async def test_cesimplerfthermostat(
 async def test_cerfthermostat(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeRfThermostat."""
+    """Test CustomDpRfThermostat."""
     central, mock_client, _ = central_client_factory
     climate: CustomDpRfThermostat = cast(
         CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
@@ -329,7 +329,7 @@ async def test_cerfthermostat(
 async def test_ceipthermostat(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeIpThermostat."""
+    """Test CustomDpIpThermostat."""
     central, mock_client, _ = central_client_factory
     climate: CustomDpIpThermostat = cast(
         CustomDpIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)

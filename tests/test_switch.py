@@ -11,7 +11,7 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage
-from hahomematic.platforms.custom import CeSwitch
+from hahomematic.platforms.custom import CustomDpSwitch
 from hahomematic.platforms.generic import DpSwitch
 from hahomematic.platforms.hub import SysvarDpSwitch
 
@@ -41,10 +41,10 @@ TEST_DEVICES: dict[str, str] = {
 async def test_ceswitch(
     central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
 ) -> None:
-    """Test CeSwitch."""
+    """Test CustomDpSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: CeSwitch = cast(
-        CeSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
+    switch: CustomDpSwitch = cast(
+        CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
     )
     assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")

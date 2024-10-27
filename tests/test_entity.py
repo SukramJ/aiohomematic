@@ -225,7 +225,7 @@ async def test_generic_wrapped_data_point(
     wrapped_data_point: DpSensor = cast(
         DpSensor, central.get_generic_data_point("VCU3609622:1", "LEVEL")
     )
-    assert wrapped_data_point.default_category == "number"
+    assert wrapped_data_point.default_category() == "number"
     assert wrapped_data_point._is_forced_sensor is True
     assert wrapped_data_point.category == "sensor"
     assert wrapped_data_point.usage == DataPointUsage.DATA_POINT

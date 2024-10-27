@@ -73,9 +73,9 @@ from hahomematic.exceptions import (
 from hahomematic.performance import measure_execution_time
 from hahomematic.platforms import create_entities_and_events
 from hahomematic.platforms.custom import CustomEntity, create_custom_entities
+from hahomematic.platforms.data_point import BaseParameterEntity, CallbackEntity
 from hahomematic.platforms.decorators import info_property, service
 from hahomematic.platforms.device import HmDevice
-from hahomematic.platforms.entity import BaseParameterEntity, CallbackEntity
 from hahomematic.platforms.event import GenericEvent
 from hahomematic.platforms.generic import GenericEntity
 from hahomematic.platforms.hub import GenericHubEntity, GenericSystemVariable, HmProgramButton, Hub

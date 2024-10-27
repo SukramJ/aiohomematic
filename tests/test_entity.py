@@ -33,7 +33,7 @@ def test_validate_entity_definition() -> None:
     assert validate_entity_definition() is not None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -86,7 +86,7 @@ async def test_custom_entity_callback(
     device_removed_mock.assert_called_with()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -135,7 +135,7 @@ async def test_generic_entity_callback(
     device_removed_mock.assert_called_with()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -170,7 +170,7 @@ async def test_load_custom_entity(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -199,7 +199,7 @@ async def test_load_generic_entity(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",

@@ -13,7 +13,7 @@ from hahomematic.const import (
     ParameterData,
     ParamsetKey,
 )
-from hahomematic.platforms import device as hmd, entity as hme
+from hahomematic.platforms import data_point as hme, device as hmd
 from hahomematic.platforms.decorators import service
 from hahomematic.platforms.support import (
     EntityNameData,

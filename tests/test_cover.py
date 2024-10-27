@@ -38,7 +38,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -120,7 +120,7 @@ async def test_cecover(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -214,7 +214,7 @@ async def test_ceipblind_dr(
     assert cover.current_position == 50
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -283,7 +283,7 @@ async def test_cewindowdrive(
     assert cover.is_closed is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -431,7 +431,7 @@ async def test_ceblind(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -485,7 +485,7 @@ async def test_ceblind_separate_level_and_tilt_change(
         assert cover.current_tilt_position == 19
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -625,7 +625,7 @@ async def test_ceipblind(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -758,7 +758,7 @@ async def test_ceipblind_hdm(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -876,7 +876,7 @@ async def test_cegarageho(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",

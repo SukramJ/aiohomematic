@@ -36,7 +36,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -67,7 +67,7 @@ async def test_central_basics(
     assert entities
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -93,7 +93,7 @@ async def test_device_get_entities(
     assert entities_reg == ()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -116,7 +116,7 @@ async def test_device_export(
     await device.export_device_definition()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -159,7 +159,7 @@ async def test_identify_ip_addr(
         ("LEVEL:VALUES@all::1", "LEVEL", 1, "VALUES", False),
     ],
 )
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_device_un_ignore_etrv(
     factory: helper.Factory,
     line: str,
@@ -200,7 +200,7 @@ async def test_device_un_ignore_etrv(
         ("LEVEL:VALUES@HmIP-BROLL:all", "LEVEL", 3, "VALUES", True),
     ],
 )
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_device_un_ignore_broll(
     factory: helper.Factory,
     line: str,
@@ -243,7 +243,7 @@ async def test_device_un_ignore_broll(
         ),
     ],
 )
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_device_un_ignore_hm(
     factory: helper.Factory,
     line: str,
@@ -330,7 +330,7 @@ async def test_device_un_ignore_hm(
         ),
     ],
 )
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_device_un_ignore_hm2(
     factory: helper.Factory,
     lines: list[str],
@@ -386,7 +386,7 @@ async def test_device_un_ignore_hm2(
         ),
     ],
 )
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_ignore_(
     factory: helper.Factory,
     lines: list[str],
@@ -409,7 +409,7 @@ async def test_ignore_(
         await central.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "operations",
@@ -443,7 +443,7 @@ async def test_all_parameters(
     assert len(parameters) == expected_result
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "operations",
@@ -479,7 +479,7 @@ async def test_all_parameters_with_un_ignore(
     assert len(parameters) == expected_result
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -511,7 +511,7 @@ async def test_entities_by_platform(
     assert len(ebp_sensor2) == 11
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -554,7 +554,7 @@ async def test_hub_entities_by_platform(
     assert len(ebp_sensor4) == 1
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -591,7 +591,7 @@ async def test_add_device(
     assert len(central._devices) == 2
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -626,7 +626,7 @@ async def test_delete_device(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -677,7 +677,7 @@ async def test_virtual_remote_delete(
     await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_central_not_alive(factory: helper.Factory) -> None:
     """Test central other methods."""
     central, client = await factory.get_unpatched_default_central({}, do_mock_client=False)
@@ -697,7 +697,7 @@ async def test_central_not_alive(factory: helper.Factory) -> None:
         await central.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -731,7 +731,7 @@ async def test_central_callbacks(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -833,7 +833,7 @@ async def test_central_services(
     assert central.get_generic_entity(channel_address="VCU6354483", parameter="DUTY_CYCLE") is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_central_direct(factory: helper.Factory) -> None:
     """Test central other methods."""
     central, client = await factory.get_unpatched_default_central(
@@ -856,7 +856,7 @@ async def test_central_direct(factory: helper.Factory) -> None:
         await central.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_central_without_interface_config(factory: helper.Factory) -> None:
     """Test central other methods."""
     central = await factory.get_raw_central(interface_config=None)
@@ -883,7 +883,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
         await central.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -915,7 +915,7 @@ async def test_ping_pong(
     assert client.ping_pong_cache.pending_pong_count == 0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -954,7 +954,7 @@ async def test_pending_pong_failure(
     assert len(factory.ha_event_mock.mock_calls) == 10
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -988,7 +988,7 @@ async def test_unknown_pong_failure(
     assert client.ping_pong_cache.unknown_pong_count == 16
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -1016,7 +1016,7 @@ async def test_central_caches(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",

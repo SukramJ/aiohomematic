@@ -19,7 +19,7 @@ from hahomematic.const import (
 )
 from hahomematic.platforms.hub.binary_sensor import HmSysvarBinarySensor
 from hahomematic.platforms.hub.button import HmProgramButton
-from hahomematic.platforms.hub.entity import GenericHubEntity, GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericHubEntity, GenericSystemVariable
 from hahomematic.platforms.hub.number import HmSysvarNumber
 from hahomematic.platforms.hub.select import HmSysvarSelect
 from hahomematic.platforms.hub.sensor import HmSysvarSensor

@@ -45,9 +45,9 @@ from hahomematic.const import (
     RxMode,
 )
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
-from hahomematic.platforms.custom import definition as hmed, entity as hmce
+from hahomematic.platforms.custom import data_point as hmce, definition as hmed
+from hahomematic.platforms.data_point import BaseParameterEntity, CallbackEntity
 from hahomematic.platforms.decorators import info_property, service, state_property
-from hahomematic.platforms.entity import BaseParameterEntity, CallbackEntity
 from hahomematic.platforms.event import GenericEvent
 from hahomematic.platforms.generic import GenericEntity
 from hahomematic.platforms.support import (

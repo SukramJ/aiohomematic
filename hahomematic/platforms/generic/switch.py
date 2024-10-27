@@ -9,9 +9,9 @@ from __future__ import annotations
 from typing import Final
 
 from hahomematic.const import HmPlatform, ParameterType
+from hahomematic.platforms.data_point import CallParameterCollector
 from hahomematic.platforms.decorators import service, state_property
-from hahomematic.platforms.entity import CallParameterCollector
-from hahomematic.platforms.generic.entity import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericEntity
 
 _PARAM_ON_TIME: Final = "ON_TIME"
 

@@ -19,7 +19,7 @@ from hahomematic.const import (
     ParamsetKey,
 )
 from hahomematic.platforms import device as hmd
-from hahomematic.platforms.entity import BaseParameterEntity
+from hahomematic.platforms.data_point import BaseParameterEntity
 from hahomematic.platforms.support import EntityNameData, get_event_name
 
 __all__ = [

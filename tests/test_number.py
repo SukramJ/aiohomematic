@@ -24,7 +24,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -70,7 +70,7 @@ async def test_hmfloat(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -116,7 +116,7 @@ async def test_hmfloat_special(
     assert efloat.value == 100.0
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -180,7 +180,7 @@ async def test_hminteger(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",

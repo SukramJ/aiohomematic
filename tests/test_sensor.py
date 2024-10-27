@@ -24,7 +24,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -82,7 +82,7 @@ async def test_hmsensor_psm(
     assert sensor3.value is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -112,7 +112,7 @@ async def test_hmsensor_srh(
     assert sensor.value == "OPEN"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",

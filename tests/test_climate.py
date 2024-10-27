@@ -45,7 +45,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -135,7 +135,7 @@ async def test_cesimplerfthermostat(
     assert mock_client.method_calls[-1] == last_call
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -312,7 +312,7 @@ async def test_cerfthermostat(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -516,7 +516,7 @@ async def test_ceipthermostat(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
     """Test the central."""
     assert central_unit_mini

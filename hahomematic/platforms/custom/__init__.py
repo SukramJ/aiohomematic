@@ -21,13 +21,13 @@ from hahomematic.platforms.custom.climate import (
     HmPresetMode,
 )
 from hahomematic.platforms.custom.cover import CeBlind, CeCover, CeGarage, CeIpBlind, CeWindowDrive
+from hahomematic.platforms.custom.data_point import CustomEntity
 from hahomematic.platforms.custom.definition import (
     entity_definition_exists,
     get_custom_configs,
     get_required_parameters,
     validate_entity_definition,
 )
-from hahomematic.platforms.custom.entity import CustomEntity
 from hahomematic.platforms.custom.light import (
     CeColorDimmer,
     CeColorDimmerEffect,

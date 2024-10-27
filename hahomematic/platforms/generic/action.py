@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from hahomematic.const import HmPlatform
-from hahomematic.platforms.generic.entity import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericEntity
 from hahomematic.platforms.support import get_index_of_value_from_value_list
 
 

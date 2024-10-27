@@ -21,7 +21,7 @@ from hahomematic.platforms import device as hmd
 from hahomematic.platforms.generic.action import HmAction
 from hahomematic.platforms.generic.binary_sensor import HmBinarySensor
 from hahomematic.platforms.generic.button import HmButton
-from hahomematic.platforms.generic.entity import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericEntity
 from hahomematic.platforms.generic.number import BaseNumber, HmFloat, HmInteger
 from hahomematic.platforms.generic.select import HmSelect
 from hahomematic.platforms.generic.sensor import HmSensor

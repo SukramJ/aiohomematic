@@ -11,7 +11,7 @@ from typing import Final
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import service
-from hahomematic.platforms.hub.entity import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSystemVariable
 
 _LOGGER: Final = logging.getLogger(__name__)
 

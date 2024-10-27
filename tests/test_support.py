@@ -60,7 +60,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -160,7 +160,7 @@ def test_parse_sys_var() -> None:
     assert parse_sys_var(data_type=SysvarType.LOGIC, raw_value="true") is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_to_bool() -> None:
     """Test to_bool."""
     assert to_bool(value=True) is True
@@ -183,7 +183,7 @@ async def test_to_bool() -> None:
         to_bool(value=2)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -224,7 +224,7 @@ async def test_get_entity_name(
         assert name_data.entity_name is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -267,7 +267,7 @@ async def test_get_event_name(
         assert name_data.entity_name is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -336,7 +336,7 @@ async def test_custom_entity_name(
         assert name_data.entity_name is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -365,14 +365,14 @@ async def test_get_device_name(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_tls_context() -> None:
     """Test tls_context."""
     assert get_tls_context(verify_tls=False).check_hostname is False
     assert get_tls_context(verify_tls=True).check_hostname is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_changed_within_seconds() -> None:
     """Test changed_within_seconds."""
     assert (
@@ -386,7 +386,7 @@ async def test_changed_within_seconds() -> None:
     assert changed_within_seconds(last_change=INIT_DATETIME, max_age=60) is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_convert_value() -> None:
     """Test convert_value."""
     assert convert_value(value=None, target_type=ParameterType.BOOL, value_list=None) is None
@@ -411,7 +411,7 @@ async def test_convert_value() -> None:
     assert convert_value(value=True, target_type=ParameterType.ACTION, value_list=None) is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_element_matches_key() -> None:
     """Test element_matches_key."""
     assert element_matches_key(search_elements="HmIP-eTRV", compare_with=None) is False
@@ -446,7 +446,7 @@ async def test_element_matches_key() -> None:
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_value_from_dict_by_wildcard_key() -> None:
     """Test value_from_dict_by_wildcard_key."""
     assert (
@@ -479,7 +479,7 @@ async def test_value_from_dict_by_wildcard_key() -> None:
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_others() -> None:
     """Test find_free_port."""
     assert find_free_port()

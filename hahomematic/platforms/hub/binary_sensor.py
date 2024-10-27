@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from hahomematic.const import HmPlatform
 from hahomematic.platforms.decorators import state_property
-from hahomematic.platforms.hub.entity import GenericSystemVariable
+from hahomematic.platforms.hub.data_point import GenericSystemVariable
 
 
 class HmSysvarBinarySensor(GenericSystemVariable):

@@ -20,7 +20,7 @@ TEST_DEVICES: dict[str, str] = {}
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -41,7 +41,7 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
     assert text.usage == EntityUsage.ENTITY
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",

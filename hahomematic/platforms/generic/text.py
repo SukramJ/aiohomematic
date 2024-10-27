@@ -7,7 +7,7 @@ See https://www.home-assistant.io/integrations/text/.
 from __future__ import annotations
 
 from hahomematic.const import HmPlatform
-from hahomematic.platforms.generic.entity import GenericEntity
+from hahomematic.platforms.generic.data_point import GenericEntity
 
 
 class HmText(GenericEntity[str, str]):

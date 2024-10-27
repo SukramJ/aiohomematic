@@ -38,7 +38,7 @@ TEST_DEVICES: dict[str, str] = {
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -153,7 +153,7 @@ async def test_cedimmer(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -309,7 +309,7 @@ async def test_cecolordimmereffect(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -399,7 +399,7 @@ async def test_cecolortempdimmer(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -599,7 +599,7 @@ async def test_ceipfixedcolorlight(
     assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -887,7 +887,7 @@ async def test_ceipfixedcolorlightwired(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",
@@ -1064,7 +1064,7 @@ async def test_ceiprgbwlight(
     )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
         "address_device_translation",

@@ -42,23 +42,25 @@ class CustomDpSwitch(CustomDataPoint, OnTimeMixin):
         """Init the data_point fields."""
         OnTimeMixin.__init__(self)
         super()._init_data_point_fields()
-        self._e_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
-        self._e_on_time_value: DpAction = self._get_data_point(
+        self._dp_state: DpSwitch = self._get_data_point(
+            field=Field.STATE, data_point_type=DpSwitch
+        )
+        self._dp_on_time_value: DpAction = self._get_data_point(
             field=Field.ON_TIME_VALUE, data_point_type=DpAction
         )
-        self._e_channel_state: DpBinarySensor = self._get_data_point(
+        self._dp_channel_state: DpBinarySensor = self._get_data_point(
             field=Field.CHANNEL_STATE, data_point_type=DpBinarySensor
         )
 
     @property
     def channel_value(self) -> bool | None:
         """Return the current channel value of the switch."""
-        return self._e_channel_state.value
+        return self._dp_channel_state.value
 
     @state_property
     def value(self) -> bool | None:
         """Return the current value of the switch."""
-        return self._e_state.value
+        return self._dp_state.value
 
     @bind_collector()
     async def turn_on(
@@ -68,15 +70,15 @@ class CustomDpSwitch(CustomDataPoint, OnTimeMixin):
         if not self.is_state_change(on=True, on_time=on_time):
             return
         if on_time is not None or (on_time := self.get_on_time_and_cleanup()):
-            await self._e_on_time_value.send_value(value=float(on_time), collector=collector)
-        await self._e_state.turn_on(collector=collector)
+            await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
+        await self._dp_state.turn_on(collector=collector)
 
     @bind_collector()
     async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch off."""
         if not self.is_state_change(off=True):
             return
-        await self._e_state.turn_off(collector=collector)
+        await self._dp_state.turn_off(collector=collector)
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""

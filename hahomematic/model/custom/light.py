@@ -146,44 +146,44 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
         """Init the data_point fields."""
         OnTimeMixin.__init__(self)
         super()._init_data_point_fields()
-        self._e_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._e_channel_level: DpSensor[float | None] = self._get_data_point(
+        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
+        self._dp_channel_level: DpSensor[float | None] = self._get_data_point(
             field=Field.CHANNEL_LEVEL, data_point_type=DpSensor[float | None]
         )
-        self._e_on_time_value: DpAction = self._get_data_point(
+        self._dp_on_time_value: DpAction = self._get_data_point(
             field=Field.ON_TIME_VALUE, data_point_type=DpAction
         )
-        self._e_ramp_time_value: DpAction = self._get_data_point(
+        self._dp_ramp_time_value: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_VALUE, data_point_type=DpAction
         )
 
     @state_property
     def is_on(self) -> bool | None:
         """Return true if dimmer is on."""
-        return self._e_level.value is not None and self._e_level.value > _DIMMER_OFF
+        return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
 
     @state_property
     def brightness(self) -> int | None:
         """Return the brightness of this light between min/max brightness."""
-        return int((self._e_level.value or _MIN_BRIGHTNESS) * _MAX_BRIGHTNESS)
+        return int((self._dp_level.value or _MIN_BRIGHTNESS) * _MAX_BRIGHTNESS)
 
     @property
     def brightness_pct(self) -> int | None:
         """Return the brightness in percent of this light."""
-        return int((self._e_level.value or _MIN_BRIGHTNESS) * 100)
+        return int((self._dp_level.value or _MIN_BRIGHTNESS) * 100)
 
     @property
     def channel_brightness(self) -> int | None:
         """Return the channel_brightness of this light between min/max brightness."""
-        if self._e_channel_level.value is not None:
-            return int(self._e_channel_level.value * _MAX_BRIGHTNESS)
+        if self._dp_channel_level.value is not None:
+            return int(self._dp_channel_level.value * _MAX_BRIGHTNESS)
         return None
 
     @property
     def channel_brightness_pct(self) -> int | None:
         """Return the channel_brightness in percent of this light."""
-        if self._e_channel_level.value is not None:
-            return int(self._e_channel_level.value * 100)
+        if self._dp_channel_level.value is not None:
+            return int(self._dp_channel_level.value * 100)
         return None
 
     @state_property
@@ -199,7 +199,7 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
     @property
     def supports_brightness(self) -> bool:
         """Flag if light supports brightness."""
-        return isinstance(self._e_level, DpFloat)
+        return isinstance(self._dp_level, DpFloat)
 
     @property
     def supports_color_temperature(self) -> bool:
@@ -219,7 +219,7 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
     @property
     def supports_transition(self) -> bool:
         """Flag if light supports transition."""
-        return isinstance(self._e_ramp_time_value, DpAction)
+        return isinstance(self._dp_ramp_time_value, DpAction)
 
     @state_property
     def effect(self) -> str | None:
@@ -246,7 +246,7 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
         if not (brightness := kwargs.get("brightness", self.brightness)):
             brightness = int(_MAX_BRIGHTNESS)
         level = brightness / _MAX_BRIGHTNESS
-        await self._e_level.send_value(value=level, collector=collector)
+        await self._dp_level.send_value(value=level, collector=collector)
 
     @bind_collector()
     async def turn_off(
@@ -258,20 +258,20 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
         if ramp_time := kwargs.get("ramp_time"):
             await self._set_ramp_time_off_value(ramp_time=ramp_time, collector=collector)
 
-        await self._e_level.send_value(value=_DIMMER_OFF, collector=collector)
+        await self._dp_level.send_value(value=_DIMMER_OFF, collector=collector)
 
     @bind_collector()
     async def _set_on_time_value(
         self, on_time: float, collector: CallParameterCollector | None = None
     ) -> None:
         """Set the on time value in seconds."""
-        await self._e_on_time_value.send_value(value=on_time, collector=collector)
+        await self._dp_on_time_value.send_value(value=on_time, collector=collector)
 
     async def _set_ramp_time_on_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
     ) -> None:
         """Set the ramp time value in seconds."""
-        await self._e_ramp_time_value.send_value(value=ramp_time, collector=collector)
+        await self._dp_ramp_time_value.send_value(value=ramp_time, collector=collector)
 
     async def _set_ramp_time_off_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
@@ -320,14 +320,14 @@ class CustomDpColorDimmer(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color: DpInteger = self._get_data_point(
+        self._dp_color: DpInteger = self._get_data_point(
             field=Field.COLOR, data_point_type=DpInteger
         )
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
-        if (color := self._e_color.value) is not None:
+        if (color := self._dp_color.value) is not None:
             if color >= 200:
                 # 200 is a special case (white), so we have a saturation of 0.
                 # Larger values are undefined.
@@ -350,7 +350,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
             hue = khue / 360
             saturation = ksaturation / 100
             color = 200 if saturation < 0.1 else int(round(max(min(hue, 1), 0) * 199))
-            await self._e_color.send_value(value=color, collector=collector)
+            await self._dp_color.send_value(value=color, collector=collector)
         await super().turn_on(collector=collector, **kwargs)
 
 
@@ -370,15 +370,15 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_effect: DpInteger = self._get_data_point(
+        self._dp_effect: DpInteger = self._get_data_point(
             field=Field.PROGRAM, data_point_type=DpInteger
         )
 
     @state_property
     def effect(self) -> str | None:
         """Return the current effect."""
-        if self._e_effect.value is not None:
-            return self._effects[int(self._e_effect.value)]
+        if self._dp_effect.value is not None:
+            return self._effects[int(self._dp_effect.value)]
         return None
 
     @state_property
@@ -395,14 +395,14 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
             return
 
         if "effect" not in kwargs and self.supports_effects and self.effect != _EFFECT_OFF:
-            await self._e_effect.send_value(value=0, collector=collector, collector_order=5)
+            await self._dp_effect.send_value(value=0, collector=collector, collector_order=5)
 
         if (
             self.supports_effects
             and (effect := kwargs.get("effect")) is not None
             and (effect_idx := self._effects.index(effect)) is not None
         ):
-            await self._e_effect.send_value(
+            await self._dp_effect.send_value(
                 value=effect_idx, collector=collector, collector_order=95
             )
 
@@ -415,14 +415,14 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color_level: DpFloat = self._get_data_point(
+        self._dp_color_level: DpFloat = self._get_data_point(
             field=Field.COLOR_LEVEL, data_point_type=DpFloat
         )
 
     @state_property
     def color_temp(self) -> int | None:
         """Return the color temperature in mireds of this light between min/max mireds."""
-        return int(_MAX_MIREDS - (_MAX_MIREDS - _MIN_MIREDS) * (self._e_color_level.value or 0.0))
+        return int(_MAX_MIREDS - (_MAX_MIREDS - _MIN_MIREDS) * (self._dp_color_level.value or 0.0))
 
     @bind_collector()
     async def turn_on(
@@ -433,7 +433,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
             return
         if (color_temp := kwargs.get("color_temp")) is not None:
             color_level = (_MAX_MIREDS - color_temp) / (_MAX_MIREDS - _MIN_MIREDS)
-            await self._e_color_level.send_value(value=color_level, collector=collector)
+            await self._dp_color_level.send_value(value=color_level, collector=collector)
 
         await super().turn_on(collector=collector, **kwargs)
 
@@ -444,70 +444,75 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_activity_state: DpSensor[str | None] = self._get_data_point(
+        self._dp_activity_state: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
-        self._e_color_temperature_kelvin: DpInteger = self._get_data_point(
+        self._dp_color_temperature_kelvin: DpInteger = self._get_data_point(
             field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
         )
-        self._e_device_operation_mode: DpSelect = self._get_data_point(
+        self._dp_device_operation_mode: DpSelect = self._get_data_point(
             field=Field.DEVICE_OPERATION_MODE, data_point_type=DpSelect
         )
-        self._e_on_time_unit: DpAction = self._get_data_point(
+        self._dp_on_time_unit: DpAction = self._get_data_point(
             field=Field.ON_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_effect: DpAction = self._get_data_point(
+        self._dp_effect: DpAction = self._get_data_point(
             field=Field.EFFECT, data_point_type=DpAction
         )
-        self._e_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
-        self._e_ramp_time_to_off_unit: DpAction = self._get_data_point(
+        self._dp_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
+        self._dp_ramp_time_to_off_unit: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpAction
         )
-        self._e_ramp_time_to_off_value: DpAction = self._get_data_point(
+        self._dp_ramp_time_to_off_value: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
         )
-        self._e_ramp_time_unit: DpAction = self._get_data_point(
+        self._dp_ramp_time_unit: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_saturation: DpFloat = self._get_data_point(
+        self._dp_saturation: DpFloat = self._get_data_point(
             field=Field.SATURATION, data_point_type=DpFloat
         )
 
     @state_property
     def color_temp(self) -> int | None:
         """Return the color temperature in mireds of this light between min/max mireds."""
-        if not self._e_color_temperature_kelvin.value:
+        if not self._dp_color_temperature_kelvin.value:
             return None
-        return math.floor(1000000 / self._e_color_temperature_kelvin.value)
+        return math.floor(1000000 / self._dp_color_temperature_kelvin.value)
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
-        if self._e_hue.value is not None and self._e_saturation.value is not None:
-            return self._e_hue.value, self._e_saturation.value * 100
+        if self._dp_hue.value is not None and self._dp_saturation.value is not None:
+            return self._dp_hue.value, self._dp_saturation.value * 100
         return None
 
     @property
     def _relevant_data_points(self) -> tuple[GenericDataPoint, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
-        if self._e_device_operation_mode.value == _DeviceOperationMode.RGBW:
-            return self._e_hue, self._e_level, self._e_saturation, self._e_color_temperature_kelvin
-        if self._e_device_operation_mode.value == _DeviceOperationMode.RGB:
-            return self._e_hue, self._e_level, self._e_saturation
-        if self._e_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE:
-            return self._e_level, self._e_color_temperature_kelvin
-        return (self._e_level,)
+        if self._dp_device_operation_mode.value == _DeviceOperationMode.RGBW:
+            return (
+                self._dp_hue,
+                self._dp_level,
+                self._dp_saturation,
+                self._dp_color_temperature_kelvin,
+            )
+        if self._dp_device_operation_mode.value == _DeviceOperationMode.RGB:
+            return self._dp_hue, self._dp_level, self._dp_saturation
+        if self._dp_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE:
+            return self._dp_level, self._dp_color_temperature_kelvin
+        return (self._dp_level,)
 
     @property
     def supports_color_temperature(self) -> bool:
         """Flag if light supports color temperature."""
-        return self._e_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE
+        return self._dp_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE
 
     @property
     def supports_effects(self) -> bool:
         """Flag if light supports effects."""
         return (
-            self._e_device_operation_mode.value != _DeviceOperationMode.PWM
+            self._dp_device_operation_mode.value != _DeviceOperationMode.PWM
             and self.effects is not None
             and len(self.effects) > 0
         )
@@ -515,7 +520,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     @property
     def supports_hs_color(self) -> bool:
         """Flag if light supports color."""
-        return self._e_device_operation_mode.value in (
+        return self._dp_device_operation_mode.value in (
             _DeviceOperationMode.RGBW,
             _DeviceOperationMode.RGB,
         )
@@ -528,11 +533,11 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         Avoid creating data points that are not usable in selected device operation mode.
         """
         if (
-            self._e_device_operation_mode.value
+            self._dp_device_operation_mode.value
             in (_DeviceOperationMode.RGB, _DeviceOperationMode.RGBW)
             and self._channel.no in (2, 3, 4)
         ) or (
-            self._e_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE
+            self._dp_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE
             and self._channel.no in (3, 4)
         ):
             return DataPointUsage.NO_CREATE
@@ -541,7 +546,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     @state_property
     def effects(self) -> tuple[str, ...] | None:
         """Return the supported effects."""
-        return self._e_effect.values or ()
+        return self._dp_effect.values or ()
 
     @bind_collector()
     async def turn_on(
@@ -553,18 +558,18 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         if (hs_color := kwargs.get("hs_color")) is not None:
             hue, ksaturation = hs_color
             saturation = ksaturation / 100
-            await self._e_hue.send_value(value=int(hue), collector=collector)
-            await self._e_saturation.send_value(value=saturation, collector=collector)
+            await self._dp_hue.send_value(value=int(hue), collector=collector)
+            await self._dp_saturation.send_value(value=saturation, collector=collector)
         if color_temp := kwargs.get("color_temp"):
             color_temp_kelvin = math.floor(1000000 / color_temp)
-            await self._e_color_temperature_kelvin.send_value(
+            await self._dp_color_temperature_kelvin.send_value(
                 value=color_temp_kelvin, collector=collector
             )
         if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
             # 111600 is a special value for NOT_USED
             await self._set_on_time_value(on_time=111600, collector=collector)
         if self.supports_effects and (effect := kwargs.get("effect")) is not None:
-            await self._e_effect.send_value(value=effect, collector=collector)
+            await self._dp_effect.send_value(value=effect, collector=collector)
 
         await super().turn_on(collector=collector, **kwargs)
 
@@ -585,8 +590,8 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         """Set the on time value in seconds."""
         on_time, on_time_unit = _recalc_unit_timer(time=on_time)
         if on_time_unit is not None:
-            await self._e_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._e_on_time_value.send_value(value=float(on_time), collector=collector)
+            await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
+        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
 
     async def _set_ramp_time_on_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
@@ -594,8 +599,8 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         """Set the ramp time value in seconds."""
         ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
         if ramp_time_unit is not None:
-            await self._e_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._e_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
     async def _set_ramp_time_off_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
@@ -603,8 +608,8 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         """Set the ramp time value in seconds."""
         ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
         if ramp_time_unit is not None:
-            await self._e_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._e_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 
 class CustomDpIpDrgDaliLight(CustomDpDimmer):
@@ -613,52 +618,52 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color_temperature_kelvin: DpInteger = self._get_data_point(
+        self._dp_color_temperature_kelvin: DpInteger = self._get_data_point(
             field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
         )
-        self._e_on_time_unit: DpAction = self._get_data_point(
+        self._dp_on_time_unit: DpAction = self._get_data_point(
             field=Field.ON_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_effect: DpAction = self._get_data_point(
+        self._dp_effect: DpAction = self._get_data_point(
             field=Field.EFFECT, data_point_type=DpAction
         )
-        self._e_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
-        self._e_ramp_time_to_off_unit: DpAction = self._get_data_point(
+        self._dp_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
+        self._dp_ramp_time_to_off_unit: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpAction
         )
-        self._e_ramp_time_to_off_value: DpAction = self._get_data_point(
+        self._dp_ramp_time_to_off_value: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
         )
-        self._e_ramp_time_unit: DpAction = self._get_data_point(
+        self._dp_ramp_time_unit: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_saturation: DpFloat = self._get_data_point(
+        self._dp_saturation: DpFloat = self._get_data_point(
             field=Field.SATURATION, data_point_type=DpFloat
         )
 
     @state_property
     def color_temp(self) -> int | None:
         """Return the color temperature in mireds of this light between min/max mireds."""
-        if not self._e_color_temperature_kelvin.value:
+        if not self._dp_color_temperature_kelvin.value:
             return None
-        return math.floor(1000000 / self._e_color_temperature_kelvin.value)
+        return math.floor(1000000 / self._dp_color_temperature_kelvin.value)
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
-        if self._e_hue.value is not None and self._e_saturation.value is not None:
-            return self._e_hue.value, self._e_saturation.value * 100
+        if self._dp_hue.value is not None and self._dp_saturation.value is not None:
+            return self._dp_hue.value, self._dp_saturation.value * 100
         return None
 
     @property
     def _relevant_data_points(self) -> tuple[GenericDataPoint, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
-        return (self._e_level,)
+        return (self._dp_level,)
 
     @state_property
     def effects(self) -> tuple[str, ...] | None:
         """Return the supported effects."""
-        return self._e_effect.values or ()
+        return self._dp_effect.values or ()
 
     @bind_collector()
     async def turn_on(
@@ -670,18 +675,18 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         if (hs_color := kwargs.get("hs_color")) is not None:
             hue, ksaturation = hs_color
             saturation = ksaturation / 100
-            await self._e_hue.send_value(value=int(hue), collector=collector)
-            await self._e_saturation.send_value(value=saturation, collector=collector)
+            await self._dp_hue.send_value(value=int(hue), collector=collector)
+            await self._dp_saturation.send_value(value=saturation, collector=collector)
         if color_temp := kwargs.get("color_temp"):
             color_temp_kelvin = math.floor(1000000 / color_temp)
-            await self._e_color_temperature_kelvin.send_value(
+            await self._dp_color_temperature_kelvin.send_value(
                 value=color_temp_kelvin, collector=collector
             )
         if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
             # 111600 is a special value for NOT_USED
             await self._set_on_time_value(on_time=111600, collector=collector)
         if self.supports_effects and (effect := kwargs.get("effect")) is not None:
-            await self._e_effect.send_value(value=effect, collector=collector)
+            await self._dp_effect.send_value(value=effect, collector=collector)
 
         await super().turn_on(collector=collector, **kwargs)
 
@@ -692,8 +697,8 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         """Set the on time value in seconds."""
         on_time, on_time_unit = _recalc_unit_timer(time=on_time)
         if on_time_unit:
-            await self._e_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._e_on_time_value.send_value(value=float(on_time), collector=collector)
+            await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
+        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
 
     async def _set_ramp_time_on_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
@@ -701,8 +706,8 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         """Set the ramp time value in seconds."""
         ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
         if ramp_time_unit:
-            await self._e_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._e_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
     async def _set_ramp_time_off_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
@@ -710,8 +715,8 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         """Set the ramp time value in seconds."""
         ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
         if ramp_time_unit:
-            await self._e_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._e_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 
 class CustomDpIpFixedColorLight(CustomDpDimmer):
@@ -720,43 +725,45 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
     @state_property
     def color_name(self) -> str | None:
         """Return the name of the color."""
-        return self._e_color.value
+        return self._dp_color.value
 
     @property
     def channel_color_name(self) -> str | None:
         """Return the name of the channel color."""
-        return self._e_channel_color.value
+        return self._dp_channel_color.value
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_color: DpSelect = self._get_data_point(field=Field.COLOR, data_point_type=DpSelect)
-        self._e_channel_color: DpSensor[str | None] = self._get_data_point(
+        self._dp_color: DpSelect = self._get_data_point(
+            field=Field.COLOR, data_point_type=DpSelect
+        )
+        self._dp_channel_color: DpSensor[str | None] = self._get_data_point(
             field=Field.CHANNEL_COLOR, data_point_type=DpSensor[str | None]
         )
-        self._e_on_time_unit: DpAction = self._get_data_point(
+        self._dp_on_time_unit: DpAction = self._get_data_point(
             field=Field.ON_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_ramp_time_unit: DpAction = self._get_data_point(
+        self._dp_ramp_time_unit: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_UNIT, data_point_type=DpAction
         )
-        self._e_effect: DpSelect = self._get_data_point(
+        self._dp_effect: DpSelect = self._get_data_point(
             field=Field.COLOR_BEHAVIOUR, data_point_type=DpSelect
         )
         self._effect_list = (
             tuple(
                 str(item)
-                for item in self._e_effect.values
+                for item in self._dp_effect.values
                 if item not in _EXCLUDE_FROM_COLOR_BEHAVIOUR
             )
-            if (self._e_effect and self._e_effect.values)
+            if (self._dp_effect and self._dp_effect.values)
             else ()
         )
 
     @state_property
     def effect(self) -> str | None:
         """Return the current effect."""
-        if (effect := self._e_effect.value) is not None and effect in self._effect_list:
+        if (effect := self._dp_effect.value) is not None and effect in self._effect_list:
             return effect
         return None
 
@@ -769,8 +776,8 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         if (
-            self._e_color.value is not None
-            and (hs_color := _FIXED_COLOR_SWITCHER.get(self._e_color.value)) is not None
+            self._dp_color.value is not None
+            and (hs_color := _FIXED_COLOR_SWITCHER.get(self._dp_color.value)) is not None
         ):
             return hs_color
         return 0.0, 0.0
@@ -778,8 +785,8 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
     @property
     def channel_hs_color(self) -> tuple[float, float] | None:
         """Return the channel hue and saturation color value [float, float]."""
-        if self._e_channel_color.value is not None:
-            return _FIXED_COLOR_SWITCHER.get(self._e_channel_color.value, (0.0, 0.0))
+        if self._dp_channel_color.value is not None:
+            return _FIXED_COLOR_SWITCHER.get(self._dp_channel_color.value, (0.0, 0.0))
         return None
 
     @bind_collector()
@@ -791,15 +798,15 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
             simple_rgb_color = _convert_color(hs_color)
-            await self._e_color.send_value(value=simple_rgb_color, collector=collector)
+            await self._dp_color.send_value(value=simple_rgb_color, collector=collector)
         elif self.color_name in _NO_COLOR:
-            await self._e_color.send_value(value=_FixedColor.WHITE, collector=collector)
+            await self._dp_color.send_value(value=_FixedColor.WHITE, collector=collector)
         if (effect := kwargs.get("effect")) is not None and effect in self._effect_list:
-            await self._e_effect.send_value(value=effect, collector=collector)
-        elif self._e_effect.value not in self._effect_list:
-            await self._e_effect.send_value(value=_ColorBehaviour.ON, collector=collector)
-        elif (color_behaviour := self._e_effect.value) is not None:
-            await self._e_effect.send_value(value=color_behaviour, collector=collector)
+            await self._dp_effect.send_value(value=effect, collector=collector)
+        elif self._dp_effect.value not in self._effect_list:
+            await self._dp_effect.send_value(value=_ColorBehaviour.ON, collector=collector)
+        elif (color_behaviour := self._dp_effect.value) is not None:
+            await self._dp_effect.send_value(value=color_behaviour, collector=collector)
 
         await super().turn_on(collector=collector, **kwargs)
 
@@ -810,8 +817,8 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
         """Set the on time value in seconds."""
         on_time, on_time_unit = _recalc_unit_timer(time=on_time)
         if on_time_unit:
-            await self._e_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._e_on_time_value.send_value(value=float(on_time), collector=collector)
+            await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
+        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
 
     async def _set_ramp_time_on_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
@@ -819,8 +826,8 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
         """Set the ramp time value in seconds."""
         ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
         if ramp_time_unit:
-            await self._e_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._e_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 
 def _recalc_unit_timer(time: float) -> tuple[float, int | None]:

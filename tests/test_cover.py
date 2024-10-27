@@ -174,12 +174,12 @@ async def test_ceipblind_dr(
     )
 
     # test unconfirmed values
-    assert cover._e_level.unconfirmed_last_value_send == 0.81
-    assert cover._e_level_2.unconfirmed_last_value_send == _CLOSED_LEVEL
+    assert cover._dp_level.unconfirmed_last_value_send == 0.81
+    assert cover._dp_level_2.unconfirmed_last_value_send == _CLOSED_LEVEL
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", 0.81)
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _CLOSED_LEVEL)
-    assert cover._e_level.unconfirmed_last_value_send is None
-    assert cover._e_level_2.unconfirmed_last_value_send is None
+    assert cover._dp_level.unconfirmed_last_value_send is None
+    assert cover._dp_level_2.unconfirmed_last_value_send is None
 
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", 0.81)
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _CLOSED_LEVEL)
@@ -192,14 +192,14 @@ async def test_ceipblind_dr(
         parameter="COMBINED_PARAMETER",
         value="L2=100,L=100",
     )
-    assert cover._e_level.unconfirmed_last_value_send == _OPEN_LEVEL
-    assert cover._e_level_2.unconfirmed_last_value_send == _OPEN_TILT_LEVEL
+    assert cover._dp_level.unconfirmed_last_value_send == _OPEN_LEVEL
+    assert cover._dp_level_2.unconfirmed_last_value_send == _OPEN_TILT_LEVEL
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", _OPEN_LEVEL)
     await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _OPEN_TILT_LEVEL)
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", _OPEN_LEVEL)
     await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _OPEN_TILT_LEVEL)
-    assert cover._e_level.unconfirmed_last_value_send is None
-    assert cover._e_level_2.unconfirmed_last_value_send is None
+    assert cover._dp_level.unconfirmed_last_value_send is None
+    assert cover._dp_level_2.unconfirmed_last_value_send is None
     assert cover.current_position == 100
     assert cover.current_tilt_position == 100
     await cover.close()

@@ -166,8 +166,8 @@ class HmDevice(PayloadMixin):
         """Return the availability of the device."""
         if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
             return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
-        if (un_reach := self._e_unreach) is None:
-            un_reach = self._e_sticky_un_reach
+        if (un_reach := self._dp_un_reach) is None:
+            un_reach = self._dp_sticky_un_reach
         if un_reach is not None and un_reach.value is not None:
             return not un_reach.value
         return True
@@ -195,8 +195,8 @@ class HmDevice(PayloadMixin):
     @property
     def config_pending(self) -> bool:
         """Return if a config change of the device is pending."""
-        if self._e_config_pending is not None and self._e_config_pending.value is not None:
-            return self._e_config_pending.value is True
+        if self._dp_config_pending is not None and self._dp_config_pending.value is not None:
+            return self._dp_config_pending.value is True
         return False
 
     @property
@@ -341,21 +341,21 @@ class HmDevice(PayloadMixin):
         return self._value_cache
 
     @property
-    def _e_unreach(self) -> GenericDataPoint | None:
-        """Return th UNREACH data_point."""
+    def _dp_un_reach(self) -> GenericDataPoint | None:
+        """Return th UN REACH data_point."""
         return self.get_generic_data_point(
             channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH
         )
 
     @property
-    def _e_sticky_un_reach(self) -> GenericDataPoint | None:
+    def _dp_sticky_un_reach(self) -> GenericDataPoint | None:
         """Return th STICKY_UN_REACH data_point."""
         return self.get_generic_data_point(
             channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH
         )
 
     @property
-    def _e_config_pending(self) -> GenericDataPoint | None:
+    def _dp_config_pending(self) -> GenericDataPoint | None:
         """Return th CONFIG_PENDING data_point."""
         return self.get_generic_data_point(
             channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING

@@ -104,33 +104,33 @@ class CustomDpIpLock(BaseCustomDpLock):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_lock_state: DpSensor[str | None] = self._get_data_point(
+        self._dp_lock_state: DpSensor[str | None] = self._get_data_point(
             field=Field.LOCK_STATE, data_point_type=DpSensor[str | None]
         )
-        self._e_lock_target_level: DpAction = self._get_data_point(
+        self._dp_lock_target_level: DpAction = self._get_data_point(
             field=Field.LOCK_TARGET_LEVEL, data_point_type=DpAction
         )
-        self._e_direction: DpSensor[str | None] = self._get_data_point(
+        self._dp_direction: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
 
     @state_property
     def is_locked(self) -> bool:
         """Return true if lock is on."""
-        return self._e_lock_state.value == LockState.LOCKED
+        return self._dp_lock_state.value == LockState.LOCKED
 
     @state_property
     def is_locking(self) -> bool | None:
         """Return true if the lock is locking."""
-        if self._e_direction.value is not None:
-            return str(self._e_direction.value) == _LockActivity.LOCKING
+        if self._dp_direction.value is not None:
+            return str(self._dp_direction.value) == _LockActivity.LOCKING
         return None
 
     @state_property
     def is_unlocking(self) -> bool | None:
         """Return true if the lock is unlocking."""
-        if self._e_direction.value is not None:
-            return str(self._e_direction.value) == _LockActivity.UNLOCKING
+        if self._dp_direction.value is not None:
+            return str(self._dp_direction.value) == _LockActivity.UNLOCKING
         return None
 
     @property
@@ -141,21 +141,21 @@ class CustomDpIpLock(BaseCustomDpLock):
     @bind_collector()
     async def lock(self, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
-        await self._e_lock_target_level.send_value(
+        await self._dp_lock_target_level.send_value(
             value=_LockTargetLevel.LOCKED, collector=collector
         )
 
     @bind_collector()
     async def unlock(self, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
-        await self._e_lock_target_level.send_value(
+        await self._dp_lock_target_level.send_value(
             value=_LockTargetLevel.UNLOCKED, collector=collector
         )
 
     @bind_collector()
     async def open(self, collector: CallParameterCollector | None = None) -> None:
         """Open the lock."""
-        await self._e_lock_target_level.send_value(
+        await self._dp_lock_target_level.send_value(
             value=_LockTargetLevel.OPEN, collector=collector
         )
 
@@ -166,7 +166,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_button_lock: DpSwitch = self._get_data_point(
+        self._dp_button_lock: DpSwitch = self._get_data_point(
             field=Field.BUTTON_LOCK, data_point_type=DpSwitch
         )
 
@@ -178,7 +178,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
     @state_property
     def is_locked(self) -> bool:
         """Return true if lock is on."""
-        return self._e_button_lock.value is True
+        return self._dp_button_lock.value is True
 
     @property
     def supports_open(self) -> bool:
@@ -188,12 +188,12 @@ class CustomDpButtonLock(BaseCustomDpLock):
     @bind_collector()
     async def lock(self, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
-        await self._e_button_lock.turn_on(collector=collector)
+        await self._dp_button_lock.turn_on(collector=collector)
 
     @bind_collector()
     async def unlock(self, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
-        await self._e_button_lock.turn_off(collector=collector)
+        await self._dp_button_lock.turn_off(collector=collector)
 
     @bind_collector()
     async def open(self, collector: CallParameterCollector | None = None) -> None:
@@ -207,38 +207,40 @@ class CustomDpRfLock(BaseCustomDpLock):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
-        self._e_open: DpAction = self._get_data_point(field=Field.OPEN, data_point_type=DpAction)
-        self._e_direction: DpSensor[str | None] = self._get_data_point(
+        self._dp_state: DpSwitch = self._get_data_point(
+            field=Field.STATE, data_point_type=DpSwitch
+        )
+        self._dp_open: DpAction = self._get_data_point(field=Field.OPEN, data_point_type=DpAction)
+        self._dp_direction: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
-        self._e_error: DpSensor[str | None] = self._get_data_point(
+        self._dp_error: DpSensor[str | None] = self._get_data_point(
             field=Field.ERROR, data_point_type=DpSensor[str | None]
         )
 
     @state_property
     def is_locked(self) -> bool:
         """Return true if lock is on."""
-        return self._e_state.value is not True
+        return self._dp_state.value is not True
 
     @state_property
     def is_locking(self) -> bool | None:
         """Return true if the lock is locking."""
-        if self._e_direction.value is not None:
-            return str(self._e_direction.value) == _LockActivity.LOCKING
+        if self._dp_direction.value is not None:
+            return str(self._dp_direction.value) == _LockActivity.LOCKING
         return None
 
     @state_property
     def is_unlocking(self) -> bool | None:
         """Return true if the lock is unlocking."""
-        if self._e_direction.value is not None:
-            return str(self._e_direction.value) == _LockActivity.UNLOCKING
+        if self._dp_direction.value is not None:
+            return str(self._dp_direction.value) == _LockActivity.UNLOCKING
         return None
 
     @state_property
     def is_jammed(self) -> bool:
         """Return true if lock is jammed."""
-        return self._e_error.value is not None and self._e_error.value != _LockError.NO_ERROR
+        return self._dp_error.value is not None and self._dp_error.value != _LockError.NO_ERROR
 
     @property
     def supports_open(self) -> bool:
@@ -248,17 +250,17 @@ class CustomDpRfLock(BaseCustomDpLock):
     @bind_collector()
     async def lock(self, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
-        await self._e_state.send_value(value=False, collector=collector)
+        await self._dp_state.send_value(value=False, collector=collector)
 
     @bind_collector()
     async def unlock(self, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
-        await self._e_state.send_value(value=True, collector=collector)
+        await self._dp_state.send_value(value=True, collector=collector)
 
     @bind_collector()
     async def open(self, collector: CallParameterCollector | None = None) -> None:
         """Open the lock."""
-        await self._e_open.send_value(value=True, collector=collector)
+        await self._dp_open.send_value(value=True, collector=collector)
 
 
 def make_ip_lock(

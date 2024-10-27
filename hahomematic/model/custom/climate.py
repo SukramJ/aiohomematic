@@ -163,34 +163,34 @@ class BaseCustomDpClimate(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_humidity: DpSensor[int | None] = self._get_data_point(
+        self._dp_humidity: DpSensor[int | None] = self._get_data_point(
             field=Field.HUMIDITY, data_point_type=DpSensor[int | None]
         )
-        self._e_min_max_value_not_relevant_for_manu_mode: DpBinarySensor = self._get_data_point(
+        self._dp_min_max_value_not_relevant_for_manu_mode: DpBinarySensor = self._get_data_point(
             field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, data_point_type=DpBinarySensor
         )
-        self._e_setpoint: DpFloat = self._get_data_point(
+        self._dp_setpoint: DpFloat = self._get_data_point(
             field=Field.SETPOINT, data_point_type=DpFloat
         )
-        self._e_temperature: DpSensor[float | None] = self._get_data_point(
+        self._dp_temperature: DpSensor[float | None] = self._get_data_point(
             field=Field.TEMPERATURE, data_point_type=DpSensor[float | None]
         )
-        self._e_temperature_maximum: DpFloat = self._get_data_point(
+        self._dp_temperature_maximum: DpFloat = self._get_data_point(
             field=Field.TEMPERATURE_MAXIMUM, data_point_type=DpFloat
         )
-        self._e_temperature_minimum: DpFloat = self._get_data_point(
+        self._dp_temperature_minimum: DpFloat = self._get_data_point(
             field=Field.TEMPERATURE_MINIMUM, data_point_type=DpFloat
         )
 
     @state_property
     def current_humidity(self) -> int | None:
         """Return the current humidity."""
-        return self._e_humidity.value
+        return self._dp_humidity.value
 
     @state_property
     def current_temperature(self) -> float | None:
         """Return current temperature."""
-        return self._e_temperature.value
+        return self._dp_temperature.value
 
     @state_property
     def hvac_action(self) -> HmHvacAction | None:
@@ -210,17 +210,17 @@ class BaseCustomDpClimate(CustomDataPoint):
     @state_property
     def min_max_value_not_relevant_for_manu_mode(self) -> bool:
         """Return the maximum temperature."""
-        if self._e_min_max_value_not_relevant_for_manu_mode.value is not None:
-            return self._e_min_max_value_not_relevant_for_manu_mode.value
+        if self._dp_min_max_value_not_relevant_for_manu_mode.value is not None:
+            return self._dp_min_max_value_not_relevant_for_manu_mode.value
         return False
 
     @state_property
     def min_temp(self) -> float:
         """Return the minimum temperature."""
-        if self._e_temperature_minimum.value is not None:
-            min_temp = float(self._e_temperature_minimum.value)
+        if self._dp_temperature_minimum.value is not None:
+            min_temp = float(self._dp_temperature_minimum.value)
         else:
-            min_temp = self._e_setpoint.min
+            min_temp = self._dp_setpoint.min
 
         if min_temp == _OFF_TEMPERATURE:
             return min_temp + _DEFAULT_TEMPERATURE_STEP
@@ -229,9 +229,9 @@ class BaseCustomDpClimate(CustomDataPoint):
     @state_property
     def max_temp(self) -> float:
         """Return the maximum temperature."""
-        if self._e_temperature_maximum.value is not None:
-            return float(self._e_temperature_maximum.value)
-        return self._e_setpoint.max  # type: ignore[no-any-return]
+        if self._dp_temperature_maximum.value is not None:
+            return float(self._dp_temperature_maximum.value)
+        return self._dp_setpoint.max  # type: ignore[no-any-return]
 
     @state_property
     def preset_mode(self) -> HmPresetMode:
@@ -246,7 +246,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @state_property
     def target_temperature(self) -> float | None:
         """Return target temperature."""
-        return self._e_setpoint.value
+        return self._dp_setpoint.value
 
     @config_property
     def target_temperature_step(self) -> float:
@@ -298,7 +298,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                 f"SET_TEMPERATURE failed: Invalid temperature: {temperature} (min: {self.min_temp}, max: {self.max_temp})"
             )
 
-        await self._e_setpoint.send_value(
+        await self._dp_setpoint.send_value(
             value=temperature, collector=collector, do_validate=do_validate
         )
 
@@ -706,39 +706,39 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_boost_mode: DpAction = self._get_data_point(
+        self._dp_boost_mode: DpAction = self._get_data_point(
             field=Field.BOOST_MODE, data_point_type=DpAction
         )
-        self._e_auto_mode: DpAction = self._get_data_point(
+        self._dp_auto_mode: DpAction = self._get_data_point(
             field=Field.AUTO_MODE, data_point_type=DpAction
         )
-        self._e_manu_mode: DpAction = self._get_data_point(
+        self._dp_manu_mode: DpAction = self._get_data_point(
             field=Field.MANU_MODE, data_point_type=DpAction
         )
-        self._e_comfort_mode: DpAction = self._get_data_point(
+        self._dp_comfort_mode: DpAction = self._get_data_point(
             field=Field.COMFORT_MODE, data_point_type=DpAction
         )
-        self._e_lowering_mode: DpAction = self._get_data_point(
+        self._dp_lowering_mode: DpAction = self._get_data_point(
             field=Field.LOWERING_MODE, data_point_type=DpAction
         )
-        self._e_control_mode: DpSensor[str | None] = self._get_data_point(
+        self._dp_control_mode: DpSensor[str | None] = self._get_data_point(
             field=Field.CONTROL_MODE, data_point_type=DpSensor[str | None]
         )
-        self._e_temperature_offset: DpSelect = self._get_data_point(
+        self._dp_temperature_offset: DpSelect = self._get_data_point(
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpSelect
         )
-        self._e_valve_state: DpSensor[int | None] = self._get_data_point(
+        self._dp_valve_state: DpSensor[int | None] = self._get_data_point(
             field=Field.VALVE_STATE, data_point_type=DpSensor[int | None]
         )
 
     @state_property
     def hvac_action(self) -> HmHvacAction | None:
         """Return the hvac action."""
-        if self._e_valve_state.value is None:
+        if self._dp_valve_state.value is None:
             return None
         if self.hvac_mode == HmHvacMode.OFF:
             return HmHvacAction.OFF
-        if self._e_valve_state.value and self._e_valve_state.value > 0:
+        if self._dp_valve_state.value and self._dp_valve_state.value > 0:
             return HmHvacAction.HEAT
         return HmHvacAction.IDLE
 
@@ -747,7 +747,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         """Return hvac operation mode."""
         if self.target_temperature and self.target_temperature <= _OFF_TEMPERATURE:
             return HmHvacMode.OFF
-        if self._e_control_mode.value == _ModeHm.MANU:
+        if self._dp_control_mode.value == _ModeHm.MANU:
             return HmHvacMode.HEAT
         return HmHvacMode.AUTO
 
@@ -759,11 +759,11 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     @state_property
     def preset_mode(self) -> HmPresetMode:
         """Return the current preset mode."""
-        if self._e_control_mode.value is None:
+        if self._dp_control_mode.value is None:
             return HmPresetMode.NONE
-        if self._e_control_mode.value == _ModeHm.BOOST:
+        if self._dp_control_mode.value == _ModeHm.BOOST:
             return HmPresetMode.BOOST
-        if self._e_control_mode.value == _ModeHm.AWAY:
+        if self._dp_control_mode.value == _ModeHm.AWAY:
             return HmPresetMode.AWAY
         return HmPresetMode.NONE
 
@@ -785,7 +785,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     @state_property
     def temperature_offset(self) -> str | None:
         """Return the maximum temperature."""
-        return self._e_temperature_offset.value
+        return self._dp_temperature_offset.value
 
     @bind_collector()
     async def set_hvac_mode(
@@ -795,13 +795,13 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         if not self.is_state_change(hvac_mode=hvac_mode):
             return
         if hvac_mode == HmHvacMode.AUTO:
-            await self._e_auto_mode.send_value(value=True, collector=collector)
+            await self._dp_auto_mode.send_value(value=True, collector=collector)
         elif hvac_mode == HmHvacMode.HEAT:
-            await self._e_manu_mode.send_value(
+            await self._dp_manu_mode.send_value(
                 value=self._min_or_target_temperature, collector=collector
             )
         elif hvac_mode == HmHvacMode.OFF:
-            await self._e_manu_mode.send_value(value=self.target_temperature, collector=collector)
+            await self._dp_manu_mode.send_value(value=self.target_temperature, collector=collector)
             # Disable validation here to allow setting a value,
             # that is out of the validation range.
             await self.set_temperature(
@@ -816,11 +816,11 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         if not self.is_state_change(preset_mode=preset_mode):
             return
         if preset_mode == HmPresetMode.BOOST:
-            await self._e_boost_mode.send_value(value=True, collector=collector)
+            await self._dp_boost_mode.send_value(value=True, collector=collector)
         elif preset_mode == HmPresetMode.COMFORT:
-            await self._e_comfort_mode.send_value(value=True, collector=collector)
+            await self._dp_comfort_mode.send_value(value=True, collector=collector)
         elif preset_mode == HmPresetMode.ECO:
-            await self._e_lowering_mode.send_value(value=True, collector=collector)
+            await self._dp_lowering_mode.send_value(value=True, collector=collector)
 
     @service()
     async def enable_away_mode_by_calendar(
@@ -875,51 +875,51 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._e_active_profile: DpInteger = self._get_data_point(
+        self._dp_active_profile: DpInteger = self._get_data_point(
             field=Field.ACTIVE_PROFILE, data_point_type=DpInteger
         )
-        self._e_boost_mode: DpSwitch = self._get_data_point(
+        self._dp_boost_mode: DpSwitch = self._get_data_point(
             field=Field.BOOST_MODE, data_point_type=DpSwitch
         )
-        self._e_control_mode: DpAction = self._get_data_point(
+        self._dp_control_mode: DpAction = self._get_data_point(
             field=Field.CONTROL_MODE, data_point_type=DpAction
         )
-        self._e_heating_mode: DpSelect = self._get_data_point(
+        self._dp_heating_mode: DpSelect = self._get_data_point(
             field=Field.HEATING_COOLING, data_point_type=DpSelect
         )
-        self._e_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._e_optimum_start_stop: DpBinarySensor = self._get_data_point(
+        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
+        self._dp_optimum_start_stop: DpBinarySensor = self._get_data_point(
             field=Field.OPTIMUM_START_STOP, data_point_type=DpBinarySensor
         )
-        self._e_party_mode: DpBinarySensor = self._get_data_point(
+        self._dp_party_mode: DpBinarySensor = self._get_data_point(
             field=Field.PARTY_MODE, data_point_type=DpBinarySensor
         )
-        self._e_set_point_mode: DpInteger = self._get_data_point(
+        self._dp_set_point_mode: DpInteger = self._get_data_point(
             field=Field.SET_POINT_MODE, data_point_type=DpInteger
         )
-        self._e_state: DpBinarySensor = self._get_data_point(
+        self._dp_state: DpBinarySensor = self._get_data_point(
             field=Field.STATE, data_point_type=DpBinarySensor
         )
-        self._e_temperature_offset: DpFloat = self._get_data_point(
+        self._dp_temperature_offset: DpFloat = self._get_data_point(
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
     @property
     def _is_heating_mode(self) -> bool:
         """Return the heating_mode of the device."""
-        if self._e_heating_mode.value is not None:
-            return str(self._e_heating_mode.value) == "HEATING"
+        if self._dp_heating_mode.value is not None:
+            return str(self._dp_heating_mode.value) == "HEATING"
         return True
 
     @state_property
     def hvac_action(self) -> HmHvacAction | None:
         """Return the hvac action."""
-        if self._e_state.value is None and self._e_level.value is None:
+        if self._dp_state.value is None and self._dp_level.value is None:
             return None
         if self.hvac_mode == HmHvacMode.OFF:
             return HmHvacAction.OFF
-        if self._e_state.value is True or (
-            self._e_level.value and self._e_level.value > _CLOSED_LEVEL
+        if self._dp_state.value is True or (
+            self._dp_level.value and self._dp_level.value > _CLOSED_LEVEL
         ):
             return HmHvacAction.HEAT if self._is_heating_mode else HmHvacAction.COOL
         return HmHvacAction.IDLE
@@ -929,9 +929,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         """Return hvac operation mode."""
         if self.target_temperature and self.target_temperature <= _OFF_TEMPERATURE:
             return HmHvacMode.OFF
-        if self._e_set_point_mode.value == _ModeHmIP.MANU:
+        if self._dp_set_point_mode.value == _ModeHmIP.MANU:
             return HmHvacMode.HEAT if self._is_heating_mode else HmHvacMode.COOL
-        if self._e_set_point_mode.value == _ModeHmIP.AUTO:
+        if self._dp_set_point_mode.value == _ModeHmIP.AUTO:
             return HmHvacMode.AUTO
         return HmHvacMode.AUTO
 
@@ -947,9 +947,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     @state_property
     def preset_mode(self) -> HmPresetMode:
         """Return the current preset mode."""
-        if self._e_boost_mode.value:
+        if self._dp_boost_mode.value:
             return HmPresetMode.BOOST
-        if self._e_set_point_mode.value == _ModeHmIP.AWAY:
+        if self._dp_set_point_mode.value == _ModeHmIP.AWAY:
             return HmPresetMode.AWAY
         if self.hvac_mode == HmHvacMode.AUTO:
             return self._current_profile_name if self._current_profile_name else HmPresetMode.NONE
@@ -966,7 +966,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     @property
     def optimum_start_stop(self) -> bool | None:
         """Return if optimum_start_stop is enabled."""
-        return self._e_optimum_start_stop.value
+        return self._dp_optimum_start_stop.value
 
     @property
     def supports_preset(self) -> bool:
@@ -976,7 +976,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     @state_property
     def temperature_offset(self) -> float | None:
         """Return the maximum temperature."""
-        return self._e_temperature_offset.value
+        return self._dp_temperature_offset.value
 
     @bind_collector()
     async def set_hvac_mode(
@@ -986,18 +986,18 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         if not self.is_state_change(hvac_mode=hvac_mode):
             return
         # if switching hvac_mode then disable boost_mode
-        if self._e_boost_mode.value:
+        if self._dp_boost_mode.value:
             await self.set_preset_mode(preset_mode=HmPresetMode.NONE, collector=collector)
 
         if hvac_mode == HmHvacMode.AUTO:
-            await self._e_control_mode.send_value(value=_ModeHmIP.AUTO, collector=collector)
+            await self._dp_control_mode.send_value(value=_ModeHmIP.AUTO, collector=collector)
         elif hvac_mode in (HmHvacMode.HEAT, HmHvacMode.COOL):
-            await self._e_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
+            await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
             await self.set_temperature(
                 temperature=self._min_or_target_temperature, collector=collector
             )
         elif hvac_mode == HmHvacMode.OFF:
-            await self._e_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
+            await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
             await self.set_temperature(
                 temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False
             )
@@ -1010,15 +1010,15 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         if not self.is_state_change(preset_mode=preset_mode):
             return
         if preset_mode == HmPresetMode.BOOST:
-            await self._e_boost_mode.send_value(value=True, collector=collector)
+            await self._dp_boost_mode.send_value(value=True, collector=collector)
         elif preset_mode == HmPresetMode.NONE:
-            await self._e_boost_mode.send_value(value=False, collector=collector)
+            await self._dp_boost_mode.send_value(value=False, collector=collector)
         elif preset_mode in self._profile_names:
             if self.hvac_mode != HmHvacMode.AUTO:
                 await self.set_hvac_mode(hvac_mode=HmHvacMode.AUTO, collector=collector)
-                await self._e_boost_mode.send_value(value=False, collector=collector)
+                await self._dp_boost_mode.send_value(value=False, collector=collector)
             if profile_idx := self._profiles.get(preset_mode):
-                await self._e_active_profile.send_value(value=profile_idx, collector=collector)
+                await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
 
     @service()
     async def enable_away_mode_by_calendar(
@@ -1067,16 +1067,16 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     def _current_profile_name(self) -> HmPresetMode | None:
         """Return a profile index by name."""
         inv_profiles = {v: k for k, v in self._profiles.items()}
-        if self._e_active_profile.value is not None:
-            return inv_profiles.get(int(self._e_active_profile.value))
+        if self._dp_active_profile.value is not None:
+            return inv_profiles.get(int(self._dp_active_profile.value))
         return None
 
     @property
     def _profiles(self) -> Mapping[HmPresetMode, int]:
         """Return the profile groups."""
         profiles: dict[HmPresetMode, int] = {}
-        if self._e_active_profile.min and self._e_active_profile.max:
-            for i in range(self._e_active_profile.min, self._e_active_profile.max + 1):
+        if self._dp_active_profile.min and self._dp_active_profile.max:
+            for i in range(self._dp_active_profile.min, self._dp_active_profile.max + 1):
                 profiles[HmPresetMode(f"{HM_PRESET_MODE_PREFIX}{i}")] = i
 
         return profiles

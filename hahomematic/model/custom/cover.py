@@ -95,21 +95,21 @@ class CustomDpCover(CustomDataPoint):
         """Init the data point fields."""
         super()._init_data_point_fields()
         self._command_processing_lock = asyncio.Lock()
-        self._e_direction: DpSensor[str | None] = self._get_data_point(
+        self._dp_direction: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
-        self._e_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._e_stop: DpAction = self._get_data_point(field=Field.STOP, data_point_type=DpAction)
-        self._e_channel_level: DpSensor[float | None] = self._get_data_point(
+        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
+        self._dp_stop: DpAction = self._get_data_point(field=Field.STOP, data_point_type=DpAction)
+        self._dp_channel_level: DpSensor[float | None] = self._get_data_point(
             field=Field.CHANNEL_LEVEL, data_point_type=DpSensor[float | None]
         )
 
     @property
     def _channel_level(self) -> float:
         """Return the channel level of the cover."""
-        if self._e_channel_level.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
-            return float(self._e_channel_level.value)
-        return self._e_level.value if self._e_level.value is not None else self._closed_level
+        if self._dp_channel_level.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
+            return float(self._dp_channel_level.value)
+        return self._dp_level.value if self._dp_level.value is not None else self._closed_level
 
     @state_property
     def current_position(self) -> int:
@@ -138,7 +138,7 @@ class CustomDpCover(CustomDataPoint):
         """Move the cover to a specific position. Value range is 0.0 to 1.01."""
         if level is None:
             return
-        await self._e_level.send_value(value=level, collector=collector)
+        await self._dp_level.send_value(value=level, collector=collector)
 
     @state_property
     def is_closed(self) -> bool | None:
@@ -148,15 +148,15 @@ class CustomDpCover(CustomDataPoint):
     @state_property
     def is_opening(self) -> bool | None:
         """Return if the cover is opening."""
-        if self._e_direction.value is not None:
-            return str(self._e_direction.value) == _CoverActivity.OPENING
+        if self._dp_direction.value is not None:
+            return str(self._dp_direction.value) == _CoverActivity.OPENING
         return None
 
     @state_property
     def is_closing(self) -> bool | None:
         """Return if the cover is closing."""
-        if self._e_direction.value is not None:
-            return str(self._e_direction.value) == _CoverActivity.CLOSING
+        if self._dp_direction.value is not None:
+            return str(self._dp_direction.value) == _CoverActivity.CLOSING
         return None
 
     @bind_collector()
@@ -176,7 +176,7 @@ class CustomDpCover(CustomDataPoint):
     @bind_collector(enabled=False)
     async def stop(self, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
-        await self._e_stop.send_value(value=True, collector=collector)
+        await self._dp_stop.send_value(value=True, collector=collector)
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
@@ -206,7 +206,7 @@ class CustomDpWindowDrive(CustomDpCover):
     @state_property
     def current_position(self) -> int:
         """Return current position of cover."""
-        level = self._e_level.value if self._e_level.value is not None else self._closed_level
+        level = self._dp_level.value if self._dp_level.value is not None else self._closed_level
         if level == _WD_CLOSED_LEVEL:
             level = _CLOSED_LEVEL
         elif level == _CLOSED_LEVEL:
@@ -229,7 +229,7 @@ class CustomDpWindowDrive(CustomDpCover):
             wd_level = 0
         else:
             wd_level = level
-        await self._e_level.send_value(value=wd_level, collector=collector, do_validate=False)
+        await self._dp_level.send_value(value=wd_level, collector=collector, do_validate=False)
 
 
 class CustomDpBlind(CustomDpCover):
@@ -240,22 +240,22 @@ class CustomDpBlind(CustomDpCover):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._e_channel_level_2: DpSensor[float | None] = self._get_data_point(
+        self._dp_channel_level_2: DpSensor[float | None] = self._get_data_point(
             field=Field.CHANNEL_LEVEL_2, data_point_type=DpSensor[float | None]
         )
-        self._e_level_2: DpFloat = self._get_data_point(
+        self._dp_level_2: DpFloat = self._get_data_point(
             field=Field.LEVEL_2, data_point_type=DpFloat
         )
-        self._e_combined: DpAction = self._get_data_point(
+        self._dp_combined: DpAction = self._get_data_point(
             field=Field.LEVEL_COMBINED, data_point_type=DpAction
         )
 
     @property
     def _channel_tilt_level(self) -> float:
         """Return the channel level of the tilt."""
-        if self._e_channel_level_2.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
-            return float(self._e_channel_level_2.value)
-        return self._e_level_2.value if self._e_level_2.value is not None else self._closed_level
+        if self._dp_channel_level_2.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
+            return float(self._dp_channel_level_2.value)
+        return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level
 
     @state_property
     def current_tilt_position(self) -> int:
@@ -265,14 +265,14 @@ class CustomDpBlind(CustomDpCover):
     @property
     def _target_level(self) -> float | None:
         """Return the level of last service call."""
-        if (last_value_send := self._e_level.unconfirmed_last_value_send) is not None:
+        if (last_value_send := self._dp_level.unconfirmed_last_value_send) is not None:
             return float(last_value_send)
         return None
 
     @property
     def _target_tilt_level(self) -> float | None:
         """Return the tilt level of last service call."""
-        if (last_value_send := self._e_level_2.unconfirmed_last_value_send) is not None:
+        if (last_value_send := self._dp_level_2.unconfirmed_last_value_send) is not None:
             return float(last_value_send)
         return None
 
@@ -338,14 +338,14 @@ class CustomDpBlind(CustomDpCover):
         collector: CallParameterCollector | None = None,
     ) -> None:
         """Transmit a new target level to the device."""
-        if self._e_combined.is_hmtype and (
+        if self._dp_combined.is_hmtype and (
             combined_parameter := self._get_combined_value(level=level, tilt_level=tilt_level)
         ):
             # don't use collector for blind combined parameter
-            await self._e_combined.send_value(value=combined_parameter, collector=None)
+            await self._dp_combined.send_value(value=combined_parameter, collector=None)
             return
 
-        await self._e_level_2.send_value(value=tilt_level, collector=collector)
+        await self._dp_level_2.send_value(value=tilt_level, collector=collector)
         await super()._set_level(level=level, collector=collector)
 
     @bind_collector(enabled=False)
@@ -442,17 +442,17 @@ class CustomDpIpBlind(CustomDpBlind):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._e_operation_mode: DpSelect = self._get_data_point(
+        self._dp_operation_mode: DpSelect = self._get_data_point(
             field=Field.OPERATION_MODE, data_point_type=DpSelect
         )
-        self._e_combined: DpAction = self._get_data_point(
+        self._dp_combined: DpAction = self._get_data_point(
             field=Field.COMBINED_PARAMETER, data_point_type=DpAction
         )
 
     @property
     def operation_mode(self) -> str | None:
         """Return operation mode of cover."""
-        return self._e_operation_mode.value
+        return self._dp_operation_mode.value
 
     def _get_combined_value(
         self, level: float | None = None, tilt_level: float | None = None
@@ -479,24 +479,24 @@ class CustomDpGarage(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._e_door_state: DpSensor[str | None] = self._get_data_point(
+        self._dp_door_state: DpSensor[str | None] = self._get_data_point(
             field=Field.DOOR_STATE, data_point_type=DpSensor[str | None]
         )
-        self._e_door_command: DpAction = self._get_data_point(
+        self._dp_door_command: DpAction = self._get_data_point(
             field=Field.DOOR_COMMAND, data_point_type=DpAction
         )
-        self._e_section: DpSensor[str | None] = self._get_data_point(
+        self._dp_section: DpSensor[str | None] = self._get_data_point(
             field=Field.SECTION, data_point_type=DpSensor[str | None]
         )
 
     @state_property
     def current_position(self) -> int | None:
         """Return current position of the garage door ."""
-        if self._e_door_state.value == _GarageDoorState.OPEN:
+        if self._dp_door_state.value == _GarageDoorState.OPEN:
             return _CoverPosition.OPEN
-        if self._e_door_state.value == _GarageDoorState.VENTILATION_POSITION:
+        if self._dp_door_state.value == _GarageDoorState.VENTILATION_POSITION:
             return _CoverPosition.VENT
-        if self._e_door_state.value == _GarageDoorState.CLOSED:
+        if self._dp_door_state.value == _GarageDoorState.CLOSED:
             return _CoverPosition.CLOSED
         return None
 
@@ -520,22 +520,22 @@ class CustomDpGarage(CustomDataPoint):
     @state_property
     def is_closed(self) -> bool | None:
         """Return if the garage door is closed."""
-        if self._e_door_state.value is not None:
-            return str(self._e_door_state.value) == _GarageDoorState.CLOSED
+        if self._dp_door_state.value is not None:
+            return str(self._dp_door_state.value) == _GarageDoorState.CLOSED
         return None
 
     @state_property
     def is_opening(self) -> bool | None:
         """Return if the garage door is opening."""
-        if self._e_section.value is not None:
-            return int(self._e_section.value) == _GarageDoorActivity.OPENING
+        if self._dp_section.value is not None:
+            return int(self._dp_section.value) == _GarageDoorActivity.OPENING
         return None
 
     @state_property
     def is_closing(self) -> bool | None:
         """Return if the garage door is closing."""
-        if self._e_section.value is not None:
-            return int(self._e_section.value) == _GarageDoorActivity.CLOSING
+        if self._dp_section.value is not None:
+            return int(self._dp_section.value) == _GarageDoorActivity.CLOSING
         return None
 
     @bind_collector()
@@ -543,26 +543,26 @@ class CustomDpGarage(CustomDataPoint):
         """Open the garage door."""
         if not self.is_state_change(open=True):
             return
-        await self._e_door_command.send_value(value=_GarageDoorCommand.OPEN, collector=collector)
+        await self._dp_door_command.send_value(value=_GarageDoorCommand.OPEN, collector=collector)
 
     @bind_collector()
     async def close(self, collector: CallParameterCollector | None = None) -> None:
         """Close the garage door."""
         if not self.is_state_change(close=True):
             return
-        await self._e_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
+        await self._dp_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
 
     @bind_collector(enabled=False)
     async def stop(self, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
-        await self._e_door_command.send_value(value=_GarageDoorCommand.STOP, collector=collector)
+        await self._dp_door_command.send_value(value=_GarageDoorCommand.STOP, collector=collector)
 
     @bind_collector()
     async def vent(self, collector: CallParameterCollector | None = None) -> None:
         """Move the garage door to vent position."""
         if not self.is_state_change(vent=True):
             return
-        await self._e_door_command.send_value(
+        await self._dp_door_command.send_value(
             value=_GarageDoorCommand.PARTIAL_OPEN, collector=collector
         )
 

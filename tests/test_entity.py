@@ -164,13 +164,13 @@ async def test_load_custom_data_point(
         channel_address="VCU2128127:4",
         paramset_key="VALUES",
         parameter="STATE",
-        call_source="manual_or_scheduled",
+        call_source="hm_init",
     )
     assert mock_client.method_calls[-1] == call.get_value(
         channel_address="VCU2128127:3",
         paramset_key="VALUES",
         parameter="STATE",
-        call_source="manual_or_scheduled",
+        call_source="hm_init",
     )
 
 
@@ -199,7 +199,7 @@ async def test_load_generic_data_point(
         channel_address="VCU2128127:4",
         paramset_key="VALUES",
         parameter="STATE",
-        call_source="manual_or_scheduled",
+        call_source="hm_init",
     )
 
 

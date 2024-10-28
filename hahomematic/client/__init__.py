@@ -615,7 +615,12 @@ class Client(ABC):
         )
 
     @service()
-    async def get_paramset(self, address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+    async def get_paramset(
+        self,
+        address: str,
+        paramset_key: ParamsetKey | str,
+        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+    ) -> dict[str, Any]:
         """
         Return a paramset from CCU.
 
@@ -624,9 +629,10 @@ class Client(ABC):
         """
         try:
             _LOGGER.debug(
-                "GET_PARAMSET: address %s, paramset_key %s",
+                "GET_PARAMSET: address %s, paramset_key %s, source %s",
                 address,
                 paramset_key,
+                call_source,
             )
             return await self._proxy_read.getParamset(address, paramset_key)  # type: ignore[no-any-return]
         except BaseHomematicException as ex:

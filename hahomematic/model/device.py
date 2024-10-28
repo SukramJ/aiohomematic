@@ -1039,13 +1039,12 @@ class _ValueCache:
                     NO_CACHE_ENTRY if cached_value == self._NO_VALUE_CACHE_ENTRY else cached_value
                 )
 
-            value: Any = self._NO_VALUE_CACHE_ENTRY
+            values: dict[str, Any] = {parameter: self._NO_VALUE_CACHE_ENTRY}
             try:
-                value = await self._device.client.get_value(
+                values = await self._get_value_for_cache(
                     channel_address=channel_address,
                     paramset_key=paramset_key,
                     parameter=parameter,
-                    call_source=call_source,
                 )
             except BaseHomematicException as ex:
                 _LOGGER.debug(
@@ -1055,14 +1054,35 @@ class _ValueCache:
                     parameter,
                     ex,
                 )
-            self._add_entry_to_device_cache(
-                channel_address=channel_address,
-                paramset_key=paramset_key,
-                parameter=parameter,
-                value=value,
+            for param, val in values.items():
+                self._add_entry_to_device_cache(
+                    channel_address=channel_address,
+                    paramset_key=paramset_key,
+                    parameter=param,
+                    value=val,
+                )
+            return (
+                NO_CACHE_ENTRY
+                if (value := values.get(parameter)) and value == self._NO_VALUE_CACHE_ENTRY
+                else value
             )
 
-            return NO_CACHE_ENTRY if value == self._NO_VALUE_CACHE_ENTRY else value
+    async def _get_value_for_cache(
+        self, channel_address: str, paramset_key: ParamsetKey, parameter: str
+    ) -> dict[str, Any]:
+        """Return a value from CCU to store in cache."""
+        if paramset_key == ParamsetKey.VALUES:
+            return {
+                parameter: await self._device.client.get_value(
+                    channel_address=channel_address,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
+                    call_source=CallSource.HM_INIT,
+                )
+            }
+        return await self._device.client.get_paramset(  # type: ignore[no-any-return]
+            address=channel_address, paramset_key=paramset_key, call_source=CallSource.HM_INIT
+        )
 
     def _add_entry_to_device_cache(
         self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any

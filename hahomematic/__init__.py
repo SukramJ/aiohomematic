@@ -18,7 +18,7 @@ from hahomematic import central as hmcu
 if sys.stdout.isatty():
     logging.basicConfig(level=logging.INFO)
 
-__version__: Final = "2024.10.15"
+__version__: Final = "2024.10.16"
 _LOGGER: Final = logging.getLogger(__name__)
 
 

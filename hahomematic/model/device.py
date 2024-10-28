@@ -1039,9 +1039,9 @@ class _ValueCache:
                     NO_CACHE_ENTRY if cached_value == self._NO_VALUE_CACHE_ENTRY else cached_value
                 )
 
-            values: dict[str, Any] = {parameter: self._NO_VALUE_CACHE_ENTRY}
+            value_dict: dict[str, Any] = {parameter: self._NO_VALUE_CACHE_ENTRY}
             try:
-                values = await self._get_value_for_cache(
+                value_dict = await self._get_values_for_cache(
                     channel_address=channel_address,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -1054,20 +1054,20 @@ class _ValueCache:
                     parameter,
                     ex,
                 )
-            for param, val in values.items():
+            for d_parameter, d_value in value_dict.items():
                 self._add_entry_to_device_cache(
                     channel_address=channel_address,
                     paramset_key=paramset_key,
-                    parameter=param,
-                    value=val,
+                    parameter=d_parameter,
+                    value=d_value,
                 )
             return (
                 NO_CACHE_ENTRY
-                if (value := values.get(parameter)) and value == self._NO_VALUE_CACHE_ENTRY
+                if (value := value_dict.get(parameter)) and value == self._NO_VALUE_CACHE_ENTRY
                 else value
             )
 
-    async def _get_value_for_cache(
+    async def _get_values_for_cache(
         self, channel_address: str, paramset_key: ParamsetKey, parameter: str
     ) -> dict[str, Any]:
         """Return a value from CCU to store in cache."""

@@ -1,6 +1,7 @@
 # Version 2024.10.17 (2024-10-29)
 
-- Use enum for json keys
+- Use enum for json/event keys
+- Fire interface event, if data could not be fetched with script from CCU
 
 # Version 2024.10.16 (2024-10-27)
 

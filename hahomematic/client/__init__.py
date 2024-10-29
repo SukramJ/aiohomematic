@@ -17,8 +17,6 @@ from hahomematic.const import (
     DEFAULT_CUSTOM_ID,
     DEFAULT_MAX_WORKERS,
     DP_KEY,
-    EVENT_AVAILABLE,
-    EVENT_SECONDS_SINCE_LAST_EVENT,
     HOMEGEAR_SERIAL,
     INIT_DATETIME,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
@@ -27,6 +25,7 @@ from hahomematic.const import (
     CallSource,
     CommandRxMode,
     DeviceDescription,
+    EventKey,
     ForcedDeviceAvailability,
     InterfaceEventType,
     InterfaceName,
@@ -39,7 +38,7 @@ from hahomematic.const import (
     SystemInformation,
     SystemVariableData,
 )
-from hahomematic.exceptions import BaseHomematicException, ClientException, NoConnection
+from hahomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from hahomematic.model.decorators import service
 from hahomematic.model.device import Device
 from hahomematic.model.support import convert_value
@@ -236,7 +235,7 @@ class Client(ABC):
         self.central.fire_interface_event(
             interface_id=self.interface_id,
             interface_event_type=InterfaceEventType.PROXY,
-            data={EVENT_AVAILABLE: available},
+            data={EventKey.AVAILABLE: available},
         )
 
     async def reconnect(self) -> bool:
@@ -300,8 +299,8 @@ class Client(ABC):
                         interface_id=self.interface_id,
                         interface_event_type=InterfaceEventType.CALLBACK,
                         data={
-                            EVENT_AVAILABLE: False,
-                            EVENT_SECONDS_SINCE_LAST_EVENT: int(seconds_since_last_event),
+                            EventKey.AVAILABLE: False,
+                            EventKey.SECONDS_SINCE_LAST_EVENT: int(seconds_since_last_event),
                         },
                     )
                     self._is_callback_alive = False
@@ -316,7 +315,7 @@ class Client(ABC):
                 self.central.fire_interface_event(
                     interface_id=self.interface_id,
                     interface_event_type=InterfaceEventType.CALLBACK,
-                    data={EVENT_AVAILABLE: True},
+                    data={EventKey.AVAILABLE: True},
                 )
                 self._is_callback_alive = True
         return True
@@ -958,18 +957,27 @@ class ClientCCU(Client):
     @measure_execution_time
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
-        if all_device_data := await self._json_rpc_client.get_all_device_data(
-            interface=self.interface
-        ):
-            _LOGGER.debug(
-                "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s", self.interface
+        try:
+            if all_device_data := await self._json_rpc_client.get_all_device_data(
+                interface=self.interface
+            ):
+                _LOGGER.debug(
+                    "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
+                    self.interface,
+                )
+                self.central.data_cache.add_data(all_device_data=all_device_data)
+                return
+        except ClientException:
+            self.central.fire_interface_event(
+                interface_id=self.interface_id,
+                interface_event_type=InterfaceEventType.FETCH_DATA,
+                data={EventKey.AVAILABLE: False},
             )
-            self.central.data_cache.add_data(all_device_data=all_device_data)
-        else:
-            _LOGGER.debug(
-                "FETCH_ALL_DEVICE_DATA: Unable to get all device data via JSON-RPC RegaScript for interface %s",
-                self.interface,
-            )
+
+        _LOGGER.debug(
+            "FETCH_ALL_DEVICE_DATA: Unable to get all device data via JSON-RPC RegaScript for interface %s",
+            self.interface,
+        )
 
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Check if _proxy is still initialized."""
@@ -1253,11 +1261,11 @@ class _ClientConfig:
                 await client.init_client()
                 if await client.check_connection_availability(handle_ping_pong=False):
                     return client
-            raise NoConnection(f"No connection to {self.interface_id}")
+            raise NoConnectionException(f"No connection to {self.interface_id}")
         except BaseHomematicException:
             raise
         except Exception as ex:
-            raise NoConnection(f"Unable to connect {reduce_args(args=ex.args)}.") from ex
+            raise NoConnectionException(f"Unable to connect {reduce_args(args=ex.args)}.") from ex
 
     async def get_xml_rpc_proxy(
         self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS

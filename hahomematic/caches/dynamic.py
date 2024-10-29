@@ -15,15 +15,11 @@ from hahomematic.config import (
 )
 from hahomematic.const import (
     DP_KEY,
-    EVENT_DATA,
-    EVENT_INSTANCE_NAME,
-    EVENT_INTERFACE_ID,
-    EVENT_PONG_MISMATCH_COUNT,
-    EVENT_TYPE,
     INIT_DATETIME,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
     CallSource,
+    EventKey,
     EventType,
     InterfaceEventType,
     InterfaceName,
@@ -432,14 +428,14 @@ class PingPongCache:
             self._central.fire_homematic_callback(
                 event_type=EventType.INTERFACE,
                 event_data=cast(
-                    dict[str, Any],
+                    dict[EventKey, Any],
                     hmcu.INTERFACE_EVENT_SCHEMA(
                         {
-                            EVENT_INTERFACE_ID: self._interface_id,
-                            EVENT_TYPE: event_type,
-                            EVENT_DATA: {
-                                EVENT_INSTANCE_NAME: self._central.name,
-                                EVENT_PONG_MISMATCH_COUNT: mismatch_count,
+                            EventKey.INTERFACE_ID: self._interface_id,
+                            EventKey.TYPE: event_type,
+                            EventKey.DATA: {
+                                EventKey.INSTANCE_NAME: self._central.name,
+                                EventKey.PONG_MISMATCH_COUNT: mismatch_count,
                             },
                         }
                     ),

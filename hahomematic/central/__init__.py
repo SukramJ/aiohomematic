@@ -42,10 +42,6 @@ from hahomematic.const import (
     DEFAULT_TLS,
     DEFAULT_VERIFY_TLS,
     DP_KEY,
-    EVENT_AVAILABLE,
-    EVENT_DATA,
-    EVENT_INTERFACE_ID,
-    EVENT_TYPE,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
     PORT_ANY,
@@ -54,6 +50,7 @@ from hahomematic.const import (
     DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
+    EventKey,
     EventType,
     InterfaceEventType,
     InterfaceName,
@@ -67,8 +64,8 @@ from hahomematic.exceptions import (
     BaseHomematicException,
     HaHomematicConfigException,
     HaHomematicException,
-    NoClients,
-    NoConnection,
+    NoClientsException,
+    NoConnectionException,
 )
 from hahomematic.model import create_data_points_and_events
 from hahomematic.model.custom import CustomDataPoint, create_custom_data_points
@@ -99,10 +96,10 @@ ConnectionProblemIssuer = JsonRpcAioHttpClient | XmlRpcProxy
 
 INTERFACE_EVENT_SCHEMA = vol.Schema(
     {
-        vol.Required(EVENT_INTERFACE_ID): str,
-        vol.Required(EVENT_TYPE): InterfaceEventType,
-        vol.Required(EVENT_DATA): vol.Schema(
-            {vol.Required(vol.Any(str)): vol.Schema(vol.Any(str, int, bool))}
+        vol.Required(str(EventKey.INTERFACE_ID)): str,
+        vol.Required(str(EventKey.TYPE)): InterfaceEventType,
+        vol.Required(str(EventKey.DATA)): vol.Schema(
+            {vol.Required(vol.Any(EventKey)): vol.Schema(vol.Any(str, int, bool))}
         ),
     }
 )
@@ -542,7 +539,7 @@ class CentralUnit(PayloadMixin):
                 self.fire_interface_event(
                     interface_id=interface_config.interface_id,
                     interface_event_type=InterfaceEventType.PROXY,
-                    data={EVENT_AVAILABLE: False},
+                    data={EventKey.AVAILABLE: False},
                 )
                 _LOGGER.warning(
                     "CREATE_CLIENTS failed: No connection to interface %s [%s]",
@@ -582,19 +579,19 @@ class CentralUnit(PayloadMixin):
         self,
         interface_id: str,
         interface_event_type: InterfaceEventType,
-        data: dict[str, Any] | None = None,
+        data: dict[str, Any],
     ) -> None:
         """Fire an event about the interface status."""
         data = data or {}
         event_data: dict[str, Any] = {
-            EVENT_INTERFACE_ID: interface_id,
-            EVENT_TYPE: interface_event_type,
-            EVENT_DATA: data,
+            EventKey.INTERFACE_ID: interface_id,
+            EventKey.TYPE: interface_event_type,
+            EventKey.DATA: data,
         }
 
         self.fire_homematic_callback(
             event_type=EventType.INTERFACE,
-            event_data=cast(dict[str, Any], INTERFACE_EVENT_SCHEMA(event_data)),
+            event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
     async def _identify_ip_addr(self, port: int) -> str:
@@ -634,7 +631,7 @@ class CentralUnit(PayloadMixin):
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
         if len(self._config.interface_configs) == 0:
-            raise NoClients("validate_config: No clients defined.")
+            raise NoClientsException("validate_config: No clients defined.")
 
         system_information = SystemInformation()
         for interface_config in self._config.interface_configs:
@@ -1264,7 +1261,9 @@ class CentralUnit(PayloadMixin):
             self._homematic_callbacks.remove(cb)
 
     @loop_check
-    def fire_homematic_callback(self, event_type: EventType, event_data: dict[str, str]) -> None:
+    def fire_homematic_callback(
+        self, event_type: EventType, event_data: dict[EventKey, str]
+    ) -> None:
         """
         Fire homematic_callback in central.
 
@@ -1401,7 +1400,7 @@ class _ConnectionChecker(threading.Thread):
                     await asyncio.gather(*reconnects)
                     if self._central.available:
                         await self._central.load_and_refresh_data_point_data()
-        except NoConnection as nex:
+        except NoConnectionException as nex:
             _LOGGER.error("CHECK_CONNECTION failed: no connection: %s", reduce_args(args=nex.args))
         except Exception as ex:
             _LOGGER.error(

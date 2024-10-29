@@ -15,16 +15,16 @@ from hahomematic.const import (
     DATETIME_FORMAT_MILLIS,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
-    EVENT_AVAILABLE,
     DataPointCategory,
     DataPointUsage,
+    EventKey,
     EventType,
     InterfaceEventType,
     Operations,
     Parameter,
     ParamsetKey,
 )
-from hahomematic.exceptions import HaHomematicException, NoClients
+from hahomematic.exceptions import HaHomematicException, NoClientsException
 
 from tests import const, helper
 
@@ -720,14 +720,14 @@ async def test_central_callbacks(
     central.fire_interface_event(
         interface_id="SOME_ID",
         interface_event_type=InterfaceEventType.CALLBACK,
-        data={EVENT_AVAILABLE: False},
+        data={EventKey.AVAILABLE: False},
     )
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.interface",
         {
             "interface_id": "SOME_ID",
             "type": "callback",
-            "data": {EVENT_AVAILABLE: False},
+            "data": {EventKey.AVAILABLE: False},
         },
     )
 
@@ -867,7 +867,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
     try:
         assert central.has_clients is False
 
-        with pytest.raises(NoClients):
+        with pytest.raises(NoClientsException):
             await central.validate_config_and_get_system_information()
 
         with pytest.raises(HaHomematicException):

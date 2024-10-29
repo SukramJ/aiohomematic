@@ -14,11 +14,12 @@ import threading
 from typing import Final
 
 from hahomematic import central as hmcu
+from hahomematic.const import VERSION
 
 if sys.stdout.isatty():
     logging.basicConfig(level=logging.INFO)
 
-__version__: Final = "2024.10.16"
+__version__: Final = VERSION
 _LOGGER: Final = logging.getLogger(__name__)
 
 

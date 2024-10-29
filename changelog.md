@@ -1,3 +1,7 @@
+# Version 2024.10.17 (2024-10-29)
+
+- Use enum for json keys
+
 # Version 2024.10.16 (2024-10-27)
 
 - Optimize MASTER data load

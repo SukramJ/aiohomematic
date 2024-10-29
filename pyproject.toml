@@ -45,7 +45,7 @@ zip-safe  = false
 include-package-data = true
 
 [tool.setuptools.dynamic]
-version = {attr = "hahomematic.__version__"}
+version = {attr = "hahomematic.const.VERSION"}
 
 [tool.setuptools.packages.find]
 include = ["hahomematic*"]

@@ -41,7 +41,7 @@ from hahomematic.exceptions import (
     BaseHomematicException,
     ClientException,
     InternalBackendException,
-    NoConnection,
+    NoConnectionException,
     UnsupportedException,
 )
 from hahomematic.support import get_tls_context, parse_sys_var, reduce_args
@@ -370,7 +370,7 @@ class JsonRpcAioHttpClient:
             raise ClientException(message) from cccerr
         except (ClientError, OSError) as err:
             self.clear_session()
-            raise NoConnection(err) from err
+            raise NoConnectionException(err) from err
         except (TypeError, Exception) as ex:
             self.clear_session()
             raise ClientException(ex) from ex
@@ -730,6 +730,9 @@ class JsonRpcAioHttpClient:
                 multiple_logs=False,
                 level=logging.WARNING,
             )
+            raise ClientException(
+                f"GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface {interface}"
+            ) from jderr
 
         return all_device_data
 

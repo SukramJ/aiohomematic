@@ -48,20 +48,20 @@ class ValidationException(BaseHomematicException):
         super().__init__("ValidationException", *args)
 
 
-class NoConnection(BaseHomematicException):
-    """hahomematic NoConnection exception."""
+class NoConnectionException(BaseHomematicException):
+    """hahomematic NoConnectionException exception."""
 
     def __init__(self, *args: Any) -> None:
         """Init the NoConnection."""
-        super().__init__("NoConnection", *args)
+        super().__init__("NoConnectionException", *args)
 
 
-class NoClients(BaseHomematicException):
-    """hahomematic NoClients exception."""
+class NoClientsException(BaseHomematicException):
+    """hahomematic NoClientsException exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the NoClients."""
-        super().__init__("NoClients", *args)
+        """Init the NoClientsException."""
+        super().__init__("NoClientsException", *args)
 
 
 class AuthFailure(BaseHomematicException):

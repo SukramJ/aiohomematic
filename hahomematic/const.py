@@ -77,19 +77,6 @@ SYSVAR_ADDRESS: Final = "sysvar"
 CONF_PASSWORD: Final = "password"
 CONF_USERNAME: Final = "username"
 
-EVENT_ADDRESS: Final = "address"
-EVENT_AVAILABLE: Final = "available"
-EVENT_CHANNEL_NO: Final = "channel_no"
-EVENT_DATA: Final = "data"
-EVENT_INSTANCE_NAME: Final = "instance_name"
-EVENT_INTERFACE_ID: Final = "interface_id"
-EVENT_MODEL: Final = "model"
-EVENT_PARAMETER: Final = "parameter"
-EVENT_PONG_MISMATCH_COUNT: Final = "pong_mismatch_count"
-EVENT_SECONDS_SINCE_LAST_EVENT: Final = "seconds_since_last_event"
-EVENT_TYPE: Final = "type"
-EVENT_VALUE: Final = "value"
-
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
 
@@ -195,6 +182,23 @@ class DeviceFirmwareState(StrEnum):
     DO_UPDATE_PENDING = "DO_UPDATE_PENDING"
     PERFORMING_UPDATE = "PERFORMING_UPDATE"
     BACKGROUND_UPDATE_NOT_SUPPORTED = "BACKGROUND_UPDATE_NOT_SUPPORTED"
+
+
+class EventKey(StrEnum):
+    """Enum with hahomematic event keys."""
+
+    ADDRESS = "address"
+    AVAILABLE = "available"
+    CHANNEL_NO = "channel_no"
+    DATA = "data"
+    INSTANCE_NAME = "instance_name"
+    INTERFACE_ID = "interface_id"
+    MODEL = "model"
+    PARAMETER = "parameter"
+    PONG_MISMATCH_COUNT = "pong_mismatch_count"
+    SECONDS_SINCE_LAST_EVENT = "seconds_since_last_event"
+    TYPE = "type"
+    VALUE = "value"
 
 
 class EventType(StrEnum):
@@ -383,9 +387,10 @@ class InterfaceName(StrEnum):
 
 
 class InterfaceEventType(StrEnum):
-    """Enum with hahomematic event types."""
+    """Enum with hahomematic interface event types."""
 
     CALLBACK = "callback"
+    FETCH_DATA = "fetch_data"
     PENDING_PONG = "pending_pong"
     PROXY = "proxy"
     UNKNOWN_PONG = "unknown_pong"

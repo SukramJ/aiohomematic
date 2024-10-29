@@ -20,12 +20,6 @@ from hahomematic.const import (
     CALLBACK_TYPE,
     DEFAULT_CUSTOM_ID,
     DP_KEY,
-    EVENT_ADDRESS,
-    EVENT_CHANNEL_NO,
-    EVENT_INTERFACE_ID,
-    EVENT_MODEL,
-    EVENT_PARAMETER,
-    EVENT_VALUE,
     INIT_DATETIME,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
     KWARGS_ARG_DATA_POINT,
@@ -33,6 +27,7 @@ from hahomematic.const import (
     CallSource,
     DataPointCategory,
     DataPointUsage,
+    EventKey,
     Flag,
     Operations,
     Parameter,
@@ -102,12 +97,12 @@ _MULTIPLIER_UNIT: Final[Mapping[str, int]] = {
 
 EVENT_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(EVENT_ADDRESS): val.device_address,
-        vol.Required(EVENT_CHANNEL_NO): val.channel_no,
-        vol.Required(EVENT_MODEL): str,
-        vol.Required(EVENT_INTERFACE_ID): str,
-        vol.Required(EVENT_PARAMETER): str,
-        vol.Optional(EVENT_VALUE): vol.Any(bool, int),
+        vol.Required(str(EventKey.ADDRESS)): val.device_address,
+        vol.Required(str(EventKey.CHANNEL_NO)): val.channel_no,
+        vol.Required(str(EventKey.MODEL)): str,
+        vol.Required(str(EventKey.INTERFACE_ID)): str,
+        vol.Required(str(EventKey.PARAMETER)): str,
+        vol.Optional(str(EventKey.VALUE)): vol.Any(bool, int),
     }
 )
 
@@ -748,18 +743,18 @@ class BaseParameterDataPoint[
             )
             return None  # type: ignore[return-value]
 
-    def get_event_data(self, value: Any = None) -> dict[str, Any]:
+    def get_event_data(self, value: Any = None) -> dict[EventKey, Any]:
         """Get the event_data."""
         event_data = {
-            EVENT_ADDRESS: self._device.address,
-            EVENT_CHANNEL_NO: self._channel.no,
-            EVENT_MODEL: self._device.model,
-            EVENT_INTERFACE_ID: self._device.interface_id,
-            EVENT_PARAMETER: self._parameter,
+            EventKey.ADDRESS: self._device.address,
+            EventKey.CHANNEL_NO: self._channel.no,
+            EventKey.MODEL: self._device.model,
+            EventKey.INTERFACE_ID: self._device.interface_id,
+            EventKey.PARAMETER: self._parameter,
         }
         if value is not None:
-            event_data[EVENT_VALUE] = value
-        return cast(dict[str, Any], EVENT_DATA_SCHEMA(event_data))
+            event_data[EventKey.VALUE] = value
+        return cast(dict[EventKey, Any], EVENT_DATA_SCHEMA(event_data))
 
 
 class CallParameterCollector:

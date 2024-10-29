@@ -17,7 +17,7 @@ from hahomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
     ClientException,
-    NoConnection,
+    NoConnectionException,
     UnsupportedException,
 )
 from hahomematic.support import get_tls_context, reduce_args
@@ -133,7 +133,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 )
                 self._connection_state.remove_issue(issuer=self, iid=self.interface_id)
                 return result
-            raise NoConnection(f"No connection to {self.interface_id}")
+            raise NoConnectionException(f"No connection to {self.interface_id}")
         except BaseHomematicException:
             raise
         except SSLError as sslerr:
@@ -142,7 +142,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 _LOGGER.debug(message)
             else:
                 _LOGGER.error(message)
-            raise NoConnection(message) from sslerr
+            raise NoConnectionException(message) from sslerr
         except OSError as ose:
             message = f"OSError on {self.interface_id}: {reduce_args(args=ose.args)}"
             if ose.args[0] in _OS_ERROR_CODES:
@@ -152,7 +152,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                     _LOGGER.debug(message)
             else:
                 _LOGGER.error(message)
-            raise NoConnection(message) from ose
+            raise NoConnectionException(message) from ose
         except xmlrpc.client.Fault as fex:
             raise ClientException(
                 f"XMLRPC Fault from backend: {fex.faultCode} {fex.faultString}"
@@ -163,7 +163,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             if not self._connection_state.has_issue(issuer=self, iid=self.interface_id):
                 if per.errmsg == "Unauthorized":
                     raise AuthFailure(per) from per
-                raise NoConnection(per) from per
+                raise NoConnectionException(per) from per
         except Exception as ex:
             raise ClientException(ex) from ex
 

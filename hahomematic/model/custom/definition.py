@@ -25,7 +25,7 @@ DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomConfig, ...]]] = {}
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
-_SCHEMA_CDPD_ADDITIONAL_DPS = vol.Schema(
+_SCHEMA_ADDITIONAL_DPS = vol.Schema(
     {
         vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema(
             (vol.Optional(Parameter),)
@@ -33,36 +33,36 @@ _SCHEMA_CDPD_ADDITIONAL_DPS = vol.Schema(
     }
 )
 
-_SCHEMA_CDPD_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
+_SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
 
-_SCHEMA_CDPD_FIELD = vol.Schema({vol.Required(int): _SCHEMA_CDPD_FIELD_DETAILS})
+_SCHEMA_FIELD = vol.Schema({vol.Required(int): _SCHEMA_FIELD_DETAILS})
 
-_SCHEMA_CDPD_DEVICE_GROUP = vol.Schema(
+_SCHEMA_DEVICE_GROUP = vol.Schema(
     {
         vol.Required(CDPD.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
         vol.Required(CDPD.ALLOW_UNDEFINED_GENERIC_DPS.value, default=False): bool,
         vol.Optional(CDPD.SECONDARY_CHANNELS.value): (val.positive_int,),
-        vol.Optional(CDPD.REPEATABLE_FIELDS.value): _SCHEMA_CDPD_FIELD_DETAILS,
-        vol.Optional(CDPD.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_CDPD_FIELD_DETAILS,
-        vol.Optional(CDPD.FIELDS.value): _SCHEMA_CDPD_FIELD,
-        vol.Optional(CDPD.VISIBLE_FIELDS.value): _SCHEMA_CDPD_FIELD,
+        vol.Optional(CDPD.REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
+        vol.Optional(CDPD.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
+        vol.Optional(CDPD.FIELDS.value): _SCHEMA_FIELD,
+        vol.Optional(CDPD.VISIBLE_FIELDS.value): _SCHEMA_FIELD,
     }
 )
 
-_SCHEMA_CDPD_DEVICE_GROUPS = vol.Schema(
+_SCHEMA_DEVICE_GROUPS = vol.Schema(
     {
-        vol.Required(CDPD.DEVICE_GROUP.value): _SCHEMA_CDPD_DEVICE_GROUP,
-        vol.Optional(CDPD.ADDITIONAL_DPS.value): _SCHEMA_CDPD_ADDITIONAL_DPS,
+        vol.Required(CDPD.DEVICE_GROUP.value): _SCHEMA_DEVICE_GROUP,
+        vol.Optional(CDPD.ADDITIONAL_DPS.value): _SCHEMA_ADDITIONAL_DPS,
         vol.Optional(CDPD.INCLUDE_DEFAULT_DPS.value, default=DEFAULT_INCLUDE_DEFAULT_DPS): bool,
     }
 )
 
 _SCHEMA_DEVICE_DESCRIPTION = vol.Schema(
     {
-        vol.Required(CDPD.DEFAULT_DPS.value): _SCHEMA_CDPD_ADDITIONAL_DPS,
+        vol.Required(CDPD.DEFAULT_DPS.value): _SCHEMA_ADDITIONAL_DPS,
         vol.Required(CDPD.DEVICE_DEFINITIONS.value): vol.Schema(
             {
-                vol.Required(DeviceProfile): _SCHEMA_CDPD_DEVICE_GROUPS,
+                vol.Required(DeviceProfile): _SCHEMA_DEVICE_GROUPS,
             }
         ),
     }

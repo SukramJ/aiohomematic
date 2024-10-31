@@ -4,7 +4,7 @@
 coverage==7.6.4
 freezegun==1.5.1
 mypy-dev==1.12.0a5
-pip==24.2
+pip==24.3.1
 pre-commit==4.0.1
 pur==7.3.2
 pydantic==2.9.2
@@ -14,10 +14,10 @@ pylint-strict-informational==0.1
 pylint==3.3.1
 pytest-aiohttp==1.0.5
 pytest-asyncio==0.24.0
-pytest-cov==5.0.0
+pytest-cov==6.0.0
 pytest-rerunfailures==14.0
 pytest-socket==0.7.0
 pytest-timeout==2.3.1
 pytest==8.3.3
 types-python-slugify==8.0.2.20240310
-uv==0.4.27
+uv==0.4.29

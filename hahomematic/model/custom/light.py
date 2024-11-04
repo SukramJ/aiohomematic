@@ -23,7 +23,7 @@ from hahomematic.model.generic import (
     DpSensor,
     GenericDataPoint,
 )
-from hahomematic.model.support import OnTimeMixin
+from hahomematic.model.support import TimerMixin
 
 _DIMMER_OFF: Final = 0.0
 _EFFECT_OFF: Final = "Off"
@@ -76,6 +76,7 @@ class _StateChangeArg(StrEnum):
     OFF = "off"
     ON = "on"
     ON_TIME = "on_time"
+    ON_TIME_RUNNING = "on_time_running"
     RAMP_TIME = "ramp_time"
 
 
@@ -130,17 +131,18 @@ class LightOnArgs(TypedDict, total=False):
 class LightOffArgs(TypedDict, total=False):
     """Matcher for the light turn off arguments."""
 
+    on_time: float
     ramp_time: float
 
 
-class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
+class CustomDpDimmer(CustomDataPoint, TimerMixin):
     """Base class for HomeMatic light data point."""
 
     _category = DataPointCategory.LIGHT
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
-        OnTimeMixin.__init__(self)
+        TimerMixin.__init__(self)
         super()._init_data_point_fields()
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
         self._dp_channel_level: DpSensor[float | None] = self._get_data_point(
@@ -232,13 +234,15 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
         self, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]
     ) -> None:
         """Turn the light on."""
+        if (on_time := kwargs.get("on_time")) is not None:
+            self.set_timer_on_time(on_time=on_time)
         if not self.is_state_change(on=True, **kwargs):
             return
+
+        if (timer := self.get_and_start_timer()) is not None:
+            await self._set_on_time_value(on_time=timer, collector=collector)
         if ramp_time := kwargs.get("ramp_time"):
             await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
-        if (on_time := kwargs.get("on_time")) or (on_time := self.get_on_time_and_cleanup()):
-            await self._set_on_time_value(on_time=on_time, collector=collector)
-
         if not (brightness := kwargs.get("brightness", self.brightness)):
             brightness = int(_MAX_BRIGHTNESS)
         level = brightness / _MAX_BRIGHTNESS
@@ -261,7 +265,9 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
         self, on_time: float, collector: CallParameterCollector | None = None
     ) -> None:
         """Set the on time value in seconds."""
-        await self._dp_on_time_value.send_value(value=on_time, collector=collector)
+        await self._dp_on_time_value.send_value(
+            value=on_time, collector=collector, do_validate=False
+        )
 
     async def _set_ramp_time_on_value(
         self, ramp_time: float, collector: CallParameterCollector | None = None
@@ -277,6 +283,14 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
+        if (on_time_running := self.timer_on_time_running) is not None and on_time_running is True:
+            return True
+        if self.timer_on_time is not None:
+            return True
+        if kwargs.get(_StateChangeArg.ON_TIME) is not None:
+            return True
+        if kwargs.get(_StateChangeArg.RAMP_TIME) is not None:
+            return True
         if (
             kwargs.get(_StateChangeArg.ON) is not None
             and self.is_on is not True
@@ -302,10 +316,6 @@ class CustomDpDimmer(CustomDataPoint, OnTimeMixin):
         ) is not None and color_temp != self.color_temp:
             return True
         if (effect := kwargs.get(_StateChangeArg.EFFECT)) is not None and effect != self.effect:
-            return True
-        if kwargs.get(_StateChangeArg.RAMP_TIME) is not None:
-            return True
-        if kwargs.get(_StateChangeArg.ON_TIME) is not None:
             return True
         return super().is_state_change(**kwargs)
 
@@ -549,6 +559,8 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         self, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]
     ) -> None:
         """Turn the light on."""
+        if on_time := (kwargs.get("on_time") or self.get_and_start_timer()):
+            kwargs["on_time"] = on_time
         if not self.is_state_change(on=True, **kwargs):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
@@ -561,7 +573,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
             await self._dp_color_temperature_kelvin.send_value(
                 value=color_temp_kelvin, collector=collector
             )
-        if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
+        if on_time is None and kwargs.get("ramp_time"):
             # 111600 is a special value for NOT_USED
             await self._set_on_time_value(on_time=111600, collector=collector)
         if self.supports_effects and (effect := kwargs.get("effect")) is not None:

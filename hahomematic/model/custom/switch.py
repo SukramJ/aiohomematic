@@ -16,27 +16,27 @@ from hahomematic.model.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.model.data_point import CallParameterCollector, bind_collector
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
-from hahomematic.model.support import OnTimeMixin
+from hahomematic.model.support import TimerMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class _SwitchStateChangeArg(StrEnum):
+class _StateChangeArg(StrEnum):
     """Enum with switch state change arguments."""
 
     OFF = "off"
     ON = "on"
-    ON_TIME = "on_time"
+    ON_TIME_RUNNING = "on_time_running"
 
 
-class CustomDpSwitch(CustomDataPoint, OnTimeMixin):
+class CustomDpSwitch(CustomDataPoint, TimerMixin):
     """Class for HomeMatic switch data point."""
 
     _category = DataPointCategory.SWITCH
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
-        OnTimeMixin.__init__(self)
+        TimerMixin.__init__(self)
         super()._init_data_point_fields()
         self._dp_state: DpSwitch = self._get_data_point(
             field=Field.STATE, data_point_type=DpSwitch
@@ -63,26 +63,34 @@ class CustomDpSwitch(CustomDataPoint, OnTimeMixin):
         self, collector: CallParameterCollector | None = None, on_time: float | None = None
     ) -> None:
         """Turn the switch on."""
-        if not self.is_state_change(on=True, on_time=on_time):
+        if on_time is not None:
+            self.set_timer_on_time(on_time=on_time)
+        if not self.is_state_change(on=True):
             return
-        if on_time is not None or (on_time := self.get_on_time_and_cleanup()):
-            await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
+
+        if (timer := self.get_and_start_timer()) is not None:
+            await self._dp_on_time_value.send_value(
+                value=timer, collector=collector, do_validate=False
+            )
         await self._dp_state.turn_on(collector=collector)
 
     @bind_collector()
     async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch off."""
+        self.reset_timer_on_time()
         if not self.is_state_change(off=True):
             return
         await self._dp_state.turn_off(collector=collector)
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
-        if kwargs.get(_SwitchStateChangeArg.ON_TIME) is not None:
+        if (on_time_running := self.timer_on_time_running) is not None and on_time_running is True:
             return True
-        if kwargs.get(_SwitchStateChangeArg.ON) is not None and self.value is not True:
+        if self.timer_on_time is not None:
             return True
-        if kwargs.get(_SwitchStateChangeArg.OFF) is not None and self.value is not False:
+        if kwargs.get(_StateChangeArg.ON) is not None and self.value is not True:
+            return True
+        if kwargs.get(_StateChangeArg.OFF) is not None and self.value is not False:
             return True
         return super().is_state_change(**kwargs)
 

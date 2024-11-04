@@ -1,3 +1,7 @@
+# Version 2024.11.0 (2024-11-04)
+
+- Improve on_time usage
+
 # Version 2024.10.17 (2024-10-29)
 
 - Use enum for json/event keys

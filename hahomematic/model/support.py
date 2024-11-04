@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 import logging
 from typing import Any, Final, TypeAlias
 
-from hahomematic import central as hmcu, support as hms
+from hahomematic import central as hmcu
 from hahomematic.const import (
     INIT_DATETIME,
     PROGRAM_ADDRESS,
@@ -31,7 +31,7 @@ __all__ = [
     "ChannelNameData",
     "DataPointNameData",
     "GenericParameterType",
-    "OnTimeMixin",
+    "TimerMixin",
     "PayloadMixin",
     "check_channel_is_the_only_primary_channel",
     "convert_value",
@@ -89,31 +89,49 @@ class PayloadMixin:
         }
 
 
-class OnTimeMixin:
+class TimerMixin:
     """Mixin to add on_time support."""
 
     def __init__(self) -> None:
         """Init OnTimeMixin."""
-        self._on_time: float | None = None
-        self._on_time_set: datetime = INIT_DATETIME
+        self._timer_on_time: float | None = None
+        self._timer_on_time_end: datetime = INIT_DATETIME
 
-    def set_on_time(self, on_time: float) -> None:
+    def set_timer_on_time(self, on_time: float) -> None:
         """Set the on_time."""
-        self._on_time = on_time
-        self._on_time_set = datetime.now()
+        self._timer_on_time = on_time
+        self._timer_on_time_end = INIT_DATETIME
 
-    def get_on_time_and_cleanup(self) -> float | None:
-        """Return the on_time and cleanup afterwards."""
-        if not hasattr(self, "_on_time") or self._on_time is None:
+    def reset_timer_on_time(self) -> None:
+        """Set the on_time."""
+        self._timer_on_time = None
+        self._timer_on_time_end = INIT_DATETIME
+
+    @property
+    def timer_on_time(self) -> float | None:
+        """Return the on_time."""
+        return self._timer_on_time
+
+    @property
+    def timer_on_time_running(self) -> bool:
+        """Return if on_time is running."""
+        return datetime.now() <= self._timer_on_time_end
+
+    def get_and_start_timer(self) -> float | None:
+        """Return the on_time and set the end time."""
+        if (
+            self.timer_on_time_running
+            and self._timer_on_time is not None
+            and self._timer_on_time <= 0
+        ):
+            self.reset_timer_on_time()
+            return -1
+        if self._timer_on_time is None:
+            self.reset_timer_on_time()
             return None
-        # save values
-        on_time = self._on_time
-        on_time_set = self._on_time_set
-        # cleanup values
-        self._on_time = None
-        self._on_time_set = INIT_DATETIME
-        if not hms.changed_within_seconds(last_change=on_time_set, max_age=5):
-            return None
+        on_time = self._timer_on_time
+        self._timer_on_time = None
+        self._timer_on_time_end = datetime.now() + timedelta(seconds=on_time)
         return on_time
 
 

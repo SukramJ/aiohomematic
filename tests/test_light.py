@@ -135,12 +135,21 @@ async def test_cedimmer(
     )
 
     await light.turn_off()
-    light.set_on_time(0.5)
+    light.set_timer_on_time(0.5)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
         paramset_key="VALUES",
         values={"ON_TIME": 0.5, "LEVEL": 1.0},
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+
+    light.set_timer_on_time(1.6)
+    await light.turn_on()
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU1399816:4",
+        paramset_key="VALUES",
+        values={"ON_TIME": 1.6, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
 
@@ -538,7 +547,7 @@ async def test_ceipfixedcolorlight(
     assert light.channel_color_name == _FixedColor.BLUE
 
     await light.turn_off()
-    light.set_on_time(18)
+    light.set_timer_on_time(18)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3716619:8",
@@ -548,7 +557,7 @@ async def test_ceipfixedcolorlight(
     )
 
     await light.turn_off()
-    light.set_on_time(17000)
+    light.set_timer_on_time(17000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3716619:8",
@@ -558,7 +567,7 @@ async def test_ceipfixedcolorlight(
     )
 
     await light.turn_off()
-    light.set_on_time(1000000)
+    light.set_timer_on_time(1000000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3716619:8",
@@ -808,7 +817,7 @@ async def test_ceipfixedcolorlightwired(
 
     await light.turn_off()
 
-    light.set_on_time(18)
+    light.set_timer_on_time(18)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
@@ -818,7 +827,7 @@ async def test_ceipfixedcolorlightwired(
     )
 
     await light.turn_off()
-    light.set_on_time(17000)
+    light.set_timer_on_time(17000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
@@ -828,7 +837,7 @@ async def test_ceipfixedcolorlightwired(
     )
 
     await light.turn_off()
-    light.set_on_time(1000000)
+    light.set_timer_on_time(1000000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",

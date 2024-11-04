@@ -253,11 +253,11 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
         self, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOffArgs]
     ) -> None:
         """Turn the light off."""
+        self.reset_timer_on_time()
         if not self.is_state_change(off=True, **kwargs):
             return
         if ramp_time := kwargs.get("ramp_time"):
             await self._set_ramp_time_off_value(ramp_time=ramp_time, collector=collector)
-
         await self._dp_level.send_value(value=_DIMMER_OFF, collector=collector)
 
     @bind_collector()

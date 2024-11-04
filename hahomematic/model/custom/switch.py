@@ -77,6 +77,7 @@ class CustomDpSwitch(CustomDataPoint, TimerMixin):
     @bind_collector()
     async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch off."""
+        self.reset_timer_on_time()
         if not self.is_state_change(off=True):
             return
         await self._dp_state.turn_off(collector=collector)

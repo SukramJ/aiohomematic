@@ -97,9 +97,14 @@ class TimerMixin:
         self._timer_on_time: float | None = None
         self._timer_on_time_end: datetime = INIT_DATETIME
 
-    def set_timer_on_time(self, on_time: float | None) -> None:
+    def set_timer_on_time(self, on_time: float) -> None:
         """Set the on_time."""
         self._timer_on_time = on_time
+        self._timer_on_time_end = INIT_DATETIME
+
+    def reset_timer_on_time(self) -> None:
+        """Set the on_time."""
+        self._timer_on_time = None
         self._timer_on_time_end = INIT_DATETIME
 
     @property
@@ -119,10 +124,10 @@ class TimerMixin:
             and self._timer_on_time is not None
             and self._timer_on_time <= 0
         ):
-            self.set_timer_on_time(on_time=None)
+            self.reset_timer_on_time()
             return -1
         if self._timer_on_time is None:
-            self.set_timer_on_time(on_time=None)
+            self.reset_timer_on_time()
             return None
         on_time = self._timer_on_time
         self._timer_on_time = None

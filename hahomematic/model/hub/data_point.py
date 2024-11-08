@@ -8,7 +8,7 @@ from typing import Any, Final
 from slugify import slugify
 
 from hahomematic import central as hmcu
-from hahomematic.const import HUB_PATH, SYSVAR_ADDRESS, HubData, SystemVariableData
+from hahomematic.const import SYSVAR_ADDRESS, HubData, SystemVariableData
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import (
     config_property,
@@ -16,7 +16,13 @@ from hahomematic.model.decorators import (
     service,
     state_property,
 )
-from hahomematic.model.support import PayloadMixin, generate_unique_id
+from hahomematic.model.support import (
+    PathData,
+    PayloadMixin,
+    ProgramPathData,
+    SysvarPathData,
+    generate_unique_id,
+)
 from hahomematic.support import parse_sys_var
 
 
@@ -36,8 +42,8 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
             address=address,
             parameter=slugify(data.name),
         )
-        super().__init__(central=central, unique_id=unique_id)
         self._name: Final = self.get_name(data=data)
+        super().__init__(central=central, unique_id=unique_id)
         self._full_name: Final = f"{self._central.name}_{self._name}"
 
     @abstractmethod
@@ -54,10 +60,9 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         """Return the name of the data_point."""
         return self._name
 
-    @property
-    def path(self) -> str:
-        """Return the path of the data_point."""
-        return f"{self._central.path}/{HUB_PATH}/{self.category}/{self.name}"
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data_point."""
+        return ProgramPathData(name=self._name)
 
 
 class GenericSysvarDataPoint(GenericHubDataPoint):
@@ -71,8 +76,8 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         data: SystemVariableData,
     ) -> None:
         """Initialize the data_point."""
-        super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
         self.ccu_var_name: Final = data.name
+        super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
         self.data_type: Final = data.data_type
         self._values: Final[tuple[str, ...] | None] = tuple(data.values) if data.values else None
         self._max: Final = data.max_value
@@ -121,6 +126,10 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     def is_extended(self) -> bool:
         """Return if the data_point is an extended type."""
         return self._is_extended
+
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data_point."""
+        return SysvarPathData(name=self.ccu_var_name)
 
     def get_name(self, data: HubData) -> str:
         """Return the name of the sysvar data_point."""

@@ -18,7 +18,7 @@ from hahomematic.exceptions import HaHomematicException
 from hahomematic.model import device as hmd
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import config_property, get_service_calls, state_property
-from hahomematic.model.support import PayloadMixin, generate_unique_id
+from hahomematic.model.support import DataPointPathData, PayloadMixin, generate_unique_id
 
 __all__ = ["DpUpdate"]
 
@@ -95,10 +95,11 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             return self._device.available_firmware
         return self._device.firmware
 
-    @property
-    def path(self) -> str:
-        """Return the path of the data_point."""
-        return f"{self._device.path}/{DataPointCategory.UPDATE}"
+    def _get_path_data(self) -> DataPointPathData:
+        """Return the path data of the data_point."""
+        return DataPointPathData(
+            address=self._device.address, channel_no=None, kind=DataPointCategory.UPDATE
+        )
 
     def register_data_point_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register update callback."""

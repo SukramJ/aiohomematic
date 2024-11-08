@@ -67,10 +67,7 @@ async def test_custom_data_point_callback(
         cb=device_removed_mock
     )
     assert switch.value is None
-    assert (
-        str(switch)
-        == f"path: {central.config.base_path}CentralTest/VCU2128127/4/switch, name: HmIP-BSM_VCU2128127"
-    )
+    assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
     await central.event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
     assert switch.value is True
     await central.event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
@@ -118,7 +115,7 @@ async def test_generic_data_point_callback(
     assert switch.value is None
     assert (
         str(switch)
-        == f"path: {central.config.base_path}CentralTest/VCU2128127/4/switch/state, name: HmIP-BSM_VCU2128127 State ch4"
+        == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
     )
     await central.event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
     assert switch.value is True

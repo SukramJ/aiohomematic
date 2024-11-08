@@ -298,11 +298,6 @@ class Device(PayloadMixin):
         return self._name
 
     @property
-    def path(self) -> str:
-        """Return the base path of the data_point."""
-        return f"{self._central.path}/{self._address}"
-
-    @property
     def product_group(self) -> ProductGroup:
         """Return the product group of the device."""
         return self._product_group
@@ -725,11 +720,6 @@ class Channel(PayloadMixin):
         return self._central.paramset_descriptions.get_channel_paramset_descriptions(
             interface_id=self._device.interface_id, channel_address=self._address
         )
-
-    @property
-    def path(self) -> str:
-        """Return the path of the channel."""
-        return f"{self._device.path}/{self._no}"
 
     @info_property
     def room(self) -> str | None:

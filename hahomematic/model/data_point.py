@@ -41,7 +41,9 @@ from hahomematic.model import device as hmd
 from hahomematic.model.decorators import config_property, get_service_calls, state_property
 from hahomematic.model.support import (
     DataPointNameData,
+    DataPointPathData,
     GenericParameterType,
+    PathData,
     PayloadMixin,
     convert_value,
     generate_unique_id,
@@ -119,6 +121,7 @@ class CallbackDataPoint(ABC):
         self._data_point_updated_callbacks: dict[Callable, str] = {}
         self._device_removed_callbacks: list[Callable] = []
         self._custom_id: str | None = None
+        self._path_data = self._get_path_data()
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
         self._service_methods: dict[str, Callable] = {}
@@ -168,11 +171,6 @@ class CallbackDataPoint(ABC):
     def name(self) -> str | None:
         """Return the name of the data_point."""
 
-    @property
-    @abstractmethod
-    def path(self) -> str:
-        """Return the path of the data_point."""
-
     @config_property
     def unique_id(self) -> str:
         """Return the unique_id."""
@@ -197,6 +195,16 @@ class CallbackDataPoint(ABC):
     def is_registered(self) -> bool:
         """Return if data_point is registered externally."""
         return self._custom_id is not None
+
+    @property
+    def path_set(self) -> str:
+        """Return the base set path of the data_point."""
+        return self._path_data.path_set
+
+    @property
+    def path_state(self) -> str:
+        """Return the base state path of the data_point."""
+        return self._path_data.path_state
 
     # @property
     @property
@@ -228,6 +236,10 @@ class CallbackDataPoint(ABC):
                 self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id
             )
         return None
+
+    @abstractmethod
+    def _get_path_data(self) -> PathData:
+        """Return the path data."""
 
     def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
         """Unregister data_point updated callback."""
@@ -280,7 +292,7 @@ class CallbackDataPoint(ABC):
 
     def __str__(self) -> str:
         """Provide some useful information."""
-        return f"path: {self.path}, name: {self.full_name}"
+        return f"path: {self.path_state}, name: {self.full_name}"
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
@@ -294,9 +306,9 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)
-        super().__init__(central=channel.central, unique_id=unique_id)
         self._channel: Final[hmd.Channel] = channel
         self._device: Final[hmd.Device] = channel.device
+        super().__init__(central=channel.central, unique_id=unique_id)
         self._is_in_multiple_channels: Final = is_in_multiple_channels
         self._client: Final[hmcl.Client] = channel.device.client
         self._forced_usage: DataPointUsage | None = None
@@ -306,11 +318,6 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     def available(self) -> bool:
         """Return the availability of the device."""
         return self._device.available
-
-    @property
-    def path(self) -> str:
-        """Return the base path of the data_point."""
-        return f"{self._channel.path}/{self._category}"
 
     @property
     def channel(self) -> hmd.Channel:
@@ -504,11 +511,6 @@ class BaseParameterDataPoint[
         return self._paramset_key
 
     @property
-    def path(self) -> str:
-        """Return the path of the data_point."""
-        return f"{super().path}/{self._parameter.lower()}"
-
-    @property
     def raw_unit(self) -> str | None:
         """Return raw unit value."""
         return self._raw_unit
@@ -612,6 +614,12 @@ class BaseParameterDataPoint[
         if (cop := self._channel.operation_mode) is None:
             return None
         return cop in KEY_CHANNEL_OPERATION_MODE_VISIBILITY[self._parameter]
+
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data_point."""
+        return DataPointPathData(
+            address=self._device.address, channel_no=self._channel.no, kind=self._parameter
+        )
 
     def force_to_sensor(self) -> None:
         """Change the category of the data_point."""

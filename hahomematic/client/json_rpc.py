@@ -779,7 +779,7 @@ class JsonRpcAioHttpClient:
         params = {
             _JsonKey.INTERFACE: interface,
             _JsonKey.ADDRESS: address,
-            _JsonKey.PARAMSET_KEY: str(paramset_key),
+            _JsonKey.PARAMSET_KEY: paramset_key,
         }
 
         try:
@@ -806,7 +806,7 @@ class JsonRpcAioHttpClient:
         params = {
             _JsonKey.INTERFACE: interface,
             _JsonKey.ADDRESS: address,
-            _JsonKey.PARAMSET_KEY: str(paramset_key),
+            _JsonKey.PARAMSET_KEY: paramset_key,
             _JsonKey.SET: str(orjson.dumps(values)),
         }
 
@@ -844,7 +844,7 @@ class JsonRpcAioHttpClient:
                     method=_JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
                     extra_params=params,
                 )
-                if paramset_key.MASTER
+                if paramset_key == ParamsetKey.MASTER
                 else await self._post(
                     method=_JsonRpcMethod.INTERFACE_GET_VALUE,
                     extra_params=params,

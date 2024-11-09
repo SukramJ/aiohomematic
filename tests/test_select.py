@@ -59,7 +59,7 @@ async def test_hmselect(
         value=1,
     )
     assert select.value == "OPEN"
-    await central.event(const.INTERFACE_ID, "VCU6354483:1", "WINDOW_STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6354483:1", "WINDOW_STATE", 0)
     assert select.value == "CLOSED"
 
     await select.send_value(3)

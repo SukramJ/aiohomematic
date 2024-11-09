@@ -59,7 +59,7 @@ async def test_hmfloat(
         value=0.3,
     )
     assert efloat.value == 0.3
-    await central.event(const.INTERFACE_ID, "VCU0000011:3", "LEVEL", 0.5)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000011:3", "LEVEL", 0.5)
     assert efloat.value == 0.5
     # do not write. value above max
     await efloat.send_value(45.0)
@@ -163,7 +163,7 @@ async def test_hminteger(
     )
     assert einteger.value == 1
 
-    await central.event(const.INTERFACE_ID, "VCU4984404:1", "SET_POINT_MODE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU4984404:1", "SET_POINT_MODE", 2)
     assert einteger.value == 2
     await einteger.send_value(6)
     assert mock_client.method_calls[-1] != call.set_value(

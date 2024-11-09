@@ -17,6 +17,8 @@ from hahomematic.model.decorators import get_service_calls, state_property
 from hahomematic.model.generic import data_point as hmge
 from hahomematic.model.support import (
     DataPointNameData,
+    DataPointPathData,
+    PathData,
     check_channel_is_the_only_primary_channel,
     get_custom_data_point_name,
 )
@@ -62,6 +64,13 @@ class CustomDataPoint(BaseDataPoint):
         self._init_data_point_fields()
         self._service_methods = get_service_calls(obj=self)
 
+    def _init_data_point_fields(self) -> None:
+        """Init the data point fields."""
+        _LOGGER.debug(
+            "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
+            self.full_name,
+        )
+
     @property
     def allow_undefined_generic_data_points(self) -> bool:
         """Return if undefined generic data points of this device are allowed."""
@@ -71,13 +80,6 @@ class CustomDataPoint(BaseDataPoint):
     def base_no(self) -> int | None:
         """Return the base channel no of the data point."""
         return self._base_no
-
-    def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
-        _LOGGER.debug(
-            "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
-            self.full_name,
-        )
 
     @state_property
     def modified_at(self) -> datetime:
@@ -139,6 +141,12 @@ class CustomDataPoint(BaseDataPoint):
     def data_point_name_postfix(self) -> str:
         """Return the data point name postfix."""
         return ""
+
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data_point."""
+        return DataPointPathData(
+            address=self._device.address, channel_no=self._channel.no, kind=self._category
+        )
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data point."""

@@ -67,13 +67,10 @@ async def test_custom_data_point_callback(
         cb=device_removed_mock
     )
     assert switch.value is None
-    assert (
-        str(switch)
-        == f"path: {central.config.base_path}CentralTest/VCU2128127/4/switch, name: HmIP-BSM_VCU2128127"
-    )
-    await central.event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
+    assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
     assert switch.value is True
-    await central.event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
     assert switch.value is False
     await central.delete_devices(
         interface_id=const.INTERFACE_ID, addresses=[switch.device.address]
@@ -118,11 +115,11 @@ async def test_generic_data_point_callback(
     assert switch.value is None
     assert (
         str(switch)
-        == f"path: {central.config.base_path}CentralTest/VCU2128127/4/switch/state, name: HmIP-BSM_VCU2128127 State ch4"
+        == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
     )
-    await central.event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
     assert switch.value is True
-    await central.event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
     assert switch.value is False
     await central.delete_devices(
         interface_id=const.INTERFACE_ID, addresses=[switch.device.address]

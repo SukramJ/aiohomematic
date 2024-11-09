@@ -130,9 +130,10 @@ class CentralUnit(PayloadMixin):
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
-        self._data_point_event_subscriptions: Final[
+        self._data_point_key_event_subscriptions: Final[
             dict[DP_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
         ] = {}
+        self._data_point_path_event_subscriptions: Final[dict[str, DP_KEY]] = {}
         # {device_address, device}
         self._devices: Final[dict[str, Device]] = {}
         # {sysvar_name, sysvar_data_point}
@@ -940,7 +941,7 @@ class CentralUnit(PayloadMixin):
         return new_device_addresses
 
     @callback_event
-    async def event(
+    async def data_point_event(
         self, interface_id: str, channel_address: str, parameter: str, value: Any
     ) -> None:
         """If a device emits some sort event, we will handle it here."""
@@ -975,9 +976,9 @@ class CentralUnit(PayloadMixin):
             parameter=parameter,
         )
 
-        if data_point_key in self._data_point_event_subscriptions:
+        if data_point_key in self._data_point_key_event_subscriptions:
             try:
-                for callback_handler in self._data_point_event_subscriptions[data_point_key]:
+                for callback_handler in self._data_point_key_event_subscriptions[data_point_key]:
                     if callable(callback_handler):
                         await callback_handler(value)
             except RuntimeError as rte:  # pragma: no cover
@@ -997,6 +998,37 @@ class CentralUnit(PayloadMixin):
                     reduce_args(args=ex.args),
                 )
 
+    @callback_event
+    async def data_point_path_event(self, path_state: str, value: str) -> None:
+        """If a device emits some sort event, we will handle it here."""
+        _LOGGER.debug(
+            "DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
+            path_state,
+            value,
+        )
+
+        if (
+            data_point_key := self._data_point_path_event_subscriptions.get(path_state)
+        ) is not None and data_point_key in self._data_point_key_event_subscriptions:
+            try:
+                for callback_handler in self._data_point_key_event_subscriptions[data_point_key]:
+                    if callable(callback_handler):
+                        await callback_handler(value)
+            except RuntimeError as rte:  # pragma: no cover
+                _LOGGER.debug(
+                    "DATA_POINT_PATH_EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s",
+                    reduce_args(args=rte.args),
+                    path_state,
+                    value,
+                )
+            except Exception as ex:  # pragma: no cover
+                _LOGGER.warning(
+                    "DATA_POINT_PATH_EVENT failed: Unable to call callback for: %s, %s, %s",
+                    path_state,
+                    value,
+                    reduce_args(args=ex.args),
+                )
+
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, interface_id: str) -> list[DeviceDescription]:
         """Return already existing devices to CCU / Homegear."""
@@ -1009,11 +1041,15 @@ class CentralUnit(PayloadMixin):
     def add_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Add data_point to central event subscription."""
         if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.supports_events:
-            if data_point.data_point_key not in self._data_point_event_subscriptions:
-                self._data_point_event_subscriptions[data_point.data_point_key] = []
-            self._data_point_event_subscriptions[data_point.data_point_key].append(
+            if data_point.data_point_key not in self._data_point_key_event_subscriptions:
+                self._data_point_key_event_subscriptions[data_point.data_point_key] = []
+            self._data_point_key_event_subscriptions[data_point.data_point_key].append(
                 data_point.event
             )
+            if data_point.path_state not in self._data_point_path_event_subscriptions:
+                self._data_point_path_event_subscriptions[data_point.path_state] = (
+                    data_point.data_point_key
+                )
 
     @service()
     async def create_central_links(self) -> None:
@@ -1044,12 +1080,11 @@ class CentralUnit(PayloadMixin):
 
     def remove_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Remove event subscription from central collections."""
-        if (
-            isinstance(data_point, (GenericDataPoint, GenericEvent))
-            and data_point.supports_events
-            and data_point.data_point_key in self._data_point_event_subscriptions
-        ):
-            del self._data_point_event_subscriptions[data_point.data_point_key]
+        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.supports_events:
+            if data_point.data_point_key in self._data_point_key_event_subscriptions:
+                del self._data_point_key_event_subscriptions[data_point.data_point_key]
+            if data_point.path_state in self._data_point_path_event_subscriptions:
+                del self._data_point_path_event_subscriptions[data_point.path_state]
 
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""

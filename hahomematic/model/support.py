@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -11,6 +12,12 @@ from typing import Any, Final, TypeAlias
 from hahomematic import central as hmcu
 from hahomematic.const import (
     INIT_DATETIME,
+    PATH_PROGRAM_SET_ROOT,
+    PATH_PROGRAM_STATE_ROOT,
+    PATH_SET_ROOT,
+    PATH_STATE_ROOT,
+    PATH_SYSVAR_SET_ROOT,
+    PATH_SYSVAR_STATE_ROOT,
     PROGRAM_ADDRESS,
     SYSVAR_ADDRESS,
     VIRTUAL_REMOTE_ADDRESSES,
@@ -246,6 +253,78 @@ def get_channel_name_data(channel: hmd.Channel) -> ChannelNameData:
         channel.address,
     )
     return ChannelNameData.empty()
+
+
+class PathData:
+    """The data point path data."""
+
+    @property
+    @abstractmethod
+    def path_set(self) -> str:
+        """Return the base set path of the data_point."""
+
+    @property
+    @abstractmethod
+    def path_state(self) -> str:
+        """Return the base state path of the data_point."""
+
+
+class DataPointPathData(PathData):
+    """The data point path data."""
+
+    def __init__(self, address: str, channel_no: int | None, kind: str, name: str | None = None):
+        """Init the path data."""
+        path_item: Final = f"{address.upper()}/{channel_no}/{kind.upper()}"
+        self._path_set: Final = f"{PATH_SET_ROOT}/{path_item}"
+        self._path_state: Final = f"{PATH_STATE_ROOT}/{path_item}"
+
+    @property
+    def path_set(self) -> str:
+        """Return the base set path of the data_point."""
+        return self._path_set
+
+    @property
+    def path_state(self) -> str:
+        """Return the base state path of the data_point."""
+        return self._path_state
+
+
+class ProgramPathData(PathData):
+    """The program path data."""
+
+    def __init__(self, name: str):
+        """Init the path data."""
+        self._path_set: Final = f"{PATH_PROGRAM_SET_ROOT}/{name}"
+        self._path_state: Final = f"{PATH_PROGRAM_STATE_ROOT}/{name}"
+
+    @property
+    def path_set(self) -> str:
+        """Return the base set path of the program."""
+        return self._path_set
+
+    @property
+    def path_state(self) -> str:
+        """Return the base state path of the program."""
+        return self._path_state
+
+
+class SysvarPathData(PathData):
+    """The sysvar path data."""
+
+    def __init__(self, name: str):
+        """Init the path data."""
+        self._path_set: Final = f"{PATH_SYSVAR_SET_ROOT}/{name}"
+        self._path_state: Final = f"{PATH_SYSVAR_STATE_ROOT}/{name}"
+
+    @property
+    def path_set(self) -> str:
+        """Return the base set path of the sysvar."""
+        return self._path_set
+
+    @property
+    def path_state(self) -> str:
+        """Return the base state path of the sysvar."""
+        return self._path_state
 
 
 def get_data_point_name_data(

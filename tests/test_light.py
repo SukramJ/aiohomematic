@@ -97,7 +97,7 @@ async def test_cedimmer(
     assert light.is_on
 
     assert light.channel_brightness is None
-    await central.event(const.INTERFACE_ID, "VCU1399816:3", "LEVEL", 0.4)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1399816:3", "LEVEL", 0.4)
     assert light.channel_brightness == 102
 
     await light.turn_on(on_time=5.0, ramp_time=6.0)
@@ -288,9 +288,9 @@ async def test_cecolordimmereffect(
 
     assert light.effect == "Slow color change"
 
-    await central.event(const.INTERFACE_ID, "VCU3747418:2", "COLOR", 201)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3747418:2", "COLOR", 201)
     assert light.hs_color == (0.0, 0.0)
-    await central.event(const.INTERFACE_ID, "VCU3747418:2", "COLOR", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3747418:2", "COLOR", None)
     assert light.hs_color == (0.0, 0.0)
 
     await light.turn_on()
@@ -539,10 +539,10 @@ async def test_ceipfixedcolorlight(
     )
     assert light.color_name == _FixedColor.PURPLE
 
-    await central.event(const.INTERFACE_ID, "VCU3716619:7", "LEVEL", 0.5)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3716619:7", "LEVEL", 0.5)
     assert light.channel_brightness == 127
 
-    await central.event(const.INTERFACE_ID, "VCU3716619:7", "COLOR", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3716619:7", "COLOR", 1)
     assert light.channel_hs_color == (240.0, 100.0)
     assert light.channel_color_name == _FixedColor.BLUE
 
@@ -1187,9 +1187,9 @@ async def test_cecolordimmer(
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert light.hs_color == (0.0, 0.0)
-    await central.event(const.INTERFACE_ID, "VCU9973336:15", "COLOR", 201)
+    await central.data_point_event(const.INTERFACE_ID, "VCU9973336:15", "COLOR", 201)
     assert light.hs_color == (0.0, 0.0)
-    await central.event(const.INTERFACE_ID, "VCU9973336:15", "COLOR", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU9973336:15", "COLOR", None)
     assert light.hs_color == (0.0, 0.0)
 
     await light.turn_on()

@@ -80,6 +80,13 @@ CONF_USERNAME: Final = "username"
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
 
+PATH_SET_ROOT: Final = "device/set"
+PATH_STATE_ROOT: Final = "device/status"
+PATH_SYSVAR_SET_ROOT: Final = "sysvar/set"
+PATH_SYSVAR_STATE_ROOT: Final = "sysvar/status"
+PATH_PROGRAM_SET_ROOT: Final = "program/set"
+PATH_PROGRAM_STATE_ROOT: Final = "program/status"
+
 MAX_CACHE_AGE: Final = 60
 
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"

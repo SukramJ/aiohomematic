@@ -32,7 +32,7 @@ class RPCFunctions:
         """If a device emits some sort event, we will handle it here."""
         if central := self.get_central(interface_id):
             central.looper.create_task(
-                central.event(
+                central.data_point_event(
                     interface_id=interface_id,
                     channel_address=channel_address,
                     parameter=parameter,

@@ -31,6 +31,9 @@ from hahomematic.const import (
     REGA_SCRIPT_PATH,
     REGA_SCRIPT_SET_SYSTEM_VARIABLE,
     REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER,
+    DeviceDescription,
+    ParameterData,
+    ParamsetKey,
     ProgramData,
     SystemInformation,
     SystemVariableData,
@@ -52,6 +55,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class _JsonKey(StrEnum):
     """Enum for homematic json keys."""
 
+    ADDRESS = "address"
     CHANNEL_IDS = "channelIds"
     ERROR = "error"
     HAS_EXT_MARKER = "hasExtMarker"
@@ -64,6 +68,7 @@ class _JsonKey(StrEnum):
     MESSAGE = "message"
     MIN_VALUE = "minValue"
     NAME = "name"
+    PARAMSET_KEY = "paramsetKey"
     PASSWORD = "password"
     RESULT = "result"
     SCRIPT = "script"
@@ -83,6 +88,9 @@ class _JsonRpcMethod(StrEnum):
     CCU_GET_HTTPS_REDIRECT_ENABLED = "CCU.getHttpsRedirectEnabled"
     CHANNEL_HAS_PROGRAM_IDS = "Channel.hasProgramIds"
     DEVICE_LIST_ALL_DETAIL = "Device.listAllDetail"
+    INTERFACE_GET_DEVICE_DESCRIPTION = "Interface.getDeviceDescription"
+    INTERFACE_GET_PARAMSET_DESCRIPTION = "Interface.getParamsetDescription"
+    INTERFACE_LIST_DEVICES = "Interface.listDevices"
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
     PROGRAM_EXECUTE = "Program.execute"
     PROGRAM_GET_ALL = "Program.getAll"
@@ -679,6 +687,62 @@ class JsonRpcAioHttpClient:
 
         return channel_ids_function
 
+    async def get_device_description(
+        self, interface: str, address: str
+    ) -> DeviceDescription | None:
+        """Get device descriptions from CCU."""
+        iid = "GET_DEVICE_DESCRIPTION"
+        device_description: DeviceDescription | None = None
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+        }
+
+        try:
+            response = await self._post(
+                method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION, extra_params=params
+            )
+
+            _LOGGER.debug("GET_DEVICE_DESCRIPTION: Getting the device description")
+            if json_result := response[_JsonKey.RESULT]:
+                device_description = self._convert_device_description(json_data=json_result)
+            self._connection_state.remove_issue(issuer=self, iid=iid)
+        except BaseHomematicException as ex:
+            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+            return None
+
+        return device_description
+
+    @staticmethod
+    def _convert_device_description(json_data: dict[str, Any]) -> DeviceDescription:
+        """Convert json data dor device description."""
+        device_description = DeviceDescription(
+            TYPE=json_data["type"],
+            ADDRESS=json_data["address"],
+            PARAMSETS=json_data["paramsets"],
+        )
+        if available_firmware := json_data.get("availableFirmware"):
+            device_description["AVAILABLE_FIRMWARE"] = available_firmware
+        if children := json_data.get("children"):
+            device_description["CHILDREN"] = children
+        if firmware := json_data.get("firmware"):
+            device_description["FIRMWARE"] = firmware
+        if firmware_updatable := json_data.get("firmwareUpdatable"):
+            device_description["FIRMWARE_UPDATABLE"] = firmware_updatable
+        if firmware_update_state := json_data.get("firmwareUpdateState"):
+            device_description["FIRMWARE_UPDATE_STATE"] = firmware_update_state
+        if interface := json_data.get("interface"):
+            device_description["INTERFACE"] = interface
+        if parent := json_data.get("parent"):
+            device_description["PARENT"] = parent
+        if rx_mode := json_data.get("rxMode"):
+            device_description["RX_MODE"] = rx_mode
+        if subtype := json_data.get("subType"):
+            device_description["SUBTYPE"] = subtype
+        if updatable := json_data.get("updatable"):
+            device_description["UPDATABLE"] = updatable
+        return device_description
+
     async def get_device_details(self) -> tuple[dict[str, Any], ...]:
         """Get the device details of the backend."""
         iid = "GET_DEVICE_DETAILS"
@@ -698,6 +762,59 @@ class JsonRpcAioHttpClient:
             return ()
 
         return device_details
+
+    async def get_paramset_description(
+        self, interface: str, address: str, paramset_key: ParamsetKey
+    ) -> dict[str, ParameterData] | None:
+        """Get paramset description from CCU."""
+        iid = "GET_PARAMSET_DESCRIPTIONS"
+        paramset_description: dict[str, ParameterData] = {}
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.PARAMSET_KEY: paramset_key,
+        }
+
+        try:
+            response = await self._post(
+                method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
+                extra_params=params,
+            )
+
+            _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS: Getting the paramset descriptions")
+            if json_result := response[_JsonKey.RESULT]:
+                paramset_description = {
+                    data["NAME"]: self._convert_parameter_data(json_data=data)
+                    for data in json_result
+                }
+            self._connection_state.remove_issue(issuer=self, iid=iid)
+        except BaseHomematicException as ex:
+            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+            return {}
+
+        return paramset_description
+
+    @staticmethod
+    def _convert_parameter_data(json_data: dict[str, Any]) -> ParameterData:
+        """Convert json data to parameter data."""
+
+        parameter_data = ParameterData(
+            DEFAULT=json_data["DEFAULT"],
+            FLAGS=int(json_data["FLAGS"]),
+            ID=json_data["ID"],
+            MAX=json_data.get("MAX"),
+            MIN=json_data.get("MIN"),
+            OPERATIONS=int(json_data["OPERATIONS"]),
+            TYPE=json_data["TYPE"],
+        )
+        if special := json_data.get("SPECIAL"):
+            parameter_data["SPECIAL"] = special
+        if unit := json_data.get("UNIT"):
+            parameter_data["UNIT"] = str(unit)
+        if value_list := json_data.get("VALUE_LIST"):
+            parameter_data["VALUE_LIST"] = value_list
+
+        return parameter_data
 
     async def get_all_device_data(self, interface: str) -> dict[str, Any]:
         """Get the all device data of the backend."""
@@ -842,7 +959,7 @@ class JsonRpcAioHttpClient:
             if (auth_enabled := await self._get_auth_enabled()) is not None and (
                 system_information := SystemInformation(
                     auth_enabled=auth_enabled,
-                    available_interfaces=await self._get_available_interfaces(),
+                    available_interfaces=await self._list_interfaces(),
                     https_redirect_enabled=await self._get_https_redirect_enabled(),
                     serial=await self._get_serial(),
                 )
@@ -873,9 +990,37 @@ class JsonRpcAioHttpClient:
 
         return True
 
-    async def _get_available_interfaces(self) -> tuple[str, ...]:
-        """Get all available interfaces from CCU / Homegear."""
-        _LOGGER.debug("GET_AVAILABLE_INTERFACES: Getting all available interfaces")
+    async def list_devices(self, interface: str) -> tuple[DeviceDescription, ...]:
+        """List devices from CCU / Homegear."""
+        iid = "LIST_DEVICES"
+        devices: tuple[DeviceDescription, ...] = ()
+        _LOGGER.debug("LIST_DEVICES: Getting all available interfaces")
+        params = {
+            _JsonKey.INTERFACE: interface,
+        }
+
+        try:
+            response = await self._post(
+                method=_JsonRpcMethod.INTERFACE_LIST_DEVICES,
+                extra_params=params,
+            )
+
+            if json_result := response[_JsonKey.RESULT]:
+                devices = tuple(
+                    self._convert_device_description(json_data=data) for data in json_result
+                )
+        except InternalBackendException as ibe:
+            self._handle_exception_log(
+                iid=iid,
+                exception=ibe,
+                level=logging.WARNING,
+                multiple_logs=False,
+            )
+        return devices
+
+    async def _list_interfaces(self) -> tuple[str, ...]:
+        """List all available interfaces from CCU / Homegear."""
+        _LOGGER.debug("LIST_INTERFACES: Getting all available interfaces")
 
         response = await self._post(
             method=_JsonRpcMethod.INTERFACE_LIST_INTERFACES,

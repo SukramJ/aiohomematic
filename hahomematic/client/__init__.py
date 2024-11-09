@@ -375,18 +375,9 @@ class Client(ABC):
                     return device
         return None
 
-    @measure_execution_time
-    async def get_all_device_descriptions(self) -> tuple[DeviceDescription] | None:
-        """Get device descriptions from CCU / Homegear."""
-        try:
-            return tuple(await self._proxy.listDevices())
-        except BaseHomematicException as ex:
-            _LOGGER.warning(
-                "GET_ALL_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args)
-            )
-        return None
-
-    async def get_device_description(self, device_address: str) -> tuple[DeviceDescription] | None:
+    async def get_device_description(
+        self, device_address: str
+    ) -> tuple[DeviceDescription, ...] | None:
         """Get device descriptions from CCU / Homegear."""
         try:
             if device_description := await self._proxy_read.getDeviceDescription(device_address):
@@ -847,6 +838,20 @@ class Client(ABC):
         """Return if a channel has program ids."""
         return False
 
+    @measure_execution_time
+    @service()
+    async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
+        """List devices of homematic backend."""
+        try:
+            return tuple(await self._proxy_read.listDevices())
+        except BaseHomematicException as ex:
+            _LOGGER.debug(
+                "LIST_DEVICES failed: %s [%s]",
+                ex.name,
+                reduce_args(args=ex.args),
+            )
+        return None
+
     @service()
     async def report_value_usage(self, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
@@ -883,6 +888,7 @@ class Client(ABC):
             return result
         return False
 
+    @service()
     async def update_paramset_descriptions(self, device_address: str) -> None:
         """Update paramsets descriptions for provided device_address."""
         if not self.central.device_descriptions.get_device_descriptions(
@@ -1048,10 +1054,12 @@ class ClientCCU(Client):
             include_internal=include_internal
         )
 
+    @service()
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(include_internal=include_internal)
 
+    @service()
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from CCU."""
         rooms: dict[str, set[str]] = {}
@@ -1063,6 +1071,7 @@ class ClientCCU(Client):
                 rooms[address].update(names)
         return rooms
 
+    @service()
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from CCU."""
         functions: dict[str, set[str]] = {}
@@ -1077,6 +1086,66 @@ class ClientCCU(Client):
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
         return await self._json_rpc_client.get_system_information()
+
+
+class ClientMQTT(ClientCCU):
+    """Client implementation for MQTT backend."""
+
+    @property
+    def supports_ping_pong(self) -> bool:
+        """Return the supports_ping_pong info of the backend."""
+        return False
+
+    @service()
+    async def get_device_description(
+        self, device_address: str
+    ) -> tuple[DeviceDescription, ...] | None:
+        """Get device descriptions from CCU / Homegear."""
+        try:
+            if device_description := await self._json_rpc_client.get_device_description(
+                interface=self.interface, address=device_address
+            ):
+                return (device_description,)
+        except BaseHomematicException as ex:
+            _LOGGER.warning(
+                "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args)
+            )
+        return None
+
+    @service()
+    @measure_execution_time
+    async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
+        """List devices of homematic backend."""
+        try:
+            return await self._json_rpc_client.list_devices(interface=self.interface)
+        except BaseHomematicException as ex:
+            _LOGGER.debug(
+                "LIST_DEVICES failed with %s [%s]",
+                ex.name,
+                reduce_args(args=ex.args),
+            )
+        return None
+
+    async def _get_paramset_description(
+        self, address: str, paramset_key: ParamsetKey
+    ) -> dict[str, ParameterData] | None:
+        """Get paramset description from CCU."""
+        try:
+            return cast(
+                dict[str, ParameterData],
+                await self._json_rpc_client.get_paramset_description(
+                    interface=self.interface, address=address, paramset_key=paramset_key
+                ),
+            )
+        except BaseHomematicException as ex:
+            _LOGGER.debug(
+                "GET_PARAMSET_DESCRIPTIONS failed with %s [%s] for %s address %s",
+                ex.name,
+                reduce_args(args=ex.args),
+                paramset_key,
+                address,
+            )
+        return None
 
 
 class ClientHomegear(Client):

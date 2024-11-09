@@ -476,7 +476,7 @@ class CentralUnit(PayloadMixin):
                 device_address=device_address
             )
             if device_address
-            else await client.get_all_device_descriptions()
+            else await client.list_devices()
         ):
             await self._add_new_devices(
                 interface_id=client.interface_id,

@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.11.0"
+VERSION: Final = "2024.11.1"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -619,12 +619,12 @@ class DeviceDescription(TypedDict, total=False):
     SUBTYPE: str | None
     ADDRESS: Required[str]
     # RF_ADDRESS: int | None
-    CHILDREN: Required[list[str]]
-    PARENT: Required[str]
+    CHILDREN: list[str]
+    PARENT: str | None
     # PARENT_TYPE: str | None
     # INDEX: int | None
     # AES_ACTIVE: int | None
-    PARAMSETS: Required[list[str]]
+    PARAMSETS: list[str]
     FIRMWARE: str
     AVAILABLE_FIRMWARE: str | None
     UPDATABLE: bool

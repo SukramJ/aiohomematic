@@ -17,6 +17,7 @@ from hahomematic.const import (
     DP_KEY,
     CallSource,
     CommandRxMode,
+    DeviceDescription,
     InterfaceName,
     ParameterData,
     ParamsetKey,
@@ -151,15 +152,15 @@ class ClientLocal(Client):  # pragma: no cover
             available_interfaces=(InterfaceName.BIDCOS_RF,), serial=LOCAL_SERIAL
         )
 
-    async def get_all_device_descriptions(self) -> Any:
+    async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """Get device descriptions from CCU / Homegear."""
         if not self._local_resources:
             _LOGGER.warning(
-                "GET_ALL_DEVICE_DESCRIPTIONS: missing local_resources in config for %s",
+                "LIST_DEVICES: missing local_resources in config for %s",
                 self.central.name,
             )
             return None
-        device_descriptions: list[Any] = []
+        device_descriptions: list[DeviceDescription] = []
         if local_device_descriptions := cast(
             list[Any],
             await self._load_all_json_files(
@@ -171,7 +172,7 @@ class ClientLocal(Client):  # pragma: no cover
         ):
             for device_description in local_device_descriptions:
                 device_descriptions.extend(device_description)
-        return device_descriptions
+        return tuple(device_descriptions)
 
     async def set_install_mode(
         self,

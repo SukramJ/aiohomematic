@@ -375,13 +375,14 @@ class Client(ABC):
                     return device
         return None
 
-    async def get_device_description(
-        self, device_address: str
-    ) -> tuple[DeviceDescription, ...] | None:
+    async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
-            if device_description := await self._proxy_read.getDeviceDescription(device_address):
-                return (device_description,)
+            if device_description := cast(
+                DeviceDescription | None,
+                await self._proxy_read.getDeviceDescription(device_address),
+            ):
+                return device_description
         except BaseHomematicException as ex:
             _LOGGER.warning(
                 "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args)
@@ -1097,15 +1098,13 @@ class ClientMQTT(ClientCCU):
         return False
 
     @service()
-    async def get_device_description(
-        self, device_address: str
-    ) -> tuple[DeviceDescription, ...] | None:
+    async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
             if device_description := await self._json_rpc_client.get_device_description(
                 interface=self.interface, address=device_address
             ):
-                return (device_description,)
+                return device_description
         except BaseHomematicException as ex:
             _LOGGER.warning(
                 "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args)

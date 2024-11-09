@@ -471,13 +471,21 @@ class CentralUnit(PayloadMixin):
         self, client: hmcl.Client, device_address: str | None = None
     ) -> None:
         """Refresh device descriptions."""
+        device_descriptions: tuple[DeviceDescription, ...] | None = None
         if (
-            device_descriptions := await client.get_device_description(
-                device_address=device_address
+            device_address
+            and (
+                device_description := await client.get_device_description(
+                    device_address=device_address
+                )
             )
-            if device_address
-            else await client.list_devices()
+            is not None
         ):
+            device_descriptions = (device_description,)
+        else:
+            device_descriptions = await client.list_devices()
+
+        if device_descriptions:
             await self._add_new_devices(
                 interface_id=client.interface_id,
                 device_descriptions=device_descriptions,

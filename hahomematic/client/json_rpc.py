@@ -74,10 +74,12 @@ class _JsonKey(StrEnum):
     SCRIPT = "script"
     SERIAL = "serial"
     SESSION_ID = "_session_id_"
+    SET = "set"
     TYPE = "type"
     UNIT = "unit"
     USERNAME = "username"
     VALUE = "value"
+    VALUE_KEY = "valueKey"
     VALUE_LIST = "valueList"
 
 
@@ -89,9 +91,14 @@ class _JsonRpcMethod(StrEnum):
     CHANNEL_HAS_PROGRAM_IDS = "Channel.hasProgramIds"
     DEVICE_LIST_ALL_DETAIL = "Device.listAllDetail"
     INTERFACE_GET_DEVICE_DESCRIPTION = "Interface.getDeviceDescription"
+    INTERFACE_GET_MASTER_VALUE = "Interface.getMasterValue"
+    INTERFACE_GET_PARAMSET = "Interface.getParamset"
     INTERFACE_GET_PARAMSET_DESCRIPTION = "Interface.getParamsetDescription"
+    INTERFACE_GET_VALUE = "Interface.getValue"
     INTERFACE_LIST_DEVICES = "Interface.listDevices"
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
+    INTERFACE_PUT_PARAMSET = "Interface.putParamset"
+    INTERFACE_SET_VALUE = "Interface.setValue"
     PROGRAM_EXECUTE = "Program.execute"
     PROGRAM_GET_ALL = "Program.getAll"
     REGA_RUN_SCRIPT = "ReGa.runScript"
@@ -762,6 +769,126 @@ class JsonRpcAioHttpClient:
             return ()
 
         return device_details
+
+    async def get_paramset(
+        self, interface: str, address: str, paramset_key: ParamsetKey | str
+    ) -> dict[str, Any] | None:
+        """Get paramset from CCU."""
+        iid = "GET_PARAMSET"
+        paramset: dict[str, Any] = {}
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.PARAMSET_KEY: str(paramset_key),
+        }
+
+        try:
+            response = await self._post(
+                method=_JsonRpcMethod.INTERFACE_GET_PARAMSET,
+                extra_params=params,
+            )
+
+            _LOGGER.debug("GET_PARAMSET: Getting the paramset")
+            if json_result := response[_JsonKey.RESULT]:
+                paramset = json_result
+            self._connection_state.remove_issue(issuer=self, iid=iid)
+        except BaseHomematicException as ex:
+            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+            return None
+
+        return paramset
+
+    async def put_paramset(
+        self, interface: str, address: str, paramset_key: ParamsetKey | str, values: dict[str, Any]
+    ) -> None:
+        """Set paramset to CCU."""
+        iid = "PUT_PARAMSET"
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.PARAMSET_KEY: str(paramset_key),
+            _JsonKey.SET: str(orjson.dumps(values)),
+        }
+
+        try:
+            response = await self._post(
+                method=_JsonRpcMethod.INTERFACE_PUT_PARAMSET,
+                extra_params=params,
+            )
+
+            _LOGGER.debug("PUT_PARAMSET: Putting the paramset")
+            if json_result := response[_JsonKey.RESULT]:
+                _LOGGER.debug(
+                    "PUT_PARAMSET: Result while putting the paramset: %s",
+                    str(json_result),
+                )
+            self._connection_state.remove_issue(issuer=self, iid=iid)
+        except BaseHomematicException as ex:
+            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+
+    async def get_value(
+        self, interface: str, address: str, paramset_key: ParamsetKey, parameter: str
+    ) -> Any:
+        """Get value from CCU."""
+        iid = "GET_VALUE"
+        value: Any = None
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.VALUE_KEY: parameter,
+        }
+
+        try:
+            response = (
+                await self._post(
+                    method=_JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
+                    extra_params=params,
+                )
+                if paramset_key.MASTER
+                else await self._post(
+                    method=_JsonRpcMethod.INTERFACE_GET_VALUE,
+                    extra_params=params,
+                )
+            )
+
+            _LOGGER.debug("GET_VALUE: Getting the value")
+            if json_result := response[_JsonKey.RESULT]:
+                value = json_result
+            self._connection_state.remove_issue(issuer=self, iid=iid)
+        except BaseHomematicException as ex:
+            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+            return None
+
+        return value
+
+    async def set_value(
+        self, interface: str, address: str, parameter: str, value_type: str, value: Any
+    ) -> None:
+        """Set value to CCU."""
+        iid = "SET_VALUE"
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.VALUE_KEY: parameter,
+            _JsonKey.TYPE: value_type,
+            _JsonKey.VALUE: value,
+        }
+
+        try:
+            response = await self._post(
+                method=_JsonRpcMethod.INTERFACE_SET_VALUE,
+                extra_params=params,
+            )
+
+            _LOGGER.debug("SET_VALUE: Setting the value")
+            if json_result := response[_JsonKey.RESULT]:
+                _LOGGER.debug(
+                    "SET_VALUE: Result while setting the value: %s",
+                    str(json_result),
+                )
+            self._connection_state.remove_issue(issuer=self, iid=iid)
+        except BaseHomematicException as ex:
+            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
 
     async def get_paramset_description(
         self, interface: str, address: str, paramset_key: ParamsetKey

@@ -538,11 +538,18 @@ class Client(ABC):
             _LOGGER.debug("SET_VALUE: %s, %s, %s", channel_address, parameter, checked_value)
             if rx_mode and (device := self.central.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
-                    await self._proxy.setValue(channel_address, parameter, checked_value, rx_mode)
+                    await self._exec_set_value(
+                        channel_address=channel_address,
+                        parameter=parameter,
+                        value=value,
+                        rx_mode=rx_mode,
+                    )
                 else:
                     raise ClientException(f"Unsupported rx_mode: {rx_mode}")
             else:
-                await self._proxy.setValue(channel_address, parameter, checked_value)
+                await self._exec_set_value(
+                    channel_address=channel_address, parameter=parameter, value=value
+                )
             # store the send value in the last_value_send_cache
             data_point_keys = self._last_value_send_cache.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
@@ -563,6 +570,19 @@ class Client(ABC):
             raise ClientException(
                 f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {reduce_args(args=ex.args)}"
             ) from ex
+
+    async def _exec_set_value(
+        self,
+        channel_address: str,
+        parameter: str,
+        value: Any,
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Set single value on paramset VALUES."""
+        if rx_mode:
+            await self._proxy.setValue(channel_address, parameter, value, rx_mode)
+        else:
+            await self._proxy.setValue(channel_address, parameter, value)
 
     def _check_set_value(
         self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any
@@ -676,13 +696,20 @@ class Client(ABC):
             )
             if rx_mode and (device := self.central.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
-                    await self._proxy.putParamset(
-                        channel_address, paramset_key, checked_values, rx_mode
+                    await self._exec_put_paramset(
+                        channel_address=channel_address,
+                        paramset_key=paramset_key,
+                        values=checked_values,
+                        rx_mode=rx_mode,
                     )
                 else:
                     raise ClientException(f"Unsupported rx_mode: {rx_mode}")
             else:
-                await self._proxy.putParamset(channel_address, paramset_key, checked_values)
+                await self._exec_put_paramset(
+                    channel_address=channel_address,
+                    paramset_key=paramset_key,
+                    values=checked_values,
+                )
 
             # if a call is related to a link then no further action is needed
             if is_link_call:
@@ -710,6 +737,19 @@ class Client(ABC):
             raise ClientException(
                 f"PUT_PARAMSET failed for {channel_address}/{paramset_key}/{values}: {reduce_args(args=ex.args)}"
             ) from ex
+
+    async def _exec_put_paramset(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey | str,
+        values: dict[str, Any],
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Put paramset into CCU."""
+        if rx_mode:
+            await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
+        else:
+            await self._proxy.putParamset(channel_address, paramset_key, values)
 
     def _check_put_paramset(
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
@@ -758,6 +798,21 @@ class Client(ABC):
         raise ClientException(
             f"Parameter {parameter} could not be found: {self.interface_id}/{channel_address}/{paramset_key}"
         )
+
+    def _get_parameter_type(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+    ) -> str | None:
+        if parameter_data := self.central.paramset_descriptions.get_parameter_data(
+            interface_id=self.interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
+        ):
+            return parameter_data["TYPE"]
+        return None
 
     async def fetch_paramset_description(
         self, channel_address: str, paramset_key: ParamsetKey
@@ -1089,8 +1144,8 @@ class ClientCCU(Client):
         return await self._json_rpc_client.get_system_information()
 
 
-class ClientMQTT(ClientCCU):
-    """Client implementation for MQTT backend."""
+class ClientJsonCCU(ClientCCU):
+    """Client implementation for CCU backend."""
 
     @property
     def supports_ping_pong(self) -> bool:
@@ -1110,6 +1165,75 @@ class ClientMQTT(ClientCCU):
                 "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args)
             )
         return None
+
+    @service()
+    async def get_paramset(
+        self,
+        address: str,
+        paramset_key: ParamsetKey | str,
+        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+    ) -> dict[str, Any]:
+        """
+        Return a paramset from CCU.
+
+        Address is usually the channel_address,
+        but for bidcos devices there is a master paramset at the device.
+        """
+        try:
+            _LOGGER.debug(
+                "GET_PARAMSET: address %s, paramset_key %s, source %s",
+                address,
+                paramset_key,
+                call_source,
+            )
+            return (
+                await self._json_rpc_client.get_paramset(
+                    interface=self.interface, address=address, paramset_key=paramset_key
+                )
+                or {}
+            )
+        except BaseHomematicException as ex:
+            raise ClientException(
+                f"GET_PARAMSET failed with for {address}/{paramset_key}: {reduce_args(args=ex.args)}"
+            ) from ex
+
+    @service(log_level=logging.NOTSET)
+    async def get_value(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+    ) -> Any:
+        """Return a value from CCU."""
+        try:
+            _LOGGER.debug(
+                "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
+                channel_address,
+                parameter,
+                paramset_key,
+                call_source,
+            )
+            if paramset_key == ParamsetKey.VALUES:
+                return await self._json_rpc_client.get_value(
+                    interface=self.interface,
+                    address=channel_address,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
+                )
+            paramset = (
+                await self._json_rpc_client.get_paramset(
+                    interface=self.interface,
+                    address=channel_address,
+                    paramset_key=ParamsetKey.MASTER,
+                )
+                or {}
+            )
+            return paramset.get(parameter)
+        except BaseHomematicException as ex:
+            raise ClientException(
+                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
+            ) from ex
 
     @service()
     @measure_execution_time
@@ -1145,6 +1269,47 @@ class ClientMQTT(ClientCCU):
                 address,
             )
         return None
+
+    async def _exec_put_paramset(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey | str,
+        values: dict[str, Any],
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Put paramset into CCU."""
+        await self._json_rpc_client.put_paramset(
+            interface=self.interface,
+            address=channel_address,
+            paramset_key=paramset_key,
+            values=values,
+        )
+
+    async def _exec_set_value(
+        self,
+        channel_address: str,
+        parameter: str,
+        value: Any,
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Set single value on paramset VALUES."""
+        if (
+            value_type := self._get_parameter_type(
+                channel_address=channel_address,
+                paramset_key=ParamsetKey.VALUES,
+                parameter=parameter,
+            )
+        ) is None:
+            raise ClientException(
+                f"SET_VALUE failed: Unable to identify parameter type {channel_address}/{ParamsetKey.VALUES}/{parameter}"
+            )
+        await self._json_rpc_client.set_value(
+            interface=self.interface,
+            address=channel_address,
+            parameter=parameter,
+            value_type=value_type,
+            value=value,
+        )
 
 
 class ClientHomegear(Client):

@@ -102,27 +102,27 @@ async def test_cecover(
 
     assert cover.is_opening is None
     assert cover.is_closing is None
-    await central.event(const.INTERFACE_ID, "VCU8537918:3", "ACTIVITY_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "ACTIVITY_STATE", 1)
     assert cover.is_opening is True
-    await central.event(const.INTERFACE_ID, "VCU8537918:3", "ACTIVITY_STATE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "ACTIVITY_STATE", 2)
     assert cover.is_closing is True
-    await central.event(const.INTERFACE_ID, "VCU8537918:3", "ACTIVITY_STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "ACTIVITY_STATE", 0)
 
-    await central.event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", 0.5)
+    await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", 0.5)
     assert cover._channel_level == 0.5
     assert cover.current_position == 50
 
-    await central.event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", _CLOSED_LEVEL)
     call_count = len(mock_client.method_calls)
     await cover.close()
     assert call_count == len(mock_client.method_calls)
 
-    await central.event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", _OPEN_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", _OPEN_LEVEL)
     call_count = len(mock_client.method_calls)
     await cover.open()
     assert call_count == len(mock_client.method_calls)
 
-    await central.event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", 0.4)
+    await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", 0.4)
     call_count = len(mock_client.method_calls)
     await cover.set_position(position=40)
     assert call_count == len(mock_client.method_calls)
@@ -176,13 +176,13 @@ async def test_ceipblind_dr(
     # test unconfirmed values
     assert cover._dp_level.unconfirmed_last_value_send == 0.81
     assert cover._dp_level_2.unconfirmed_last_value_send == _CLOSED_LEVEL
-    await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", 0.81)
-    await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", 0.81)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _CLOSED_LEVEL)
     assert cover._dp_level.unconfirmed_last_value_send is None
     assert cover._dp_level_2.unconfirmed_last_value_send is None
 
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", 0.81)
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", 0.81)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _CLOSED_LEVEL)
     assert cover.current_position == 81
     assert cover.is_closed is False
     await cover.open()
@@ -194,10 +194,14 @@ async def test_ceipblind_dr(
     )
     assert cover._dp_level.unconfirmed_last_value_send == _OPEN_LEVEL
     assert cover._dp_level_2.unconfirmed_last_value_send == _OPEN_TILT_LEVEL
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", _OPEN_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _OPEN_TILT_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", _OPEN_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _OPEN_TILT_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", _OPEN_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _OPEN_TILT_LEVEL
+    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", _OPEN_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _OPEN_TILT_LEVEL
+    )
     assert cover._dp_level.unconfirmed_last_value_send is None
     assert cover._dp_level_2.unconfirmed_last_value_send is None
     assert cover.current_position == 100
@@ -209,15 +213,15 @@ async def test_ceipblind_dr(
         parameter="COMBINED_PARAMETER",
         value="L2=0,L=0",
     )
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", _CLOSED_LEVEL)
     assert cover.is_opening is None
     assert cover.is_closing is None
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "ACTIVITY_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "ACTIVITY_STATE", 1)
     assert cover.is_opening is True
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "ACTIVITY_STATE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "ACTIVITY_STATE", 2)
     assert cover.is_closing is True
 
-    await central.event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", 0.5)
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", 0.5)
     assert cover._channel_level == 0.5
     assert cover.current_position == 50
 
@@ -333,7 +337,7 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0xa2,0x00",
     )
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0.81)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0.81)
     assert cover.current_position == 81
     assert cover.current_tilt_position == 0
 
@@ -344,8 +348,10 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0xc8,0xc8",
     )
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", _OPEN_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", _OPEN_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
+    )
     assert cover.current_position == 100
     assert cover.current_tilt_position == 100
 
@@ -356,8 +362,10 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0x00,0x00",
     )
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", _CLOSED_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
+    )
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -368,7 +376,9 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0x00,0xc8",
     )
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
+    )
     assert cover.current_position == 0
     assert cover.current_tilt_position == 100
 
@@ -379,7 +389,7 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0x00,0x5a",
     )
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.45)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.45)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 45
 
@@ -390,7 +400,9 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0x00,0x00",
     )
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
+    )
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -401,8 +413,8 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0x14,0x28",
     )
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0.1)
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0.1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.2)
     assert cover.current_position == 10
     assert cover.current_tilt_position == 20
 
@@ -422,20 +434,28 @@ async def test_ceblind(
     )
 
     await cover.open_tilt()
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
+    )
     call_count = len(mock_client.method_calls)
     await cover.open_tilt()
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
+    )
     assert call_count == len(mock_client.method_calls)
 
     await cover.close_tilt()
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
+    )
     call_count = len(mock_client.method_calls)
     await cover.close_tilt()
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
+    )
     assert call_count == len(mock_client.method_calls)
 
-    await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.4)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.4)
     call_count = len(mock_client.method_calls)
     await cover.set_position(tilt_position=40)
     assert call_count == len(mock_client.method_calls)
@@ -475,8 +495,8 @@ async def test_ceblind_separate_level_and_tilt_change(
     # We test for the absence of race conditions.
     # We repeat the test a few times so that it becomes unlikely for the race condition to remain undetected.
     for _ in range(10):
-        await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0)
-        await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0)
+        await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0)
+        await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0)
         assert cover.current_position == 0
         assert cover.current_tilt_position == 0
 
@@ -491,8 +511,8 @@ async def test_ceblind_separate_level_and_tilt_change(
             parameter="LEVEL_COMBINED",
             value="0xa2,0x26",
         )
-        await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0.81)
-        await central.event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.19)
+        await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", 0.81)
+        await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.19)
         assert cover.current_position == 81
         assert cover.current_tilt_position == 19
 
@@ -530,7 +550,7 @@ async def test_ceipblind(
         parameter="COMBINED_PARAMETER",
         value="L2=0,L=81",
     )
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", 0.81)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", 0.81)
     assert cover.current_position == 81
     assert cover.current_tilt_position == 0
 
@@ -541,8 +561,8 @@ async def test_ceipblind(
         parameter="COMBINED_PARAMETER",
         value="L2=100,L=100",
     )
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", _OPEN_TILT_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", _OPEN_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", _OPEN_TILT_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", _OPEN_LEVEL)
     assert cover.current_position == 100
     assert cover.current_tilt_position == 100
 
@@ -553,8 +573,8 @@ async def test_ceipblind(
         parameter="COMBINED_PARAMETER",
         value="L2=0,L=0",
     )
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", _CLOSED_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", _CLOSED_LEVEL)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -565,7 +585,7 @@ async def test_ceipblind(
         parameter="COMBINED_PARAMETER",
         value="L2=100,L=0",
     )
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", 1.0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", 1.0)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 100
 
@@ -576,7 +596,7 @@ async def test_ceipblind(
         parameter="COMBINED_PARAMETER",
         value="L2=45,L=0",
     )
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", 0.45)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", 0.45)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 45
 
@@ -587,8 +607,8 @@ async def test_ceipblind(
         parameter="COMBINED_PARAMETER",
         value="L2=0,L=0",
     )
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", _CLOSED_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", _CLOSED_LEVEL)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -599,34 +619,34 @@ async def test_ceipblind(
         parameter="COMBINED_PARAMETER",
         value="L2=20,L=10",
     )
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", 0.1)
-    await central.event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", 0.2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL", 0.1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:4", "LEVEL_2", 0.2)
     assert cover.current_position == 10
     assert cover.current_tilt_position == 20
 
-    await central.event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL", 0.5)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL", 0.5)
     assert cover._channel_level == 0.5
     assert cover.current_position == 50
 
-    await central.event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL_2", 0.8)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL_2", 0.8)
     assert cover._channel_tilt_level == 0.8
     assert cover.current_tilt_position == 80
 
-    await central.event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL", _CLOSED_LEVEL)
     assert cover._channel_level == _CLOSED_LEVEL
     assert cover.current_position == 0
 
-    await central.event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL_2", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL_2", _CLOSED_LEVEL)
     assert cover._channel_tilt_level == _CLOSED_LEVEL
     assert cover.current_tilt_position == 0
 
-    await central.event(const.INTERFACE_ID, "VCU1223813:3", "ACTIVITY_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "ACTIVITY_STATE", 1)
     assert cover.is_opening
 
-    await central.event(const.INTERFACE_ID, "VCU1223813:3", "ACTIVITY_STATE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "ACTIVITY_STATE", 2)
     assert cover.is_closing
 
-    await central.event(const.INTERFACE_ID, "VCU1223813:3", "ACTIVITY_STATE", 3)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "ACTIVITY_STATE", 3)
     assert cover.is_opening is False
     assert cover.is_closing is False
 
@@ -681,7 +701,7 @@ async def test_ceipblind_hdm(
         values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": 0.81},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", 0.81)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", 0.81)
     assert cover.current_position == 81
     assert cover.current_tilt_position == 0
 
@@ -692,8 +712,8 @@ async def test_ceipblind_hdm(
         values={"LEVEL_2": _OPEN_TILT_LEVEL, "LEVEL": _OPEN_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", _OPEN_TILT_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", _OPEN_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", _OPEN_TILT_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", _OPEN_LEVEL)
     assert cover.current_position == 100
     assert cover.current_tilt_position == 100
 
@@ -704,8 +724,8 @@ async def test_ceipblind_hdm(
         values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", _CLOSED_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", _CLOSED_LEVEL)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -716,7 +736,7 @@ async def test_ceipblind_hdm(
         values={"LEVEL_2": _OPEN_TILT_LEVEL, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", 1.0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", 1.0)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 100
 
@@ -727,7 +747,7 @@ async def test_ceipblind_hdm(
         values={"LEVEL_2": 0.45, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", 0.45)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", 0.45)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 45
 
@@ -738,8 +758,8 @@ async def test_ceipblind_hdm(
         values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", _CLOSED_LEVEL)
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", _CLOSED_LEVEL)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", _CLOSED_LEVEL)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -750,18 +770,18 @@ async def test_ceipblind_hdm(
         values={"LEVEL_2": 0.2, "LEVEL": 0.1},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", 0.1)
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", 0.2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL", 0.1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "LEVEL_2", 0.2)
     assert cover.current_position == 10
     assert cover.current_tilt_position == 20
 
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "ACTIVITY_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "ACTIVITY_STATE", 1)
     assert cover.is_opening
 
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "ACTIVITY_STATE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "ACTIVITY_STATE", 2)
     assert cover.is_closing
 
-    await central.event(const.INTERFACE_ID, "VCU3560967:1", "ACTIVITY_STATE", 3)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3560967:1", "ACTIVITY_STATE", 3)
     assert cover.is_opening is False
     assert cover.is_closing is False
 
@@ -808,7 +828,7 @@ async def test_cegarageho(
         value=1,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 1)
     assert cover.current_position == 100
     await cover.close()
     assert mock_client.method_calls[-1] == call.set_value(
@@ -818,7 +838,7 @@ async def test_cegarageho(
         value=3,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 0)
     assert cover.current_position == 0
     assert cover.is_closed is True
     await cover.set_position(position=11)
@@ -829,7 +849,7 @@ async def test_cegarageho(
         value=4,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 2)
     assert cover.current_position == 10
 
     await cover.set_position(position=5)
@@ -840,7 +860,7 @@ async def test_cegarageho(
         value=3,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 0)
     assert cover.current_position == 0
 
     await cover.open()
@@ -859,36 +879,36 @@ async def test_cegarageho(
         value=2,
     )
 
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 1)
     assert cover.current_position == 100
 
-    await central.event(
+    await central.data_point_event(
         const.INTERFACE_ID, "VCU3574044:1", "SECTION", _GarageDoorActivity.OPENING.value
     )
     assert cover.is_opening is True
-    await central.event(
+    await central.data_point_event(
         const.INTERFACE_ID, "VCU3574044:1", "SECTION", _GarageDoorActivity.CLOSING.value
     )
     assert cover.is_closing is True
 
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "SECTION", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "SECTION", None)
     assert cover.is_opening is None
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "SECTION", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "SECTION", None)
     assert cover.is_closing is None
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", None)
     assert cover.is_closed is None
 
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 0)
     call_count = len(mock_client.method_calls)
     await cover.close()
     assert call_count == len(mock_client.method_calls)
 
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 1)
     call_count = len(mock_client.method_calls)
     await cover.open()
     assert call_count == len(mock_client.method_calls)
 
-    await central.event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 2)
     call_count = len(mock_client.method_calls)
     await cover.vent()
     assert call_count == len(mock_client.method_calls)
@@ -927,7 +947,7 @@ async def test_cegaragetm(
         value=1,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 1)
     assert cover.current_position == 100
     await cover.close()
     assert mock_client.method_calls[-1] == call.set_value(
@@ -937,7 +957,7 @@ async def test_cegaragetm(
         value=3,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 0)
     assert cover.current_position == 0
     assert cover.is_closed is True
     await cover.set_position(position=11)
@@ -948,7 +968,7 @@ async def test_cegaragetm(
         value=4,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 2)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 2)
     assert cover.current_position == 10
 
     await cover.set_position(position=5)
@@ -959,7 +979,7 @@ async def test_cegaragetm(
         value=3,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 0)
     assert cover.current_position == 0
 
     await cover.open()
@@ -978,17 +998,21 @@ async def test_cegaragetm(
         value=2,
     )
 
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 1)
     assert cover.current_position == 100
 
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.OPENING)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.OPENING
+    )
     assert cover.is_opening is True
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.CLOSING)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.CLOSING
+    )
     assert cover.is_closing is True
 
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", None)
     assert cover.is_opening is None
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", None)
     assert cover.is_closing is None
-    await central.event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", None)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", None)
     assert cover.is_closed is None

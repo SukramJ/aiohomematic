@@ -44,7 +44,7 @@ async def test_clickevent(
     event: ClickEvent = cast(ClickEvent, central.get_event("VCU2128127:1", "PRESS_SHORT"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.KEYPRESS
-    await central.event(const.INTERFACE_ID, "VCU2128127:1", "PRESS_SHORT", True)
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:1", "PRESS_SHORT", True)
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.keypress",
         {
@@ -80,7 +80,7 @@ async def test_impulseevent(
     event: ImpulseEvent = cast(ImpulseEvent, central.get_event("VCU0000263:1", "SEQUENCE_OK"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.IMPULSE
-    await central.event(const.INTERFACE_ID, "VCU0000263:1", "SEQUENCE_OK", True)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000263:1", "SEQUENCE_OK", True)
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.impulse",
         {
@@ -119,7 +119,7 @@ async def test_deviceerrorevent(
     )
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.DEVICE_ERROR
-    await central.event(const.INTERFACE_ID, "VCU2128127:0", "ERROR_OVERHEAT", True)
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:0", "ERROR_OVERHEAT", True)
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.device_error",
         {

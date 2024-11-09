@@ -84,14 +84,14 @@ async def test_device_availability(
     for custom_data_point in device.custom_data_points:
         assert custom_data_point.available is True
 
-    await central.event(const.INTERFACE_ID, "VCU6354483:0", "UNREACH", 1)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6354483:0", "UNREACH", 1)
     assert device.available is False
     for generic_data_point in device.generic_data_points:
         assert generic_data_point.available is False
     for custom_data_point in device.custom_data_points:
         assert custom_data_point.available is False
 
-    await central.event(const.INTERFACE_ID, "VCU6354483:0", "UNREACH", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU6354483:0", "UNREACH", 0)
     assert device.available is True
     for generic_data_point in device.generic_data_points:
         assert generic_data_point.available is True
@@ -122,11 +122,11 @@ async def test_device_config_pending(
     assert device._dp_config_pending.value is False
     cache_hash = central.paramset_descriptions.cache_hash
     last_save_triggered = central.paramset_descriptions.last_save_triggered
-    await central.event(const.INTERFACE_ID, "VCU2128127:0", "CONFIG_PENDING", True)
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:0", "CONFIG_PENDING", True)
     assert device._dp_config_pending.value is True
     assert cache_hash == central.paramset_descriptions.cache_hash
     assert last_save_triggered == central.paramset_descriptions.last_save_triggered
-    await central.event(const.INTERFACE_ID, "VCU2128127:0", "CONFIG_PENDING", False)
+    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:0", "CONFIG_PENDING", False)
     assert device._dp_config_pending.value is False
     await asyncio.sleep(2)
     # Save triggered, but data not changed

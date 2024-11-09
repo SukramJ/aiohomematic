@@ -213,7 +213,7 @@ class ClientLocal(Client):  # pragma: no cover
             channel_address=channel_address, parameter=parameter, value=value
         )
         # fire an event to fake the state change for a simple parameter
-        await self.central.event(self.interface_id, channel_address, parameter, value)
+        await self.central.data_point_event(self.interface_id, channel_address, parameter, value)
         return result
 
     async def get_paramset(
@@ -287,7 +287,7 @@ class ClientLocal(Client):  # pragma: no cover
 
         # fire an event to fake the state change for the content of a paramset
         for parameter in values:
-            await self.central.event(
+            await self.central.data_point_event(
                 self.interface_id, channel_address, parameter, values[parameter]
             )
         return result

@@ -793,7 +793,9 @@ class JsonRpcAioHttpClient:
                 paramset = json_result
             self._connection_state.remove_issue(issuer=self, iid=iid)
         except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+            self._handle_exception_log(
+                iid=iid, exception=ex, level=logging.DEBUG, multiple_logs=False
+            )
             return None
 
         return paramset
@@ -856,7 +858,9 @@ class JsonRpcAioHttpClient:
                 value = json_result
             self._connection_state.remove_issue(issuer=self, iid=iid)
         except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+            self._handle_exception_log(
+                iid=iid, exception=ex, level=logging.DEBUG, multiple_logs=False
+            )
             return None
 
         return value

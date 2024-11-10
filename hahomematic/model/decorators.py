@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from functools import wraps
 import logging
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 from hahomematic.context import IN_SERVICE_VAR
 from hahomematic.exceptions import BaseHomematicException
@@ -142,7 +142,11 @@ def get_public_attributes_for_state_property(data_object: Any) -> dict[str, Any]
     )
 
 
-def service(log_level: int = logging.ERROR) -> Callable:
+def service(
+    log_level: int = logging.ERROR,
+    re_raise: bool = True,
+    no_raise_return: Any = None,
+) -> Callable:
     """Mark function as service call and log exceptions."""
 
     def service_decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
@@ -166,7 +170,9 @@ def service(log_level: int = logging.ERROR) -> Callable:
                     logging.getLogger(args[0].__module__).log(
                         level=log_level, msg=reduce_args(args=bhe.args)
                     )
-                raise
+                if re_raise:
+                    raise
+                return cast(T, no_raise_return)
 
         setattr(service_wrapper, "ha_service", True)
         return service_wrapper

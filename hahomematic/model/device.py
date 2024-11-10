@@ -37,6 +37,7 @@ from hahomematic.const import (
     DeviceFirmwareState,
     EventType,
     ForcedDeviceAvailability,
+    Interface,
     Manufacturer,
     Parameter,
     ParameterData,
@@ -256,7 +257,7 @@ class Device(PayloadMixin):
         return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
 
     @property
-    def interface(self) -> str:
+    def interface(self) -> Interface:
         """Return the interface of the device."""
         return self._interface
 

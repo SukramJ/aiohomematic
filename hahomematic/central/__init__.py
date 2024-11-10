@@ -52,8 +52,8 @@ from hahomematic.const import (
     DeviceFirmwareState,
     EventKey,
     EventType,
+    Interface,
     InterfaceEventType,
-    InterfaceName,
     Operations,
     Parameter,
     ParamsetKey,
@@ -703,10 +703,7 @@ class CentralUnit(PayloadMixin):
         """Return the client by interface_id or the first with a virtual remote."""
         client: hmcl.Client | None = None
         for client in self._clients.values():
-            if (
-                client.interface in (InterfaceName.HMIP_RF, InterfaceName.BIDCOS_RF)
-                and client.available
-            ):
+            if client.interface in (Interface.HMIP_RF, Interface.BIDCOS_RF) and client.available:
                 return client
         return client
 

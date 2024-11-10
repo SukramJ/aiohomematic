@@ -32,6 +32,7 @@ from hahomematic.const import (
     REGA_SCRIPT_SET_SYSTEM_VARIABLE,
     REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER,
     DeviceDescription,
+    Interface,
     ParameterData,
     ParamsetKey,
     ProgramData,
@@ -47,6 +48,7 @@ from hahomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
+from hahomematic.model.support import convert_value
 from hahomematic.support import get_tls_context, parse_sys_var, reduce_args
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -74,10 +76,12 @@ class _JsonKey(StrEnum):
     SCRIPT = "script"
     SERIAL = "serial"
     SESSION_ID = "_session_id_"
+    SET = "set"
     TYPE = "type"
     UNIT = "unit"
     USERNAME = "username"
     VALUE = "value"
+    VALUE_KEY = "valueKey"
     VALUE_LIST = "valueList"
 
 
@@ -89,9 +93,14 @@ class _JsonRpcMethod(StrEnum):
     CHANNEL_HAS_PROGRAM_IDS = "Channel.hasProgramIds"
     DEVICE_LIST_ALL_DETAIL = "Device.listAllDetail"
     INTERFACE_GET_DEVICE_DESCRIPTION = "Interface.getDeviceDescription"
+    INTERFACE_GET_MASTER_VALUE = "Interface.getMasterValue"
+    INTERFACE_GET_PARAMSET = "Interface.getParamset"
     INTERFACE_GET_PARAMSET_DESCRIPTION = "Interface.getParamsetDescription"
+    INTERFACE_GET_VALUE = "Interface.getValue"
     INTERFACE_LIST_DEVICES = "Interface.listDevices"
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
+    INTERFACE_PUT_PARAMSET = "Interface.putParamset"
+    INTERFACE_SET_VALUE = "Interface.setValue"
     PROGRAM_EXECUTE = "Program.execute"
     PROGRAM_GET_ALL = "Program.getAll"
     REGA_RUN_SCRIPT = "ReGa.runScript"
@@ -206,7 +215,7 @@ class JsonRpcAioHttpClient:
     async def _post(
         self,
         method: _JsonRpcMethod,
-        extra_params: dict[_JsonKey, str] | None = None,
+        extra_params: dict[_JsonKey, Any] | None = None,
         use_default_params: bool = True,
         keep_session: bool = True,
     ) -> dict[str, Any] | Any:
@@ -243,7 +252,7 @@ class JsonRpcAioHttpClient:
     async def _post_script(
         self,
         script_name: str,
-        extra_params: dict[_JsonKey, str] | None = None,
+        extra_params: dict[_JsonKey, Any] | None = None,
         keep_session: bool = True,
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST_SCRIPT function."""
@@ -306,7 +315,7 @@ class JsonRpcAioHttpClient:
         self,
         session_id: bool | str,
         method: _JsonRpcMethod,
-        extra_params: dict[_JsonKey, str] | None = None,
+        extra_params: dict[_JsonKey, Any] | None = None,
         use_default_params: bool = True,
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST function."""
@@ -397,13 +406,11 @@ class JsonRpcAioHttpClient:
 
     async def logout(self) -> None:
         """Logout of CCU."""
-        iid = "LOGOUT"
         try:
             await self._looper.block_till_done()
             await self._do_logout(self._session_id)
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex)
+        except BaseHomematicException:
+            _LOGGER.debug("LOGOUT: logout failed")
 
     async def _do_logout(self, session_id: str | None) -> None:
         """Logout of CCU."""
@@ -434,112 +441,87 @@ class JsonRpcAioHttpClient:
 
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
-        iid = "EXECUTE_PROGRAM"
         params = {
             _JsonKey.ID: pid,
         }
-        try:
-            response = await self._post(method=_JsonRpcMethod.PROGRAM_EXECUTE, extra_params=params)
-            _LOGGER.debug("EXECUTE_PROGRAM: Executing a program")
 
-            if json_result := response[_JsonKey.RESULT]:
-                _LOGGER.debug(
-                    "EXECUTE_PROGRAM: Result while executing program: %s",
-                    str(json_result),
-                )
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, level=logging.WARNING)
-            return False
+        response = await self._post(method=_JsonRpcMethod.PROGRAM_EXECUTE, extra_params=params)
+        _LOGGER.debug("EXECUTE_PROGRAM: Executing a program")
+
+        if json_result := response[_JsonKey.RESULT]:
+            _LOGGER.debug(
+                "EXECUTE_PROGRAM: Result while executing program: %s",
+                str(json_result),
+            )
 
         return True
 
     async def set_system_variable(self, name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
-        iid = "SET_SYSTEM_VARIABLE"
         params = {
             _JsonKey.NAME: name,
             _JsonKey.VALUE: value,
         }
-        try:
-            if isinstance(value, bool):
-                params[_JsonKey.VALUE] = int(value)
-                response = await self._post(
-                    method=_JsonRpcMethod.SYSVAR_SET_BOOL, extra_params=params
+        if isinstance(value, bool):
+            params[_JsonKey.VALUE] = int(value)
+            response = await self._post(method=_JsonRpcMethod.SYSVAR_SET_BOOL, extra_params=params)
+        elif isinstance(value, str):
+            if HTMLTAG_PATTERN.findall(value):
+                _LOGGER.warning(
+                    "SET_SYSTEM_VARIABLE failed: "
+                    "Value (%s) contains html tags. This is not allowed",
+                    value,
                 )
-            elif isinstance(value, str):
-                if HTMLTAG_PATTERN.findall(value):
-                    _LOGGER.warning(
-                        "SET_SYSTEM_VARIABLE failed: "
-                        "Value (%s) contains html tags. This is not allowed",
-                        value,
-                    )
-                    return False
-                response = await self._post_script(
-                    script_name=REGA_SCRIPT_SET_SYSTEM_VARIABLE, extra_params=params
-                )
-            else:
-                response = await self._post(
-                    method=_JsonRpcMethod.SYSVAR_SET_FLOAT, extra_params=params
-                )
+                return False
+            response = await self._post_script(
+                script_name=REGA_SCRIPT_SET_SYSTEM_VARIABLE, extra_params=params
+            )
+        else:
+            response = await self._post(
+                method=_JsonRpcMethod.SYSVAR_SET_FLOAT, extra_params=params
+            )
 
-            _LOGGER.debug("SET_SYSTEM_VARIABLE: Setting System variable")
-            if json_result := response[_JsonKey.RESULT]:
-                _LOGGER.debug(
-                    "SET_SYSTEM_VARIABLE: Result while setting variable: %s",
-                    str(json_result),
-                )
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, level=logging.WARNING)
-            return False
+        _LOGGER.debug("SET_SYSTEM_VARIABLE: Setting System variable")
+        if json_result := response[_JsonKey.RESULT]:
+            _LOGGER.debug(
+                "SET_SYSTEM_VARIABLE: Result while setting variable: %s",
+                str(json_result),
+            )
 
         return True
 
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
-        iid = "DELETE_SYSTEM_VARIABLE"
         params = {_JsonKey.NAME: name}
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.SYSVAR_DELETE_SYSVAR_BY_NAME,
-                extra_params=params,
-            )
+        response = await self._post(
+            method=_JsonRpcMethod.SYSVAR_DELETE_SYSVAR_BY_NAME,
+            extra_params=params,
+        )
 
-            _LOGGER.debug("DELETE_SYSTEM_VARIABLE: Getting System variable")
-            if json_result := response[_JsonKey.RESULT]:
-                deleted = json_result
-                _LOGGER.debug("DELETE_SYSTEM_VARIABLE: Deleted: %s", str(deleted))
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, level=logging.WARNING)
-            return False
+        _LOGGER.debug("DELETE_SYSTEM_VARIABLE: Getting System variable")
+        if json_result := response[_JsonKey.RESULT]:
+            deleted = json_result
+            _LOGGER.debug("DELETE_SYSTEM_VARIABLE: Deleted: %s", str(deleted))
 
         return True
 
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
-        iid = "GET_SYSTEM_VARIABLE"
         var = None
 
-        try:
-            params = {_JsonKey.NAME: name}
-            response = await self._post(
-                method=_JsonRpcMethod.SYSVAR_GET_VALUE_BY_NAME,
-                extra_params=params,
-            )
+        params = {_JsonKey.NAME: name}
+        response = await self._post(
+            method=_JsonRpcMethod.SYSVAR_GET_VALUE_BY_NAME,
+            extra_params=params,
+        )
 
-            _LOGGER.debug("GET_SYSTEM_VARIABLE: Getting System variable")
-            if json_result := response[_JsonKey.RESULT]:
-                # This does not yet support strings
-                try:
-                    var = float(json_result)
-                except Exception:
-                    var = json_result == "true"
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, level=logging.WARNING)
-            return None
+        _LOGGER.debug("GET_SYSTEM_VARIABLE: Getting System variable")
+        if json_result := response[_JsonKey.RESULT]:
+            # This does not yet support strings
+            try:
+                var = float(json_result)
+            except Exception:
+                var = json_result == "true"
 
         return var
 
@@ -547,169 +529,137 @@ class JsonRpcAioHttpClient:
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
-        iid = "GET_ALL_SYSTEM_VARIABLES"
         variables: list[SystemVariableData] = []
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.SYSVAR_GET_ALL,
-            )
 
-            _LOGGER.debug("GET_ALL_SYSTEM_VARIABLES: Getting all system variables")
-            if json_result := response[_JsonKey.RESULT]:
-                ext_markers = await self._get_system_variables_ext_markers()
-                for var in json_result:
-                    is_internal = var[_JsonKey.IS_INTERNAL]
-                    if include_internal is False and is_internal is True:
-                        continue
-                    var_id = var[_JsonKey.ID]
-                    name = var[_JsonKey.NAME]
-                    org_data_type = var[_JsonKey.TYPE]
-                    raw_value = var[_JsonKey.VALUE]
-                    if org_data_type == SysvarType.NUMBER:
-                        data_type = SysvarType.FLOAT if "." in raw_value else SysvarType.INTEGER
-                    else:
-                        data_type = org_data_type
-                    extended_sysvar = ext_markers.get(var_id, False)
-                    unit = var[_JsonKey.UNIT]
-                    values: tuple[str, ...] | None = None
-                    if val_list := var.get(_JsonKey.VALUE_LIST):
-                        values = tuple(val_list.split(";"))
-                    try:
-                        value = parse_sys_var(data_type=data_type, raw_value=raw_value)
-                        max_value = None
-                        if raw_max_value := var.get(_JsonKey.MAX_VALUE):
-                            max_value = parse_sys_var(data_type=data_type, raw_value=raw_max_value)
-                        min_value = None
-                        if raw_min_value := var.get(_JsonKey.MIN_VALUE):
-                            min_value = parse_sys_var(data_type=data_type, raw_value=raw_min_value)
-                        variables.append(
-                            SystemVariableData(
-                                name=name,
-                                data_type=data_type,
-                                unit=unit,
-                                value=value,
-                                values=values,
-                                max_value=max_value,
-                                min_value=min_value,
-                                extended_sysvar=extended_sysvar,
-                            )
+        response = await self._post(
+            method=_JsonRpcMethod.SYSVAR_GET_ALL,
+        )
+
+        _LOGGER.debug("GET_ALL_SYSTEM_VARIABLES: Getting all system variables")
+        if json_result := response[_JsonKey.RESULT]:
+            ext_markers = await self._get_system_variables_ext_markers()
+            for var in json_result:
+                is_internal = var[_JsonKey.IS_INTERNAL]
+                if include_internal is False and is_internal is True:
+                    continue
+                var_id = var[_JsonKey.ID]
+                name = var[_JsonKey.NAME]
+                org_data_type = var[_JsonKey.TYPE]
+                raw_value = var[_JsonKey.VALUE]
+                if org_data_type == SysvarType.NUMBER:
+                    data_type = SysvarType.FLOAT if "." in raw_value else SysvarType.INTEGER
+                else:
+                    data_type = org_data_type
+                extended_sysvar = ext_markers.get(var_id, False)
+                unit = var[_JsonKey.UNIT]
+                values: tuple[str, ...] | None = None
+                if val_list := var.get(_JsonKey.VALUE_LIST):
+                    values = tuple(val_list.split(";"))
+                try:
+                    value = parse_sys_var(data_type=data_type, raw_value=raw_value)
+                    max_value = None
+                    if raw_max_value := var.get(_JsonKey.MAX_VALUE):
+                        max_value = parse_sys_var(data_type=data_type, raw_value=raw_max_value)
+                    min_value = None
+                    if raw_min_value := var.get(_JsonKey.MIN_VALUE):
+                        min_value = parse_sys_var(data_type=data_type, raw_value=raw_min_value)
+                    variables.append(
+                        SystemVariableData(
+                            name=name,
+                            data_type=data_type,
+                            unit=unit,
+                            value=value,
+                            values=values,
+                            max_value=max_value,
+                            min_value=min_value,
+                            extended_sysvar=extended_sysvar,
                         )
-                    except (ValueError, TypeError) as vterr:
-                        _LOGGER.warning(
-                            "GET_ALL_SYSTEM_VARIABLES failed: "
-                            "%s [%s] Failed to parse SysVar %s ",
-                            vterr.__class__.__name__,
-                            reduce_args(args=vterr.args),
-                            name,
-                        )
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex)
+                    )
+                except (ValueError, TypeError) as vterr:
+                    _LOGGER.warning(
+                        "GET_ALL_SYSTEM_VARIABLES failed: %s [%s] Failed to parse SysVar %s ",
+                        vterr.__class__.__name__,
+                        reduce_args(args=vterr.args),
+                        name,
+                    )
 
         return tuple(variables)
 
     async def _get_system_variables_ext_markers(self) -> dict[str, Any]:
         """Get all system variables from CCU / Homegear."""
-        iid = "GET_SYSTEM_VARIABLES_EXT_MARKERS"
         ext_markers: dict[str, Any] = {}
 
-        try:
-            response = await self._post_script(script_name=REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER)
+        response = await self._post_script(script_name=REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER)
 
-            _LOGGER.debug("GET_SYSTEM_VARIABLES_EXT_MARKERS: Getting system variables ext markers")
-            if json_result := response[_JsonKey.RESULT]:
-                for data in json_result:
-                    ext_markers[data[_JsonKey.ID]] = data[_JsonKey.HAS_EXT_MARKER]
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except JSONDecodeError as jderr:
-            self._handle_exception_log(
-                iid=iid,
-                exception=jderr,
-                extra_msg="This leads to a missing assignment of extended system variables.",
-            )
+        _LOGGER.debug("GET_SYSTEM_VARIABLES_EXT_MARKERS: Getting system variables ext markers")
+        if json_result := response[_JsonKey.RESULT]:
+            for data in json_result:
+                ext_markers[data[_JsonKey.ID]] = data[_JsonKey.HAS_EXT_MARKER]
         return ext_markers
 
     async def get_all_channel_ids_room(self) -> dict[str, set[str]]:
         """Get all channel_ids per room from CCU / Homegear."""
-        iid = "GET_ALL_CHANNEL_IDS_PER_ROOM"
         channel_ids_room: dict[str, set[str]] = {}
 
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.ROOM_GET_ALL,
-            )
+        response = await self._post(
+            method=_JsonRpcMethod.ROOM_GET_ALL,
+        )
 
-            _LOGGER.debug("GET_ALL_CHANNEL_IDS_PER_ROOM: Getting all rooms")
-            if json_result := response[_JsonKey.RESULT]:
-                for room in json_result:
-                    room_id = room[_JsonKey.ID]
-                    room_name = room[_JsonKey.NAME]
-                    if room_id not in channel_ids_room:
-                        channel_ids_room[room_id] = set()
-                    channel_ids_room[room_id].add(room_name)
-                    for channel_id in room[_JsonKey.CHANNEL_IDS]:
-                        if channel_id not in channel_ids_room:
-                            channel_ids_room[channel_id] = set()
-                        channel_ids_room[channel_id].add(room_name)
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
-            return {}
+        _LOGGER.debug("GET_ALL_CHANNEL_IDS_PER_ROOM: Getting all rooms")
+        if json_result := response[_JsonKey.RESULT]:
+            for room in json_result:
+                room_id = room[_JsonKey.ID]
+                room_name = room[_JsonKey.NAME]
+                if room_id not in channel_ids_room:
+                    channel_ids_room[room_id] = set()
+                channel_ids_room[room_id].add(room_name)
+                for channel_id in room[_JsonKey.CHANNEL_IDS]:
+                    if channel_id not in channel_ids_room:
+                        channel_ids_room[channel_id] = set()
+                    channel_ids_room[channel_id].add(room_name)
 
         return channel_ids_room
 
     async def get_all_channel_ids_function(self) -> dict[str, set[str]]:
         """Get all channel_ids per function from CCU / Homegear."""
-        iid = "GET_ALL_CHANNEL_IDS_PER_FUNCTION"
         channel_ids_function: dict[str, set[str]] = {}
 
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.SUBSECTION_GET_ALL,
-            )
+        response = await self._post(
+            method=_JsonRpcMethod.SUBSECTION_GET_ALL,
+        )
 
-            _LOGGER.debug("GET_ALL_CHANNEL_IDS_PER_FUNCTION: Getting all functions")
-            if json_result := response[_JsonKey.RESULT]:
-                for function in json_result:
-                    function_id = function[_JsonKey.ID]
-                    function_name = function[_JsonKey.NAME]
-                    if function_id not in channel_ids_function:
-                        channel_ids_function[function_id] = set()
-                    channel_ids_function[function_id].add(function_name)
-                    for channel_id in function[_JsonKey.CHANNEL_IDS]:
-                        if channel_id not in channel_ids_function:
-                            channel_ids_function[channel_id] = set()
-                        channel_ids_function[channel_id].add(function_name)
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
-            return {}
+        _LOGGER.debug("GET_ALL_CHANNEL_IDS_PER_FUNCTION: Getting all functions")
+        if json_result := response[_JsonKey.RESULT]:
+            for function in json_result:
+                function_id = function[_JsonKey.ID]
+                function_name = function[_JsonKey.NAME]
+                if function_id not in channel_ids_function:
+                    channel_ids_function[function_id] = set()
+                channel_ids_function[function_id].add(function_name)
+                for channel_id in function[_JsonKey.CHANNEL_IDS]:
+                    if channel_id not in channel_ids_function:
+                        channel_ids_function[channel_id] = set()
+                    channel_ids_function[channel_id].add(function_name)
 
         return channel_ids_function
 
     async def get_device_description(
-        self, interface: str, address: str
+        self, interface: Interface, address: str
     ) -> DeviceDescription | None:
         """Get device descriptions from CCU."""
-        iid = "GET_DEVICE_DESCRIPTION"
         device_description: DeviceDescription | None = None
         params = {
             _JsonKey.INTERFACE: interface,
             _JsonKey.ADDRESS: address,
         }
 
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION, extra_params=params
-            )
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION, extra_params=params
+        )
 
-            _LOGGER.debug("GET_DEVICE_DESCRIPTION: Getting the device description")
-            if json_result := response[_JsonKey.RESULT]:
-                device_description = self._convert_device_description(json_data=json_result)
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
-            return None
+        _LOGGER.debug("GET_DEVICE_DESCRIPTION: Getting the device description")
+        if json_result := response[_JsonKey.RESULT]:
+            device_description = self._convert_device_description(json_data=json_result)
 
         return device_description
 
@@ -745,29 +695,124 @@ class JsonRpcAioHttpClient:
 
     async def get_device_details(self) -> tuple[dict[str, Any], ...]:
         """Get the device details of the backend."""
-        iid = "GET_DEVICE_DETAILS"
         device_details: tuple[dict[str, Any], ...] = ()
 
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL,
-            )
+        response = await self._post(
+            method=_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL,
+        )
 
-            _LOGGER.debug("GET_DEVICE_DETAILS: Getting the device details")
-            if json_result := response[_JsonKey.RESULT]:
-                device_details = tuple(json_result)
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
-            return ()
+        _LOGGER.debug("GET_DEVICE_DETAILS: Getting the device details")
+        if json_result := response[_JsonKey.RESULT]:
+            device_details = tuple(json_result)
 
         return device_details
 
+    async def get_paramset(
+        self, interface: Interface, address: str, paramset_key: ParamsetKey | str
+    ) -> dict[str, Any] | None:
+        """Get paramset from CCU."""
+        paramset: dict[str, Any] = {}
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.PARAMSET_KEY: paramset_key,
+        }
+
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_GET_PARAMSET,
+            extra_params=params,
+        )
+
+        _LOGGER.debug("GET_PARAMSET: Getting the paramset")
+        if json_result := response[_JsonKey.RESULT]:
+            paramset = json_result
+
+        return paramset
+
+    async def put_paramset(
+        self,
+        interface: Interface,
+        address: str,
+        paramset_key: ParamsetKey | str,
+        values: list[dict[str, Any]],
+    ) -> None:
+        """Set paramset to CCU."""
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.PARAMSET_KEY: paramset_key,
+            _JsonKey.SET: values,
+        }
+
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_PUT_PARAMSET,
+            extra_params=params,
+        )
+
+        _LOGGER.debug("PUT_PARAMSET: Putting the paramset")
+        if json_result := response[_JsonKey.RESULT]:
+            _LOGGER.debug(
+                "PUT_PARAMSET: Result while putting the paramset: %s",
+                str(json_result),
+            )
+
+    async def get_value(
+        self, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str
+    ) -> Any:
+        """Get value from CCU."""
+        value: Any = None
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.VALUE_KEY: parameter,
+        }
+
+        response = (
+            await self._post(
+                method=_JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
+                extra_params=params,
+            )
+            if paramset_key == ParamsetKey.MASTER
+            else await self._post(
+                method=_JsonRpcMethod.INTERFACE_GET_VALUE,
+                extra_params=params,
+            )
+        )
+
+        _LOGGER.debug("GET_VALUE: Getting the value")
+        if json_result := response[_JsonKey.RESULT]:
+            value = json_result
+
+        return value
+
+    async def set_value(
+        self, interface: Interface, address: str, parameter: str, value_type: str, value: Any
+    ) -> None:
+        """Set value to CCU."""
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ADDRESS: address,
+            _JsonKey.VALUE_KEY: parameter,
+            _JsonKey.TYPE: value_type,
+            _JsonKey.VALUE: value,
+        }
+
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_SET_VALUE,
+            extra_params=params,
+        )
+
+        _LOGGER.debug("SET_VALUE: Setting the value")
+        if json_result := response[_JsonKey.RESULT]:
+            _LOGGER.debug(
+                "SET_VALUE: Result while setting the value: %s",
+                str(json_result),
+            )
+
     async def get_paramset_description(
-        self, interface: str, address: str, paramset_key: ParamsetKey
+        self, interface: Interface, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Get paramset description from CCU."""
-        iid = "GET_PARAMSET_DESCRIPTIONS"
         paramset_description: dict[str, ParameterData] = {}
         params = {
             _JsonKey.INTERFACE: interface,
@@ -775,22 +820,16 @@ class JsonRpcAioHttpClient:
             _JsonKey.PARAMSET_KEY: paramset_key,
         }
 
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
-                extra_params=params,
-            )
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
+            extra_params=params,
+        )
 
-            _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS: Getting the paramset descriptions")
-            if json_result := response[_JsonKey.RESULT]:
-                paramset_description = {
-                    data["NAME"]: self._convert_parameter_data(json_data=data)
-                    for data in json_result
-                }
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
-            return {}
+        _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS: Getting the paramset descriptions")
+        if json_result := response[_JsonKey.RESULT]:
+            paramset_description = {
+                data["NAME"]: self._convert_parameter_data(json_data=data) for data in json_result
+            }
 
         return paramset_description
 
@@ -798,27 +837,35 @@ class JsonRpcAioHttpClient:
     def _convert_parameter_data(json_data: dict[str, Any]) -> ParameterData:
         """Convert json data to parameter data."""
 
+        _type = json_data["TYPE"]
+        _value_list = json_data.get("VALUE_LIST", ())
+
         parameter_data = ParameterData(
-            DEFAULT=json_data["DEFAULT"],
+            DEFAULT=convert_value(
+                value=json_data["DEFAULT"], target_type=_type, value_list=_value_list
+            ),
             FLAGS=int(json_data["FLAGS"]),
             ID=json_data["ID"],
-            MAX=json_data.get("MAX"),
-            MIN=json_data.get("MIN"),
+            MAX=convert_value(
+                value=json_data.get("MAX"), target_type=_type, value_list=_value_list
+            ),
+            MIN=convert_value(
+                value=json_data.get("MIN"), target_type=_type, value_list=_value_list
+            ),
             OPERATIONS=int(json_data["OPERATIONS"]),
-            TYPE=json_data["TYPE"],
+            TYPE=_type,
         )
         if special := json_data.get("SPECIAL"):
             parameter_data["SPECIAL"] = special
         if unit := json_data.get("UNIT"):
             parameter_data["UNIT"] = str(unit)
-        if value_list := json_data.get("VALUE_LIST"):
-            parameter_data["VALUE_LIST"] = value_list
+        if value_list := _value_list:
+            parameter_data["VALUE_LIST"] = value_list.split(" ")
 
         return parameter_data
 
-    async def get_all_device_data(self, interface: str) -> dict[str, Any]:
+    async def get_all_device_data(self, interface: Interface) -> dict[str, Any]:
         """Get the all device data of the backend."""
-        iid = f"GET_ALL_DEVICE_DATA for {interface}"
         all_device_data: dict[str, dict[str, dict[str, Any]]] = {}
         params = {
             _JsonKey.INTERFACE: interface,
@@ -833,20 +880,8 @@ class JsonRpcAioHttpClient:
             )
             if json_result := response[_JsonKey.RESULT]:
                 all_device_data = json_result
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(
-                iid=iid,
-                exception=ex,
-            )
+
         except JSONDecodeError as jderr:
-            self._handle_exception_log(
-                iid=iid,
-                exception=jderr,
-                extra_msg=f"Using fallback. This leeds to a higher DutyCycle during Integration startup for interface {interface}",
-                multiple_logs=False,
-                level=logging.WARNING,
-            )
             raise ClientException(
                 f"GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface {interface}"
             ) from jderr
@@ -855,65 +890,51 @@ class JsonRpcAioHttpClient:
 
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get the all programs of the backend."""
-        iid = "GET_ALL_PROGRAMS"
         all_programs: list[ProgramData] = []
 
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.PROGRAM_GET_ALL,
-            )
+        response = await self._post(
+            method=_JsonRpcMethod.PROGRAM_GET_ALL,
+        )
 
-            _LOGGER.debug("GET_ALL_PROGRAMS: Getting all programs")
-            if json_result := response[_JsonKey.RESULT]:
-                for prog in json_result:
-                    is_internal = prog[_JsonKey.IS_INTERNAL]
-                    if include_internal is False and is_internal is True:
-                        continue
-                    pid = prog[_JsonKey.ID]
-                    name = prog[_JsonKey.NAME]
-                    is_active = prog[_JsonKey.IS_ACTIVE]
-                    last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]
+        _LOGGER.debug("GET_ALL_PROGRAMS: Getting all programs")
+        if json_result := response[_JsonKey.RESULT]:
+            for prog in json_result:
+                is_internal = prog[_JsonKey.IS_INTERNAL]
+                if include_internal is False and is_internal is True:
+                    continue
+                pid = prog[_JsonKey.ID]
+                name = prog[_JsonKey.NAME]
+                is_active = prog[_JsonKey.IS_ACTIVE]
+                last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]
 
-                    all_programs.append(
-                        ProgramData(
-                            pid=pid,
-                            name=name,
-                            is_active=is_active,
-                            is_internal=is_internal,
-                            last_execute_time=last_execute_time,
-                        )
+                all_programs.append(
+                    ProgramData(
+                        pid=pid,
+                        name=name,
+                        is_active=is_active,
+                        is_internal=is_internal,
+                        last_execute_time=last_execute_time,
                     )
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex)
-            return ()
+                )
 
         return tuple(all_programs)
 
     async def has_program_ids(self, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
-        iid = "HAS_PROGRAM_IDS"
+        params = {_JsonKey.ID: channel_hmid}
+        response = await self._post(
+            method=_JsonRpcMethod.CHANNEL_HAS_PROGRAM_IDS,
+            extra_params=params,
+        )
 
-        try:
-            params = {_JsonKey.ID: channel_hmid}
-            response = await self._post(
-                method=_JsonRpcMethod.CHANNEL_HAS_PROGRAM_IDS,
-                extra_params=params,
-            )
-
-            _LOGGER.debug("HAS_PROGRAM_IDS: Checking if channel has program ids")
-            if json_result := response[_JsonKey.RESULT]:
-                return bool(json_result)
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, level=logging.WARNING)
-            return False
+        _LOGGER.debug("HAS_PROGRAM_IDS: Checking if channel has program ids")
+        if json_result := response[_JsonKey.RESULT]:
+            return bool(json_result)
 
         return False
 
     async def _get_supported_methods(self) -> tuple[str, ...]:
         """Get the supported methods of the backend."""
-        iid = "GET_SUPPORTED_METHODS"
         supported_methods: tuple[str, ...] = ()
 
         await self._login_or_renew()
@@ -931,9 +952,7 @@ class JsonRpcAioHttpClient:
                 supported_methods = tuple(
                     method_description[_JsonKey.NAME] for method_description in json_result
                 )
-            self._connection_state.remove_issue(issuer=self, iid=iid)
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
+        except BaseHomematicException:
             return ()
 
         return supported_methods
@@ -954,68 +973,49 @@ class JsonRpcAioHttpClient:
 
     async def get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
-        iid = "GET_SYSTEM_INFORMATION"
-        try:
-            if (auth_enabled := await self._get_auth_enabled()) is not None and (
-                system_information := SystemInformation(
-                    auth_enabled=auth_enabled,
-                    available_interfaces=await self._list_interfaces(),
-                    https_redirect_enabled=await self._get_https_redirect_enabled(),
-                    serial=await self._get_serial(),
-                )
-            ):
-                self._connection_state.remove_issue(issuer=self, iid=iid)
-                return system_information
-        except BaseHomematicException as ex:
-            self._handle_exception_log(iid=iid, exception=ex, multiple_logs=False)
-            raise
+
+        if (auth_enabled := await self._get_auth_enabled()) is not None and (
+            system_information := SystemInformation(
+                auth_enabled=auth_enabled,
+                available_interfaces=await self._list_interfaces(),
+                https_redirect_enabled=await self._get_https_redirect_enabled(),
+                serial=await self._get_serial(),
+            )
+        ):
+            return system_information
+
         return SystemInformation(auth_enabled=True)
 
     async def _get_auth_enabled(self) -> bool:
         """Get the auth_enabled flag of the backend."""
-        iid = "GET_AUTH_ENABLED"
         _LOGGER.debug("GET_AUTH_ENABLED: Getting the flag auth_enabled")
         try:
             response = await self._post(method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
             if (json_result := response[_JsonKey.RESULT]) is not None:
                 return bool(json_result)
-        except InternalBackendException as ibe:
-            self._handle_exception_log(
-                iid=iid,
-                exception=ibe,
-                level=logging.WARNING,
-                multiple_logs=False,
-            )
+        except InternalBackendException:
             return True
 
         return True
 
-    async def list_devices(self, interface: str) -> tuple[DeviceDescription, ...]:
+    async def list_devices(self, interface: Interface) -> tuple[DeviceDescription, ...]:
         """List devices from CCU / Homegear."""
-        iid = "LIST_DEVICES"
         devices: tuple[DeviceDescription, ...] = ()
         _LOGGER.debug("LIST_DEVICES: Getting all available interfaces")
         params = {
             _JsonKey.INTERFACE: interface,
         }
 
-        try:
-            response = await self._post(
-                method=_JsonRpcMethod.INTERFACE_LIST_DEVICES,
-                extra_params=params,
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_LIST_DEVICES,
+            extra_params=params,
+        )
+
+        if json_result := response[_JsonKey.RESULT]:
+            devices = tuple(
+                self._convert_device_description(json_data=data) for data in json_result
             )
 
-            if json_result := response[_JsonKey.RESULT]:
-                devices = tuple(
-                    self._convert_device_description(json_data=data) for data in json_result
-                )
-        except InternalBackendException as ibe:
-            self._handle_exception_log(
-                iid=iid,
-                exception=ibe,
-                level=logging.WARNING,
-                multiple_logs=False,
-            )
         return devices
 
     async def _list_interfaces(self) -> tuple[str, ...]:
@@ -1054,25 +1054,6 @@ class JsonRpcAioHttpClient:
             raise ClientException(jderr) from jderr
         return None
 
-    def _handle_exception_log(
-        self,
-        iid: str,
-        exception: Exception,
-        level: int = logging.ERROR,
-        extra_msg: str = "",
-        multiple_logs: bool = True,
-    ) -> None:
-        """Handle Exception and logging."""
-        self._connection_state.handle_exception_log(
-            issuer=self,
-            iid=iid,
-            exception=exception,
-            logger=_LOGGER,
-            level=level,
-            extra_msg=extra_msg,
-            multiple_logs=multiple_logs,
-        )
-
 
 def _get_params(
     session_id: bool | str,
@@ -1084,4 +1065,4 @@ def _get_params(
     if extra_params:
         params.update(extra_params)
 
-    return {str(key): value for key, value in params.items()}
+    return {str(key): str(value) for key, value in params.items()}

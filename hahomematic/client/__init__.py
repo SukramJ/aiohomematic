@@ -27,8 +27,8 @@ from hahomematic.const import (
     DeviceDescription,
     EventKey,
     ForcedDeviceAvailability,
+    Interface,
     InterfaceEventType,
-    InterfaceName,
     Operations,
     ParameterData,
     ParamsetKey,
@@ -63,6 +63,15 @@ _JSON_ID: Final = "id"
 _JSON_INTERFACE: Final = "interface"
 _JSON_NAME: Final = "name"
 _NAME: Final = "NAME"
+
+_CCU_JSON_VALUE_TYPE: Final = {
+    "ACTION": "bool",
+    "BOOL": "bool",
+    "ENUM": "list",
+    "FLOAT": "double",
+    "INTEGER": "int",
+    "STRING": "string",
+}
 
 
 class Client(ABC):
@@ -106,7 +115,7 @@ class Client(ABC):
         return self._config.central
 
     @property
-    def interface(self) -> str:
+    def interface(self) -> Interface:
         """Return the interface of the client."""
         return self._config.interface
 
@@ -142,17 +151,17 @@ class Client(ABC):
 
     def get_product_group(self, model: str) -> ProductGroup:
         """Return the product group."""
-        if self.interface == InterfaceName.HMIP_RF:
+        if self.interface == Interface.HMIP_RF:
             l_model = model.lower()
             if l_model.startswith("hmipw"):
                 return ProductGroup.HMIPW
             if l_model.startswith("hmip"):
                 return ProductGroup.HMIP
-        if self.interface == InterfaceName.BIDCOS_WIRED:
+        if self.interface == Interface.BIDCOS_WIRED:
             return ProductGroup.HMW
-        if self.interface == InterfaceName.BIDCOS_RF:
+        if self.interface == Interface.BIDCOS_RF:
             return ProductGroup.HM
-        if self.interface == InterfaceName.VIRTUAL_DEVICES:
+        if self.interface == Interface.VIRTUAL_DEVICES:
             return ProductGroup.VIRTUAL
         return ProductGroup.UNKNOWN
 
@@ -262,10 +271,12 @@ class Client(ABC):
         await self._proxy_read.stop()
 
     @abstractmethod
+    @service()
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
 
     @abstractmethod
+    @service()
     async def fetch_device_details(self) -> None:
         """Fetch names from backend."""
 
@@ -345,21 +356,24 @@ class Client(ABC):
         """Get single system variable from CCU / Homegear."""
 
     @abstractmethod
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
+    @service(re_raise=False, no_raise_return=())
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
     @abstractmethod
+    @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
 
     @abstractmethod
+    @service(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
 
@@ -375,6 +389,7 @@ class Client(ABC):
                     return device
         return None
 
+    @service(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
@@ -538,11 +553,18 @@ class Client(ABC):
             _LOGGER.debug("SET_VALUE: %s, %s, %s", channel_address, parameter, checked_value)
             if rx_mode and (device := self.central.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
-                    await self._proxy.setValue(channel_address, parameter, checked_value, rx_mode)
+                    await self._exec_set_value(
+                        channel_address=channel_address,
+                        parameter=parameter,
+                        value=value,
+                        rx_mode=rx_mode,
+                    )
                 else:
                     raise ClientException(f"Unsupported rx_mode: {rx_mode}")
             else:
-                await self._proxy.setValue(channel_address, parameter, checked_value)
+                await self._exec_set_value(
+                    channel_address=channel_address, parameter=parameter, value=value
+                )
             # store the send value in the last_value_send_cache
             data_point_keys = self._last_value_send_cache.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
@@ -563,6 +585,19 @@ class Client(ABC):
             raise ClientException(
                 f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {reduce_args(args=ex.args)}"
             ) from ex
+
+    async def _exec_set_value(
+        self,
+        channel_address: str,
+        parameter: str,
+        value: Any,
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Set single value on paramset VALUES."""
+        if rx_mode:
+            await self._proxy.setValue(channel_address, parameter, value, rx_mode)
+        else:
+            await self._proxy.setValue(channel_address, parameter, value)
 
     def _check_set_value(
         self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any
@@ -676,13 +711,20 @@ class Client(ABC):
             )
             if rx_mode and (device := self.central.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
-                    await self._proxy.putParamset(
-                        channel_address, paramset_key, checked_values, rx_mode
+                    await self._exec_put_paramset(
+                        channel_address=channel_address,
+                        paramset_key=paramset_key,
+                        values=checked_values,
+                        rx_mode=rx_mode,
                     )
                 else:
                     raise ClientException(f"Unsupported rx_mode: {rx_mode}")
             else:
-                await self._proxy.putParamset(channel_address, paramset_key, checked_values)
+                await self._exec_put_paramset(
+                    channel_address=channel_address,
+                    paramset_key=paramset_key,
+                    values=checked_values,
+                )
 
             # if a call is related to a link then no further action is needed
             if is_link_call:
@@ -710,6 +752,19 @@ class Client(ABC):
             raise ClientException(
                 f"PUT_PARAMSET failed for {channel_address}/{paramset_key}/{values}: {reduce_args(args=ex.args)}"
             ) from ex
+
+    async def _exec_put_paramset(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey | str,
+        values: dict[str, Any],
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Put paramset into CCU."""
+        if rx_mode:
+            await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
+        else:
+            await self._proxy.putParamset(channel_address, paramset_key, values)
 
     def _check_put_paramset(
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
@@ -759,6 +814,22 @@ class Client(ABC):
             f"Parameter {parameter} could not be found: {self.interface_id}/{channel_address}/{paramset_key}"
         )
 
+    def _get_parameter_type(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+    ) -> str | None:
+        if parameter_data := self.central.paramset_descriptions.get_parameter_data(
+            interface_id=self.interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
+        ):
+            return parameter_data["TYPE"]
+        return None
+
+    @service()
     async def fetch_paramset_description(
         self, channel_address: str, paramset_key: ParamsetKey
     ) -> None:
@@ -775,6 +846,7 @@ class Client(ABC):
                 paramset_description=paramset_description,
             )
 
+    @service()
     async def fetch_paramset_descriptions(self, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
         data = await self.get_paramset_descriptions(device_description=device_description)
@@ -788,6 +860,7 @@ class Client(ABC):
                     paramset_description=paramset_description,
                 )
 
+    @service(re_raise=False, no_raise_return={})
     async def get_paramset_descriptions(
         self, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
@@ -823,6 +896,7 @@ class Client(ABC):
             )
         return None
 
+    @service()
     async def get_all_paramset_descriptions(
         self, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
@@ -840,7 +914,7 @@ class Client(ABC):
         return False
 
     @measure_execution_time
-    @service()
+    @service(re_raise=False)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -936,6 +1010,7 @@ class ClientCCU(Client):
         return True
 
     @measure_execution_time
+    @service()
     async def fetch_device_details(self) -> None:
         """Get all names via JSON-RPS and store in data.NAMES."""
         if json_result := await self._json_rpc_client.get_device_details():
@@ -956,12 +1031,13 @@ class ClientCCU(Client):
                         address=channel_address, hmid=channel[_JSON_ID]
                     )
                 self.central.device_details.add_interface(
-                    address=device_address, interface=device[_JSON_INTERFACE]
+                    address=device_address, interface=Interface(device[_JSON_INTERFACE])
                 )
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
     @measure_execution_time
+    @service()
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
         try:
@@ -1046,7 +1122,7 @@ class ClientCCU(Client):
         """Get single system variable from CCU / Homegear."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
@@ -1055,12 +1131,12 @@ class ClientCCU(Client):
             include_internal=include_internal
         )
 
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(include_internal=include_internal)
 
-    @service()
+    @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from CCU."""
         rooms: dict[str, set[str]] = {}
@@ -1072,7 +1148,7 @@ class ClientCCU(Client):
                 rooms[address].update(names)
         return rooms
 
-    @service()
+    @service(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from CCU."""
         functions: dict[str, set[str]] = {}
@@ -1089,15 +1165,15 @@ class ClientCCU(Client):
         return await self._json_rpc_client.get_system_information()
 
 
-class ClientMQTT(ClientCCU):
-    """Client implementation for MQTT backend."""
+class ClientJsonCCU(ClientCCU):
+    """Client implementation for CCU backend."""
 
     @property
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
         return False
 
-    @service()
+    @service(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
@@ -1112,7 +1188,76 @@ class ClientMQTT(ClientCCU):
         return None
 
     @service()
+    async def get_paramset(
+        self,
+        address: str,
+        paramset_key: ParamsetKey | str,
+        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+    ) -> dict[str, Any]:
+        """
+        Return a paramset from CCU.
+
+        Address is usually the channel_address,
+        but for bidcos devices there is a master paramset at the device.
+        """
+        try:
+            _LOGGER.debug(
+                "GET_PARAMSET: address %s, paramset_key %s, source %s",
+                address,
+                paramset_key,
+                call_source,
+            )
+            return (
+                await self._json_rpc_client.get_paramset(
+                    interface=self.interface, address=address, paramset_key=paramset_key
+                )
+                or {}
+            )
+        except BaseHomematicException as ex:
+            raise ClientException(
+                f"GET_PARAMSET failed with for {address}/{paramset_key}: {reduce_args(args=ex.args)}"
+            ) from ex
+
+    @service(log_level=logging.NOTSET)
+    async def get_value(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+    ) -> Any:
+        """Return a value from CCU."""
+        try:
+            _LOGGER.debug(
+                "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
+                channel_address,
+                parameter,
+                paramset_key,
+                call_source,
+            )
+            if paramset_key == ParamsetKey.VALUES:
+                return await self._json_rpc_client.get_value(
+                    interface=self.interface,
+                    address=channel_address,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
+                )
+            paramset = (
+                await self._json_rpc_client.get_paramset(
+                    interface=self.interface,
+                    address=channel_address,
+                    paramset_key=ParamsetKey.MASTER,
+                )
+                or {}
+            )
+            return paramset.get(parameter)
+        except BaseHomematicException as ex:
+            raise ClientException(
+                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
+            ) from ex
+
     @measure_execution_time
+    @service(re_raise=False)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -1146,6 +1291,70 @@ class ClientMQTT(ClientCCU):
             )
         return None
 
+    async def _exec_put_paramset(
+        self,
+        channel_address: str,
+        paramset_key: ParamsetKey | str,
+        values: dict[str, Any],
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Put paramset into CCU."""
+        # _values: list[dict[str, Any]] = []
+        for parameter, value in values.items():
+            await self._exec_set_value(
+                channel_address=channel_address, parameter=parameter, value=value, rx_mode=rx_mode
+            )
+
+        # Funktioniert nicht
+        #     if (
+        #         value_type := self._get_parameter_type(
+        #             channel_address=channel_address,
+        #             paramset_key=ParamsetKey.VALUES,
+        #             parameter=parameter,
+        #         )
+        #     ) is None:
+        #         raise ClientException(
+        #             f"PUT_PARAMSET failed: Unable to identify parameter type {channel_address}/{paramset_key}/{parameter}"
+        #         )
+        #     _type = _CCU_JSON_VALUE_TYPE.get(value_type, "string")
+        #
+        #     _values.append({"name": parameter, "type":_type, "value": str(value)})
+        #
+        # await self._json_rpc_client.put_paramset(
+        #     interface=self.interface,
+        #     address=channel_address,
+        #     paramset_key=paramset_key,
+        #     values=_values,
+        # )
+
+    async def _exec_set_value(
+        self,
+        channel_address: str,
+        parameter: str,
+        value: Any,
+        rx_mode: CommandRxMode | None = None,
+    ) -> None:
+        """Set single value on paramset VALUES."""
+        if (
+            value_type := self._get_parameter_type(
+                channel_address=channel_address,
+                paramset_key=ParamsetKey.VALUES,
+                parameter=parameter,
+            )
+        ) is None:
+            raise ClientException(
+                f"SET_VALUE failed: Unable to identify parameter type {channel_address}/{ParamsetKey.VALUES}/{parameter}"
+            )
+
+        _type = _CCU_JSON_VALUE_TYPE.get(value_type, "string")
+        await self._json_rpc_client.set_value(
+            interface=self.interface,
+            address=channel_address,
+            parameter=parameter,
+            value_type=_type,
+            value=value,
+        )
+
 
 class ClientHomegear(Client):
     """Client implementation for Homegear backend."""
@@ -1172,6 +1381,7 @@ class ClientHomegear(Client):
         return
 
     @measure_execution_time
+    @service()
     async def fetch_device_details(self) -> None:
         """Get all names from metadata (Homegear)."""
         _LOGGER.debug("FETCH_DEVICE_DETAILS: Fetching names via Metadata")
@@ -1245,7 +1455,7 @@ class ClientHomegear(Client):
                 f"GET_SYSTEM_VARIABLE failed: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
@@ -1261,14 +1471,17 @@ class ClientHomegear(Client):
             ) from ex
         return tuple(variables)
 
+    @service(re_raise=False, no_raise_return=())
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()
 
+    @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from Homegear."""
         return {}
 
+    @service(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from Homegear."""
         return {}
@@ -1276,7 +1489,7 @@ class ClientHomegear(Client):
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
         return SystemInformation(
-            available_interfaces=(InterfaceName.BIDCOS_RF,), serial=HOMEGEAR_SERIAL
+            available_interfaces=(Interface.BIDCOS_RF,), serial=HOMEGEAR_SERIAL
         )
 
 
@@ -1371,12 +1584,12 @@ class InterfaceConfig:
     def __init__(
         self,
         central_name: str,
-        interface: InterfaceName,
+        interface: Interface,
         port: int,
         remote_path: str | None = None,
     ) -> None:
         """Init the interface config."""
-        self.interface: Final[InterfaceName] = interface
+        self.interface: Final[Interface] = interface
         self.interface_id: Final[str] = f"{central_name}-{self.interface}"
         self.port: Final = port
         self.remote_path: Final = remote_path
@@ -1384,11 +1597,11 @@ class InterfaceConfig:
 
     def _init_validate(self) -> None:
         """Validate the client_config."""
-        if self.interface not in list(InterfaceName):
+        if self.interface not in list(Interface):
             _LOGGER.warning(
                 "VALIDATE interface config failed: "
                 "Interface names must be within [%s] for production use",
-                ", ".join(list(InterfaceName)),
+                ", ".join(list(Interface)),
             )
 
 

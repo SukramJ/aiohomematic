@@ -1,6 +1,6 @@
 # Version 2024.11.1 (2024-11-09)
 
-- Add getDeviceDescription, getParamsetDescription, listDevices to json_rpc
+- Add getDeviceDescription, getParamsetDescription, listDevices, getValue, setValue, getParamset, putParamset to json_rpc
 - Add data_point_path event
 - Rename event to data_point_event
 

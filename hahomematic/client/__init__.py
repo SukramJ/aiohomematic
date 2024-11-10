@@ -64,6 +64,15 @@ _JSON_INTERFACE: Final = "interface"
 _JSON_NAME: Final = "name"
 _NAME: Final = "NAME"
 
+_CCU_JSON_VALUE_TYPE: Final = {
+    "ACTION": "bool",
+    "BOOL": "bool",
+    "ENUM": "list",
+    "FLOAT": "double",
+    "INTEGER": "int",
+    "STRING": "string",
+}
+
 
 class Client(ABC):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
@@ -1290,12 +1299,33 @@ class ClientJsonCCU(ClientCCU):
         rx_mode: CommandRxMode | None = None,
     ) -> None:
         """Put paramset into CCU."""
-        await self._json_rpc_client.put_paramset(
-            interface=self.interface,
-            address=channel_address,
-            paramset_key=paramset_key,
-            values=values,
-        )
+        # _values: list[dict[str, Any]] = []
+        for parameter, value in values.items():
+            await self._exec_set_value(
+                channel_address=channel_address, parameter=parameter, value=value, rx_mode=rx_mode
+            )
+
+        # Funktioniert nicht
+        #     if (
+        #         value_type := self._get_parameter_type(
+        #             channel_address=channel_address,
+        #             paramset_key=ParamsetKey.VALUES,
+        #             parameter=parameter,
+        #         )
+        #     ) is None:
+        #         raise ClientException(
+        #             f"PUT_PARAMSET failed: Unable to identify parameter type {channel_address}/{paramset_key}/{parameter}"
+        #         )
+        #     _type = _CCU_JSON_VALUE_TYPE.get(value_type, "string")
+        #
+        #     _values.append({"name": parameter, "type":_type, "value": str(value)})
+        #
+        # await self._json_rpc_client.put_paramset(
+        #     interface=self.interface,
+        #     address=channel_address,
+        #     paramset_key=paramset_key,
+        #     values=_values,
+        # )
 
     async def _exec_set_value(
         self,
@@ -1315,11 +1345,13 @@ class ClientJsonCCU(ClientCCU):
             raise ClientException(
                 f"SET_VALUE failed: Unable to identify parameter type {channel_address}/{ParamsetKey.VALUES}/{parameter}"
             )
+
+        _type = _CCU_JSON_VALUE_TYPE.get(value_type, "string")
         await self._json_rpc_client.set_value(
             interface=self.interface,
             address=channel_address,
             parameter=parameter,
-            value_type=value_type,
+            value_type=_type,
             value=value,
         )
 

@@ -53,15 +53,6 @@ from hahomematic.support import get_tls_context, parse_sys_var, reduce_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-_CCU_JSON_VALUE_TYPE: Final = {
-    "ACTION": "bool",
-    "BOOL": "bool",
-    "ENUM": "list",
-    "FLOAT": "number",
-    "INTEGER": "integer",
-    "STRING": "string",
-}
-
 
 class _JsonKey(StrEnum):
     """Enum for homematic json keys."""
@@ -743,7 +734,7 @@ class JsonRpcAioHttpClient:
         interface: Interface,
         address: str,
         paramset_key: ParamsetKey | str,
-        values: dict[str, Any],
+        values: list[dict[str, Any]],
     ) -> None:
         """Set paramset to CCU."""
         params = {
@@ -798,12 +789,11 @@ class JsonRpcAioHttpClient:
         self, interface: Interface, address: str, parameter: str, value_type: str, value: Any
     ) -> None:
         """Set value to CCU."""
-        _type = _CCU_JSON_VALUE_TYPE.get(value_type, "object")
         params = {
             _JsonKey.INTERFACE: interface,
             _JsonKey.ADDRESS: address,
             _JsonKey.VALUE_KEY: parameter,
-            _JsonKey.TYPE: "string",
+            _JsonKey.TYPE: value_type,
             _JsonKey.VALUE: value,
         }
 
@@ -1063,25 +1053,6 @@ class JsonRpcAioHttpClient:
         except JSONDecodeError as jderr:
             raise ClientException(jderr) from jderr
         return None
-
-    def _handle_exception_log(
-        self,
-        iid: str,
-        exception: Exception,
-        level: int = logging.ERROR,
-        extra_msg: str = "",
-        multiple_logs: bool = True,
-    ) -> None:
-        """Handle Exception and logging."""
-        self._connection_state.handle_exception_log(
-            issuer=self,
-            iid=iid,
-            exception=exception,
-            logger=_LOGGER,
-            level=level,
-            extra_msg=extra_msg,
-            multiple_logs=multiple_logs,
-        )
 
 
 def _get_params(

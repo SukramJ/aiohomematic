@@ -389,6 +389,8 @@ class Interface(StrEnum):
 
     BIDCOS_RF = "BidCos-RF"
     BIDCOS_WIRED = "BidCos-Wired"
+    CCU_JACK = "CCU-Jack"
+    CUXD = "CUxD"
     HMIP_RF = "HmIP-RF"
     VIRTUAL_DEVICES = "VirtualDevices"
 

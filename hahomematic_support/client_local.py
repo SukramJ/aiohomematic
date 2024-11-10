@@ -18,7 +18,7 @@ from hahomematic.const import (
     CallSource,
     CommandRxMode,
     DeviceDescription,
-    InterfaceName,
+    Interface,
     ParameterData,
     ParamsetKey,
     ProductGroup,
@@ -148,9 +148,7 @@ class ClientLocal(Client):  # pragma: no cover
 
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
-        return SystemInformation(
-            available_interfaces=(InterfaceName.BIDCOS_RF,), serial=LOCAL_SERIAL
-        )
+        return SystemInformation(available_interfaces=(Interface.BIDCOS_RF,), serial=LOCAL_SERIAL)
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """Get device descriptions from CCU / Homegear."""

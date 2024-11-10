@@ -21,8 +21,8 @@ from hahomematic.const import (
     CallSource,
     EventKey,
     EventType,
+    Interface,
     InterfaceEventType,
-    InterfaceName,
     ParamsetKey,
 )
 from hahomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
@@ -128,7 +128,7 @@ class DeviceDetailsCache:
         self._channel_rooms: Final[dict[str, set[str]]] = {}
         self._device_channel_ids: Final[dict[str, str]] = {}
         self._functions: Final[dict[str, set[str]]] = {}
-        self._interface_cache: Final[dict[str, str]] = {}
+        self._interface_cache: Final[dict[str, Interface]] = {}
         self._names_cache: Final[dict[str, str]] = {}
         self._refreshed_at = INIT_DATETIME
 
@@ -163,13 +163,13 @@ class DeviceDetailsCache:
         """Get name from cache."""
         return self._names_cache.get(address)
 
-    def add_interface(self, address: str, interface: str) -> None:
+    def add_interface(self, address: str, interface: Interface) -> None:
         """Add interface to cache."""
         self._interface_cache[address] = interface
 
-    def get_interface(self, address: str) -> str:
+    def get_interface(self, address: str) -> Interface:
         """Get interface from cache."""
-        return self._interface_cache.get(address) or InterfaceName.BIDCOS_RF
+        return self._interface_cache.get(address) or Interface.BIDCOS_RF
 
     def add_address_id(self, address: str, hmid: str) -> None:
         """Add channel id for a channel."""
@@ -182,7 +182,7 @@ class DeviceDetailsCache:
     async def _get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
         if client := self._central.primary_client:
-            return await client.get_all_rooms()
+            return await client.get_all_rooms()  # type: ignore[no-any-return]
         return {}
 
     def get_device_rooms(self, device_address: str) -> set[str]:
@@ -200,7 +200,7 @@ class DeviceDetailsCache:
     async def _get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
         if client := self._central.primary_client:
-            return await client.get_all_functions()
+            return await client.get_all_functions()  # type: ignore[no-any-return]
         return {}
 
     def get_function_text(self, address: str) -> str | None:
@@ -271,7 +271,7 @@ class CentralDataCache:
 
     def get_data(
         self,
-        interface: str,
+        interface: Interface,
         channel_address: str,
         parameter: str,
     ) -> Any:

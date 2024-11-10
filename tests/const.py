@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from hahomematic.const import InterfaceName, ProgramData, SystemVariableData, SysvarType
+from hahomematic.const import Interface, ProgramData, SystemVariableData, SysvarType
 
 CENTRAL_NAME = "CentralTest"
 CCU_HOST = "127.0.0.1"
 CCU_USERNAME = "user"
 CCU_PASSWORD = "pass"
 CCU_PORT = 2002
-INTERFACE_ID = f"{CENTRAL_NAME}-{InterfaceName.BIDCOS_RF}"
+INTERFACE_ID = f"{CENTRAL_NAME}-{Interface.BIDCOS_RF}"
 
 
 SYSVAR_DATA: list[SystemVariableData] = [

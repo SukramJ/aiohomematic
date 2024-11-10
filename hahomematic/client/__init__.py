@@ -27,8 +27,8 @@ from hahomematic.const import (
     DeviceDescription,
     EventKey,
     ForcedDeviceAvailability,
+    Interface,
     InterfaceEventType,
-    InterfaceName,
     Operations,
     ParameterData,
     ParamsetKey,
@@ -106,7 +106,7 @@ class Client(ABC):
         return self._config.central
 
     @property
-    def interface(self) -> str:
+    def interface(self) -> Interface:
         """Return the interface of the client."""
         return self._config.interface
 
@@ -142,17 +142,17 @@ class Client(ABC):
 
     def get_product_group(self, model: str) -> ProductGroup:
         """Return the product group."""
-        if self.interface == InterfaceName.HMIP_RF:
+        if self.interface == Interface.HMIP_RF:
             l_model = model.lower()
             if l_model.startswith("hmipw"):
                 return ProductGroup.HMIPW
             if l_model.startswith("hmip"):
                 return ProductGroup.HMIP
-        if self.interface == InterfaceName.BIDCOS_WIRED:
+        if self.interface == Interface.BIDCOS_WIRED:
             return ProductGroup.HMW
-        if self.interface == InterfaceName.BIDCOS_RF:
+        if self.interface == Interface.BIDCOS_RF:
             return ProductGroup.HM
-        if self.interface == InterfaceName.VIRTUAL_DEVICES:
+        if self.interface == Interface.VIRTUAL_DEVICES:
             return ProductGroup.VIRTUAL
         return ProductGroup.UNKNOWN
 
@@ -262,10 +262,12 @@ class Client(ABC):
         await self._proxy_read.stop()
 
     @abstractmethod
+    @service()
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
 
     @abstractmethod
+    @service()
     async def fetch_device_details(self) -> None:
         """Fetch names from backend."""
 
@@ -345,21 +347,24 @@ class Client(ABC):
         """Get single system variable from CCU / Homegear."""
 
     @abstractmethod
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
+    @service(re_raise=False, no_raise_return=())
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
     @abstractmethod
+    @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
 
     @abstractmethod
+    @service(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
 
@@ -375,6 +380,7 @@ class Client(ABC):
                     return device
         return None
 
+    @service(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
@@ -814,6 +820,7 @@ class Client(ABC):
             return parameter_data["TYPE"]
         return None
 
+    @service()
     async def fetch_paramset_description(
         self, channel_address: str, paramset_key: ParamsetKey
     ) -> None:
@@ -830,6 +837,7 @@ class Client(ABC):
                 paramset_description=paramset_description,
             )
 
+    @service()
     async def fetch_paramset_descriptions(self, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
         data = await self.get_paramset_descriptions(device_description=device_description)
@@ -843,6 +851,7 @@ class Client(ABC):
                     paramset_description=paramset_description,
                 )
 
+    @service(re_raise=False, no_raise_return={})
     async def get_paramset_descriptions(
         self, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
@@ -878,6 +887,7 @@ class Client(ABC):
             )
         return None
 
+    @service()
     async def get_all_paramset_descriptions(
         self, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
@@ -895,7 +905,7 @@ class Client(ABC):
         return False
 
     @measure_execution_time
-    @service()
+    @service(re_raise=False)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -991,6 +1001,7 @@ class ClientCCU(Client):
         return True
 
     @measure_execution_time
+    @service()
     async def fetch_device_details(self) -> None:
         """Get all names via JSON-RPS and store in data.NAMES."""
         if json_result := await self._json_rpc_client.get_device_details():
@@ -1011,12 +1022,13 @@ class ClientCCU(Client):
                         address=channel_address, hmid=channel[_JSON_ID]
                     )
                 self.central.device_details.add_interface(
-                    address=device_address, interface=device[_JSON_INTERFACE]
+                    address=device_address, interface=Interface(device[_JSON_INTERFACE])
                 )
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
     @measure_execution_time
+    @service()
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
         try:
@@ -1101,7 +1113,7 @@ class ClientCCU(Client):
         """Get single system variable from CCU / Homegear."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
@@ -1110,12 +1122,12 @@ class ClientCCU(Client):
             include_internal=include_internal
         )
 
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(include_internal=include_internal)
 
-    @service()
+    @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from CCU."""
         rooms: dict[str, set[str]] = {}
@@ -1127,7 +1139,7 @@ class ClientCCU(Client):
                 rooms[address].update(names)
         return rooms
 
-    @service()
+    @service(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from CCU."""
         functions: dict[str, set[str]] = {}
@@ -1152,7 +1164,7 @@ class ClientJsonCCU(ClientCCU):
         """Return the supports_ping_pong info of the backend."""
         return False
 
-    @service()
+    @service(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
@@ -1235,8 +1247,8 @@ class ClientJsonCCU(ClientCCU):
                 f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @service()
     @measure_execution_time
+    @service(re_raise=False)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -1337,6 +1349,7 @@ class ClientHomegear(Client):
         return
 
     @measure_execution_time
+    @service()
     async def fetch_device_details(self) -> None:
         """Get all names from metadata (Homegear)."""
         _LOGGER.debug("FETCH_DEVICE_DETAILS: Fetching names via Metadata")
@@ -1410,7 +1423,7 @@ class ClientHomegear(Client):
                 f"GET_SYSTEM_VARIABLE failed: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @service()
+    @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
@@ -1426,14 +1439,17 @@ class ClientHomegear(Client):
             ) from ex
         return tuple(variables)
 
+    @service(re_raise=False, no_raise_return=())
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()
 
+    @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from Homegear."""
         return {}
 
+    @service(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from Homegear."""
         return {}
@@ -1441,7 +1457,7 @@ class ClientHomegear(Client):
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
         return SystemInformation(
-            available_interfaces=(InterfaceName.BIDCOS_RF,), serial=HOMEGEAR_SERIAL
+            available_interfaces=(Interface.BIDCOS_RF,), serial=HOMEGEAR_SERIAL
         )
 
 
@@ -1536,12 +1552,12 @@ class InterfaceConfig:
     def __init__(
         self,
         central_name: str,
-        interface: InterfaceName,
+        interface: Interface,
         port: int,
         remote_path: str | None = None,
     ) -> None:
         """Init the interface config."""
-        self.interface: Final[InterfaceName] = interface
+        self.interface: Final[Interface] = interface
         self.interface_id: Final[str] = f"{central_name}-{self.interface}"
         self.port: Final = port
         self.remote_path: Final = remote_path
@@ -1549,11 +1565,11 @@ class InterfaceConfig:
 
     def _init_validate(self) -> None:
         """Validate the client_config."""
-        if self.interface not in list(InterfaceName):
+        if self.interface not in list(Interface):
             _LOGGER.warning(
                 "VALIDATE interface config failed: "
                 "Interface names must be within [%s] for production use",
-                ", ".join(list(InterfaceName)),
+                ", ".join(list(Interface)),
             )
 
 

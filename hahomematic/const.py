@@ -384,8 +384,8 @@ class ProductGroup(StrEnum):
     VIRTUAL = "VirtualDevices"
 
 
-class InterfaceName(StrEnum):
-    """Enum with homematic interface names."""
+class Interface(StrEnum):
+    """Enum with homematic interfaces."""
 
     BIDCOS_RF = "BidCos-RF"
     BIDCOS_WIRED = "BidCos-Wired"
@@ -531,10 +531,10 @@ RELEVANT_INIT_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.UN_REACH,
 )
 
-INTERFACES_SUPPORTING_FIRMWARE_UPDATES: Final[tuple[InterfaceName, ...]] = (
-    InterfaceName.BIDCOS_RF,
-    InterfaceName.BIDCOS_WIRED,
-    InterfaceName.HMIP_RF,
+INTERFACES_SUPPORTING_FIRMWARE_UPDATES: Final[tuple[Interface, ...]] = (
+    Interface.BIDCOS_RF,
+    Interface.BIDCOS_WIRED,
+    Interface.HMIP_RF,
 )
 
 IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (

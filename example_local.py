@@ -438,7 +438,7 @@ class Example:
 
         interface_config = InterfaceConfig(
             central_name=CENTRAL_NAME,
-            interface=const.InterfaceName.BIDCOS_RF,
+            interface=const.Interface.BIDCOS_RF,
             port=2002,
         )
 

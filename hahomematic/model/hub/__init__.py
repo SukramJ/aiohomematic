@@ -17,6 +17,7 @@ from hahomematic.const import (
     SystemVariableData,
     SysvarType,
 )
+from hahomematic.model.decorators import service
 from hahomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from hahomematic.model.hub.button import ProgramDpButton
 from hahomematic.model.hub.data_point import GenericHubDataPoint, GenericSysvarDataPoint
@@ -57,6 +58,7 @@ class Hub:
         self._central: Final = central
         self._config: Final = central.config
 
+    @service(re_raise=False)
     async def fetch_sysvar_data(self, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
         if self._config.sysvar_scan_enabled:
@@ -69,6 +71,7 @@ class Hub:
                 if self._central.available:
                     await self._update_sysvar_data_points()
 
+    @service(re_raise=False)
     async def fetch_program_data(self, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         if self._config.program_scan_enabled:

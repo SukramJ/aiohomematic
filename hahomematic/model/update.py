@@ -12,7 +12,7 @@ from hahomematic.const import (
     HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES,
     HMIP_FIRMWARE_UPDATE_READY_STATES,
     DataPointCategory,
-    InterfaceName,
+    Interface,
 )
 from hahomematic.exceptions import HaHomematicException
 from hahomematic.model import device as hmd
@@ -78,7 +78,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     @state_property
     def in_progress(self) -> bool:
         """Update installation progress."""
-        if self._device.interface == InterfaceName.HMIP_RF:
+        if self._device.interface == Interface.HMIP_RF:
             return self._device.firmware_update_state in HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES
         return False
 
@@ -87,10 +87,10 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         """Latest firmware available for install."""
         if self._device.available_firmware and (
             (
-                self._device.interface == InterfaceName.HMIP_RF
+                self._device.interface == Interface.HMIP_RF
                 and self._device.firmware_update_state in HMIP_FIRMWARE_UPDATE_READY_STATES
             )
-            or self._device.interface in (InterfaceName.BIDCOS_RF, InterfaceName.BIDCOS_WIRED)
+            or self._device.interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED)
         ):
             return self._device.available_firmware
         return self._device.firmware

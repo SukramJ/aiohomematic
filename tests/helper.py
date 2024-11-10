@@ -15,7 +15,7 @@ import orjson
 from hahomematic import const as hahomematic_const
 from hahomematic.central import CentralConfig, CentralUnit
 from hahomematic.client import Client, InterfaceConfig, _ClientConfig
-from hahomematic.const import BackendSystemEvent, InterfaceName
+from hahomematic.const import BackendSystemEvent, Interface
 from hahomematic.model.custom import CustomDataPoint
 from hahomematic.model.decorators import _get_public_attributes_by_class_decorator
 from hahomematic_support.client_local import ClientLocal, LocalRessources
@@ -75,7 +75,7 @@ class Factory:
         """Return a central based on give address_device_translation."""
         interface_config = InterfaceConfig(
             central_name=const.CENTRAL_NAME,
-            interface=hahomematic_const.InterfaceName.BIDCOS_RF,
+            interface=hahomematic_const.Interface.BIDCOS_RF,
             port=2002,
         )
 
@@ -223,7 +223,7 @@ async def get_pydev_ccu_central_unit_full(client_session: ClientSession | None) 
     interface_configs = {
         InterfaceConfig(
             central_name=const.CENTRAL_NAME,
-            interface=InterfaceName.BIDCOS_RF,
+            interface=Interface.BIDCOS_RF,
             port=const.CCU_PORT,
         )
     }

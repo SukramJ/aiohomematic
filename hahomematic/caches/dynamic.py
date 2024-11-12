@@ -54,6 +54,7 @@ class CommandCache:
             )
 
         data_point_key = get_data_point_key(
+            interface_id=self._interface_id,
             channel_address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
@@ -68,6 +69,7 @@ class CommandCache:
         data_point_keys: set[DP_KEY] = set()
         for parameter, value in values.items():
             data_point_key = get_data_point_key(
+                interface_id=self._interface_id,
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 parameter=parameter,

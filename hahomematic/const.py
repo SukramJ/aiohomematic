@@ -476,7 +476,7 @@ DATA_POINT_EVENTS: Final[tuple[EventType, ...]] = (
 )
 
 # channel_address, paramset_key,parameter
-DP_KEY = tuple[str, ParamsetKey, str]
+DP_KEY = tuple[str, str, ParamsetKey, str]
 
 HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
     DeviceFirmwareState.DO_UPDATE_PENDING,

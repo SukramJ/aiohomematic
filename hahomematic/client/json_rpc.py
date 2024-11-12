@@ -97,6 +97,7 @@ class _JsonRpcMethod(StrEnum):
     INTERFACE_GET_PARAMSET = "Interface.getParamset"
     INTERFACE_GET_PARAMSET_DESCRIPTION = "Interface.getParamsetDescription"
     INTERFACE_GET_VALUE = "Interface.getValue"
+    INTERFACE_IS_PRESENT = "Interface.isPresent"
     INTERFACE_LIST_DEVICES = "Interface.listDevices"
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
     INTERFACE_PUT_PARAMSET = "Interface.putParamset"
@@ -918,6 +919,21 @@ class JsonRpcAioHttpClient:
                 )
 
         return tuple(all_programs)
+
+    async def is_present(self, interface: Interface) -> bool:
+        """Get value from CCU."""
+        value: bool = False
+        params = {_JsonKey.INTERFACE: interface}
+
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_IS_PRESENT, extra_params=params
+        )
+
+        _LOGGER.debug("IS_PRESENT: Getting the value")
+        if json_result := response[_JsonKey.RESULT]:
+            value = bool(json_result)
+
+        return value
 
     async def has_program_ids(self, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""

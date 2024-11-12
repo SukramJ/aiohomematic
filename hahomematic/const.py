@@ -69,7 +69,7 @@ PORT_ANY: Final = 0
 REPORT_VALUE_USAGE_VALUE_ID: Final = "PRESS_SHORT"
 REPORT_VALUE_USAGE_DATA: Final = "reportValueUsageData"
 
-HOMEGEAR_SERIAL = "Homegear_SN0815"
+DUMMY_SERIAL = "SN0815"
 
 PROGRAM_ADDRESS: Final = "program"
 SYSVAR_ADDRESS: Final = "sysvar"

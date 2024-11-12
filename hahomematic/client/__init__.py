@@ -17,7 +17,7 @@ from hahomematic.const import (
     DEFAULT_CUSTOM_ID,
     DEFAULT_MAX_WORKERS,
     DP_KEY,
-    HOMEGEAR_SERIAL,
+    DUMMY_SERIAL,
     INIT_DATETIME,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     VIRTUAL_REMOTE_MODELS,
@@ -1168,6 +1168,31 @@ class ClientCCU(Client):
 class ClientJsonCCU(ClientCCU):
     """Client implementation for CCU backend."""
 
+    async def init_client(self) -> None:
+        """Init the client."""
+        self._system_information = await self._get_system_information()
+
+    @service(re_raise=False, no_raise_return=False)
+    async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
+        """Check if proxy is still initialized."""
+        return await self._json_rpc_client.is_present(interface=self.interface)
+
+    async def proxy_init(self) -> ProxyInitState:
+        """Init the proxy has to tell the CCU / Homegear where to send the events."""
+        device_descriptions = await self.list_devices()
+        await self.central.add_new_devices(
+            interface_id=self.interface_id, device_descriptions=device_descriptions
+        )
+        return ProxyInitState.INIT_SUCCESS
+
+    async def proxy_de_init(self) -> ProxyInitState:
+        """De-init to stop CCU from sending events for this remote."""
+        return ProxyInitState.DE_INIT_SUCCESS
+
+    async def stop(self) -> None:
+        """Stop depending services."""
+        return
+
     @property
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
@@ -1355,6 +1380,16 @@ class ClientJsonCCU(ClientCCU):
             value=value,
         )
 
+    async def _get_system_information(self) -> SystemInformation:
+        """Get system information of the backend."""
+        return SystemInformation(
+            available_interfaces=(
+                Interface.CUXD,
+                Interface.CCU_JACK,
+            ),
+            serial=f"{self.interface}_{DUMMY_SERIAL}",
+        )
+
 
 class ClientHomegear(Client):
     """Client implementation for Homegear backend."""
@@ -1390,8 +1425,8 @@ class ClientHomegear(Client):
         ):
             try:
                 self.central.device_details.add_name(
-                    address,
-                    await self._proxy_read.getMetadata(address, _NAME),
+                    address=address,
+                    name=await self._proxy_read.getMetadata(address, _NAME),
                 )
             except BaseHomematicException as ex:
                 _LOGGER.warning(
@@ -1489,7 +1524,7 @@ class ClientHomegear(Client):
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
         return SystemInformation(
-            available_interfaces=(Interface.BIDCOS_RF,), serial=HOMEGEAR_SERIAL
+            available_interfaces=(Interface.BIDCOS_RF,), serial=f"{self.interface}_{DUMMY_SERIAL}"
         )
 
 
@@ -1525,20 +1560,19 @@ class _ClientConfig:
 
     async def get_client(self) -> Client:
         """Identify the used client."""
-        client: Client | None = None
-        check_proxy = await self._get_simple_xml_rpc_proxy()
         try:
-            if methods := check_proxy.supported_methods:
-                # BidCos-Wired does not support getVersion()
-                self.version = (
-                    cast(str, await check_proxy.getVersion()) if "getVersion" in methods else "0"
-                )
-
-            if client := (
-                ClientHomegear(client_config=self)
-                if "Homegear" in self.version or "pydevccu" in self.version
-                else ClientCCU(client_config=self)
+            self.version = await self._get_version()
+            client: Client | None
+            if self.interface == Interface.BIDCOS_RF and (
+                "Homegear" in self.version or "pydevccu" in self.version
             ):
+                client = ClientHomegear(client_config=self)
+            elif self.interface in (Interface.CCU_JACK, Interface.CUXD):
+                client = ClientJsonCCU(client_config=self)
+            else:
+                client = ClientCCU(client_config=self)
+
+            if client:
                 await client.init_client()
                 if await client.check_connection_availability(handle_ping_pong=False):
                     return client
@@ -1547,6 +1581,19 @@ class _ClientConfig:
             raise
         except Exception as ex:
             raise NoConnectionException(f"Unable to connect {reduce_args(args=ex.args)}.") from ex
+
+    async def _get_version(self) -> str:
+        """Return the version of the backend."""
+        if self.interface in (Interface.CCU_JACK, Interface.CUXD):
+            return str(self.interface)
+        check_proxy = await self._get_simple_xml_rpc_proxy()
+        try:
+            if (methods := check_proxy.supported_methods) and "getVersion" in methods:
+                # BidCos-Wired does not support getVersion()
+                return cast(str, await check_proxy.getVersion())
+        except Exception as ex:
+            raise NoConnectionException(f"Unable to connect {reduce_args(args=ex.args)}.") from ex
+        return "0"
 
     async def get_xml_rpc_proxy(
         self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS

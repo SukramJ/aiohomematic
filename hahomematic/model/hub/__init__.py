@@ -63,7 +63,7 @@ class Hub:
         """Fetch sysvar data for the hub."""
         if self._config.sysvar_scan_enabled:
             _LOGGER.debug(
-                "FETCH_SYSVAR_DATA: % fetching of system variables for %s",
+                "FETCH_SYSVAR_DATA: %s fetching of system variables for %s",
                 "Scheduled" if scheduled else "Manual",
                 self._central.name,
             )
@@ -76,7 +76,7 @@ class Hub:
         """Fetch program data for the hub."""
         if self._config.program_scan_enabled:
             _LOGGER.debug(
-                "FETCH_PROGRAM_DATA: % fetching of programs for %s",
+                "FETCH_PROGRAM_DATA: %s fetching of programs for %s",
                 "Scheduled" if scheduled else "Manual",
                 self._central.name,
             )

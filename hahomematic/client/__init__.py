@@ -1177,6 +1177,31 @@ class ClientJsonCCU(ClientCCU):
         """Check if proxy is still initialized."""
         return await self._json_rpc_client.is_present(interface=self.interface)
 
+    async def is_connected(self) -> bool:
+        """
+        Perform actions required for connectivity check.
+
+        Connection is not connected, if three consecutive checks fail.
+        Return connectivity state.
+        """
+        if await self.check_connection_availability(handle_ping_pong=True) is True:
+            self._connection_error_count = 0
+        else:
+            self._connection_error_count += 1
+
+        if self._connection_error_count > 3:
+            self._mark_all_devices_forced_availability(
+                forced_availability=ForcedDeviceAvailability.FORCE_FALSE
+            )
+            return False
+
+        # return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
+        return True
+
+    def is_callback_alive(self) -> bool:
+        """Return if XmlRPC-Server is alive based on received events for this client."""
+        return True
+
     async def proxy_init(self) -> ProxyInitState:
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
         device_descriptions = await self.list_devices()

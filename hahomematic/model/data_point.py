@@ -480,6 +480,7 @@ class BaseParameterDataPoint[
     def data_point_key(self) -> DP_KEY:
         """Return data_point key value."""
         return get_data_point_key(
+            interface_id=self._device.interface_id,
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
             parameter=self._parameter,

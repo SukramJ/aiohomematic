@@ -1735,7 +1735,7 @@ async def _track_single_data_point_state_change_or_timeout(
                 )
                 ev.set()
 
-    channel_address, paramset_key, parameter = data_point_key
+    interface_id, channel_address, paramset_key, parameter = data_point_key
     if dp := device.get_generic_data_point(
         channel_address=channel_address,
         parameter=parameter,

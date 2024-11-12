@@ -976,6 +976,7 @@ class CentralUnit(PayloadMixin):
             return
 
         data_point_key = get_data_point_key(
+            interface_id=interface_id,
             channel_address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
@@ -1003,7 +1004,6 @@ class CentralUnit(PayloadMixin):
                     reduce_args(args=ex.args),
                 )
 
-    @callback_event
     async def data_point_path_event(self, path_state: str, value: str) -> None:
         """If a device emits some sort event, we will handle it here."""
         _LOGGER.debug(
@@ -1014,25 +1014,14 @@ class CentralUnit(PayloadMixin):
 
         if (
             data_point_key := self._data_point_path_event_subscriptions.get(path_state)
-        ) is not None and data_point_key in self._data_point_key_event_subscriptions:
-            try:
-                for callback_handler in self._data_point_key_event_subscriptions[data_point_key]:
-                    if callable(callback_handler):
-                        await callback_handler(value)
-            except RuntimeError as rte:  # pragma: no cover
-                _LOGGER.debug(
-                    "DATA_POINT_PATH_EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s",
-                    reduce_args(args=rte.args),
-                    path_state,
-                    value,
-                )
-            except Exception as ex:  # pragma: no cover
-                _LOGGER.warning(
-                    "DATA_POINT_PATH_EVENT failed: Unable to call callback for: %s, %s, %s",
-                    path_state,
-                    value,
-                    reduce_args(args=ex.args),
-                )
+        ) is not None:
+            interface_id, channel_address, paramset_key, parameter = data_point_key
+            await self.data_point_event(
+                interface_id=interface_id,
+                channel_address=channel_address,
+                parameter=parameter,
+                value=value,
+            )
 
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, interface_id: str) -> list[DeviceDescription]:

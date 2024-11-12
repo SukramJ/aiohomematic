@@ -887,6 +887,7 @@ class Channel(PayloadMixin):
         if paramset_key:
             return self._generic_data_points.get(
                 get_data_point_key(
+                    interface_id=self._device.interface_id,
                     channel_address=self._address,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -895,6 +896,7 @@ class Channel(PayloadMixin):
 
         if dp := self._generic_data_points.get(
             get_data_point_key(
+                interface_id=self._device.interface_id,
                 channel_address=self._address,
                 paramset_key=ParamsetKey.VALUES,
                 parameter=parameter,
@@ -903,6 +905,7 @@ class Channel(PayloadMixin):
             return dp
         return self._generic_data_points.get(
             get_data_point_key(
+                interface_id=self._device.interface_id,
                 channel_address=self._address,
                 paramset_key=ParamsetKey.MASTER,
                 parameter=parameter,
@@ -913,6 +916,7 @@ class Channel(PayloadMixin):
         """Return a generic event from device."""
         return self._generic_events.get(
             get_data_point_key(
+                interface_id=self._device.interface_id,
                 channel_address=self._address,
                 paramset_key=ParamsetKey.VALUES,
                 parameter=parameter,
@@ -1080,7 +1084,10 @@ class _ValueCache:
     ) -> None:
         """Add value to cache."""
         key = get_data_point_key(
-            channel_address=channel_address, paramset_key=paramset_key, parameter=parameter
+            interface_id=self._device.interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
         )
         # write value to cache even if an exception has occurred
         # to avoid repetitive calls to CCU within max_age
@@ -1109,7 +1116,10 @@ class _ValueCache:
 
         # Try to get data from device cache
         key = get_data_point_key(
-            channel_address=channel_address, paramset_key=paramset_key, parameter=parameter
+            interface_id=self._device.interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
         )
         if (
             cache_entry := self._device_cache.get(key, CacheEntry.empty())

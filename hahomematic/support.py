@@ -226,9 +226,11 @@ def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
     )
 
 
-def get_data_point_key(channel_address: str, paramset_key: ParamsetKey, parameter: str) -> DP_KEY:
+def get_data_point_key(
+    interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+) -> DP_KEY:
     """Return a data point key."""
-    return (str(channel_address), paramset_key, str(parameter))
+    return (str(interface_id), str(channel_address), paramset_key, str(parameter))
 
 
 @lru_cache(maxsize=2048)

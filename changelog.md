@@ -1,8 +1,9 @@
-# Version 2024.11.1 (2024-11-09)
+# Version 2024.11.1 (2024-11-12)
 
 - Add basic support for json clients
 - Add data_point_path event
 - Add getDeviceDescription, getParamsetDescription, listDevices, getValue, setValue, getParamset, putParamset to json_rpc
+- Extend DP_KEY with interface_id
 - Rename event to data_point_event
 
 # Version 2024.11.0 (2024-11-04)

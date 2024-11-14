@@ -247,7 +247,7 @@ class CentralDataCache:
             return True
         return False
 
-    async def load(self, direct_call: bool = False) -> None:
+    async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from backend."""
         if direct_call is False and changed_within_seconds(
             last_change=self._refreshed_at, max_age=int(MAX_CACHE_AGE / 2)
@@ -256,12 +256,16 @@ class CentralDataCache:
         self.clear()
         _LOGGER.debug("load: Loading device data for %s", self._central.name)
         for client in self._central.clients:
+            if interface and interface != client.interface:
+                continue
             await client.fetch_all_device_data()
 
-    async def refresh_data_point_data(self, paramset_key: ParamsetKey | None = None) -> None:
+    async def refresh_data_point_data(
+        self, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
+    ) -> None:
         """Refresh data_point data."""
         for data_point in self._central.get_readable_generic_data_points(
-            paramset_key=paramset_key
+            paramset_key=paramset_key, interface=interface
         ):
             await data_point.load_data_point_value(call_source=CallSource.HM_INIT)
 

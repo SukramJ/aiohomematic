@@ -999,16 +999,16 @@ class CentralUnit(PayloadMixin):
                     reduce_args(args=ex.args),
                 )
 
-    def data_point_path_event(self, path_state: str, value: str) -> None:
+    def data_point_path_event(self, state_path: str, value: str) -> None:
         """If a device emits some sort event, we will handle it here."""
         _LOGGER.debug(
             "DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
-            path_state,
+            state_path,
             value,
         )
 
         if (
-            data_point_key := self._data_point_path_event_subscriptions.get(path_state)
+            data_point_key := self._data_point_path_event_subscriptions.get(state_path)
         ) is not None:
             interface_id, channel_address, paramset_key, parameter = data_point_key
             self._looper.create_task(
@@ -1042,9 +1042,9 @@ class CentralUnit(PayloadMixin):
             )
             if (
                 not data_point.channel.device.client.supports_xml_rpc
-                and data_point.path_state not in self._data_point_path_event_subscriptions
+                and data_point.state_path not in self._data_point_path_event_subscriptions
             ):
-                self._data_point_path_event_subscriptions[data_point.path_state] = (
+                self._data_point_path_event_subscriptions[data_point.state_path] = (
                     data_point.data_point_key
                 )
 
@@ -1080,8 +1080,8 @@ class CentralUnit(PayloadMixin):
         if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.supports_events:
             if data_point.data_point_key in self._data_point_key_event_subscriptions:
                 del self._data_point_key_event_subscriptions[data_point.data_point_key]
-            if data_point.path_state in self._data_point_path_event_subscriptions:
-                del self._data_point_path_event_subscriptions[data_point.path_state]
+            if data_point.state_path in self._data_point_path_event_subscriptions:
+                del self._data_point_path_event_subscriptions[data_point.state_path]
 
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""

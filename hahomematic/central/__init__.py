@@ -667,12 +667,15 @@ class CentralUnit(PayloadMixin):
     def get_data_points(
         self,
         category: DataPointCategory | None = None,
+        interface: Interface | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
     ) -> tuple[CallbackDataPoint, ...]:
         """Return all externally registered data points."""
         all_data_points: list[CallbackDataPoint] = []
         for device in self._devices.values():
+            if interface and interface != device.interface:
+                continue
             all_data_points.extend(
                 device.get_data_points(
                     category=category, exclude_no_create=exclude_no_create, registered=registered
@@ -681,12 +684,12 @@ class CentralUnit(PayloadMixin):
         return tuple(all_data_points)
 
     def get_readable_generic_data_points(
-        self, paramset_key: ParamsetKey | None = None
+        self, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
     ) -> tuple[GenericDataPoint, ...]:
         """Return the readable generic data points."""
         return tuple(
             ge
-            for ge in self.get_data_points()
+            for ge in self.get_data_points(interface=interface)
             if (
                 isinstance(ge, GenericDataPoint)
                 and ge.is_readable
@@ -1099,12 +1102,14 @@ class CentralUnit(PayloadMixin):
 
     @measure_execution_time
     async def load_and_refresh_data_point_data(
-        self, paramset_key: ParamsetKey | None = None
+        self, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
     ) -> None:
         """Refresh data_point data."""
         if paramset_key != ParamsetKey.MASTER and self._data_cache.is_empty:
-            await self._data_cache.load()
-        await self._data_cache.refresh_data_point_data(paramset_key=paramset_key)
+            await self._data_cache.load(interface=interface)
+        await self._data_cache.refresh_data_point_data(
+            paramset_key=paramset_key, interface=interface
+        )
 
     async def get_system_variable(self, name: str) -> Any | None:
         """Get system variable from CCU / Homegear."""

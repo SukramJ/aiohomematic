@@ -1032,7 +1032,9 @@ class CentralUnit(PayloadMixin):
 
     def add_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Add data_point to central event subscription."""
-        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.is_readable:
+        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and (
+            data_point.is_readable or data_point.supports_events
+        ):
             if data_point.data_point_key not in self._data_point_key_event_subscriptions:
                 self._data_point_key_event_subscriptions[data_point.data_point_key] = []
             self._data_point_key_event_subscriptions[data_point.data_point_key].append(

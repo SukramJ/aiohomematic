@@ -20,6 +20,7 @@ from hahomematic.const import (
     DUMMY_SERIAL,
     INIT_DATETIME,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
+    INTERFACES_SUPPORTING_XML_RPC,
     VIRTUAL_REMOTE_MODELS,
     Backend,
     CallSource,
@@ -80,6 +81,7 @@ class Client(ABC):
     def __init__(self, client_config: _ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
+        self._supports_xml_rpc = self.interface in INTERFACES_SUPPORTING_XML_RPC
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
         self._json_rpc_client: Final = client_config.central.config.json_rpc_client
         self._available: bool = True
@@ -140,6 +142,11 @@ class Client(ABC):
         return self._ping_pong_cache
 
     @property
+    def supports_xml_rpc(self) -> bool:
+        """Return if interface support xml rpc."""
+        return self._supports_xml_rpc
+
+    @property
     def system_information(self) -> SystemInformation:
         """Return the system_information of the client."""
         return self._system_information
@@ -177,6 +184,13 @@ class Client(ABC):
 
     async def proxy_init(self) -> ProxyInitState:
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
+
+        if not self.supports_xml_rpc:
+            device_descriptions = await self.list_devices()
+            await self.central.add_new_devices(
+                interface_id=self.interface_id, device_descriptions=device_descriptions
+            )
+            return ProxyInitState.INIT_SUCCESS
         try:
             _LOGGER.debug("PROXY_INIT: init('%s', '%s')", self._config.init_url, self.interface_id)
             self._ping_pong_cache.clear()
@@ -199,6 +213,9 @@ class Client(ABC):
 
     async def proxy_de_init(self) -> ProxyInitState:
         """De-init to stop CCU from sending events for this remote."""
+        if not self.supports_xml_rpc:
+            return ProxyInitState.DE_INIT_SUCCESS
+
         if self.modified_at == INIT_DATETIME:
             _LOGGER.debug(
                 "PROXY_DE_INIT: Skipping de-init for %s (not initialized)",
@@ -267,6 +284,8 @@ class Client(ABC):
 
     async def stop(self) -> None:
         """Stop depending services."""
+        if not self.supports_xml_rpc:
+            return
         await self._proxy.stop()
         await self._proxy_read.stop()
 
@@ -302,6 +321,8 @@ class Client(ABC):
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
+        if not self.supports_ping_pong:
+            return True
         if last_events_time := self.central.last_events.get(self.interface_id):
             seconds_since_last_event = (datetime.now() - last_events_time).total_seconds()
             if seconds_since_last_event > CALLBACK_WARN_INTERVAL:
@@ -1177,47 +1198,6 @@ class ClientJsonCCU(ClientCCU):
         """Check if proxy is still initialized."""
         return await self._json_rpc_client.is_present(interface=self.interface)
 
-    async def is_connected(self) -> bool:
-        """
-        Perform actions required for connectivity check.
-
-        Connection is not connected, if three consecutive checks fail.
-        Return connectivity state.
-        """
-        if await self.check_connection_availability(handle_ping_pong=True) is True:
-            self._connection_error_count = 0
-        else:
-            self._connection_error_count += 1
-
-        if self._connection_error_count > 3:
-            self._mark_all_devices_forced_availability(
-                forced_availability=ForcedDeviceAvailability.FORCE_FALSE
-            )
-            return False
-
-        # return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
-        return True
-
-    def is_callback_alive(self) -> bool:
-        """Return if XmlRPC-Server is alive based on received events for this client."""
-        return True
-
-    async def proxy_init(self) -> ProxyInitState:
-        """Init the proxy has to tell the CCU / Homegear where to send the events."""
-        device_descriptions = await self.list_devices()
-        await self.central.add_new_devices(
-            interface_id=self.interface_id, device_descriptions=device_descriptions
-        )
-        return ProxyInitState.INIT_SUCCESS
-
-    async def proxy_de_init(self) -> ProxyInitState:
-        """De-init to stop CCU from sending events for this remote."""
-        return ProxyInitState.DE_INIT_SUCCESS
-
-    async def stop(self) -> None:
-        """Stop depending services."""
-        return
-
     @property
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
@@ -1408,10 +1388,7 @@ class ClientJsonCCU(ClientCCU):
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
         return SystemInformation(
-            available_interfaces=(
-                Interface.CUXD,
-                Interface.CCU_JACK,
-            ),
+            available_interfaces=(self.interface,),
             serial=f"{self.interface}_{DUMMY_SERIAL}",
         )
 

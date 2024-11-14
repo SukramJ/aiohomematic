@@ -56,7 +56,7 @@ exclude = ["tests", "tests.*", "dist", "build"]
 hahomematic = ["py.typed", "rega_scripts/*.fn"]
 
 [tool.pylint.MAIN]
-py-version = "3.12"
+py-version = "3.13"
 ignore = [
     "tests",
 ]

@@ -197,14 +197,14 @@ class CallbackDataPoint(ABC):
         return self._custom_id is not None
 
     @property
-    def path_set(self) -> str:
+    def set_path(self) -> str:
         """Return the base set path of the data_point."""
-        return self._path_data.path_set
+        return self._path_data.set_path
 
     @property
-    def path_state(self) -> str:
+    def state_path(self) -> str:
         """Return the base state path of the data_point."""
-        return self._path_data.path_state
+        return self._path_data.state_path
 
     # @property
     @property
@@ -292,7 +292,7 @@ class CallbackDataPoint(ABC):
 
     def __str__(self) -> str:
         """Provide some useful information."""
-        return f"path: {self.path_state}, name: {self.full_name}"
+        return f"path: {self.state_path}, name: {self.full_name}"
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):

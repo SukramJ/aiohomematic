@@ -278,11 +278,6 @@ class CentralUnit(PayloadMixin):
         return self._config.name
 
     @property
-    def path(self) -> str:
-        """Return the base path of the data_point."""
-        return f"{self._config.base_path}{self.name}"
-
-    @property
     def program_buttons(self) -> tuple[ProgramDpButton, ...]:
         """Return the program data points."""
         return tuple(self._program_buttons.values())
@@ -1004,7 +999,7 @@ class CentralUnit(PayloadMixin):
                     reduce_args(args=ex.args),
                 )
 
-    async def data_point_path_event(self, path_state: str, value: str) -> None:
+    def data_point_path_event(self, path_state: str, value: str) -> None:
         """If a device emits some sort event, we will handle it here."""
         _LOGGER.debug(
             "DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
@@ -1016,11 +1011,14 @@ class CentralUnit(PayloadMixin):
             data_point_key := self._data_point_path_event_subscriptions.get(path_state)
         ) is not None:
             interface_id, channel_address, paramset_key, parameter = data_point_key
-            await self.data_point_event(
-                interface_id=interface_id,
-                channel_address=channel_address,
-                parameter=parameter,
-                value=value,
+            self._looper.create_task(
+                self.data_point_event(
+                    interface_id=interface_id,
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    value=value,
+                ),
+                name=f"event-{interface_id}-{channel_address}-{parameter}",
             )
 
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
@@ -1034,13 +1032,18 @@ class CentralUnit(PayloadMixin):
 
     def add_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Add data_point to central event subscription."""
-        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.supports_events:
+        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and (
+            data_point.is_readable or data_point.supports_events
+        ):
             if data_point.data_point_key not in self._data_point_key_event_subscriptions:
                 self._data_point_key_event_subscriptions[data_point.data_point_key] = []
             self._data_point_key_event_subscriptions[data_point.data_point_key].append(
                 data_point.event
             )
-            if data_point.path_state not in self._data_point_path_event_subscriptions:
+            if (
+                not data_point.channel.device.client.supports_xml_rpc
+                and data_point.path_state not in self._data_point_path_event_subscriptions
+            ):
                 self._data_point_path_event_subscriptions[data_point.path_state] = (
                     data_point.data_point_key
                 )
@@ -1444,58 +1447,56 @@ class CentralConfig:
 
     def __init__(
         self,
-        storage_folder: str,
-        name: str,
-        host: str,
-        username: str,
-        password: str,
         central_id: str,
-        interface_configs: AbstractSet[hmcl.InterfaceConfig],
-        default_callback_port: int,
         client_session: ClientSession | None,
-        tls: bool = DEFAULT_TLS,
-        verify_tls: bool = DEFAULT_VERIFY_TLS,
+        default_callback_port: int,
+        host: str,
+        interface_configs: AbstractSet[hmcl.InterfaceConfig],
+        name: str,
+        password: str,
+        storage_folder: str,
+        username: str,
         callback_host: str | None = None,
         callback_port: int | None = None,
+        include_internal_programs: bool = DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
+        include_internal_sysvars: bool = DEFAULT_INCLUDE_INTERNAL_SYSVARS,
         json_port: int | None = None,
         listen_ip_addr: str | None = None,
         listen_port: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
-        un_ignore_list: list[str] | None = None,
         program_scan_enabled: bool = DEFAULT_PROGRAM_SCAN_ENABLED,
-        include_internal_programs: bool = DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
-        sysvar_scan_enabled: bool = DEFAULT_SYSVAR_SCAN_ENABLED,
-        include_internal_sysvars: bool = DEFAULT_INCLUDE_INTERNAL_SYSVARS,
         start_direct: bool = False,
-        base_path: str | None = None,
+        sysvar_scan_enabled: bool = DEFAULT_SYSVAR_SCAN_ENABLED,
+        tls: bool = DEFAULT_TLS,
+        un_ignore_list: list[str] | None = None,
+        verify_tls: bool = DEFAULT_VERIFY_TLS,
     ) -> None:
         """Init the client config."""
-        self.connection_state: Final = CentralConnectionState()
-        self.storage_folder: Final = storage_folder
-        self.name: Final = name
-        self.host: Final = host
-        self.username: Final = username
-        self.password: Final = password
-        self.central_id: Final = central_id
-        self.interface_configs: Final = interface_configs
-        self.default_callback_port: Final = default_callback_port
-        self.client_session: Final = client_session
-        self.tls: Final = tls
-        self.verify_tls: Final = verify_tls
+        self._json_rpc_client: JsonRpcAioHttpClient | None = None
         self.callback_host: Final = callback_host
         self.callback_port: Final = callback_port
+        self.central_id: Final = central_id
+        self.client_session: Final = client_session
+        self.connection_state: Final = CentralConnectionState()
+        self.default_callback_port: Final = default_callback_port
+        self.host: Final = host
+        self.include_internal_programs: Final = include_internal_programs
+        self.include_internal_sysvars: Final = include_internal_sysvars
+        self.interface_configs: Final = interface_configs
         self.json_port: Final = json_port
         self.listen_ip_addr: Final = listen_ip_addr
         self.listen_port: Final = listen_port
         self.max_read_workers = max_read_workers
-        self.un_ignore_list: Final = un_ignore_list
+        self.name: Final = name
+        self.password: Final = password
         self.program_scan_enabled: Final = program_scan_enabled
-        self.include_internal_programs: Final = include_internal_programs
-        self.sysvar_scan_enabled: Final = sysvar_scan_enabled
-        self.include_internal_sysvars: Final = include_internal_sysvars
         self.start_direct: Final = start_direct
-        self._json_rpc_client: JsonRpcAioHttpClient | None = None
-        self._base_path: Final = base_path
+        self.storage_folder: Final = storage_folder
+        self.sysvar_scan_enabled: Final = sysvar_scan_enabled
+        self.tls: Final = tls
+        self.un_ignore_list: Final = un_ignore_list
+        self.username: Final = username
+        self.verify_tls: Final = verify_tls
 
     @property
     def central_url(self) -> str:
@@ -1537,15 +1538,6 @@ class CentralConfig:
                 verify_tls=self.verify_tls,
             )
         return self._json_rpc_client
-
-    @property
-    def base_path(self) -> str:
-        """Return the path prefix."""
-        if not self._base_path:
-            return ""
-        if self._base_path.endswith("/"):
-            return self._base_path
-        return f"{self._base_path}/"
 
     def check_config(self) -> None:
         """Check config. Throws BaseHomematicException on failure."""

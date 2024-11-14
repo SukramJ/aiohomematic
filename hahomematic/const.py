@@ -499,7 +499,6 @@ KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, tuple[str, ...]]] = {
     Parameter.PRESS_SHORT: ("KEY_BEHAVIOR", "SWITCH_BEHAVIOR"),
 }
 
-
 HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.HUB_BINARY_SENSOR,
     DataPointCategory.HUB_BUTTON,
@@ -537,6 +536,13 @@ INTERFACES_SUPPORTING_FIRMWARE_UPDATES: Final[tuple[Interface, ...]] = (
     Interface.BIDCOS_RF,
     Interface.BIDCOS_WIRED,
     Interface.HMIP_RF,
+)
+
+INTERFACES_SUPPORTING_XML_RPC: Final[tuple[Interface, ...]] = (
+    Interface.BIDCOS_RF,
+    Interface.BIDCOS_WIRED,
+    Interface.HMIP_RF,
+    Interface.VIRTUAL_DEVICES,
 )
 
 IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (

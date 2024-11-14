@@ -211,7 +211,7 @@ class Device(PayloadMixin):
     @info_property
     def firmware(self) -> str:
         """Return the firmware of the device."""
-        return self._description["FIRMWARE"]
+        return self._description.get("FIRMWARE") or "0.0"
 
     @property
     def firmware_updatable(self) -> bool:

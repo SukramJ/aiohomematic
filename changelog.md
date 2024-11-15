@@ -1,3 +1,7 @@
+# Version 2024.11.2 (2024-11-15)
+
+- Ignore unknown interfaces
+
 # Version 2024.11.1 (2024-11-14)
 
 - Add basic support for json clients

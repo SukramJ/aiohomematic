@@ -1036,7 +1036,14 @@ class ClientCCU(Client):
         """Get all names via JSON-RPS and store in data.NAMES."""
         if json_result := await self._json_rpc_client.get_device_details():
             for device in json_result:
+                # ignore unknown interfaces
+                if (interface := device[_JSON_INTERFACE]) and interface not in Interface:
+                    continue
+
                 device_address = device[_JSON_ADDRESS]
+                self.central.device_details.add_interface(
+                    address=device_address, interface=Interface(interface)
+                )
                 self.central.device_details.add_name(
                     address=device_address, name=device[_JSON_NAME]
                 )
@@ -1050,10 +1057,6 @@ class ClientCCU(Client):
                     )
                     self.central.device_details.add_address_id(
                         address=channel_address, hmid=channel[_JSON_ID]
-                    )
-                if (interface := device[_JSON_INTERFACE]) and interface in Interface:
-                    self.central.device_details.add_interface(
-                        address=device_address, interface=Interface(interface)
                     )
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")

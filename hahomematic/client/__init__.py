@@ -1051,9 +1051,10 @@ class ClientCCU(Client):
                     self.central.device_details.add_address_id(
                         address=channel_address, hmid=channel[_JSON_ID]
                     )
-                self.central.device_details.add_interface(
-                    address=device_address, interface=Interface(device[_JSON_INTERFACE])
-                )
+                if (interface := device[_JSON_INTERFACE]) and interface in Interface:
+                    self.central.device_details.add_interface(
+                        address=device_address, interface=Interface(interface)
+                    )
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 

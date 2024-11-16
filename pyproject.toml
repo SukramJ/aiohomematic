@@ -41,8 +41,6 @@ dependencies    = [
 hahomematic = "hahomematic.hmcli:main"
 
 [tool.setuptools]
-platforms = ["any"]
-zip-safe  = false
 include-package-data = true
 
 [tool.setuptools.dynamic]

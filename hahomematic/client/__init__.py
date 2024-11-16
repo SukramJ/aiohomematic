@@ -186,9 +186,8 @@ class Client(ABC):
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
 
         if not self.supports_xml_rpc:
-            device_descriptions = await self.list_devices()
             await self.central.add_new_devices(
-                interface_id=self.interface_id, device_descriptions=device_descriptions
+                interface_id=self.interface_id, device_descriptions=await self.list_devices()
             )
             return ProxyInitState.INIT_SUCCESS
         try:
@@ -1647,6 +1646,7 @@ class InterfaceConfig:
         self.port: Final = port
         self.remote_path: Final = remote_path
         self._init_validate()
+        self._enabled: bool = True
 
     def _init_validate(self) -> None:
         """Validate the client_config."""
@@ -1656,6 +1656,15 @@ class InterfaceConfig:
                 "Interface names must be within [%s] for production use",
                 ", ".join(list(Interface)),
             )
+
+    @property
+    def enabled(self) -> bool:
+        """Return if the interface config is enabled."""
+        return self._enabled
+
+    def disable(self) -> None:
+        """Disable the interface config."""
+        self._enabled = False
 
 
 async def create_client(

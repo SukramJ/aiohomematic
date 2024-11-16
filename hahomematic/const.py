@@ -526,6 +526,8 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.UPDATE,
 )
 
+PRIMARY_CLIENT_CANDIDATE_INTERFACES: Final = (Interface.HMIP_RF, Interface.BIDCOS_RF)
+
 RELEVANT_INIT_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.CONFIG_PENDING,
     Parameter.STICKY_UN_REACH,

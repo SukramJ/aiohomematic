@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Collection
+from collections.abc import Collection, Set as AbstractSet
 import contextlib
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,6 +18,7 @@ import ssl
 import sys
 from typing import Any, Final
 
+from hahomematic import client as hmcl
 from hahomematic.config import TIMEOUT
 from hahomematic.const import (
     ALLOWED_HOSTNAME_PATTERN,
@@ -32,6 +33,7 @@ from hahomematic.const import (
     INIT_DATETIME,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
+    PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     CommandRxMode,
     ParamsetKey,
     RxMode,
@@ -83,6 +85,7 @@ def check_config(
     callback_host: str | None,
     callback_port: int | None,
     json_port: int | None,
+    interface_configs: AbstractSet[hmcl.InterfaceConfig] | None = None,
 ) -> list[str]:
     """Check config. Throws BaseHomematicException on failure."""
     config_failures: list[str] = []
@@ -109,8 +112,20 @@ def check_config(
         config_failures.append("Invalid callback port")
     if json_port and not is_port(port=json_port):
         config_failures.append("Invalid json port")
+    if interface_configs and not has_primary_client(interface_configs=interface_configs):
+        config_failures.append(
+            f"No primary interface ({", ".join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined"
+        )
 
     return config_failures
+
+
+def has_primary_client(interface_configs: AbstractSet[hmcl.InterfaceConfig]) -> bool:
+    """Check if all configured clients exists in central."""
+    for interface_config in interface_configs:
+        if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
+            return True
+    return False
 
 
 def delete_file(folder: str, file_name: str) -> None:

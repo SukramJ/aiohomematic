@@ -1,6 +1,7 @@
 # Version 2024.11.2 (2024-11-15)
 
 - Ignore unknown interfaces
+- Remove clients for not available interfaces
 
 # Version 2024.11.1 (2024-11-14)
 

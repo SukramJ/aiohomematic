@@ -534,8 +534,9 @@ class CentralUnit(PayloadMixin):
                     not in self.primary_client.system_information.available_interfaces
                 ):
                     _LOGGER.warning(
-                        "CREATE_CLIENTS failed: Interface: %s is not available for backend",
+                        "CREATE_CLIENTS failed: Interface: %s is not available for backend %s",
                         interface_config.interface,
+                        self.name,
                     )
                     interface_config.disable()
                     continue
@@ -567,7 +568,7 @@ class CentralUnit(PayloadMixin):
                 interface_config=interface_config,
             ):
                 _LOGGER.debug(
-                    "CREATE_CLIENTS: Adding client %s to %s",
+                    "CREATE_CLIENT: Adding client %s to %s",
                     client.interface_id,
                     self.name,
                 )
@@ -580,7 +581,7 @@ class CentralUnit(PayloadMixin):
             )
 
             _LOGGER.warning(
-                "CREATE_CLIENTS failed: No connection to interface %s [%s]",
+                "CREATE_CLIENT failed: No connection to interface %s [%s]",
                 interface_config.interface_id,
                 reduce_args(args=ex.args),
             )
@@ -590,13 +591,16 @@ class CentralUnit(PayloadMixin):
         for client in self._clients.values():
             if client.interface not in self.system_information.available_interfaces:
                 _LOGGER.debug(
-                    "CREATE_CLIENTS failed: Interface: %s is not available for backend",
+                    "INIT_CLIENTS failed: Interface: %s is not available for backend %s",
                     client.interface,
+                    self.name,
                 )
                 del self._clients[client.interface_id]
                 continue
             if await client.proxy_init() == ProxyInitState.INIT_SUCCESS:
-                _LOGGER.debug("INIT_CLIENTS: client for %s initialized", client.interface_id)
+                _LOGGER.debug(
+                    "INIT_CLIENTS: client %s initialized for %s", client.interface_id, self.name
+                )
 
     async def _de_init_clients(self) -> None:
         """De-init clients."""

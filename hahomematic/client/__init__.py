@@ -186,9 +186,8 @@ class Client(ABC):
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
 
         if not self.supports_xml_rpc:
-            device_descriptions = await self.list_devices()
             await self.central.add_new_devices(
-                interface_id=self.interface_id, device_descriptions=device_descriptions
+                interface_id=self.interface_id, device_descriptions=await self.list_devices()
             )
             return ProxyInitState.INIT_SUCCESS
         try:

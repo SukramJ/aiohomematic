@@ -525,14 +525,6 @@ class CentralUnit(PayloadMixin):
                     central=self,
                     interface_config=interface_config,
                 ):
-                    if (
-                        available_interfaces := client.system_information.available_interfaces
-                    ) and (interface_config.interface not in available_interfaces):
-                        _LOGGER.debug(
-                            "CREATE_CLIENTS failed: Interface: %s is not available for backend",
-                            interface_config.interface,
-                        )
-                        continue
                     _LOGGER.debug(
                         "CREATE_CLIENTS: Adding client %s to %s",
                         client.interface_id,
@@ -564,6 +556,13 @@ class CentralUnit(PayloadMixin):
     async def _init_clients(self) -> None:
         """Init clients of control unit, and start connection checker."""
         for client in self._clients.values():
+            if client.interface not in self.system_information.available_interfaces:
+                _LOGGER.debug(
+                    "CREATE_CLIENTS failed: Interface: %s is not available for backend",
+                    client.interface,
+                )
+                del self._clients[client.interface_id]
+                continue
             if await client.proxy_init() == ProxyInitState.INIT_SUCCESS:
                 _LOGGER.debug("INIT_CLIENTS: client for %s initialized", client.interface_id)
 

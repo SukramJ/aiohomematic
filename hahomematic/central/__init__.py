@@ -1295,6 +1295,10 @@ class CentralUnit(PayloadMixin):
         """Return the program button."""
         return self._program_buttons.get(pid)
 
+    def get_data_point_path(self) -> tuple[str, ...]:
+        """Return the registered state path."""
+        return tuple(self._data_point_path_event_subscriptions)
+
     def get_un_ignore_candidates(self, include_master: bool = False) -> list[str]:
         """Return the candidates for un_ignore."""
         candidates = sorted(

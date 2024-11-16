@@ -800,8 +800,12 @@ class CentralUnit(PayloadMixin):
             await self._paramset_descriptions.load()
             await self._device_details.load()
             await self._data_cache.load()
-        except orjson.JSONDecodeError:  # pragma: no cover
-            _LOGGER.warning("LOAD_CACHES failed: Unable to load caches for %s", self.name)
+        except orjson.JSONDecodeError as ex:  # pragma: no cover
+            _LOGGER.warning(
+                "LOAD_CACHES failed: Unable to load caches for %s: %s",
+                self.name,
+                reduce_args(args=ex.args),
+            )
             await self.clear_caches()
 
     async def _create_devices(self, new_device_addresses: dict[str, set[str]]) -> None:
@@ -1571,14 +1575,6 @@ class CentralConfig:
         return self.start_direct is False
 
     @property
-    def has_primary_client(self) -> bool:
-        """Check if all configured clients exists in central."""
-        for interface_config in self._interface_configs:
-            if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
-                return True
-        return False
-
-    @property
     def enabled_interface_configs(self) -> tuple[hmcl.InterfaceConfig, ...]:
         """Return the interface configs."""
         return tuple(ic for ic in self._interface_configs if ic.enabled is True)
@@ -1614,6 +1610,7 @@ class CentralConfig:
             callback_host=self.callback_host,
             callback_port=self.callback_port,
             json_port=self.json_port,
+            interface_configs=self._interface_configs,
         ):
             failures = ", ".join(config_failures)
             raise HaHomematicConfigException(failures)

@@ -45,6 +45,7 @@ from hahomematic.const import (
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
     PORT_ANY,
+    PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
     DataPointCategory,
@@ -350,9 +351,9 @@ class CentralUnit(PayloadMixin):
         if self._started:
             _LOGGER.debug("START: Central %s already started", self.name)
             return
-        if self._config.interface_configs and (
+        if self._config.enabled_interface_configs and (
             ip_addr := await self._identify_ip_addr(
-                port=tuple(self._config.interface_configs)[0].port
+                port=tuple(self._config.enabled_interface_configs)[0].port
             )
         ):
             self._callback_ip_addr = ip_addr
@@ -512,46 +513,77 @@ class CentralUnit(PayloadMixin):
                 self.name,
             )
             return False
-        if len(self._config.interface_configs) == 0:
+        if len(self._config.enabled_interface_configs) == 0:
             _LOGGER.warning(
                 "CREATE_CLIENTS failed: No Interfaces for %s defined",
                 self.name,
             )
             return False
 
-        for interface_config in self._config.interface_configs:
-            try:
-                if client := await hmcl.create_client(
-                    central=self,
-                    interface_config=interface_config,
-                ):
-                    _LOGGER.debug(
-                        "CREATE_CLIENTS: Adding client %s to %s",
-                        client.interface_id,
-                        self.name,
-                    )
-                    self._clients[client.interface_id] = client
-            except BaseHomematicException as ex:
-                self.fire_interface_event(
-                    interface_id=interface_config.interface_id,
-                    interface_event_type=InterfaceEventType.PROXY,
-                    data={EventKey.AVAILABLE: False},
-                )
-                _LOGGER.warning(
-                    "CREATE_CLIENTS failed: No connection to interface %s [%s]",
-                    interface_config.interface_id,
-                    reduce_args(args=ex.args),
-                )
+        # create primary clients
+        for interface_config in self._config.enabled_interface_configs:
+            if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
+                await self._create_client(interface_config=interface_config)
 
-        if self.has_clients:
+        # create secondary clients
+        for interface_config in self._config.enabled_interface_configs:
+            if interface_config.interface not in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
+                if (
+                    self.primary_client is not None
+                    and interface_config.interface
+                    not in self.primary_client.system_information.available_interfaces
+                ):
+                    _LOGGER.warning(
+                        "CREATE_CLIENTS failed: Interface: %s is not available for backend",
+                        interface_config.interface,
+                    )
+                    interface_config.disable()
+                    continue
+                await self._create_client(interface_config=interface_config)
+
+        if self.has_all_enabled_clients:
             _LOGGER.debug(
                 "CREATE_CLIENTS: All clients successfully created for %s",
                 self.name,
             )
             return True
 
+        if self.primary_client is not None:
+            _LOGGER.warning(
+                "CREATE_CLIENTS: Created %i of %i clients",
+                len(self._clients),
+                len(self._config.enabled_interface_configs),
+            )
+            return True
+
         _LOGGER.debug("CREATE_CLIENTS failed for %s", self.name)
         return False
+
+    async def _create_client(self, interface_config: hmcl.InterfaceConfig) -> None:
+        """Create a client."""
+        try:
+            if client := await hmcl.create_client(
+                central=self,
+                interface_config=interface_config,
+            ):
+                _LOGGER.debug(
+                    "CREATE_CLIENTS: Adding client %s to %s",
+                    client.interface_id,
+                    self.name,
+                )
+                self._clients[client.interface_id] = client
+        except BaseHomematicException as ex:
+            self.fire_interface_event(
+                interface_id=interface_config.interface_id,
+                interface_event_type=InterfaceEventType.PROXY,
+                data={EventKey.AVAILABLE: False},
+            )
+
+            _LOGGER.warning(
+                "CREATE_CLIENTS failed: No connection to interface %s [%s]",
+                interface_config.interface_id,
+                reduce_args(args=ex.args),
+            )
 
     async def _init_clients(self) -> None:
         """Init clients of control unit, and start connection checker."""
@@ -633,13 +665,24 @@ class CentralUnit(PayloadMixin):
 
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
-        if len(self._config.interface_configs) == 0:
+        if len(self._config.enabled_interface_configs) == 0:
             raise NoClientsException("validate_config: No clients defined.")
 
         system_information = SystemInformation()
-        for interface_config in self._config.interface_configs:
-            client = await hmcl.create_client(central=self, interface_config=interface_config)
-            if not system_information.serial:
+        for interface_config in self._config.enabled_interface_configs:
+            try:
+                client = await hmcl.create_client(central=self, interface_config=interface_config)
+            except BaseHomematicException as ex:
+                _LOGGER.error(
+                    "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client %s: %s",
+                    interface_config.interface,
+                    reduce_args(args=ex.args),
+                )
+                raise
+            if (
+                client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES
+                and not system_information.serial
+            ):
                 system_information = client.system_information
         return system_information
 
@@ -700,7 +743,7 @@ class CentralUnit(PayloadMixin):
         """Return the client by interface_id or the first with a virtual remote."""
         client: hmcl.Client | None = None
         for client in self._clients.values():
-            if client.interface in (Interface.HMIP_RF, Interface.BIDCOS_RF) and client.available:
+            if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and client.available:
                 return client
         return client
 
@@ -740,11 +783,15 @@ class CentralUnit(PayloadMixin):
         return interface_id in self._clients
 
     @property
-    def has_clients(self) -> bool:
+    def has_all_enabled_clients(self) -> bool:
         """Check if all configured clients exists in central."""
         count_client = len(self._clients)
-        count_client_defined = len(self._config.interface_configs)
-        return count_client > 0 and count_client == count_client_defined
+        return count_client > 0 and count_client == len(self._config.enabled_interface_configs)
+
+    @property
+    def has_clients(self) -> bool:
+        """Check if clients exists in central."""
+        return len(self._clients) > 0
 
     async def _load_caches(self) -> None:
         """Load files to caches."""
@@ -1411,7 +1458,7 @@ class _ConnectionChecker(threading.Thread):
             self._central.name,
         )
         try:
-            if not self._central.has_clients:
+            if not self._central.has_all_enabled_clients:
                 _LOGGER.warning(
                     "CHECK_CONNECTION failed: No clients exist. "
                     "Trying to create clients for server %s",
@@ -1486,7 +1533,7 @@ class CentralConfig:
         self.host: Final = host
         self.include_internal_programs: Final = include_internal_programs
         self.include_internal_sysvars: Final = include_internal_sysvars
-        self.interface_configs: Final = interface_configs
+        self._interface_configs: Final = interface_configs
         self.json_port: Final = json_port
         self.listen_ip_addr: Final = listen_ip_addr
         self.listen_port: Final = listen_port
@@ -1522,6 +1569,19 @@ class CentralConfig:
     def load_un_ignore(self) -> bool:
         """Return if un_ignore should be loaded."""
         return self.start_direct is False
+
+    @property
+    def has_primary_client(self) -> bool:
+        """Check if all configured clients exists in central."""
+        for interface_config in self._interface_configs:
+            if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
+                return True
+        return False
+
+    @property
+    def enabled_interface_configs(self) -> tuple[hmcl.InterfaceConfig, ...]:
+        """Return the interface configs."""
+        return tuple(ic for ic in self._interface_configs if ic.enabled is True)
 
     @property
     def use_caches(self) -> bool:

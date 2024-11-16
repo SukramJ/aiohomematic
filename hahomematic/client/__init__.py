@@ -1646,6 +1646,7 @@ class InterfaceConfig:
         self.port: Final = port
         self.remote_path: Final = remote_path
         self._init_validate()
+        self._enabled: bool = True
 
     def _init_validate(self) -> None:
         """Validate the client_config."""
@@ -1655,6 +1656,15 @@ class InterfaceConfig:
                 "Interface names must be within [%s] for production use",
                 ", ".join(list(Interface)),
             )
+
+    @property
+    def enabled(self) -> bool:
+        """Return if the interface config is enabled."""
+        return self._enabled
+
+    def disable(self) -> None:
+        """Disable the interface config."""
+        self._enabled = False
 
 
 async def create_client(

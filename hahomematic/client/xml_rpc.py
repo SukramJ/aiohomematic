@@ -163,7 +163,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             if not self._connection_state.has_issue(issuer=self, iid=self.interface_id):
                 if per.errmsg == "Unauthorized":
                     raise AuthFailure(per) from per
-                raise NoConnectionException(per) from per
+                raise NoConnectionException(per.errmsg) from per
         except Exception as ex:
             raise ClientException(ex) from ex
 

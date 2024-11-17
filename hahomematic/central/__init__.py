@@ -1479,6 +1479,7 @@ class _ConnectionChecker(threading.Thread):
                 await self._central.restart_clients()
             else:
                 reconnects: list[Any] = []
+                reloads: list[Any] = []
                 for interface_id in self._central.interface_ids:
                     # check:
                     #  - client is available
@@ -1491,10 +1492,15 @@ class _ConnectionChecker(threading.Thread):
                         or not client.is_callback_alive()
                     ):
                         reconnects.append(client.reconnect())
+                        reloads.append(
+                            self._central.load_and_refresh_data_point_data(
+                                interface=client.interface
+                            )
+                        )
                 if reconnects:
                     await asyncio.gather(*reconnects)
                     if self._central.available:
-                        await self._central.load_and_refresh_data_point_data()
+                        await asyncio.gather(*reloads)
         except NoConnectionException as nex:
             _LOGGER.error("CHECK_CONNECTION failed: no connection: %s", reduce_args(args=nex.args))
         except Exception as ex:

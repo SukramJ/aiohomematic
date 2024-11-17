@@ -51,19 +51,20 @@ def reduce_args(args: tuple[Any, ...]) -> tuple[Any, ...] | Any:
 
 def build_xml_rpc_uri(
     host: str,
-    port: int,
+    port: int | None,
     path: str | None,
     tls: bool = False,
 ) -> str:
     """Build XML-RPC API URL from components."""
     scheme = "http"
+    s_port = f":{port}" if port else ""
     if not path:
         path = ""
     if path and not path.startswith("/"):
         path = f"/{path}"
     if tls:
         scheme += "s"
-    return f"{scheme}://{host}:{port}{path}"
+    return f"{scheme}://{host}{s_port}{path}"
 
 
 def build_headers(

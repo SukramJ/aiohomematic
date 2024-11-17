@@ -25,7 +25,7 @@ CCU_PASSWORD = ""
 class Example:
     """Example for hahomematic."""
 
-    # Create a server that listens on 127.0.0.1:* and identifies itself as myserver.
+    # Create a server that listens on LOCAL_HOST:* and identifies itself as myserver.
     got_devices = False
 
     def __init__(self):

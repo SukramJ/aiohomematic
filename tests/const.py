@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from hahomematic.const import Interface, ProgramData, SystemVariableData, SysvarType
+from hahomematic.const import LOCAL_HOST, Interface, ProgramData, SystemVariableData, SysvarType
 
 CENTRAL_NAME = "CentralTest"
-CCU_HOST = "127.0.0.1"
+CCU_HOST = LOCAL_HOST
 CCU_USERNAME = "user"
 CCU_PASSWORD = "pass"
 CCU_PORT = 2002

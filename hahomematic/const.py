@@ -54,15 +54,16 @@ SCHEDULER_PROFILE_PATTERN = re.compile(
 )
 SCHEDULER_TIME_PATTERN = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
 
-HUB_PATH: Final = "hub"
 BLOCK_LOG_TIMEOUT = 60
 CACHE_PATH: Final = "cache"
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
 DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
+HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
 IP_ANY_V4: Final = "0.0.0.0"
 KWARGS_ARG_DATA_POINT = "data_point"
+LOCAL_HOST: Final = "127.0.0.1"
 PATH_JSON_RPC: Final = "/api/homematic.cgi"
 PORT_ANY: Final = 0
 

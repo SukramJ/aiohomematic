@@ -1637,7 +1637,7 @@ class InterfaceConfig:
         self,
         central_name: str,
         interface: Interface,
-        port: int,
+        port: int | None = None,
         remote_path: str | None = None,
     ) -> None:
         """Init the interface config."""
@@ -1650,11 +1650,9 @@ class InterfaceConfig:
 
     def _init_validate(self) -> None:
         """Validate the client_config."""
-        if self.interface not in list(Interface):
-            _LOGGER.warning(
-                "VALIDATE interface config failed: "
-                "Interface names must be within [%s] for production use",
-                ", ".join(list(Interface)),
+        if not self.port and self.interface in INTERFACES_SUPPORTING_XML_RPC:
+            raise ClientException(
+                f"VALIDATE interface config failed: Port must defined for interface{self.interface}"
             )
 
     @property

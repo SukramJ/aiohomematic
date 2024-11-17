@@ -1,6 +1,7 @@
 # Version 2024.11.2 (2024-11-15)
 
 - Add get_data_point_path to central
+- Do reconnect/reload only for affected interfaces
 - Ignore unknown interfaces
 - Remove clients for not available interfaces
 

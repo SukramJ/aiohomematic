@@ -44,6 +44,7 @@ from hahomematic.const import (
     DP_KEY,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
+    LOCAL_HOST,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     UN_IGNORE_WILDCARD,
@@ -633,8 +634,9 @@ class CentralUnit(PayloadMixin):
             event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
-    async def _identify_ip_addr(self, port: int) -> str:
-        """Identify IP used for callbacks, xmlrpc_server."""
+    async def _identify_ip_addr(self, port: int | None) -> str:
+        if port is None:
+            return LOCAL_HOST
 
         ip_addr: str | None = None
         while ip_addr is None:
@@ -643,7 +645,7 @@ class CentralUnit(PayloadMixin):
                     get_ip_addr, self._config.host, port, name="get_ip_addr"
                 )
             except HaHomematicException:
-                ip_addr = "127.0.0.1"
+                ip_addr = LOCAL_HOST
             if ip_addr is None:
                 _LOGGER.warning(
                     "GET_IP_ADDR: Waiting for %i s,", config.CONNECTION_CHECKER_INTERVAL

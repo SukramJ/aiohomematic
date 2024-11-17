@@ -15,7 +15,7 @@ import orjson
 from hahomematic import const as hahomematic_const
 from hahomematic.central import CentralConfig, CentralUnit
 from hahomematic.client import Client, InterfaceConfig, _ClientConfig
-from hahomematic.const import BackendSystemEvent, Interface
+from hahomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
 from hahomematic.model.custom import CustomDataPoint
 from hahomematic.model.decorators import _get_public_attributes_by_class_decorator
 from hahomematic_support.client_local import ClientLocal, LocalRessources
@@ -130,9 +130,7 @@ class Factory:
             "hahomematic_support.client_local.ClientLocal.get_all_programs",
             return_value=const.PROGRAM_DATA if add_programs else [],
         ).start()
-        patch(
-            "hahomematic.central.CentralUnit._identify_ip_addr", return_value="127.0.0.1"
-        ).start()
+        patch("hahomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
 
         await central.start()
         if new_device_addresses := central._check_for_new_device_addresses():

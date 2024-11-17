@@ -15,6 +15,7 @@ from hahomematic.const import (
     DATETIME_FORMAT_MILLIS,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
+    LOCAL_HOST,
     DataPointCategory,
     DataPointUsage,
     EventKey,
@@ -55,7 +56,7 @@ async def test_central_basics(
 ) -> None:
     """Test central basics."""
     central, client, _ = central_client_factory
-    assert central.central_url == "http://127.0.0.1"
+    assert central.central_url == f"http://{LOCAL_HOST}"
     assert central.is_alive is True
     assert central.system_information.serial == "0815_4711"
     assert central.version == "0"
@@ -135,9 +136,9 @@ async def test_identify_ip_addr(
 ) -> None:
     """Test identify_ip_addr."""
     central, _, _ = central_client_factory
-    assert await central._identify_ip_addr(port=54321) == "127.0.0.1"
+    assert await central._identify_ip_addr(port=54321) == LOCAL_HOST
     central.config.host = "no_host"
-    assert await central._identify_ip_addr(port=54321) == "127.0.0.1"
+    assert await central._identify_ip_addr(port=54321) == LOCAL_HOST
 
 
 @pytest.mark.parametrize(

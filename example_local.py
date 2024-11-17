@@ -17,7 +17,7 @@ from hahomematic_support.client_local import ClientLocal, LocalRessources
 logging.basicConfig(level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
-CCU_HOST = "127.0.0.1"
+CCU_HOST = const.LOCAL_HOST
 CCU_USERNAME = "xxx"
 CCU_PASSWORD = "xxx"
 CENTRAL_NAME = "ccu-dev"
@@ -26,7 +26,7 @@ CENTRAL_NAME = "ccu-dev"
 class Example:
     """Example for hahomematic."""
 
-    # Create a server that listens on 127.0.0.1:* and identifies itself as myserver.
+    # Create a server that listens on LOCAL_HOST:* and identifies itself as myserver.
     got_devices = False
 
     def __init__(self):

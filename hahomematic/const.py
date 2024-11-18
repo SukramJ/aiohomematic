@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.11.2"
+VERSION: Final = "2024.11.3"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -88,7 +88,7 @@ SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
 PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 
-MAX_CACHE_AGE: Final = 60
+MAX_CACHE_AGE: Final = 10
 
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
 
@@ -547,6 +547,13 @@ INTERFACES_SUPPORTING_XML_RPC: Final[tuple[Interface, ...]] = (
     Interface.HMIP_RF,
     Interface.VIRTUAL_DEVICES,
 )
+
+INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[tuple[Interface, ...]] = (
+    Interface.CCU_JACK,
+    Interface.CUXD,
+)
+
+DEFAULT_USE_PERIODIC_SCAN_FOR_INTERFACES: Final = True
 
 IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.CONFIG_PENDING,

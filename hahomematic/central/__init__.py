@@ -43,6 +43,7 @@ from hahomematic.const import (
     DEFAULT_VERIFY_TLS,
     DP_KEY,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
+    INTERFACES_REQUIRING_PERIODIC_REFRESH,
     IP_ANY_V4,
     LOCAL_HOST,
     PORT_ANY,
@@ -153,11 +154,11 @@ class CentralUnit(PayloadMixin):
         self._homematic_callbacks: Final[set[Callable]] = set()
 
         CENTRAL_INSTANCES[self.name] = self
-        self._connection_checker: Final = _ConnectionChecker(central=self)
+        self._connection_checker: Final = _CentralUnitChecker(central=self)
         self._hub: Hub = Hub(central=self)
         self._version: str | None = None
-        # store last event received datetime by interface
-        self.last_events: Final[dict[str, datetime]] = {}
+        # store last event received datetime by interface_id
+        self._last_events: Final[dict[str, datetime]] = {}
         self._callback_ip_addr: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
         self._listen_port: int = PORT_ANY
@@ -224,7 +225,7 @@ class CentralUnit(PayloadMixin):
         return tuple(self._clients)
 
     @property
-    def interfaces(self) -> tuple[str, ...]:
+    def interfaces(self) -> tuple[Interface, ...]:
         """Return all associated interfaces."""
         return tuple(client.interface for client in self._clients.values())
 
@@ -1014,7 +1015,7 @@ class CentralUnit(PayloadMixin):
         if not self.has_client(interface_id=interface_id):
             return
 
-        self.last_events[interface_id] = datetime.now()
+        self.set_last_event_dt(interface_id=interface_id)
         # No need to check the response of a XmlRPC-PING
         if parameter == Parameter.PONG:
             if "#" in value:
@@ -1142,6 +1143,14 @@ class CentralUnit(PayloadMixin):
             if data_point.state_path in self._data_point_path_event_subscriptions:
                 del self._data_point_path_event_subscriptions[data_point.state_path]
 
+    def get_last_event_dt(self, interface_id: str) -> datetime | None:
+        """Return the last event dt."""
+        return self._last_events.get(interface_id)
+
+    def set_last_event_dt(self, interface_id: str) -> None:
+        """Set the last event dt."""
+        self._last_events[interface_id] = datetime.now()
+
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
         if client := self.primary_client:
@@ -1158,10 +1167,10 @@ class CentralUnit(PayloadMixin):
 
     @measure_execution_time
     async def load_and_refresh_data_point_data(
-        self, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
+        self, interface: Interface, paramset_key: ParamsetKey | None = None
     ) -> None:
         """Refresh data_point data."""
-        if paramset_key != ParamsetKey.MASTER and self._data_cache.is_empty:
+        if paramset_key != ParamsetKey.MASTER and self._data_cache.is_empty(interface=interface):
             await self._data_cache.load(interface=interface)
         await self._data_cache.refresh_data_point_data(
             paramset_key=paramset_key, interface=interface
@@ -1437,11 +1446,11 @@ class CentralUnit(PayloadMixin):
 
     def __str__(self) -> str:
         """Provide some useful information."""
-        return f"central name: {self.name}"
+        return f"central: {self.name}"
 
 
-class _ConnectionChecker(threading.Thread):
-    """Periodically check Connection to CCU / Homegear."""
+class _CentralUnitChecker(threading.Thread):
+    """Periodically check connection to CCU / Homegear, and load data when required."""
 
     def __init__(self, central: CentralUnit) -> None:
         """Init the connection checker."""
@@ -1458,6 +1467,9 @@ class _ConnectionChecker(threading.Thread):
         )
         while self._active:
             self._central.looper.run_coroutine(self._check_connection(), name="check_connection")
+            self._central.looper.run_coroutine(
+                self._refresh_client_data(), name="refresh_client_data"
+            )
             if self._active:
                 sleep(config.CONNECTION_CHECKER_INTERVAL)
 
@@ -1468,7 +1480,7 @@ class _ConnectionChecker(threading.Thread):
     async def _check_connection(self) -> None:
         """Periodically check connection to backend."""
         _LOGGER.debug(
-            "check_connection: Checking connection to server %s",
+            "CHECK_CONNECTION: Checking connection to server %s",
             self._central.name,
         )
         try:
@@ -1512,6 +1524,33 @@ class _ConnectionChecker(threading.Thread):
                 reduce_args(args=ex.args),
             )
 
+    async def _refresh_client_data(self) -> None:
+        """Periodically check connection to backend."""
+        _LOGGER.debug(
+            "REFRESH_CLIENT_DATA: Checking connection to server %s",
+            self._central.name,
+        )
+        try:
+            if not self._central.available:
+                return
+            for client in self._central.clients:
+                if not client.supports_push_updates:
+                    await self._central.load_and_refresh_data_point_data(
+                        interface=client.interface
+                    )
+                    self._central.set_last_event_dt(interface_id=client.interface_id)
+
+        except NoConnectionException as nex:
+            _LOGGER.error(
+                "REFRESH_CLIENT_DATA failed: no connection: %s", reduce_args(args=nex.args)
+            )
+        except Exception as ex:
+            _LOGGER.error(
+                "REFRESH_CLIENT_DATA failed: %s [%s]",
+                type(ex).__name__,
+                reduce_args(args=ex.args),
+            )
+
 
 class CentralConfig:
     """Config for a Client."""
@@ -1531,6 +1570,9 @@ class CentralConfig:
         callback_port: int | None = None,
         include_internal_programs: bool = DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
         include_internal_sysvars: bool = DEFAULT_INCLUDE_INTERNAL_SYSVARS,
+        interfaces_requiring_periodic_refresh: tuple[
+            Interface, ...
+        ] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
         json_port: int | None = None,
         listen_ip_addr: str | None = None,
         listen_port: int | None = None,
@@ -1543,6 +1585,7 @@ class CentralConfig:
         verify_tls: bool = DEFAULT_VERIFY_TLS,
     ) -> None:
         """Init the client config."""
+        self._interface_configs: Final = interface_configs
         self._json_rpc_client: JsonRpcAioHttpClient | None = None
         self.callback_host: Final = callback_host
         self.callback_port: Final = callback_port
@@ -1553,7 +1596,7 @@ class CentralConfig:
         self.host: Final = host
         self.include_internal_programs: Final = include_internal_programs
         self.include_internal_sysvars: Final = include_internal_sysvars
-        self._interface_configs: Final = interface_configs
+        self.interfaces_requiring_periodic_refresh = interfaces_requiring_periodic_refresh
         self.json_port: Final = json_port
         self.listen_ip_addr: Final = listen_ip_addr
         self.listen_port: Final = listen_port

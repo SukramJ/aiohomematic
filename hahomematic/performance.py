@@ -27,12 +27,20 @@ def measure_execution_time[_CallableT: Callable[..., Any]](func: _CallableT) -> 
         finally:
             if is_enabled:
                 delta = (datetime.now() - start).total_seconds()
-                arg = str(args[0]) if len(args) > 0 else ""
+                caller = str(args[0]) if len(args) > 0 else ""
+
+                iface: str = ""
+                if interface := str(kwargs.get("interface", "")):
+                    iface = f"interface: {interface}"
+                if interface_id := kwargs.get("interface_id", ""):
+                    iface = f"interface_id: {interface_id}"
+
                 _LOGGER.info(
-                    "Execution of %s took %ss (%s)",
+                    "Execution of %s took %ss (%s) (%s)",
                     func.__name__,
                     delta,
-                    arg,
+                    caller,
+                    iface,
                 )
 
     @wraps(func)

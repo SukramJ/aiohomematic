@@ -178,6 +178,11 @@ class Client(ABC):
         """Return the supports_ping_pong info of the backend."""
 
     @property
+    def supports_push_updates(self) -> bool:
+        """Return the client supports push update."""
+        return self.interface not in self.central.config.interfaces_requiring_periodic_refresh
+
+    @property
     def supports_firmware_updates(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
         return self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
@@ -315,15 +320,18 @@ class Client(ABC):
                 forced_availability=ForcedDeviceAvailability.FORCE_FALSE
             )
             return False
-
+        if not self.supports_push_updates:
+            return True
         return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
         if not self.supports_ping_pong:
             return True
-        if last_events_time := self.central.last_events.get(self.interface_id):
-            seconds_since_last_event = (datetime.now() - last_events_time).total_seconds()
+        if (
+            last_events_dt := self.central.get_last_event_dt(interface_id=self.interface_id)
+        ) is not None:
+            seconds_since_last_event = (datetime.now() - last_events_dt).total_seconds()
             if seconds_since_last_event > CALLBACK_WARN_INTERVAL:
                 if self._is_callback_alive:
                     self.central.fire_interface_event(
@@ -1072,7 +1080,9 @@ class ClientCCU(Client):
                     "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
                     self.interface,
                 )
-                self.central.data_cache.add_data(all_device_data=all_device_data)
+                self.central.data_cache.add_data(
+                    interface=self.interface, all_device_data=all_device_data
+                )
                 return
         except ClientException:
             self.central.fire_interface_event(

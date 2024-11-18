@@ -76,6 +76,11 @@ class ClientLocal(Client):  # pragma: no cover
         """Return the supports_ping_pong info of the backend."""
         return True
 
+    @property
+    def supports_push_updates(self) -> bool:
+        """Return the client supports push update."""
+        return True
+
     async def proxy_init(self) -> ProxyInitState:
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
         return ProxyInitState.INIT_SUCCESS

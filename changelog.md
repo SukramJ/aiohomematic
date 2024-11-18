@@ -1,6 +1,7 @@
 # Version 2024.11.3 (2024-11-18)
 
 - Add interface(\_id) to performance log message
+- Add periodic data refresh to CentralUnitChecker for some interfaces
 - Reduce MAX_CACHE_AGE to 15s
 
 # Version 2024.11.2 (2024-11-17)

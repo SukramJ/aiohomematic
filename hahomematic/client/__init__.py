@@ -178,6 +178,11 @@ class Client(ABC):
         """Return the supports_ping_pong info of the backend."""
 
     @property
+    @abstractmethod
+    def supports_push_updates(self) -> bool:
+        """Return the client supports push update."""
+
+    @property
     def supports_firmware_updates(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
         return self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
@@ -315,15 +320,18 @@ class Client(ABC):
                 forced_availability=ForcedDeviceAvailability.FORCE_FALSE
             )
             return False
-
+        if not self.supports_push_updates:
+            return True
         return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
         if not self.supports_ping_pong:
             return True
-        if last_events_time := self.central.last_events.get(self.interface_id):
-            seconds_since_last_event = (datetime.now() - last_events_time).total_seconds()
+        if (
+            last_events_dt := self.central.get_last_event_dt(interface_id=self.interface_id)
+        ) is not None:
+            seconds_since_last_event = (datetime.now() - last_events_dt).total_seconds()
             if seconds_since_last_event > CALLBACK_WARN_INTERVAL:
                 if self._is_callback_alive:
                     self.central.fire_interface_event(
@@ -1029,6 +1037,11 @@ class ClientCCU(Client):
         """Return the supports_ping_pong info of the backend."""
         return True
 
+    @property
+    def supports_push_updates(self) -> bool:
+        """Return the client supports push update."""
+        return True
+
     @measure_execution_time
     @service()
     async def fetch_device_details(self) -> None:
@@ -1204,6 +1217,11 @@ class ClientJsonCCU(ClientCCU):
     @property
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
+        return False
+
+    @property
+    def supports_push_updates(self) -> bool:
+        """Return the client supports push update."""
         return False
 
     @service(re_raise=False)
@@ -1414,6 +1432,11 @@ class ClientHomegear(Client):
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
         return False
+
+    @property
+    def supports_push_updates(self) -> bool:
+        """Return the client supports push update."""
+        return True
 
     @measure_execution_time
     async def fetch_all_device_data(self) -> None:

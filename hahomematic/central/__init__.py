@@ -153,11 +153,11 @@ class CentralUnit(PayloadMixin):
         self._homematic_callbacks: Final[set[Callable]] = set()
 
         CENTRAL_INSTANCES[self.name] = self
-        self._connection_checker: Final = _ConnectionChecker(central=self)
+        self._connection_checker: Final = _CentralUnitChecker(central=self)
         self._hub: Hub = Hub(central=self)
         self._version: str | None = None
-        # store last event received datetime by interface
-        self.last_events: Final[dict[str, datetime]] = {}
+        # store last event received datetime by interface_id
+        self._last_events: Final[dict[str, datetime]] = {}
         self._callback_ip_addr: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
         self._listen_port: int = PORT_ANY
@@ -1014,7 +1014,7 @@ class CentralUnit(PayloadMixin):
         if not self.has_client(interface_id=interface_id):
             return
 
-        self.last_events[interface_id] = datetime.now()
+        self.set_last_event_dt(interface_id=interface_id)
         # No need to check the response of a XmlRPC-PING
         if parameter == Parameter.PONG:
             if "#" in value:
@@ -1141,6 +1141,14 @@ class CentralUnit(PayloadMixin):
                 del self._data_point_key_event_subscriptions[data_point.data_point_key]
             if data_point.state_path in self._data_point_path_event_subscriptions:
                 del self._data_point_path_event_subscriptions[data_point.state_path]
+
+    def get_last_event_dt(self, interface_id: str) -> datetime | None:
+        """Return the last event dt."""
+        return self._last_events.get(interface_id)
+
+    def set_last_event_dt(self, interface_id: str) -> None:
+        """Set the last event dt."""
+        self._last_events[interface_id] = datetime.now()
 
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
@@ -1440,8 +1448,8 @@ class CentralUnit(PayloadMixin):
         return f"central name: {self.name}"
 
 
-class _ConnectionChecker(threading.Thread):
-    """Periodically check Connection to CCU / Homegear."""
+class _CentralUnitChecker(threading.Thread):
+    """Periodically check connection to CCU / Homegear, and load data when required."""
 
     def __init__(self, central: CentralUnit) -> None:
         """Init the connection checker."""
@@ -1458,6 +1466,9 @@ class _ConnectionChecker(threading.Thread):
         )
         while self._active:
             self._central.looper.run_coroutine(self._check_connection(), name="check_connection")
+            self._central.looper.run_coroutine(
+                self._refresh_client_data(), name="refresh_client_data"
+            )
             if self._active:
                 sleep(config.CONNECTION_CHECKER_INTERVAL)
 
@@ -1468,7 +1479,7 @@ class _ConnectionChecker(threading.Thread):
     async def _check_connection(self) -> None:
         """Periodically check connection to backend."""
         _LOGGER.debug(
-            "check_connection: Checking connection to server %s",
+            "CHECK_CONNECTION: Checking connection to server %s",
             self._central.name,
         )
         try:
@@ -1508,6 +1519,33 @@ class _ConnectionChecker(threading.Thread):
         except Exception as ex:
             _LOGGER.error(
                 "CHECK_CONNECTION failed: %s [%s]",
+                type(ex).__name__,
+                reduce_args(args=ex.args),
+            )
+
+    async def _refresh_client_data(self) -> None:
+        """Periodically check connection to backend."""
+        _LOGGER.debug(
+            "REFRESH_CLIENT_DATA: Checking connection to server %s",
+            self._central.name,
+        )
+        try:
+            if not self._central.available:
+                return
+            for client in self._central.clients:
+                if not client.supports_push_updates:
+                    await self._central.load_and_refresh_data_point_data(
+                        interface=client.interface
+                    )
+                    self._central.set_last_event_dt(interface_id=client.interface_id)
+
+        except NoConnectionException as nex:
+            _LOGGER.error(
+                "REFRESH_CLIENT_DATA failed: no connection: %s", reduce_args(args=nex.args)
+            )
+        except Exception as ex:
+            _LOGGER.error(
+                "REFRESH_CLIENT_DATA failed: %s [%s]",
                 type(ex).__name__,
                 reduce_args(args=ex.args),
             )

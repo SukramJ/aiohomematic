@@ -178,9 +178,9 @@ class Client(ABC):
         """Return the supports_ping_pong info of the backend."""
 
     @property
-    @abstractmethod
     def supports_push_updates(self) -> bool:
         """Return the client supports push update."""
+        return self.interface not in self.central.config.interfaces_requiring_periodic_refresh
 
     @property
     def supports_firmware_updates(self) -> bool:
@@ -1037,11 +1037,6 @@ class ClientCCU(Client):
         """Return the supports_ping_pong info of the backend."""
         return True
 
-    @property
-    def supports_push_updates(self) -> bool:
-        """Return the client supports push update."""
-        return True
-
     @measure_execution_time
     @service()
     async def fetch_device_details(self) -> None:
@@ -1217,11 +1212,6 @@ class ClientJsonCCU(ClientCCU):
     @property
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
-        return False
-
-    @property
-    def supports_push_updates(self) -> bool:
-        """Return the client supports push update."""
         return False
 
     @service(re_raise=False)
@@ -1432,11 +1422,6 @@ class ClientHomegear(Client):
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
         return False
-
-    @property
-    def supports_push_updates(self) -> bool:
-        """Return the client supports push update."""
-        return True
 
     @measure_execution_time
     async def fetch_all_device_data(self) -> None:

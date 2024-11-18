@@ -548,6 +548,13 @@ INTERFACES_SUPPORTING_XML_RPC: Final[tuple[Interface, ...]] = (
     Interface.VIRTUAL_DEVICES,
 )
 
+INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[tuple[Interface, ...]] = (
+    Interface.CCU_JACK,
+    Interface.CUXD,
+)
+
+DEFAULT_USE_PERIODIC_SCAN_FOR_INTERFACES: Final = True
+
 IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.CONFIG_PENDING,
     Parameter.STICKY_UN_REACH,

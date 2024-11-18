@@ -43,6 +43,7 @@ from hahomematic.const import (
     DEFAULT_VERIFY_TLS,
     DP_KEY,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
+    INTERFACES_REQUIRING_PERIODIC_REFRESH,
     IP_ANY_V4,
     LOCAL_HOST,
     PORT_ANY,
@@ -1569,6 +1570,9 @@ class CentralConfig:
         callback_port: int | None = None,
         include_internal_programs: bool = DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
         include_internal_sysvars: bool = DEFAULT_INCLUDE_INTERNAL_SYSVARS,
+        interfaces_requiring_periodic_refresh: tuple[
+            Interface, ...
+        ] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
         json_port: int | None = None,
         listen_ip_addr: str | None = None,
         listen_port: int | None = None,
@@ -1581,6 +1585,7 @@ class CentralConfig:
         verify_tls: bool = DEFAULT_VERIFY_TLS,
     ) -> None:
         """Init the client config."""
+        self._interface_configs: Final = interface_configs
         self._json_rpc_client: JsonRpcAioHttpClient | None = None
         self.callback_host: Final = callback_host
         self.callback_port: Final = callback_port
@@ -1591,7 +1596,7 @@ class CentralConfig:
         self.host: Final = host
         self.include_internal_programs: Final = include_internal_programs
         self.include_internal_sysvars: Final = include_internal_sysvars
-        self._interface_configs: Final = interface_configs
+        self.interfaces_requiring_periodic_refresh = interfaces_requiring_periodic_refresh
         self.json_port: Final = json_port
         self.listen_ip_addr: Final = listen_ip_addr
         self.listen_port: Final = listen_port

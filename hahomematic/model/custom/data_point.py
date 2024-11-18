@@ -145,7 +145,10 @@ class CustomDataPoint(BaseDataPoint):
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return DataPointPathData(
-            address=self._device.address, channel_no=self._channel.no, kind=self._category
+            interface=self._device.client.interface,
+            address=self._device.address,
+            channel_no=self._channel.no,
+            kind=self._category,
         )
 
     def _get_data_point_name(self) -> DataPointNameData:

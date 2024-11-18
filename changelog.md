@@ -3,6 +3,7 @@
 - Add interface(id) to performance log message
 - Add interfaces_requiring_periodic_refresh to config
 - Add periodic data refresh to CentralUnitChecker for some interfaces
+- Add root path for virtual devices
 - Maintain data_cache by interface
 - Reduce MAX_CACHE_AGE to 15s
 

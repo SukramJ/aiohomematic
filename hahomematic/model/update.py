@@ -98,7 +98,10 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     def _get_path_data(self) -> DataPointPathData:
         """Return the path data of the data_point."""
         return DataPointPathData(
-            address=self._device.address, channel_no=None, kind=DataPointCategory.UPDATE
+            interface=None,
+            address=self._device.address,
+            channel_no=None,
+            kind=DataPointCategory.UPDATE,
         )
 
     def register_data_point_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:

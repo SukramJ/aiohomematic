@@ -619,7 +619,10 @@ class BaseParameterDataPoint[
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return DataPointPathData(
-            address=self._device.address, channel_no=self._channel.no, kind=self._parameter
+            interface=self._device.client.interface,
+            address=self._device.address,
+            channel_no=self._channel.no,
+            kind=self._parameter,
         )
 
     def force_to_sensor(self) -> None:

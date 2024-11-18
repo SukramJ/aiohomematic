@@ -20,6 +20,7 @@ from hahomematic.const import (
     DataPointUsage,
     EventKey,
     EventType,
+    Interface,
     InterfaceEventType,
     Operations,
     Parameter,
@@ -763,9 +764,13 @@ async def test_central_services(
     )
 
     assert len(mock_client.method_calls) == 42
-    await central.load_and_refresh_data_point_data(paramset_key=ParamsetKey.MASTER)
+    await central.load_and_refresh_data_point_data(
+        interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER
+    )
     assert len(mock_client.method_calls) == 42
-    await central.load_and_refresh_data_point_data(paramset_key=ParamsetKey.VALUES)
+    await central.load_and_refresh_data_point_data(
+        interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES
+    )
     assert len(mock_client.method_calls) == 60
 
     await central.get_system_variable(name="SysVar_Name")

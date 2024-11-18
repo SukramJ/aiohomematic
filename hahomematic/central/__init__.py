@@ -225,7 +225,7 @@ class CentralUnit(PayloadMixin):
         return tuple(self._clients)
 
     @property
-    def interfaces(self) -> tuple[str, ...]:
+    def interfaces(self) -> tuple[Interface, ...]:
         """Return all associated interfaces."""
         return tuple(client.interface for client in self._clients.values())
 
@@ -1167,10 +1167,10 @@ class CentralUnit(PayloadMixin):
 
     @measure_execution_time
     async def load_and_refresh_data_point_data(
-        self, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
+        self, interface: Interface, paramset_key: ParamsetKey | None = None
     ) -> None:
         """Refresh data_point data."""
-        if paramset_key != ParamsetKey.MASTER and self._data_cache.is_empty:
+        if paramset_key != ParamsetKey.MASTER and self._data_cache.is_empty(interface=interface):
             await self._data_cache.load(interface=interface)
         await self._data_cache.refresh_data_point_data(
             paramset_key=paramset_key, interface=interface
@@ -1446,7 +1446,7 @@ class CentralUnit(PayloadMixin):
 
     def __str__(self) -> str:
         """Provide some useful information."""
-        return f"central name: {self.name}"
+        return f"central: {self.name}"
 
 
 class _CentralUnitChecker(threading.Thread):

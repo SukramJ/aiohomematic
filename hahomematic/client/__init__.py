@@ -1080,7 +1080,9 @@ class ClientCCU(Client):
                     "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
                     self.interface,
                 )
-                self.central.data_cache.add_data(all_device_data=all_device_data)
+                self.central.data_cache.add_data(
+                    interface=self.interface, all_device_data=all_device_data
+                )
                 return
         except ClientException:
             self.central.fire_interface_event(

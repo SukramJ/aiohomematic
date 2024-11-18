@@ -88,7 +88,7 @@ SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
 PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 
-MAX_CACHE_AGE: Final = 15
+MAX_CACHE_AGE: Final = 10
 
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
 

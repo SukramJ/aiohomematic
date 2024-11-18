@@ -3,6 +3,7 @@
 - Add interface(id) to performance log message
 - Add interfaces_requiring_periodic_refresh to config
 - Add periodic data refresh to CentralUnitChecker for some interfaces
+- Maintain data_cache by interface
 - Reduce MAX_CACHE_AGE to 15s
 
 # Version 2024.11.2 (2024-11-17)

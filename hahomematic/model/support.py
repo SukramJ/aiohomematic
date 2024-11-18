@@ -20,8 +20,11 @@ from hahomematic.const import (
     SYSVAR_ADDRESS,
     SYSVAR_SET_PATH_ROOT,
     SYSVAR_STATE_PATH_ROOT,
+    VIRTDEV_SET_PATH_ROOT,
+    VIRTDEV_STATE_PATH_ROOT,
     VIRTUAL_REMOTE_ADDRESSES,
     DataPointUsage,
+    Interface,
     ParameterData,
     ParameterType,
 )
@@ -272,11 +275,18 @@ class PathData:
 class DataPointPathData(PathData):
     """The data point path data."""
 
-    def __init__(self, address: str, channel_no: int | None, kind: str, name: str | None = None):
+    def __init__(
+        self,
+        interface: Interface | None,
+        address: str,
+        channel_no: int | None,
+        kind: str,
+        name: str | None = None,
+    ):
         """Init the path data."""
         path_item: Final = f"{address.upper()}/{channel_no}/{kind.upper()}"
-        self._set_path: Final = f"{SET_PATH_ROOT}/{path_item}"
-        self._state_path: Final = f"{STATE_PATH_ROOT}/{path_item}"
+        self._set_path: Final = f"{VIRTDEV_SET_PATH_ROOT if interface==Interface.CCU_JACK else SET_PATH_ROOT}/{path_item}"
+        self._state_path: Final = f"{VIRTDEV_STATE_PATH_ROOT if interface == Interface.CCU_JACK else STATE_PATH_ROOT}/{path_item}"
 
     @property
     def set_path(self) -> str:

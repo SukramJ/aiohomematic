@@ -81,12 +81,14 @@ CONF_USERNAME: Final = "username"
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
 
+PROGRAM_SET_PATH_ROOT: Final = "program/set"
+PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 SET_PATH_ROOT: Final = "device/set"
 STATE_PATH_ROOT: Final = "device/status"
 SYSVAR_SET_PATH_ROOT: Final = "sysvar/set"
 SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
-PROGRAM_SET_PATH_ROOT: Final = "program/set"
-PROGRAM_STATE_PATH_ROOT: Final = "program/status"
+VIRTDEV_SET_PATH_ROOT: Final = "virtdev/set"
+VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
 
 MAX_CACHE_AGE: Final = 10
 

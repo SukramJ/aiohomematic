@@ -1,3 +1,7 @@
+# Version 2024.11.3 (2024-11-18)
+
+- Reduce MAX_CACHE_AGE to 15s
+
 # Version 2024.11.2 (2024-11-17)
 
 - Add get_data_point_path to central

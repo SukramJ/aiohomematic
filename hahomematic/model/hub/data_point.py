@@ -163,7 +163,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             self._set_modified_at()
             self._previous_value = old_value
             self._current_value = new_value
-            self._state_uncertain = False
+        self._state_uncertain = False
         self.fire_data_point_updated_callback()
 
     def _write_temporary_value(self, value: Any) -> None:

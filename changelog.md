@@ -1,3 +1,8 @@
+# Version 2024.11.7 (2024-11-19)
+
+- Set state_uncertain on value write
+-
+
 # Version 2024.11.6 (2024-11-19)
 
 - Cleanup data point

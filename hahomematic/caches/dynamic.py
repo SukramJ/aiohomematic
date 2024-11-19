@@ -138,7 +138,7 @@ class DeviceDetailsCache:
     async def load(self, direct_call: bool = False) -> None:
         """Fetch names from backend."""
         if direct_call is False and changed_within_seconds(
-            last_change=self._refreshed_at, max_age=int(MAX_CACHE_AGE / 2)
+            last_change=self._refreshed_at, max_age=int(MAX_CACHE_AGE / 3)
         ):
             return
         self.clear()
@@ -238,15 +238,6 @@ class CentralDataCache:
         self._value_cache: Final[dict[Interface, dict[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
 
-    def is_empty(self, interface: Interface) -> bool:
-        """Return if cache is empty."""
-        if len(self._value_cache) == 0:
-            return True
-        if not changed_within_seconds(last_change=self._get_refreshed_at(interface=interface)):
-            self.clear(interface=interface)
-            return True
-        return False
-
     async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from backend."""
         _LOGGER.debug("load: Loading device data for %s", self._central.name)
@@ -255,19 +246,24 @@ class CentralDataCache:
                 continue
             if direct_call is False and changed_within_seconds(
                 last_change=self._get_refreshed_at(interface=client.interface),
-                max_age=int(MAX_CACHE_AGE / 2),
+                max_age=int(MAX_CACHE_AGE / 3),
             ):
                 return
             await client.fetch_all_device_data()
 
     async def refresh_data_point_data(
-        self, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
+        self,
+        paramset_key: ParamsetKey | None = None,
+        interface: Interface | None = None,
+        direct_call: bool = False,
     ) -> None:
         """Refresh data_point data."""
         for data_point in self._central.get_readable_generic_data_points(
             paramset_key=paramset_key, interface=interface
         ):
-            await data_point.load_data_point_value(call_source=CallSource.HM_INIT)
+            await data_point.load_data_point_value(
+                call_source=CallSource.HM_INIT, direct_call=direct_call
+            )
 
     def add_data(self, interface: Interface, all_device_data: dict[str, Any]) -> None:
         """Add data to cache."""
@@ -281,7 +277,7 @@ class CentralDataCache:
         parameter: str,
     ) -> Any:
         """Get data from cache."""
-        if not self.is_empty(interface=interface):
+        if not self._is_empty(interface=interface):
             key = f"{interface}.{channel_address.replace(':','%3A')}.{parameter}"
             return self._value_cache[interface].get(key, NO_CACHE_ENTRY)
         return NO_CACHE_ENTRY
@@ -298,6 +294,15 @@ class CentralDataCache:
     def _get_refreshed_at(self, interface: Interface) -> datetime:
         """Return when cache has been refreshed."""
         return self._refreshed_at.get(interface, INIT_DATETIME)
+
+    def _is_empty(self, interface: Interface) -> bool:
+        """Return if cache is empty."""
+        if len(self._value_cache) == 0:
+            return True
+        if not changed_within_seconds(last_change=self._get_refreshed_at(interface=interface)):
+            self.clear(interface=interface)
+            return True
+        return False
 
 
 class PingPongCache:

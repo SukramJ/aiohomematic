@@ -445,7 +445,7 @@ class BaseParameterDataPoint[
                 custom_only=True,
             )
         )
-        self._value: ParameterT = None  # type: ignore[assignment]
+        self.__value: ParameterT = None  # type: ignore[assignment]
         self._old_value: ParameterT = None  # type: ignore[assignment]
         self._temporary_value: ParameterT = None  # type: ignore[assignment]
 
@@ -587,11 +587,16 @@ class BaseParameterDataPoint[
         """Return, if the state is uncertain."""
         return self._state_uncertain
 
-    @state_property
-    def value(self) -> ParameterT:
+    @property
+    def _value(self) -> ParameterT:
         """Return the value of the data_point."""
         if self._temporary_refreshed_at > self._refreshed_at:
             return self._temporary_value
+        return self.__value
+
+    @state_property
+    def value(self) -> ParameterT:
+        """Return the value of the data_point."""
         return self._value
 
     @property
@@ -719,7 +724,7 @@ class BaseParameterDataPoint[
 
         self._reset_temporary_value()
 
-        old_value = self._value
+        old_value = self.__value
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
@@ -732,7 +737,7 @@ class BaseParameterDataPoint[
         else:
             self._set_modified_at()
             self._old_value = old_value
-            self._value = new_value
+            self.__value = new_value
             self._state_uncertain = False
         self.fire_data_point_updated_callback()
         return (old_value, new_value)

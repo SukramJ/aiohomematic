@@ -1615,7 +1615,7 @@ class _ClientConfig:
     async def _get_version(self) -> str:
         """Return the version of the backend."""
         if self.interface in (Interface.CCU_JACK, Interface.CUXD):
-            return str(self.interface)
+            return "0"
         check_proxy = await self._get_simple_xml_rpc_proxy()
         try:
             if (methods := check_proxy.supported_methods) and "getVersion" in methods:

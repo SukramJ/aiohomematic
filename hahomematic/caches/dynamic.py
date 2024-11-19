@@ -67,7 +67,7 @@ class CommandCache:
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
-        data_point_keys: set[DP_KEY_VALUE] = set()
+        data_point_key_values: set[DP_KEY_VALUE] = set()
         for parameter, value in values.items():
             data_point_key = get_data_point_key(
                 interface_id=self._interface_id,
@@ -76,8 +76,8 @@ class CommandCache:
                 parameter=parameter,
             )
             self._last_send_command[data_point_key] = (value, datetime.now())
-            data_point_keys.add((data_point_key, value))
-        return data_point_keys
+            data_point_key_values.add((data_point_key, value))
+        return data_point_key_values
 
     def add_combined_parameter(
         self, parameter: str, channel_address: str, combined_parameter: str

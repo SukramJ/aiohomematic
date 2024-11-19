@@ -20,6 +20,7 @@ from hahomematic.const import (
     SYSVAR_ADDRESS,
     SYSVAR_SET_PATH_ROOT,
     SYSVAR_STATE_PATH_ROOT,
+    SYSVAR_TYPE,
     VIRTDEV_SET_PATH_ROOT,
     VIRTDEV_STATE_PATH_ROOT,
     VIRTUAL_REMOTE_ADDRESSES,
@@ -550,7 +551,7 @@ def check_channel_is_the_only_primary_channel(
 
 
 def get_value_from_value_list(
-    value: bool | float | int | str | None, value_list: tuple[str, ...] | list[str] | None
+    value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None
 ) -> str | None:
     """Check if value is in value list."""
     if (
@@ -564,7 +565,7 @@ def get_value_from_value_list(
 
 
 def get_index_of_value_from_value_list(
-    value: bool | float | int | str | None, value_list: tuple[str, ...] | list[str] | None
+    value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None
 ) -> int | None:
     """Check if value is in value list."""
     if (

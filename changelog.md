@@ -2,6 +2,7 @@
 
 - Fix returned version of client
 - Improve store tmp value
+- Store tmp value for sysvar data points
 
 # Version 2024.11.4 (2024-11-19)
 

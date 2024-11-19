@@ -485,6 +485,7 @@ DATA_POINT_EVENTS: Final[tuple[EventType, ...]] = (
 # interface_id, channel_address, paramset_key,parameter
 DP_KEY = tuple[str, str, ParamsetKey, str]
 DP_KEY_VALUE = tuple[DP_KEY, Any]
+SYSVAR_TYPE = bool | float | int | str | None
 
 HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
     DeviceFirmwareState.DO_UPDATE_PENDING,
@@ -603,7 +604,7 @@ class ProgramData(HubData):
 class SystemVariableData(HubData):
     """Dataclass for system variables."""
 
-    value: bool | float | int | str | None
+    value: SYSVAR_TYPE
     data_type: SysvarType | None = None
     extended_sysvar: bool = False
     max_value: float | int | None = None

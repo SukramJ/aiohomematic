@@ -38,8 +38,10 @@ from hahomematic.const import (
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_SCAN_ENABLED,
+    DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_SCAN_ENABLED,
     DEFAULT_TLS,
+    DEFAULT_UN_IGNORES,
     DEFAULT_VERIFY_TLS,
     DP_KEY,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
@@ -154,7 +156,7 @@ class CentralUnit(PayloadMixin):
         self._homematic_callbacks: Final[set[Callable]] = set()
 
         CENTRAL_INSTANCES[self.name] = self
-        self._connection_checker: Final = _CentralUnitChecker(central=self)
+        self._connection_checker: Final = _Scheduler(central=self)
         self._hub: Hub = Hub(central=self)
         self._version: str | None = None
         # store last event received datetime by interface_id
@@ -1459,7 +1461,7 @@ class CentralUnit(PayloadMixin):
         return f"central: {self.name}"
 
 
-class _CentralUnitChecker(threading.Thread):
+class _Scheduler(threading.Thread):
     """Periodically check connection to CCU / Homegear, and load data when required."""
 
     def __init__(self, central: CentralUnit) -> None:
@@ -1482,6 +1484,18 @@ class _CentralUnitChecker(threading.Thread):
                 name="refresh_client_data",
             )
 
+        if self._central.config.program_scan_enabled:
+            self._central.looper.create_task(
+                self._run_refresh_program_data(),
+                name="refresh_program_data",
+            )
+
+        if self._central.config.sysvar_scan_enabled:
+            self._central.looper.create_task(
+                self._run_refresh_sysvar_data(),
+                name="refresh_sysvar_data",
+            )
+
     def stop(self) -> None:
         """To stop the ConnectionChecker."""
         self._active = False
@@ -1500,12 +1514,23 @@ class _CentralUnitChecker(threading.Thread):
             if self._active:
                 await asyncio.sleep(self._central.config.periodic_refresh_interval)
 
+    async def _run_refresh_program_data(self) -> None:
+        """Periodically refresh programs."""
+        while self._active:
+            await self._refresh_program_data()
+            if self._active:
+                await asyncio.sleep(self._central.config.sys_scan_interval)
+
+    async def _run_refresh_sysvar_data(self) -> None:
+        """Periodically refresh sysvars."""
+        while self._active:
+            await self._refresh_sysvar_data()
+            if self._active:
+                await asyncio.sleep(self._central.config.sys_scan_interval)
+
     async def _check_connection(self) -> None:
         """Check connection to backend."""
-        _LOGGER.debug(
-            "CHECK_CONNECTION: Checking connection to server %s",
-            self._central.name,
-        )
+        _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central.name)
         try:
             if not self._central.has_all_enabled_clients:
                 _LOGGER.warning(
@@ -1547,29 +1572,31 @@ class _CentralUnitChecker(threading.Thread):
                 reduce_args(args=ex.args),
             )
 
+    @service(re_raise=False)
     async def _refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
         """Refresh client data."""
-        _LOGGER.debug(
-            "REFRESH_CLIENT_DATA: Checking connection to server %s",
-            self._central.name,
-        )
-        try:
-            if not self._central.available:
-                return
-            for client in poll_clients:
-                await self._central.load_and_refresh_data_point_data(interface=client.interface)
-                self._central.set_last_event_dt(interface_id=client.interface_id)
+        if not self._central.available:
+            return
+        _LOGGER.debug("REFRESH_CLIENT_DATA: Checking connection to server %s", self._central.name)
+        for client in poll_clients:
+            await self._central.load_and_refresh_data_point_data(interface=client.interface)
+            self._central.set_last_event_dt(interface_id=client.interface_id)
 
-        except NoConnectionException as nex:
-            _LOGGER.error(
-                "REFRESH_CLIENT_DATA failed: no connection: %s", reduce_args(args=nex.args)
-            )
-        except Exception as ex:
-            _LOGGER.error(
-                "REFRESH_CLIENT_DATA failed: %s [%s]",
-                type(ex).__name__,
-                reduce_args(args=ex.args),
-            )
+    @service(re_raise=False)
+    async def _refresh_sysvar_data(self) -> None:
+        """Refresh system variables."""
+        if not self._central.available:
+            return
+        _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central.name)
+        await self._central.fetch_sysvar_data(scheduled=True)
+
+    @service(re_raise=False)
+    async def _refresh_program_data(self) -> None:
+        """Refresh system program_data."""
+        if not self._central.available:
+            return
+        _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central.name)
+        await self._central.fetch_program_data(scheduled=True)
 
 
 class CentralConfig:
@@ -1600,9 +1627,10 @@ class CentralConfig:
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_scan_enabled: bool = DEFAULT_PROGRAM_SCAN_ENABLED,
         start_direct: bool = False,
+        sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_scan_enabled: bool = DEFAULT_SYSVAR_SCAN_ENABLED,
         tls: bool = DEFAULT_TLS,
-        un_ignore_list: list[str] | None = None,
+        un_ignore_list: tuple[str, ...] = DEFAULT_UN_IGNORES,
         verify_tls: bool = DEFAULT_VERIFY_TLS,
     ) -> None:
         """Init the client config."""
@@ -1628,6 +1656,7 @@ class CentralConfig:
         self.program_scan_enabled: Final = program_scan_enabled
         self.start_direct: Final = start_direct
         self.storage_folder: Final = storage_folder
+        self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_scan_enabled: Final = sysvar_scan_enabled
         self.tls: Final = tls
         self.un_ignore_list: Final = un_ignore_list

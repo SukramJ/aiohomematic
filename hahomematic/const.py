@@ -26,8 +26,10 @@ DEFAULT_PING_PONG_MISMATCH_COUNT_TTL: Final = 300
 DEFAULT_PROGRAM_SCAN_ENABLED: Final = True
 DEFAULT_RECONNECT_WAIT: Final = 120  # wait with reconnect after a first ping was successful
 DEFAULT_SYSVAR_SCAN_ENABLED: Final = True
+DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TIMEOUT: Final = 60  # default timeout for a connection
 DEFAULT_TLS: Final = False
+DEFAULT_UN_IGNORES: Final[tuple[str, ...]] = ()
 DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_WAIT_FOR_CALLBACK: Final[int | None] = None
 

@@ -10,7 +10,7 @@
 - Add periodic data refresh to CentralUnitChecker for some interfaces
 - Add root path for virtual devices
 - Maintain data_cache by interface
-- Reduce MAX_CACHE_AGE to 15s
+- Reduce MAX_CACHE_AGE to 10s
 
 # Version 2024.11.2 (2024-11-17)
 

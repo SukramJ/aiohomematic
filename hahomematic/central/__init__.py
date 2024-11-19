@@ -245,6 +245,13 @@ class CentralUnit(PayloadMixin):
         return self._parameter_visibility
 
     @property
+    def poll_clients(self) -> tuple[hmcl.Client, ...]:
+        """Return clients that need to poll data."""
+        return tuple(
+            client for client in self._clients.values() if not client.supports_push_updates
+        )
+
+    @property
     def primary_client(self) -> hmcl.Client | None:
         """Return the primary client of the backend."""
         if self._primary_client is not None:
@@ -1469,9 +1476,11 @@ class _CentralUnitChecker(threading.Thread):
             self._central.name,
         )
         self._central.looper.create_task(self._run_check_connection(), name="check_connection")
-        self._central.looper.create_task(
-            self._run_refresh_client_data(), name="refresh_client_data"
-        )
+        if (poll_clients := self._central.poll_clients) is not None:
+            self._central.looper.create_task(
+                self._run_refresh_client_data(poll_clients=poll_clients),
+                name="refresh_client_data",
+            )
 
     def stop(self) -> None:
         """To stop the ConnectionChecker."""
@@ -1484,10 +1493,10 @@ class _CentralUnitChecker(threading.Thread):
             if self._active:
                 await asyncio.sleep(config.CONNECTION_CHECKER_INTERVAL)
 
-    async def _run_refresh_client_data(self) -> None:
+    async def _run_refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
         """Periodically refresh client data."""
         while self._active:
-            await self._refresh_client_data()
+            await self._refresh_client_data(poll_clients=poll_clients)
             if self._active:
                 await asyncio.sleep(self._central.config.periodic_refresh_interval)
 
@@ -1538,7 +1547,7 @@ class _CentralUnitChecker(threading.Thread):
                 reduce_args(args=ex.args),
             )
 
-    async def _refresh_client_data(self) -> None:
+    async def _refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
         """Refresh client data."""
         _LOGGER.debug(
             "REFRESH_CLIENT_DATA: Checking connection to server %s",
@@ -1547,12 +1556,9 @@ class _CentralUnitChecker(threading.Thread):
         try:
             if not self._central.available:
                 return
-            for client in self._central.clients:
-                if not client.supports_push_updates:
-                    await self._central.load_and_refresh_data_point_data(
-                        interface=client.interface
-                    )
-                    self._central.set_last_event_dt(interface_id=client.interface_id)
+            for client in poll_clients:
+                await self._central.load_and_refresh_data_point_data(interface=client.interface)
+                self._central.set_last_event_dt(interface_id=client.interface_id)
 
         except NoConnectionException as nex:
             _LOGGER.error(

@@ -13,7 +13,6 @@ from functools import partial
 import logging
 from logging import DEBUG
 import threading
-from time import sleep
 from typing import Any, Final, cast
 
 from aiohttp import ClientSession
@@ -37,6 +36,7 @@ from hahomematic.const import (
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     DEFAULT_MAX_READ_WORKERS,
+    DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_SCAN_ENABLED,
     DEFAULT_SYSVAR_SCAN_ENABLED,
     DEFAULT_TLS,
@@ -651,7 +651,7 @@ class CentralUnit(PayloadMixin):
                 _LOGGER.warning(
                     "GET_IP_ADDR: Waiting for %i s,", config.CONNECTION_CHECKER_INTERVAL
                 )
-                await asyncio.sleep(config.CONNECTION_CHECKER_INTERVAL)
+                await asyncio.sleep(config.TIMEOUT / 10)
         return ip_addr
 
     def _start_connection_checker(self) -> None:
@@ -1167,13 +1167,16 @@ class CentralUnit(PayloadMixin):
 
     @measure_execution_time
     async def load_and_refresh_data_point_data(
-        self, interface: Interface, paramset_key: ParamsetKey | None = None
+        self,
+        interface: Interface,
+        paramset_key: ParamsetKey | None = None,
+        direct_call: bool = False,
     ) -> None:
         """Refresh data_point data."""
-        if paramset_key != ParamsetKey.MASTER and self._data_cache.is_empty(interface=interface):
+        if paramset_key != ParamsetKey.MASTER:
             await self._data_cache.load(interface=interface)
         await self._data_cache.refresh_data_point_data(
-            paramset_key=paramset_key, interface=interface
+            paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
     async def get_system_variable(self, name: str) -> Any | None:
@@ -1465,20 +1468,31 @@ class _CentralUnitChecker(threading.Thread):
             "run: Init connection checker to server %s",
             self._central.name,
         )
-        while self._active:
-            self._central.looper.run_coroutine(self._check_connection(), name="check_connection")
-            self._central.looper.run_coroutine(
-                self._refresh_client_data(), name="refresh_client_data"
-            )
-            if self._active:
-                sleep(config.CONNECTION_CHECKER_INTERVAL)
+        self._central.looper.create_task(self._run_check_connection(), name="check_connection")
+        self._central.looper.create_task(
+            self._run_refresh_client_data(), name="refresh_client_data"
+        )
 
     def stop(self) -> None:
         """To stop the ConnectionChecker."""
         self._active = False
 
-    async def _check_connection(self) -> None:
+    async def _run_check_connection(self) -> None:
         """Periodically check connection to backend."""
+        while self._active:
+            await self._check_connection()
+            if self._active:
+                await asyncio.sleep(config.CONNECTION_CHECKER_INTERVAL)
+
+    async def _run_refresh_client_data(self) -> None:
+        """Periodically refresh client data."""
+        while self._active:
+            await self._refresh_client_data()
+            if self._active:
+                await asyncio.sleep(self._central.config.periodic_refresh_interval)
+
+    async def _check_connection(self) -> None:
+        """Check connection to backend."""
         _LOGGER.debug(
             "CHECK_CONNECTION: Checking connection to server %s",
             self._central.name,
@@ -1525,7 +1539,7 @@ class _CentralUnitChecker(threading.Thread):
             )
 
     async def _refresh_client_data(self) -> None:
-        """Periodically check connection to backend."""
+        """Refresh client data."""
         _LOGGER.debug(
             "REFRESH_CLIENT_DATA: Checking connection to server %s",
             self._central.name,
@@ -1577,6 +1591,7 @@ class CentralConfig:
         listen_ip_addr: str | None = None,
         listen_port: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
+        periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_scan_enabled: bool = DEFAULT_PROGRAM_SCAN_ENABLED,
         start_direct: bool = False,
         sysvar_scan_enabled: bool = DEFAULT_SYSVAR_SCAN_ENABLED,
@@ -1603,6 +1618,7 @@ class CentralConfig:
         self.max_read_workers = max_read_workers
         self.name: Final = name
         self.password: Final = password
+        self.periodic_refresh_interval = periodic_refresh_interval
         self.program_scan_enabled: Final = program_scan_enabled
         self.start_direct: Final = start_direct
         self.storage_folder: Final = storage_folder

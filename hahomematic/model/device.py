@@ -1043,11 +1043,12 @@ class _ValueCache:
                 )
             except BaseHomematicException as ex:
                 _LOGGER.debug(
-                    "GET_OR_LOAD_VALUE: Failed to get data for %s, %s, %s: %s",
+                    "GET_OR_LOAD_VALUE: Failed to get data for %s, %s, %s, %s: %s",
                     self._device.model,
                     channel_address,
                     parameter,
-                    ex,
+                    call_source,
+                    reduce_args(args=ex.args),
                 )
             for d_parameter, d_value in value_dict.items():
                 self._add_entry_to_device_cache(

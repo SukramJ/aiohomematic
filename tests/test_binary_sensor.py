@@ -89,6 +89,6 @@ async def test_hmsysvarbinarysensor(
     assert binary_sensor.value is False
     assert binary_sensor.is_extended is False
     assert binary_sensor.data_type == "LOGIC"
-    with pytest.raises(TypeError):
-        binary_sensor.write_value(None)
     assert binary_sensor.value is False
+    binary_sensor.write_value(True)
+    assert binary_sensor.value is True

@@ -8,7 +8,7 @@ from typing import Any, Final
 from slugify import slugify
 
 from hahomematic import central as hmcu
-from hahomematic.const import SYSVAR_ADDRESS, HubData, SystemVariableData
+from hahomematic.const import SYSVAR_ADDRESS, SYSVAR_TYPE, HubData, SystemVariableData
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import (
     config_property,
@@ -83,8 +83,12 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._max: Final = data.max_value
         self._min: Final = data.min_value
         self._unit: Final = data.unit
-        self._value = data.value
-        self._previous_value: bool | float | int | str | None = None
+
+        self._current_value: SYSVAR_TYPE = data.value
+        self._previous_value: SYSVAR_TYPE = None
+        self._temporary_value: SYSVAR_TYPE = None
+
+        self._state_uncertain: bool = True
         self._service_methods = get_service_calls(obj=self)
 
     @state_property
@@ -93,9 +97,21 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         return self.central.available
 
     @property
-    def previous_value(self) -> Any | None:
+    def previous_value(self) -> SYSVAR_TYPE:
         """Return the previous value."""
         return self._previous_value
+
+    @property
+    def state_uncertain(self) -> bool:
+        """Return, if the state is uncertain."""
+        return self._state_uncertain
+
+    @property
+    def _value(self) -> Any | None:
+        """Return the value."""
+        if self._temporary_refreshed_at > self._refreshed_at:
+            return self._temporary_value
+        return self._current_value
 
     @state_property
     def value(self) -> Any | None:
@@ -139,26 +155,44 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
     def write_value(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
-        old_value = self._value
-        if self.data_type:
-            value = parse_sys_var(data_type=self.data_type, raw_value=value)
-        elif isinstance(old_value, bool):
-            value = bool(value)
-        elif isinstance(old_value, int):
-            value = int(value)
-        elif isinstance(old_value, str):
-            value = str(value)
-        elif isinstance(old_value, float):
-            value = float(value)
-
-        if old_value == value:
+        old_value = self._current_value
+        new_value = self._convert_value(old_value=old_value, new_value=value)
+        if old_value == new_value:
             self._set_refreshed_at()
         else:
             self._set_modified_at()
             self._previous_value = old_value
-            self._value = value
-
+            self._current_value = new_value
+            self._state_uncertain = False
         self.fire_data_point_updated_callback()
+
+    def _write_temporary_value(self, value: Any) -> None:
+        """Update the temporary value of the data_point."""
+        temp_value = self._convert_value(old_value=self._current_value, new_value=value)
+        if self._value == temp_value:
+            self._set_temporary_refreshed_at()
+        else:
+            self._set_temporary_modified_at()
+            self._temporary_value = temp_value
+            self._state_uncertain = True
+        self.fire_data_point_updated_callback()
+
+    def _convert_value(self, old_value: Any, new_value: Any) -> Any:
+        """Convert to value to SYSVAR_TYPE."""
+        if new_value is None:
+            return None
+        value = new_value
+        if self.data_type:
+            value = parse_sys_var(data_type=self.data_type, raw_value=new_value)
+        elif isinstance(old_value, bool):
+            value = bool(new_value)
+        elif isinstance(old_value, int):
+            value = int(new_value)
+        elif isinstance(old_value, str):
+            value = str(new_value)
+        elif isinstance(old_value, float):
+            value = float(new_value)
+        return value
 
     @service()
     async def send_variable(self, value: Any) -> None:
@@ -167,4 +201,4 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             await client.set_system_variable(
                 name=self.ccu_var_name, value=parse_sys_var(self.data_type, value)
             )
-        self.write_value(value=value)
+        self._write_temporary_value(value=value)

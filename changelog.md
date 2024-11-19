@@ -2,12 +2,13 @@
 
 - Fix returned version of client
 - Improve store tmp value
+- Store temporary value for sysvar data points
 
 # Version 2024.11.4 (2024-11-19)
 
 - Add sysvar/program refresh to scheduler
 - Run periodic tasks with an individual interval
-- Store tmp value for polling client data points
+- Store temporary value for polling client data points
 
 # Version 2024.11.3 (2024-11-18)
 

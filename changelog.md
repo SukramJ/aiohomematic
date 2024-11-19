@@ -1,3 +1,7 @@
+# Version 2024.11.4 (2024-11-19)
+
+- Store tmp value for polling client data points
+
 # Version 2024.11.3 (2024-11-18)
 
 - Add interface(id) to performance log message

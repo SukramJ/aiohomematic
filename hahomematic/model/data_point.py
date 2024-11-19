@@ -20,6 +20,7 @@ from hahomematic.const import (
     CALLBACK_TYPE,
     DEFAULT_CUSTOM_ID,
     DP_KEY,
+    DP_KEY_VALUE,
     INIT_DATETIME,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
     KWARGS_ARG_DATA_POINT,
@@ -124,6 +125,8 @@ class CallbackDataPoint(ABC):
         self._path_data = self._get_path_data()
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
+        self._tmp_modified_at: datetime = INIT_DATETIME
+        self._tmp_refreshed_at: datetime = INIT_DATETIME
         self._service_methods: dict[str, Callable] = {}
 
     @state_property
@@ -159,11 +162,15 @@ class CallbackDataPoint(ABC):
     @state_property
     def modified_at(self) -> datetime:
         """Return the last update datetime value."""
+        if self._tmp_modified_at > self._modified_at:
+            return self._tmp_modified_at
         return self._modified_at
 
     @state_property
     def refreshed_at(self) -> datetime:
         """Return the last refresh datetime value."""
+        if self._tmp_refreshed_at > self._refreshed_at:
+            return self._tmp_refreshed_at
         return self._refreshed_at
 
     @config_property
@@ -282,13 +289,22 @@ class CallbackDataPoint(ABC):
                 _LOGGER.warning("FIRE_DEVICE_REMOVED_EVENT failed: %s", reduce_args(args=ex.args))
 
     def _set_modified_at(self, now: datetime = datetime.now()) -> None:
-        """Set last_update to current datetime."""
+        """Set modified_at to current datetime."""
         self._modified_at = now
         self._set_refreshed_at(now=now)
 
     def _set_refreshed_at(self, now: datetime = datetime.now()) -> None:
-        """Set last_update to current datetime."""
+        """Set refreshed_at to current datetime."""
         self._refreshed_at = now
+
+    def _set_tmp_modified_at(self, now: datetime = datetime.now()) -> None:
+        """Set tmp_modified_at to current datetime."""
+        self._tmp_modified_at = now
+        self._set_tmp_refreshed_at(now=now)
+
+    def _set_tmp_refreshed_at(self, now: datetime = datetime.now()) -> None:
+        """Set tmp_refreshed_at to current datetime."""
+        self._tmp_refreshed_at = now
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -431,8 +447,8 @@ class BaseParameterDataPoint[
         )
         self._value: ParameterT = None  # type: ignore[assignment]
         self._old_value: ParameterT = None  # type: ignore[assignment]
-        self._modified_at: datetime = INIT_DATETIME
-        self._refreshed_at: datetime = INIT_DATETIME
+        self._tmp_value: ParameterT = None  # type: ignore[assignment]
+
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
         self._assign_parameter_data(parameter_data=parameter_data)
@@ -574,6 +590,8 @@ class BaseParameterDataPoint[
     @state_property
     def value(self) -> ParameterT:
         """Return the value of the data_point."""
+        if self._tmp_refreshed_at > self._refreshed_at:
+            return self._tmp_value
         return self._value
 
     @property
@@ -698,6 +716,9 @@ class BaseParameterDataPoint[
 
     def write_value(self, value: Any) -> tuple[ParameterT, ParameterT]:
         """Update value of the data_point."""
+
+        self._reset_tmp_value()
+
         old_value = self._value
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
@@ -715,6 +736,17 @@ class BaseParameterDataPoint[
             self._state_uncertain = False
         self.fire_data_point_updated_callback()
         return (old_value, new_value)
+
+    def write_temp_value(self, value: Any) -> None:
+        """Update the temporary value of the data_point."""
+        temp_value = self._convert_value(value)
+        if self._value == temp_value:
+            self._set_refreshed_at()
+        else:
+            self._set_tmp_modified_at()
+            self._tmp_value = temp_value
+            self._state_uncertain = True
+        self.fire_data_point_updated_callback()
 
     def update_parameter_data(self) -> None:
         """Update parameter data."""
@@ -754,6 +786,11 @@ class BaseParameterDataPoint[
                 value,
             )
             return None  # type: ignore[return-value]
+
+    def _reset_tmp_value(self) -> None:
+        """Reset the temp storage."""
+        self._tmp_value = None  # type: ignore[assignment]
+        self._set_modified_at(now=INIT_DATETIME)
 
     def get_event_data(self, value: Any = None) -> dict[EventKey, Any]:
         """Get the event_data."""
@@ -801,28 +838,33 @@ class CallParameterCollector:
             data_point.parameter
         ] = value
 
-    async def send_data(self, wait_for_callback: int | None) -> bool:
+    async def send_data(self, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
         """Send data to backend."""
+        data_point_key_values: set[DP_KEY_VALUE] = set()
         for paramset_key, paramsets in self._paramsets.items():
             for paramset_no in dict(sorted(paramsets.items())).values():
                 for channel_address, paramset in paramset_no.items():
                     if len(paramset.values()) == 1:
                         for parameter, value in paramset.items():
-                            await self._client.set_value(
-                                channel_address=channel_address,
-                                paramset_key=paramset_key,
-                                parameter=parameter,
-                                value=value,
-                                wait_for_callback=wait_for_callback,
+                            data_point_key_values.update(
+                                await self._client.set_value(
+                                    channel_address=channel_address,
+                                    paramset_key=paramset_key,
+                                    parameter=parameter,
+                                    value=value,
+                                    wait_for_callback=wait_for_callback,
+                                )
                             )
                     else:
-                        await self._client.put_paramset(
-                            channel_address=channel_address,
-                            paramset_key=paramset_key,
-                            values=paramset,
-                            wait_for_callback=wait_for_callback,
+                        data_point_key_values.update(
+                            await self._client.put_paramset(
+                                channel_address=channel_address,
+                                paramset_key=paramset_key,
+                                values=paramset,
+                                wait_for_callback=wait_for_callback,
+                            )
                         )
-        return True
+        return data_point_key_values
 
 
 def bind_collector(

@@ -84,7 +84,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._min: Final = data.min_value
         self._unit: Final = data.unit
 
-        self._current_value = data.value
+        self._current_value: SYSVAR_TYPE = data.value
         self._previous_value: SYSVAR_TYPE = None
         self._temporary_value: SYSVAR_TYPE = None
 

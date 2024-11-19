@@ -84,7 +84,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._min: Final = data.min_value
         self._unit: Final = data.unit
         self._value = data.value
-        self._old_value: bool | float | int | str | None = None
+        self._previous_value: bool | float | int | str | None = None
         self._service_methods = get_service_calls(obj=self)
 
     @state_property
@@ -93,9 +93,9 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         return self.central.available
 
     @property
-    def old_value(self) -> Any | None:
-        """Return the old value."""
-        return self._old_value
+    def previous_value(self) -> Any | None:
+        """Return the previous value."""
+        return self._previous_value
 
     @state_property
     def value(self) -> Any | None:
@@ -155,7 +155,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             self._set_refreshed_at()
         else:
             self._set_modified_at()
-            self._old_value = old_value
+            self._previous_value = old_value
             self._value = value
 
         self.fire_data_point_updated_callback()

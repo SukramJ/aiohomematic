@@ -16,7 +16,7 @@ from hahomematic.const import (
     DATETIME_FORMAT_MILLIS,
     DEFAULT_CUSTOM_ID,
     DEFAULT_MAX_WORKERS,
-    DP_KEY,
+    DP_KEY_VALUE,
     DUMMY_SERIAL,
     INIT_DATETIME,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
@@ -565,7 +565,7 @@ class Client(ABC):
         wait_for_callback: int | None,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DP_KEY]:
+    ) -> set[DP_KEY_VALUE]:
         """Set single value on paramset VALUES."""
         try:
             checked_value = (
@@ -594,7 +594,7 @@ class Client(ABC):
                     channel_address=channel_address, parameter=parameter, value=value
                 )
             # store the send value in the last_value_send_cache
-            data_point_keys = self._last_value_send_cache.add_set_value(
+            data_point_key_values = self._last_value_send_cache.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
             )
             if wait_for_callback is not None and (
@@ -604,11 +604,10 @@ class Client(ABC):
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
-                    data_point_keys=data_point_keys,
-                    values={parameter: checked_value},
+                    data_point_key_values=data_point_key_values,
                     wait_for_callback=wait_for_callback,
                 )
-            return data_point_keys  # noqa: TRY300
+            return data_point_key_values  # noqa: TRY300
         except BaseHomematicException as ex:
             raise ClientException(
                 f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {reduce_args(args=ex.args)}"
@@ -648,7 +647,7 @@ class Client(ABC):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DP_KEY]:
+    ) -> set[DP_KEY_VALUE]:
         """Set single value on paramset VALUES."""
         if paramset_key == ParamsetKey.VALUES:
             return await self._set_value(  # type: ignore[no-any-return]
@@ -704,7 +703,7 @@ class Client(ABC):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
-    ) -> set[DP_KEY]:
+    ) -> set[DP_KEY_VALUE]:
         """
         Set paramsets manually.
 
@@ -759,7 +758,7 @@ class Client(ABC):
                 return set()
 
             # store the send value in the last_value_send_cache
-            data_point_keys = self._last_value_send_cache.add_put_paramset(
+            data_point_key_values = self._last_value_send_cache.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey(paramset_key),
                 values=checked_values,
@@ -771,11 +770,10 @@ class Client(ABC):
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
-                    data_point_keys=data_point_keys,
-                    values=checked_values,
+                    data_point_key_values=data_point_key_values,
                     wait_for_callback=wait_for_callback,
                 )
-            return data_point_keys  # noqa: TRY300
+            return data_point_key_values  # noqa: TRY300
         except BaseHomematicException as ex:
             raise ClientException(
                 f"PUT_PARAMSET failed for {channel_address}/{paramset_key}/{values}: {reduce_args(args=ex.args)}"
@@ -1694,29 +1692,28 @@ def get_client(interface_id: str) -> Client | None:
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
     device: Device,
-    data_point_keys: set[DP_KEY],
-    values: dict[str, Any],
+    data_point_key_values: set[DP_KEY_VALUE],
     wait_for_callback: int,
 ) -> None:
     """Wait for a data_point to change state."""
     waits = [
         _track_single_data_point_state_change_or_timeout(
             device=device,
-            data_point_key=data_point_key,
-            value=values.get(data_point_key[1]),
+            data_point_key_value=data_point_key_value,
             wait_for_callback=wait_for_callback,
         )
-        for data_point_key in data_point_keys
+        for data_point_key_value in data_point_key_values
     ]
     await asyncio.gather(*waits)
 
 
 @measure_execution_time
 async def _track_single_data_point_state_change_or_timeout(
-    device: Device, data_point_key: DP_KEY, value: Any, wait_for_callback: int
+    device: Device, data_point_key_value: DP_KEY_VALUE, wait_for_callback: int
 ) -> None:
     """Wait for a data_point to change state."""
     ev = asyncio.Event()
+    data_point_key, value = data_point_key_value
 
     def _async_event_changed(*args: Any, **kwargs: Any) -> None:
         if dp:

@@ -15,6 +15,7 @@ from hahomematic.config import (
 )
 from hahomematic.const import (
     DP_KEY,
+    DP_KEY_VALUE,
     INIT_DATETIME,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
@@ -46,7 +47,7 @@ class CommandCache:
         channel_address: str,
         parameter: str,
         value: Any,
-    ) -> set[DP_KEY]:
+    ) -> set[DP_KEY_VALUE]:
         """Add data from set value command."""
         if parameter in CONVERTABLE_PARAMETERS:
             return self.add_combined_parameter(
@@ -60,13 +61,13 @@ class CommandCache:
             parameter=parameter,
         )
         self._last_send_command[data_point_key] = (value, datetime.now())
-        return {data_point_key}
+        return {(data_point_key, value)}
 
     def add_put_paramset(
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
-    ) -> set[DP_KEY]:
+    ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
-        data_point_keys: set[DP_KEY] = set()
+        data_point_keys: set[DP_KEY_VALUE] = set()
         for parameter, value in values.items():
             data_point_key = get_data_point_key(
                 interface_id=self._interface_id,
@@ -75,12 +76,12 @@ class CommandCache:
                 parameter=parameter,
             )
             self._last_send_command[data_point_key] = (value, datetime.now())
-            data_point_keys.add(data_point_key)
+            data_point_keys.add((data_point_key, value))
         return data_point_keys
 
     def add_combined_parameter(
         self, parameter: str, channel_address: str, combined_parameter: str
-    ) -> set[DP_KEY]:
+    ) -> set[DP_KEY_VALUE]:
         """Add data from combined parameter."""
         if values := convert_combined_parameter_to_paramset(
             parameter=parameter, cpv=combined_parameter

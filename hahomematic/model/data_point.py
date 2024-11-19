@@ -445,8 +445,8 @@ class BaseParameterDataPoint[
                 custom_only=True,
             )
         )
-        self.__value: ParameterT = None  # type: ignore[assignment]
-        self._old_value: ParameterT = None  # type: ignore[assignment]
+        self._current_value: ParameterT = None  # type: ignore[assignment]
+        self._previous_value: ParameterT = None  # type: ignore[assignment]
         self._temporary_value: ParameterT = None  # type: ignore[assignment]
 
         self._state_uncertain: bool = True
@@ -573,9 +573,9 @@ class BaseParameterDataPoint[
         )
 
     @property
-    def old_value(self) -> ParameterT:
-        """Return the old value of the data_point."""
-        return self._old_value
+    def previous_value(self) -> ParameterT:
+        """Return the previous value of the data_point."""
+        return self._previous_value
 
     @property
     def category(self) -> DataPointCategory:
@@ -592,7 +592,7 @@ class BaseParameterDataPoint[
         """Return the value of the data_point."""
         if self._temporary_refreshed_at > self._refreshed_at:
             return self._temporary_value
-        return self.__value
+        return self._current_value
 
     @state_property
     def value(self) -> ParameterT:
@@ -724,7 +724,7 @@ class BaseParameterDataPoint[
 
         self._reset_temporary_value()
 
-        old_value = self.__value
+        old_value = self._current_value
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
@@ -736,8 +736,8 @@ class BaseParameterDataPoint[
             self._set_refreshed_at()
         else:
             self._set_modified_at()
-            self._old_value = old_value
-            self.__value = new_value
+            self._previous_value = old_value
+            self._current_value = new_value
             self._state_uncertain = False
         self.fire_data_point_updated_callback()
         return (old_value, new_value)

@@ -125,8 +125,8 @@ class CallbackDataPoint(ABC):
         self._path_data = self._get_path_data()
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
-        self._tmp_modified_at: datetime = INIT_DATETIME
-        self._tmp_refreshed_at: datetime = INIT_DATETIME
+        self._temporary_modified_at: datetime = INIT_DATETIME
+        self._temporary_refreshed_at: datetime = INIT_DATETIME
         self._service_methods: dict[str, Callable] = {}
 
     @state_property
@@ -162,15 +162,15 @@ class CallbackDataPoint(ABC):
     @state_property
     def modified_at(self) -> datetime:
         """Return the last update datetime value."""
-        if self._tmp_modified_at > self._modified_at:
-            return self._tmp_modified_at
+        if self._temporary_modified_at > self._modified_at:
+            return self._temporary_modified_at
         return self._modified_at
 
     @state_property
     def refreshed_at(self) -> datetime:
         """Return the last refresh datetime value."""
-        if self._tmp_refreshed_at > self._refreshed_at:
-            return self._tmp_refreshed_at
+        if self._temporary_refreshed_at > self._refreshed_at:
+            return self._temporary_refreshed_at
         return self._refreshed_at
 
     @config_property
@@ -297,14 +297,14 @@ class CallbackDataPoint(ABC):
         """Set refreshed_at to current datetime."""
         self._refreshed_at = now
 
-    def _set_tmp_modified_at(self, now: datetime = datetime.now()) -> None:
-        """Set tmp_modified_at to current datetime."""
-        self._tmp_modified_at = now
-        self._set_tmp_refreshed_at(now=now)
+    def _set_temporary_modified_at(self, now: datetime = datetime.now()) -> None:
+        """Set temporary_modified_at to current datetime."""
+        self._temporary_modified_at = now
+        self._set_temporary_refreshed_at(now=now)
 
-    def _set_tmp_refreshed_at(self, now: datetime = datetime.now()) -> None:
-        """Set tmp_refreshed_at to current datetime."""
-        self._tmp_refreshed_at = now
+    def _set_temporary_refreshed_at(self, now: datetime = datetime.now()) -> None:
+        """Set temporary_refreshed_at to current datetime."""
+        self._temporary_refreshed_at = now
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -445,9 +445,9 @@ class BaseParameterDataPoint[
                 custom_only=True,
             )
         )
-        self._value: ParameterT = None  # type: ignore[assignment]
+        self.__value: ParameterT = None  # type: ignore[assignment]
         self._old_value: ParameterT = None  # type: ignore[assignment]
-        self._tmp_value: ParameterT = None  # type: ignore[assignment]
+        self._temporary_value: ParameterT = None  # type: ignore[assignment]
 
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
@@ -587,11 +587,16 @@ class BaseParameterDataPoint[
         """Return, if the state is uncertain."""
         return self._state_uncertain
 
+    @property
+    def _value(self) -> ParameterT:
+        """Return the value of the data_point."""
+        if self._temporary_refreshed_at > self._refreshed_at:
+            return self._temporary_value
+        return self.__value
+
     @state_property
     def value(self) -> ParameterT:
         """Return the value of the data_point."""
-        if self._tmp_refreshed_at > self._refreshed_at:
-            return self._tmp_value
         return self._value
 
     @property
@@ -717,9 +722,9 @@ class BaseParameterDataPoint[
     def write_value(self, value: Any) -> tuple[ParameterT, ParameterT]:
         """Update value of the data_point."""
 
-        self._reset_tmp_value()
+        self._reset_temporary_value()
 
-        old_value = self._value
+        old_value = self.__value
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
@@ -732,19 +737,19 @@ class BaseParameterDataPoint[
         else:
             self._set_modified_at()
             self._old_value = old_value
-            self._value = new_value
+            self.__value = new_value
             self._state_uncertain = False
         self.fire_data_point_updated_callback()
         return (old_value, new_value)
 
-    def write_temp_value(self, value: Any) -> None:
+    def write_temporary_value(self, value: Any) -> None:
         """Update the temporary value of the data_point."""
         temp_value = self._convert_value(value)
         if self._value == temp_value:
-            self._set_refreshed_at()
+            self._set_temporary_refreshed_at()
         else:
-            self._set_tmp_modified_at()
-            self._tmp_value = temp_value
+            self._set_temporary_modified_at()
+            self._temporary_value = temp_value
             self._state_uncertain = True
         self.fire_data_point_updated_callback()
 
@@ -787,9 +792,9 @@ class BaseParameterDataPoint[
             )
             return None  # type: ignore[return-value]
 
-    def _reset_tmp_value(self) -> None:
+    def _reset_temporary_value(self) -> None:
         """Reset the temp storage."""
-        self._tmp_value = None  # type: ignore[assignment]
+        self._temporary_value = None  # type: ignore[assignment]
         self._set_modified_at(now=INIT_DATETIME)
 
     def get_event_data(self, value: Any = None) -> dict[EventKey, Any]:

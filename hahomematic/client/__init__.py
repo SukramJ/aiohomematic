@@ -597,7 +597,7 @@ class Client(ABC):
             data_point_key_values = self._last_value_send_cache.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
             )
-            self._write_tmp_value(data_point_key_values=data_point_key_values)
+            self._write_temporary_value(data_point_key_values=data_point_key_values)
 
             if wait_for_callback is not None and (
                 device := self.central.get_device(
@@ -640,7 +640,7 @@ class Client(ABC):
             operation=Operations.WRITE,
         )
 
-    def _write_tmp_value(self, data_point_key_values: set[DP_KEY_VALUE]) -> None:
+    def _write_temporary_value(self, data_point_key_values: set[DP_KEY_VALUE]) -> None:
         """Write data point temp value."""
         if self.supports_push_updates:
             return
@@ -651,7 +651,7 @@ class Client(ABC):
             if data_point := self.central.get_generic_data_point(
                 channel_address=channel_address, parameter=parameter, paramset_key=paramset_key
             ):
-                data_point.write_temp_value(value=value)
+                data_point.write_temporary_value(value=value)
 
     async def set_value(
         self,
@@ -778,7 +778,7 @@ class Client(ABC):
                 paramset_key=ParamsetKey(paramset_key),
                 values=checked_values,
             )
-            self._write_tmp_value(data_point_key_values=data_point_key_values)
+            self._write_temporary_value(data_point_key_values=data_point_key_values)
 
             if wait_for_callback is not None and (
                 device := self.central.get_device(

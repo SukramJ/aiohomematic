@@ -1,5 +1,6 @@
 # Version 2024.11.4 (2024-11-19)
 
+- Add sysvar/program refresh to scheduler
 - Run periodic tasks with an individual interval
 - Store tmp value for polling client data points
 

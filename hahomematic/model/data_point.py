@@ -20,6 +20,7 @@ from hahomematic.const import (
     CALLBACK_TYPE,
     DEFAULT_CUSTOM_ID,
     DP_KEY,
+    DP_KEY_VALUE,
     INIT_DATETIME,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
     KWARGS_ARG_DATA_POINT,
@@ -837,28 +838,33 @@ class CallParameterCollector:
             data_point.parameter
         ] = value
 
-    async def send_data(self, wait_for_callback: int | None) -> bool:
+    async def send_data(self, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
         """Send data to backend."""
+        data_point_key_values: set[DP_KEY_VALUE] = set()
         for paramset_key, paramsets in self._paramsets.items():
             for paramset_no in dict(sorted(paramsets.items())).values():
                 for channel_address, paramset in paramset_no.items():
                     if len(paramset.values()) == 1:
                         for parameter, value in paramset.items():
-                            await self._client.set_value(
-                                channel_address=channel_address,
-                                paramset_key=paramset_key,
-                                parameter=parameter,
-                                value=value,
-                                wait_for_callback=wait_for_callback,
+                            data_point_key_values.update(
+                                await self._client.set_value(
+                                    channel_address=channel_address,
+                                    paramset_key=paramset_key,
+                                    parameter=parameter,
+                                    value=value,
+                                    wait_for_callback=wait_for_callback,
+                                )
                             )
                     else:
-                        await self._client.put_paramset(
-                            channel_address=channel_address,
-                            paramset_key=paramset_key,
-                            values=paramset,
-                            wait_for_callback=wait_for_callback,
+                        data_point_key_values.update(
+                            await self._client.put_paramset(
+                                channel_address=channel_address,
+                                paramset_key=paramset_key,
+                                values=paramset,
+                                wait_for_callback=wait_for_callback,
+                            )
                         )
-        return True
+        return data_point_key_values
 
 
 def bind_collector(

@@ -6,6 +6,7 @@ import logging
 from typing import Any, Final
 
 from hahomematic.const import (
+    DP_KEY_VALUE,
     CallSource,
     DataPointUsage,
     EventType,
@@ -99,28 +100,28 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         collector: hme.CallParameterCollector | None = None,
         collector_order: int = 50,
         do_validate: bool = True,
-    ) -> None:
+    ) -> set[DP_KEY_VALUE]:
         """Send value to ccu, or use collector if set."""
         if not self.is_writeable:
             _LOGGER.error(
                 "SEND_VALUE: writing to non-writable data_point %s is not possible", self.full_name
             )
-            return
+            return set()
         try:
             prepared_value = self._prepare_value_for_sending(value=value, do_validate=do_validate)
         except ValueError as verr:
             _LOGGER.warning(verr)
-            return
+            return set()
 
         converted_value = self._convert_value(value=prepared_value)
         if collector:
             collector.add_data_point(self, value=converted_value, collector_order=collector_order)
-            return
+            return set()
 
         if self._validate_state_change and not self.is_state_change(value=converted_value):
-            return
+            return set()
 
-        await self._client.set_value(
+        return await self._client.set_value(
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
             parameter=self._parameter,

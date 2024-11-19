@@ -1,3 +1,7 @@
+# Version 2024.11.6 (2024-11-19)
+
+- Cleanup data point
+
 # Version 2024.11.5 (2024-11-19)
 
 - Fix returned version of client

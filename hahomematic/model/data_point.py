@@ -159,6 +159,11 @@ class CallbackDataPoint(ABC):
     def full_name(self) -> str:
         """Return the full name of the data_point."""
 
+    @property
+    def is_valid(self) -> bool:
+        """Return, if the value of the data_point is valid based on the refreshed at datetime."""
+        return self._refreshed_at > INIT_DATETIME
+
     @state_property
     def modified_at(self) -> datetime:
         """Return the last update datetime value."""
@@ -543,24 +548,9 @@ class BaseParameterDataPoint[
         return bool(self._operations & Operations.READ)
 
     @property
-    def is_valid(self) -> bool:
-        """Return, if the value of the data_point is valid based on the refreshed at datetime."""
-        return self._refreshed_at > INIT_DATETIME
-
-    @property
     def is_writeable(self) -> bool:
         """Return, if data_point is writeable."""
         return False if self._is_forced_sensor else bool(self._operations & Operations.WRITE)
-
-    @state_property
-    def modified_at(self) -> datetime:
-        """Return the last modified datetime value."""
-        return self._modified_at
-
-    @state_property
-    def refreshed_at(self) -> datetime:
-        """Return the last refreshed datetime value."""
-        return self._refreshed_at
 
     @property
     def unconfirmed_last_value_send(self) -> ParameterT:

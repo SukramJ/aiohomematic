@@ -17,7 +17,7 @@ from hahomematic.const import (
     SystemVariableData,
     SysvarType,
 )
-from hahomematic.model.decorators import service
+from hahomematic.decorators import service
 from hahomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from hahomematic.model.hub.button import ProgramDpButton
 from hahomematic.model.hub.data_point import GenericHubDataPoint, GenericSysvarDataPoint

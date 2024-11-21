@@ -14,6 +14,7 @@ from hahomematic.const import (
     DataPointCategory,
     ParamsetKey,
 )
+from hahomematic.decorators import service
 from hahomematic.exceptions import ClientException, ValidationException
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
@@ -21,7 +22,7 @@ from hahomematic.model.custom.const import DeviceProfile, Field
 from hahomematic.model.custom.data_point import CustomDataPoint
 from hahomematic.model.custom.support import CustomConfig
 from hahomematic.model.data_point import CallParameterCollector, bind_collector
-from hahomematic.model.decorators import config_property, service, state_property
+from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.generic import (
     DpAction,
     DpBinarySensor,

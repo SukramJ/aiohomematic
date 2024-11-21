@@ -8,12 +8,13 @@ import logging
 from typing import Any, Final, cast
 
 from hahomematic.const import CALLBACK_TYPE, DP_KEY, INIT_DATETIME, CallSource, DataPointUsage
+from hahomematic.decorators import get_service_calls
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
 from hahomematic.model.custom.const import CDPD, DeviceProfile, Field
 from hahomematic.model.custom.support import CustomConfig
 from hahomematic.model.data_point import BaseDataPoint, CallParameterCollector
-from hahomematic.model.decorators import get_service_calls, state_property
+from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import data_point as hmge
 from hahomematic.model.support import (
     DataPointNameData,

@@ -65,6 +65,7 @@ from hahomematic.const import (
     ProxyInitState,
     SystemInformation,
 )
+from hahomematic.decorators import service
 from hahomematic.exceptions import (
     BaseHomematicException,
     HaHomematicConfigException,
@@ -75,13 +76,12 @@ from hahomematic.exceptions import (
 from hahomematic.model import create_data_points_and_events
 from hahomematic.model.custom import CustomDataPoint, create_custom_data_points
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from hahomematic.model.decorators import info_property, service
+from hahomematic.model.decorators import info_property
 from hahomematic.model.device import Device
 from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
 from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton
 from hahomematic.model.support import PayloadMixin
-from hahomematic.performance import measure_execution_time
 from hahomematic.support import (
     check_config,
     get_channel_no,
@@ -917,7 +917,7 @@ class CentralUnit(PayloadMixin):
             interface_id=interface_id, device_descriptions=device_descriptions
         )
 
-    @measure_execution_time
+    @service(measure_performance=True)
     async def _add_new_devices(
         self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
     ) -> None:
@@ -1163,18 +1163,20 @@ class CentralUnit(PayloadMixin):
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
         if client := self.primary_client:
-            return await client.execute_program(pid=pid)  # type: ignore[no-any-return]
+            return await client.execute_program(pid=pid)
         return False
 
+    @service(re_raise=False)
     async def fetch_sysvar_data(self, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
         await self._hub.fetch_sysvar_data(scheduled=scheduled)
 
+    @service(re_raise=False)
     async def fetch_program_data(self, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         await self._hub.fetch_program_data(scheduled=scheduled)
 
-    @measure_execution_time
+    @service(measure_performance=True)
     async def load_and_refresh_data_point_data(
         self,
         interface: Interface,

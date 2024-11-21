@@ -9,13 +9,9 @@ from slugify import slugify
 
 from hahomematic import central as hmcu
 from hahomematic.const import SYSVAR_ADDRESS, SYSVAR_TYPE, HubData, SystemVariableData
+from hahomematic.decorators import get_service_calls, service
 from hahomematic.model.data_point import CallbackDataPoint
-from hahomematic.model.decorators import (
-    config_property,
-    get_service_calls,
-    service,
-    state_property,
-)
+from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.support import (
     PathData,
     PayloadMixin,

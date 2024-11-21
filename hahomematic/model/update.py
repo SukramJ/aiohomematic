@@ -14,10 +14,11 @@ from hahomematic.const import (
     DataPointCategory,
     Interface,
 )
+from hahomematic.decorators import get_service_calls, service
 from hahomematic.exceptions import HaHomematicException
 from hahomematic.model import device as hmd
 from hahomematic.model.data_point import CallbackDataPoint
-from hahomematic.model.decorators import config_property, get_service_calls, state_property
+from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.support import DataPointPathData, PayloadMixin, generate_unique_id
 
 __all__ = ["DpUpdate"]
@@ -125,12 +126,14 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             self._custom_id = None
         self._device.unregister_firmware_update_callback(cb)
 
+    @service()
     async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Turn the update on."""
-        return await self._device.update_firmware(
+        return await self._device.update_firmware(  # type: ignore[no-any-return]
             refresh_after_update_intervals=refresh_after_update_intervals
         )
 
+    @service()
     async def refresh_firmware_data(self) -> None:
         """Refresh device firmware data."""
         await self._device.central.refresh_firmware_data(device_address=self._device.address)

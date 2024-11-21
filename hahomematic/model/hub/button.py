@@ -6,7 +6,8 @@ from typing import Final
 
 from hahomematic import central as hmcu
 from hahomematic.const import PROGRAM_ADDRESS, DataPointCategory, HubData, ProgramData
-from hahomematic.model.decorators import get_service_calls, service, state_property
+from hahomematic.decorators import get_service_calls, service
+from hahomematic.model.decorators import state_property
 from hahomematic.model.hub.data_point import GenericHubDataPoint
 
 

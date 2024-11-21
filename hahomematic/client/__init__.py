@@ -39,8 +39,8 @@ from hahomematic.const import (
     SystemInformation,
     SystemVariableData,
 )
+from hahomematic.decorators import service
 from hahomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
-from hahomematic.model.decorators import service
 from hahomematic.model.device import Device
 from hahomematic.model.support import convert_value
 from hahomematic.performance import measure_execution_time
@@ -294,15 +294,14 @@ class Client(ABC):
         await self._proxy_read.stop()
 
     @abstractmethod
-    @service()
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
 
     @abstractmethod
-    @service()
     async def fetch_device_details(self) -> None:
         """Fetch names from backend."""
 
+    @service(re_raise=False, no_raise_return=False)
     async def is_connected(self) -> bool:
         """
         Perform actions required for connectivity check.
@@ -324,6 +323,7 @@ class Client(ABC):
             return True
         return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
 
+    @service(re_raise=False, no_raise_return=False)
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
         if not self.supports_ping_pong:
@@ -364,44 +364,36 @@ class Client(ABC):
         """Send ping to CCU to generate PONG event."""
 
     @abstractmethod
-    @service()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear.."""
 
     @abstractmethod
-    @service()
     async def set_system_variable(self, name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
 
     @abstractmethod
-    @service()
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
 
     @abstractmethod
-    @service()
     async def get_system_variable(self, name: str) -> str:
         """Get single system variable from CCU / Homegear."""
 
     @abstractmethod
-    @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
         self, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
-    @service(re_raise=False, no_raise_return=())
     async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
     @abstractmethod
-    @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
 
     @abstractmethod
-    @service(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
 
@@ -555,8 +547,7 @@ class Client(ABC):
                 f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @measure_execution_time
-    @service()
+    @service(measure_performance=True)
     async def _set_value(
         self,
         channel_address: str,
@@ -653,6 +644,7 @@ class Client(ABC):
             ):
                 data_point.write_temporary_value(value=value)
 
+    @service(re_raise=False, no_raise_return=set())
     async def set_value(
         self,
         channel_address: str,
@@ -708,8 +700,7 @@ class Client(ABC):
                 f"GET_PARAMSET failed with for {address}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @measure_execution_time
-    @service()
+    @service(measure_performance=True)
     async def put_paramset(
         self,
         channel_address: str,
@@ -872,7 +863,7 @@ class Client(ABC):
             return parameter_data["TYPE"]
         return None
 
-    @service()
+    @service(re_raise=False)
     async def fetch_paramset_description(
         self, channel_address: str, paramset_key: ParamsetKey
     ) -> None:
@@ -889,7 +880,7 @@ class Client(ABC):
                 paramset_description=paramset_description,
             )
 
-    @service()
+    @service(re_raise=False)
     async def fetch_paramset_descriptions(self, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
         data = await self.get_paramset_descriptions(device_description=device_description)
@@ -956,8 +947,7 @@ class Client(ABC):
         """Return if a channel has program ids."""
         return False
 
-    @measure_execution_time
-    @service(re_raise=False)
+    @service(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -1006,7 +996,7 @@ class Client(ABC):
             return result
         return False
 
-    @service()
+    @service(re_raise=False)
     async def update_paramset_descriptions(self, device_address: str) -> None:
         """Update paramsets descriptions for provided device_address."""
         if not self.central.device_descriptions.get_device_descriptions(
@@ -1052,8 +1042,7 @@ class ClientCCU(Client):
         """Return the supports_ping_pong info of the backend."""
         return True
 
-    @measure_execution_time
-    @service()
+    @service(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Get all names via JSON-RPS and store in data.NAMES."""
         if json_result := await self._json_rpc_client.get_device_details():
@@ -1083,8 +1072,7 @@ class ClientCCU(Client):
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
-    @measure_execution_time
-    @service()
+    @service(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
         try:
@@ -1111,6 +1099,7 @@ class ClientCCU(Client):
             self.interface,
         )
 
+    @service(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Check if _proxy is still initialized."""
         try:
@@ -1155,8 +1144,7 @@ class ClientCCU(Client):
                 f"REPORT_VALUE_USAGE failed with: {address}/{value_id}/{ref_counter}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @measure_execution_time
-    @service()
+    @service(measure_performance=True)
     async def set_system_variable(self, name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
         return await self._json_rpc_client.set_system_variable(name=name, value=value)
@@ -1314,8 +1302,7 @@ class ClientJsonCCU(ClientCCU):
                 f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @measure_execution_time
-    @service(re_raise=False)
+    @service(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -1440,13 +1427,12 @@ class ClientHomegear(Client):
         """Return the supports_ping_pong info of the backend."""
         return False
 
-    @measure_execution_time
+    @service(re_raise=False)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
         return
 
-    @measure_execution_time
-    @service()
+    @service(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Get all names from metadata (Homegear)."""
         _LOGGER.debug("FETCH_DEVICE_DETAILS: Fetching names via Metadata")
@@ -1466,6 +1452,7 @@ class ClientHomegear(Client):
                     address,
                 )
 
+    @service(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
         try:
@@ -1487,8 +1474,7 @@ class ClientHomegear(Client):
         """Execute a program on Homegear."""
         return True
 
-    @measure_execution_time
-    @service()
+    @service(measure_performance=True)
     async def set_system_variable(self, name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
         try:

@@ -35,13 +35,11 @@ def measure_execution_time[_CallableT: Callable[..., Any]](func: _CallableT) -> 
                 if interface_id := kwargs.get("interface_id", ""):
                     iface = f"interface_id: {interface_id}"
 
-                _LOGGER.info(
-                    "Execution of %s took %ss (%s) (%s)",
-                    func.__name__,
-                    delta,
-                    caller,
-                    iface,
-                )
+                message = f"Execution of {func.__name__} took {delta}s from ({caller})"
+                if iface:
+                    message += f"/{iface}"
+
+                _LOGGER.info(message)
 
     @wraps(func)
     def measure_wrapper(*args: Any, **kwargs: Any) -> Any:

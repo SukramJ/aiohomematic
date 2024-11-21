@@ -2,26 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from contextvars import Token
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
-from functools import wraps
-import logging
-from typing import Any, ParamSpec, TypeVar, cast
-
-from hahomematic.context import IN_SERVICE_VAR
-from hahomematic.exceptions import BaseHomematicException
-from hahomematic.support import reduce_args
+from typing import Any, ParamSpec, TypeVar
 
 __all__ = [
     "config_property",
     "get_public_attributes_for_config_property",
     "get_public_attributes_for_info_property",
     "get_public_attributes_for_state_property",
-    "get_service_calls",
     "info_property",
-    "service",
     "state_property",
 ]
 
@@ -140,52 +131,3 @@ def get_public_attributes_for_state_property(data_object: Any) -> dict[str, Any]
     return _get_public_attributes_by_class_decorator(
         data_object=data_object, class_decorator=state_property
     )
-
-
-def service(
-    log_level: int = logging.ERROR,
-    re_raise: bool = True,
-    no_raise_return: Any = None,
-) -> Callable:
-    """Mark function as service call and log exceptions."""
-
-    def service_decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
-        """Decorate service."""
-
-        @wraps(func)
-        async def service_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            """Wrap service to log exception."""
-            token: Token | None = None
-            if not IN_SERVICE_VAR.get():
-                token = IN_SERVICE_VAR.set(True)
-            try:
-                return_value = await func(*args, **kwargs)
-                if token:
-                    IN_SERVICE_VAR.reset(token)
-                return return_value  # noqa: TRY300
-            except BaseHomematicException as bhe:
-                if token:
-                    IN_SERVICE_VAR.reset(token)
-                if not IN_SERVICE_VAR.get() and log_level > logging.NOTSET:
-                    logging.getLogger(args[0].__module__).log(
-                        level=log_level, msg=reduce_args(args=bhe.args)
-                    )
-                if re_raise:
-                    raise
-                return cast(T, no_raise_return)
-
-        setattr(service_wrapper, "ha_service", True)
-        return service_wrapper
-
-    return service_decorator
-
-
-def get_service_calls(obj: object) -> dict[str, Callable]:
-    """Get all methods decorated with the "bind_collector" or "service_call"  decorator."""
-    return {
-        name: getattr(obj, name)
-        for name in dir(obj)
-        if not name.startswith("_")
-        and callable(getattr(obj, name))
-        and hasattr(getattr(obj, name), "ha_service")
-    }

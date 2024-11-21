@@ -37,9 +37,10 @@ from hahomematic.const import (
     ParamsetKey,
 )
 from hahomematic.context import IN_SERVICE_VAR
+from hahomematic.decorators import get_service_calls
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.model import device as hmd
-from hahomematic.model.decorators import config_property, get_service_calls, state_property
+from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.support import (
     DataPointNameData,
     DataPointPathData,

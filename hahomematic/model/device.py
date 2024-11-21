@@ -515,7 +515,6 @@ class Device(PayloadMixin):
                 f"EXPORT_DEVICE_DEFINITION failed: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @service()
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
         old_available_firmware = self.available_firmware

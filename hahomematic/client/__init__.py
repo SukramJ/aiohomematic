@@ -323,7 +323,6 @@ class Client(ABC):
             return True
         return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
 
-    @service(re_raise=False, no_raise_return=False)
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
         if not self.supports_ping_pong:

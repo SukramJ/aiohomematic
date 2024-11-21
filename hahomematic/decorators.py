@@ -51,8 +51,10 @@ def service(
                 if token:
                     IN_SERVICE_VAR.reset(token)
                 if not IN_SERVICE_VAR.get() and log_level > logging.NOTSET:
+                    message = f"{func.__name__.upper()} failed: {reduce_args(args=bhe.args)}"
                     logging.getLogger(args[0].__module__).log(
-                        level=log_level, msg=reduce_args(args=bhe.args)
+                        level=log_level,
+                        msg=message,
                     )
                 if re_raise:
                     raise
@@ -80,7 +82,7 @@ def _log_performance_message(
     if interface_id := kwargs.get("interface_id", ""):
         iface = f"interface_id: {interface_id}"
 
-    message = f"Execution of {func.__name__} took {delta}s from {caller}"
+    message = f"Execution of {func.__name__.upper()} took {delta}s from {caller}"
     if iface:
         message += f"/{iface}"
 

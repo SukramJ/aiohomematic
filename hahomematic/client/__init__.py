@@ -1091,6 +1091,7 @@ class ClientCCU(Client):
                 interface_event_type=InterfaceEventType.FETCH_DATA,
                 data={EventKey.AVAILABLE: False},
             )
+            raise
 
         _LOGGER.debug(
             "FETCH_ALL_DEVICE_DATA: Unable to get all device data via JSON-RPC RegaScript for interface %s",

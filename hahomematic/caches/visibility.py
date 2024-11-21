@@ -9,13 +9,7 @@ import os
 from typing import Any, Final
 
 from hahomematic import central as hmcu, support as hms
-from hahomematic.const import (
-    CLICK_EVENTS,
-    DEFAULT_ENCODING,
-    UN_IGNORE_WILDCARD,
-    Parameter,
-    ParamsetKey,
-)
+from hahomematic.const import CLICK_EVENTS, UN_IGNORE_WILDCARD, UTF8, Parameter, ParamsetKey
 from hahomematic.model.custom import get_required_parameters
 from hahomematic.support import element_matches_key, reduce_args
 
@@ -713,7 +707,7 @@ class ParameterVisibilityCache:
                         self._storage_folder,
                         _FILE_CUSTOM_UN_IGNORE_PARAMETERS,
                     ),
-                    encoding=DEFAULT_ENCODING,
+                    encoding=UTF8,
                 ) as fptr:
                     for file_line in fptr.readlines():
                         if "#" not in file_line:

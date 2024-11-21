@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from hahomematic.const import DataPointCategory
-from hahomematic.model.decorators import service
+from hahomematic.decorators import service
 from hahomematic.model.generic.data_point import GenericDataPoint
 
 

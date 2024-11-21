@@ -13,8 +13,8 @@ import orjson
 from hahomematic.client import _LOGGER, Client, _ClientConfig
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
-    DEFAULT_ENCODING,
     DP_KEY_VALUE,
+    UTF8,
     CallSource,
     CommandRxMode,
     DeviceDescription,
@@ -27,6 +27,7 @@ from hahomematic.const import (
     SystemInformation,
     SystemVariableData,
 )
+from hahomematic.decorators import service
 from hahomematic.support import is_channel_address
 
 LOCAL_SERIAL: Final = "0815_4711"
@@ -111,6 +112,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Return if XmlRPC-Server is alive based on received events for this client."""
         return True
 
+    @service(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Send ping to CCU to generate PONG event."""
         if handle_ping_pong and self.supports_ping_pong:
@@ -326,7 +328,7 @@ class ClientLocal(Client):  # pragma: no cover
         def _load() -> Any | None:
             with open(
                 file=os.path.join(package_path, resource, filename),
-                encoding=DEFAULT_ENCODING,
+                encoding=UTF8,
             ) as fptr:
                 return orjson.loads(fptr.read())
 

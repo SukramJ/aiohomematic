@@ -6,7 +6,8 @@ import logging
 from typing import Final
 
 from hahomematic.const import DataPointCategory
-from hahomematic.model.decorators import service, state_property
+from hahomematic.decorators import service
+from hahomematic.model.decorators import state_property
 from hahomematic.model.hub.data_point import GenericSysvarDataPoint
 from hahomematic.model.support import get_value_from_value_list
 

@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import Final
 
 from hahomematic.const import DataPointCategory, ParameterType
+from hahomematic.decorators import service
 from hahomematic.model.data_point import CallParameterCollector
-from hahomematic.model.decorators import service, state_property
+from hahomematic.model.decorators import state_property
 from hahomematic.model.generic.data_point import GenericDataPoint
 
 _PARAM_ON_TIME: Final = "ON_TIME"

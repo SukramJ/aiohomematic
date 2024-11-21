@@ -14,8 +14,8 @@ from hahomematic.const import (
     ParameterData,
     ParamsetKey,
 )
+from hahomematic.decorators import service
 from hahomematic.model import data_point as hme, device as hmd
-from hahomematic.model.decorators import service
 from hahomematic.model.support import (
     DataPointNameData,
     GenericParameterType,
@@ -121,7 +121,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         if self._validate_state_change and not self.is_state_change(value=converted_value):
             return set()
 
-        return await self._client.set_value(
+        return await self._client.set_value(  # type: ignore[no-any-return]
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
             parameter=self._parameter,

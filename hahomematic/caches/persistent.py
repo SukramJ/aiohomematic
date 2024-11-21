@@ -16,10 +16,10 @@ import orjson
 from hahomematic import central as hmcu
 from hahomematic.const import (
     CACHE_PATH,
-    DEFAULT_ENCODING,
     FILE_DEVICES,
     FILE_PARAMSETS,
     INIT_DATETIME,
+    UTF8,
     DataOperationResult,
     DeviceDescription,
     ParameterData,
@@ -106,7 +106,7 @@ class BasePersistentCache(ABC):
         def _load() -> DataOperationResult:
             with open(
                 file=os.path.join(self._cache_dir, self._filename),
-                encoding=DEFAULT_ENCODING,
+                encoding=UTF8,
             ) as fptr:
                 data = orjson.loads(fptr.read())
                 if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:

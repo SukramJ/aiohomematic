@@ -23,7 +23,6 @@ import orjson
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
-    DEFAULT_ENCODING,
     HTMLTAG_PATTERN,
     PATH_JSON_RPC,
     REGA_SCRIPT_FETCH_ALL_DEVICE_DATA,
@@ -31,6 +30,7 @@ from hahomematic.const import (
     REGA_SCRIPT_PATH,
     REGA_SCRIPT_SET_SYSTEM_VARIABLE,
     REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER,
+    UTF8,
     DeviceDescription,
     Interface,
     ParameterData,
@@ -303,7 +303,7 @@ class JsonRpcAioHttpClient:
             script_file = os.path.join(
                 Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name
             )
-            if script := Path(script_file).read_text(encoding=DEFAULT_ENCODING):
+            if script := Path(script_file).read_text(encoding=UTF8):
                 self._script_cache[script_name] = script
                 return script
             return None
@@ -396,14 +396,14 @@ class JsonRpcAioHttpClient:
     async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:
         """Return the json object from response."""
         try:
-            return await response.json(encoding="utf-8")
+            return await response.json(encoding=UTF8)
         except ValueError as ver:
             _LOGGER.debug(
                 "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
                 reduce_args(args=ver.args),
             )
             # Workaround for bug in CCU
-            return orjson.loads((await response.json(encoding="utf-8")).replace("\\", ""))
+            return orjson.loads((await response.read()).decode(UTF8))
 
     async def logout(self) -> None:
         """Logout of CCU."""

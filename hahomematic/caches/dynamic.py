@@ -185,7 +185,7 @@ class DeviceDetailsCache:
     async def _get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
         if client := self._central.primary_client:
-            return await client.get_all_rooms()  # type: ignore[no-any-return]
+            return await client.get_all_rooms()
         return {}
 
     def get_device_rooms(self, device_address: str) -> set[str]:
@@ -203,7 +203,7 @@ class DeviceDetailsCache:
     async def _get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
         if client := self._central.primary_client:
-            return await client.get_all_functions()  # type: ignore[no-any-return]
+            return await client.get_all_functions()
         return {}
 
     def get_function_text(self, address: str) -> str | None:

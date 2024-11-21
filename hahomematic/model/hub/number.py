@@ -6,7 +6,7 @@ import logging
 from typing import Final
 
 from hahomematic.const import DataPointCategory
-from hahomematic.model.decorators import service
+from hahomematic.decorators import service
 from hahomematic.model.hub.data_point import GenericSysvarDataPoint
 
 _LOGGER: Final = logging.getLogger(__name__)

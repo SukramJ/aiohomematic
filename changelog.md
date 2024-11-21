@@ -1,7 +1,14 @@
+# Version 2024.11.8 (2024-11-21)
+
+- Add missing @service annotations
+- Add performance measurement to @service
+- Don't re-raise exception on internal services
+- Move @service
+- Remove @service from abstract methods
+
 # Version 2024.11.7 (2024-11-19)
 
 - Set state_uncertain on value write
--
 
 # Version 2024.11.6 (2024-11-19)
 

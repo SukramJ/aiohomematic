@@ -396,15 +396,14 @@ class JsonRpcAioHttpClient:
     async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:
         """Return the json object from response."""
         try:
-            return orjson.loads((await response.read()).decode(UTF8))
-            # return await response.json(encoding=UTF8)
+            return await response.json(encoding=UTF8)
         except ValueError as ver:
             _LOGGER.debug(
                 "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
                 reduce_args(args=ver.args),
             )
             # Workaround for bug in CCU
-            return orjson.loads((await response.read()).decode(UTF8).replace("\\", ""))
+            return orjson.loads((await response.read()).decode(UTF8))
 
     async def logout(self) -> None:
         """Logout of CCU."""

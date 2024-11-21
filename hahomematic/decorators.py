@@ -67,7 +67,7 @@ def service(
                     if interface_id := kwargs.get("interface_id", ""):
                         iface = f"interface_id: {interface_id}"
 
-                    message = f"Execution of {func.__name__} took {delta}s from ({caller})"
+                    message = f"Execution of {func.__name__} took {delta}s from {caller}"
                     if iface:
                         message += f"/{iface}"
 

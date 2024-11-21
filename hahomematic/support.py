@@ -34,6 +34,7 @@ from hahomematic.const import (
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
+    UTF8,
     CommandRxMode,
     ParamsetKey,
     RxMode,
@@ -73,7 +74,7 @@ def build_headers(
 ) -> list[tuple[str, str]]:
     """Build XML-RPC API header."""
     cred_bytes = f"{username}:{password}".encode()
-    base64_message = base64.b64encode(cred_bytes).decode("utf-8")
+    base64_message = base64.b64encode(cred_bytes).decode(UTF8)
     return [("Authorization", f"Basic {base64_message}")]
 
 

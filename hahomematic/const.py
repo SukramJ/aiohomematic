@@ -13,7 +13,6 @@ VERSION: Final = "2024.11.8"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
-DEFAULT_ENCODING: Final = "UTF-8"
 DEFAULT_INCLUDE_INTERNAL_PROGRAMS: Final = False
 DEFAULT_INCLUDE_INTERNAL_SYSVARS: Final = True
 DEFAULT_JSON_SESSION_AGE: Final = 90
@@ -32,6 +31,8 @@ DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[tuple[str, ...]] = ()
 DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_WAIT_FOR_CALLBACK: Final[int | None] = None
+
+UTF8: Final = "utf-8"
 
 MAX_WAIT_FOR_CALLBACK: Final = 60
 MAX_CACHE_AGE: Final = 10

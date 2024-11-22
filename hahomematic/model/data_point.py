@@ -282,7 +282,7 @@ class CallbackDataPoint(ABC):
                 callback_handler(*args, **kwargs)
             except Exception as ex:
                 _LOGGER.warning(
-                    "FIRE_data_point_updated_EVENT failed: %s", reduce_args(args=ex.args)
+                    "FIRE_DATA_POINT_UPDATED_EVENT failed: %s", reduce_args(args=ex.args)
                 )
 
     @loop_check

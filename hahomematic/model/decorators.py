@@ -41,37 +41,37 @@ class generic_property[_GETTER, _SETTER](property):
             doc = fget.__doc__
         self.__doc__ = doc
 
-    def getter(self, __fget: Callable[[Any], _GETTER]) -> generic_property:
+    def getter(self, fget: Callable[[Any], _GETTER], /) -> generic_property:
         """Return generic getter."""
-        return type(self)(__fget, self.fset, self.fdel, self.__doc__)  # pragma: no cover
+        return type(self)(fget, self.fset, self.fdel, self.__doc__)  # pragma: no cover
 
-    def setter(self, __fset: Callable[[Any, _SETTER], None]) -> generic_property:
+    def setter(self, fset: Callable[[Any, _SETTER], None], /) -> generic_property:
         """Return generic setter."""
-        return type(self)(self.fget, __fset, self.fdel, self.__doc__)
+        return type(self)(self.fget, fset, self.fdel, self.__doc__)
 
-    def deleter(self, __fdel: Callable[[Any], None]) -> generic_property:
+    def deleter(self, fdel: Callable[[Any], None], /) -> generic_property:
         """Return generic deleter."""
-        return type(self)(self.fget, self.fset, __fdel, self.__doc__)
+        return type(self)(self.fget, self.fset, fdel, self.__doc__)
 
-    def __get__(self, __obj: Any, __type: type | None = None) -> _GETTER:
+    def __get__(self, obj: Any, gtype: type | None = None, /) -> _GETTER:
         """Return the attribute."""
-        if __obj is None:
+        if obj is None:
             return self  # type: ignore[return-value]
         if self.fget is None:
             raise AttributeError("unreadable attribute")  # pragma: no cover
-        return self.fget(__obj)
+        return self.fget(obj)
 
-    def __set__(self, __obj: Any, __value: Any) -> None:
+    def __set__(self, obj: Any, value: Any, /) -> None:
         """Set the attribute."""
         if self.fset is None:
             raise AttributeError("can't set attribute")  # pragma: no cover
-        self.fset(__obj, __value)
+        self.fset(obj, value)
 
-    def __delete__(self, __obj: Any) -> None:
+    def __delete__(self, obj: Any, /) -> None:
         """Delete the attribute."""
         if self.fdel is None:
             raise AttributeError("can't delete attribute")  # pragma: no cover
-        self.fdel(__obj)
+        self.fdel(obj)
 
 
 # pylint: disable=invalid-name

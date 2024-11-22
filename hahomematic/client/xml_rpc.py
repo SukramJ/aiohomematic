@@ -117,9 +117,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
 
             if (
                 method in _VALID_XMLRPC_COMMANDS_ON_NO_CONNECTION
-                or not self._connection_state.has_issue(  # noqa: E501
-                    issuer=self, iid=self.interface_id
-                )
+                or not self._connection_state.has_issue(issuer=self, iid=self.interface_id)
             ):
                 args = _cleanup_args(*args)
                 _LOGGER.debug("__ASYNC_REQUEST: %s", args)

@@ -44,9 +44,6 @@ def service(
                 token = IN_SERVICE_VAR.set(True)
             try:
                 return_value = await func(*args, **kwargs)
-                if token:
-                    IN_SERVICE_VAR.reset(token)
-                return return_value  # noqa: TRY300
             except BaseHomematicException as bhe:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -59,6 +56,10 @@ def service(
                 if re_raise:
                     raise
                 return cast(T, no_raise_return)
+            else:
+                if token:
+                    IN_SERVICE_VAR.reset(token)
+                return return_value
             finally:
                 if do_measure_performance:
                     _log_performance_message(func, start, *args, **kwargs)

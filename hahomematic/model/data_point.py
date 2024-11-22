@@ -904,9 +904,6 @@ def bind_collector(
                 kwargs[_COLLECTOR_ARGUMENT_NAME] = collector
                 return_value = await func(*args, **kwargs)
                 await collector.send_data(wait_for_callback=wait_for_callback)
-                if token:
-                    IN_SERVICE_VAR.reset(token)
-                return return_value  # noqa:TRY300
             except BaseHomematicException as bhe:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -915,7 +912,10 @@ def bind_collector(
                     logging.getLogger(args[0].__module__).log(
                         level=log_level, msg=reduce_args(args=bhe.args)
                     )
-
+            else:
+                if token:
+                    IN_SERVICE_VAR.reset(token)
+                return return_value
             return None
 
         setattr(bind_wrapper, "ha_service", True)

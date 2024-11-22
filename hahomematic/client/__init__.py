@@ -598,11 +598,12 @@ class Client(ABC):
                     data_point_key_values=data_point_key_values,
                     wait_for_callback=wait_for_callback,
                 )
-            return data_point_key_values  # noqa: TRY300
         except BaseHomematicException as ex:
             raise ClientException(
                 f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {reduce_args(args=ex.args)}"
             ) from ex
+        else:
+            return data_point_key_values
 
     async def _exec_set_value(
         self,
@@ -779,11 +780,12 @@ class Client(ABC):
                     data_point_key_values=data_point_key_values,
                     wait_for_callback=wait_for_callback,
                 )
-            return data_point_key_values  # noqa: TRY300
         except BaseHomematicException as ex:
             raise ClientException(
                 f"PUT_PARAMSET failed for {channel_address}/{paramset_key}/{values}: {reduce_args(args=ex.args)}"
             ) from ex
+        else:
+            return data_point_key_values
 
     async def _exec_put_paramset(
         self,

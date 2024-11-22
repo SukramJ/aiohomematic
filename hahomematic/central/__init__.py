@@ -139,9 +139,7 @@ class CentralUnit(PayloadMixin):
             dict[DP_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
         ] = {}
         self._data_point_path_event_subscriptions: Final[dict[str, DP_KEY]] = {}
-        self._sysvar_data_point_event_subscriptions: Final[
-            dict[str, Callable[[Any], Coroutine[Any, Any, None]]]
-        ] = {}
+        self._sysvar_data_point_event_subscriptions: Final[dict[str, Callable]] = {}
         # {device_address, device}
         self._devices: Final[dict[str, Device]] = {}
         # {sysvar_name, sysvar_data_point}
@@ -1099,6 +1097,32 @@ class CentralUnit(PayloadMixin):
                 name=f"event-{interface_id}-{channel_address}-{parameter}",
             )
 
+    def sysvar_data_point_path_event(self, state_path: str, value: str) -> None:
+        """If a device emits some sort event, we will handle it here."""
+        _LOGGER.debug(
+            "SYSVAR_DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
+            state_path,
+            value,
+        )
+
+        if state_path in self._sysvar_data_point_event_subscriptions:
+            try:
+                callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
+                if callable(callback_handler):
+                    callback_handler(value)
+            except RuntimeError as rte:  # pragma: no cover
+                _LOGGER.debug(
+                    "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
+                    reduce_args(args=rte.args),
+                    state_path,
+                )
+            except Exception as ex:  # pragma: no cover
+                _LOGGER.warning(
+                    "EVENT failed: Unable to call callback for: %s, %s",
+                    state_path,
+                    reduce_args(args=ex.args),
+                )
+
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, interface_id: str) -> list[DeviceDescription]:
         """Return already existing devices to CCU / Homegear."""
@@ -1834,8 +1858,8 @@ def _get_new_data_points(
     }
 
     for device in new_devices:
-        for category in data_points_by_category:
-            data_points_by_category[category].update(
+        for category, data_points in data_points_by_category.items():
+            data_points.update(
                 device.get_data_points(category=category, exclude_no_create=True, registered=False)
             )
 

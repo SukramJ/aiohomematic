@@ -155,7 +155,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             return data.name
         return f"Sv_{data.name}"
 
-    async def event(self, value: Any) -> None:
+    def event(self, value: Any) -> None:
         """Handle event for which this data_point has subscribed."""
         self.write_value(value=value)
 

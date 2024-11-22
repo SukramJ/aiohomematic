@@ -46,6 +46,11 @@ class ProgramDpButton(GenericHubDataPoint):
         return self._ccu_program_name
 
     @state_property
+    def is_active(self) -> bool:
+        """Return the program is active."""
+        return self._is_active
+
+    @state_property
     def is_internal(self) -> bool:
         """Return the program is internal."""
         return self._is_internal

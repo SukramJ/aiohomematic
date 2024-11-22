@@ -566,6 +566,7 @@ class JsonRpcAioHttpClient:
                         min_value = parse_sys_var(data_type=data_type, raw_value=raw_min_value)
                     variables.append(
                         SystemVariableData(
+                            vid=var_id,
                             name=name,
                             data_type=data_type,
                             unit=unit,

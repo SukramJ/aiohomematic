@@ -88,7 +88,7 @@ async def test_hmsysvarbinarysensor(
     assert binary_sensor.full_name == "CentralTest_sv_logic"
     assert binary_sensor.value is False
     assert binary_sensor.is_extended is False
-    assert binary_sensor.data_type == "LOGIC"
+    assert binary_sensor._data_type == "LOGIC"
     assert binary_sensor.value is False
     binary_sensor.write_value(True)
     assert binary_sensor.value is True

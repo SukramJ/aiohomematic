@@ -9,6 +9,7 @@ from hahomematic.const import PROGRAM_ADDRESS, DataPointCategory, HubData, Progr
 from hahomematic.decorators import get_service_calls, service
 from hahomematic.model.decorators import state_property
 from hahomematic.model.hub.data_point import GenericHubDataPoint
+from hahomematic.model.support import PathData, ProgramPathData
 
 
 class ProgramDpButton(GenericHubDataPoint):
@@ -22,22 +23,42 @@ class ProgramDpButton(GenericHubDataPoint):
         data: ProgramData,
     ) -> None:
         """Initialize the data_point."""
+        self._pid: Final = data.pid
         super().__init__(
             central=central,
             address=PROGRAM_ADDRESS,
             data=data,
         )
-        self.pid: Final = data.pid
-        self.ccu_program_name: Final = data.name
-        self.is_active: bool = data.is_active
-        self.is_internal: bool = data.is_internal
-        self.last_execute_time: str = data.last_execute_time
+        self._ccu_program_name: Final = data.name
+        self._is_active: bool = data.is_active
+        self._is_internal: bool = data.is_internal
+        self._last_execute_time: str = data.last_execute_time
         self._service_methods = get_service_calls(obj=self)
 
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        return self.is_active
+        return self._is_active
+
+    @state_property
+    def ccu_program_name(self) -> str:
+        """Return the ccu program name."""
+        return self._ccu_program_name
+
+    @state_property
+    def is_internal(self) -> bool:
+        """Return the program is internal."""
+        return self._is_internal
+
+    @state_property
+    def last_execute_time(self) -> str:
+        """Return the last execute time."""
+        return self._last_execute_time
+
+    @state_property
+    def pid(self) -> str:
+        """Return the program id."""
+        return self._pid
 
     def get_name(self, data: HubData) -> str:
         """Return the name of the program button data_point."""
@@ -48,14 +69,14 @@ class ProgramDpButton(GenericHubDataPoint):
     def update_data(self, data: ProgramData) -> None:
         """Set variable value on CCU/Homegear."""
         do_update: bool = False
-        if self.is_active != data.is_active:
-            self.is_active = data.is_active
+        if self._is_active != data.is_active:
+            self._is_active = data.is_active
             do_update = True
-        if self.is_internal != data.is_internal:
-            self.is_internal = data.is_internal
+        if self._is_internal != data.is_internal:
+            self._is_internal = data.is_internal
             do_update = True
-        if self.last_execute_time != data.last_execute_time:
-            self.last_execute_time = data.last_execute_time
+        if self._last_execute_time != data.last_execute_time:
+            self._last_execute_time = data.last_execute_time
             do_update = True
         if do_update:
             self.fire_data_point_updated_callback()
@@ -64,3 +85,7 @@ class ProgramDpButton(GenericHubDataPoint):
     async def press(self) -> None:
         """Handle the button press."""
         await self.central.execute_program(pid=self.pid)
+
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data_point."""
+        return ProgramPathData(pid=self.pid)

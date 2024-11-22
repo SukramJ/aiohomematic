@@ -22,7 +22,7 @@ class SysvarDpSensor(GenericSysvarDataPoint):
     def value(self) -> Any | None:
         """Return the value."""
         if (
-            self.data_type == SysvarType.LIST
+            self._data_type == SysvarType.LIST
             and (value := get_value_from_value_list(value=self._value, value_list=self.values))
             is not None
         ):

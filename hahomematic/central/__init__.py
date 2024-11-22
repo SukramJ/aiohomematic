@@ -139,6 +139,9 @@ class CentralUnit(PayloadMixin):
             dict[DP_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
         ] = {}
         self._data_point_path_event_subscriptions: Final[dict[str, DP_KEY]] = {}
+        self._sysvar_data_point_event_subscriptions: Final[
+            dict[str, Callable[[Any], Coroutine[Any, Any, None]]]
+        ] = {}
         # {device_address, device}
         self._devices: Final[dict[str, Device]] = {}
         # {sysvar_name, sysvar_data_point}
@@ -330,12 +333,18 @@ class CentralUnit(PayloadMixin):
         """Add new program button."""
         if (ccu_var_name := sysvar_data_point.ccu_var_name) is not None:
             self._sysvar_data_points[ccu_var_name] = sysvar_data_point
+        if sysvar_data_point.state_path not in self._sysvar_data_point_event_subscriptions:
+            self._sysvar_data_point_event_subscriptions[sysvar_data_point.state_path] = (
+                sysvar_data_point.event
+            )
 
     def remove_sysvar_data_point(self, name: str) -> None:
         """Remove a sysvar data_point."""
         if (sysvar_dp := self.get_sysvar_data_point(name=name)) is not None:
             sysvar_dp.fire_device_removed_callback()
             del self._sysvar_data_points[name]
+            if sysvar_dp.state_path in self._sysvar_data_point_event_subscriptions:
+                del self._sysvar_data_point_event_subscriptions[sysvar_dp.state_path]
 
     def add_program_button(self, program_button: ProgramDpButton) -> None:
         """Add new program button."""
@@ -1323,6 +1332,10 @@ class CentralUnit(PayloadMixin):
     def get_data_point_path(self) -> tuple[str, ...]:
         """Return the registered state path."""
         return tuple(self._data_point_path_event_subscriptions)
+
+    def get_sysvar_data_point_path(self) -> tuple[str, ...]:
+        """Return the registered sysvar state path."""
+        return tuple(self._sysvar_data_point_event_subscriptions)
 
     def get_un_ignore_candidates(self, include_master: bool = False) -> list[str]:
         """Return the candidates for un_ignore."""

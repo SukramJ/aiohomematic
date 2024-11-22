@@ -1095,7 +1095,7 @@ class CentralUnit(PayloadMixin):
                     parameter=parameter,
                     value=value,
                 ),
-                name=f"event-{interface_id}-{channel_address}-{parameter}",
+                name=f"device-data-point-event-{interface_id}-{channel_address}-{parameter}",
             )
 
     def sysvar_data_point_path_event(self, state_path: str, value: str) -> None:
@@ -1110,7 +1110,9 @@ class CentralUnit(PayloadMixin):
             try:
                 callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
                 if callable(callback_handler):
-                    callback_handler(value)
+                    self._looper.create_task(
+                        callback_handler(value), name=f"sysvar-data-point-event-{state_path}"
+                    )
             except RuntimeError as rte:  # pragma: no cover
                 _LOGGER.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",

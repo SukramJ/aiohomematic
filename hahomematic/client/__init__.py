@@ -1514,7 +1514,7 @@ class ClientHomegear(Client):
         try:
             if hg_variables := await self._proxy.getAllSystemVariables():
                 for name, value in hg_variables.items():
-                    variables.append(SystemVariableData(name=name, value=value))
+                    variables.append(SystemVariableData(vid=name, name=name, value=value))
         except BaseHomematicException as ex:
             raise ClientException(
                 f"GET_ALL_SYSTEM_VARIABLES failed: {reduce_args(args=ex.args)}"

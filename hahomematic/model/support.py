@@ -303,10 +303,10 @@ class DataPointPathData(PathData):
 class ProgramPathData(PathData):
     """The program path data."""
 
-    def __init__(self, name: str):
+    def __init__(self, pid: str):
         """Init the path data."""
-        self._set_path: Final = f"{PROGRAM_SET_PATH_ROOT}/{name}"
-        self._state_path: Final = f"{PROGRAM_STATE_PATH_ROOT}/{name}"
+        self._set_path: Final = f"{PROGRAM_SET_PATH_ROOT}/{pid}"
+        self._state_path: Final = f"{PROGRAM_STATE_PATH_ROOT}/{pid}"
 
     @property
     def set_path(self) -> str:
@@ -322,10 +322,10 @@ class ProgramPathData(PathData):
 class SysvarPathData(PathData):
     """The sysvar path data."""
 
-    def __init__(self, name: str):
+    def __init__(self, vid: str):
         """Init the path data."""
-        self._set_path: Final = f"{SYSVAR_SET_PATH_ROOT}/{name}"
-        self._state_path: Final = f"{SYSVAR_STATE_PATH_ROOT}/{name}"
+        self._set_path: Final = f"{SYSVAR_SET_PATH_ROOT}/{vid}"
+        self._state_path: Final = f"{SYSVAR_STATE_PATH_ROOT}/{vid}"
 
     @property
     def set_path(self) -> str:

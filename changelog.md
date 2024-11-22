@@ -1,3 +1,7 @@
+# Version 2024.11.9 (2024-11-22)
+
+- Make sysvars eventable
+
 # Version 2024.11.8 (2024-11-21)
 
 - Add missing @service annotations

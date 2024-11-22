@@ -8,17 +8,11 @@ from typing import Any, Final
 from slugify import slugify
 
 from hahomematic import central as hmcu
-from hahomematic.const import SYSVAR_ADDRESS, SYSVAR_TYPE, HubData, SystemVariableData
+from hahomematic.const import SYSVAR_ADDRESS, SYSVAR_TYPE, HubData, SystemVariableData, SysvarType
 from hahomematic.decorators import get_service_calls, service
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import config_property, state_property
-from hahomematic.model.support import (
-    PathData,
-    PayloadMixin,
-    ProgramPathData,
-    SysvarPathData,
-    generate_unique_id,
-)
+from hahomematic.model.support import PathData, PayloadMixin, SysvarPathData, generate_unique_id
 from hahomematic.support import parse_sys_var
 
 
@@ -56,10 +50,6 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         """Return the name of the data_point."""
         return self._name
 
-    def _get_path_data(self) -> PathData:
-        """Return the path data of the data_point."""
-        return ProgramPathData(name=self._name)
-
 
 class GenericSysvarDataPoint(GenericHubDataPoint):
     """Class for a HomeMatic system variable."""
@@ -72,9 +62,10 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         data: SystemVariableData,
     ) -> None:
         """Initialize the data_point."""
+        self._vid: Final = data.vid
         self.ccu_var_name: Final = data.name
         super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
-        self.data_type: Final = data.data_type
+        self._data_type = data.data_type
         self._values: Final[tuple[str, ...] | None] = tuple(data.values) if data.values else None
         self._max: Final = data.max_value
         self._min: Final = data.min_value
@@ -91,6 +82,21 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     def available(self) -> bool:
         """Return the availability of the device."""
         return self.central.available
+
+    @property
+    def data_type(self) -> SysvarType | None:
+        """Return the availability of the device."""
+        return self._data_type
+
+    @data_type.setter
+    def data_type(self, data_type: SysvarType) -> None:
+        """Write data_type."""
+        self._data_type = data_type
+
+    @config_property
+    def vid(self) -> str:
+        """Return sysvar id."""
+        return self._vid
 
     @property
     def previous_value(self) -> SYSVAR_TYPE:
@@ -141,13 +147,17 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
-        return SysvarPathData(name=self.ccu_var_name)
+        return SysvarPathData(vid=self._vid)
 
     def get_name(self, data: HubData) -> str:
         """Return the name of the sysvar data_point."""
         if data.name.lower().startswith(tuple({"v_", "sv_", "sv"})):
             return data.name
         return f"Sv_{data.name}"
+
+    async def event(self, value: Any) -> None:
+        """Handle event for which this data_point has subscribed."""
+        self.write_value(value=value)
 
     def write_value(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
@@ -178,8 +188,8 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         if new_value is None:
             return None
         value = new_value
-        if self.data_type:
-            value = parse_sys_var(data_type=self.data_type, raw_value=new_value)
+        if self._data_type:
+            value = parse_sys_var(data_type=self._data_type, raw_value=new_value)
         elif isinstance(old_value, bool):
             value = bool(new_value)
         elif isinstance(old_value, int):
@@ -195,6 +205,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Set variable value on CCU/Homegear."""
         if client := self.central.primary_client:
             await client.set_system_variable(
-                name=self.ccu_var_name, value=parse_sys_var(self.data_type, value)
+                name=self.ccu_var_name, value=parse_sys_var(self._data_type, value)
             )
         self._write_temporary_value(value=value)

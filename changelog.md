@@ -1,3 +1,7 @@
+# Version 2024.11.10 (2024-11-23)
+
+- Add TIME_OF_OPERATION to smoke detector
+
 # Version 2024.11.9 (2024-11-22)
 
 - Make sysvars eventable

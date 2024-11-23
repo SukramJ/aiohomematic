@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.11.9"
+VERSION: Final = "2024.11.10"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -363,6 +363,7 @@ class Parameter(StrEnum):
     TEMPERATURE_MAXIMUM = "TEMPERATURE_MAXIMUM"
     TEMPERATURE_MINIMUM = "TEMPERATURE_MINIMUM"
     TEMPERATURE_OFFSET = "TEMPERATURE_OFFSET"
+    TIME_OF_OPERATION = "TIME_OF_OPERATION"
     UN_REACH = "UNREACH"
     UPDATE_PENDING = "UPDATE_PENDING"
     VALVE_STATE = "VALVE_STATE"

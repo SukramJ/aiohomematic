@@ -301,6 +301,9 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                     Field.SMOKE_DETECTOR_ALARM_STATUS: Parameter.SMOKE_DETECTOR_ALARM_STATUS,
                 },
             },
+            CDPD.ADDITIONAL_DPS: {
+                0: (Parameter.TIME_OF_OPERATION,),
+            },
         },
         DeviceProfile.IP_THERMOSTAT: {
             CDPD.DEVICE_GROUP: {

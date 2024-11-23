@@ -26,7 +26,11 @@ ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomCon
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
 _SCHEMA_ADDITIONAL_DPS = vol.Schema(
-    {vol.Required(vol.Any(int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
+    {
+        vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema(
+            (vol.Optional(Parameter),)
+        )
+    }
 )
 
 _SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
@@ -75,6 +79,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
             Parameter.RSSI_DEVICE,
             Parameter.RSSI_PEER,
             Parameter.SABOTAGE,
+            Parameter.TIME_OF_OPERATION,
         ),
         2: (Parameter.BATTERY_STATE,),
         4: (Parameter.BATTERY_STATE,),
@@ -296,9 +301,6 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.SMOKE_DETECTOR_ALARM_STATUS: Parameter.SMOKE_DETECTOR_ALARM_STATUS,
                 },
-            },
-            CDPD.ADDITIONAL_DPS: {
-                -1: (Parameter.TIME_OF_OPERATION,),
             },
         },
         DeviceProfile.IP_THERMOSTAT: {

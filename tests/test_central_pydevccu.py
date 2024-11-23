@@ -127,7 +127,7 @@ async def test_central_full(central_unit_full) -> None:
 
     assert len(ce_channels) == 121
     assert len(data_point_types) == 6
-    assert len(parameters) == 219
+    assert len(parameters) == 220
 
     assert len(central_unit_full._devices) == 383
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

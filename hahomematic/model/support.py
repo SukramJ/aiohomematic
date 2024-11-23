@@ -73,7 +73,7 @@ class PayloadMixin:
     """Mixin to add payload methods to class."""
 
     @property
-    def payload_config(self) -> dict[str, Any]:
+    def config_payload(self) -> dict[str, Any]:
         """Return the config payload."""
         return {
             key: value
@@ -82,7 +82,7 @@ class PayloadMixin:
         }
 
     @property
-    def payload_info(self) -> dict[str, Any]:
+    def info_payload(self) -> dict[str, Any]:
         """Return the info payload."""
         return {
             key: value
@@ -91,7 +91,7 @@ class PayloadMixin:
         }
 
     @property
-    def payload_state(self) -> dict[str, Any]:
+    def state_payload(self) -> dict[str, Any]:
         """Return the state payload."""
         return {
             key: value

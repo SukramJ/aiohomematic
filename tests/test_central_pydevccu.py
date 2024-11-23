@@ -121,13 +121,13 @@ async def test_central_full(central_unit_full) -> None:
 
     assert usage_types[DataPointUsage.NO_CREATE] == 3172
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 208
-    assert usage_types[DataPointUsage.DATA_POINT] == 3638
+    assert usage_types[DataPointUsage.DATA_POINT] == 3639
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 125
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 146
 
     assert len(ce_channels) == 121
     assert len(data_point_types) == 6
-    assert len(parameters) == 219
+    assert len(parameters) == 220
 
     assert len(central_unit_full._devices) == 383
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

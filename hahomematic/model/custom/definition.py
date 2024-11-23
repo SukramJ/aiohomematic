@@ -79,6 +79,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
             Parameter.RSSI_DEVICE,
             Parameter.RSSI_PEER,
             Parameter.SABOTAGE,
+            Parameter.TIME_OF_OPERATION,
         ),
         2: (Parameter.BATTERY_STATE,),
         4: (Parameter.BATTERY_STATE,),

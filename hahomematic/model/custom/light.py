@@ -31,6 +31,8 @@ _MAX_BRIGHTNESS: Final = 255.0
 _MAX_MIREDS: Final = 500
 _MIN_BRIGHTNESS: Final = 0.0
 _MIN_MIREDS: Final = 153
+_NOT_USED: Final = 111600
+_OLD_LEVEL: Final = 1.005
 
 
 class _DeviceOperationMode(StrEnum):
@@ -574,8 +576,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
                 value=color_temp_kelvin, collector=collector
             )
         if on_time is None and kwargs.get("ramp_time"):
-            # 111600 is a special value for NOT_USED
-            await self._set_on_time_value(on_time=111600, collector=collector)
+            await self._set_on_time_value(on_time=_NOT_USED, collector=collector)
         if self.supports_effects and (effect := kwargs.get("effect")) is not None:
             await self._dp_effect.send_value(value=effect, collector=collector)
 
@@ -587,8 +588,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     ) -> None:
         """Turn the light off."""
         if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
-            # 111600 is a special value for NOT_USED
-            await self._set_on_time_value(on_time=111600, collector=collector)
+            await self._set_on_time_value(on_time=_NOT_USED, collector=collector)
         await super().turn_off(collector=collector, **kwargs)
 
     @bind_collector()
@@ -691,8 +691,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
                 value=color_temp_kelvin, collector=collector
             )
         if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
-            # 111600 is a special value for NOT_USED
-            await self._set_on_time_value(on_time=111600, collector=collector)
+            await self._set_on_time_value(on_time=_NOT_USED, collector=collector)
         if self.supports_effects and (effect := kwargs.get("effect")) is not None:
             await self._dp_effect.send_value(value=effect, collector=collector)
 
@@ -841,7 +840,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
 def _recalc_unit_timer(time: float) -> tuple[float, int | None]:
     """Recalculate unit and value of timer."""
     ramp_time_unit = _TimeUnit.SECONDS
-    if time == 111600:
+    if time == _NOT_USED:
         return time, None
     if time > 16343:
         time /= 60

@@ -19,7 +19,7 @@ from hahomematic.model.custom import (
     CustomDpIpFixedColorLight,
     CustomDpIpRGBWLight,
 )
-from hahomematic.model.custom.light import _ColorBehaviour, _FixedColor, _TimeUnit
+from hahomematic.model.custom.light import _NOT_USED, _ColorBehaviour, _FixedColor, _TimeUnit
 
 from tests import const, helper
 
@@ -1037,7 +1037,7 @@ async def test_ceiprgbwlight(
         values={
             "HUE": 44,
             "SATURATION": 0.66,
-            "DURATION_VALUE": 111600,
+            "DURATION_VALUE": _NOT_USED,
             "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
             "RAMP_TIME_VALUE": 5,
             "LEVEL": 1.0,
@@ -1050,7 +1050,7 @@ async def test_ceiprgbwlight(
         channel_address="VCU5629873:1",
         paramset_key=ParamsetKey.VALUES,
         values={
-            "DURATION_VALUE": 111600,
+            "DURATION_VALUE": _NOT_USED,
             "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
             "RAMP_TIME_VALUE": 5,
             "LEVEL": 0.0,

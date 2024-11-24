@@ -21,10 +21,12 @@ from hahomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-_CLOSED_LEVEL: Final[float] = 0.0  # must be float!
-_OPEN_LEVEL: Final[float] = 1.0  # must be float!
-_OPEN_TILT_LEVEL: Final[float] = 1.0  # must be float!
-_WD_CLOSED_LEVEL: Final[float] = -0.005  # must be float! HM-Sec-Win
+_CLOSED_LEVEL: Final = 0.0
+_COVER_VENT_MAX_POSITION: Final = 50
+_LEVEL_TO_POSITION_MULTIPLIER: Final = 100.0
+_OPEN_LEVEL: Final = 1.0
+_OPEN_TILT_LEVEL: Final = 1.0
+_WD_CLOSED_LEVEL: Final = -0.005
 
 
 class _CoverActivity(StrEnum):
@@ -110,7 +112,7 @@ class CustomDpCover(CustomDataPoint):
     @state_property
     def current_position(self) -> int:
         """Return current position of cover."""
-        return int(self._channel_level * 100)
+        return int(self._channel_level * _LEVEL_TO_POSITION_MULTIPLIER)
 
     @bind_collector()
     async def set_position(
@@ -122,7 +124,12 @@ class CustomDpCover(CustomDataPoint):
         """Move the cover to a specific position."""
         if not self.is_state_change(position=position):
             return
-        level = min(100.0, max(0.0, position)) / 100.0 if position is not None else None
+        level = (
+            min(_LEVEL_TO_POSITION_MULTIPLIER, max(self._dp_level.min, position))
+            / _LEVEL_TO_POSITION_MULTIPLIER
+            if position is not None
+            else None
+        )
         await self._set_level(level=level, collector=collector)
 
     async def _set_level(
@@ -207,7 +214,7 @@ class CustomDpWindowDrive(CustomDpCover):
             level = _CLOSED_LEVEL
         elif level == _CLOSED_LEVEL:
             level = 0.01
-        return int(level * 100)
+        return int(level * _LEVEL_TO_POSITION_MULTIPLIER)
 
     async def _set_level(
         self,
@@ -256,7 +263,7 @@ class CustomDpBlind(CustomDpCover):
     @state_property
     def current_tilt_position(self) -> int:
         """Return current tilt position of cover."""
-        return int(self._channel_tilt_level * 100)
+        return int(self._channel_tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)
 
     @property
     def _target_level(self) -> float | None:
@@ -282,9 +289,17 @@ class CustomDpBlind(CustomDpCover):
         """Move the blind to a specific position."""
         if not self.is_state_change(position=position, tilt_position=tilt_position):
             return
-        level = min(100.0, max(0.0, position)) / 100.0 if position is not None else None
+        level = (
+            min(_LEVEL_TO_POSITION_MULTIPLIER, max(self._dp_level.min, position))
+            / _LEVEL_TO_POSITION_MULTIPLIER
+            if position is not None
+            else None
+        )
         tilt_level = (
-            min(100.0, max(0.0, tilt_position)) / 100.0 if tilt_position is not None else None
+            min(_LEVEL_TO_POSITION_MULTIPLIER, max(self._dp_level_2.min, tilt_position))
+            / _LEVEL_TO_POSITION_MULTIPLIER
+            if tilt_position is not None
+            else None
         )
         await self._set_level(level=level, tilt_level=tilt_level, collector=collector)
 
@@ -458,9 +473,9 @@ class CustomDpIpBlind(CustomDpBlind):
             return None
         levels: list[str] = []
         if tilt_level is not None:
-            levels.append(f"L2={int(tilt_level*100)}")
+            levels.append(f"L2={int(tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)}")
         if level is not None:
-            levels.append(f"L={int(level * 100)}")
+            levels.append(f"L={int(level * _LEVEL_TO_POSITION_MULTIPLIER)}")
 
         if levels:
             return ",".join(levels)
@@ -506,11 +521,11 @@ class CustomDpGarage(CustomDataPoint):
         """Move the garage door to a specific position."""
         if position is None:
             return
-        if 50 < position <= 100:
+        if _COVER_VENT_MAX_POSITION < position <= _CoverPosition.OPEN:
             await self.open(collector=collector)
-        if 10 < position <= 50:
+        if _CoverPosition.VENT < position <= _COVER_VENT_MAX_POSITION:
             await self.vent(collector=collector)
-        if 0 <= position <= 10:
+        if _CoverPosition.CLOSED <= position <= _CoverPosition.VENT:
             await self.close(collector=collector)
 
     @state_property

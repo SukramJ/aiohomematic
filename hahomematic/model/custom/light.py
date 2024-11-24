@@ -27,12 +27,18 @@ from hahomematic.model.support import TimerMixin
 
 _DIMMER_OFF: Final = 0.0
 _EFFECT_OFF: Final = "Off"
+_LEVEL_TO_BRIGHTNESS_MULTIPLIER: Final = 100
 _MAX_BRIGHTNESS: Final = 255.0
+_MAX_KELVIN: Final = 1000000
 _MAX_MIREDS: Final = 500
+_MAX_SATURATION: Final = 100.0
 _MIN_BRIGHTNESS: Final = 0.0
+_MIN_HUE: Final = 0.0
 _MIN_MIREDS: Final = 153
+_MIN_SATURATION: Final = 0.0
 _NOT_USED: Final = 111600
 _OLD_LEVEL: Final = 1.005
+_SATURATION_MULTIPLIER: Final = 100
 
 
 class _DeviceOperationMode(StrEnum):
@@ -109,13 +115,13 @@ _OFF_COLOR_BEHAVIOUR: Final = (
 )
 
 _FIXED_COLOR_SWITCHER: Mapping[str, tuple[float, float]] = {
-    _FixedColor.WHITE: (0.0, 0.0),
-    _FixedColor.RED: (0.0, 100.0),
-    _FixedColor.YELLOW: (60.0, 100.0),
-    _FixedColor.GREEN: (120.0, 100.0),
-    _FixedColor.TURQUOISE: (180.0, 100.0),
-    _FixedColor.BLUE: (240.0, 100.0),
-    _FixedColor.PURPLE: (300.0, 100.0),
+    _FixedColor.WHITE: (_MIN_HUE, _MIN_SATURATION),
+    _FixedColor.RED: (_MIN_HUE, _MAX_SATURATION),
+    _FixedColor.YELLOW: (60.0, _MAX_SATURATION),
+    _FixedColor.GREEN: (120.0, _MAX_SATURATION),
+    _FixedColor.TURQUOISE: (180.0, _MAX_SATURATION),
+    _FixedColor.BLUE: (240.0, _MAX_SATURATION),
+    _FixedColor.PURPLE: (300.0, _MAX_SATURATION),
 }
 
 
@@ -170,7 +176,7 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
     @property
     def brightness_pct(self) -> int | None:
         """Return the brightness in percent of this light."""
-        return int((self._dp_level.value or _MIN_BRIGHTNESS) * 100)
+        return int((self._dp_level.value or _MIN_BRIGHTNESS) * _LEVEL_TO_BRIGHTNESS_MULTIPLIER)
 
     @property
     def channel_brightness(self) -> int | None:
@@ -183,7 +189,7 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
     def channel_brightness_pct(self) -> int | None:
         """Return the channel_brightness in percent of this light."""
         if self._dp_channel_level.value is not None:
-            return int(self._dp_channel_level.value * 100)
+            return int(self._dp_channel_level.value * _LEVEL_TO_BRIGHTNESS_MULTIPLIER)
         return None
 
     @state_property
@@ -340,11 +346,11 @@ class CustomDpColorDimmer(CustomDpDimmer):
                 # 200 is a special case (white), so we have a saturation of 0.
                 # Larger values are undefined.
                 # For the sake of robustness we return "white" anyway.
-                return 0.0, 0.0
+                return _MIN_HUE, _MIN_SATURATION
 
             # For all other colors we assume saturation of 1
-            return color / 200 * 360, 100
-        return 0.0, 0.0
+            return color / 200 * 360, _MAX_SATURATION
+        return _MIN_HUE, _MIN_SATURATION
 
     @bind_collector()
     async def turn_on(
@@ -356,7 +362,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
         if (hs_color := kwargs.get("hs_color")) is not None:
             khue, ksaturation = hs_color
             hue = khue / 360
-            saturation = ksaturation / 100
+            saturation = ksaturation / _SATURATION_MULTIPLIER
             color = 200 if saturation < 0.1 else int(round(max(min(hue, 1), 0) * 199))
             await self._dp_color.send_value(value=color, collector=collector)
         await super().turn_on(collector=collector, **kwargs)
@@ -430,7 +436,9 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
     @state_property
     def color_temp(self) -> int | None:
         """Return the color temperature in mireds of this light between min/max mireds."""
-        return int(_MAX_MIREDS - (_MAX_MIREDS - _MIN_MIREDS) * (self._dp_color_level.value or 0.0))
+        return int(
+            _MAX_MIREDS - (_MAX_MIREDS - _MIN_MIREDS) * (self._dp_color_level.value or _DIMMER_OFF)
+        )
 
     @bind_collector()
     async def turn_on(
@@ -486,13 +494,13 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         """Return the color temperature in mireds of this light between min/max mireds."""
         if not self._dp_color_temperature_kelvin.value:
             return None
-        return math.floor(1000000 / self._dp_color_temperature_kelvin.value)
+        return math.floor(_MAX_KELVIN / self._dp_color_temperature_kelvin.value)
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         if self._dp_hue.value is not None and self._dp_saturation.value is not None:
-            return self._dp_hue.value, self._dp_saturation.value * 100
+            return self._dp_hue.value, self._dp_saturation.value * _SATURATION_MULTIPLIER
         return None
 
     @property
@@ -567,11 +575,11 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
             hue, ksaturation = hs_color
-            saturation = ksaturation / 100
+            saturation = ksaturation / _SATURATION_MULTIPLIER
             await self._dp_hue.send_value(value=int(hue), collector=collector)
             await self._dp_saturation.send_value(value=saturation, collector=collector)
         if color_temp := kwargs.get("color_temp"):
-            color_temp_kelvin = math.floor(1000000 / color_temp)
+            color_temp_kelvin = math.floor(_MAX_KELVIN / color_temp)
             await self._dp_color_temperature_kelvin.send_value(
                 value=color_temp_kelvin, collector=collector
             )
@@ -654,13 +662,13 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         """Return the color temperature in mireds of this light between min/max mireds."""
         if not self._dp_color_temperature_kelvin.value:
             return None
-        return math.floor(1000000 / self._dp_color_temperature_kelvin.value)
+        return math.floor(_MAX_KELVIN / self._dp_color_temperature_kelvin.value)
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         if self._dp_hue.value is not None and self._dp_saturation.value is not None:
-            return self._dp_hue.value, self._dp_saturation.value * 100
+            return self._dp_hue.value, self._dp_saturation.value * _SATURATION_MULTIPLIER
         return None
 
     @property
@@ -682,11 +690,11 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
             hue, ksaturation = hs_color
-            saturation = ksaturation / 100
+            saturation = ksaturation / _SATURATION_MULTIPLIER
             await self._dp_hue.send_value(value=int(hue), collector=collector)
             await self._dp_saturation.send_value(value=saturation, collector=collector)
         if color_temp := kwargs.get("color_temp"):
-            color_temp_kelvin = math.floor(1000000 / color_temp)
+            color_temp_kelvin = math.floor(_MAX_KELVIN / color_temp)
             await self._dp_color_temperature_kelvin.send_value(
                 value=color_temp_kelvin, collector=collector
             )
@@ -787,13 +795,15 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
             and (hs_color := _FIXED_COLOR_SWITCHER.get(self._dp_color.value)) is not None
         ):
             return hs_color
-        return 0.0, 0.0
+        return _MIN_HUE, _MIN_SATURATION
 
     @property
     def channel_hs_color(self) -> tuple[float, float] | None:
         """Return the channel hue and saturation color value [float, float]."""
         if self._dp_channel_color.value is not None:
-            return _FIXED_COLOR_SWITCHER.get(self._dp_channel_color.value, (0.0, 0.0))
+            return _FIXED_COLOR_SWITCHER.get(
+                self._dp_channel_color.value, (_MIN_HUE, _MIN_SATURATION)
+            )
         return None
 
     @bind_collector()

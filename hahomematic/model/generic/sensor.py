@@ -36,7 +36,7 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
 
     def _get_converter_func(self) -> Any:
         """Return a converter based on sensor."""
-        if convert_func := CONVERTERS_BY_PARAM.get(self.parameter):
+        if convert_func := _VALUE_CONVERTERS_BY_PARAM.get(self.parameter):
             return convert_func
         return None
 
@@ -61,7 +61,7 @@ def _fix_rssi(value: Any) -> int | None:
     return None
 
 
-CONVERTERS_BY_PARAM: Mapping[str, Any] = {
+_VALUE_CONVERTERS_BY_PARAM: Mapping[str, Any] = {
     Parameter.RSSI_PEER: _fix_rssi,
     Parameter.RSSI_DEVICE: _fix_rssi,
 }

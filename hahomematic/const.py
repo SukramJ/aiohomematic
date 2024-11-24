@@ -64,6 +64,7 @@ BLOCK_LOG_TIMEOUT = 60
 CACHE_PATH: Final = "cache"
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
 DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
+DEFAULT_MULTIPLIER: Final = 1.0
 HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)

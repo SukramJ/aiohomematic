@@ -19,6 +19,7 @@ from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
     CALLBACK_TYPE,
     DEFAULT_CUSTOM_ID,
+    DEFAULT_MULTIPLIER,
     DP_KEY,
     DP_KEY_VALUE,
     INIT_DATETIME,
@@ -68,7 +69,6 @@ _CONFIGURABLE_CHANNEL: Final[tuple[str, ...]] = (
     "MULTI_MODE_INPUT_TRANSMITTER",
 )
 _COLLECTOR_ARGUMENT_NAME: Final = "collector"
-
 _FIX_UNIT_REPLACE: Final[Mapping[str, str]] = {
     '"': "",
     "100%": "%",
@@ -77,7 +77,6 @@ _FIX_UNIT_REPLACE: Final[Mapping[str, str]] = {
     "Lux": "lx",
     "m3": "m³",
 }
-
 _FIX_UNIT_BY_PARAM: Final[Mapping[str, str]] = {
     Parameter.ACTUAL_TEMPERATURE: "°C",
     Parameter.CURRENT_ILLUMINATION: "lx",
@@ -94,9 +93,8 @@ _FIX_UNIT_BY_PARAM: Final[Mapping[str, str]] = {
     Parameter.WIND_DIRECTION: "°",
     Parameter.WIND_DIRECTION_RANGE: "°",
 }
-
-_MULTIPLIER_UNIT: Final[Mapping[str, int]] = {
-    "100%": 100,
+_MULTIPLIER_UNIT: Final[Mapping[str, float]] = {
+    "100%": 100.0,
 }
 
 EVENT_DATA_SCHEMA = vol.Schema(
@@ -476,7 +474,7 @@ class BaseParameterDataPoint[
         self._special: Mapping[str, Any] | None = parameter_data.get("SPECIAL")
         self._raw_unit: str | None = parameter_data.get("UNIT")
         self._unit: str | None = self._cleanup_unit(raw_unit=self._raw_unit)
-        self._multiplier: int = self._get_multiplier(raw_unit=self._raw_unit)
+        self._multiplier: float = self._get_multiplier(raw_unit=self._raw_unit)
 
     @property
     def default(self) -> ParameterT:
@@ -519,7 +517,7 @@ class BaseParameterDataPoint[
         return self._min
 
     @property
-    def multiplier(self) -> int:
+    def multiplier(self) -> float:
         """Return multiplier value."""
         return self._multiplier
 
@@ -677,13 +675,13 @@ class BaseParameterDataPoint[
                 return fix
         return raw_unit
 
-    def _get_multiplier(self, raw_unit: str | None) -> int:
+    def _get_multiplier(self, raw_unit: str | None) -> float:
         """Replace given unit."""
         if not raw_unit:
-            return 1
+            return DEFAULT_MULTIPLIER
         if multiplier := _MULTIPLIER_UNIT.get(raw_unit):
             return multiplier
-        return 1
+        return DEFAULT_MULTIPLIER
 
     @abstractmethod
     async def event(self, value: Any) -> None:

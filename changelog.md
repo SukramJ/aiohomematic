@@ -1,6 +1,8 @@
-# Version 2024.11.10 (2024-11-23)
+# Version 2024.11.10 (2024-11-24)
 
 - Add TIME_OF_OPERATION to smoke detector
+- Switch multiplier from int to float
+- Use more constants for cover and light
 
 # Version 2024.11.9 (2024-11-22)
 

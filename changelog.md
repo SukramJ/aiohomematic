@@ -1,3 +1,7 @@
+# Version 2024.11.11 (2024-11-25)
+
+- Enable central link management for HmIP-wired
+
 # Version 2024.11.10 (2024-11-24)
 
 - Add TIME_OF_OPERATION to smoke detector

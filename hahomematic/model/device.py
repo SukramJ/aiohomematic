@@ -384,7 +384,7 @@ class Device(PayloadMixin):
     def relevant_for_central_link_management(self) -> bool:
         """Return if channel is relevant for central link management."""
         return (
-            self._product_group in (ProductGroup.HM, ProductGroup.HMIP)
+            self._interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED, Interface.HMIP_RF)
             and self._model not in VIRTUAL_REMOTE_MODELS
         )
 

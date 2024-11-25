@@ -24,6 +24,8 @@ _LOGGER: Final = logging.getLogger(__name__)
 _CLOSED_LEVEL: Final = 0.0
 _COVER_VENT_MAX_POSITION: Final = 50
 _LEVEL_TO_POSITION_MULTIPLIER: Final = 100.0
+_MAX_LEVEL_POSITION: Final = 100.0
+_MIN_LEVEL_POSITION: Final = 0.0
 _OPEN_LEVEL: Final = 1.0
 _OPEN_TILT_LEVEL: Final = 1.0
 _WD_CLOSED_LEVEL: Final = -0.005
@@ -125,8 +127,7 @@ class CustomDpCover(CustomDataPoint):
         if not self.is_state_change(position=position):
             return
         level = (
-            min(_LEVEL_TO_POSITION_MULTIPLIER, max(self._dp_level.min, position))
-            / _LEVEL_TO_POSITION_MULTIPLIER
+            min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, position)) / _MAX_LEVEL_POSITION
             if position is not None
             else None
         )
@@ -290,14 +291,12 @@ class CustomDpBlind(CustomDpCover):
         if not self.is_state_change(position=position, tilt_position=tilt_position):
             return
         level = (
-            min(_LEVEL_TO_POSITION_MULTIPLIER, max(self._dp_level.min, position))
-            / _LEVEL_TO_POSITION_MULTIPLIER
+            min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, position)) / _MAX_LEVEL_POSITION
             if position is not None
             else None
         )
         tilt_level = (
-            min(_LEVEL_TO_POSITION_MULTIPLIER, max(self._dp_level_2.min, tilt_position))
-            / _LEVEL_TO_POSITION_MULTIPLIER
+            min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, tilt_position)) / _MAX_LEVEL_POSITION
             if tilt_position is not None
             else None
         )

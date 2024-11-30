@@ -248,6 +248,11 @@ class CallbackDataPoint(ABC):
             )
         return None
 
+    def _reset_temporary_timestamps(self) -> None:
+        """Reset the temporary timestamps."""
+        self._set_temporary_modified_at(now=INIT_DATETIME)
+        self._set_temporary_refreshed_at(now=INIT_DATETIME)
+
     @abstractmethod
     def _get_path_data(self) -> PathData:
         """Return the path data."""
@@ -710,7 +715,6 @@ class BaseParameterDataPoint[
 
     def write_value(self, value: Any) -> tuple[ParameterT, ParameterT]:
         """Update value of the data_point."""
-
         self._reset_temporary_value()
 
         old_value = self._current_value
@@ -733,6 +737,8 @@ class BaseParameterDataPoint[
 
     def write_temporary_value(self, value: Any) -> None:
         """Update the temporary value of the data_point."""
+        self._reset_temporary_value()
+
         temp_value = self._convert_value(value)
         if self._value == temp_value:
             self._set_temporary_refreshed_at()
@@ -784,7 +790,7 @@ class BaseParameterDataPoint[
     def _reset_temporary_value(self) -> None:
         """Reset the temp storage."""
         self._temporary_value = None  # type: ignore[assignment]
-        self._set_modified_at(now=INIT_DATETIME)
+        self._reset_temporary_timestamps()
 
     def get_event_data(self, value: Any = None) -> dict[EventKey, Any]:
         """Get the event_data."""

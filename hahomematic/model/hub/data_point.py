@@ -159,8 +159,15 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Handle event for which this data_point has subscribed."""
         self.write_value(value=value)
 
+    def _reset_temporary_value(self) -> None:
+        """Reset the temp storage."""
+        self._temporary_value = None
+        self._reset_temporary_timestamps()
+
     def write_value(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
+        self._reset_temporary_value()
+
         old_value = self._current_value
         new_value = self._convert_value(old_value=old_value, new_value=value)
         if old_value == new_value:
@@ -175,6 +182,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     def _write_temporary_value(self, value: Any) -> None:
         """Update the temporary value of the data_point."""
         temp_value = self._convert_value(old_value=self._current_value, new_value=value)
+        self._reset_temporary_value()
         if self._value == temp_value:
             self._set_temporary_refreshed_at()
         else:

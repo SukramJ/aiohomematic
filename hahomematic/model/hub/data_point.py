@@ -181,8 +181,9 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
     def _write_temporary_value(self, value: Any) -> None:
         """Update the temporary value of the data_point."""
-        temp_value = self._convert_value(old_value=self._current_value, new_value=value)
         self._reset_temporary_value()
+
+        temp_value = self._convert_value(old_value=self._current_value, new_value=value)
         if self._value == temp_value:
             self._set_temporary_refreshed_at()
         else:

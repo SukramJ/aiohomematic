@@ -915,7 +915,7 @@ class JsonRpcAioHttpClient:
 
         _LOGGER.debug("GET_ALL_PROGRAMS: Getting all programs")
         if json_result := response[_JsonKey.RESULT]:
-            descriptions = await self._get_system_variable_descriptions()
+            descriptions = await self._get_program_descriptions()
             for prog in json_result:
                 is_internal = prog[_JsonKey.IS_INTERNAL]
                 if include_internal is False and is_internal is True:

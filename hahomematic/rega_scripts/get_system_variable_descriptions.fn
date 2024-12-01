@@ -1,27 +1,35 @@
-!# get_system_variables_ext_marker.fn
+!# get_system_variable_descriptions.fn
 !# Erstellt in Ergänzung zu https://github.com/eq-3/occu/blob/45b38865f6b60f16f825b75f0bdc8a9738831ee0/WebUI/www/api/methods/sysvar/getall.tcl
 !# Erweitert das Script um "description"
 !#
 
 var svList = dom.GetObject(ID_SYSTEM_VARIABLES);
 string id;
+
 boolean dpFirst = true;
-string SYSVAR_EXT_MARKER = "hahm";
 Write("[");
 foreach(id, svList.EnumIDs())
 {
     var sv = dom.GetObject(id);
+    string description;
     if (sv)
     {
+      var desc = sv.DPInfo();
+      if (desc) {
+        description = desc;
+      } else {
+        description = "";
+      }
+
       if (dpFirst) {
         dpFirst = false;
       } else {
         WriteLine(',');
       }
-      Write("{");
 
+      Write("{");
       Write("\"id\": \"" # sv.ID() # "\",");
-      Write("\"hasExtMarker\": " # sv.DPInfo().ToLower().Contains(SYSVAR_EXT_MARKER) # "");
+      Write("\"description\": \"" # description # "\"");
       Write("}");
     }
 }

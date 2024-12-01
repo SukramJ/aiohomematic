@@ -7,7 +7,7 @@ from typing import Final
 from hahomematic import central as hmcu
 from hahomematic.const import PROGRAM_ADDRESS, DataPointCategory, HubData, ProgramData
 from hahomematic.decorators import get_service_calls, service
-from hahomematic.model.decorators import state_property
+from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.hub.data_point import GenericHubDataPoint
 from hahomematic.model.support import PathData, ProgramPathData
 
@@ -30,6 +30,7 @@ class ProgramDpButton(GenericHubDataPoint):
             data=data,
         )
         self._ccu_program_name: Final = data.name
+        self._description = data.description
         self._is_active: bool = data.is_active
         self._is_internal: bool = data.is_internal
         self._last_execute_time: str = data.last_execute_time
@@ -40,17 +41,22 @@ class ProgramDpButton(GenericHubDataPoint):
         """Return the availability of the device."""
         return self._is_active
 
-    @state_property
+    @config_property
     def ccu_program_name(self) -> str:
         """Return the ccu program name."""
         return self._ccu_program_name
+
+    @config_property
+    def description(self) -> str | None:
+        """Return sysvar description."""
+        return self._description
 
     @state_property
     def is_active(self) -> bool:
         """Return the program is active."""
         return self._is_active
 
-    @state_property
+    @config_property
     def is_internal(self) -> bool:
         """Return the program is internal."""
         return self._is_internal
@@ -60,7 +66,7 @@ class ProgramDpButton(GenericHubDataPoint):
         """Return the last execute time."""
         return self._last_execute_time
 
-    @state_property
+    @config_property
     def pid(self) -> str:
         """Return the program id."""
         return self._pid

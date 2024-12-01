@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.11.11"
+VERSION: Final = "2024.12.0"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -37,11 +37,7 @@ UTF8: Final = "utf-8"
 MAX_WAIT_FOR_CALLBACK: Final = 60
 MAX_CACHE_AGE: Final = 10
 
-REGA_SCRIPT_FETCH_ALL_DEVICE_DATA: Final = "fetch_all_device_data.fn"
-REGA_SCRIPT_GET_SERIAL: Final = "get_serial.fn"
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
-REGA_SCRIPT_SET_SYSTEM_VARIABLE: Final = "set_system_variable.fn"
-REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER: Final = "get_system_variables_ext_marker.fn"
 
 DEFAULT_DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
 DEFAULT_PARAMSET_DESCRIPTIONS_DIR: Final = "export_paramset_descriptions"
@@ -88,6 +84,7 @@ CONF_USERNAME: Final = "username"
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
 
+EXTENDED_SYSVAR_MARKER: Final = "hahm"
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
 PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 SET_PATH_ROOT: Final = "device/set"
@@ -394,6 +391,16 @@ class ProductGroup(StrEnum):
     VIRTUAL = "VirtualDevices"
 
 
+class RegaScript(StrEnum):
+    """Enum with homematic rega scripts."""
+
+    FETCH_ALL_DEVICE_DATA: Final = "fetch_all_device_data.fn"
+    GET_PROGRAM_DESCRIPTIONS: Final = "get_program_descriptions.fn"
+    GET_SERIAL: Final = "get_serial.fn"
+    GET_SYSTEM_VARIABLE_DESCRIPTIONS: Final = "get_system_variable_descriptions.fn"
+    SET_SYSTEM_VARIABLE: Final = "set_system_variable.fn"
+
+
 class Interface(StrEnum):
     """Enum with homematic interfaces."""
 
@@ -598,6 +605,7 @@ class ProgramData(HubData):
     """Dataclass for programs."""
 
     pid: str
+    description: str | None
     is_active: bool
     is_internal: bool
     last_execute_time: str
@@ -610,6 +618,7 @@ class SystemVariableData(HubData):
     vid: str
     value: SYSVAR_TYPE
     data_type: SysvarType | None = None
+    description: str | None = None
     extended_sysvar: bool = False
     max_value: float | int | None = None
     min_value: float | int | None = None

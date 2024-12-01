@@ -65,6 +65,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._vid: Final = data.vid
         self.ccu_var_name: Final = data.name
         super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
+        self._description = data.description
         self._data_type = data.data_type
         self._values: Final[tuple[str, ...] | None] = tuple(data.values) if data.values else None
         self._max: Final = data.max_value
@@ -92,6 +93,11 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     def data_type(self, data_type: SysvarType) -> None:
         """Write data_type."""
         self._data_type = data_type
+
+    @config_property
+    def description(self) -> str | None:
+        """Return sysvar description."""
+        return self._description
 
     @config_property
     def vid(self) -> str:

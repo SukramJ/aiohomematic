@@ -23,19 +23,17 @@ import orjson
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
+    EXTENDED_SYSVAR_MARKER,
     HTMLTAG_PATTERN,
     PATH_JSON_RPC,
-    REGA_SCRIPT_FETCH_ALL_DEVICE_DATA,
-    REGA_SCRIPT_GET_SERIAL,
     REGA_SCRIPT_PATH,
-    REGA_SCRIPT_SET_SYSTEM_VARIABLE,
-    REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER,
     UTF8,
     DeviceDescription,
     Interface,
     ParameterData,
     ParamsetKey,
     ProgramData,
+    RegaScript,
     SystemInformation,
     SystemVariableData,
     SysvarType,
@@ -59,8 +57,8 @@ class _JsonKey(StrEnum):
 
     ADDRESS = "address"
     CHANNEL_IDS = "channelIds"
+    DESCRIPTION = "description"
     ERROR = "error"
-    HAS_EXT_MARKER = "hasExtMarker"
     ID = "id"
     INTERFACE = "interface"
     IS_ACTIVE = "isActive"
@@ -475,7 +473,7 @@ class JsonRpcAioHttpClient:
                 )
                 return False
             response = await self._post_script(
-                script_name=REGA_SCRIPT_SET_SYSTEM_VARIABLE, extra_params=params
+                script_name=RegaScript.SET_SYSTEM_VARIABLE, extra_params=params
             )
         else:
             response = await self._post(
@@ -538,11 +536,12 @@ class JsonRpcAioHttpClient:
 
         _LOGGER.debug("GET_ALL_SYSTEM_VARIABLES: Getting all system variables")
         if json_result := response[_JsonKey.RESULT]:
-            ext_markers = await self._get_system_variables_ext_markers()
+            descriptions = await self._get_system_variable_descriptions()
             for var in json_result:
                 is_internal = var[_JsonKey.IS_INTERNAL]
                 if include_internal is False and is_internal is True:
                     continue
+                extended_sysvar = False
                 var_id = var[_JsonKey.ID]
                 name = var[_JsonKey.NAME]
                 org_data_type = var[_JsonKey.TYPE]
@@ -551,7 +550,10 @@ class JsonRpcAioHttpClient:
                     data_type = SysvarType.FLOAT if "." in raw_value else SysvarType.INTEGER
                 else:
                     data_type = org_data_type
-                extended_sysvar = ext_markers.get(var_id, False)
+                if (description := descriptions.get(var_id)) and (
+                    extended_sysvar := EXTENDED_SYSVAR_MARKER in description
+                ):
+                    description = description.replace(EXTENDED_SYSVAR_MARKER, "").strip()
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
                 if val_list := var.get(_JsonKey.VALUE_LIST):
@@ -569,6 +571,7 @@ class JsonRpcAioHttpClient:
                             vid=var_id,
                             name=name,
                             data_type=data_type,
+                            description=description,
                             unit=unit,
                             value=value,
                             values=values,
@@ -587,17 +590,29 @@ class JsonRpcAioHttpClient:
 
         return tuple(variables)
 
-    async def _get_system_variables_ext_markers(self) -> dict[str, Any]:
-        """Get all system variables from CCU / Homegear."""
-        ext_markers: dict[str, Any] = {}
+    async def _get_program_descriptions(self) -> dict[str, str]:
+        """Get all program descriptions from CCU via script."""
+        descriptions: dict[str, str] = {}
 
-        response = await self._post_script(script_name=REGA_SCRIPT_SYSTEM_VARIABLES_EXT_MARKER)
+        response = await self._post_script(script_name=RegaScript.GET_PROGRAM_DESCRIPTIONS)
 
-        _LOGGER.debug("GET_SYSTEM_VARIABLES_EXT_MARKERS: Getting system variables ext markers")
+        _LOGGER.debug("GET_PROGRAM_DESCRIPTIONS: Getting program descriptions")
         if json_result := response[_JsonKey.RESULT]:
             for data in json_result:
-                ext_markers[data[_JsonKey.ID]] = data[_JsonKey.HAS_EXT_MARKER]
-        return ext_markers
+                descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
+        return descriptions
+
+    async def _get_system_variable_descriptions(self) -> dict[str, str]:
+        """Get all system variable descriptions from CCU via script."""
+        descriptions: dict[str, str] = {}
+
+        response = await self._post_script(script_name=RegaScript.GET_SYSTEM_VARIABLE_DESCRIPTIONS)
+
+        _LOGGER.debug("GET_SYSTEM_VARIABLE_DESCRIPTIONS: Getting system variable descriptions")
+        if json_result := response[_JsonKey.RESULT]:
+            for data in json_result:
+                descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
+        return descriptions
 
     async def get_all_channel_ids_room(self) -> dict[str, set[str]]:
         """Get all channel_ids per room from CCU / Homegear."""
@@ -874,7 +889,7 @@ class JsonRpcAioHttpClient:
         }
         try:
             response = await self._post_script(
-                script_name=REGA_SCRIPT_FETCH_ALL_DEVICE_DATA, extra_params=params
+                script_name=RegaScript.FETCH_ALL_DEVICE_DATA, extra_params=params
             )
 
             _LOGGER.debug(
@@ -900,11 +915,13 @@ class JsonRpcAioHttpClient:
 
         _LOGGER.debug("GET_ALL_PROGRAMS: Getting all programs")
         if json_result := response[_JsonKey.RESULT]:
+            descriptions = await self._get_system_variable_descriptions()
             for prog in json_result:
                 is_internal = prog[_JsonKey.IS_INTERNAL]
                 if include_internal is False and is_internal is True:
                     continue
                 pid = prog[_JsonKey.ID]
+                description = descriptions.get(pid)
                 name = prog[_JsonKey.NAME]
                 is_active = prog[_JsonKey.IS_ACTIVE]
                 last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]
@@ -913,6 +930,7 @@ class JsonRpcAioHttpClient:
                     ProgramData(
                         pid=pid,
                         name=name,
+                        description=description,
                         is_active=is_active,
                         is_internal=is_internal,
                         last_execute_time=last_execute_time,
@@ -1060,7 +1078,7 @@ class JsonRpcAioHttpClient:
         """Get the serial of the backend."""
         _LOGGER.debug("GET_SERIAL: Getting the backend serial")
         try:
-            response = await self._post_script(script_name=REGA_SCRIPT_GET_SERIAL)
+            response = await self._post_script(script_name=RegaScript.GET_SERIAL)
 
             if json_result := response[_JsonKey.RESULT]:
                 serial: str = json_result[_JsonKey.SERIAL]

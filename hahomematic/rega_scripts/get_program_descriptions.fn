@@ -1,0 +1,37 @@
+!# get_program_descriptions.fn
+!# Erstellt in Ergänzung zu https://github.com/eq-3/occu/blob/45b38865f6b60f16f825b75f0bdc8a9738831ee0/WebUI/www/api/methods/sysvar/getall.tcl
+!# Erweitert das Script um "description"
+!#
+
+var prgList = dom.GetObject(ID_PROGRAMS);
+string id;
+
+boolean dpFirst = true;
+Write("[");
+foreach(id, prgList.EnumIDs())
+{
+    var prg = dom.GetObject(id);
+    string description;
+
+    if (prg)
+    {
+      var desc = prg.PrgInfo();
+      if (desc) {
+        description = desc;
+      } else {
+        description = "";
+      }
+
+      if (dpFirst) {
+        dpFirst = false;
+      } else {
+        WriteLine(',');
+      }
+
+      Write("{");
+      Write("\"id\": \"" # prg.ID() # "\",");
+      Write("\"description\": \"" # description # "\"");
+      Write("}");
+    }
+}
+Write("]");

@@ -1,3 +1,7 @@
+# Version 2024.12.0 (2024-12-01)
+
+- Add description to sysvar and program
+
 # Version 2024.11.11 (2024-11-25)
 
 - Enable central link management for HmIP-wired

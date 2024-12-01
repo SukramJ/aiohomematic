@@ -3,7 +3,7 @@
 
 coverage==7.6.8
 freezegun==1.5.1
-mypy-dev==1.14.0a2
+mypy-dev==1.14.0a4
 pip==24.3.1
 pre-commit==4.0.1
 pur==7.3.2

@@ -1,6 +1,7 @@
-# Version 2024.12.0 (2024-12-01)
+# Version 2024.12.0 (2024-12-05)
 
 - Add description to sysvar and program
+- Add BidCos-Wired to list of primary interface candidates
 
 # Version 2024.11.11 (2024-11-25)
 

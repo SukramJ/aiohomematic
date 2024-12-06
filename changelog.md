@@ -2,6 +2,7 @@
 
 - Add description to sysvar and program
 - Add BidCos-Wired to list of primary interface candidates
+- Remove obsolete try/except in homegear client
 
 # Version 2024.11.11 (2024-11-25)
 

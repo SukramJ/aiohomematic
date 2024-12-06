@@ -374,7 +374,7 @@ class Client(ABC):
         """Delete a system variable from CCU / Homegear."""
 
     @abstractmethod
-    async def get_system_variable(self, name: str) -> str:
+    async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
 
     @abstractmethod

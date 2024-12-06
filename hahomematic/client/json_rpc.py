@@ -506,8 +506,6 @@ class JsonRpcAioHttpClient:
 
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
-        var = None
-
         params = {_JsonKey.NAME: name}
         response = await self._post(
             method=_JsonRpcMethod.SYSVAR_GET_VALUE_BY_NAME,
@@ -515,14 +513,7 @@ class JsonRpcAioHttpClient:
         )
 
         _LOGGER.debug("GET_SYSTEM_VARIABLE: Getting System variable")
-        if json_result := response[_JsonKey.RESULT]:
-            # This does not yet support strings
-            try:
-                var = float(json_result)
-            except Exception:
-                var = json_result == "true"
-
-        return var
+        return response[_JsonKey.RESULT]
 
     async def get_all_system_variables(
         self, include_internal: bool

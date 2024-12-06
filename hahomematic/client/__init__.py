@@ -374,7 +374,7 @@ class Client(ABC):
         """Delete a system variable from CCU / Homegear."""
 
     @abstractmethod
-    async def get_system_variable(self, name: str) -> str:
+    async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
 
     @abstractmethod
@@ -1478,34 +1478,19 @@ class ClientHomegear(Client):
     @service(measure_performance=True)
     async def set_system_variable(self, name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
-        try:
-            await self._proxy.setSystemVariable(name, value)
-        except BaseHomematicException as ex:
-            raise ClientException(
-                f"SET_SYSTEM_VARIABLE failed: {reduce_args(args=ex.args)}"
-            ) from ex
+        await self._proxy.setSystemVariable(name, value)
         return True
 
     @service()
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
-        try:
-            await self._proxy.deleteSystemVariable(name)
-        except BaseHomematicException as ex:
-            raise ClientException(
-                f"DELETE_SYSTEM_VARIABLE failed: {reduce_args(args=ex.args)}"
-            ) from ex
+        await self._proxy.deleteSystemVariable(name)
         return True
 
     @service()
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
-        try:
-            return await self._proxy.getSystemVariable(name)
-        except BaseHomematicException as ex:
-            raise ClientException(
-                f"GET_SYSTEM_VARIABLE failed: {reduce_args(args=ex.args)}"
-            ) from ex
+        return await self._proxy.getSystemVariable(name)
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
@@ -1513,14 +1498,9 @@ class ClientHomegear(Client):
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         variables: list[SystemVariableData] = []
-        try:
-            if hg_variables := await self._proxy.getAllSystemVariables():
-                for name, value in hg_variables.items():
-                    variables.append(SystemVariableData(vid=name, name=name, value=value))
-        except BaseHomematicException as ex:
-            raise ClientException(
-                f"GET_ALL_SYSTEM_VARIABLES failed: {reduce_args(args=ex.args)}"
-            ) from ex
+        if hg_variables := await self._proxy.getAllSystemVariables():
+            for name, value in hg_variables.items():
+                variables.append(SystemVariableData(vid=name, name=name, value=value))
         return tuple(variables)
 
     @service(re_raise=False, no_raise_return=())

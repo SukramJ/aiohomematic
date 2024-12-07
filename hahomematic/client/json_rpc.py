@@ -285,6 +285,8 @@ class JsonRpcAioHttpClient:
         try:
             if not response[_JsonKey.ERROR]:
                 response[_JsonKey.RESULT] = orjson.loads(response[_JsonKey.RESULT])
+        except Exception as ex:
+            raise ClientException(ex) from ex
         finally:
             if not keep_session:
                 await self._do_logout(session_id=session_id)

@@ -1,3 +1,7 @@
+# Version 2024.12.1 (2024-12-07)
+
+- Catch orjson.JSONDecodeError on faulthy json script response
+
 # Version 2024.12.0 (2024-12-05)
 
 - Add description to sysvar and program

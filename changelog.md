@@ -1,5 +1,6 @@
 # Version 2024.12.1 (2024-12-07)
 
+- Add service annotation to description reading methods
 - Catch orjson.JSONDecodeError on faulthy json script response
 
 # Version 2024.12.0 (2024-12-05)

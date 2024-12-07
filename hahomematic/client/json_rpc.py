@@ -38,6 +38,7 @@ from hahomematic.const import (
     SystemVariableData,
     SysvarType,
 )
+from hahomematic.decorators import service
 from hahomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
@@ -285,6 +286,8 @@ class JsonRpcAioHttpClient:
         try:
             if not response[_JsonKey.ERROR]:
                 response[_JsonKey.RESULT] = orjson.loads(response[_JsonKey.RESULT])
+        except Exception as ex:
+            raise ClientException(ex) from ex
         finally:
             if not keep_session:
                 await self._do_logout(session_id=session_id)
@@ -581,6 +584,7 @@ class JsonRpcAioHttpClient:
 
         return tuple(variables)
 
+    @service(re_raise=False, no_raise_return={})
     async def _get_program_descriptions(self) -> dict[str, str]:
         """Get all program descriptions from CCU via script."""
         descriptions: dict[str, str] = {}
@@ -593,6 +597,7 @@ class JsonRpcAioHttpClient:
                 descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
         return descriptions
 
+    @service(re_raise=False, no_raise_return={})
     async def _get_system_variable_descriptions(self) -> dict[str, str]:
         """Get all system variable descriptions from CCU via script."""
         descriptions: dict[str, str] = {}

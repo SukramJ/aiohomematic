@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.12.0"
+VERSION: Final = "2024.12.1"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -493,9 +493,9 @@ DATA_POINT_EVENTS: Final[tuple[EventType, ...]] = (
 )
 
 # interface_id, channel_address, paramset_key,parameter
-DP_KEY = tuple[str, str, ParamsetKey, str]
-DP_KEY_VALUE = tuple[DP_KEY, Any]
-SYSVAR_TYPE = bool | float | int | str | None
+type DP_KEY = tuple[str, str, ParamsetKey, str]
+type DP_KEY_VALUE = tuple[DP_KEY, Any]
+type SYSVAR_TYPE = bool | float | int | str | None
 
 HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
     DeviceFirmwareState.DO_UPDATE_PENDING,

@@ -1,3 +1,7 @@
+# Version 2024.12.2 (2024-12-10)
+
+- Use kelvin instead of mireds for color temp
+
 # Version 2024.12.1 (2024-12-10)
 
 - Catch orjson.JSONDecodeError on faulthy json script response

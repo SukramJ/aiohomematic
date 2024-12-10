@@ -78,7 +78,7 @@ class _StateChangeArg(StrEnum):
     """Enum with light state change arguments."""
 
     BRIGHTNESS = "brightness"
-    COLOR_TEMP = "color_temp"
+    COLOR_TEMP_KELVIN = "color_temp_kelvin"
     EFFECT = "effect"
     HS_COLOR = "hs_color"
     OFF = "off"
@@ -129,7 +129,7 @@ class LightOnArgs(TypedDict, total=False):
     """Matcher for the light turn on arguments."""
 
     brightness: int
-    color_temp: int
+    color_temp_kelvin: int
     effect: str
     hs_color: tuple[float, float]
     on_time: float
@@ -193,8 +193,8 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
         return None
 
     @state_property
-    def color_temp(self) -> int | None:
-        """Return the color temperature in mireds of this light between min/max mireds."""
+    def color_temp_kelvin(self) -> int | None:
+        """Return the color temperature in kelvin."""
         return None
 
     @state_property
@@ -210,7 +210,7 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
     @property
     def supports_color_temperature(self) -> bool:
         """Flag if light supports color temperature."""
-        return self.color_temp is not None
+        return self.color_temp_kelvin is not None
 
     @property
     def supports_effects(self) -> bool:
@@ -320,8 +320,8 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
         ) is not None and hs_color != self.hs_color:
             return True
         if (
-            color_temp := kwargs.get(_StateChangeArg.COLOR_TEMP)
-        ) is not None and color_temp != self.color_temp:
+            color_temp_kelvin := kwargs.get(_StateChangeArg.COLOR_TEMP_KELVIN)
+        ) is not None and color_temp_kelvin != self.color_temp_kelvin:
             return True
         if (effect := kwargs.get(_StateChangeArg.EFFECT)) is not None and effect != self.effect:
             return True
@@ -434,10 +434,14 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
         )
 
     @state_property
-    def color_temp(self) -> int | None:
-        """Return the color temperature in mireds of this light between min/max mireds."""
-        return int(
-            _MAX_MIREDS - (_MAX_MIREDS - _MIN_MIREDS) * (self._dp_color_level.value or _DIMMER_OFF)
+    def color_temp_kelvin(self) -> int | None:
+        """Return the color temperature in kelvin."""
+        return math.floor(
+            _MAX_KELVIN
+            / int(
+                _MAX_MIREDS
+                - (_MAX_MIREDS - _MIN_MIREDS) * (self._dp_color_level.value or _DIMMER_OFF)
+            )
         )
 
     @bind_collector()
@@ -447,8 +451,10 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
         """Turn the light on."""
         if not self.is_state_change(on=True, **kwargs):
             return
-        if (color_temp := kwargs.get("color_temp")) is not None:
-            color_level = (_MAX_MIREDS - color_temp) / (_MAX_MIREDS - _MIN_MIREDS)
+        if (color_temp_kelvin := kwargs.get("color_temp_kelvin")) is not None:
+            color_level = (_MAX_MIREDS - math.floor(_MAX_KELVIN / color_temp_kelvin)) / (
+                _MAX_MIREDS - _MIN_MIREDS
+            )
             await self._dp_color_level.send_value(value=color_level, collector=collector)
 
         await super().turn_on(collector=collector, **kwargs)
@@ -490,11 +496,11 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         )
 
     @state_property
-    def color_temp(self) -> int | None:
-        """Return the color temperature in mireds of this light between min/max mireds."""
+    def color_temp_kelvin(self) -> int | None:
+        """Return the color temperature in kelvin."""
         if not self._dp_color_temperature_kelvin.value:
             return None
-        return math.floor(_MAX_KELVIN / self._dp_color_temperature_kelvin.value)
+        return self._dp_color_temperature_kelvin.value
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
@@ -578,8 +584,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
             saturation = ksaturation / _SATURATION_MULTIPLIER
             await self._dp_hue.send_value(value=int(hue), collector=collector)
             await self._dp_saturation.send_value(value=saturation, collector=collector)
-        if color_temp := kwargs.get("color_temp"):
-            color_temp_kelvin = math.floor(_MAX_KELVIN / color_temp)
+        if color_temp_kelvin := kwargs.get("color_temp_kelvin"):
             await self._dp_color_temperature_kelvin.send_value(
                 value=color_temp_kelvin, collector=collector
             )
@@ -658,11 +663,11 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         )
 
     @state_property
-    def color_temp(self) -> int | None:
-        """Return the color temperature in mireds of this light between min/max mireds."""
+    def color_temp_kelvin(self) -> int | None:
+        """Return the color temperature in kelvin."""
         if not self._dp_color_temperature_kelvin.value:
             return None
-        return math.floor(_MAX_KELVIN / self._dp_color_temperature_kelvin.value)
+        return self._dp_color_temperature_kelvin.value
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
@@ -693,8 +698,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
             saturation = ksaturation / _SATURATION_MULTIPLIER
             await self._dp_hue.send_value(value=int(hue), collector=collector)
             await self._dp_saturation.send_value(value=saturation, collector=collector)
-        if color_temp := kwargs.get("color_temp"):
-            color_temp_kelvin = math.floor(_MAX_KELVIN / color_temp)
+        if color_temp_kelvin := kwargs.get("color_temp_kelvin"):
             await self._dp_color_temperature_kelvin.send_value(
                 value=color_temp_kelvin, collector=collector
             )

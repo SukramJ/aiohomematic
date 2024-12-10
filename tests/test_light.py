@@ -62,7 +62,7 @@ async def test_cedimmer(
     )
     assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.service_method_names == ("turn_off", "turn_on")
-    assert light.color_temp is None
+    assert light.color_temp_kelvin is None
     assert light.hs_color is None
     assert light.supports_brightness is True
     assert light.supports_color_temperature is False
@@ -187,7 +187,7 @@ async def test_cecolordimmereffect(
         CustomDpColorDimmerEffect, helper.get_prepared_custom_data_point(central, "VCU3747418", 1)
     )
     assert light.usage == DataPointUsage.CDP_PRIMARY
-    assert light.color_temp is None
+    assert light.color_temp_kelvin is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
     assert light.supports_color_temperature is False
@@ -343,7 +343,7 @@ async def test_cecolortempdimmer(
         CustomDpColorTempDimmer, helper.get_prepared_custom_data_point(central, "VCU0000115", 1)
     )
     assert light.usage == DataPointUsage.CDP_PRIMARY
-    assert light.color_temp == 500
+    assert light.color_temp_kelvin == 2000
     assert light.hs_color is None
     assert light.supports_brightness is True
     assert light.supports_color_temperature is True
@@ -381,8 +381,8 @@ async def test_cecolortempdimmer(
     )
     assert light.brightness == 0
 
-    assert light.color_temp == 500
-    await light.turn_on(color_temp=433)
+    assert light.color_temp_kelvin == 2000
+    await light.turn_on(color_temp_kelvin=2309)
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU0000115:2",
         paramset_key="VALUES",
@@ -397,7 +397,7 @@ async def test_cecolortempdimmer(
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    assert light.color_temp == 433
+    assert light.color_temp_kelvin == 2309
 
     await light.turn_on()
     call_count = len(mock_client.method_calls)
@@ -433,7 +433,7 @@ async def test_ceipfixedcolorlight(
         CustomDpIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU3716619", 8)
     )
     assert light.usage == DataPointUsage.CDP_PRIMARY
-    assert light.color_temp is None
+    assert light.color_temp_kelvin is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
     assert light.supports_color_temperature is False
@@ -633,7 +633,7 @@ async def test_ceipfixedcolorlightwired(
         CustomDpIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU4704397", 8)
     )
     assert light.usage == DataPointUsage.CDP_PRIMARY
-    assert light.color_temp is None
+    assert light.color_temp_kelvin is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
     assert light.supports_color_temperature is False
@@ -921,7 +921,7 @@ async def test_ceiprgbwlight(
         CustomDpIpRGBWLight, helper.get_prepared_custom_data_point(central, "VCU5629873", 1)
     )
     assert light.usage == DataPointUsage.CDP_PRIMARY
-    assert light.color_temp is None
+    assert light.color_temp_kelvin is None
     assert light.hs_color is None
     assert light.supports_brightness is True
     assert light.supports_color_temperature is False
@@ -983,15 +983,15 @@ async def test_ceiprgbwlight(
     )
     assert light.brightness == 0
 
-    assert light.color_temp is None
-    await light.turn_on(color_temp=300)
+    assert light.color_temp_kelvin is None
+    await light.turn_on(color_temp_kelvin=3000)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU5629873:1",
         paramset_key="VALUES",
-        values={"COLOR_TEMPERATURE": 3333, "LEVEL": 1.0},
+        values={"COLOR_TEMPERATURE": 3000, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    assert light.color_temp == 300
+    assert light.color_temp_kelvin == 3000
 
     await light.turn_on()
     call_count = len(mock_client.method_calls)
@@ -1098,7 +1098,7 @@ async def test_cecolordimmer(
         CustomDpColorDimmer, helper.get_prepared_custom_data_point(central, "VCU9973336", 13)
     )
     assert light.usage == DataPointUsage.CDP_PRIMARY
-    assert light.color_temp is None
+    assert light.color_temp_kelvin is None
     assert light.hs_color == (0.0, 0.0)
     assert light.supports_brightness is True
     assert light.supports_color_temperature is False

@@ -23,6 +23,7 @@ import orjson
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
+    DESCRIPTIONS_ERROR_MESSAGE,
     EXTENDED_SYSVAR_MARKER,
     HTMLTAG_PATTERN,
     PATH_JSON_RPC,
@@ -38,7 +39,6 @@ from hahomematic.const import (
     SystemVariableData,
     SysvarType,
 )
-from hahomematic.decorators import service
 from hahomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
@@ -283,11 +283,10 @@ class JsonRpcAioHttpClient:
         )
 
         _LOGGER.debug("POST_SCRIPT: method: %s [%s]", method, script_name)
+
         try:
             if not response[_JsonKey.ERROR]:
                 response[_JsonKey.RESULT] = orjson.loads(response[_JsonKey.RESULT])
-        except Exception as ex:
-            raise ClientException(ex) from ex
         finally:
             if not keep_session:
                 await self._do_logout(session_id=session_id)
@@ -584,30 +583,43 @@ class JsonRpcAioHttpClient:
 
         return tuple(variables)
 
-    @service(re_raise=False, no_raise_return={})
     async def _get_program_descriptions(self) -> dict[str, str]:
         """Get all program descriptions from CCU via script."""
         descriptions: dict[str, str] = {}
+        try:
+            response = await self._post_script(script_name=RegaScript.GET_PROGRAM_DESCRIPTIONS)
 
-        response = await self._post_script(script_name=RegaScript.GET_PROGRAM_DESCRIPTIONS)
-
-        _LOGGER.debug("GET_PROGRAM_DESCRIPTIONS: Getting program descriptions")
-        if json_result := response[_JsonKey.RESULT]:
-            for data in json_result:
-                descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
+            _LOGGER.debug("GET_PROGRAM_DESCRIPTIONS: Getting program descriptions")
+            if json_result := response[_JsonKey.RESULT]:
+                for data in json_result:
+                    descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
+        except JSONDecodeError as err:
+            _LOGGER.error(
+                "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s. %s",
+                reduce_args(args=err.args),
+                DESCRIPTIONS_ERROR_MESSAGE,
+            )
         return descriptions
 
-    @service(re_raise=False, no_raise_return={})
     async def _get_system_variable_descriptions(self) -> dict[str, str]:
         """Get all system variable descriptions from CCU via script."""
         descriptions: dict[str, str] = {}
+        try:
+            response = await self._post_script(
+                script_name=RegaScript.GET_SYSTEM_VARIABLE_DESCRIPTIONS
+            )
 
-        response = await self._post_script(script_name=RegaScript.GET_SYSTEM_VARIABLE_DESCRIPTIONS)
+            _LOGGER.debug("GET_SYSTEM_VARIABLE_DESCRIPTIONS: Getting system variable descriptions")
+            if json_result := response[_JsonKey.RESULT]:
+                for data in json_result:
+                    descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
 
-        _LOGGER.debug("GET_SYSTEM_VARIABLE_DESCRIPTIONS: Getting system variable descriptions")
-        if json_result := response[_JsonKey.RESULT]:
-            for data in json_result:
-                descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
+        except JSONDecodeError as err:
+            _LOGGER.error(
+                "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s. %s",
+                reduce_args(args=err.args),
+                DESCRIPTIONS_ERROR_MESSAGE,
+            )
         return descriptions
 
     async def get_all_channel_ids_room(self) -> dict[str, set[str]]:
@@ -894,10 +906,10 @@ class JsonRpcAioHttpClient:
             if json_result := response[_JsonKey.RESULT]:
                 all_device_data = json_result
 
-        except JSONDecodeError as jderr:
+        except JSONDecodeError as err:
             raise ClientException(
                 f"GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface {interface}"
-            ) from jderr
+            ) from err
 
         return all_device_data
 

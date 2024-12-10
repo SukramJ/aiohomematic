@@ -23,6 +23,7 @@ import orjson
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
+    DESCRIPTIONS_ERROR_MESSAGE,
     EXTENDED_SYSVAR_MARKER,
     HTMLTAG_PATTERN,
     PATH_JSON_RPC,
@@ -594,8 +595,9 @@ class JsonRpcAioHttpClient:
                     descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
         except JSONDecodeError as err:
             _LOGGER.error(
-                "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s",
+                "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s. %s",
                 reduce_args(args=err.args),
+                DESCRIPTIONS_ERROR_MESSAGE,
             )
         return descriptions
 
@@ -614,8 +616,9 @@ class JsonRpcAioHttpClient:
 
         except JSONDecodeError as err:
             _LOGGER.error(
-                "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s",
+                "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s. %s",
                 reduce_args(args=err.args),
+                DESCRIPTIONS_ERROR_MESSAGE,
             )
         return descriptions
 

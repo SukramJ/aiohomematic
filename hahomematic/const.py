@@ -41,7 +41,8 @@ REGA_SCRIPT_PATH: Final = "../rega_scripts"
 
 DEFAULT_DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
 DEFAULT_PARAMSET_DESCRIPTIONS_DIR: Final = "export_paramset_descriptions"
-
+NOT_ALLOWED_CHARACTERS_IN_DESCRIPTIONS: Final = "<, >, ', \", &, $, [, ], {, }, \\"
+DESCRIPTIONS_ERROR_MESSAGE: Final = f"Descriptions must not contain any of the following characters: {NOT_ALLOWED_CHARACTERS_IN_DESCRIPTIONS}"
 # Password can be empty.
 # Allowed characters: A-Z, a-z, 0-9, .!$():;#-
 # The CCU WebUI also supports ÄäÖöÜüß, but these characters are not supported by the XmlRPC servers

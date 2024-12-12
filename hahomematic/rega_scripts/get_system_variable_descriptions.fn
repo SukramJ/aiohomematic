@@ -3,22 +3,23 @@
 !# Erweitert das Script um "description"
 !#
 
-var svList = dom.GetObject(ID_SYSTEM_VARIABLES);
 string id;
-
+string sDeadList = ^"	\^;
+string sDeadSign;
 boolean dpFirst = true;
 Write("[");
-foreach(id, svList.EnumIDs())
-{
-    var sv = dom.GetObject(id);
-    string description;
-    if (sv)
-    {
-      var desc = sv.DPInfo();
-      if (desc) {
-        description = desc;
-      } else {
-        description = "";
+foreach(id, dom.GetObject(ID_SYSTEM_VARIABLES).EnumIDs()) {
+    object sv = dom.GetObject(id);
+    string description = "";
+    if (sv) {
+      string sSV_Desc = sv.DPInfo();
+      if (sSV_Desc) {
+        description = sSV_Desc;
+        foreach(sDeadSign, sDeadList) {
+          if (sSV_Desc.Contains(sDeadSign)) {
+            description = "ignored because of problematic character(s)";
+          }
+        }
       }
 
       if (dpFirst) {
@@ -28,7 +29,7 @@ foreach(id, svList.EnumIDs())
       }
 
       Write("{");
-      Write("\"id\": \"" # sv.ID() # "\",");
+      Write("\"id\": \"" # id # "\",");
       Write("\"description\": \"" # description # "\"");
       Write("}");
     }

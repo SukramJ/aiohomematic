@@ -1,3 +1,7 @@
+# Version 2024.12.3 (2024-12-12)
+
+- Ignore sysvar/program descriptions with problematic character(s)
+
 # Version 2024.12.2 (2024-12-10)
 
 - Use kelvin instead of mireds for color temp

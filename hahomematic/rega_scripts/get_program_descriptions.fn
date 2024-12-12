@@ -3,23 +3,23 @@
 !# Erweitert das Script um "description"
 !#
 
-var prgList = dom.GetObject(ID_PROGRAMS);
 string id;
-
+string sDeadList = ^"	\^;
+string sDeadSign;
 boolean dpFirst = true;
 Write("[");
-foreach(id, prgList.EnumIDs())
-{
-    var prg = dom.GetObject(id);
-    string description;
-
-    if (prg)
-    {
-      var desc = prg.PrgInfo();
-      if (desc) {
-        description = desc;
-      } else {
-        description = "";
+foreach(id, dom.GetObject(ID_PROGRAMS).EnumIDs()) {
+  object prg = dom.GetObject(id);
+    string description = "";
+    if (prg) {
+      string sPrg_Desc = prg.PrgInfo();
+      if (sPrg_Desc) {
+        description = sPrg_Desc;
+        foreach(sDeadSign, sDeadList) {
+          if (sPrg_Desc.Contains(sDeadSign)) {
+            description = "ignored because of problematic character(s)";
+          }
+        }
       }
 
       if (dpFirst) {
@@ -29,7 +29,7 @@ foreach(id, prgList.EnumIDs())
       }
 
       Write("{");
-      Write("\"id\": \"" # prg.ID() # "\",");
+      Write("\"id\": \"" # id # "\",");
       Write("\"description\": \"" # description # "\"");
       Write("}");
     }

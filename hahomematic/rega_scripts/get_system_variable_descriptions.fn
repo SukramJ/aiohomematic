@@ -4,23 +4,16 @@
 !#
 
 string id;
-string sDeadList = ^"	\^;
-string sDeadSign;
 boolean dpFirst = true;
 Write("[");
 foreach(id, dom.GetObject(ID_SYSTEM_VARIABLES).EnumIDs()) {
     object sv = dom.GetObject(id);
     string description = "";
     if (sv) {
-      string sSV_Desc = sv.DPInfo();
-      if (sSV_Desc) {
-        description = sSV_Desc.Replace("	", " ");
-        foreach(sDeadSign, sDeadList) {
-          if (sSV_Desc.Contains(sDeadSign)) {
-            description = "ignored because of problematic character(s)";
-          }
-        }
-      }
+      ! use UriEncode() to ensure special characters " and \
+      ! and others are properly encoded using URI/URL percentage
+      ! encoding
+      description = sv.DPInfo().UriEncode();
 
       if (dpFirst) {
         dpFirst = false;

@@ -1,6 +1,7 @@
 # Version 2024.12.4 (2024-12-14)
 
 - Add missing encoding to unquote
+- Ensure default encoding is ISO-8859-1
 
 # Version 2024.12.3 (2024-12-14)
 

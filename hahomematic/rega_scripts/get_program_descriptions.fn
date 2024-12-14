@@ -1,5 +1,5 @@
-!# get_program_descriptions.fn
-!# Erstellt in Erg√§nzung zu https://github.com/eq-3/occu/blob/45b38865f6b60f16f825b75f0bdc8a9738831ee0/WebUI/www/api/methods/sysvar/getall.tcl
+!# get_program_descriptions.fn / file is ISO-8859-1 encoded
+!# Erstellt in Erg‰nzung zu https://github.com/eq-3/occu/blob/45b38865f6b60f16f825b75f0bdc8a9738831ee0/WebUI/www/api/methods/sysvar/getall.tcl
 !# Erweitert das Script um "description"
 !#
 

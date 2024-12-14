@@ -1,6 +1,7 @@
-# Version 2024.12.3 (2024-12-12)
+# Version 2024.12.3 (2024-12-14)
 
 - Ignore sysvar/program descriptions with problematic character(s)
+- Replace tabs in sysvar/program descriptions
 
 # Version 2024.12.2 (2024-12-10)
 

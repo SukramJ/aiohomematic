@@ -14,7 +14,7 @@ foreach(id, dom.GetObject(ID_SYSTEM_VARIABLES).EnumIDs()) {
     if (sv) {
       string sSV_Desc = sv.DPInfo();
       if (sSV_Desc) {
-        description = sSV_Desc;
+        description = sSV_Desc.Replace("	", " ");
         foreach(sDeadSign, sDeadList) {
           if (sSV_Desc.Contains(sDeadSign)) {
             description = "ignored because of problematic character(s)";

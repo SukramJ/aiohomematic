@@ -25,7 +25,7 @@ def test_convert_to_json_fails() -> None:
 def test_defect_json() -> None:
     """Check if json with special characters can be parsed."""
     accepted_chars = ("a", "<", ">", "'", "&", "$", "[", "]", "{", "}")
-    faulthy_chars = ('"', "\\")
+    faulthy_chars = ('"', "\\", "	")
     for sc in accepted_chars:
         json = "{" + '"name": "Text mit Wert ' + sc + '"' + "}"
         assert orjson.loads(json)

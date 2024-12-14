@@ -14,7 +14,7 @@ foreach(id, dom.GetObject(ID_PROGRAMS).EnumIDs()) {
     if (prg) {
       string sPrg_Desc = prg.PrgInfo();
       if (sPrg_Desc) {
-        description = sPrg_Desc;
+        description = sPrg_Desc.Replace("	", " ");
         foreach(sDeadSign, sDeadList) {
           if (sPrg_Desc.Contains(sDeadSign)) {
             description = "ignored because of problematic character(s)";

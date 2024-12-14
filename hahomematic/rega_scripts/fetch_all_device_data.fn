@@ -1,4 +1,4 @@
-!# fetch_all_device_data.fn v2.2 / file is ISO-8859-1 encoded
+!# fetch_all_device_data.fn v2.2
 !# This script fetches all device data required to initialize the entities without affecting the duty cycle.
 !#
 !# Original script: https://github.com/ioBroker/ioBroker.hm-rega/blob/master/regascripts/datapoints.fn
@@ -10,7 +10,7 @@
 !# modified by: SukramJ https://github.com/SukramJ && Baxxy13 https://github.com/Baxxy13
 !# v2.2 - 09/2023
 !#
-!# Das Interface wird durch die Integration an 'sUse_Interface' übergeben.
+!# Das Interface wird durch die Integration an 'sUse_Interface' Ã¼bergeben.
 !# Nutzbare Interfaces: BidCos-RF, BidCos-Wired, HmIP-RF, VirtualDevices
 !# Zum Testen direkt auf der Homematic-Zentrale muss das Interface wie folgt eingetragen werden: sUse_Interface = "HmIP-RF";
 

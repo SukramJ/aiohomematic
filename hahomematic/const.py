@@ -32,7 +32,9 @@ DEFAULT_UN_IGNORES: Final[tuple[str, ...]] = ()
 DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_WAIT_FOR_CALLBACK: Final[int | None] = None
 
-# Default encoding for all Homematic service calls, persistent cache and script files
+# Default encoding for json service calls, persistent cache
+UTF_8: Final = "utf-8"
+# Default encoding for xmlrpc service calls and script files
 ISO_8859_1: Final = "iso-8859-1"
 
 MAX_WAIT_FOR_CALLBACK: Final = 60

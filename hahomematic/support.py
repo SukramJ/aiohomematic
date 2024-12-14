@@ -69,7 +69,7 @@ def build_xml_rpc_uri(
     return f"{scheme}://{host}{s_port}{path}"
 
 
-def build_headers(
+def build_xml_rpc_headers(
     username: str,
     password: str,
 ) -> list[tuple[str, str]]:

@@ -10,7 +10,7 @@ from xmlrpc.client import ServerProxy
 
 from hahomematic import __version__
 from hahomematic.const import ParamsetKey
-from hahomematic.support import build_headers, build_xml_rpc_uri, get_tls_context
+from hahomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, get_tls_context
 
 
 def main() -> None:
@@ -104,7 +104,7 @@ def main() -> None:
         path=args.path,
         tls=args.tls,
     )
-    headers = build_headers(username=args.username, password=args.password)
+    headers = build_xml_rpc_headers(username=args.username, password=args.password)
     context = None
     if args.tls:
         context = get_tls_context(verify_tls=args.verify)

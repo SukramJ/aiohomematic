@@ -44,7 +44,7 @@ from hahomematic.exceptions import BaseHomematicException, ClientException, NoCo
 from hahomematic.model.device import Device
 from hahomematic.model.support import convert_value
 from hahomematic.support import (
-    build_headers,
+    build_xml_rpc_headers,
     build_xml_rpc_uri,
     get_device_address,
     is_channel_address,
@@ -1600,7 +1600,7 @@ class _ClientConfig:
         """Return a XmlRPC proxy for backend communication."""
         central_config = self.central.config
         xml_rpc_headers = (
-            build_headers(
+            build_xml_rpc_headers(
                 username=central_config.username,
                 password=central_config.password,
             )

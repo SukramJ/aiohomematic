@@ -14,7 +14,7 @@ from hahomematic.client import _LOGGER, Client, _ClientConfig
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
     DP_KEY_VALUE,
-    ISO_8859_1,
+    UTF_8,
     CallSource,
     CommandRxMode,
     DeviceDescription,
@@ -328,7 +328,7 @@ class ClientLocal(Client):  # pragma: no cover
         def _load() -> Any | None:
             with open(
                 file=os.path.join(package_path, resource, filename),
-                encoding=ISO_8859_1,
+                encoding=UTF_8,
             ) as fptr:
                 return orjson.loads(fptr.read())
 

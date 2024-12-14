@@ -19,7 +19,7 @@ from hahomematic.const import (
     FILE_DEVICES,
     FILE_PARAMSETS,
     INIT_DATETIME,
-    ISO_8859_1,
+    UTF_8,
     DataOperationResult,
     DeviceDescription,
     ParameterData,
@@ -106,7 +106,7 @@ class BasePersistentCache(ABC):
         def _load() -> DataOperationResult:
             with open(
                 file=os.path.join(self._cache_dir, self._filename),
-                encoding=ISO_8859_1,
+                encoding=UTF_8,
             ) as fptr:
                 data = orjson.loads(fptr.read())
                 if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:

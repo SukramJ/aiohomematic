@@ -29,6 +29,7 @@ from hahomematic.const import (
     DP_KEY,
     FILE_DEVICES,
     FILE_PARAMSETS,
+    HTMLTAG_PATTERN,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
     MAX_CACHE_AGE,
@@ -468,3 +469,8 @@ def supports_rx_mode(command_rx_mode: CommandRxMode, rx_modes: tuple[RxMode, ...
     return (command_rx_mode == CommandRxMode.BURST and RxMode.BURST in rx_modes) or (
         command_rx_mode == CommandRxMode.WAKEUP and RxMode.WAKEUP in rx_modes
     )
+
+
+def cleanup_text_from_html_tags(text: str) -> str:
+    """Cleanup text from html tags."""
+    return re.sub(HTMLTAG_PATTERN, "", text)

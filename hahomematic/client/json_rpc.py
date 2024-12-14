@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 from ssl import SSLContext
 from typing import Any, Final
+from urllib.parse import unquote
 
 from aiohttp import (
     ClientConnectorCertificateError,
@@ -25,7 +26,6 @@ from hahomematic.async_support import Looper
 from hahomematic.const import (
     DESCRIPTIONS_ERROR_MESSAGE,
     EXTENDED_SYSVAR_MARKER,
-    HTMLTAG_PATTERN,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
     UTF8,
@@ -48,7 +48,12 @@ from hahomematic.exceptions import (
     UnsupportedException,
 )
 from hahomematic.model.support import convert_value
-from hahomematic.support import get_tls_context, parse_sys_var, reduce_args
+from hahomematic.support import (
+    cleanup_text_from_html_tags,
+    get_tls_context,
+    parse_sys_var,
+    reduce_args,
+)
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -459,21 +464,18 @@ class JsonRpcAioHttpClient:
 
     async def set_system_variable(self, name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
-        params = {
-            _JsonKey.NAME: name,
-            _JsonKey.VALUE: value,
-        }
+        params = {_JsonKey.NAME: name, _JsonKey.VALUE: value}
         if isinstance(value, bool):
             params[_JsonKey.VALUE] = int(value)
             response = await self._post(method=_JsonRpcMethod.SYSVAR_SET_BOOL, extra_params=params)
         elif isinstance(value, str):
-            if HTMLTAG_PATTERN.findall(value):
+            if (clean_text := cleanup_text_from_html_tags(text=value)) != value:
+                params[_JsonKey.VALUE] = clean_text
                 _LOGGER.warning(
-                    "SET_SYSTEM_VARIABLE failed: "
-                    "Value (%s) contains html tags. This is not allowed",
+                    "SET_SYSTEM_VARIABLE: "
+                    "Value (%s) contains html tags. These are filtered out when writing.",
                     value,
                 )
-                return False
             response = await self._post_script(
                 script_name=RegaScript.SET_SYSTEM_VARIABLE, extra_params=params
             )
@@ -592,7 +594,10 @@ class JsonRpcAioHttpClient:
             _LOGGER.debug("GET_PROGRAM_DESCRIPTIONS: Getting program descriptions")
             if json_result := response[_JsonKey.RESULT]:
                 for data in json_result:
-                    descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
+                    decoded_text = unquote(string=data[_JsonKey.DESCRIPTION])
+                    descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
+                        text=decoded_text
+                    )
         except JSONDecodeError as err:
             _LOGGER.error(
                 "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s. %s",
@@ -612,8 +617,10 @@ class JsonRpcAioHttpClient:
             _LOGGER.debug("GET_SYSTEM_VARIABLE_DESCRIPTIONS: Getting system variable descriptions")
             if json_result := response[_JsonKey.RESULT]:
                 for data in json_result:
-                    descriptions[data[_JsonKey.ID]] = data[_JsonKey.DESCRIPTION]
-
+                    decoded_text = unquote(string=data[_JsonKey.DESCRIPTION])
+                    descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
+                        text=decoded_text
+                    )
         except JSONDecodeError as err:
             _LOGGER.error(
                 "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s. %s",

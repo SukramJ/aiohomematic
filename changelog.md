@@ -1,7 +1,8 @@
 # Version 2024.12.3 (2024-12-14)
 
-- Ignore sysvar/program descriptions with problematic character(s)
-- Replace tabs in sysvar/program descriptions
+- Add method cleanup_text_from_html_tags
+- Decode received sysvar/program descriptions
+- Replace special character replacement by simple UriEncode() method use by @jens-maus
 
 # Version 2024.12.2 (2024-12-10)
 

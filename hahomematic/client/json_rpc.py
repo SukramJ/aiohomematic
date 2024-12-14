@@ -24,12 +24,10 @@ import orjson
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
-    DESCRIPTIONS_ERROR_MESSAGE,
     EXTENDED_SYSVAR_MARKER,
-    ISO88591,
+    ISO_8859_1,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
-    UTF8,
     DeviceDescription,
     Interface,
     ParameterData,
@@ -309,7 +307,7 @@ class JsonRpcAioHttpClient:
             script_file = os.path.join(
                 Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name
             )
-            if script := Path(script_file).read_text(encoding=UTF8):
+            if script := Path(script_file).read_text(encoding=ISO_8859_1):
                 self._script_cache[script_name] = script
                 return script
             return None
@@ -402,14 +400,14 @@ class JsonRpcAioHttpClient:
     async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:
         """Return the json object from response."""
         try:
-            return await response.json(encoding=UTF8)
+            return await response.json(encoding=ISO_8859_1)
         except ValueError as ver:
             _LOGGER.debug(
                 "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
                 reduce_args(args=ver.args),
             )
             # Workaround for bug in CCU
-            return orjson.loads((await response.read()).decode(UTF8))
+            return orjson.loads((await response.read()).decode(ISO_8859_1))
 
     async def logout(self) -> None:
         """Logout of CCU."""
@@ -596,13 +594,12 @@ class JsonRpcAioHttpClient:
             if json_result := response[_JsonKey.RESULT]:
                 for data in json_result:
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
-                        text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO88591)
+                        text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO_8859_1)
                     )
         except JSONDecodeError as err:
             _LOGGER.error(
-                "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s. %s",
+                "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s",
                 reduce_args(args=err.args),
-                DESCRIPTIONS_ERROR_MESSAGE,
             )
         return descriptions
 
@@ -618,13 +615,12 @@ class JsonRpcAioHttpClient:
             if json_result := response[_JsonKey.RESULT]:
                 for data in json_result:
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
-                        text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO88591)
+                        text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO_8859_1)
                     )
         except JSONDecodeError as err:
             _LOGGER.error(
-                "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s. %s",
+                "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s",
                 reduce_args(args=err.args),
-                DESCRIPTIONS_ERROR_MESSAGE,
             )
         return descriptions
 

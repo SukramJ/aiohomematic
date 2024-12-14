@@ -32,8 +32,8 @@ DEFAULT_UN_IGNORES: Final[tuple[str, ...]] = ()
 DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_WAIT_FOR_CALLBACK: Final[int | None] = None
 
-UTF8: Final = "utf-8"
-ISO88591: Final = "iso-8859-1"
+# Default encoding for all Homematic service calls, persistent cache and script files
+ISO_8859_1: Final = "iso-8859-1"
 
 MAX_WAIT_FOR_CALLBACK: Final = 60
 MAX_CACHE_AGE: Final = 10
@@ -42,8 +42,6 @@ REGA_SCRIPT_PATH: Final = "../rega_scripts"
 
 DEFAULT_DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
 DEFAULT_PARAMSET_DESCRIPTIONS_DIR: Final = "export_paramset_descriptions"
-NOT_ALLOWED_CHARACTERS_IN_DESCRIPTIONS: Final = "<, >, ', \", &, $, [, ], {, }, \\"
-DESCRIPTIONS_ERROR_MESSAGE: Final = f"Descriptions must not contain any of the following characters: {NOT_ALLOWED_CHARACTERS_IN_DESCRIPTIONS}"
 # Password can be empty.
 # Allowed characters: A-Z, a-z, 0-9, .!$():;#-
 # The CCU WebUI also supports ÄäÖöÜüß, but these characters are not supported by the XmlRPC servers

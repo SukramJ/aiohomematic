@@ -930,6 +930,13 @@ class CentralUnit(PayloadMixin):
         self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
     ) -> None:
         """Add new devices to central unit."""
+        if not device_descriptions:
+            _LOGGER.debug(
+                "ADD_NEW_DEVICES: Nothing to add for interface_id %s",
+                interface_id,
+            )
+            return
+
         _LOGGER.debug(
             "ADD_NEW_DEVICES: interface_id = %s, device_descriptions = %s",
             interface_id,

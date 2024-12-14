@@ -197,7 +197,7 @@ def _load_json_file(anchor: str, resource: str, filename: str) -> Any | None:
     package_path = str(importlib.resources.files(anchor))
     with open(
         file=os.path.join(package_path, resource, filename),
-        encoding=hahomematic_const.UTF8,
+        encoding=hahomematic_const.ISO_8859_1,
     ) as fptr:
         return orjson.loads(fptr.read())
 

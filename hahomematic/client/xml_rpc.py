@@ -13,6 +13,7 @@ import xmlrpc.client
 
 from hahomematic import central as hmcu
 from hahomematic.async_support import Looper
+from hahomematic.const import ISO_8859_1
 from hahomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
@@ -25,7 +26,6 @@ from hahomematic.support import get_tls_context, reduce_args
 _LOGGER: Final = logging.getLogger(__name__)
 
 _CONTEXT: Final = "context"
-_ENCODING_ISO_8859_1: Final = "ISO-8859-1"
 _TLS: Final = "tls"
 _VERIFY_TLS: Final = "verify_tls"
 
@@ -88,7 +88,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             kwargs[_CONTEXT] = get_tls_context(self._verify_tls)
         xmlrpc.client.ServerProxy.__init__(  # type: ignore[misc]
             self,
-            encoding=_ENCODING_ISO_8859_1,
+            encoding=ISO_8859_1,
             *args,  # noqa: B026
             **kwargs,
         )

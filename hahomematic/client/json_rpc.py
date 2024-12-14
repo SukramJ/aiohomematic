@@ -28,6 +28,7 @@ from hahomematic.const import (
     ISO_8859_1,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
+    UTF_8,
     DeviceDescription,
     Interface,
     ParameterData,
@@ -307,7 +308,7 @@ class JsonRpcAioHttpClient:
             script_file = os.path.join(
                 Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name
             )
-            if script := Path(script_file).read_text(encoding=ISO_8859_1):
+            if script := Path(script_file).read_text(encoding=UTF_8):
                 self._script_cache[script_name] = script
                 return script
             return None
@@ -400,14 +401,14 @@ class JsonRpcAioHttpClient:
     async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:
         """Return the json object from response."""
         try:
-            return await response.json(encoding=ISO_8859_1)
+            return await response.json(encoding=UTF_8)
         except ValueError as ver:
             _LOGGER.debug(
                 "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
                 reduce_args(args=ver.args),
             )
             # Workaround for bug in CCU
-            return orjson.loads((await response.read()).decode(ISO_8859_1))
+            return orjson.loads((await response.read()).decode(encoding=UTF_8))
 
     async def logout(self) -> None:
         """Logout of CCU."""

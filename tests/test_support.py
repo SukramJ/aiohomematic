@@ -33,7 +33,7 @@ from hahomematic.model.support import (
     get_event_name,
 )
 from hahomematic.support import (
-    build_headers,
+    build_xml_rpc_headers,
     build_xml_rpc_uri,
     changed_within_seconds,
     check_or_create_directory,
@@ -107,11 +107,13 @@ def test_build_xml_rpc_uri() -> None:
 
 def test_build_headers() -> None:
     """Test build_xml_rpc_uri."""
-    assert build_headers(username="Martin", password="") == [
+    assert build_xml_rpc_headers(username="Martin", password="") == [
         ("Authorization", "Basic TWFydGluOg==")
     ]
-    assert build_headers(username="", password="asdf") == [("Authorization", "Basic OmFzZGY=")]
-    assert build_headers(username="Martin", password="asdf") == [
+    assert build_xml_rpc_headers(username="", password="asdf") == [
+        ("Authorization", "Basic OmFzZGY=")
+    ]
+    assert build_xml_rpc_headers(username="Martin", password="asdf") == [
         ("Authorization", "Basic TWFydGluOmFzZGY=")
     ]
 

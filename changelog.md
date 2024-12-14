@@ -1,3 +1,7 @@
+# Version 2024.12.4 (2024-12-14)
+
+- Add missing encoding to unquote
+
 # Version 2024.12.3 (2024-12-14)
 
 - Add method cleanup_text_from_html_tags

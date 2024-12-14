@@ -26,6 +26,7 @@ from hahomematic.async_support import Looper
 from hahomematic.const import (
     DESCRIPTIONS_ERROR_MESSAGE,
     EXTENDED_SYSVAR_MARKER,
+    ISO88591,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
     UTF8,
@@ -594,9 +595,8 @@ class JsonRpcAioHttpClient:
             _LOGGER.debug("GET_PROGRAM_DESCRIPTIONS: Getting program descriptions")
             if json_result := response[_JsonKey.RESULT]:
                 for data in json_result:
-                    decoded_text = unquote(string=data[_JsonKey.DESCRIPTION])
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
-                        text=decoded_text
+                        text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO88591)
                     )
         except JSONDecodeError as err:
             _LOGGER.error(
@@ -617,9 +617,8 @@ class JsonRpcAioHttpClient:
             _LOGGER.debug("GET_SYSTEM_VARIABLE_DESCRIPTIONS: Getting system variable descriptions")
             if json_result := response[_JsonKey.RESULT]:
                 for data in json_result:
-                    decoded_text = unquote(string=data[_JsonKey.DESCRIPTION])
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
-                        text=decoded_text
+                        text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO88591)
                     )
         except JSONDecodeError as err:
             _LOGGER.error(

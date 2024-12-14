@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.12.3"
+VERSION: Final = "2024.12.4"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -33,6 +33,7 @@ DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_WAIT_FOR_CALLBACK: Final[int | None] = None
 
 UTF8: Final = "utf-8"
+ISO88591: Final = "iso-8859-1"
 
 MAX_WAIT_FOR_CALLBACK: Final = 60
 MAX_CACHE_AGE: Final = 10

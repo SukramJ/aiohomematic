@@ -7,8 +7,6 @@ import asyncio
 import logging
 import sys
 
-from aiohttp import ClientSession, TCPConnector
-
 from hahomematic import config, const
 from hahomematic.central import CentralConfig
 from hahomematic.client import InterfaceConfig
@@ -83,7 +81,7 @@ class Example:
             storage_folder="homematicip_local",
             interface_configs=interface_configs,
             default_callback_port=54321,
-            client_session=ClientSession(connector=TCPConnector(limit=3)),
+            client_session=None,
         ).create_central()
 
         # For testing we set a short INIT_TIMEOUT

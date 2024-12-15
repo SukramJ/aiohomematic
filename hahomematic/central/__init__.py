@@ -15,7 +15,7 @@ from logging import DEBUG
 import threading
 from typing import Any, Final, cast
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, TCPConnector
 import orjson
 import voluptuous as vol
 
@@ -48,6 +48,7 @@ from hahomematic.const import (
     INTERFACES_REQUIRING_PERIODIC_REFRESH,
     IP_ANY_V4,
     LOCAL_HOST,
+    MAX_CONCURRENT_HTTP_SESSIONS,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     UN_IGNORE_WILDCARD,
@@ -1688,7 +1689,11 @@ class CentralConfig:
         self.callback_host: Final = callback_host
         self.callback_port: Final = callback_port
         self.central_id: Final = central_id
-        self.client_session: Final = client_session
+        self.client_session: Final = (
+            client_session
+            if client_session
+            else ClientSession(connector=TCPConnector(limit=MAX_CONCURRENT_HTTP_SESSIONS))
+        )
         self.connection_state: Final = CentralConnectionState()
         self.default_callback_port: Final = default_callback_port
         self.host: Final = host

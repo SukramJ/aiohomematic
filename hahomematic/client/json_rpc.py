@@ -700,8 +700,7 @@ class JsonRpcAioHttpClient:
         }
 
         response = await self._post(
-            method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION,
-            extra_params=params,
+            method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION, extra_params=params
         )
 
         _LOGGER.debug("GET_DEVICE_DESCRIPTION: Getting the device description")

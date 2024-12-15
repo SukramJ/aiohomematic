@@ -1,3 +1,7 @@
+# Version 2024.12.5 (2024-12-15)
+
+- Limit number of concurrent mass operations to json api to 3 parallel executions
+
 # Version 2024.12.4 (2024-12-14)
 
 - Add missing encoding to unquote

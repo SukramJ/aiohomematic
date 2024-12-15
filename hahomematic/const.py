@@ -39,6 +39,7 @@ ISO_8859_1: Final = "iso-8859-1"
 
 MAX_WAIT_FOR_CALLBACK: Final = 60
 MAX_CACHE_AGE: Final = 10
+MAX_CONCURRENT_HTTP_SESSIONS: Final = 3
 
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
 

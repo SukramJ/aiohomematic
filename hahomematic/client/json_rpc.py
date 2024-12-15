@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from asyncio import Semaphore
 from datetime import datetime
 from enum import StrEnum
+from functools import partial
 from json import JSONDecodeError
 import logging
 import os
@@ -26,6 +28,7 @@ from hahomematic.async_support import Looper
 from hahomematic.const import (
     EXTENDED_SYSVAR_MARKER,
     ISO_8859_1,
+    MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
     UTF_8,
@@ -122,6 +125,15 @@ class _JsonRpcMethod(StrEnum):
     SYSVAR_SET_FLOAT = "SysVar.setFloat"
 
 
+_PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
+    _JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION,
+    _JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
+    _JsonRpcMethod.INTERFACE_GET_PARAMSET,
+    _JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
+    _JsonRpcMethod.INTERFACE_GET_VALUE,
+)
+
+
 class JsonRpcAioHttpClient:
     """Connection to CCU JSON-RPC Server."""
 
@@ -148,6 +160,7 @@ class JsonRpcAioHttpClient:
         self._last_session_id_refresh: datetime | None = None
         self._session_id: str | None = None
         self._supported_methods: tuple[str, ...] | None = None
+        self._sema: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
 
     @property
     def is_activated(self) -> bool:
@@ -344,15 +357,19 @@ class JsonRpcAioHttpClient:
                 "Content-Length": str(len(payload)),
             }
 
-            if (
-                response := await self._client_session.post(
-                    self._url,
-                    data=payload,
-                    headers=headers,
-                    timeout=ClientTimeout(total=config.TIMEOUT),
-                    ssl=self._tls_context,
-                )
-            ) is None:
+            post_call = partial(
+                self._client_session.post,
+                url=self._url,
+                data=payload,
+                headers=headers,
+                timeout=ClientTimeout(total=config.TIMEOUT),
+                ssl=self._tls_context,
+            )
+            if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
+                async with self._sema:
+                    if (response := await post_call()) is None:
+                        raise ClientException("POST method failed with no response")
+            elif (response := await post_call()) is None:
                 raise ClientException("POST method failed with no response")
 
             if response.status == 200:
@@ -380,7 +397,8 @@ class JsonRpcAioHttpClient:
                 message = f"{message}: {error_message}"
             raise ClientException(message)
         except BaseHomematicException:
-            await self.logout()
+            if method == _JsonRpcMethod.SESSION_LOGOUT:
+                self.clear_session()
             raise
         except ClientConnectorCertificateError as cccerr:
             self.clear_session()
@@ -796,15 +814,9 @@ class JsonRpcAioHttpClient:
         }
 
         response = (
-            await self._post(
-                method=_JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
-                extra_params=params,
-            )
+            await self._post(method=_JsonRpcMethod.INTERFACE_GET_MASTER_VALUE, extra_params=params)
             if paramset_key == ParamsetKey.MASTER
-            else await self._post(
-                method=_JsonRpcMethod.INTERFACE_GET_VALUE,
-                extra_params=params,
-            )
+            else await self._post(method=_JsonRpcMethod.INTERFACE_GET_VALUE, extra_params=params)
         )
 
         _LOGGER.debug("GET_VALUE: Getting the value")
@@ -849,8 +861,7 @@ class JsonRpcAioHttpClient:
         }
 
         response = await self._post(
-            method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
-            extra_params=params,
+            method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION, extra_params=params
         )
 
         _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS: Getting the paramset descriptions")

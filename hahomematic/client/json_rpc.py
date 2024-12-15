@@ -125,6 +125,15 @@ class _JsonRpcMethod(StrEnum):
     SYSVAR_SET_FLOAT = "SysVar.setFloat"
 
 
+_PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
+    _JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION,
+    _JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
+    _JsonRpcMethod.INTERFACE_GET_PARAMSET,
+    _JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
+    _JsonRpcMethod.INTERFACE_GET_VALUE,
+)
+
+
 class JsonRpcAioHttpClient:
     """Connection to CCU JSON-RPC Server."""
 
@@ -227,7 +236,6 @@ class JsonRpcAioHttpClient:
         extra_params: dict[_JsonKey, Any] | None = None,
         use_default_params: bool = True,
         keep_session: bool = True,
-        limit_concurrent_sessions: bool = False,
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST function."""
         if keep_session:
@@ -247,7 +255,6 @@ class JsonRpcAioHttpClient:
             method=method,
             extra_params=extra_params,
             use_default_params=use_default_params,
-            limit_concurrent_sessions=limit_concurrent_sessions,
         )
 
         if extra_params:
@@ -329,7 +336,6 @@ class JsonRpcAioHttpClient:
         method: _JsonRpcMethod,
         extra_params: dict[_JsonKey, Any] | None = None,
         use_default_params: bool = True,
-        limit_concurrent_sessions: bool = False,
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST function."""
         if not self._client_session:
@@ -359,7 +365,7 @@ class JsonRpcAioHttpClient:
                 timeout=ClientTimeout(total=config.TIMEOUT),
                 ssl=self._tls_context,
             )
-            if limit_concurrent_sessions:
+            if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
                 async with self._sema:
                     if (response := await post_call()) is None:
                         raise ClientException("POST method failed with no response")
@@ -696,7 +702,6 @@ class JsonRpcAioHttpClient:
         response = await self._post(
             method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION,
             extra_params=params,
-            limit_concurrent_sessions=True,
         )
 
         _LOGGER.debug("GET_DEVICE_DESCRIPTION: Getting the device description")
@@ -763,7 +768,6 @@ class JsonRpcAioHttpClient:
         response = await self._post(
             method=_JsonRpcMethod.INTERFACE_GET_PARAMSET,
             extra_params=params,
-            limit_concurrent_sessions=True,
         )
 
         _LOGGER.debug("GET_PARAMSET: Getting the paramset")
@@ -811,17 +815,9 @@ class JsonRpcAioHttpClient:
         }
 
         response = (
-            await self._post(
-                method=_JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
-                extra_params=params,
-                limit_concurrent_sessions=True,
-            )
+            await self._post(method=_JsonRpcMethod.INTERFACE_GET_MASTER_VALUE, extra_params=params)
             if paramset_key == ParamsetKey.MASTER
-            else await self._post(
-                method=_JsonRpcMethod.INTERFACE_GET_VALUE,
-                extra_params=params,
-                limit_concurrent_sessions=True,
-            )
+            else await self._post(method=_JsonRpcMethod.INTERFACE_GET_VALUE, extra_params=params)
         )
 
         _LOGGER.debug("GET_VALUE: Getting the value")
@@ -866,9 +862,7 @@ class JsonRpcAioHttpClient:
         }
 
         response = await self._post(
-            method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
-            extra_params=params,
-            limit_concurrent_sessions=True,
+            method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION, extra_params=params
         )
 
         _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS: Getting the paramset descriptions")

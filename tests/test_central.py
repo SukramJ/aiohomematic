@@ -756,12 +756,12 @@ async def test_central_services(
     central, mock_client, _ = central_client_factory
     await central.fetch_program_data(scheduled=True)
     assert mock_client.method_calls[-1] == call.get_all_programs(
-        program_markers=None, include_internal=DEFAULT_INCLUDE_INTERNAL_PROGRAMS
+        program_markers=(), include_internal=DEFAULT_INCLUDE_INTERNAL_PROGRAMS
     )
 
     await central.fetch_sysvar_data(scheduled=True)
     assert mock_client.method_calls[-1] == call.get_all_system_variables(
-        sysvar_markers=None, include_internal=DEFAULT_INCLUDE_INTERNAL_SYSVARS
+        sysvar_markers=(), include_internal=DEFAULT_INCLUDE_INTERNAL_SYSVARS
     )
 
     assert len(mock_client.method_calls) == 42

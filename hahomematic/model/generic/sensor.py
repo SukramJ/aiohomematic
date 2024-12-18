@@ -45,7 +45,7 @@ def _fix_rssi(value: Any) -> int | None:
     """
     Fix rssi value.
 
-    See https://github.com/SukramJ/hahomematic/blob/devel/docs/rssi_fix.md.
+    See https://github.com/sukramj/hahomematic/blob/devel/docs/rssi_fix.md.
     """
     if value is None:
         return None

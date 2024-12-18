@@ -1,6 +1,6 @@
 # Version 2024.12.6 (2024-12-18)
 
-- Remove danielperna84 from links after repository transfer to SukramJ
+- Remove danielperna84 from links after repository transfer to sukramj
 
 #Version 2024.12.5 (2024-12-15)
 

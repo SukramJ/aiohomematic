@@ -607,6 +607,7 @@ class HubData:
     """Dataclass for hub data points."""
 
     name: str
+    has_markers: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -618,7 +619,6 @@ class ProgramData(HubData):
     is_active: bool
     is_internal: bool
     last_execute_time: str
-    has_markers: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -634,7 +634,6 @@ class SystemVariableData(HubData):
     min_value: float | int | None = None
     unit: str | None = None
     values: tuple[str, ...] | None = None
-    has_markers: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

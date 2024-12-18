@@ -559,7 +559,7 @@ class JsonRpcAioHttpClient:
                     continue
                 var_id = var[_JsonKey.ID]
                 description = descriptions.get(var_id)
-                if sysvar_markers:
+                if not is_internal and sysvar_markers:
                     if not element_matches_key(
                         search_elements=sysvar_markers,
                         compare_with=description,
@@ -568,14 +568,6 @@ class JsonRpcAioHttpClient:
                         continue
                     has_markers = True
 
-                if description and (extended_sysvar := EXTENDED_SYSVAR_MARKER in description):
-                    description = description.replace(EXTENDED_SYSVAR_MARKER, "").strip()
-                if sysvar_markers and not element_matches_key(
-                    search_elements=sysvar_markers,
-                    compare_with=description,
-                    do_wildcard_search=True,
-                ):
-                    continue
                 name = var[_JsonKey.NAME]
                 org_data_type = var[_JsonKey.TYPE]
                 raw_value = var[_JsonKey.VALUE]
@@ -583,9 +575,7 @@ class JsonRpcAioHttpClient:
                     data_type = SysvarType.FLOAT if "." in raw_value else SysvarType.INTEGER
                 else:
                     data_type = org_data_type
-                if (description := descriptions.get(var_id)) and (
-                    extended_sysvar := EXTENDED_SYSVAR_MARKER in description
-                ):
+                if description and (extended_sysvar := EXTENDED_SYSVAR_MARKER in description):
                     description = description.replace(EXTENDED_SYSVAR_MARKER, "").strip()
                     has_markers = True
                 unit = var[_JsonKey.UNIT]
@@ -969,7 +959,7 @@ class JsonRpcAioHttpClient:
                     continue
                 pid = prog[_JsonKey.ID]
                 description = descriptions.get(pid)
-                if program_markers:
+                if not is_internal and program_markers:
                     if not element_matches_key(
                         search_elements=program_markers,
                         compare_with=description,

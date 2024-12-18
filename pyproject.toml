@@ -32,10 +32,10 @@ dependencies    = [
 ]
 
 [project.urls]
-"Source Code" = "https://github.com/danielperna84/hahomematic"
-"Bug Reports" = "https://github.com/danielperna84/hahomematic/issues"
-"Docs: Dev"   = "https://github.com/danielperna84/hahomematic"
-"Forum"       = "https://github.com/danielperna84/hahomematic/discussions"
+"Source Code" = "https://github.com/sukramj/hahomematic"
+"Bug Reports" = "https://github.com/sukramj/hahomematic/issues"
+"Docs: Dev"   = "https://github.com/sukramj/hahomematic"
+"Forum"       = "https://github.com/sukramj/hahomematic/discussions"
 
 [options.entry_points."console_scripts"]
 hahomematic = "hahomematic.hmcli:main"

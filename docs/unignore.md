@@ -29,7 +29,7 @@ Various patterns mentioned below can be found and selected in the drop down list
 
 This should no longer be used, and will be removed in later (1.65.0) releases:
 To use the _unignore mechanism_ create a file named `unignore`(no prefix!) in the `{ha config dir}/homematicip_local` and put the parameters in there.
-When adding parameters from `MASTER` paramset the [cache must be cleared](https://github.com/danielperna84/custom_homematic?tab=readme-ov-file#homematicip_localclear_cache) before restart.
+When adding parameters from `MASTER` paramset the [cache must be cleared](https://github.com/sukramj/custom_homematic?tab=readme-ov-file#homematicip_localclear_cache) before restart.
 
 Be aware of:
 

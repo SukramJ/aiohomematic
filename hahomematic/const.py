@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.12.5"
+VERSION: Final = "2024.12.6"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -22,8 +22,10 @@ DEFAULT_MAX_WORKERS: Final = 1
 DEFAULT_PERIODIC_REFRESH_INTERVAL: Final = 15
 DEFAULT_PING_PONG_MISMATCH_COUNT: Final = 15
 DEFAULT_PING_PONG_MISMATCH_COUNT_TTL: Final = 300
+DEFAULT_PROGRAM_MARKERS: Final[tuple[str, ...]] = ()
 DEFAULT_PROGRAM_SCAN_ENABLED: Final = True
 DEFAULT_RECONNECT_WAIT: Final = 120  # wait with reconnect after a first ping was successful
+DEFAULT_SYSVAR_MARKERS: Final[tuple[str, ...]] = ()
 DEFAULT_SYSVAR_SCAN_ENABLED: Final = True
 DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TIMEOUT: Final = 60  # default timeout for a connection
@@ -605,6 +607,7 @@ class HubData:
     """Dataclass for hub data points."""
 
     name: str
+    has_markers: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

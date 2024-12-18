@@ -236,6 +236,8 @@ async def get_pydev_ccu_central_unit_full(client_session: ClientSession | None) 
         interface_configs=interface_configs,
         default_callback_port=54321,
         client_session=client_session,
+        program_markers=None,
+        sysvar_markers=None,
     ).create_central()
     central.register_backend_system_callback(systemcallback)
     await central.start()

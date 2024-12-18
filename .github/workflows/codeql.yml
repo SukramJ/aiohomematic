@@ -2,11 +2,7 @@ name: "CodeQL"
 
 # yamllint disable-line rule:truthy
 on:
-  push:
-    branches: ["devel"]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: ["devel"]
+  pull_request: ~
   schedule:
     - cron: "44 3 * * 2"
 

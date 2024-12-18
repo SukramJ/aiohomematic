@@ -20,6 +20,7 @@ from tests import const
 # pylint: disable=protected-access
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_central_mini(central_unit_mini) -> None:
     """Test the central."""
@@ -32,6 +33,7 @@ async def test_central_mini(central_unit_mini) -> None:
     assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 63
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_central_full(central_unit_full) -> None:
     """Test the central."""
@@ -60,7 +62,7 @@ async def test_central_full(central_unit_full) -> None:
         for channel in device.channels.values():
             channel_type_names.add(channel.type_name)
     channel_type_names = sorted(channel_type_names)
-    assert len(channel_type_names) == 538
+    assert len(channel_type_names) == 541
     ce_channels = {}
     for cdp in custom_dps:
         if cdp.device.model not in ce_channels:
@@ -119,22 +121,22 @@ async def test_central_full(central_unit_full) -> None:
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    assert usage_types[DataPointUsage.NO_CREATE] == 3172
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 208
-    assert usage_types[DataPointUsage.DATA_POINT] == 3639
-    assert usage_types[DataPointUsage.CDP_VISIBLE] == 125
-    assert usage_types[DataPointUsage.CDP_SECONDARY] == 146
+    assert usage_types[DataPointUsage.NO_CREATE] == 4090
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 261
+    assert usage_types[DataPointUsage.DATA_POINT] == 3688
+    assert usage_types[DataPointUsage.CDP_VISIBLE] == 133
+    assert usage_types[DataPointUsage.CDP_SECONDARY] == 154
 
-    assert len(ce_channels) == 121
+    assert len(ce_channels) == 124
     assert len(data_point_types) == 6
-    assert len(parameters) == 220
+    assert len(parameters) == 221
 
-    assert len(central_unit_full._devices) == 383
+    assert len(central_unit_full._devices) == 386
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
     await central_unit_full.delete_devices(
         interface_id=const.INTERFACE_ID, addresses=virtual_remotes
     )
-    assert len(central_unit_full._devices) == 380
+    assert len(central_unit_full._devices) == 383
     del_addresses = list(
         central_unit_full.device_descriptions.get_device_descriptions(const.INTERFACE_ID)
     )

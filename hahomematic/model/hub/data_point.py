@@ -35,6 +35,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         self._name: Final = self.get_name(data=data)
         super().__init__(central=central, unique_id=unique_id)
         self._full_name: Final = f"{self._central.name}_{self._name}"
+        self._has_markers: Final = data.has_markers
 
     @abstractmethod
     def get_name(self, data: HubData) -> str:
@@ -44,6 +45,11 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     def full_name(self) -> str:
         """Return the fullname of the data_point."""
         return self._full_name
+
+    @property
+    def has_markers(self) -> bool:
+        """Return if the data_point has markers."""
+        return self._has_markers
 
     @config_property
     def name(self) -> str | None:

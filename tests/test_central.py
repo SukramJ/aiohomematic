@@ -680,6 +680,7 @@ async def test_virtual_remote_delete(
     await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_central_not_alive(factory: helper.Factory) -> None:
     """Test central other methods."""
@@ -755,12 +756,12 @@ async def test_central_services(
     central, mock_client, _ = central_client_factory
     await central.fetch_program_data(scheduled=True)
     assert mock_client.method_calls[-1] == call.get_all_programs(
-        include_internal=DEFAULT_INCLUDE_INTERNAL_PROGRAMS
+        program_markers=(), include_internal=DEFAULT_INCLUDE_INTERNAL_PROGRAMS
     )
 
     await central.fetch_sysvar_data(scheduled=True)
     assert mock_client.method_calls[-1] == call.get_all_system_variables(
-        include_internal=DEFAULT_INCLUDE_INTERNAL_SYSVARS
+        sysvar_markers=(), include_internal=DEFAULT_INCLUDE_INTERNAL_SYSVARS
     )
 
     assert len(mock_client.method_calls) == 42
@@ -843,6 +844,7 @@ async def test_central_services(
     )
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_central_direct(factory: helper.Factory) -> None:
     """Test central other methods."""

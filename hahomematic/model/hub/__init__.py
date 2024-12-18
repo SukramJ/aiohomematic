@@ -89,7 +89,8 @@ class Hub:
         programs: tuple[ProgramData, ...] = ()
         if client := self._central.primary_client:
             programs = await client.get_all_programs(
-                include_internal=self._config.include_internal_programs
+                program_markers=self._config.program_markers,
+                include_internal=self._config.include_internal_programs,
             )
         if not programs:
             _LOGGER.debug(
@@ -125,7 +126,8 @@ class Hub:
         variables: tuple[SystemVariableData, ...] = ()
         if client := self._central.primary_client:
             variables = await client.get_all_system_variables(
-                include_internal=self._config.include_internal_sysvars
+                sysvar_markers=self._config.sysvar_markers,
+                include_internal=self._config.include_internal_sysvars,
             )
         if not variables:
             _LOGGER.debug(

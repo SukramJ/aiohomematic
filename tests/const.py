@@ -334,7 +334,7 @@ ADDRESS_DEVICE_TRANSLATION = {
     "VCU0000045": "HM-LC-Bl1-FM.json",
     "VCU0000276": "ST6-SH.json",
     "VCU2128127": "HmIP-BSM.json",
-    "VCU3716619": "HmIP-BSL.json",
+    "VCU6985973": "HmIP-BSL.json",
     "VCU6153495": "HmIP-FCI1.json",
     "VCU0000265": "HM-Sen-LI-O.json",
     "VCU0000146": "HM-Sec-Key.json",

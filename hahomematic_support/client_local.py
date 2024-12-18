@@ -136,13 +136,13 @@ class ClientLocal(Client):  # pragma: no cover
         return "Empty"
 
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
+        self, sysvar_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         return ()
 
     async def get_all_programs(
-        self, program_markers: tuple[str, ...] | None, include_internal: bool
+        self, program_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()

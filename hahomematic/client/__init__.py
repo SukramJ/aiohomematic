@@ -381,13 +381,13 @@ class Client(ABC):
 
     @abstractmethod
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
+        self, sysvar_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
     async def get_all_programs(
-        self, program_markers: tuple[str, ...] | None, include_internal: bool
+        self, program_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
@@ -1166,7 +1166,7 @@ class ClientCCU(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
+        self, sysvar_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU."""
         return await self._json_rpc_client.get_all_system_variables(
@@ -1175,7 +1175,7 @@ class ClientCCU(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_programs(
-        self, program_markers: tuple[str, ...] | None, include_internal: bool
+        self, program_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(
@@ -1502,7 +1502,7 @@ class ClientHomegear(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
+        self, sysvar_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from Homegear."""
         variables: list[SystemVariableData] = []
@@ -1513,7 +1513,7 @@ class ClientHomegear(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_programs(
-        self, program_markers: tuple[str, ...] | None, include_internal: bool
+        self, program_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()

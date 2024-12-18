@@ -539,7 +539,7 @@ class JsonRpcAioHttpClient:
         return response[_JsonKey.RESULT]
 
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
+        self, sysvar_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         variables: list[SystemVariableData] = []
@@ -950,7 +950,7 @@ class JsonRpcAioHttpClient:
         return all_device_data
 
     async def get_all_programs(
-        self, program_markers: tuple[str, ...] | None, include_internal: bool
+        self, program_markers: tuple[str, ...], include_internal: bool
     ) -> tuple[ProgramData, ...]:
         """Get the all programs of the backend."""
         all_programs: list[ProgramData] = []

@@ -53,6 +53,7 @@ from hahomematic.exceptions import (
 from hahomematic.model.support import convert_value
 from hahomematic.support import (
     cleanup_text_from_html_tags,
+    element_matches_key,
     get_tls_context,
     parse_sys_var,
     reduce_args,
@@ -538,7 +539,7 @@ class JsonRpcAioHttpClient:
         return response[_JsonKey.RESULT]
 
     async def get_all_system_variables(
-        self, include_internal: bool
+        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         variables: list[SystemVariableData] = []
@@ -551,11 +552,30 @@ class JsonRpcAioHttpClient:
         if json_result := response[_JsonKey.RESULT]:
             descriptions = await self._get_system_variable_descriptions()
             for var in json_result:
+                has_markers = False
+                extended_sysvar = False
                 is_internal = var[_JsonKey.IS_INTERNAL]
                 if include_internal is False and is_internal is True:
                     continue
-                extended_sysvar = False
                 var_id = var[_JsonKey.ID]
+                description = descriptions.get(var_id)
+                if sysvar_markers:
+                    if not element_matches_key(
+                        search_elements=sysvar_markers,
+                        compare_with=description,
+                        do_wildcard_search=True,
+                    ):
+                        continue
+                    has_markers = True
+
+                if description and (extended_sysvar := EXTENDED_SYSVAR_MARKER in description):
+                    description = description.replace(EXTENDED_SYSVAR_MARKER, "").strip()
+                if sysvar_markers and not element_matches_key(
+                    search_elements=sysvar_markers,
+                    compare_with=description,
+                    do_wildcard_search=True,
+                ):
+                    continue
                 name = var[_JsonKey.NAME]
                 org_data_type = var[_JsonKey.TYPE]
                 raw_value = var[_JsonKey.VALUE]
@@ -567,6 +587,7 @@ class JsonRpcAioHttpClient:
                     extended_sysvar := EXTENDED_SYSVAR_MARKER in description
                 ):
                     description = description.replace(EXTENDED_SYSVAR_MARKER, "").strip()
+                    has_markers = True
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
                 if val_list := var.get(_JsonKey.VALUE_LIST):
@@ -591,6 +612,7 @@ class JsonRpcAioHttpClient:
                             max_value=max_value,
                             min_value=min_value,
                             extended_sysvar=extended_sysvar,
+                            has_markers=has_markers,
                         )
                     )
                 except (ValueError, TypeError) as vterr:
@@ -927,7 +949,9 @@ class JsonRpcAioHttpClient:
 
         return all_device_data
 
-    async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
+    async def get_all_programs(
+        self, program_markers: tuple[str, ...] | None, include_internal: bool
+    ) -> tuple[ProgramData, ...]:
         """Get the all programs of the backend."""
         all_programs: list[ProgramData] = []
 
@@ -939,11 +963,21 @@ class JsonRpcAioHttpClient:
         if json_result := response[_JsonKey.RESULT]:
             descriptions = await self._get_program_descriptions()
             for prog in json_result:
+                has_markers = False
                 is_internal = prog[_JsonKey.IS_INTERNAL]
                 if include_internal is False and is_internal is True:
                     continue
                 pid = prog[_JsonKey.ID]
                 description = descriptions.get(pid)
+                if program_markers:
+                    if not element_matches_key(
+                        search_elements=program_markers,
+                        compare_with=description,
+                        do_wildcard_search=True,
+                    ):
+                        continue
+                    has_markers = True
+
                 name = prog[_JsonKey.NAME]
                 is_active = prog[_JsonKey.IS_ACTIVE]
                 last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]
@@ -956,6 +990,7 @@ class JsonRpcAioHttpClient:
                         is_active=is_active,
                         is_internal=is_internal,
                         last_execute_time=last_execute_time,
+                        has_markers=has_markers,
                     )
                 )
 

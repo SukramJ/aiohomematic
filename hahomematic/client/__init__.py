@@ -381,12 +381,14 @@ class Client(ABC):
 
     @abstractmethod
     async def get_all_system_variables(
-        self, include_internal: bool
+        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
-    async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
+    async def get_all_programs(
+        self, program_markers: tuple[str, ...] | None, include_internal: bool
+    ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
     @abstractmethod
@@ -1164,17 +1166,21 @@ class ClientCCU(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
-        self, include_internal: bool
+        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
-        """Get all system variables from CCU / Homegear."""
+        """Get all system variables from CCU."""
         return await self._json_rpc_client.get_all_system_variables(
-            include_internal=include_internal
+            sysvar_markers=sysvar_markers, include_internal=include_internal
         )
 
     @service(re_raise=False, no_raise_return=())
-    async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
+    async def get_all_programs(
+        self, program_markers: tuple[str, ...] | None, include_internal: bool
+    ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
-        return await self._json_rpc_client.get_all_programs(include_internal=include_internal)
+        return await self._json_rpc_client.get_all_programs(
+            program_markers=program_markers, include_internal=include_internal
+        )
 
     @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
@@ -1496,9 +1502,9 @@ class ClientHomegear(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
-        self, include_internal: bool
+        self, sysvar_markers: tuple[str, ...] | None, include_internal: bool
     ) -> tuple[SystemVariableData, ...]:
-        """Get all system variables from CCU / Homegear."""
+        """Get all system variables from Homegear."""
         variables: list[SystemVariableData] = []
         if hg_variables := await self._proxy.getAllSystemVariables():
             for name, value in hg_variables.items():
@@ -1506,7 +1512,9 @@ class ClientHomegear(Client):
         return tuple(variables)
 
     @service(re_raise=False, no_raise_return=())
-    async def get_all_programs(self, include_internal: bool) -> tuple[ProgramData, ...]:
+    async def get_all_programs(
+        self, program_markers: tuple[str, ...] | None, include_internal: bool
+    ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()
 

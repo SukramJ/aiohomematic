@@ -20,6 +20,7 @@ from tests import const
 # pylint: disable=protected-access
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_central_mini(central_unit_mini) -> None:
     """Test the central."""
@@ -32,6 +33,7 @@ async def test_central_mini(central_unit_mini) -> None:
     assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 63
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_central_full(central_unit_full) -> None:
     """Test the central."""

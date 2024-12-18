@@ -1,5 +1,6 @@
 # Version 2024.12.6 (2024-12-18)
 
+- Support markers for sysvar/program selection
 - Remove danielperna84 from links after repository transfer to sukramj
 
 #Version 2024.12.5 (2024-12-15)

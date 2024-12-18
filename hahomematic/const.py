@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.12.5"
+VERSION: Final = "2024.12.6"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -616,6 +616,7 @@ class ProgramData(HubData):
     is_active: bool
     is_internal: bool
     last_execute_time: str
+    has_markers: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -631,6 +632,7 @@ class SystemVariableData(HubData):
     min_value: float | int | None = None
     unit: str | None = None
     values: tuple[str, ...] | None = None
+    has_markers: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

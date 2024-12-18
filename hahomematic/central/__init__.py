@@ -1675,9 +1675,11 @@ class CentralConfig:
         listen_port: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
+        program_markers: tuple[str, ...] | None = None,
         program_scan_enabled: bool = DEFAULT_PROGRAM_SCAN_ENABLED,
         start_direct: bool = False,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
+        sysvar_markers: tuple[str, ...] | None = None,
         sysvar_scan_enabled: bool = DEFAULT_SYSVAR_SCAN_ENABLED,
         tls: bool = DEFAULT_TLS,
         un_ignore_list: tuple[str, ...] = DEFAULT_UN_IGNORES,
@@ -1707,10 +1709,12 @@ class CentralConfig:
         self.name: Final = name
         self.password: Final = password
         self.periodic_refresh_interval = periodic_refresh_interval
+        self.program_markers: Final = program_markers
         self.program_scan_enabled: Final = program_scan_enabled
         self.start_direct: Final = start_direct
         self.storage_folder: Final = storage_folder
         self.sys_scan_interval: Final = sys_scan_interval
+        self.sysvar_markers: Final = sysvar_markers
         self.sysvar_scan_enabled: Final = sysvar_scan_enabled
         self.tls: Final = tls
         self.un_ignore_list: Final = un_ignore_list

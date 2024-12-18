@@ -481,6 +481,7 @@ async def test_value_from_dict_by_wildcard_key() -> None:
     )
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_others() -> None:
     """Test find_free_port."""

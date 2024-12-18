@@ -528,6 +528,7 @@ async def test_ceipthermostat(
     assert call_count == len(mock_client.method_calls)
 
 
+@pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
     """Test the central."""

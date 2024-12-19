@@ -81,7 +81,6 @@ class Example:
             storage_folder="homematicip_local",
             interface_configs=interface_configs,
             default_callback_port=54321,
-            client_session=None,
         ).create_central()
 
         # For testing we set a short INIT_TIMEOUT

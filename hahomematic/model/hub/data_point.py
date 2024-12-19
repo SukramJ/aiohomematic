@@ -47,7 +47,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         return self._full_name
 
     @property
-    def has_markers(self) -> bool:
+    def enabled_default(self) -> bool:
         """Return if the data_point has markers."""
         return self._has_markers
 

@@ -20,18 +20,21 @@ from aiohttp import (
     ClientResponse,
     ClientSession,
     ClientTimeout,
+    TCPConnector,
 )
 import orjson
 
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
-    EXTENDED_SYSVAR_MARKER,
+    DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
+    DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     ISO_8859_1,
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
     UTF_8,
+    DescriptionMarker,
     DeviceDescription,
     Interface,
     ParameterData,
@@ -144,12 +147,17 @@ class JsonRpcAioHttpClient:
         password: str,
         device_url: str,
         connection_state: hmcu.CentralConnectionState,
-        client_session: ClientSession | None = None,
+        client_session: ClientSession | None,
         tls: bool = False,
         verify_tls: bool = False,
     ) -> None:
         """Session setup."""
-        self._client_session: Final = client_session
+        self.__client_session: Final = client_session
+        self.__int_client_session: Final = (
+            None
+            if client_session
+            else ClientSession(connector=TCPConnector(limit=MAX_CONCURRENT_HTTP_SESSIONS))
+        )
         self._connection_state: Final = connection_state
         self._username: Final = username
         self._password: Final = password
@@ -162,6 +170,11 @@ class JsonRpcAioHttpClient:
         self._session_id: str | None = None
         self._supported_methods: tuple[str, ...] | None = None
         self._sema: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
+
+    @property
+    def _client_session(self) -> ClientSession:
+        """If session exists, then it is activated."""
+        return self.__client_session or self.__int_client_session  # type: ignore[return-value]
 
     @property
     def is_activated(self) -> bool:
@@ -437,6 +450,11 @@ class JsonRpcAioHttpClient:
         except BaseHomematicException:
             _LOGGER.debug("LOGOUT: logout failed")
 
+    async def stop(self) -> None:
+        """Stop the json rpc client."""
+        if self.__int_client_session and not self.__int_client_session.closed:
+            await self.__int_client_session.close()
+
     async def _do_logout(self, session_id: str | None) -> None:
         """Logout of CCU."""
         if not session_id:
@@ -539,7 +557,7 @@ class JsonRpcAioHttpClient:
         return response[_JsonKey.RESULT]
 
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         variables: list[SystemVariableData] = []
@@ -554,16 +572,21 @@ class JsonRpcAioHttpClient:
             for var in json_result:
                 has_markers = False
                 extended_sysvar = False
-                is_internal = var[_JsonKey.IS_INTERNAL]
-                if include_internal is False and is_internal is True:
-                    continue
+                if (is_internal := var[_JsonKey.IS_INTERNAL]) is True:
+                    if markers:
+                        if DescriptionMarker.INTERNAL not in markers:
+                            continue
+                        has_markers = True
+                    elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
+                        continue  # type: ignore[unreachable]
                 var_id = var[_JsonKey.ID]
                 description = descriptions.get(var_id)
-                if not is_internal and sysvar_markers:
+                if not is_internal and markers:
                     if not element_matches_key(
-                        search_elements=sysvar_markers,
+                        search_elements=markers,
                         compare_with=description,
-                        do_wildcard_search=True,
+                        ignore_case=False,
+                        do_left_wildcard_search=True,
                     ):
                         continue
                     has_markers = True
@@ -575,8 +598,12 @@ class JsonRpcAioHttpClient:
                     data_type = SysvarType.FLOAT if "." in raw_value else SysvarType.INTEGER
                 else:
                     data_type = org_data_type
-                if description and (extended_sysvar := EXTENDED_SYSVAR_MARKER in description):
-                    description = description.replace(EXTENDED_SYSVAR_MARKER, "").strip()
+
+                if description:
+                    extended_sysvar = DescriptionMarker.HAHM in description
+                    # Remove default markers from description
+                    for marker in DescriptionMarker:
+                        description = description.replace(marker, "").strip()
                     has_markers = True
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
@@ -940,7 +967,7 @@ class JsonRpcAioHttpClient:
         return all_device_data
 
     async def get_all_programs(
-        self, program_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[ProgramData, ...]:
         """Get the all programs of the backend."""
         all_programs: list[ProgramData] = []
@@ -954,20 +981,29 @@ class JsonRpcAioHttpClient:
             descriptions = await self._get_program_descriptions()
             for prog in json_result:
                 has_markers = False
-                is_internal = prog[_JsonKey.IS_INTERNAL]
-                if include_internal is False and is_internal is True:
-                    continue
+                if (is_internal := prog[_JsonKey.IS_INTERNAL]) is True:
+                    if markers:
+                        if DescriptionMarker.INTERNAL not in markers:
+                            continue
+                        has_markers = True
+                    elif DEFAULT_INCLUDE_INTERNAL_PROGRAMS is False:
+                        continue
+
                 pid = prog[_JsonKey.ID]
                 description = descriptions.get(pid)
-                if not is_internal and program_markers:
+                if not is_internal and markers:
                     if not element_matches_key(
-                        search_elements=program_markers,
+                        search_elements=markers,
                         compare_with=description,
-                        do_wildcard_search=True,
+                        ignore_case=False,
+                        do_left_wildcard_search=True,
                     ):
                         continue
                     has_markers = True
-
+                if description:
+                    # Remove default markers from description
+                    for marker in DescriptionMarker:
+                        description = description.replace(marker, "").strip()
                 name = prog[_JsonKey.NAME]
                 is_active = prog[_JsonKey.IS_ACTIVE]
                 last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]

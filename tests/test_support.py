@@ -422,7 +422,7 @@ async def test_element_matches_key() -> None:
         element_matches_key(
             search_elements="HmIP-eTRV",
             compare_with="HmIP-eTRV-2",
-            do_wildcard_search=False,
+            do_right_wildcard_search=False,
         )
         is False
     )
@@ -434,7 +434,7 @@ async def test_element_matches_key() -> None:
         element_matches_key(
             search_elements=["HmIP-eTRV", "HmIP-BWTH"],
             compare_with="HmIP-eTRV-2",
-            do_wildcard_search=False,
+            do_right_wildcard_search=False,
         )
         is False
     )
@@ -442,7 +442,43 @@ async def test_element_matches_key() -> None:
         element_matches_key(
             search_elements=["HmIP-eTRV", "HmIP-BWTH"],
             compare_with="HmIP-eTRV",
-            do_wildcard_search=False,
+            do_right_wildcard_search=False,
+        )
+        is True
+    )
+    assert (
+        element_matches_key(
+            search_elements=["eTRV", "HmIP-BWTH"],
+            compare_with="HmIP-eTRV",
+            do_left_wildcard_search=True,
+            do_right_wildcard_search=False,
+        )
+        is True
+    )
+    assert (
+        element_matches_key(
+            search_elements=["IP-eTR", "HmIP-BWTH"],
+            compare_with="HmIP-eTRV",
+            do_left_wildcard_search=True,
+            do_right_wildcard_search=True,
+        )
+        is True
+    )
+    assert (
+        element_matches_key(
+            search_elements=["HmIP-eTRV", "HmIP-BWTH"],
+            compare_with="HmIP-eTRV",
+            do_left_wildcard_search=True,
+            do_right_wildcard_search=True,
+        )
+        is True
+    )
+    assert (
+        element_matches_key(
+            search_elements=["INTERNAL", "HA", "hahm"],
+            compare_with="Long description with hahm in text",
+            do_left_wildcard_search=True,
+            do_right_wildcard_search=True,
         )
         is True
     )

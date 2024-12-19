@@ -334,23 +334,31 @@ def element_matches_key(
     search_elements: str | Collection[str],
     compare_with: str | None,
     search_key: str | None = None,
-    do_wildcard_search: bool = True,
+    ignore_case: bool = True,
+    do_left_wildcard_search: bool = False,
+    do_right_wildcard_search: bool = True,
 ) -> bool:
     """
     Return if collection element is key.
 
+    Default search uses a right wildcard.
     A set search_key assumes that search_elements is initially a dict,
     and it tries to identify a matching key (wildcard) in the dict keys to use it on the dict.
     """
     if compare_with is None or not search_elements:
         return False
 
+    compare_with = compare_with.lower() if ignore_case else compare_with
+
     if isinstance(search_elements, str):
-        if do_wildcard_search:
-            return compare_with.lower().startswith(
-                search_elements.lower()
-            )  # or search_elements.lower().startswith(compare_with.lower())
-        return compare_with.lower() == search_elements.lower()
+        element = search_elements.lower() if ignore_case else search_elements
+        if do_left_wildcard_search is True and do_right_wildcard_search is True:
+            return element in compare_with
+        if do_left_wildcard_search:
+            return compare_with.endswith(element)
+        if do_right_wildcard_search:
+            return compare_with.startswith(element)
+        return compare_with == element
     if isinstance(search_elements, Collection):
         if isinstance(search_elements, dict) and (
             match_key := _get_search_key(search_elements=search_elements, search_key=search_key)
@@ -360,11 +368,18 @@ def element_matches_key(
             if (elements := search_elements.get(match_key)) is None:
                 return False
             search_elements = elements
-        for element in search_elements:
-            if do_wildcard_search:
-                if compare_with.lower().startswith(element.lower()):
+        for item in search_elements:
+            element = item.lower() if ignore_case else item
+            if do_left_wildcard_search is True and do_right_wildcard_search is True:
+                if element in compare_with:
                     return True
-            elif compare_with.lower() == element.lower():
+            elif do_left_wildcard_search:
+                if compare_with.endswith(element):
+                    return True
+            elif do_right_wildcard_search:
+                if compare_with.startswith(element):
+                    return True
+            elif compare_with == element:
                 return True
     return False
 

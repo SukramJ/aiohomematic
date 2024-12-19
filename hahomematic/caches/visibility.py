@@ -331,7 +331,6 @@ class ParameterVisibilityCache:
         return element_matches_key(
             search_elements=self._ignore_custom_,
             compare_with=model.lower(),
-            do_wildcard_search=True,
         )
 
     @lru_cache(maxsize=1024)
@@ -371,7 +370,7 @@ class ParameterVisibilityCache:
                     search_elements=self._ignore_devices_for_data_point_events_lower,
                     compare_with=parameter,
                     search_key=model_l,
-                    do_wildcard_search=False,
+                    do_right_wildcard_search=False,
                 )
             ):
                 return True

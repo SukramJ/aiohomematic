@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from unittest.mock import Mock, patch
 
-from aiohttp import ClientSession, TCPConnector
 import pydevccu
 import pytest
 
@@ -46,18 +45,9 @@ def pydev_ccu_mini() -> pydevccu.Server:
 
 
 @pytest.fixture
-async def client_session() -> ClientSession:
-    """Create ClientSession for json client."""
-    session = ClientSession(connector=TCPConnector(limit=3))
-    yield session
-    if not session.closed:
-        await session.close()
-
-
-@pytest.fixture
 async def central_unit_mini(pydev_ccu_mini: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
-    central = await helper.get_pydev_ccu_central_unit_full(client_session=None)
+    central = await helper.get_pydev_ccu_central_unit_full()
     yield central
     await central.stop()
     await central.clear_caches()
@@ -73,9 +63,7 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
     def backend_system_callback(*args, **kwargs):
         """Do dummy backend_system_callback."""
 
-    central = await helper.get_pydev_ccu_central_unit_full(
-        client_session=None,
-    )
+    central = await helper.get_pydev_ccu_central_unit_full()
 
     unregister_homematic_callback = central.register_homematic_callback(homematic_callback)
     unregister_backend_system_callback = central.register_backend_system_callback(
@@ -93,7 +81,7 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
 @pytest.fixture
 async def factory() -> helper.Factory:
     """Return central factory."""
-    return helper.Factory(client_session=None)
+    return helper.Factory()
 
 
 @pytest.fixture
@@ -106,7 +94,7 @@ async def central_client_factory(
     un_ignore_list: list[str] | None,
 ) -> tuple[CentralUnit, Client | Mock, helper.Factory]:
     """Return central factory."""
-    factory = helper.Factory(client_session=None)
+    factory = helper.Factory()
     central_client = await factory.get_default_central(
         address_device_translation=address_device_translation,
         do_mock_client=do_mock_client,

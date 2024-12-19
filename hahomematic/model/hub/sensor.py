@@ -27,13 +27,13 @@ class SysvarDpSensor(GenericSysvarDataPoint):
             is not None
         ):
             return value
-        return _check_length_and_warn(name=self.ccu_var_name, value=self._value)
+        return _check_length_and_log(name=self.ccu_var_name, value=self._value)
 
 
-def _check_length_and_warn(name: str | None, value: Any) -> Any:
-    """Check the length of a variable and warn if too long."""
+def _check_length_and_log(name: str | None, value: Any) -> Any:
+    """Check the length of a variable and log if too long."""
     if isinstance(value, str) and len(value) > 255:
-        _LOGGER.info(
+        _LOGGER.debug(
             "Value of sysvar %s exceedes maximum allowed length of 255 chars. "
             "Value will be limited to 255 chars",
             name,

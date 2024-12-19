@@ -450,7 +450,6 @@ class Example:
             central_id="1234",
             storage_folder="homematicip_local",
             interface_configs={interface_config},
-            client_session=None,
             default_callback_port=48888,
         ).create_central()
 

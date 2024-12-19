@@ -20,6 +20,7 @@ from aiohttp import (
     ClientResponse,
     ClientSession,
     ClientTimeout,
+    TCPConnector,
 )
 import orjson
 
@@ -151,7 +152,12 @@ class JsonRpcAioHttpClient:
         verify_tls: bool = False,
     ) -> None:
         """Session setup."""
-        self._client_session: Final = client_session
+        self.__client_session: Final = client_session
+        self.__int_client_session: Final = (
+            None
+            if client_session
+            else ClientSession(connector=TCPConnector(limit=MAX_CONCURRENT_HTTP_SESSIONS))
+        )
         self._connection_state: Final = connection_state
         self._username: Final = username
         self._password: Final = password
@@ -164,6 +170,11 @@ class JsonRpcAioHttpClient:
         self._session_id: str | None = None
         self._supported_methods: tuple[str, ...] | None = None
         self._sema: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
+
+    @property
+    def _client_session(self) -> ClientSession:
+        """If session exists, then it is activated."""
+        return self.__client_session or self.__int_client_session  # type: ignore[return-value]
 
     @property
     def is_activated(self) -> bool:
@@ -438,6 +449,11 @@ class JsonRpcAioHttpClient:
             await self._do_logout(self._session_id)
         except BaseHomematicException:
             _LOGGER.debug("LOGOUT: logout failed")
+
+    async def stop(self) -> None:
+        """Stop the json rpc client."""
+        if self.__int_client_session and not self.__int_client_session.closed:
+            await self.__int_client_session.close()
 
     async def _do_logout(self, session_id: str | None) -> None:
         """Logout of CCU."""

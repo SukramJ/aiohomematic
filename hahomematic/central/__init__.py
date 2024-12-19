@@ -15,7 +15,7 @@ from logging import DEBUG
 import threading
 from typing import Any, Final, cast
 
-from aiohttp import ClientSession, TCPConnector
+from aiohttp import ClientSession
 import orjson
 import voluptuous as vol
 
@@ -48,7 +48,6 @@ from hahomematic.const import (
     INTERFACES_REQUIRING_PERIODIC_REFRESH,
     IP_ANY_V4,
     LOCAL_HOST,
-    MAX_CONCURRENT_HTTP_SESSIONS,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     UN_IGNORE_WILDCARD,
@@ -119,13 +118,14 @@ class CentralUnit(PayloadMixin):
         """Init the central unit."""
         self._started: bool = False
         self._sema_add_devices: Final = asyncio.Semaphore()
+        self._connection_state: Final = CentralConnectionState()
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         # Keep the config for the central
         self._config: Final = central_config
         self._model: str | None = None
         self._looper = Looper()
         self._xml_rpc_server: xmlrpc.XmlRpcServer | None = None
-        self._json_rpc_client: Final = central_config.json_rpc_client
+        self._json_rpc_client: JsonRpcAioHttpClient | None = None
 
         # Caches for CCU data
         self._data_cache: Final = CentralDataCache(central=self)
@@ -180,8 +180,12 @@ class CentralUnit(PayloadMixin):
 
     @info_property
     def central_url(self) -> str:
-        """Return the central_orl from config."""
-        return self._config.central_url
+        """Return the required url."""
+        url = "https://" if self._config.tls else "http://"
+        url = f"{url}{self._config.host}"
+        if self._config.json_port:
+            url = f"{url}:{self._config.json_port}"
+        return f"{url}"
 
     @property
     def clients(self) -> tuple[hmcl.Client, ...]:
@@ -192,6 +196,11 @@ class CentralUnit(PayloadMixin):
     def config(self) -> CentralConfig:
         """Return central config."""
         return self._config
+
+    @property
+    def connection_state(self) -> CentralConnectionState:
+        """Return the connection state."""
+        return self._connection_state
 
     @property
     def data_cache(self) -> CentralDataCache:
@@ -238,6 +247,21 @@ class CentralUnit(PayloadMixin):
     def is_alive(self) -> bool:
         """Return if XmlRPC-Server is alive."""
         return all(client.is_callback_alive() for client in self._clients.values())
+
+    @property
+    def json_rpc_client(self) -> JsonRpcAioHttpClient:
+        """Return the json rpc client."""
+        if not self._json_rpc_client:
+            self._json_rpc_client = JsonRpcAioHttpClient(
+                username=self._config.username,
+                password=self._config.password,
+                device_url=self.central_url,
+                connection_state=self._connection_state,
+                client_session=self._config.client_session,
+                tls=self._config.tls,
+                verify_tls=self._config.verify_tls,
+            )
+        return self._json_rpc_client
 
     @property
     def paramset_descriptions(self) -> ParamsetDescriptionCache:
@@ -422,8 +446,9 @@ class CentralUnit(PayloadMixin):
         await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
         self._stop_connection_checker()
         await self._stop_clients()
-        if self._json_rpc_client.is_activated:
+        if self._json_rpc_client and self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()
+            await self._json_rpc_client.stop()
 
         if self._xml_rpc_server:
             # un-register this instance from XmlRPC-Server
@@ -1686,16 +1711,10 @@ class CentralConfig:
     ) -> None:
         """Init the client config."""
         self._interface_configs: Final = interface_configs
-        self._json_rpc_client: JsonRpcAioHttpClient | None = None
         self.callback_host: Final = callback_host
         self.callback_port: Final = callback_port
         self.central_id: Final = central_id
-        self.client_session: Final = (
-            client_session
-            if client_session
-            else ClientSession(connector=TCPConnector(limit=MAX_CONCURRENT_HTTP_SESSIONS))
-        )
-        self.connection_state: Final = CentralConnectionState()
+        self.client_session: Final = client_session
         self.default_callback_port: Final = default_callback_port
         self.host: Final = host
         self.interfaces_requiring_periodic_refresh = interfaces_requiring_periodic_refresh
@@ -1719,17 +1738,6 @@ class CentralConfig:
         self.verify_tls: Final = verify_tls
 
     @property
-    def central_url(self) -> str:
-        """Return the required url."""
-        url = "http://"
-        if self.tls:
-            url = "https://"
-        url = f"{url}{self.host}"
-        if self.json_port:
-            url = f"{url}:{self.json_port}"
-        return f"{url}"
-
-    @property
     def enable_server(self) -> bool:
         """Return if server and connection checker should be started."""
         return self.start_direct is False
@@ -1748,21 +1756,6 @@ class CentralConfig:
     def use_caches(self) -> bool:
         """Return if caches should be used."""
         return self.start_direct is False
-
-    @property
-    def json_rpc_client(self) -> JsonRpcAioHttpClient:
-        """Return the json rpx client."""
-        if not self._json_rpc_client:
-            self._json_rpc_client = JsonRpcAioHttpClient(
-                username=self.username,
-                password=self.password,
-                device_url=self.central_url,
-                connection_state=self.connection_state,
-                client_session=self.client_session,
-                tls=self.tls,
-                verify_tls=self.verify_tls,
-            )
-        return self._json_rpc_client
 
     def check_config(self) -> None:
         """Check config. Throws BaseHomematicException on failure."""

@@ -83,7 +83,7 @@ class Client(ABC):
         self._config: Final = client_config
         self._supports_xml_rpc = self.interface in INTERFACES_SUPPORTING_XML_RPC
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
-        self._json_rpc_client: Final = client_config.central.config.json_rpc_client
+        self._json_rpc_client: Final = client_config.central.json_rpc_client
         self._available: bool = True
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
@@ -1603,11 +1603,11 @@ class _ClientConfig:
         self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
     ) -> XmlRpcProxy:
         """Return a XmlRPC proxy for backend communication."""
-        central_config = self.central.config
+        config = self.central.config
         xml_rpc_headers = (
             build_xml_rpc_headers(
-                username=central_config.username,
-                password=central_config.password,
+                username=config.username,
+                password=config.password,
             )
             if auth_enabled
             else []
@@ -1615,11 +1615,11 @@ class _ClientConfig:
         xml_proxy = XmlRpcProxy(
             max_workers=max_workers,
             interface_id=self.interface_id,
-            connection_state=central_config.connection_state,
+            connection_state=self.central.connection_state,
             uri=self.xml_rpc_uri,
             headers=xml_rpc_headers,
-            tls=central_config.tls,
-            verify_tls=central_config.verify_tls,
+            tls=config.tls,
+            verify_tls=config.verify_tls,
         )
         await xml_proxy.do_init()
         return xml_proxy

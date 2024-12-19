@@ -585,6 +585,7 @@ class JsonRpcAioHttpClient:
                     if not element_matches_key(
                         search_elements=markers,
                         compare_with=description,
+                        ignore_case=False,
                         do_left_wildcard_search=True,
                     ):
                         continue
@@ -599,7 +600,7 @@ class JsonRpcAioHttpClient:
                     data_type = org_data_type
 
                 if description:
-                    extended_sysvar = DescriptionMarker.HAHM.lower() in description.lower()
+                    extended_sysvar = DescriptionMarker.HAHM in description
                     # Remove default markers from description
                     for marker in DescriptionMarker:
                         description = description.replace(marker, "").strip()
@@ -994,6 +995,7 @@ class JsonRpcAioHttpClient:
                     if not element_matches_key(
                         search_elements=markers,
                         compare_with=description,
+                        ignore_case=False,
                         do_left_wildcard_search=True,
                     ):
                         continue

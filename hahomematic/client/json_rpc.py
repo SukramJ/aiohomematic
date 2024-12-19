@@ -147,7 +147,7 @@ class JsonRpcAioHttpClient:
         password: str,
         device_url: str,
         connection_state: hmcu.CentralConnectionState,
-        client_session: ClientSession | None = None,
+        client_session: ClientSession | None,
         tls: bool = False,
         verify_tls: bool = False,
     ) -> None:

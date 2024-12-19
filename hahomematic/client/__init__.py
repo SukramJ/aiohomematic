@@ -83,7 +83,6 @@ class Client(ABC):
         self._config: Final = client_config
         self._supports_xml_rpc = self.interface in INTERFACES_SUPPORTING_XML_RPC
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
-        self._json_rpc_client: Final = client_config.central.json_rpc_client
         self._available: bool = True
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
@@ -1036,6 +1035,11 @@ class Client(ABC):
 
 class ClientCCU(Client):
     """Client implementation for CCU backend."""
+
+    def __init__(self, client_config: _ClientConfig) -> None:
+        """Initialize the Client."""
+        super().__init__(client_config=client_config)
+        self._json_rpc_client: Final = client_config.central.json_rpc_client
 
     @property
     def model(self) -> str:

@@ -1681,7 +1681,6 @@ class CentralConfig:
     def __init__(
         self,
         central_id: str,
-        client_session: ClientSession | None,
         default_callback_port: int,
         host: str,
         interface_configs: AbstractSet[hmcl.InterfaceConfig],
@@ -1689,6 +1688,7 @@ class CentralConfig:
         password: str,
         storage_folder: str,
         username: str,
+        client_session: ClientSession | None = None,
         callback_host: str | None = None,
         callback_port: int | None = None,
         interfaces_requiring_periodic_refresh: tuple[

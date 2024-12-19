@@ -33,7 +33,7 @@ GOT_DEVICES = False
 class Factory:
     """Factory for a central with one local client."""
 
-    def __init__(self, client_session: ClientSession | None):
+    def __init__(self, client_session: ClientSession | None = None):
         """Init the central factory."""
         self._client_session = client_session
         self.system_event_mock = MagicMock()
@@ -202,7 +202,9 @@ def _load_json_file(anchor: str, resource: str, filename: str) -> Any | None:
         return orjson.loads(fptr.read())
 
 
-async def get_pydev_ccu_central_unit_full(client_session: ClientSession | None) -> CentralUnit:
+async def get_pydev_ccu_central_unit_full(
+    client_session: ClientSession | None = None,
+) -> CentralUnit:
     """Create and yield central."""
     sleep_counter = 0
     global GOT_DEVICES  # pylint: disable=global-statement
@@ -236,8 +238,8 @@ async def get_pydev_ccu_central_unit_full(client_session: ClientSession | None) 
         interface_configs=interface_configs,
         default_callback_port=54321,
         client_session=client_session,
-        program_markers=None,
-        sysvar_markers=None,
+        program_markers=(),
+        sysvar_markers=(),
     ).create_central()
     central.register_backend_system_callback(systemcallback)
     await central.start()

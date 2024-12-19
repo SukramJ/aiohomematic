@@ -576,6 +576,7 @@ class JsonRpcAioHttpClient:
                     if markers:
                         if DescriptionMarker.INTERNAL not in markers:
                             continue
+                        has_markers = True
                     elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
                         continue  # type: ignore[unreachable]
                 var_id = var[_JsonKey.ID]
@@ -983,6 +984,7 @@ class JsonRpcAioHttpClient:
                     if markers:
                         if DescriptionMarker.INTERNAL not in markers:
                             continue
+                        has_markers = True
                     elif DEFAULT_INCLUDE_INTERNAL_PROGRAMS is False:
                         continue
 

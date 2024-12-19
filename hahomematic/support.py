@@ -334,11 +334,13 @@ def element_matches_key(
     search_elements: str | Collection[str],
     compare_with: str | None,
     search_key: str | None = None,
-    do_wildcard_search: bool = True,
+    do_left_wildcard_search: bool = False,
+    do_right_wildcard_search: bool = True,
 ) -> bool:
     """
     Return if collection element is key.
 
+    Default search uses a right wildcard.
     A set search_key assumes that search_elements is initially a dict,
     and it tries to identify a matching key (wildcard) in the dict keys to use it on the dict.
     """
@@ -346,10 +348,13 @@ def element_matches_key(
         return False
 
     if isinstance(search_elements, str):
-        if do_wildcard_search:
-            return compare_with.lower().startswith(
-                search_elements.lower()
-            )  # or search_elements.lower().startswith(compare_with.lower())
+        if do_left_wildcard_search is True and do_right_wildcard_search is True:
+            return search_elements.lower() in compare_with.lower()
+        if do_left_wildcard_search:
+            return compare_with.lower().endswith(search_elements.lower())
+        if do_right_wildcard_search:
+            return compare_with.lower().startswith(search_elements.lower())
+
         return compare_with.lower() == search_elements.lower()
     if isinstance(search_elements, Collection):
         if isinstance(search_elements, dict) and (
@@ -361,7 +366,13 @@ def element_matches_key(
                 return False
             search_elements = elements
         for element in search_elements:
-            if do_wildcard_search:
+            if do_left_wildcard_search is True and do_right_wildcard_search is True:
+                if element.lower() in compare_with.lower():
+                    return True
+            elif do_left_wildcard_search:
+                if compare_with.lower().endswith(element.lower()):
+                    return True
+            elif do_right_wildcard_search:
                 if compare_with.lower().startswith(element.lower()):
                     return True
             elif compare_with.lower() == element.lower():

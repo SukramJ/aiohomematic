@@ -1,9 +1,14 @@
+# Version 2024.12.7 (2024-12-18)
+
+- Extend element_matches_key search
+-
+
 # Version 2024.12.6 (2024-12-18)
 
 - Support markers for sysvar/program selection
 - Remove danielperna84 from links after repository transfer to sukramj
 
-#Version 2024.12.5 (2024-12-15)
+# Version 2024.12.5 (2024-12-15)
 
 - Limit number of concurrent mass operations to json api to 3 parallel executions
 

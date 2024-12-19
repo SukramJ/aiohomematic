@@ -563,7 +563,7 @@ class JsonRpcAioHttpClient:
                     if not element_matches_key(
                         search_elements=sysvar_markers,
                         compare_with=description,
-                        do_wildcard_search=True,
+                        do_left_wildcard_search=True,
                     ):
                         continue
                     has_markers = True
@@ -963,7 +963,7 @@ class JsonRpcAioHttpClient:
                     if not element_matches_key(
                         search_elements=program_markers,
                         compare_with=description,
-                        do_wildcard_search=True,
+                        do_left_wildcard_search=True,
                     ):
                         continue
                     has_markers = True

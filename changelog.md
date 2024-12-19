@@ -1,6 +1,7 @@
 # Version 2024.12.7 (2024-12-18)
 
 - Extend element_matches_key search
+- Log debug if variable is too long
 
 # Version 2024.12.6 (2024-12-18)
 

@@ -89,7 +89,6 @@ CONF_USERNAME: Final = "username"
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
 
-EXTENDED_SYSVAR_MARKER: Final = "hahm"
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
 PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 SET_PATH_ROOT: Final = "device/set"
@@ -184,6 +183,15 @@ class DataPointUsage(StrEnum):
     DATA_POINT = "data_point"
     EVENT = "event"
     NO_CREATE = "no_create"
+
+
+class DescriptionMarker(StrEnum):
+    """Enum with default description markers."""
+
+    HA = "HA"
+    HAHM = "hahm"
+    INTERN = "INTERN"
+    MQTT = "MQTT"
 
 
 class DeviceFirmwareState(StrEnum):

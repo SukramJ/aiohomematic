@@ -26,12 +26,12 @@ import orjson
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
-    EXTENDED_SYSVAR_MARKER,
     ISO_8859_1,
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
     UTF_8,
+    DescriptionMarker,
     DeviceDescription,
     Interface,
     ParameterData,
@@ -575,8 +575,12 @@ class JsonRpcAioHttpClient:
                     data_type = SysvarType.FLOAT if "." in raw_value else SysvarType.INTEGER
                 else:
                     data_type = org_data_type
-                if description and (extended_sysvar := EXTENDED_SYSVAR_MARKER in description):
-                    description = description.replace(EXTENDED_SYSVAR_MARKER, "").strip()
+
+                if description:
+                    extended_sysvar = DescriptionMarker.HAHM in description
+                    # Remove default markers from description
+                    for marker in DescriptionMarker:
+                        description = description.replace(marker, "").strip()
                     has_markers = True
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
@@ -967,7 +971,10 @@ class JsonRpcAioHttpClient:
                     ):
                         continue
                     has_markers = True
-
+                if description:
+                    # Remove default markers from description
+                    for marker in DescriptionMarker:
+                        description = description.replace(marker, "").strip()
                 name = prog[_JsonKey.NAME]
                 is_active = prog[_JsonKey.IS_ACTIVE]
                 last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]

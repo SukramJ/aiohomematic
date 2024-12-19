@@ -2,6 +2,7 @@
 
 - Extend element_matches_key search
 - Log debug if variable is too long
+- Remove default markers from description
 
 # Version 2024.12.6 (2024-12-18)
 

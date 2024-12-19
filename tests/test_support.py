@@ -448,8 +448,8 @@ async def test_element_matches_key() -> None:
     )
     assert (
         element_matches_key(
-            search_elements=["HmIP-eTRV", "HmIP-BWTH"],
-            compare_with="eTRV",
+            search_elements=["eTRV", "HmIP-BWTH"],
+            compare_with="HmIP-eTRV",
             do_left_wildcard_search=True,
             do_right_wildcard_search=False,
         )
@@ -457,8 +457,8 @@ async def test_element_matches_key() -> None:
     )
     assert (
         element_matches_key(
-            search_elements=["HmIP-eTRV", "HmIP-BWTH"],
-            compare_with="eTRV",
+            search_elements=["IP-eTR", "HmIP-BWTH"],
+            compare_with="HmIP-eTRV",
             do_left_wildcard_search=True,
             do_right_wildcard_search=True,
         )
@@ -467,7 +467,16 @@ async def test_element_matches_key() -> None:
     assert (
         element_matches_key(
             search_elements=["HmIP-eTRV", "HmIP-BWTH"],
-            compare_with="eTV",
+            compare_with="HmIP-eTRV",
+            do_left_wildcard_search=True,
+            do_right_wildcard_search=True,
+        )
+        is True
+    )
+    assert (
+        element_matches_key(
+            search_elements=["INTERNAL", "HA", "hahm"],
+            compare_with="Long description with hahm in text",
             do_left_wildcard_search=True,
             do_right_wildcard_search=True,
         )

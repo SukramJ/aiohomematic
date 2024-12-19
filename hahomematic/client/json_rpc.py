@@ -582,7 +582,7 @@ class JsonRpcAioHttpClient:
                     data_type = org_data_type
 
                 if description:
-                    extended_sysvar = DescriptionMarker.HAHM in description
+                    extended_sysvar = DescriptionMarker.HAHM.lower() in description.lower()
                     # Remove default markers from description
                     for marker in DescriptionMarker:
                         description = description.replace(marker, "").strip()

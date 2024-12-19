@@ -189,7 +189,7 @@ class DescriptionMarker(StrEnum):
     """Enum with default description markers."""
 
     HA = "HA"
-    HAHM = "hahm"
+    HAHM = "HAHM"
     INTERNAL = "INTERNAL"
     MQTT = "MQTT"
 

@@ -25,6 +25,7 @@ from hahomematic.const import (
     Backend,
     CallSource,
     CommandRxMode,
+    DescriptionMarker,
     DeviceDescription,
     EventKey,
     ForcedDeviceAvailability,
@@ -381,13 +382,13 @@ class Client(ABC):
 
     @abstractmethod
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
     async def get_all_programs(
-        self, program_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
@@ -1166,21 +1167,17 @@ class ClientCCU(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU."""
-        return await self._json_rpc_client.get_all_system_variables(
-            sysvar_markers=sysvar_markers, include_internal=include_internal
-        )
+        return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_programs(
-        self, program_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
-        return await self._json_rpc_client.get_all_programs(
-            program_markers=program_markers, include_internal=include_internal
-        )
+        return await self._json_rpc_client.get_all_programs(markers=markers)
 
     @service(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
@@ -1502,7 +1499,7 @@ class ClientHomegear(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from Homegear."""
         variables: list[SystemVariableData] = []
@@ -1513,7 +1510,7 @@ class ClientHomegear(Client):
 
     @service(re_raise=False, no_raise_return=())
     async def get_all_programs(
-        self, program_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()

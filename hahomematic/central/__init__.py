@@ -33,8 +33,6 @@ from hahomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
     DATETIME_FORMAT_MILLIS,
-    DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
-    DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
@@ -56,6 +54,7 @@ from hahomematic.const import (
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
     DataPointCategory,
+    DescriptionMarker,
     DeviceDescription,
     DeviceFirmwareState,
     EventKey,
@@ -1667,8 +1666,6 @@ class CentralConfig:
         username: str,
         callback_host: str | None = None,
         callback_port: int | None = None,
-        include_internal_programs: bool = DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
-        include_internal_sysvars: bool = DEFAULT_INCLUDE_INTERNAL_SYSVARS,
         interfaces_requiring_periodic_refresh: tuple[
             Interface, ...
         ] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
@@ -1677,11 +1674,11 @@ class CentralConfig:
         listen_port: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
-        program_markers: tuple[str, ...] = DEFAULT_PROGRAM_MARKERS,
+        program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         program_scan_enabled: bool = DEFAULT_PROGRAM_SCAN_ENABLED,
         start_direct: bool = False,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
-        sysvar_markers: tuple[str, ...] = DEFAULT_SYSVAR_MARKERS,
+        sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         sysvar_scan_enabled: bool = DEFAULT_SYSVAR_SCAN_ENABLED,
         tls: bool = DEFAULT_TLS,
         un_ignore_list: tuple[str, ...] = DEFAULT_UN_IGNORES,
@@ -1701,8 +1698,6 @@ class CentralConfig:
         self.connection_state: Final = CentralConnectionState()
         self.default_callback_port: Final = default_callback_port
         self.host: Final = host
-        self.include_internal_programs: Final = include_internal_programs
-        self.include_internal_sysvars: Final = include_internal_sysvars
         self.interfaces_requiring_periodic_refresh = interfaces_requiring_periodic_refresh
         self.json_port: Final = json_port
         self.listen_ip_addr: Final = listen_ip_addr

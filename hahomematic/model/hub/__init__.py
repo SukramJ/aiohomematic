@@ -88,10 +88,7 @@ class Hub:
         """Retrieve all program data and update program values."""
         programs: tuple[ProgramData, ...] = ()
         if client := self._central.primary_client:
-            programs = await client.get_all_programs(
-                program_markers=self._config.program_markers,
-                include_internal=self._config.include_internal_programs,
-            )
+            programs = await client.get_all_programs(markers=self._config.program_markers)
         if not programs:
             _LOGGER.debug(
                 "UPDATE_PROGRAM_DATA_POINTS: No programs received for %s",
@@ -125,10 +122,7 @@ class Hub:
         """Retrieve all variable data and update hmvariable values."""
         variables: tuple[SystemVariableData, ...] = ()
         if client := self._central.primary_client:
-            variables = await client.get_all_system_variables(
-                sysvar_markers=self._config.sysvar_markers,
-                include_internal=self._config.include_internal_sysvars,
-            )
+            variables = await client.get_all_system_variables(markers=self._config.sysvar_markers)
         if not variables:
             _LOGGER.debug(
                 "UPDATE_SYSVAR_DATA_POINTS: No sysvars received for %s",

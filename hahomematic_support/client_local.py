@@ -17,6 +17,7 @@ from hahomematic.const import (
     UTF_8,
     CallSource,
     CommandRxMode,
+    DescriptionMarker,
     DeviceDescription,
     Interface,
     ParameterData,
@@ -136,13 +137,13 @@ class ClientLocal(Client):  # pragma: no cover
         return "Empty"
 
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         return ()
 
     async def get_all_programs(
-        self, program_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()

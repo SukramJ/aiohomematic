@@ -26,6 +26,8 @@ import orjson
 from hahomematic import central as hmcu, config
 from hahomematic.async_support import Looper
 from hahomematic.const import (
+    DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
+    DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     ISO_8859_1,
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
@@ -539,7 +541,7 @@ class JsonRpcAioHttpClient:
         return response[_JsonKey.RESULT]
 
     async def get_all_system_variables(
-        self, sysvar_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         variables: list[SystemVariableData] = []
@@ -554,14 +556,17 @@ class JsonRpcAioHttpClient:
             for var in json_result:
                 has_markers = False
                 extended_sysvar = False
-                is_internal = var[_JsonKey.IS_INTERNAL]
-                if include_internal is False and is_internal is True:
-                    continue
+                if (is_internal := var[_JsonKey.IS_INTERNAL]) is True:
+                    if markers:
+                        if DescriptionMarker.INTERNAL not in markers:
+                            continue
+                    elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
+                        continue  # type: ignore[unreachable]
                 var_id = var[_JsonKey.ID]
                 description = descriptions.get(var_id)
-                if not is_internal and sysvar_markers:
+                if not is_internal and markers:
                     if not element_matches_key(
-                        search_elements=sysvar_markers,
+                        search_elements=markers,
                         compare_with=description,
                         do_left_wildcard_search=True,
                     ):
@@ -944,7 +949,7 @@ class JsonRpcAioHttpClient:
         return all_device_data
 
     async def get_all_programs(
-        self, program_markers: tuple[str, ...], include_internal: bool
+        self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[ProgramData, ...]:
         """Get the all programs of the backend."""
         all_programs: list[ProgramData] = []
@@ -958,14 +963,18 @@ class JsonRpcAioHttpClient:
             descriptions = await self._get_program_descriptions()
             for prog in json_result:
                 has_markers = False
-                is_internal = prog[_JsonKey.IS_INTERNAL]
-                if include_internal is False and is_internal is True:
-                    continue
+                if (is_internal := prog[_JsonKey.IS_INTERNAL]) is True:
+                    if markers:
+                        if DescriptionMarker.INTERNAL not in markers:
+                            continue
+                    elif DEFAULT_INCLUDE_INTERNAL_PROGRAMS is False:
+                        continue
+
                 pid = prog[_JsonKey.ID]
                 description = descriptions.get(pid)
-                if not is_internal and program_markers:
+                if not is_internal and markers:
                     if not element_matches_key(
-                        search_elements=program_markers,
+                        search_elements=markers,
                         compare_with=description,
                         do_left_wildcard_search=True,
                     ):

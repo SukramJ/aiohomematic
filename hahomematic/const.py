@@ -22,10 +22,10 @@ DEFAULT_MAX_WORKERS: Final = 1
 DEFAULT_PERIODIC_REFRESH_INTERVAL: Final = 15
 DEFAULT_PING_PONG_MISMATCH_COUNT: Final = 15
 DEFAULT_PING_PONG_MISMATCH_COUNT_TTL: Final = 300
-DEFAULT_PROGRAM_MARKERS: Final[tuple[str, ...]] = ()
+DEFAULT_PROGRAM_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_PROGRAM_SCAN_ENABLED: Final = True
 DEFAULT_RECONNECT_WAIT: Final = 120  # wait with reconnect after a first ping was successful
-DEFAULT_SYSVAR_MARKERS: Final[tuple[str, ...]] = ()
+DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SYSVAR_SCAN_ENABLED: Final = True
 DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TIMEOUT: Final = 60  # default timeout for a connection
@@ -190,7 +190,7 @@ class DescriptionMarker(StrEnum):
 
     HA = "HA"
     HAHM = "hahm"
-    INTERN = "INTERN"
+    INTERNAL = "INTERNAL"
     MQTT = "MQTT"
 
 

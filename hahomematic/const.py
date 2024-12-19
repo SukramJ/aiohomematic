@@ -188,7 +188,7 @@ class DataPointUsage(StrEnum):
 class DescriptionMarker(StrEnum):
     """Enum with default description markers."""
 
-    HA = "HA"
+    HX = "HX"
     HAHM = "hahm"
     INTERNAL = "INTERNAL"
     MQTT = "MQTT"

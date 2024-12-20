@@ -114,6 +114,12 @@ class Looper:
             raise HaHomematicException(message) from err
         return task
 
+    def cancel_tasks(self) -> None:
+        """Cancel running tasks."""
+        for task in self._tasks.copy():
+            if not task.cancelled():
+                task.cancel()
+
 
 def cancelling(task: asyncio.Future[Any]) -> bool:
     """Return True if task is cancelling."""

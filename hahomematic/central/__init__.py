@@ -164,7 +164,7 @@ class CentralUnit(PayloadMixin):
         self._homematic_callbacks: Final[set[Callable]] = set()
 
         CENTRAL_INSTANCES[self.name] = self
-        self._connection_checker: Final = _Scheduler(central=self)
+        self._scheduler: Final = _Scheduler(central=self)
         self._hub: Hub = Hub(central=self)
         self._version: str | None = None
         # store last event received datetime by interface_id
@@ -226,7 +226,7 @@ class CentralUnit(PayloadMixin):
     @property
     def _has_active_threads(self) -> bool:
         """Return if active sub threads are alive."""
-        if self._connection_checker.is_alive():
+        if self._scheduler.is_alive():
             return True
         return bool(
             self._xml_rpc_server
@@ -427,7 +427,7 @@ class CentralUnit(PayloadMixin):
         else:
             await self._start_clients()
             if self._config.enable_server:
-                self._start_connection_checker()
+                self._start_scheduler()
 
         self._started = True
 
@@ -437,7 +437,7 @@ class CentralUnit(PayloadMixin):
             _LOGGER.debug("STOP: Central %s not started", self.name)
             return
         await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
-        self._stop_connection_checker()
+        self._stop_scheduler()
         await self._stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()
@@ -693,19 +693,19 @@ class CentralUnit(PayloadMixin):
                 await asyncio.sleep(config.TIMEOUT / 10)
         return ip_addr
 
-    def _start_connection_checker(self) -> None:
-        """Start the connection checker."""
+    def _start_scheduler(self) -> None:
+        """Start the scheduler."""
         _LOGGER.debug(
-            "START_CONNECTION_CHECKER: Starting connection_checker for %s",
+            "START_SCHEDULER: Starting scheduler for %s",
             self.name,
         )
-        self._connection_checker.start()
+        self._scheduler.start()
 
-    def _stop_connection_checker(self) -> None:
+    def _stop_scheduler(self) -> None:
         """Start the connection checker."""
-        self._connection_checker.stop()
+        self._scheduler.stop()
         _LOGGER.debug(
-            "STOP_CONNECTION_CHECKER: Stopped connection_checker for %s",
+            "STOP_SCHEDULER: Stopped scheduler for %s",
             self.name,
         )
 

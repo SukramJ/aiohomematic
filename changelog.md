@@ -1,10 +1,10 @@
-# Version 2024.12.7 (2024-12-20)
+# Version 2024.12.9 (2024-12-20)
 
 - Add periodic checks for device firmware updates
 - Refactor scheduler to use just one task
 - Rename marker for extended system variables from hahm to HAHM to better align with other markers
 
-# Version 2024.12.7 (2024-12-20)
+# Version 2024.12.8 (2024-12-20)
 
 - Rename create methods
 - Revert mangled attribute name in json_rpc_client

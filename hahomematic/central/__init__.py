@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Coroutine, Mapping, Set as AbstractSet
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 import logging
 from logging import DEBUG
@@ -1541,59 +1541,51 @@ class _Scheduler(threading.Thread):
         self._central: Final = central
         self._active = True
         self._central_is_connected = True
+        self._next_check_connection_run = datetime.now()
+        self._next_refresh_client_data_run = datetime.now()
+        self._next_refresh_program_data_run = datetime.now()
+        self._next_refresh_sysvar_data_run = datetime.now()
+        self._next_fetch_device_firmware_update_data_run = datetime.now()
+        self._next_fetch_device_firmware_update_data_in_delivery_run = datetime.now()
+        self._next_fetch_device_firmware_update_data_in_update_run = datetime.now()
 
     def run(self) -> None:
-        """Run the ConnectionChecker thread."""
+        """Run the scheduler thread."""
         _LOGGER.debug(
-            "run: Init connection checker to server %s",
+            "run: scheduler for %s",
             self._central.name,
         )
-        self._central.looper.create_task(self._run_check_connection(), name="check_connection")
-        if (poll_clients := self._central.poll_clients) is not None:
-            self._central.looper.create_task(
-                self._run_refresh_client_data(poll_clients=poll_clients),
-                name="refresh_client_data",
-            )
 
-        if self._central.config.enable_program_scan:
-            self._central.looper.create_task(
-                self._run_refresh_program_data(),
-                name="refresh_program_data",
-            )
-
-        if self._central.config.enable_sysvar_scan:
-            self._central.looper.create_task(
-                self._run_refresh_sysvar_data(),
-                name="refresh_sysvar_data",
-            )
-
-        if self._central.config.enable_device_firmware_check:
-            self._central.looper.create_task(
-                self._run_fetch_device_firmware_update_data(),
-                name="fetch_device_firmware_update_data",
-            )
-            self._central.looper.create_task(
-                self._run_fetch_device_firmware_update_data_in_delivery(),
-                name="fetch_device_firmware_update_data_in_delivery",
-            )
-            self._central.looper.create_task(
-                self._run_fetch_device_firmware_update_data_in_update(),
-                name="fetch_device_firmware_update_data_in_update",
-            )
+        self._central.looper.create_task(
+            self._run_tasks(),
+            name="run_scheduler_tasks",
+        )
 
     def stop(self) -> None:
         """To stop the ConnectionChecker."""
         self._active = False
 
-    async def _run_check_connection(self) -> None:
-        """Periodically check connection to backend."""
+    async def _run_tasks(self) -> None:
+        """Run all tasks."""
         while self._active:
             await self._check_connection()
+            if (poll_clients := self._central.poll_clients) is not None:
+                await self._refresh_client_data(poll_clients=poll_clients)
+            if self._central.config.enable_sysvar_scan:
+                await self._refresh_sysvar_data()
+            if self._central.config.enable_program_scan:
+                await self._refresh_program_data()
+            if self._central.config.enable_device_firmware_check:
+                await self._fetch_device_firmware_update_data()
+                await self._fetch_device_firmware_update_data_in_delivery()
+                await self._fetch_device_firmware_update_data_in_update()
             if self._active:
-                await asyncio.sleep(config.CONNECTION_CHECKER_INTERVAL)
+                await asyncio.sleep(10)
 
     async def _check_connection(self) -> None:
         """Check connection to backend."""
+        if not self._active or self._next_check_connection_run > datetime.now():
+            return
         _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central.name)
         try:
             if not self._central.has_all_enabled_clients:
@@ -1635,105 +1627,117 @@ class _Scheduler(threading.Thread):
                 type(ex).__name__,
                 reduce_args(args=ex.args),
             )
-
-    async def _run_refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
-        """Periodically refresh client data."""
-        while self._active:
-            await self._refresh_client_data(poll_clients=poll_clients)
-            if self._active:
-                await asyncio.sleep(self._central.config.periodic_refresh_interval)
+        self._next_check_connection_run += timedelta(seconds=config.CONNECTION_CHECKER_INTERVAL)
 
     @service(re_raise=False)
     async def _refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
         """Refresh client data."""
-        if not self._central.available:
+        if (
+            not self._active
+            or not self._central.available
+            or self._next_refresh_client_data_run > datetime.now()
+        ):
             return
         _LOGGER.debug("REFRESH_CLIENT_DATA: Checking connection to server %s", self._central.name)
         for client in poll_clients:
             await self._central.load_and_refresh_data_point_data(interface=client.interface)
             self._central.set_last_event_dt(interface_id=client.interface_id)
 
-    async def _run_refresh_sysvar_data(self) -> None:
-        """Periodically refresh sysvars."""
-        while self._active:
-            await self._refresh_sysvar_data()
-            if self._active:
-                await asyncio.sleep(self._central.config.sys_scan_interval)
+        self._next_refresh_client_data_run += timedelta(
+            seconds=self._central.config.periodic_refresh_interval
+        )
 
     @service(re_raise=False)
     async def _refresh_sysvar_data(self) -> None:
         """Refresh system variables."""
-        if not self._central.available:
+        if (
+            not self._active
+            or not self._central.available
+            or self._next_refresh_sysvar_data_run > datetime.now()
+        ):
             return
         _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central.name)
         await self._central.fetch_sysvar_data(scheduled=True)
-
-    async def _run_refresh_program_data(self) -> None:
-        """Periodically refresh programs."""
-        while self._active:
-            await self._refresh_program_data()
-            if self._active:
-                await asyncio.sleep(self._central.config.sys_scan_interval)
+        self._next_refresh_sysvar_data_run += timedelta(
+            seconds=self._central.config.sys_scan_interval
+        )
 
     @service(re_raise=False)
     async def _refresh_program_data(self) -> None:
         """Refresh system program_data."""
-        if not self._central.available:
+        if (
+            not self._active
+            or not self._central.available
+            or self._next_refresh_program_data_run > datetime.now()
+        ):
             return
-
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central.name)
         await self._central.fetch_program_data(scheduled=True)
+        self._next_refresh_program_data_run += timedelta(
+            seconds=self._central.config.sys_scan_interval
+        )
 
-    async def _run_fetch_device_firmware_update_data(self) -> None:
-        """Periodically fetch device firmware update data from backend.."""
-        while self._active:
-            if not self._central.available:
-                return
-            _LOGGER.debug(
-                "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching of device firmware update data for %s",
-                self._central.name,
-            )
-
-            await self._central.refresh_firmware_data()
-            if self._active:
-                await asyncio.sleep(DEVICE_FIRMWARE_CHECK_INTERVAL)
-
-    async def _run_fetch_device_firmware_update_data_in_delivery(self) -> None:
+    async def _fetch_device_firmware_update_data(self) -> None:
         """Periodically fetch device firmware update data from backend."""
-        while self._active:
-            if not self._central.available:
-                return
-            _LOGGER.debug(
-                "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: Scheduled fetching of device firmware update data for delivering devices for %s",
-                self._central.name,
-            )
-            await self._central.refresh_firmware_data_by_state(
-                device_firmware_states=(
-                    DeviceFirmwareState.DELIVER_FIRMWARE_IMAGE,
-                    DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
-                )
-            )
-            if self._active:
-                await asyncio.sleep(DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL)
+        if (
+            not self._active
+            or not self._central.available
+            or self._next_fetch_device_firmware_update_data_run > datetime.now()
+        ):
+            return
+        _LOGGER.debug(
+            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching of device firmware update data for %s",
+            self._central.name,
+        )
+        await self._central.refresh_firmware_data()
+        self._next_fetch_device_firmware_update_data_run += timedelta(
+            seconds=DEVICE_FIRMWARE_CHECK_INTERVAL
+        )
 
-    async def _run_fetch_device_firmware_update_data_in_update(self) -> None:
+    async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
         """Periodically fetch device firmware update data from backend."""
-        while self._active:
-            if not self._central.available:
-                return
-            _LOGGER.debug(
-                "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: Scheduled fetching of device firmware update data for updating devices for %s",
-                self._central.name,
+        if (
+            not self._active
+            or not self._central.available
+            or self._next_fetch_device_firmware_update_data_in_delivery_run > datetime.now()
+        ):
+            return
+        _LOGGER.debug(
+            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: Scheduled fetching of device firmware update data for delivering devices for %s",
+            self._central.name,
+        )
+        await self._central.refresh_firmware_data_by_state(
+            device_firmware_states=(
+                DeviceFirmwareState.DELIVER_FIRMWARE_IMAGE,
+                DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
             )
-            await self._central.refresh_firmware_data_by_state(
-                device_firmware_states=(
-                    DeviceFirmwareState.READY_FOR_UPDATE,
-                    DeviceFirmwareState.DO_UPDATE_PENDING,
-                    DeviceFirmwareState.PERFORMING_UPDATE,
-                )
+        )
+        self._next_fetch_device_firmware_update_data_in_delivery_run += timedelta(
+            seconds=DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL
+        )
+
+    async def _fetch_device_firmware_update_data_in_update(self) -> None:
+        """Periodically fetch device firmware update data from backend."""
+        if (
+            not self._active
+            or not self._central.available
+            or self._next_fetch_device_firmware_update_data_in_update_run > datetime.now()
+        ):
+            return
+        _LOGGER.debug(
+            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: Scheduled fetching of device firmware update data for updating devices for %s",
+            self._central.name,
+        )
+        await self._central.refresh_firmware_data_by_state(
+            device_firmware_states=(
+                DeviceFirmwareState.READY_FOR_UPDATE,
+                DeviceFirmwareState.DO_UPDATE_PENDING,
+                DeviceFirmwareState.PERFORMING_UPDATE,
             )
-            if self._active:
-                await asyncio.sleep(DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL)
+        )
+        self._next_fetch_device_firmware_update_data_in_update_run += timedelta(
+            seconds=DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL
+        )
 
 
 class CentralConfig:

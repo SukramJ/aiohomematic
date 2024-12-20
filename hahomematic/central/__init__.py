@@ -473,6 +473,7 @@ class CentralUnit(PayloadMixin):
         await self._stop_clients()
         await self._start_clients()
 
+    @service(re_raise=False)
     async def refresh_firmware_data(self, device_address: str | None = None) -> None:
         """Refresh device firmware data."""
         if (
@@ -491,6 +492,7 @@ class CentralUnit(PayloadMixin):
                 if device.is_updatable:
                     device.refresh_firmware_data()
 
+    @service(re_raise=False)
     async def refresh_firmware_data_by_state(
         self, device_firmware_states: tuple[DeviceFirmwareState, ...]
     ) -> None:
@@ -1685,68 +1687,53 @@ class _Scheduler(threading.Thread):
     async def _run_fetch_device_firmware_update_data(self) -> None:
         """Periodically fetch device firmware update data from backend.."""
         while self._active:
-            await self._fetch_device_firmware_update_data()
+            if not self._central.available:
+                return
+            _LOGGER.debug(
+                "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching of device firmware update data for %s",
+                self._central.name,
+            )
+
+            await self._central.refresh_firmware_data()
             if self._active:
                 await asyncio.sleep(DEVICE_FIRMWARE_CHECK_INTERVAL)
 
-    @service(re_raise=False)
-    async def _fetch_device_firmware_update_data(self) -> None:
-        """Fetch device firmware update data from backend."""
-        if not self._central.available:
-            return
-        _LOGGER.debug(
-            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching of device firmware update data for %s",
-            self._central.name,
-        )
-
-        await self._central.refresh_firmware_data()
-
     async def _run_fetch_device_firmware_update_data_in_delivery(self) -> None:
-        """Periodically fetch device firmware update data from backend.."""
+        """Periodically fetch device firmware update data from backend."""
         while self._active:
-            await self._fetch_device_firmware_update_data_in_delivery()
+            if not self._central.available:
+                return
+            _LOGGER.debug(
+                "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: Scheduled fetching of device firmware update data for delivering devices for %s",
+                self._central.name,
+            )
+            await self._central.refresh_firmware_data_by_state(
+                device_firmware_states=(
+                    DeviceFirmwareState.DELIVER_FIRMWARE_IMAGE,
+                    DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
+                )
+            )
             if self._active:
                 await asyncio.sleep(DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL)
 
-    @service(re_raise=False)
-    async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
-        """Fetch device firmware update data from backend for delivering devices."""
-        if not self._central.available:
-            return
-        _LOGGER.debug(
-            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: Scheduled fetching of device firmware update data for delivering devices for %s",
-            self._central.name,
-        )
-        await self._central.refresh_firmware_data_by_state(
-            device_firmware_states=(
-                DeviceFirmwareState.DELIVER_FIRMWARE_IMAGE,
-                DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
-            )
-        )
-
     async def _run_fetch_device_firmware_update_data_in_update(self) -> None:
-        """Periodically fetch device firmware update data from backend.."""
+        """Periodically fetch device firmware update data from backend."""
         while self._active:
-            await self._fetch_device_firmware_update_data_in_update()
+            if not self._central.available:
+                return
+            _LOGGER.debug(
+                "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: Scheduled fetching of device firmware update data for updating devices for %s",
+                self._central.name,
+            )
+            await self._central.refresh_firmware_data_by_state(
+                device_firmware_states=(
+                    DeviceFirmwareState.READY_FOR_UPDATE,
+                    DeviceFirmwareState.DO_UPDATE_PENDING,
+                    DeviceFirmwareState.PERFORMING_UPDATE,
+                )
+            )
             if self._active:
                 await asyncio.sleep(DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL)
-
-    @service(re_raise=False)
-    async def _fetch_device_firmware_update_data_in_update(self, now: datetime) -> None:
-        """Fetch device firmware update data from backend for updating devices."""
-        if not self._central.available:
-            return
-        _LOGGER.debug(
-            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: Scheduled fetching of device firmware update data for updating devices for %s",
-            self._central.name,
-        )
-        await self._central.refresh_firmware_data_by_state(
-            device_firmware_states=(
-                DeviceFirmwareState.READY_FOR_UPDATE,
-                DeviceFirmwareState.DO_UPDATE_PENDING,
-                DeviceFirmwareState.PERFORMING_UPDATE,
-            )
-        )
 
 
 class CentralConfig:

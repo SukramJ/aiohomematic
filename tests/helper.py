@@ -121,7 +121,7 @@ class Factory:
         )
 
         patch("hahomematic.central.CentralUnit._get_primary_client", return_value=client).start()
-        patch("hahomematic.client._ClientConfig.get_client", return_value=client).start()
+        patch("hahomematic.client._ClientConfig.create_client", return_value=client).start()
         patch(
             "hahomematic_support.client_local.ClientLocal.get_all_system_variables",
             return_value=const.SYSVAR_DATA if add_sysvars else [],

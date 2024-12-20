@@ -55,7 +55,7 @@ async def test_central_basics(
 ) -> None:
     """Test central basics."""
     central, client, _ = central_client_factory
-    assert central.central_url == f"http://{LOCAL_HOST}"
+    assert central.url == f"http://{LOCAL_HOST}"
     assert central.is_alive is True
     assert central.system_information.serial == "0815_4711"
     assert central.version == "0"

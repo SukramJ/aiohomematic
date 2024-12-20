@@ -470,7 +470,7 @@ class Example:
 
         with (
             patch("hahomematic.central.CentralUnit._get_primary_client", return_value=client),
-            patch("hahomematic.client._ClientConfig.get_client", return_value=client),
+            patch("hahomematic.client._ClientConfig.create_client", return_value=client),
         ):
             await self.central.start()
             await self.central._refresh_device_descriptions(client=client)

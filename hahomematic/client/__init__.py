@@ -97,10 +97,10 @@ class Client(ABC):
     async def init_client(self) -> None:
         """Init the client."""
         self._system_information = await self._get_system_information()
-        self._proxy = await self._config.get_xml_rpc_proxy(
+        self._proxy = await self._config.create_xml_rpc_proxy(
             auth_enabled=self.system_information.auth_enabled
         )
-        self._proxy_read = await self._config.get_xml_rpc_proxy(
+        self._proxy_read = await self._config.create_xml_rpc_proxy(
             auth_enabled=self.system_information.auth_enabled,
             max_workers=self._config.max_read_workers,
         )
@@ -1038,8 +1038,8 @@ class ClientCCU(Client):
 
     def __init__(self, client_config: _ClientConfig) -> None:
         """Initialize the Client."""
-        super().__init__(client_config=client_config)
         self._json_rpc_client: Final = client_config.central.json_rpc_client
+        super().__init__(client_config=client_config)
 
     @property
     def model(self) -> str:
@@ -1566,7 +1566,7 @@ class _ClientConfig:
             tls=central.config.tls,
         )
 
-    async def get_client(self) -> Client:
+    async def create_client(self) -> Client:
         """Identify the used client."""
         try:
             self.version = await self._get_version()
@@ -1594,7 +1594,7 @@ class _ClientConfig:
         """Return the version of the backend."""
         if self.interface in (Interface.CCU_JACK, Interface.CUXD):
             return "0"
-        check_proxy = await self._get_simple_xml_rpc_proxy()
+        check_proxy = await self._create_simple_xml_rpc_proxy()
         try:
             if (methods := check_proxy.supported_methods) and "getVersion" in methods:
                 # BidCos-Wired does not support getVersion()
@@ -1603,7 +1603,7 @@ class _ClientConfig:
             raise NoConnectionException(f"Unable to connect {reduce_args(args=ex.args)}.") from ex
         return "0"
 
-    async def get_xml_rpc_proxy(
+    async def create_xml_rpc_proxy(
         self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
     ) -> XmlRpcProxy:
         """Return a XmlRPC proxy for backend communication."""
@@ -1628,9 +1628,9 @@ class _ClientConfig:
         await xml_proxy.do_init()
         return xml_proxy
 
-    async def _get_simple_xml_rpc_proxy(self) -> XmlRpcProxy:
+    async def _create_simple_xml_rpc_proxy(self) -> XmlRpcProxy:
         """Return a XmlRPC proxy for backend communication."""
-        return await self.get_xml_rpc_proxy(auth_enabled=True, max_workers=0)
+        return await self.create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
 
 
 class InterfaceConfig:
@@ -1673,7 +1673,7 @@ async def create_client(
     interface_config: InterfaceConfig,
 ) -> Client:
     """Return a new client for with a given interface_config."""
-    return await _ClientConfig(central=central, interface_config=interface_config).get_client()
+    return await _ClientConfig(central=central, interface_config=interface_config).create_client()
 
 
 def get_client(interface_id: str) -> Client | None:

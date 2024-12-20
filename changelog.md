@@ -1,5 +1,6 @@
 # Version 2024.12.7 (2024-12-20)
 
+- Add periodic checks for device firmware updates
 - Rename marker for extended system variables from hahm to HAHM to better align with other markers
 
 # Version 2024.12.7 (2024-12-20)

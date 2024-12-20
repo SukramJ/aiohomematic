@@ -33,16 +33,20 @@ from hahomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
     DATETIME_FORMAT_MILLIS,
+    DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
+    DEFAULT_ENABLE_PROGRAM_SCAN,
+    DEFAULT_ENABLE_SYSVAR_SCAN,
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
-    DEFAULT_PROGRAM_SCAN_ENABLED,
     DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
-    DEFAULT_SYSVAR_SCAN_ENABLED,
     DEFAULT_TLS,
     DEFAULT_UN_IGNORES,
     DEFAULT_VERIFY_TLS,
+    DEVICE_FIRMWARE_CHECK_INTERVAL,
+    DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
+    DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
     DP_KEY,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     INTERFACES_REQUIRING_PERIODIC_REFRESH,
@@ -1549,16 +1553,30 @@ class _Scheduler(threading.Thread):
                 name="refresh_client_data",
             )
 
-        if self._central.config.program_scan_enabled:
+        if self._central.config.enable_program_scan:
             self._central.looper.create_task(
                 self._run_refresh_program_data(),
                 name="refresh_program_data",
             )
 
-        if self._central.config.sysvar_scan_enabled:
+        if self._central.config.enable_sysvar_scan:
             self._central.looper.create_task(
                 self._run_refresh_sysvar_data(),
                 name="refresh_sysvar_data",
+            )
+
+        if self._central.config.enable_device_firmware_check:
+            self._central.looper.create_task(
+                self._run_fetch_device_firmware_update_data(),
+                name="fetch_device_firmware_update_data",
+            )
+            self._central.looper.create_task(
+                self._run_fetch_device_firmware_update_data_in_delivery(),
+                name="fetch_device_firmware_update_data_in_delivery",
+            )
+            self._central.looper.create_task(
+                self._run_fetch_device_firmware_update_data_in_update(),
+                name="fetch_device_firmware_update_data_in_update",
             )
 
     def stop(self) -> None:
@@ -1571,27 +1589,6 @@ class _Scheduler(threading.Thread):
             await self._check_connection()
             if self._active:
                 await asyncio.sleep(config.CONNECTION_CHECKER_INTERVAL)
-
-    async def _run_refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
-        """Periodically refresh client data."""
-        while self._active:
-            await self._refresh_client_data(poll_clients=poll_clients)
-            if self._active:
-                await asyncio.sleep(self._central.config.periodic_refresh_interval)
-
-    async def _run_refresh_program_data(self) -> None:
-        """Periodically refresh programs."""
-        while self._active:
-            await self._refresh_program_data()
-            if self._active:
-                await asyncio.sleep(self._central.config.sys_scan_interval)
-
-    async def _run_refresh_sysvar_data(self) -> None:
-        """Periodically refresh sysvars."""
-        while self._active:
-            await self._refresh_sysvar_data()
-            if self._active:
-                await asyncio.sleep(self._central.config.sys_scan_interval)
 
     async def _check_connection(self) -> None:
         """Check connection to backend."""
@@ -1637,6 +1634,13 @@ class _Scheduler(threading.Thread):
                 reduce_args(args=ex.args),
             )
 
+    async def _run_refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
+        """Periodically refresh client data."""
+        while self._active:
+            await self._refresh_client_data(poll_clients=poll_clients)
+            if self._active:
+                await asyncio.sleep(self._central.config.periodic_refresh_interval)
+
     @service(re_raise=False)
     async def _refresh_client_data(self, poll_clients: tuple[hmcl.Client, ...]) -> None:
         """Refresh client data."""
@@ -1647,6 +1651,13 @@ class _Scheduler(threading.Thread):
             await self._central.load_and_refresh_data_point_data(interface=client.interface)
             self._central.set_last_event_dt(interface_id=client.interface_id)
 
+    async def _run_refresh_sysvar_data(self) -> None:
+        """Periodically refresh sysvars."""
+        while self._active:
+            await self._refresh_sysvar_data()
+            if self._active:
+                await asyncio.sleep(self._central.config.sys_scan_interval)
+
     @service(re_raise=False)
     async def _refresh_sysvar_data(self) -> None:
         """Refresh system variables."""
@@ -1655,13 +1666,87 @@ class _Scheduler(threading.Thread):
         _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central.name)
         await self._central.fetch_sysvar_data(scheduled=True)
 
+    async def _run_refresh_program_data(self) -> None:
+        """Periodically refresh programs."""
+        while self._active:
+            await self._refresh_program_data()
+            if self._active:
+                await asyncio.sleep(self._central.config.sys_scan_interval)
+
     @service(re_raise=False)
     async def _refresh_program_data(self) -> None:
         """Refresh system program_data."""
         if not self._central.available:
             return
+
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central.name)
         await self._central.fetch_program_data(scheduled=True)
+
+    async def _run_fetch_device_firmware_update_data(self) -> None:
+        """Periodically fetch device firmware update data from backend.."""
+        while self._active:
+            await self._fetch_device_firmware_update_data()
+            if self._active:
+                await asyncio.sleep(DEVICE_FIRMWARE_CHECK_INTERVAL)
+
+    @service(re_raise=False)
+    async def _fetch_device_firmware_update_data(self) -> None:
+        """Fetch device firmware update data from backend."""
+        if not self._central.available:
+            return
+        _LOGGER.debug(
+            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching of device firmware update data for %s",
+            self._central.name,
+        )
+
+        await self._central.refresh_firmware_data()
+
+    async def _run_fetch_device_firmware_update_data_in_delivery(self) -> None:
+        """Periodically fetch device firmware update data from backend.."""
+        while self._active:
+            await self._fetch_device_firmware_update_data_in_delivery()
+            if self._active:
+                await asyncio.sleep(DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL)
+
+    @service(re_raise=False)
+    async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
+        """Fetch device firmware update data from backend for delivering devices."""
+        if not self._central.available:
+            return
+        _LOGGER.debug(
+            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: Scheduled fetching of device firmware update data for delivering devices for %s",
+            self._central.name,
+        )
+        await self._central.refresh_firmware_data_by_state(
+            device_firmware_states=(
+                DeviceFirmwareState.DELIVER_FIRMWARE_IMAGE,
+                DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
+            )
+        )
+
+    async def _run_fetch_device_firmware_update_data_in_update(self) -> None:
+        """Periodically fetch device firmware update data from backend.."""
+        while self._active:
+            await self._fetch_device_firmware_update_data_in_update()
+            if self._active:
+                await asyncio.sleep(DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL)
+
+    @service(re_raise=False)
+    async def _fetch_device_firmware_update_data_in_update(self, now: datetime) -> None:
+        """Fetch device firmware update data from backend for updating devices."""
+        if not self._central.available:
+            return
+        _LOGGER.debug(
+            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: Scheduled fetching of device firmware update data for updating devices for %s",
+            self._central.name,
+        )
+        await self._central.refresh_firmware_data_by_state(
+            device_firmware_states=(
+                DeviceFirmwareState.READY_FOR_UPDATE,
+                DeviceFirmwareState.DO_UPDATE_PENDING,
+                DeviceFirmwareState.PERFORMING_UPDATE,
+            )
+        )
 
 
 class CentralConfig:
@@ -1680,6 +1765,9 @@ class CentralConfig:
         client_session: ClientSession | None = None,
         callback_host: str | None = None,
         callback_port: int | None = None,
+        enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
+        enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
+        enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
         interfaces_requiring_periodic_refresh: tuple[
             Interface, ...
         ] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
@@ -1689,11 +1777,9 @@ class CentralConfig:
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
-        program_scan_enabled: bool = DEFAULT_PROGRAM_SCAN_ENABLED,
         start_direct: bool = False,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
-        sysvar_scan_enabled: bool = DEFAULT_SYSVAR_SCAN_ENABLED,
         tls: bool = DEFAULT_TLS,
         un_ignore_list: tuple[str, ...] = DEFAULT_UN_IGNORES,
         verify_tls: bool = DEFAULT_VERIFY_TLS,
@@ -1705,6 +1791,9 @@ class CentralConfig:
         self.central_id: Final = central_id
         self.client_session: Final = client_session
         self.default_callback_port: Final = default_callback_port
+        self.enable_device_firmware_check: Final = enable_device_firmware_check
+        self.enable_program_scan: Final = enable_program_scan
+        self.enable_sysvar_scan: Final = enable_sysvar_scan
         self.host: Final = host
         self.interfaces_requiring_periodic_refresh = interfaces_requiring_periodic_refresh
         self.json_port: Final = json_port
@@ -1715,12 +1804,10 @@ class CentralConfig:
         self.password: Final = password
         self.periodic_refresh_interval = periodic_refresh_interval
         self.program_markers: Final = program_markers
-        self.program_scan_enabled: Final = program_scan_enabled
         self.start_direct: Final = start_direct
         self.storage_folder: Final = storage_folder
         self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers
-        self.sysvar_scan_enabled: Final = sysvar_scan_enabled
         self.tls: Final = tls
         self.un_ignore_list: Final = un_ignore_list
         self.username: Final = username

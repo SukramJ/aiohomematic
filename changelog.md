@@ -1,6 +1,7 @@
 # Version 2024.12.7 (2024-12-20)
 
 - Rename create methods
+- Revert mangled attribute name in json_rpc_client
 
 # Version 2024.12.7 (2024-12-18)
 

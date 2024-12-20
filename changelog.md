@@ -1,5 +1,7 @@
 # Version 2024.12.7 (2024-12-20)
 
+- Add periodic checks for device firmware updates
+- Refactor scheduler to use just one task
 - Rename marker for extended system variables from hahm to HAHM to better align with other markers
 
 # Version 2024.12.7 (2024-12-20)

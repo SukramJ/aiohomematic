@@ -61,7 +61,7 @@ class Hub:
     @service(re_raise=False)
     async def fetch_sysvar_data(self, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
-        if self._config.sysvar_scan_enabled:
+        if self._config.enable_sysvar_scan:
             _LOGGER.debug(
                 "FETCH_SYSVAR_DATA: %s fetching of system variables for %s",
                 "Scheduled" if scheduled else "Manual",
@@ -74,7 +74,7 @@ class Hub:
     @service(re_raise=False)
     async def fetch_program_data(self, scheduled: bool) -> None:
         """Fetch program data for the hub."""
-        if self._config.program_scan_enabled:
+        if self._config.enable_program_scan:
             _LOGGER.debug(
                 "FETCH_PROGRAM_DATA: %s fetching of programs for %s",
                 "Scheduled" if scheduled else "Manual",

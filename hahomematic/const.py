@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, Required, TypedDict
 
-VERSION: Final = "2024.12.8"
+VERSION: Final = "2024.12.9"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -188,7 +188,7 @@ class DataPointUsage(StrEnum):
 class DescriptionMarker(StrEnum):
     """Enum with default description markers."""
 
-    HAHM = "hahm"
+    HAHM = "HAHM"
     HX = "HX"
     INTERNAL = "INTERNAL"
     MQTT = "MQTT"

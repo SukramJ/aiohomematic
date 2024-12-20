@@ -152,8 +152,8 @@ class JsonRpcAioHttpClient:
         verify_tls: bool = False,
     ) -> None:
         """Session setup."""
-        self.__client_session: Final = client_session
-        self.__int_client_session: Final = (
+        self._external_client_session: Final = client_session
+        self._internal_client_session: Final = (
             None
             if client_session
             else ClientSession(connector=TCPConnector(limit=MAX_CONCURRENT_HTTP_SESSIONS))
@@ -174,7 +174,11 @@ class JsonRpcAioHttpClient:
     @property
     def _client_session(self) -> ClientSession:
         """If session exists, then it is activated."""
-        return self.__client_session or self.__int_client_session  # type: ignore[return-value]
+        return (
+            self._external_client_session  # type: ignore[return-value]
+            if self._external_client_session is not None
+            else self._internal_client_session
+        )
 
     @property
     def is_activated(self) -> bool:
@@ -452,8 +456,8 @@ class JsonRpcAioHttpClient:
 
     async def stop(self) -> None:
         """Stop the json rpc client."""
-        if self.__int_client_session and not self.__int_client_session.closed:
-            await self.__int_client_session.close()
+        if self._internal_client_session and not self._internal_client_session.closed:
+            await self._internal_client_session.close()
 
     async def _do_logout(self, session_id: str | None) -> None:
         """Logout of CCU."""

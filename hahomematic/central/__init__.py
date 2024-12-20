@@ -122,6 +122,7 @@ class CentralUnit(PayloadMixin):
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         # Keep the config for the central
         self._config: Final = central_config
+        self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()
         self._xml_rpc_server: xmlrpc.XmlRpcServer | None = None
@@ -179,13 +180,9 @@ class CentralUnit(PayloadMixin):
         return self._callback_ip_addr
 
     @info_property
-    def central_url(self) -> str:
-        """Return the required url."""
-        url = "https://" if self._config.tls else "http://"
-        url = f"{url}{self._config.host}"
-        if self._config.json_port:
-            url = f"{url}:{self._config.json_port}"
-        return f"{url}"
+    def url(self) -> str:
+        """Return the central url."""
+        return self._url
 
     @property
     def clients(self) -> tuple[hmcl.Client, ...]:
@@ -252,15 +249,7 @@ class CentralUnit(PayloadMixin):
     def json_rpc_client(self) -> JsonRpcAioHttpClient:
         """Return the json rpc client."""
         if not self._json_rpc_client:
-            self._json_rpc_client = JsonRpcAioHttpClient(
-                username=self._config.username,
-                password=self._config.password,
-                device_url=self.central_url,
-                connection_state=self._connection_state,
-                client_session=self._config.client_session,
-                tls=self._config.tls,
-                verify_tls=self._config.verify_tls,
-            )
+            self._json_rpc_client = self._config.create_json_rpc_client(central=self)
         return self._json_rpc_client
 
     @property
@@ -1782,6 +1771,26 @@ class CentralConfig:
             raise HaHomematicException(
                 f"CREATE_CENTRAL: Not able to create a central: : {reduce_args(args=ex.args)}"
             ) from ex
+
+    def create_central_url(self) -> str:
+        """Return the required url."""
+        url = "https://" if self.tls else "http://"
+        url = f"{url}{self.host}"
+        if self.json_port:
+            url = f"{url}:{self.json_port}"
+        return f"{url}"
+
+    def create_json_rpc_client(self, central: CentralUnit) -> JsonRpcAioHttpClient:
+        """Create a json rpc client."""
+        return JsonRpcAioHttpClient(
+            username=self.username,
+            password=self.password,
+            device_url=central.url,
+            connection_state=central.connection_state,
+            client_session=self.client_session,
+            tls=self.tls,
+            verify_tls=self.verify_tls,
+        )
 
 
 class CentralConnectionState:

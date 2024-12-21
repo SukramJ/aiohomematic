@@ -30,9 +30,7 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
         return self._value  # type: ignore[no-any-return]
 
     @service()
-    async def turn_on(
-        self, collector: CallParameterCollector | None = None, on_time: float | None = None
-    ) -> None:
+    async def turn_on(self, collector: CallParameterCollector | None = None, on_time: float | None = None) -> None:
         """Turn the switch on."""
         if on_time is not None:
             await self.set_on_time(on_time=on_time)

@@ -169,9 +169,7 @@ async def test_device_un_ignore_etrv(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
-        {"VCU3609622": "HmIP-eTRV-2.json"}, un_ignore_list=[line]
-    )
+    central, _ = await factory.get_default_central({"VCU3609622": "HmIP-eTRV-2.json"}, un_ignore_list=[line])
     try:
         assert (
             central.parameter_visibility.parameter_is_un_ignored(
@@ -209,9 +207,7 @@ async def test_device_un_ignore_broll(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
-        {"VCU8537918": "HmIP-BROLL.json"}, un_ignore_list=[line]
-    )
+    central, _ = await factory.get_default_central({"VCU8537918": "HmIP-BROLL.json"}, un_ignore_list=[line])
     try:
         assert (
             central.parameter_visibility.parameter_is_un_ignored(
@@ -252,9 +248,7 @@ async def test_device_un_ignore_hm(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
-        {"VCU0000341": "HM-TC-IT-WM-W-EU.json"}, un_ignore_list=[line]
-    )
+    central, _ = await factory.get_default_central({"VCU0000341": "HM-TC-IT-WM-W-EU.json"}, un_ignore_list=[line])
     try:
         assert (
             central.parameter_visibility.parameter_is_un_ignored(
@@ -265,9 +259,7 @@ async def test_device_un_ignore_hm(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(
-            f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter
-        )
+        dp = central.get_generic_data_point(f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter)
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -339,9 +331,7 @@ async def test_device_un_ignore_hm2(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
-        {"VCU0000137": "HM-ES-PMSw1-Pl.json"}, un_ignore_list=lines
-    )
+    central, _ = await factory.get_default_central({"VCU0000137": "HM-ES-PMSw1-Pl.json"}, un_ignore_list=lines)
     try:
         assert (
             central.parameter_visibility.parameter_is_un_ignored(
@@ -352,9 +342,7 @@ async def test_device_un_ignore_hm2(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(
-            f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter
-        )
+        dp = central.get_generic_data_point(f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter)
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -548,9 +536,7 @@ async def test_hub_data_points_by_category(
     assert ebp_sensor3
     assert len(ebp_sensor3) == 2
     ebp_sensor3[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
-    ebp_sensor4 = central.get_hub_data_points(
-        category=DataPointCategory.HUB_BUTTON, registered=False
-    )
+    ebp_sensor4 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON, registered=False)
     assert ebp_sensor4
     assert len(ebp_sensor4) == 1
 
@@ -577,17 +563,13 @@ async def test_add_device(
     assert len(central._devices) == 1
     assert len(central.get_data_points(exclude_no_create=False)) == 27
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
-    assert (
-        len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
-    )
+    assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
     dev_desc = helper.load_device_description(central=central, filename="HmIP-BSM.json")
     await central.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
     assert len(central._devices) == 2
     assert len(central.get_data_points(exclude_no_create=False)) == 58
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
-    assert (
-        len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
-    )
+    assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
     await central.add_new_devices(interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc)
     assert len(central._devices) == 2
 
@@ -614,17 +596,13 @@ async def test_delete_device(
     assert len(central._devices) == 2
     assert len(central.get_data_points(exclude_no_create=False)) == 58
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
-    assert (
-        len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
-    )
+    assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
 
     await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
     assert len(central._devices) == 1
     assert len(central.get_data_points(exclude_no_create=False)) == 27
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
-    assert (
-        len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
-    )
+    assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
 
 
 @pytest.mark.asyncio
@@ -665,9 +643,7 @@ async def test_virtual_remote_delete(
 
     assert len(central._devices) == 3
     assert len(central.get_data_points()) == 350
-    await central.delete_devices(
-        interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"]
-    )
+    await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"])
     assert len(central._devices) == 1
     assert len(central.get_data_points()) == 100
     await central.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
@@ -759,13 +735,9 @@ async def test_central_services(
     assert mock_client.method_calls[-1] == call.get_all_system_variables(markers=())
 
     assert len(mock_client.method_calls) == 42
-    await central.load_and_refresh_data_point_data(
-        interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER
-    )
+    await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER)
     assert len(mock_client.method_calls) == 42
-    await central.load_and_refresh_data_point_data(
-        interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES
-    )
+    await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
     assert len(mock_client.method_calls) == 60
 
     await central.get_system_variable(name="SysVar_Name")
@@ -779,9 +751,7 @@ async def test_central_services(
     assert len(mock_client.method_calls) == 62
 
     await central.set_install_mode(interface_id=const.INTERFACE_ID)
-    assert mock_client.method_calls[-1] == call.set_install_mode(
-        on=True, t=60, mode=1, device_address=None
-    )
+    assert mock_client.method_calls[-1] == call.set_install_mode(on=True, t=60, mode=1, device_address=None)
     assert len(mock_client.method_calls) == 63
     await central.set_install_mode(interface_id="NOT_A_VALID_INTERFACE_ID")
     assert len(mock_client.method_calls) == 63
@@ -827,24 +797,16 @@ async def test_central_services(
     assert len(mock_client.method_calls) == 65
 
     assert (
-        central.get_generic_data_point(
-            channel_address="VCU6354483:0", parameter="DUTY_CYCLE"
-        ).parameter
-        == "DUTY_CYCLE"
+        central.get_generic_data_point(channel_address="VCU6354483:0", parameter="DUTY_CYCLE").parameter == "DUTY_CYCLE"
     )
-    assert (
-        central.get_generic_data_point(channel_address="VCU6354483", parameter="DUTY_CYCLE")
-        is None
-    )
+    assert central.get_generic_data_point(channel_address="VCU6354483", parameter="DUTY_CYCLE") is None
 
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
 async def test_central_direct(factory: helper.Factory) -> None:
     """Test central other methods."""
-    central, client = await factory.get_unpatched_default_central(
-        TEST_DEVICES, do_mock_client=False
-    )
+    central, client = await factory.get_unpatched_default_central(TEST_DEVICES, do_mock_client=False)
     try:
         mock_client = helper.get_mock(instance=client, available=False)
         assert central.system_information.serial is None
@@ -1017,9 +979,7 @@ async def test_central_caches(
     assert len(central.paramset_descriptions._raw_paramset_descriptions[client.interface_id]) == 20
     await central.clear_caches()
     assert central.device_descriptions._raw_device_descriptions.get(client.interface_id) is None
-    assert (
-        central.paramset_descriptions._raw_paramset_descriptions.get(client.interface_id) is None
-    )
+    assert central.paramset_descriptions._raw_paramset_descriptions.get(client.interface_id) is None
 
 
 @pytest.mark.asyncio

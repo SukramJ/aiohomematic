@@ -5,22 +5,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Final
 
-from hahomematic.const import (
-    DP_KEY_VALUE,
-    CallSource,
-    DataPointUsage,
-    EventType,
-    Parameter,
-    ParameterData,
-    ParamsetKey,
-)
+from hahomematic.const import DP_KEY_VALUE, CallSource, DataPointUsage, EventType, Parameter, ParameterData, ParamsetKey
 from hahomematic.decorators import service
 from hahomematic.model import data_point as hme, device as hmd
-from hahomematic.model.support import (
-    DataPointNameData,
-    GenericParameterType,
-    get_data_point_name_data,
-)
+from hahomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -68,19 +56,11 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             return
 
         # reload paramset_descriptions, if value has changed
-        if (
-            self._parameter == Parameter.CONFIG_PENDING
-            and new_value is False
-            and old_value is True
-        ):
+        if self._parameter == Parameter.CONFIG_PENDING and new_value is False and old_value is True:
             await self._device.reload_paramset_descriptions()
 
-            for data_point in self._device.get_readable_data_points(
-                paramset_key=ParamsetKey.MASTER
-            ):
-                await data_point.load_data_point_value(
-                    call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True
-                )
+            for data_point in self._device.get_readable_data_points(paramset_key=ParamsetKey.MASTER):
+                await data_point.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
         # send device availability events
         if self._parameter in (
@@ -103,9 +83,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
     ) -> set[DP_KEY_VALUE]:
         """Send value to ccu, or use collector if set."""
         if not self.is_writeable:
-            _LOGGER.error(
-                "SEND_VALUE: writing to non-writable data_point %s is not possible", self.full_name
-            )
+            _LOGGER.error("SEND_VALUE: writing to non-writable data_point %s is not possible", self.full_name)
             return set()
         try:
             prepared_value = self._prepare_value_for_sending(value=value, do_validate=do_validate)
@@ -128,9 +106,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             value=converted_value,
         )
 
-    def _prepare_value_for_sending(
-        self, value: InputParameterT, do_validate: bool = True
-    ) -> ParameterT:
+    def _prepare_value_for_sending(self, value: InputParameterT, do_validate: bool = True) -> ParameterT:
         """Prepare value, if required, before send."""
         return value  # type: ignore[return-value]
 
@@ -155,10 +131,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
 
         return (
             DataPointUsage.NO_CREATE
-            if (
-                self._device.has_custom_data_point_definition
-                and not self._device.allow_undefined_generic_data_points
-            )
+            if (self._device.has_custom_data_point_definition and not self._device.allow_undefined_generic_data_points)
             else DataPointUsage.DATA_POINT
         )
 

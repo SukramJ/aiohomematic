@@ -130,11 +130,7 @@ class TimerMixin:
 
     def get_and_start_timer(self) -> float | None:
         """Return the on_time and set the end time."""
-        if (
-            self.timer_on_time_running
-            and self._timer_on_time is not None
-            and self._timer_on_time <= 0
-        ):
+        if self.timer_on_time_running and self._timer_on_time is not None and self._timer_on_time <= 0:
             self.reset_timer_on_time()
             return -1
         if self._timer_on_time is None:
@@ -152,12 +148,8 @@ class ChannelNameData:
     def __init__(self, device_name: str, channel_name: str) -> None:
         """Init the DataPointNameData class."""
         self.device_name: Final = device_name
-        self.channel_name: Final = self._get_channel_name(
-            device_name=device_name, channel_name=channel_name
-        )
-        self.full_name = (
-            f"{device_name} {self.channel_name}".strip() if self.channel_name else device_name
-        )
+        self.channel_name: Final = self._get_channel_name(device_name=device_name, channel_name=channel_name)
+        self.full_name = f"{device_name} {self.channel_name}".strip() if self.channel_name else device_name
         self.sub_device_name = channel_name if channel_name else device_name
 
     @staticmethod
@@ -179,20 +171,14 @@ class ChannelNameData:
 class DataPointNameData(ChannelNameData):
     """Dataclass for data_point name parts."""
 
-    def __init__(
-        self, device_name: str, channel_name: str, parameter_name: str | None = None
-    ) -> None:
+    def __init__(self, device_name: str, channel_name: str, parameter_name: str | None = None) -> None:
         """Init the DataPointNameData class."""
         super().__init__(device_name=device_name, channel_name=channel_name)
 
         self.data_point_name: Final = self._get_data_point_name(
             device_name=device_name, channel_name=channel_name, parameter_name=parameter_name
         )
-        self.full_name = (
-            f"{device_name} {self.data_point_name}".strip()
-            if self.data_point_name
-            else device_name
-        )
+        self.full_name = f"{device_name} {self.data_point_name}".strip() if self.data_point_name else device_name
         self.parameter_name = parameter_name
 
     @staticmethod
@@ -209,18 +195,12 @@ class DataPointNameData(ChannelNameData):
             return channel_name.strip()
         return None
 
-    def _get_data_point_name(
-        self, device_name: str, channel_name: str, parameter_name: str | None
-    ) -> str | None:
+    def _get_data_point_name(self, device_name: str, channel_name: str, parameter_name: str | None) -> str | None:
         """Return the name of the data_point only name."""
         channel_parameter_name = self._get_channel_parameter_name(
             channel_name=channel_name, parameter_name=parameter_name
         )
-        if (
-            device_name
-            and channel_parameter_name
-            and channel_parameter_name.startswith(device_name)
-        ):
+        if device_name and channel_parameter_name and channel_parameter_name.startswith(device_name):
             return channel_parameter_name[len(device_name) :].lstrip()
         return channel_parameter_name
 
@@ -286,8 +266,12 @@ class DataPointPathData(PathData):
     ):
         """Init the path data."""
         path_item: Final = f"{address.upper()}/{channel_no}/{kind.upper()}"
-        self._set_path: Final = f"{VIRTDEV_SET_PATH_ROOT if interface==Interface.CCU_JACK else SET_PATH_ROOT}/{path_item}"
-        self._state_path: Final = f"{VIRTDEV_STATE_PATH_ROOT if interface == Interface.CCU_JACK else STATE_PATH_ROOT}/{path_item}"
+        self._set_path: Final = (
+            f"{VIRTDEV_SET_PATH_ROOT if interface==Interface.CCU_JACK else SET_PATH_ROOT}/{path_item}"
+        )
+        self._state_path: Final = (
+            f"{VIRTDEV_STATE_PATH_ROOT if interface == Interface.CCU_JACK else STATE_PATH_ROOT}/{path_item}"
+        )
 
     @property
     def set_path(self) -> str:
@@ -425,9 +409,7 @@ def get_custom_data_point_name(
             p_name = channel_name.split(":")[1]
             marker = "ch" if usage == DataPointUsage.CDP_PRIMARY else "vch"
             p_name = f"{marker}{p_name}"
-            return DataPointNameData(
-                device_name=channel.device.name, channel_name=c_name, parameter_name=p_name
-            )
+            return DataPointNameData(device_name=channel.device.name, channel_name=c_name, parameter_name=p_name)
         return DataPointNameData(device_name=channel.device.name, channel_name=channel_name)
 
     _LOGGER.debug(
@@ -498,9 +480,7 @@ def _check_channel_name_with_channel_no(name: str) -> bool:
     return False
 
 
-def convert_value(
-    value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None
-) -> Any:
+def convert_value(value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
     """Convert a value to target_type."""
     if value is None:
         return None
@@ -550,16 +530,9 @@ def check_channel_is_the_only_primary_channel(
     return bool(primary_channel == current_channel_no and device_has_multiple_channels is False)
 
 
-def get_value_from_value_list(
-    value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None
-) -> str | None:
+def get_value_from_value_list(value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None) -> str | None:
     """Check if value is in value list."""
-    if (
-        value is not None
-        and isinstance(value, int)
-        and value_list is not None
-        and value < len(value_list)
-    ):
+    if value is not None and isinstance(value, int) and value_list is not None and value < len(value_list):
         return value_list[int(value)]
     return None
 
@@ -568,12 +541,7 @@ def get_index_of_value_from_value_list(
     value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None
 ) -> int | None:
     """Check if value is in value list."""
-    if (
-        value is not None
-        and isinstance(value, (str, StrEnum))
-        and value_list is not None
-        and value in value_list
-    ):
+    if value is not None and isinstance(value, (str, StrEnum)) and value_list is not None and value in value_list:
         return value_list.index(value)
 
     return None

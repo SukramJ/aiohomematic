@@ -23,9 +23,7 @@ class SysvarDpSelect(GenericSysvarDataPoint):
     @state_property
     def value(self) -> str | None:
         """Get the value of the data_point."""
-        if (
-            value := get_value_from_value_list(value=self._value, value_list=self.values)
-        ) is not None:
+        if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value
         return None
 

@@ -61,17 +61,13 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
             """Execute the callback for a system event."""
 
             if not ((len(args) > 1 and not kwargs) or (len(args) == 1 and kwargs)):
-                _LOGGER.warning(
-                    "EXEC_BACKEND_SYSTEM_CALLBACK failed: *args not supported for callback_system_event"
-                )
+                _LOGGER.warning("EXEC_BACKEND_SYSTEM_CALLBACK failed: *args not supported for callback_system_event")
             try:
                 args = args[1:]
                 interface_id: str = args[0] if len(args) > 0 else str(kwargs[_INTERFACE_ID])
                 if client := hmcl.get_client(interface_id=interface_id):
                     client.modified_at = datetime.now()
-                    client.central.fire_backend_system_callback(
-                        system_event=system_event, **kwargs
-                    )
+                    client.central.fire_backend_system_callback(system_event=system_event, **kwargs)
             except Exception as ex:  # pragma: no cover
                 _LOGGER.warning(
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Unable to reduce kwargs for backend_system_callback"
@@ -108,11 +104,7 @@ def callback_event[**_P, _R](
                 client.modified_at = datetime.now()
                 client.central.fire_backend_parameter_callback(*args, **kwargs)
         except Exception as ex:  # pragma: no cover
-            _LOGGER.warning(
-                "EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to reduce kwargs for event_callback"
-            )
-            raise HaHomematicException(
-                f"args-exception event_callback [{reduce_args(args=ex.args)}]"
-            ) from ex
+            _LOGGER.warning("EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to reduce kwargs for event_callback")
+            raise HaHomematicException(f"args-exception event_callback [{reduce_args(args=ex.args)}]") from ex
 
     return async_wrapper_event_callback

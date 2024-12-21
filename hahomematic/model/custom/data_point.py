@@ -53,13 +53,9 @@ class CustomDataPoint(BaseDataPoint):
         super().__init__(
             channel=channel,
             unique_id=unique_id,
-            is_in_multiple_channels=hmed.is_multi_channel_device(
-                model=channel.device.model, category=self.category
-            ),
+            is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
-        self._allow_undefined_generic_data_points: Final[bool] = self._device_def[
-            CDPD.ALLOW_UNDEFINED_GENERIC_DPS
-        ]
+        self._allow_undefined_generic_data_points: Final[bool] = self._device_def[CDPD.ALLOW_UNDEFINED_GENERIC_DPS]
         self._data_points: Final[dict[Field, hmge.GenericDataPoint]] = {}
         self._init_data_points()
         self._init_data_point_fields()
@@ -87,9 +83,7 @@ class CustomDataPoint(BaseDataPoint):
         """Return the latest last update timestamp."""
         modified_at: datetime = INIT_DATETIME
         for data_point in self._readable_data_points:
-            if (
-                data_point_modified_at := data_point.modified_at
-            ) and data_point_modified_at > modified_at:
+            if (data_point_modified_at := data_point.modified_at) and data_point_modified_at > modified_at:
                 modified_at = data_point_modified_at
         return modified_at
 
@@ -98,9 +92,7 @@ class CustomDataPoint(BaseDataPoint):
         """Return the latest last refresh timestamp."""
         refreshed_at: datetime = INIT_DATETIME
         for data_point in self._readable_data_points:
-            if (
-                data_point_refreshed_at := data_point.refreshed_at
-            ) and data_point_refreshed_at > refreshed_at:
+            if (data_point_refreshed_at := data_point.refreshed_at) and data_point_refreshed_at > refreshed_at:
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
@@ -174,14 +166,10 @@ class CustomDataPoint(BaseDataPoint):
             return DataPointUsage.CDP_PRIMARY
         return DataPointUsage.CDP_SECONDARY
 
-    async def load_data_point_value(
-        self, call_source: CallSource, direct_call: bool = False
-    ) -> None:
+    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
         for data_point in self._readable_data_points:
-            await data_point.load_data_point_value(
-                call_source=call_source, direct_call=direct_call
-            )
+            await data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.fire_data_point_updated_callback()
 
     def is_state_change(self, **kwargs: Any) -> bool:
@@ -199,18 +187,12 @@ class CustomDataPoint(BaseDataPoint):
         """Init data point collection."""
         # Add repeating fields
         for field_name, parameter in self._device_def.get(hmed.CDPD.REPEATABLE_FIELDS, {}).items():
-            if dp := self._device.get_generic_data_point(
-                channel_address=self._channel.address, parameter=parameter
-            ):
+            if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=False)
 
         # Add visible repeating fields
-        for field_name, parameter in self._device_def.get(
-            hmed.CDPD.VISIBLE_REPEATABLE_FIELDS, {}
-        ).items():
-            if dp := self._device.get_generic_data_point(
-                channel_address=self._channel.address, parameter=parameter
-            ):
+        for field_name, parameter in self._device_def.get(hmed.CDPD.VISIBLE_REPEATABLE_FIELDS, {}).items():
+            if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=True)
 
         if self._extended:
@@ -248,12 +230,8 @@ class CustomDataPoint(BaseDataPoint):
         fields = self._device_def.get(field_dict_name, {})
         for channel_no, channel in fields.items():
             for field, parameter in channel.items():
-                channel_address = get_channel_address(
-                    device_address=self._device.address, channel_no=channel_no
-                )
-                if dp := self._device.get_generic_data_point(
-                    channel_address=channel_address, parameter=parameter
-                ):
+                channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
+                if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                     self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
 
     def _add_data_point(
@@ -271,9 +249,7 @@ class CustomDataPoint(BaseDataPoint):
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unregister_callbacks.append(
-            data_point.register_internal_data_point_updated_callback(
-                cb=self.fire_data_point_updated_callback
-            )
+            data_point.register_internal_data_point_updated_callback(cb=self.fire_data_point_updated_callback)
         )
         self._data_points[field] = data_point
 
@@ -285,9 +261,7 @@ class CustomDataPoint(BaseDataPoint):
 
         super()._unregister_data_point_updated_callback(cb=cb, custom_id=custom_id)
 
-    def _mark_data_points(
-        self, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]
-    ) -> None:
+    def _mark_data_points(self, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]) -> None:
         """Mark data points to be created, even though a custom data point is present."""
         if not custom_data_point_def:
             return
@@ -300,14 +274,10 @@ class CustomDataPoint(BaseDataPoint):
 
     def _mark_data_point(self, channel_no: int | None, parameters: tuple[str, ...]) -> None:
         """Mark data point to be created, even though a custom data point is present."""
-        channel_address = get_channel_address(
-            device_address=self._device.address, channel_no=channel_no
-        )
+        channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
 
         for parameter in parameters:
-            if dp := self._device.get_generic_data_point(
-                channel_address=channel_address, parameter=parameter
-            ):
+            if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                 dp.force_usage(forced_usage=DataPointUsage.DATA_POINT)
 
     def _get_data_point[_DataPointT: hmge.GenericDataPoint](
@@ -334,9 +304,7 @@ class CustomDataPoint(BaseDataPoint):
     def has_data_point_key(self, data_point_keys: set[DP_KEY]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
         result = [
-            data_point
-            for data_point in self._data_points.values()
-            if data_point.data_point_key in data_point_keys
+            data_point for data_point in self._data_points.values() if data_point.data_point_key in data_point_keys
         ]
         return len(result) > 0
 

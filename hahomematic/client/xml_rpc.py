@@ -77,9 +77,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         self._connection_state: Final = connection_state
         self._looper: Final = Looper()
         self._proxy_executor: Final = (
-            ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix=interface_id)
-            if max_workers > 0
-            else None
+            ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix=interface_id) if max_workers > 0 else None
         )
         self._tls: Final[bool] = kwargs.pop(_TLS, False)
         self._verify_tls: Final[bool] = kwargs.pop(_VERIFY_TLS, True)
@@ -111,13 +109,10 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         try:
             method = args[0]
             if self._supported_methods and method not in self._supported_methods:
-                raise UnsupportedException(
-                    f"__ASYNC_REQUEST: method '{method} not supported by backend."
-                )
+                raise UnsupportedException(f"__ASYNC_REQUEST: method '{method} not supported by backend.")
 
-            if (
-                method in _VALID_XMLRPC_COMMANDS_ON_NO_CONNECTION
-                or not self._connection_state.has_issue(issuer=self, iid=self.interface_id)
+            if method in _VALID_XMLRPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
+                issuer=self, iid=self.interface_id
             ):
                 args = _cleanup_args(*args)
                 _LOGGER.debug("__ASYNC_REQUEST: %s", args)
@@ -152,9 +147,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 _LOGGER.error(message)
             raise NoConnectionException(message) from ose
         except xmlrpc.client.Fault as fex:
-            raise ClientException(
-                f"XMLRPC Fault from backend: {fex.faultCode} {fex.faultString}"
-            ) from fex
+            raise ClientException(f"XMLRPC Fault from backend: {fex.faultCode} {fex.faultString}") from fex
         except TypeError as terr:
             raise ClientException(terr) from terr
         except xmlrpc.client.ProtocolError as per:

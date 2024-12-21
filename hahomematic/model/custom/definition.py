@@ -26,11 +26,7 @@ ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomCon
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
 _SCHEMA_ADDITIONAL_DPS = vol.Schema(
-    {
-        vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema(
-            (vol.Optional(Parameter),)
-        )
-    }
+    {vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
 )
 
 _SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
@@ -548,9 +544,7 @@ def validate_custom_data_point_definition() -> Any:
     try:
         return _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
     except vol.Invalid as err:  # pragma: no cover
-        _LOGGER.error(
-            "The custom data point definition could not be validated. %s, %s", err.path, err.msg
-        )
+        _LOGGER.error("The custom data point definition could not be validated. %s, %s", err.path, err.msg)
         return None
 
 
@@ -565,9 +559,7 @@ def make_custom_data_point(
 
     We use a helper-function to avoid raising exceptions during object-init.
     """
-    add_sub_device_channels_to_device(
-        device=channel.device, device_profile=device_profile, custom_config=custom_config
-    )
+    add_sub_device_channels_to_device(device=channel.device, device_profile=device_profile, custom_config=custom_config)
     base_channel_no = get_sub_device_base_channel(device=channel.device, channel_no=channel.no)
     channels = _relevant_channels(device_profile=device_profile, custom_config=custom_config)
     if channel.no in set(channels):
@@ -578,9 +570,7 @@ def make_custom_data_point(
             device_def=_get_device_group(device_profile, base_channel_no),
             custom_data_point_def=_get_device_data_points(device_profile, base_channel_no),
             base_channel_no=base_channel_no,
-            custom_config=_rebase_pri_channels(
-                device_profile=device_profile, custom_config=custom_config
-            ),
+            custom_config=_rebase_pri_channels(device_profile=device_profile, custom_config=custom_config),
         )
 
 
@@ -615,9 +605,7 @@ def _create_custom_data_point(
         ) from ex
 
 
-def _rebase_pri_channels(
-    device_profile: DeviceProfile, custom_config: CustomConfig
-) -> CustomConfig:
+def _rebase_pri_channels(device_profile: DeviceProfile, custom_config: CustomConfig) -> CustomConfig:
     """Re base primary channel of custom config."""
     device_def = _get_device_group(device_profile, 0)
     if (pri_def := device_def[CDPD.PRIMARY_CHANNEL]) is None:
@@ -630,9 +618,7 @@ def _rebase_pri_channels(
     )
 
 
-def _relevant_channels(
-    device_profile: DeviceProfile, custom_config: CustomConfig
-) -> tuple[int | None, ...]:
+def _relevant_channels(device_profile: DeviceProfile, custom_config: CustomConfig) -> tuple[int | None, ...]:
     """Return the relevant channels."""
     device_def = _get_device_group(device_profile, 0)
     def_channels = [device_def[CDPD.PRIMARY_CHANNEL]]
@@ -662,9 +648,7 @@ def add_sub_device_channels_to_device(
         if conf_channel is None:
             continue
         rebased_pri_channel = conf_channel + pri_channel
-        device.add_sub_device_channel(
-            channel_no=rebased_pri_channel, base_channel_no=rebased_pri_channel
-        )
+        device.add_sub_device_channel(channel_no=rebased_pri_channel, base_channel_no=rebased_pri_channel)
         if sec_channels:
             for sec_channel in sec_channels:
                 device.add_sub_device_channel(
@@ -696,9 +680,7 @@ def _get_device_definition(device_profile: DeviceProfile) -> Mapping[CDPD, Any]:
     )
 
 
-def _get_device_group(
-    device_profile: DeviceProfile, base_channel_no: int | None
-) -> Mapping[CDPD, Any]:
+def _get_device_group(device_profile: DeviceProfile, base_channel_no: int | None) -> Mapping[CDPD, Any]:
     """Return the device group."""
     device = _get_device_definition(device_profile)
     group = cast(dict[CDPD, Any], device[CDPD.DEVICE_GROUP])
@@ -740,9 +722,7 @@ def _get_device_data_points(
 ) -> Mapping[int, tuple[Parameter, ...]]:
     """Return the device data points."""
     additional_dps = (
-        VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]
-        .get(device_profile, {})
-        .get(CDPD.ADDITIONAL_DPS, {})
+        VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS].get(device_profile, {}).get(CDPD.ADDITIONAL_DPS, {})
     )
     if not base_channel_no:
         return additional_dps  # type: ignore[no-any-return]
@@ -816,18 +796,12 @@ def get_required_parameters() -> tuple[Parameter, ...]:
     for channel in VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]:
         required_parameters.extend(VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS][channel])
     for device in VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]:
-        device_def = VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device][
-            CDPD.DEVICE_GROUP
-        ]
+        device_def = VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device][CDPD.DEVICE_GROUP]
         required_parameters.extend(list(device_def.get(CDPD.REPEATABLE_FIELDS, {}).values()))
-        required_parameters.extend(
-            list(device_def.get(CDPD.VISIBLE_REPEATABLE_FIELDS, {}).values())
-        )
+        required_parameters.extend(list(device_def.get(CDPD.VISIBLE_REPEATABLE_FIELDS, {}).values()))
         required_parameters.extend(list(device_def.get(CDPD.REPEATABLE_FIELDS, {}).values()))
         for additional_data_points in list(
-            VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device]
-            .get(CDPD.ADDITIONAL_DPS, {})
-            .values()
+            VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device].get(CDPD.ADDITIONAL_DPS, {}).values()
         ):
             required_parameters.extend(additional_data_points)
 

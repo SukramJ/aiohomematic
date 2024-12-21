@@ -97,9 +97,7 @@ class Client(ABC):
     async def init_client(self) -> None:
         """Init the client."""
         self._system_information = await self._get_system_information()
-        self._proxy = await self._config.create_xml_rpc_proxy(
-            auth_enabled=self.system_information.auth_enabled
-        )
+        self._proxy = await self._config.create_xml_rpc_proxy(auth_enabled=self.system_information.auth_enabled)
         self._proxy_read = await self._config.create_xml_rpc_proxy(
             auth_enabled=self.system_information.auth_enabled,
             max_workers=self._config.max_read_workers,
@@ -200,9 +198,7 @@ class Client(ABC):
             _LOGGER.debug("PROXY_INIT: init('%s', '%s')", self._config.init_url, self.interface_id)
             self._ping_pong_cache.clear()
             await self._proxy.init(self._config.init_url, self.interface_id)
-            self._mark_all_devices_forced_availability(
-                forced_availability=ForcedDeviceAvailability.NOT_SET
-            )
+            self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
             _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
         except BaseHomematicException as ex:
             _LOGGER.warning(
@@ -248,9 +244,7 @@ class Client(ABC):
             return await self.proxy_init()
         return ProxyInitState.DE_INIT_FAILED
 
-    def _mark_all_devices_forced_availability(
-        self, forced_availability: ForcedDeviceAvailability
-    ) -> None:
+    def _mark_all_devices_forced_availability(self, forced_availability: ForcedDeviceAvailability) -> None:
         """Mark device's availability state for this interface."""
         available = forced_availability != ForcedDeviceAvailability.FORCE_FALSE
         if self._available != available:
@@ -316,9 +310,7 @@ class Client(ABC):
             self._connection_error_count += 1
 
         if self._connection_error_count > 3:
-            self._mark_all_devices_forced_availability(
-                forced_availability=ForcedDeviceAvailability.FORCE_FALSE
-            )
+            self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             return False
         if not self.supports_push_updates:
             return True
@@ -328,11 +320,8 @@ class Client(ABC):
         """Return if XmlRPC-Server is alive based on received events for this client."""
         if not self.supports_ping_pong:
             return True
-        if (
-            last_events_dt := self.central.get_last_event_dt(interface_id=self.interface_id)
-        ) is not None:
-            seconds_since_last_event = (datetime.now() - last_events_dt).total_seconds()
-            if seconds_since_last_event > CALLBACK_WARN_INTERVAL:
+        if (last_events_dt := self.central.get_last_event_dt(interface_id=self.interface_id)) is not None:
+            if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > CALLBACK_WARN_INTERVAL:
                 if self._is_callback_alive:
                     self.central.fire_interface_event(
                         interface_id=self.interface_id,
@@ -386,9 +375,7 @@ class Client(ABC):
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
-    async def get_all_programs(
-        self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
     @abstractmethod
@@ -421,9 +408,7 @@ class Client(ABC):
             ):
                 return device_description
         except BaseHomematicException as ex:
-            _LOGGER.warning(
-                "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args)
-            )
+            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args))
         return None
 
     @service()
@@ -458,9 +443,7 @@ class Client(ABC):
             raise ClientException(f"GET_INSTALL_MODE failed: {reduce_args(args=ex.args)}") from ex
 
     @service()
-    async def add_link(
-        self, sender_address: str, receiver_address: str, name: str, description: str
-    ) -> None:
+    async def add_link(self, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""
         try:
             await self._proxy.addLink(sender_address, receiver_address, name, description)
@@ -485,9 +468,7 @@ class Client(ABC):
         try:
             return tuple(await self._proxy.getLinkPeers(address))
         except BaseHomematicException as ex:
-            raise ClientException(
-                f"GET_LINK_PEERS failed with for: {address}: {reduce_args(args=ex.args)}"
-            ) from ex
+            raise ClientException(f"GET_LINK_PEERS failed with for: {address}: {reduce_args(args=ex.args)}") from ex
 
     @service()
     async def get_links(self, address: str, flags: int) -> dict[str, Any]:
@@ -495,9 +476,7 @@ class Client(ABC):
         try:
             return cast(dict[str, Any], await self._proxy.getLinks(address, flags))
         except BaseHomematicException as ex:
-            raise ClientException(
-                f"GET_LINKS failed with for: {address}: {reduce_args(args=ex.args)}"
-            ) from ex
+            raise ClientException(f"GET_LINKS failed with for: {address}: {reduce_args(args=ex.args)}") from ex
 
     @service()
     async def get_metadata(self, address: str, data_id: str) -> dict[str, Any]:
@@ -510,9 +489,7 @@ class Client(ABC):
             ) from ex
 
     @service()
-    async def set_metadata(
-        self, address: str, data_id: str, value: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def set_metadata(self, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
         try:
             return cast(dict[str, Any], await self._proxy.setMetadata(address, data_id, value))
@@ -540,9 +517,7 @@ class Client(ABC):
             )
             if paramset_key == ParamsetKey.VALUES:
                 return await self._proxy_read.getValue(channel_address, parameter)
-            paramset = (
-                await self._proxy_read.getParamset(channel_address, ParamsetKey.MASTER) or {}
-            )
+            paramset = await self._proxy_read.getParamset(channel_address, ParamsetKey.MASTER) or {}
             return paramset.get(parameter)
         except BaseHomematicException as ex:
             raise ClientException(
@@ -583,9 +558,7 @@ class Client(ABC):
                 else:
                     raise ClientException(f"Unsupported rx_mode: {rx_mode}")
             else:
-                await self._exec_set_value(
-                    channel_address=channel_address, parameter=parameter, value=value
-                )
+                await self._exec_set_value(channel_address=channel_address, parameter=parameter, value=value)
             # store the send value in the last_value_send_cache
             data_point_key_values = self._last_value_send_cache.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
@@ -593,9 +566,7 @@ class Client(ABC):
             self._write_temporary_value(data_point_key_values=data_point_key_values)
 
             if wait_for_callback is not None and (
-                device := self.central.get_device(
-                    address=get_device_address(address=channel_address)
-                )
+                device := self.central.get_device(address=get_device_address(address=channel_address))
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
@@ -622,9 +593,7 @@ class Client(ABC):
         else:
             await self._proxy.setValue(channel_address, parameter, value)
 
-    def _check_set_value(
-        self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any
-    ) -> Any:
+    def _check_set_value(self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any) -> Any:
         """Check set_value."""
         return self._convert_value(
             channel_address=channel_address,
@@ -742,9 +711,7 @@ class Client(ABC):
                         "Parameter paramset_key is neither a valid ParamsetKey nor a channel address."
                     )
 
-            _LOGGER.debug(
-                "PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key, checked_values
-            )
+            _LOGGER.debug("PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key, checked_values)
             if rx_mode and (device := self.central.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._exec_put_paramset(
@@ -775,9 +742,7 @@ class Client(ABC):
             self._write_temporary_value(data_point_key_values=data_point_key_values)
 
             if wait_for_callback is not None and (
-                device := self.central.get_device(
-                    address=get_device_address(address=channel_address)
-                )
+                device := self.central.get_device(address=get_device_address(address=channel_address))
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
@@ -836,13 +801,8 @@ class Client(ABC):
             parameter=parameter,
         ):
             pd_type = parameter_data["TYPE"]
-            pd_value_list = (
-                tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
-            )
-            if (
-                not bool(pd_operation := int(parameter_data["OPERATIONS"]) & operation)
-                and pd_operation
-            ):
+            pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
+            if not bool(pd_operation := int(parameter_data["OPERATIONS"]) & operation) and pd_operation:
                 raise ClientException(
                     f"Parameter {parameter} does not support the requested operation {operation.value}"
                 )
@@ -868,9 +828,7 @@ class Client(ABC):
         return None
 
     @service(re_raise=False)
-    async def fetch_paramset_description(
-        self, channel_address: str, paramset_key: ParamsetKey
-    ) -> None:
+    async def fetch_paramset_description(self, channel_address: str, paramset_key: ParamsetKey) -> None:
         """Fetch a specific paramset and add it to the known ones."""
         _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION: %s for %s", paramset_key, channel_address)
 
@@ -909,9 +867,7 @@ class Client(ABC):
         _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS for %s", address)
         for p_key in device_description["PARAMSETS"]:
             paramset_key = ParamsetKey(p_key)
-            if paramset_description := await self._get_paramset_description(
-                address=address, paramset_key=paramset_key
-            ):
+            if paramset_description := await self._get_paramset_description(address=address, paramset_key=paramset_key):
                 paramsets[address][paramset_key] = paramset_description
         return paramsets
 
@@ -941,9 +897,7 @@ class Client(ABC):
         """Get all paramset descriptions for provided device descriptions."""
         all_paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
         for device_description in device_descriptions:
-            all_paramsets.update(
-                await self.get_paramset_descriptions(device_description=device_description)
-            )
+            all_paramsets.update(await self.get_paramset_descriptions(device_description=device_description))
         return all_paramsets
 
     @service()
@@ -983,29 +937,21 @@ class Client(ABC):
                     if device.product_group in (ProductGroup.HMIPW, ProductGroup.HMIP)
                     else await self._proxy.updateFirmware(device_address)
                 )
-                result = (
-                    bool(update_result)
-                    if isinstance(update_result, bool)
-                    else bool(update_result[0])
-                )
+                result = bool(update_result) if isinstance(update_result, bool) else bool(update_result[0])
                 _LOGGER.info(
                     "UPDATE_DEVICE_FIRMWARE: Executed firmware update for %s with result '%s'",
                     device_address,
                     "success" if result else "failed",
                 )
             except BaseHomematicException as ex:
-                raise ClientException(
-                    f"UPDATE_DEVICE_FIRMWARE failed]: {reduce_args(args=ex.args)}"
-                ) from ex
+                raise ClientException(f"UPDATE_DEVICE_FIRMWARE failed]: {reduce_args(args=ex.args)}") from ex
             return result
         return False
 
     @service(re_raise=False)
     async def update_paramset_descriptions(self, device_address: str) -> None:
         """Update paramsets descriptions for provided device_address."""
-        if not self.central.device_descriptions.get_device_descriptions(
-            interface_id=self.interface_id
-        ):
+        if not self.central.device_descriptions.get_device_descriptions(interface_id=self.interface_id):
             _LOGGER.warning(
                 "UPDATE_PARAMSET_DESCRIPTIONS failed: "
                 "Interface missing in central cache. "
@@ -1061,23 +1007,13 @@ class ClientCCU(Client):
                     continue
 
                 device_address = device[_JSON_ADDRESS]
-                self.central.device_details.add_interface(
-                    address=device_address, interface=Interface(interface)
-                )
-                self.central.device_details.add_name(
-                    address=device_address, name=device[_JSON_NAME]
-                )
-                self.central.device_details.add_address_id(
-                    address=device_address, hmid=device[_JSON_ID]
-                )
+                self.central.device_details.add_interface(address=device_address, interface=Interface(interface))
+                self.central.device_details.add_name(address=device_address, name=device[_JSON_NAME])
+                self.central.device_details.add_address_id(address=device_address, hmid=device[_JSON_ID])
                 for channel in device.get(_JSON_CHANNELS, []):
                     channel_address = channel[_JSON_ADDRESS]
-                    self.central.device_details.add_name(
-                        address=channel_address, name=channel[_JSON_NAME]
-                    )
-                    self.central.device_details.add_address_id(
-                        address=channel_address, hmid=channel[_JSON_ID]
-                    )
+                    self.central.device_details.add_name(address=channel_address, name=channel[_JSON_NAME])
+                    self.central.device_details.add_address_id(address=channel_address, hmid=channel[_JSON_ID])
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
@@ -1085,16 +1021,12 @@ class ClientCCU(Client):
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
         try:
-            if all_device_data := await self._json_rpc_client.get_all_device_data(
-                interface=self.interface
-            ):
+            if all_device_data := await self._json_rpc_client.get_all_device_data(interface=self.interface):
                 _LOGGER.debug(
                     "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
                     self.interface,
                 )
-                self.central.data_cache.add_data(
-                    interface=self.interface, all_device_data=all_device_data
-                )
+                self.central.data_cache.add_data(interface=self.interface, all_device_data=all_device_data)
                 return
         except ClientException:
             self.central.fire_interface_event(
@@ -1177,9 +1109,7 @@ class ClientCCU(Client):
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @service(re_raise=False, no_raise_return=())
-    async def get_all_programs(
-        self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(markers=markers)
 
@@ -1238,9 +1168,7 @@ class ClientJsonCCU(ClientCCU):
             ):
                 return device_description
         except BaseHomematicException as ex:
-            _LOGGER.warning(
-                "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args)
-            )
+            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args))
         return None
 
     @service()
@@ -1425,11 +1353,7 @@ class ClientHomegear(Client):
     def model(self) -> str:
         """Return the model of the backend."""
         if self._config.version:
-            return (
-                Backend.PYDEVCCU
-                if Backend.PYDEVCCU.lower() in self._config.version
-                else Backend.HOMEGEAR
-            )
+            return Backend.PYDEVCCU if Backend.PYDEVCCU.lower() in self._config.version else Backend.HOMEGEAR
         return Backend.CCU
 
     @property
@@ -1446,9 +1370,7 @@ class ClientHomegear(Client):
     async def fetch_device_details(self) -> None:
         """Get all names from metadata (Homegear)."""
         _LOGGER.debug("FETCH_DEVICE_DETAILS: Fetching names via Metadata")
-        for address in self.central.device_descriptions.get_device_descriptions(
-            interface_id=self.interface_id
-        ):
+        for address in self.central.device_descriptions.get_device_descriptions(interface_id=self.interface_id):
             try:
                 self.central.device_details.add_name(
                     address=address,
@@ -1513,9 +1435,7 @@ class ClientHomegear(Client):
         return tuple(variables)
 
     @service(re_raise=False, no_raise_return=())
-    async def get_all_programs(
-        self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()
 
@@ -1531,9 +1451,7 @@ class ClientHomegear(Client):
 
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
-        return SystemInformation(
-            available_interfaces=(Interface.BIDCOS_RF,), serial=f"{self.interface}_{DUMMY_SERIAL}"
-        )
+        return SystemInformation(available_interfaces=(Interface.BIDCOS_RF,), serial=f"{self.interface}_{DUMMY_SERIAL}")
 
 
 class _ClientConfig:
@@ -1551,9 +1469,7 @@ class _ClientConfig:
         self.interface: Final = interface_config.interface
         self.interface_id: Final = interface_config.interface_id
         self.max_read_workers: Final[int] = central.config.max_read_workers
-        self.has_credentials: Final[bool] = (
-            central.config.username is not None and central.config.password is not None
-        )
+        self.has_credentials: Final[bool] = central.config.username is not None and central.config.password is not None
         self.init_url: Final[str] = f"http://{central.config.callback_host
             if central.config.callback_host
             else central.callback_ip_addr}:{central.config.callback_port
@@ -1571,9 +1487,7 @@ class _ClientConfig:
         try:
             self.version = await self._get_version()
             client: Client | None
-            if self.interface == Interface.BIDCOS_RF and (
-                "Homegear" in self.version or "pydevccu" in self.version
-            ):
+            if self.interface == Interface.BIDCOS_RF and ("Homegear" in self.version or "pydevccu" in self.version):
                 client = ClientHomegear(client_config=self)
             elif self.interface in (Interface.CCU_JACK, Interface.CUXD):
                 client = ClientJsonCCU(client_config=self)
@@ -1654,9 +1568,7 @@ class InterfaceConfig:
     def _init_validate(self) -> None:
         """Validate the client_config."""
         if not self.port and self.interface in INTERFACES_SUPPORTING_XML_RPC:
-            raise ClientException(
-                f"VALIDATE interface config failed: Port must defined for interface{self.interface}"
-            )
+            raise ClientException(f"VALIDATE interface config failed: Port must defined for interface{self.interface}")
 
     @property
     def enabled(self) -> bool:
@@ -1738,9 +1650,7 @@ async def _track_single_data_point_state_change_or_timeout(
             )
             return
         if (
-            unsub := dp.register_data_point_updated_callback(
-                cb=_async_event_changed, custom_id=DEFAULT_CUSTOM_ID
-            )
+            unsub := dp.register_data_point_updated_callback(cb=_async_event_changed, custom_id=DEFAULT_CUSTOM_ID)
         ) is None:
             return
 

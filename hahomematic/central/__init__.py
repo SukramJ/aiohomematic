@@ -229,9 +229,7 @@ class CentralUnit(PayloadMixin):
         if self._scheduler.is_alive():
             return True
         return bool(
-            self._xml_rpc_server
-            and self._xml_rpc_server.no_central_assigned
-            and self._xml_rpc_server.is_alive()
+            self._xml_rpc_server and self._xml_rpc_server.no_central_assigned and self._xml_rpc_server.is_alive()
         )
 
     @property
@@ -269,9 +267,7 @@ class CentralUnit(PayloadMixin):
     @property
     def poll_clients(self) -> tuple[hmcl.Client, ...]:
         """Return clients that need to poll data."""
-        return tuple(
-            client for client in self._clients.values() if not client.supports_push_updates
-        )
+        return tuple(client for client in self._clients.values() if not client.supports_push_updates)
 
     @property
     def primary_client(self) -> hmcl.Client | None:
@@ -351,9 +347,7 @@ class CentralUnit(PayloadMixin):
         if (ccu_var_name := sysvar_data_point.ccu_var_name) is not None:
             self._sysvar_data_points[ccu_var_name] = sysvar_data_point
         if sysvar_data_point.state_path not in self._sysvar_data_point_event_subscriptions:
-            self._sysvar_data_point_event_subscriptions[sysvar_data_point.state_path] = (
-                sysvar_data_point.event
-            )
+            self._sysvar_data_point_event_subscriptions[sysvar_data_point.state_path] = sysvar_data_point.event
 
     def remove_sysvar_data_point(self, name: str) -> None:
         """Remove a sysvar data_point."""
@@ -389,14 +383,10 @@ class CentralUnit(PayloadMixin):
             _LOGGER.debug("START: Central %s already started", self.name)
             return
         if self._config.enabled_interface_configs and (
-            ip_addr := await self._identify_ip_addr(
-                port=tuple(self._config.enabled_interface_configs)[0].port
-            )
+            ip_addr := await self._identify_ip_addr(port=tuple(self._config.enabled_interface_configs)[0].port)
         ):
             self._callback_ip_addr = ip_addr
-            self._listen_ip_addr = (
-                self._config.listen_ip_addr if self._config.listen_ip_addr else ip_addr
-            )
+            self._listen_ip_addr = self._config.listen_ip_addr if self._config.listen_ip_addr else ip_addr
 
         listen_port: int = (
             self._config.listen_port
@@ -405,9 +395,7 @@ class CentralUnit(PayloadMixin):
         )
         try:
             if (
-                xml_rpc_server := xmlrpc.create_xml_rpc_server(
-                    ip_addr=self._listen_ip_addr, port=listen_port
-                )
+                xml_rpc_server := xmlrpc.create_xml_rpc_server(ip_addr=self._listen_ip_addr, port=listen_port)
                 if self._config.enable_server
                 else None
             ):
@@ -451,10 +439,7 @@ class CentralUnit(PayloadMixin):
                 self._xml_rpc_server.stop()
             _LOGGER.debug("STOP: XmlRPC-Server stopped")
         else:
-            _LOGGER.debug(
-                "STOP: shared XmlRPC-Server NOT stopped. "
-                "There is still another central instance registered"
-            )
+            _LOGGER.debug("STOP: shared XmlRPC-Server NOT stopped. There is still another central instance registered")
 
         _LOGGER.debug("STOP: Removing instance")
         if self.name in CENTRAL_INSTANCES:
@@ -476,14 +461,8 @@ class CentralUnit(PayloadMixin):
     @service(re_raise=False)
     async def refresh_firmware_data(self, device_address: str | None = None) -> None:
         """Refresh device firmware data."""
-        if (
-            device_address
-            and (device := self.get_device(address=device_address)) is not None
-            and device.is_updatable
-        ):
-            await self._refresh_device_descriptions(
-                client=device.client, device_address=device_address
-            )
+        if device_address and (device := self.get_device(address=device_address)) is not None and device.is_updatable:
+            await self._refresh_device_descriptions(client=device.client, device_address=device_address)
             device.refresh_firmware_data()
         else:
             for client in self._clients.values():
@@ -493,9 +472,7 @@ class CentralUnit(PayloadMixin):
                     device.refresh_firmware_data()
 
     @service(re_raise=False)
-    async def refresh_firmware_data_by_state(
-        self, device_firmware_states: tuple[DeviceFirmwareState, ...]
-    ) -> None:
+    async def refresh_firmware_data_by_state(self, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
         """Refresh device firmware data for processing devices."""
         for device in [
             device_in_state
@@ -504,19 +481,12 @@ class CentralUnit(PayloadMixin):
         ]:
             await self.refresh_firmware_data(device_address=device.address)
 
-    async def _refresh_device_descriptions(
-        self, client: hmcl.Client, device_address: str | None = None
-    ) -> None:
+    async def _refresh_device_descriptions(self, client: hmcl.Client, device_address: str | None = None) -> None:
         """Refresh device descriptions."""
         device_descriptions: tuple[DeviceDescription, ...] | None = None
         if (
             device_address
-            and (
-                device_description := await client.get_device_description(
-                    device_address=device_address
-                )
-            )
-            is not None
+            and (device_description := await client.get_device_description(device_address=device_address)) is not None
         ):
             device_descriptions = (device_description,)
         else:
@@ -571,8 +541,7 @@ class CentralUnit(PayloadMixin):
             if interface_config.interface not in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
                 if (
                     self.primary_client is not None
-                    and interface_config.interface
-                    not in self.primary_client.system_information.available_interfaces
+                    and interface_config.interface not in self.primary_client.system_information.available_interfaces
                 ):
                     _LOGGER.warning(
                         "CREATE_CLIENTS failed: Interface: %s is not available for backend %s",
@@ -639,9 +608,7 @@ class CentralUnit(PayloadMixin):
                 del self._clients[client.interface_id]
                 continue
             if await client.proxy_init() == ProxyInitState.INIT_SUCCESS:
-                _LOGGER.debug(
-                    "INIT_CLIENTS: client %s initialized for %s", client.interface_id, self.name
-                )
+                _LOGGER.debug("INIT_CLIENTS: client %s initialized for %s", client.interface_id, self.name)
 
     async def _de_init_clients(self) -> None:
         """De-init clients."""
@@ -687,9 +654,7 @@ class CentralUnit(PayloadMixin):
             except HaHomematicException:
                 ip_addr = LOCAL_HOST
             if ip_addr is None:
-                _LOGGER.warning(
-                    "GET_IP_ADDR: Waiting for %i s,", config.CONNECTION_CHECKER_INTERVAL
-                )
+                _LOGGER.warning("GET_IP_ADDR: Waiting for %i s,", config.CONNECTION_CHECKER_INTERVAL)
                 await asyncio.sleep(config.TIMEOUT / 10)
         return ip_addr
 
@@ -725,19 +690,14 @@ class CentralUnit(PayloadMixin):
                     reduce_args(args=ex.args),
                 )
                 raise
-            if (
-                client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES
-                and not system_information.serial
-            ):
+            if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and not system_information.serial:
                 system_information = client.system_information
         return system_information
 
     def get_client(self, interface_id: str) -> hmcl.Client:
         """Return a client by interface_id."""
         if not self.has_client(interface_id=interface_id):
-            raise HaHomematicException(
-                f"get_client: interface_id {interface_id} does not exist on {self.name}"
-            )
+            raise HaHomematicException(f"get_client: interface_id {interface_id} does not exist on {self.name}")
         return self._clients[interface_id]
 
     def get_device(self, address: str) -> Device | None:
@@ -765,9 +725,7 @@ class CentralUnit(PayloadMixin):
             if interface and interface != device.interface:
                 continue
             all_data_points.extend(
-                device.get_data_points(
-                    category=category, exclude_no_create=exclude_no_create, registered=registered
-                )
+                device.get_data_points(category=category, exclude_no_create=exclude_no_create, registered=registered)
             )
         return tuple(all_data_points)
 
@@ -800,13 +758,10 @@ class CentralUnit(PayloadMixin):
         return tuple(
             he
             for he in (self.program_buttons + self.sysvar_data_points)
-            if (category is None or he.category == category)
-            and (registered is None or he.is_registered == registered)
+            if (category is None or he.category == category) and (registered is None or he.is_registered == registered)
         )
 
-    def get_events(
-        self, event_type: EventType, registered: bool | None = None
-    ) -> tuple[tuple[GenericEvent, ...], ...]:
+    def get_events(self, event_type: EventType, registered: bool | None = None) -> tuple[tuple[GenericEvent, ...], ...]:
         """Return all channel event data points."""
         hm_channel_events: list[tuple[GenericEvent, ...]] = []
         for device in self.devices:
@@ -921,9 +876,7 @@ class CentralUnit(PayloadMixin):
         if (device := self._devices.get(device_address)) is None:
             return
 
-        await self.delete_devices(
-            interface_id=interface_id, addresses=[device_address, *list(device.channels.keys())]
-        )
+        await self.delete_devices(interface_id=interface_id, addresses=[device_address, *list(device.channels.keys())])
 
     @callback_backend_system(system_event=BackendSystemEvent.DELETE_DEVICES)
     async def delete_devices(self, interface_id: str, addresses: tuple[str, ...]) -> None:
@@ -939,18 +892,12 @@ class CentralUnit(PayloadMixin):
         await self.save_caches()
 
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
-    async def add_new_devices(
-        self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
-    ) -> None:
+    async def add_new_devices(self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
-        await self._add_new_devices(
-            interface_id=interface_id, device_descriptions=device_descriptions
-        )
+        await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions)
 
     @service(measure_performance=True)
-    async def _add_new_devices(
-        self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
-    ) -> None:
+    async def _add_new_devices(self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
         if not device_descriptions:
             _LOGGER.debug(
@@ -976,9 +923,7 @@ class CentralUnit(PayloadMixin):
             # We need this to avoid adding duplicates.
             known_addresses = tuple(
                 dev_desc["ADDRESS"]
-                for dev_desc in self._device_descriptions.get_raw_device_descriptions(
-                    interface_id=interface_id
-                )
+                for dev_desc in self._device_descriptions.get_raw_device_descriptions(interface_id=interface_id)
             )
             client = self._clients[interface_id]
             save_paramset_descriptions = False
@@ -1022,9 +967,7 @@ class CentralUnit(PayloadMixin):
             if interface_id not in new_device_addresses:
                 new_device_addresses[interface_id] = set()
 
-            for device_address in self._device_descriptions.get_addresses(
-                interface_id=interface_id
-            ):
+            for device_address in self._device_descriptions.get_addresses(interface_id=interface_id):
                 if device_address not in self._devices:
                     new_device_addresses[interface_id].add(device_address)
 
@@ -1038,18 +981,14 @@ class CentralUnit(PayloadMixin):
 
             _LOGGER.debug(
                 "CHECK_FOR_NEW_DEVICE_ADDRESSES: %s: %i.",
-                "Found new device addresses"
-                if new_device_addresses
-                else "Did not find any new device addresses",
+                "Found new device addresses" if new_device_addresses else "Did not find any new device addresses",
                 count,
             )
 
         return new_device_addresses
 
     @callback_event
-    async def data_point_event(
-        self, interface_id: str, channel_address: str, parameter: str, value: Any
-    ) -> None:
+    async def data_point_event(self, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """If a device emits some sort event, we will handle it here."""
         _LOGGER.debug(
             "EVENT: interface_id = %s, channel_address = %s, parameter = %s, value = %s",
@@ -1113,9 +1052,7 @@ class CentralUnit(PayloadMixin):
             value,
         )
 
-        if (
-            data_point_key := self._data_point_path_event_subscriptions.get(state_path)
-        ) is not None:
+        if (data_point_key := self._data_point_path_event_subscriptions.get(state_path)) is not None:
             interface_id, channel_address, paramset_key, parameter = data_point_key
             self._looper.create_task(
                 self.data_point_event(
@@ -1139,9 +1076,7 @@ class CentralUnit(PayloadMixin):
             try:
                 callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
                 if callable(callback_handler):
-                    self._looper.create_task(
-                        callback_handler(value), name=f"sysvar-data-point-event-{state_path}"
-                    )
+                    self._looper.create_task(callback_handler(value), name=f"sysvar-data-point-event-{state_path}")
             except RuntimeError as rte:  # pragma: no cover
                 _LOGGER.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
@@ -1159,9 +1094,7 @@ class CentralUnit(PayloadMixin):
     def list_devices(self, interface_id: str) -> list[DeviceDescription]:
         """Return already existing devices to CCU / Homegear."""
         result = self._device_descriptions.get_raw_device_descriptions(interface_id=interface_id)
-        _LOGGER.debug(
-            "LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result)
-        )
+        _LOGGER.debug("LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result))
         return result
 
     def add_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
@@ -1171,16 +1104,12 @@ class CentralUnit(PayloadMixin):
         ):
             if data_point.data_point_key not in self._data_point_key_event_subscriptions:
                 self._data_point_key_event_subscriptions[data_point.data_point_key] = []
-            self._data_point_key_event_subscriptions[data_point.data_point_key].append(
-                data_point.event
-            )
+            self._data_point_key_event_subscriptions[data_point.data_point_key].append(data_point.event)
             if (
                 not data_point.channel.device.client.supports_xml_rpc
                 and data_point.state_path not in self._data_point_path_event_subscriptions
             ):
-                self._data_point_path_event_subscriptions[data_point.state_path] = (
-                    data_point.data_point_key
-                )
+                self._data_point_path_event_subscriptions[data_point.state_path] = data_point.data_point_key
 
     @service()
     async def create_central_links(self) -> None:
@@ -1305,9 +1234,7 @@ class CentralUnit(PayloadMixin):
                     model = self._device_descriptions.get_model(
                         device_address=get_device_address(address=channel_address)
                     )
-                for parameter, parameter_data in (
-                    channels[channel_address].get(paramset_key, {}).items()
-                ):
+                for parameter, parameter_data in channels[channel_address].get(paramset_key, {}).items():
                     if all(parameter_data["OPERATIONS"] & operation for operation in operations):
                         if un_ignore_candidates_only and (
                             (
@@ -1330,9 +1257,7 @@ class CentralUnit(PayloadMixin):
                             continue
 
                         channel = (
-                            UN_IGNORE_WILDCARD
-                            if use_channel_wildcard
-                            else get_channel_no(address=channel_address)
+                            UN_IGNORE_WILDCARD if use_channel_wildcard else get_channel_no(address=channel_address)
                         )
 
                         full_parameter = f"{parameter}:{paramset_key}@{model}:"
@@ -1450,9 +1375,7 @@ class CentralUnit(PayloadMixin):
             self._homematic_callbacks.remove(cb)
 
     @loop_check
-    def fire_homematic_callback(
-        self, event_type: EventType, event_data: dict[EventKey, str]
-    ) -> None:
+    def fire_homematic_callback(self, event_type: EventType, event_data: dict[EventKey, str]) -> None:
         """
         Fire homematic_callback in central.
 
@@ -1510,9 +1433,7 @@ class CentralUnit(PayloadMixin):
             self._backend_system_callbacks.remove(cb)
 
     @loop_check
-    def fire_backend_system_callback(
-        self, system_event: BackendSystemEvent, **kwargs: Any
-    ) -> None:
+    def fire_backend_system_callback(self, system_event: BackendSystemEvent, **kwargs: Any) -> None:
         """
         Fire system_event callback in central.
 
@@ -1541,9 +1462,7 @@ class _Scheduler(threading.Thread):
         self._central: Final = central
         self._active = True
         self._scheduler_jobs = [
-            _SchedulerJob(
-                task=self._check_connection, run_interval=config.CONNECTION_CHECKER_INTERVAL
-            ),
+            _SchedulerJob(task=self._check_connection, run_interval=config.CONNECTION_CHECKER_INTERVAL),
             _SchedulerJob(
                 task=self._refresh_client_data,
                 run_interval=self._central.config.periodic_refresh_interval,
@@ -1552,9 +1471,7 @@ class _Scheduler(threading.Thread):
                 task=self._refresh_program_data,
                 run_interval=self._central.config.sys_scan_interval,
             ),
-            _SchedulerJob(
-                task=self._refresh_sysvar_data, run_interval=self._central.config.sys_scan_interval
-            ),
+            _SchedulerJob(task=self._refresh_sysvar_data, run_interval=self._central.config.sys_scan_interval),
             _SchedulerJob(
                 task=self._fetch_device_firmware_update_data,
                 run_interval=DEVICE_FIRMWARE_CHECK_INTERVAL,
@@ -1602,8 +1519,7 @@ class _Scheduler(threading.Thread):
         try:
             if not self._central.has_all_enabled_clients:
                 _LOGGER.warning(
-                    "CHECK_CONNECTION failed: No clients exist. "
-                    "Trying to create clients for server %s",
+                    "CHECK_CONNECTION failed: No clients exist. Trying to create clients for server %s",
                     self._central.name,
                 )
                 await self._central.restart_clients()
@@ -1616,17 +1532,9 @@ class _Scheduler(threading.Thread):
                     #  - client is connected
                     #  - interface callback is alive
                     client = self._central.get_client(interface_id=interface_id)
-                    if (
-                        client.available is False
-                        or not await client.is_connected()
-                        or not client.is_callback_alive()
-                    ):
+                    if client.available is False or not await client.is_connected() or not client.is_callback_alive():
                         reconnects.append(client.reconnect())
-                        reloads.append(
-                            self._central.load_and_refresh_data_point_data(
-                                interface=client.interface
-                            )
-                        )
+                        reloads.append(self._central.load_and_refresh_data_point_data(interface=client.interface))
                 if reconnects:
                     await asyncio.gather(*reconnects)
                     if self._central.available:
@@ -1647,9 +1555,7 @@ class _Scheduler(threading.Thread):
             return
 
         if (poll_clients := self._central.poll_clients) is not None and len(poll_clients) > 0:
-            _LOGGER.debug(
-                "REFRESH_CLIENT_DATA: Checking connection to server %s", self._central.name
-            )
+            _LOGGER.debug("REFRESH_CLIENT_DATA: Checking connection to server %s", self._central.name)
             for client in poll_clients:
                 await self._central.load_and_refresh_data_point_data(interface=client.interface)
                 self._central.set_last_event_dt(interface_id=client.interface_id)
@@ -1767,9 +1673,7 @@ class CentralConfig:
         enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
         enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
         enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
-        interfaces_requiring_periodic_refresh: tuple[
-            Interface, ...
-        ] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
+        interfaces_requiring_periodic_refresh: tuple[Interface, ...] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
         json_port: int | None = None,
         listen_ip_addr: str | None = None,
         listen_port: int | None = None,
@@ -1929,9 +1833,7 @@ class CentralConnectionState:
         multiple_logs: bool = True,
     ) -> None:
         """Handle Exception and derivates logging."""
-        exception_name = (
-            exception.name if hasattr(exception, "name") else exception.__class__.__name__
-        )
+        exception_name = exception.name if hasattr(exception, "name") else exception.__class__.__name__
         if self.has_issue(issuer=issuer, iid=iid) and multiple_logs is False:
             logger.debug(
                 "%s failed: %s [%s] %s",
@@ -1963,9 +1865,7 @@ def _get_new_data_points(
 
     for device in new_devices:
         for category, data_points in data_points_by_category.items():
-            data_points.update(
-                device.get_data_points(category=category, exclude_no_create=True, registered=False)
-            )
+            data_points.update(device.get_data_points(category=category, exclude_no_create=True, registered=False))
 
     return data_points_by_category
 
@@ -1976,11 +1876,9 @@ def _get_new_channel_events(new_devices: set[Device]) -> tuple[tuple[GenericEven
 
     for device in new_devices:
         for event_type in DATA_POINT_EVENTS:
-            if (
-                hm_channel_events := list(
-                    device.get_events(event_type=event_type, registered=False).values()
-                )
-            ) and len(hm_channel_events) > 0:
+            if (hm_channel_events := list(device.get_events(event_type=event_type, registered=False).values())) and len(
+                hm_channel_events
+            ) > 0:
                 channel_events.append(hm_channel_events)  # type: ignore[arg-type] # noqa:PERF401
 
     return tuple(channel_events)

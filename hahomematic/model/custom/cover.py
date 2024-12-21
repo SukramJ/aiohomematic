@@ -184,19 +184,11 @@ class CustomDpCover(CustomDataPoint):
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
-        if (
-            kwargs.get(_StateChangeArg.OPEN) is not None
-            and self._channel_level != self._open_level
-        ):
+        if kwargs.get(_StateChangeArg.OPEN) is not None and self._channel_level != self._open_level:
             return True
-        if (
-            kwargs.get(_StateChangeArg.CLOSE) is not None
-            and self._channel_level != self._closed_level
-        ):
+        if kwargs.get(_StateChangeArg.CLOSE) is not None and self._channel_level != self._closed_level:
             return True
-        if (
-            position := kwargs.get(_StateChangeArg.POSITION)
-        ) is not None and position != self.current_position:
+        if (position := kwargs.get(_StateChangeArg.POSITION)) is not None and position != self.current_position:
             return True
         return super().is_state_change(**kwargs)
 
@@ -247,12 +239,8 @@ class CustomDpBlind(CustomDpCover):
         self._dp_channel_level_2: DpSensor[float | None] = self._get_data_point(
             field=Field.CHANNEL_LEVEL_2, data_point_type=DpSensor[float | None]
         )
-        self._dp_level_2: DpFloat = self._get_data_point(
-            field=Field.LEVEL_2, data_point_type=DpFloat
-        )
-        self._dp_combined: DpAction = self._get_data_point(
-            field=Field.LEVEL_COMBINED, data_point_type=DpAction
-        )
+        self._dp_level_2: DpFloat = self._get_data_point(field=Field.LEVEL_2, data_point_type=DpFloat)
+        self._dp_combined: DpAction = self._get_data_point(field=Field.LEVEL_COMBINED, data_point_type=DpAction)
 
     @property
     def _channel_tilt_level(self) -> float:
@@ -416,21 +404,13 @@ class CustomDpBlind(CustomDpCover):
             tilt_position := kwargs.get(_StateChangeArg.TILT_POSITION)
         ) is not None and tilt_position != self.current_tilt_position:
             return True
-        if (
-            kwargs.get(_StateChangeArg.TILT_OPEN) is not None
-            and self.current_tilt_position != _CoverPosition.OPEN
-        ):
+        if kwargs.get(_StateChangeArg.TILT_OPEN) is not None and self.current_tilt_position != _CoverPosition.OPEN:
             return True
-        if (
-            kwargs.get(_StateChangeArg.TILT_CLOSE) is not None
-            and self.current_tilt_position != _CoverPosition.CLOSED
-        ):
+        if kwargs.get(_StateChangeArg.TILT_CLOSE) is not None and self.current_tilt_position != _CoverPosition.CLOSED:
             return True
         return super().is_state_change(**kwargs)
 
-    def _get_combined_value(
-        self, level: float | None = None, tilt_level: float | None = None
-    ) -> str | None:
+    def _get_combined_value(self, level: float | None = None, tilt_level: float | None = None) -> str | None:
         """Return the combined parameter."""
         if level is None and tilt_level is None:
             return None
@@ -452,21 +432,15 @@ class CustomDpIpBlind(CustomDpBlind):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._dp_operation_mode: DpSelect = self._get_data_point(
-            field=Field.OPERATION_MODE, data_point_type=DpSelect
-        )
-        self._dp_combined: DpAction = self._get_data_point(
-            field=Field.COMBINED_PARAMETER, data_point_type=DpAction
-        )
+        self._dp_operation_mode: DpSelect = self._get_data_point(field=Field.OPERATION_MODE, data_point_type=DpSelect)
+        self._dp_combined: DpAction = self._get_data_point(field=Field.COMBINED_PARAMETER, data_point_type=DpAction)
 
     @property
     def operation_mode(self) -> str | None:
         """Return operation mode of cover."""
         return self._dp_operation_mode.value
 
-    def _get_combined_value(
-        self, level: float | None = None, tilt_level: float | None = None
-    ) -> str | None:
+    def _get_combined_value(self, level: float | None = None, tilt_level: float | None = None) -> str | None:
         """Return the combined parameter."""
         if level is None and tilt_level is None:
             return None
@@ -492,9 +466,7 @@ class CustomDpGarage(CustomDataPoint):
         self._dp_door_state: DpSensor[str | None] = self._get_data_point(
             field=Field.DOOR_STATE, data_point_type=DpSensor[str | None]
         )
-        self._dp_door_command: DpAction = self._get_data_point(
-            field=Field.DOOR_COMMAND, data_point_type=DpAction
-        )
+        self._dp_door_command: DpAction = self._get_data_point(field=Field.DOOR_COMMAND, data_point_type=DpAction)
         self._dp_section: DpSensor[str | None] = self._get_data_point(
             field=Field.SECTION, data_point_type=DpSensor[str | None]
         )
@@ -572,26 +544,15 @@ class CustomDpGarage(CustomDataPoint):
         """Move the garage door to vent position."""
         if not self.is_state_change(vent=True):
             return
-        await self._dp_door_command.send_value(
-            value=_GarageDoorCommand.PARTIAL_OPEN, collector=collector
-        )
+        await self._dp_door_command.send_value(value=_GarageDoorCommand.PARTIAL_OPEN, collector=collector)
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
-        if (
-            kwargs.get(_StateChangeArg.OPEN) is not None
-            and self.current_position != _CoverPosition.OPEN
-        ):
+        if kwargs.get(_StateChangeArg.OPEN) is not None and self.current_position != _CoverPosition.OPEN:
             return True
-        if (
-            kwargs.get(_StateChangeArg.VENT) is not None
-            and self.current_position != _CoverPosition.VENT
-        ):
+        if kwargs.get(_StateChangeArg.VENT) is not None and self.current_position != _CoverPosition.VENT:
             return True
-        if (
-            kwargs.get(_StateChangeArg.CLOSE) is not None
-            and self.current_position != _CoverPosition.CLOSED
-        ):
+        if kwargs.get(_StateChangeArg.CLOSE) is not None and self.current_position != _CoverPosition.CLOSED:
             return True
         return super().is_state_change(**kwargs)
 

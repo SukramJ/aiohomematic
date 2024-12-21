@@ -149,9 +149,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         # {interface_id, {address, device_descriptions}}
         self._device_descriptions: Final[dict[str, dict[str, DeviceDescription]]] = {}
 
-    def add_device_description(
-        self, interface_id: str, device_description: DeviceDescription
-    ) -> None:
+    def add_device_description(self, interface_id: str, device_description: DeviceDescription) -> None:
         """Add device_description to cache."""
         if interface_id not in self._raw_device_descriptions:
             self._raw_device_descriptions[interface_id] = []
@@ -162,9 +160,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         )
         self._raw_device_descriptions[interface_id].append(device_description)
 
-        self._convert_device_description(
-            interface_id=interface_id, device_description=device_description
-        )
+        self._convert_device_description(interface_id=interface_id, device_description=device_description)
 
     def get_raw_device_descriptions(self, interface_id: str) -> list[DeviceDescription]:
         """Find raw device in cache."""
@@ -202,9 +198,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         """Return the devices by interface."""
         return self._device_descriptions.get(interface_id, {})
 
-    def find_device_description(
-        self, interface_id: str, device_address: str
-    ) -> DeviceDescription | None:
+    def find_device_description(self, interface_id: str, device_address: str) -> DeviceDescription | None:
         """Return the device description by interface and device_address."""
         return self._device_descriptions.get(interface_id, {}).get(device_address)
 
@@ -212,14 +206,10 @@ class DeviceDescriptionCache(BasePersistentCache):
         """Return the device description by interface and device_address."""
         return self._device_descriptions[interface_id][address]
 
-    def get_device_with_channels(
-        self, interface_id: str, device_address: str
-    ) -> Mapping[str, DeviceDescription]:
+    def get_device_with_channels(self, interface_id: str, device_address: str) -> Mapping[str, DeviceDescription]:
         """Return the device dict by interface and device_address."""
         device_descriptions: dict[str, DeviceDescription] = {
-            device_address: self.get_device_description(
-                interface_id=interface_id, address=device_address
-            )
+            device_address: self.get_device_description(interface_id=interface_id, address=device_address)
         }
         children = device_descriptions[device_address]["CHILDREN"]
         for channel_address in children:
@@ -236,18 +226,12 @@ class DeviceDescriptionCache(BasePersistentCache):
                 return items["TYPE"]
         return None
 
-    def _convert_device_descriptions(
-        self, interface_id: str, device_descriptions: list[DeviceDescription]
-    ) -> None:
+    def _convert_device_descriptions(self, interface_id: str, device_descriptions: list[DeviceDescription]) -> None:
         """Convert provided list of device descriptions."""
         for device_description in device_descriptions:
-            self._convert_device_description(
-                interface_id=interface_id, device_description=device_description
-            )
+            self._convert_device_description(interface_id=interface_id, device_description=device_description)
 
-    def _convert_device_description(
-        self, interface_id: str, device_description: DeviceDescription
-    ) -> None:
+    def _convert_device_description(self, interface_id: str, device_description: DeviceDescription) -> None:
         """Convert provided dict of device descriptions."""
         if interface_id not in self._addresses:
             self._addresses[interface_id] = {}
@@ -260,8 +244,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         if ":" not in address and address not in self._addresses[interface_id]:
             self._addresses[interface_id][address] = {address}
         if ":" in address:
-            device_address = get_device_address(address)
-            if device_address not in self._addresses[interface_id]:
+            if (device_address := get_device_address(address)) not in self._addresses[interface_id]:
                 self._addresses[interface_id][device_address] = set()
             self._addresses[interface_id][device_address].add(address)
 
@@ -287,9 +270,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Init the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
-        self._raw_paramset_descriptions: Final[
-            dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]
-        ] = {}
+        self._raw_paramset_descriptions: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = {}
         super().__init__(
             central=central,
             persistant_cache=self._raw_paramset_descriptions,
@@ -320,13 +301,9 @@ class ParamsetDescriptionCache(BasePersistentCache):
         if paramset_key not in self._raw_paramset_descriptions[interface_id][channel_address]:
             self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = {}
 
-        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = (
-            paramset_description
-        )
+        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
 
-        self._add_address_parameter(
-            channel_address=channel_address, paramsets=[paramset_description]
-        )
+        self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
 
     def remove_device(self, device: Device) -> None:
         """Remove device paramset descriptions from cache."""
@@ -339,13 +316,9 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """Return if interface is in paramset_descriptions cache."""
         return interface_id in self._raw_paramset_descriptions
 
-    def get_paramset_keys(
-        self, interface_id: str, channel_address: str
-    ) -> tuple[ParamsetKey, ...]:
+    def get_paramset_keys(self, interface_id: str, channel_address: str) -> tuple[ParamsetKey, ...]:
         """Get paramset_keys from paramset descriptions cache."""
-        return tuple(
-            self._raw_paramset_descriptions.get(interface_id, {}).get(channel_address, [])
-        )
+        return tuple(self._raw_paramset_descriptions.get(interface_id, {}).get(channel_address, []))
 
     def get_channel_paramset_descriptions(
         self, interface_id: str, channel_address: str
@@ -357,11 +330,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData]:
         """Get paramset descriptions from cache."""
-        return (
-            self._raw_paramset_descriptions.get(interface_id, {})
-            .get(channel_address, {})
-            .get(paramset_key, {})
-        )
+        return self._raw_paramset_descriptions.get(interface_id, {}).get(channel_address, {}).get(paramset_key, {})
 
     def get_parameter_data(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
@@ -378,9 +347,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """Check if parameter is in multiple channels per device."""
         if ":" not in channel_address:
             return False
-        if channels := self._address_parameter_cache.get(
-            (get_device_address(channel_address), parameter)
-        ):
+        if channels := self._address_parameter_cache.get((get_device_address(channel_address), parameter)):
             return len(channels) > 1
         return False
 
@@ -410,13 +377,9 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """
         for channel_paramsets in self._raw_paramset_descriptions.values():
             for channel_address, paramsets in channel_paramsets.items():
-                self._add_address_parameter(
-                    channel_address=channel_address, paramsets=list(paramsets.values())
-                )
+                self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
 
-    def _add_address_parameter(
-        self, channel_address: str, paramsets: list[dict[str, Any]]
-    ) -> None:
+    def _add_address_parameter(self, channel_address: str, paramsets: list[dict[str, Any]]) -> None:
         """Add address parameter to cache."""
         device_address, channel_no = get_split_channel_address(channel_address)
         for paramset in paramsets:

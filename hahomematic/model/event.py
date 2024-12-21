@@ -76,9 +76,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
     @loop_check
     def fire_event(self, value: Any) -> None:
         """Do what is needed to fire an event."""
-        self._central.fire_homematic_callback(
-            event_type=self.event_type, event_data=self.get_event_data(value=value)
-        )
+        self._central.fire_homematic_callback(event_type=self.event_type, event_data=self.get_event_data(value=value))
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data_point."""
@@ -110,16 +108,10 @@ class DeviceErrorEvent(GenericEvent):
 
         if (
             isinstance(new_value, bool)
-            and (
-                (old_value is None and new_value is True)
-                or (isinstance(old_value, bool) and old_value != new_value)
-            )
+            and ((old_value is None and new_value is True) or (isinstance(old_value, bool) and old_value != new_value))
         ) or (
             isinstance(new_value, int)
-            and (
-                (old_value is None and new_value > 0)
-                or (isinstance(old_value, int) and old_value != new_value)
-            )
+            and ((old_value is None and new_value > 0) or (isinstance(old_value, int) and old_value != new_value))
         ):
             self.fire_event(value=new_value)
 
@@ -130,9 +122,7 @@ class ImpulseEvent(GenericEvent):
     _event_type = EventType.IMPULSE
 
 
-def create_event_and_append_to_channel(
-    channel: hmd.Channel, parameter: str, parameter_data: ParameterData
-) -> None:
+def create_event_and_append_to_channel(channel: hmd.Channel, parameter: str, parameter_data: ParameterData) -> None:
     """Create action event data_point."""
     _LOGGER.debug(
         "CREATE_EVENT_AND_APPEND_TO_DEVICE: Creating event for %s, %s, %s",

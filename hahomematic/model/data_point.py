@@ -243,9 +243,7 @@ class CallbackDataPoint(ABC):
 
         if callable(cb) and cb not in self._data_point_updated_callbacks:
             self._data_point_updated_callbacks[cb] = custom_id
-            return partial(
-                self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id
-            )
+            return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
         return None
 
     def _reset_temporary_timestamps(self) -> None:
@@ -284,9 +282,7 @@ class CallbackDataPoint(ABC):
                 kwargs[KWARGS_ARG_DATA_POINT] = self
                 callback_handler(*args, **kwargs)
             except Exception as ex:
-                _LOGGER.warning(
-                    "FIRE_DATA_POINT_UPDATED_EVENT failed: %s", reduce_args(args=ex.args)
-                )
+                _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", reduce_args(args=ex.args))
 
     @loop_check
     def fire_device_removed_callback(self, *args: Any) -> None:
@@ -399,9 +395,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         self._forced_usage = forced_usage
 
     @abstractmethod
-    async def load_data_point_value(
-        self, call_source: CallSource, direct_call: bool = False
-    ) -> None:
+    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data_point data."""
 
     @abstractmethod
@@ -445,14 +439,12 @@ class BaseParameterDataPoint[
                 channel_address=channel.address, parameter=parameter
             ),
         )
-        self._is_un_ignored: Final[bool] = (
-            self._central.parameter_visibility.parameter_is_un_ignored(
-                model=self._device.model,
-                channel_no=self._channel.no,
-                paramset_key=self._paramset_key,
-                parameter=self._parameter,
-                custom_only=True,
-            )
+        self._is_un_ignored: Final[bool] = self._central.parameter_visibility.parameter_is_un_ignored(
+            model=self._device.model,
+            channel_no=self._channel.no,
+            paramset_key=self._paramset_key,
+            parameter=self._parameter,
+            custom_only=True,
         )
         self._current_value: ParameterT = None  # type: ignore[assignment]
         self._previous_value: ParameterT = None  # type: ignore[assignment]
@@ -466,9 +458,7 @@ class BaseParameterDataPoint[
     def _assign_parameter_data(self, parameter_data: ParameterData) -> None:
         """Assign parameter data to instance variables."""
         self._type: ParameterType = ParameterType(parameter_data["TYPE"])
-        self._values = (
-            tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
-        )
+        self._values = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
         self._max: ParameterT = self._convert_value(parameter_data["MAX"])
         self._min: ParameterT = self._convert_value(parameter_data["MIN"])
         self._default: ParameterT = self._convert_value(parameter_data.get("DEFAULT")) or self._min
@@ -561,9 +551,7 @@ class BaseParameterDataPoint[
         """Return the unconfirmed value send for the data_point."""
         return cast(
             ParameterT,
-            self._client.last_value_send_cache.get_last_value_send(
-                data_point_key=self.data_point_key
-            ),
+            self._client.last_value_send_cache.get_last_value_send(data_point_key=self.data_point_key),
         )
 
     @property
@@ -601,11 +589,7 @@ class BaseParameterDataPoint[
     @config_property
     def unique_id(self) -> str:
         """Return the unique_id."""
-        return (
-            f"{self._unique_id}_{DataPointCategory.SENSOR}"
-            if self._is_forced_sensor
-            else self._unique_id
-        )
+        return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
 
     @config_property
     def unit(self) -> str | None:
@@ -692,9 +676,7 @@ class BaseParameterDataPoint[
     async def event(self, value: Any) -> None:
         """Handle event for which this handler has subscribed."""
 
-    async def load_data_point_value(
-        self, call_source: CallSource, direct_call: bool = False
-    ) -> None:
+    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data_point data."""
         if direct_call is False and hms.changed_within_seconds(last_change=self._refreshed_at):
             return
@@ -827,16 +809,11 @@ class CallParameterCollector:
             self._paramsets[data_point.paramset_key] = {}
         if collector_order not in self._paramsets[data_point.paramset_key]:
             self._paramsets[data_point.paramset_key][collector_order] = {}
-        if (
-            data_point.channel.address
-            not in self._paramsets[data_point.paramset_key][collector_order]
-        ):
-            self._paramsets[data_point.paramset_key][collector_order][
-                data_point.channel.address
-            ] = {}
-        self._paramsets[data_point.paramset_key][collector_order][data_point.channel.address][
-            data_point.parameter
-        ] = value
+        if data_point.channel.address not in self._paramsets[data_point.paramset_key][collector_order]:
+            self._paramsets[data_point.paramset_key][collector_order][data_point.channel.address] = {}
+        self._paramsets[data_point.paramset_key][collector_order][data_point.channel.address][data_point.parameter] = (
+            value
+        )
 
     async def send_data(self, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
         """Send data to backend."""
@@ -913,9 +890,7 @@ def bind_collector(
                     IN_SERVICE_VAR.reset(token)
                 in_service = IN_SERVICE_VAR.get()
                 if not in_service and log_level > logging.NOTSET:
-                    logging.getLogger(args[0].__module__).log(
-                        level=log_level, msg=reduce_args(args=bhe.args)
-                    )
+                    logging.getLogger(args[0].__module__).log(level=log_level, msg=reduce_args(args=bhe.args))
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)

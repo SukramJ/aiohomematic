@@ -24,12 +24,7 @@ from hahomematic.model.custom import (
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
 )
-from hahomematic.model.custom.climate import (
-    ScheduleProfile,
-    ScheduleSlotType,
-    ScheduleWeekday,
-    _ModeHmIP,
-)
+from hahomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHmIP
 
 from tests import const, helper
 
@@ -127,9 +122,7 @@ async def test_cesimplerfthermostat(
     assert mock_client.method_calls[-1] == last_call
     await climate.enable_away_mode_by_duration(hours=100, away_temperature=17.0)
     assert mock_client.method_calls[-1] == last_call
-    await climate.enable_away_mode_by_calendar(
-        start=datetime.now(), end=datetime.now(), away_temperature=17.0
-    )
+    await climate.enable_away_mode_by_calendar(start=datetime.now(), end=datetime.now(), away_temperature=17.0)
     assert mock_client.method_calls[-1] == last_call
     await climate.disable_away_mode()
     assert mock_client.method_calls[-1] == last_call
@@ -210,9 +203,7 @@ async def test_cerfthermostat(
         value=12.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000050:4", "CONTROL_MODE", _ModeHmIP.MANU.value
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000050:4", "CONTROL_MODE", _ModeHmIP.MANU.value)
     assert climate.mode == ClimateMode.HEAT
 
     await climate.set_mode(ClimateMode.OFF)
@@ -403,9 +394,7 @@ async def test_ceipthermostat(
         values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 5.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.MANU.value
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.MANU.value)
     assert climate.mode == ClimateMode.HEAT
 
     assert climate.profile == ClimateProfile.NONE
@@ -431,9 +420,7 @@ async def test_ceipthermostat(
         values={"BOOST_MODE": False, "CONTROL_MODE": 0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.AUTO.value
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.AUTO.value)
     await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "BOOST_MODE", 1)
     assert climate.mode == ClimateMode.AUTO
     assert climate.profiles == (
@@ -454,14 +441,10 @@ async def test_ceipthermostat(
         value=False,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.AWAY.value
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.AWAY.value)
     assert climate.profile == ClimateProfile.AWAY
 
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.AUTO.value
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.AUTO.value)
     await climate.set_profile(ClimateProfile.WEEK_PROGRAM_1)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1769958:1",
@@ -515,9 +498,7 @@ async def test_ceipthermostat(
     await climate.set_profile(ClimateProfile.BOOST)
     assert call_count == len(mock_client.method_calls)
 
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_TEMPERATURE", 12.0
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_TEMPERATURE", 12.0)
     call_count = len(mock_client.method_calls)
     await climate.set_temperature(12.0)
     assert call_count == len(mock_client.method_calls)
@@ -801,9 +782,7 @@ async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
             ],
         )
 
-    await climate_bwth.copy_schedule_profile(
-        source_profile=ScheduleProfile.P1, target_profile=ScheduleProfile.P2
-    )
+    await climate_bwth.copy_schedule_profile(source_profile=ScheduleProfile.P1, target_profile=ScheduleProfile.P2)
 
     await climate_bwth.copy_schedule_profile(
         source_profile=ScheduleProfile.P1,

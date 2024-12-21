@@ -137,23 +137,17 @@ class CustomDpIpLock(BaseCustomDpLock):
     @bind_collector()
     async def lock(self, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
-        await self._dp_lock_target_level.send_value(
-            value=_LockTargetLevel.LOCKED, collector=collector
-        )
+        await self._dp_lock_target_level.send_value(value=_LockTargetLevel.LOCKED, collector=collector)
 
     @bind_collector()
     async def unlock(self, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
-        await self._dp_lock_target_level.send_value(
-            value=_LockTargetLevel.UNLOCKED, collector=collector
-        )
+        await self._dp_lock_target_level.send_value(value=_LockTargetLevel.UNLOCKED, collector=collector)
 
     @bind_collector()
     async def open(self, collector: CallParameterCollector | None = None) -> None:
         """Open the lock."""
-        await self._dp_lock_target_level.send_value(
-            value=_LockTargetLevel.OPEN, collector=collector
-        )
+        await self._dp_lock_target_level.send_value(value=_LockTargetLevel.OPEN, collector=collector)
 
 
 class CustomDpButtonLock(BaseCustomDpLock):
@@ -162,9 +156,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._dp_button_lock: DpSwitch = self._get_data_point(
-            field=Field.BUTTON_LOCK, data_point_type=DpSwitch
-        )
+        self._dp_button_lock: DpSwitch = self._get_data_point(field=Field.BUTTON_LOCK, data_point_type=DpSwitch)
 
     @property
     def data_point_name_postfix(self) -> str:
@@ -203,9 +195,7 @@ class CustomDpRfLock(BaseCustomDpLock):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
-        self._dp_state: DpSwitch = self._get_data_point(
-            field=Field.STATE, data_point_type=DpSwitch
-        )
+        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
         self._dp_open: DpAction = self._get_data_point(field=Field.OPEN, data_point_type=DpAction)
         self._dp_direction: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]

@@ -225,7 +225,5 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     async def send_variable(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
         if client := self.central.primary_client:
-            await client.set_system_variable(
-                name=self.ccu_var_name, value=parse_sys_var(self._data_type, value)
-            )
+            await client.set_system_variable(name=self.ccu_var_name, value=parse_sys_var(self._data_type, value))
         self._write_temporary_value(value=value)

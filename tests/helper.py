@@ -91,9 +91,7 @@ class Factory:
             ),
             local_resources=LocalRessources(
                 address_device_translation=address_device_translation,
-                ignore_devices_on_create=ignore_devices_on_create
-                if ignore_devices_on_create
-                else [],
+                ignore_devices_on_create=ignore_devices_on_create if ignore_devices_on_create else [],
             ),
         )
         await _client.init_client()
@@ -155,9 +153,7 @@ def get_prepared_custom_data_point(
 
 def load_device_description(central: CentralUnit, filename: str) -> Any:
     """Load device description."""
-    dev_desc = _load_json_file(
-        anchor="pydevccu", resource="device_descriptions", filename=filename
-    )
+    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", filename=filename)
     assert dev_desc
     return dev_desc
 

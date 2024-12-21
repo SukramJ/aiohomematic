@@ -103,20 +103,13 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         self._dp_optical_alarm_selection: DpAction = self._get_data_point(
             field=Field.OPTICAL_ALARM_SELECTION, data_point_type=DpAction
         )
-        self._dp_duration: DpAction = self._get_data_point(
-            field=Field.DURATION, data_point_type=DpAction
-        )
-        self._dp_duration_unit: DpAction = self._get_data_point(
-            field=Field.DURATION_UNIT, data_point_type=DpAction
-        )
+        self._dp_duration: DpAction = self._get_data_point(field=Field.DURATION, data_point_type=DpAction)
+        self._dp_duration_unit: DpAction = self._get_data_point(field=Field.DURATION_UNIT, data_point_type=DpAction)
 
     @state_property
     def is_on(self) -> bool:
         """Return true if siren is on."""
-        return (
-            self._dp_acoustic_alarm_active.value is True
-            or self._dp_optical_alarm_active.value is True
-        )
+        return self._dp_acoustic_alarm_active.value is True or self._dp_optical_alarm_active.value is True
 
     @state_property
     def available_tones(self) -> tuple[str, ...] | None:
@@ -155,13 +148,9 @@ class CustomDpIpSiren(BaseCustomDpSiren):
                 "check the available_lights attribute for valid tones to pass in"
             )
 
-        await self._dp_acoustic_alarm_selection.send_value(
-            value=acoustic_alarm, collector=collector
-        )
+        await self._dp_acoustic_alarm_selection.send_value(value=acoustic_alarm, collector=collector)
         await self._dp_optical_alarm_selection.send_value(value=optical_alarm, collector=collector)
-        await self._dp_duration_unit.send_value(
-            value=self._dp_duration_unit.default, collector=collector
-        )
+        await self._dp_duration_unit.send_value(value=self._dp_duration_unit.default, collector=collector)
         duration = kwargs.get("duration", self._dp_duration.default)
         await self._dp_duration.send_value(value=duration, collector=collector)
 
@@ -174,9 +163,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         await self._dp_optical_alarm_selection.send_value(
             value=self._dp_optical_alarm_selection.default, collector=collector
         )
-        await self._dp_duration_unit.send_value(
-            value=self._dp_duration_unit.default, collector=collector
-        )
+        await self._dp_duration_unit.send_value(value=self._dp_duration_unit.default, collector=collector)
         await self._dp_duration.send_value(value=self._dp_duration.default, collector=collector)
 
 
@@ -198,9 +185,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         """Return true if siren is on."""
         if not self._dp_smoke_detector_alarm_status.value:
             return False
-        return bool(
-            self._dp_smoke_detector_alarm_status.value != _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF
-        )
+        return bool(self._dp_smoke_detector_alarm_status.value != _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF)
 
     @state_property
     def available_tones(self) -> tuple[str, ...] | None:
@@ -224,16 +209,12 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         **kwargs: Unpack[SirenOnArgs],
     ) -> None:
         """Turn the device on."""
-        await self._dp_smoke_detector_command.send_value(
-            value=_SirenCommand.ON, collector=collector
-        )
+        await self._dp_smoke_detector_command.send_value(value=_SirenCommand.ON, collector=collector)
 
     @bind_collector()
     async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
-        await self._dp_smoke_detector_command.send_value(
-            value=_SirenCommand.OFF, collector=collector
-        )
+        await self._dp_smoke_detector_command.send_value(value=_SirenCommand.OFF, collector=collector)
 
 
 def make_ip_siren(

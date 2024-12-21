@@ -39,9 +39,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         self._device: Final = device
         super().__init__(
             central=device.central,
-            unique_id=generate_unique_id(
-                central=device.central, address=device.address, parameter="Update"
-            ),
+            unique_id=generate_unique_id(central=device.central, address=device.address, parameter="Update"),
         )
         self._set_modified_at()
         self._service_methods = get_service_calls(obj=self)
@@ -115,9 +113,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             self._custom_id = custom_id
 
         if self._device.register_firmware_update_callback(cb) is not None:
-            return partial(
-                self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id
-            )
+            return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
         return None
 
     def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:

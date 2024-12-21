@@ -1,6 +1,7 @@
 # Version 2024.12.10 (2024-12-21)
 
 - Refactor scheduler
+- Reformat line length to 120
 
 # Version 2024.12.9 (2024-12-20)
 

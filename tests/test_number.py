@@ -211,9 +211,7 @@ async def test_hmsysvarnumber(
     assert enumber.value == 23.2
 
     await enumber.send_variable(23.0)
-    assert mock_client.method_calls[-1] == call.set_system_variable(
-        name="sv_float_ext", value=23.0
-    )
+    assert mock_client.method_calls[-1] == call.set_system_variable(name="sv_float_ext", value=23.0)
     assert enumber.value == 23.0
 
     await enumber.send_variable(35.0)

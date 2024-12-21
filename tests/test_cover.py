@@ -12,13 +12,7 @@ from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import DataPointUsage, ParamsetKey
-from hahomematic.model.custom import (
-    CustomDpBlind,
-    CustomDpCover,
-    CustomDpGarage,
-    CustomDpIpBlind,
-    CustomDpWindowDrive,
-)
+from hahomematic.model.custom import CustomDpBlind, CustomDpCover, CustomDpGarage, CustomDpIpBlind, CustomDpWindowDrive
 from hahomematic.model.custom.cover import (
     _CLOSED_LEVEL,
     _OPEN_LEVEL,
@@ -63,9 +57,7 @@ async def test_cecover(
 ) -> None:
     """Test CustomDpCover."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpCover = cast(
-        CustomDpCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4)
-    )
+    cover: CustomDpCover = cast(CustomDpCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
     assert cover._channel_level == _CLOSED_LEVEL
@@ -147,9 +139,7 @@ async def test_ceipblind_dr(
 ) -> None:
     """Test CustomDpIpBlind DIN Rail."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpIpBlind = cast(
-        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU7807849", 14)
-    )
+    cover: CustomDpIpBlind = cast(CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU7807849", 14))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
@@ -195,13 +185,9 @@ async def test_ceipblind_dr(
     assert cover._dp_level.unconfirmed_last_value_send == _OPEN_LEVEL
     assert cover._dp_level_2.unconfirmed_last_value_send == _OPEN_TILT_LEVEL
     await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", _OPEN_LEVEL)
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _OPEN_TILT_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL_2", _OPEN_TILT_LEVEL)
     await central.data_point_event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL", _OPEN_LEVEL)
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _OPEN_TILT_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU7807849:14", "LEVEL_2", _OPEN_TILT_LEVEL)
     assert cover._dp_level.unconfirmed_last_value_send is None
     assert cover._dp_level_2.unconfirmed_last_value_send is None
     assert cover.current_position == 100
@@ -314,9 +300,7 @@ async def test_ceblind(
 ) -> None:
     """Test CustomDpBlind."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpBlind = cast(
-        CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1)
-    )
+    cover: CustomDpBlind = cast(CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
@@ -349,9 +333,7 @@ async def test_ceblind(
         value="0xc8,0xc8",
     )
     await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", _OPEN_LEVEL)
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
     assert cover.current_position == 100
     assert cover.current_tilt_position == 100
 
@@ -363,9 +345,7 @@ async def test_ceblind(
         value="0x00,0x00",
     )
     await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL", _CLOSED_LEVEL)
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -376,9 +356,7 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0x00,0xc8",
     )
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 100
 
@@ -400,9 +378,7 @@ async def test_ceblind(
         parameter="LEVEL_COMBINED",
         value="0x00,0x00",
     )
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
     assert cover.current_position == 0
     assert cover.current_tilt_position == 0
 
@@ -434,25 +410,17 @@ async def test_ceblind(
     )
 
     await cover.open_tilt()
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
     call_count = len(mock_client.method_calls)
     await cover.open_tilt()
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _OPEN_TILT_LEVEL)
     assert call_count == len(mock_client.method_calls)
 
     await cover.close_tilt()
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
     call_count = len(mock_client.method_calls)
     await cover.close_tilt()
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", _CLOSED_LEVEL)
     assert call_count == len(mock_client.method_calls)
 
     await central.data_point_event(const.INTERFACE_ID, "VCU0000144:1", "LEVEL_SLATS", 0.4)
@@ -480,9 +448,7 @@ async def test_ceblind_separate_level_and_tilt_change(
 ) -> None:
     """Test if CustomDpBlind sends correct commands even when rapidly changing level and tilt via separate service calls."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpBlind = cast(
-        CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1)
-    )
+    cover: CustomDpBlind = cast(CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1))
 
     # In order for this test to make sense, communication with CCU must take some amount of time.
     # This is not the case with the default local client used during testing, so we add a slight delay.
@@ -536,9 +502,7 @@ async def test_ceipblind(
 ) -> None:
     """Test CustomDpIpBlind."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpIpBlind = cast(
-        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU1223813", 4)
-    )
+    cover: CustomDpIpBlind = cast(CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU1223813", 4))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
 
     assert cover.current_position == 0
@@ -678,9 +642,7 @@ async def test_ceipblind_hdm(
 ) -> None:
     """Test CustomDpIpBlind HDM."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpIpBlind = cast(
-        CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU3560967", 1)
-    )
+    cover: CustomDpIpBlind = cast(CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU3560967", 1))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
@@ -813,9 +775,7 @@ async def test_cegarageho(
 ) -> None:
     """Test CustomDpGarageHO."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpGarage = cast(
-        CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU3574044", 1)
-    )
+    cover: CustomDpGarage = cast(CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU3574044", 1))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == ("close", "open", "set_position", "stop", "vent")
 
@@ -882,13 +842,9 @@ async def test_cegarageho(
     await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "DOOR_STATE", 1)
     assert cover.current_position == 100
 
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU3574044:1", "SECTION", _GarageDoorActivity.OPENING.value
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "SECTION", _GarageDoorActivity.OPENING.value)
     assert cover.is_opening is True
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU3574044:1", "SECTION", _GarageDoorActivity.CLOSING.value
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "SECTION", _GarageDoorActivity.CLOSING.value)
     assert cover.is_closing is True
 
     await central.data_point_event(const.INTERFACE_ID, "VCU3574044:1", "SECTION", None)
@@ -933,9 +889,7 @@ async def test_cegaragetm(
 ) -> None:
     """Test CustomDpGarageTM."""
     central, mock_client, _ = central_client_factory
-    cover: CustomDpGarage = cast(
-        CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU6166407", 1)
-    )
+    cover: CustomDpGarage = cast(CustomDpGarage, helper.get_prepared_custom_data_point(central, "VCU6166407", 1))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
 
     assert cover.current_position is None
@@ -1001,13 +955,9 @@ async def test_cegaragetm(
     await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "DOOR_STATE", 1)
     assert cover.current_position == 100
 
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.OPENING
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.OPENING)
     assert cover.is_opening is True
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.CLOSING
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", _GarageDoorActivity.CLOSING)
     assert cover.is_closing is True
 
     await central.data_point_event(const.INTERFACE_ID, "VCU6166407:1", "SECTION", None)

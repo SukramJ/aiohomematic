@@ -105,15 +105,14 @@ class Device(PayloadMixin):
         self._is_updatable: Final = self._description.get("UPDATABLE") or False
         self._rx_modes: Final = get_rx_modes(mode=self._description.get("RX_MODE", 0))
         self._sub_model: Final = self._description.get("SUBTYPE")
-        self._ignore_for_custom_data_point: Final[bool] = (
-            central.parameter_visibility.model_is_ignored(model=self._model)
+        self._ignore_for_custom_data_point: Final[bool] = central.parameter_visibility.model_is_ignored(
+            model=self._model
         )
         self._manufacturer = self._identify_manufacturer()
         self._product_group: Final = self._client.get_product_group(self._model)
         # marker if device will be created as custom data_point
         self._has_custom_data_point_definition: Final = (
-            hmed.data_point_definition_exists(model=self._model)
-            and not self._ignore_for_custom_data_point
+            hmed.data_point_definition_exists(model=self._model) and not self._ignore_for_custom_data_point
         )
         self._name: Final = get_device_name(
             central=central,
@@ -121,8 +120,7 @@ class Device(PayloadMixin):
             model=self._model,
         )
         channel_addresses = tuple(
-            [device_address]
-            + [address for address in self._description["CHILDREN"] if address != ""]
+            [device_address] + [address for address in self._description["CHILDREN"] if address != ""]
         )
         self._channels: Final[dict[str, Channel]] = {
             address: Channel(device=self, channel_address=address) for address in channel_addresses
@@ -204,9 +202,7 @@ class Device(PayloadMixin):
     def custom_data_points(self) -> tuple[hmce.CustomDataPoint, ...]:
         """Return the custom data points."""
         return tuple(
-            channel.custom_data_point
-            for channel in self._channels.values()
-            if channel.custom_data_point is not None
+            channel.custom_data_point for channel in self._channels.values() if channel.custom_data_point is not None
         )
 
     @info_property
@@ -222,9 +218,7 @@ class Device(PayloadMixin):
     @property
     def firmware_update_state(self) -> DeviceFirmwareState:
         """Return the firmware update state of the device."""
-        return DeviceFirmwareState(
-            self._description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN
-        )
+        return DeviceFirmwareState(self._description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
 
     @property
     def generic_events(self) -> tuple[GenericEvent, ...]:
@@ -339,23 +333,17 @@ class Device(PayloadMixin):
     @property
     def _dp_un_reach(self) -> GenericDataPoint | None:
         """Return th UN REACH data_point."""
-        return self.get_generic_data_point(
-            channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH
-        )
+        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH)
 
     @property
     def _dp_sticky_un_reach(self) -> GenericDataPoint | None:
         """Return th STICKY_UN_REACH data_point."""
-        return self.get_generic_data_point(
-            channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH
-        )
+        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH)
 
     @property
     def _dp_config_pending(self) -> GenericDataPoint | None:
         """Return th CONFIG_PENDING data_point."""
-        return self.get_generic_data_point(
-            channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING
-        )
+        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING)
 
     def add_sub_device_channel(self, channel_no: int | None, base_channel_no: int) -> None:
         """Assign channel no to base channel no."""
@@ -448,9 +436,7 @@ class Device(PayloadMixin):
             all_data_points.append(self._update_data_point)
         for channel in self._channels.values():
             all_data_points.extend(
-                channel.get_data_points(
-                    category=category, exclude_no_create=exclude_no_create, registered=registered
-                )
+                channel.get_data_points(category=category, exclude_no_create=exclude_no_create, registered=registered)
             )
         return tuple(all_data_points)
 
@@ -460,18 +446,14 @@ class Device(PayloadMixin):
         """Return a list of specific events of a channel."""
         events: dict[int | None, tuple[GenericEvent, ...]] = {}
         for channel in self._channels.values():
-            if (
-                values := channel.get_events(event_type=event_type, registered=registered)
-            ) and len(values) > 0:
+            if (values := channel.get_events(event_type=event_type, registered=registered)) and len(values) > 0:
                 events[channel.no] = values
         return events
 
     def get_custom_data_point(self, channel_no: int) -> hmce.CustomDataPoint | None:
         """Return a data_point from device."""
         if channel := self.get_channel(
-            channel_address=get_channel_address(
-                device_address=self._address, channel_no=channel_no
-            )
+            channel_address=get_channel_address(device_address=self._address, channel_no=channel_no)
         ):
             return channel.custom_data_point
         return None
@@ -511,9 +493,7 @@ class Device(PayloadMixin):
             device_exporter = _DefinitionExporter(device=self)
             await device_exporter.export_data()
         except Exception as ex:
-            raise HaHomematicException(
-                f"EXPORT_DEVICE_DEFINITION failed: {reduce_args(args=ex.args)}"
-            ) from ex
+            raise HaHomematicException(f"EXPORT_DEVICE_DEFINITION failed: {reduce_args(args=ex.args)}") from ex
 
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
@@ -621,24 +601,16 @@ class Channel(PayloadMixin):
             interface_id=self._device.interface_id, address=channel_address
         )
         self._type_name: Final = self._description["TYPE"]
-        self._paramset_keys: Final = tuple(
-            ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"]
-        )
+        self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
 
-        self._unique_id: Final = generate_channel_unique_id(
-            central=self._central, address=channel_address
-        )
+        self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
         self._base_no: Final = self._device.get_sub_device_base_channel(channel_no=self._no)
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DP_KEY, GenericDataPoint]] = {}
         self._generic_events: Final[dict[DP_KEY, GenericEvent]] = {}
         self._modified_at: datetime = INIT_DATETIME
-        self._rooms: Final = self._central.device_details.get_channel_rooms(
-            channel_address=channel_address
-        )
-        self._function: Final = self._central.device_details.get_function_text(
-            address=self._address
-        )
+        self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
+        self._function: Final = self._central.device_details.get_function_text(address=self._address)
 
     @property
     def address(self) -> str:
@@ -759,11 +731,7 @@ class Channel(PayloadMixin):
     @service()
     async def remove_central_link(self) -> None:
         """Remove a central link."""
-        if (
-            self._has_key_press_events
-            and await self._has_central_link()
-            and not await self._has_program_ids()
-        ):
+        if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
             await self._device.client.report_value_usage(
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
@@ -771,9 +739,7 @@ class Channel(PayloadMixin):
     @service()
     async def cleanup_central_link_metadata(self) -> None:
         """Cleanup the metadata for central links."""
-        if metadata := await self._device.client.get_metadata(
-            address=self._address, data_id=REPORT_VALUE_USAGE_DATA
-        ):
+        if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
             await self._device.client.set_metadata(
                 address=self._address,
                 data_id=REPORT_VALUE_USAGE_DATA,
@@ -782,16 +748,11 @@ class Channel(PayloadMixin):
 
     async def _has_central_link(self) -> bool:
         """Check if central link exists."""
-        if metadata := await self._device.client.get_metadata(
-            address=self._address, data_id=REPORT_VALUE_USAGE_DATA
-        ):
+        if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
             return any(
                 key
                 for key, value in metadata.items()
-                if isinstance(key, str)
-                and isinstance(value, int)
-                and key == REPORT_VALUE_USAGE_VALUE_ID
-                and value > 0
+                if isinstance(key, str) and isinstance(value, int) and key == REPORT_VALUE_USAGE_VALUE_ID and value > 0
             )
         return False
 
@@ -802,9 +763,7 @@ class Channel(PayloadMixin):
     @property
     def _has_key_press_events(self) -> bool:
         """Return if channel has KEYPRESS events."""
-        return any(
-            event for event in self.generic_events if event.event_type is EventType.KEYPRESS
-        )
+        return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
 
     def add_data_point(self, data_point: CallbackDataPoint) -> None:
         """Add a data_point to a channel."""
@@ -812,9 +771,7 @@ class Channel(PayloadMixin):
             self._central.add_event_subscription(data_point=data_point)
         if isinstance(data_point, GenericDataPoint):
             self._generic_data_points[data_point.data_point_key] = data_point
-            self._device.register_device_updated_callback(
-                cb=data_point.fire_data_point_updated_callback
-            )
+            self._device.register_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = data_point
         if isinstance(data_point, GenericEvent):
@@ -826,9 +783,7 @@ class Channel(PayloadMixin):
             self._central.remove_event_subscription(data_point=data_point)
         if isinstance(data_point, GenericDataPoint):
             del self._generic_data_points[data_point.data_point_key]
-            self._device.unregister_device_updated_callback(
-                cb=data_point.fire_data_point_updated_callback
-            )
+            self._device.unregister_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = None
         if isinstance(data_point, GenericEvent):
@@ -867,24 +822,16 @@ class Channel(PayloadMixin):
             for data_point in all_data_points
             if data_point is not None
             and (category is None or data_point.category == category)
-            and (
-                (exclude_no_create and data_point.usage != DataPointUsage.NO_CREATE)
-                or exclude_no_create is False
-            )
+            and ((exclude_no_create and data_point.usage != DataPointUsage.NO_CREATE) or exclude_no_create is False)
             and (registered is None or data_point.is_registered == registered)
         )
 
-    def get_events(
-        self, event_type: EventType, registered: bool | None = None
-    ) -> tuple[GenericEvent, ...]:
+    def get_events(self, event_type: EventType, registered: bool | None = None) -> tuple[GenericEvent, ...]:
         """Return a list of specific events of a channel."""
         return tuple(
             event
             for event in self._generic_events.values()
-            if (
-                event.event_type == event_type
-                and (registered is None or event.is_registered == registered)
-            )
+            if (event.event_type == event_type and (registered is None or event.is_registered == registered))
         )
 
     def get_generic_data_point(
@@ -933,9 +880,7 @@ class Channel(PayloadMixin):
     def get_readable_data_points(self, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
         """Return the list of readable master data points."""
         return tuple(
-            ge
-            for ge in self._generic_data_points.values()
-            if ge.is_readable and ge.paramset_key == paramset_key
+            ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
         )
 
     def __str__(self) -> str:
@@ -1037,9 +982,7 @@ class _ValueCache:
                 )
                 != NO_CACHE_ENTRY
             ):
-                return (
-                    NO_CACHE_ENTRY if cached_value == self._NO_VALUE_CACHE_ENTRY else cached_value
-                )
+                return NO_CACHE_ENTRY if cached_value == self._NO_VALUE_CACHE_ENTRY else cached_value
 
             value_dict: dict[str, Any] = {parameter: self._NO_VALUE_CACHE_ENTRY}
             try:
@@ -1129,9 +1072,7 @@ class _ValueCache:
             paramset_key=paramset_key,
             parameter=parameter,
         )
-        if (
-            cache_entry := self._device_cache.get(key, CacheEntry.empty())
-        ) and cache_entry.is_valid:
+        if (cache_entry := self._device_cache.get(key, CacheEntry.empty())) and cache_entry.is_valid:
             return cache_entry.value
         return NO_CACHE_ENTRY
 
@@ -1158,9 +1099,7 @@ class _DefinitionExporter:
         )
         paramset_descriptions: dict[
             str, dict[ParamsetKey, dict[str, ParameterData]]
-        ] = await self._client.get_all_paramset_descriptions(
-            device_descriptions=tuple(device_descriptions.values())
-        )
+        ] = await self._client.get_all_paramset_descriptions(device_descriptions=tuple(device_descriptions.values()))
         model = device_descriptions[self._device_address]["TYPE"]
         filename = f"{model}.json"
 
@@ -1168,9 +1107,7 @@ class _DefinitionExporter:
         anonymize_device_descriptions: list[DeviceDescription] = []
         for device_description in device_descriptions.values():
             new_device_description: DeviceDescription = copy(device_description)
-            new_device_description["ADDRESS"] = self._anonymize_address(
-                address=new_device_description["ADDRESS"]
-            )
+            new_device_description["ADDRESS"] = self._anonymize_address(address=new_device_description["ADDRESS"])
             if new_device_description.get("PARENT"):
                 new_device_description["PARENT"] = new_device_description["ADDRESS"].split(":")[0]
             elif new_device_description.get("CHILDREN"):
@@ -1180,13 +1117,9 @@ class _DefinitionExporter:
             anonymize_device_descriptions.append(new_device_description)
 
         # anonymize paramset_descriptions
-        anonymize_paramset_descriptions: dict[
-            str, dict[ParamsetKey, dict[str, ParameterData]]
-        ] = {}
+        anonymize_paramset_descriptions: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
         for address, paramset_description in paramset_descriptions.items():
-            anonymize_paramset_descriptions[self._anonymize_address(address=address)] = (
-                paramset_description
-            )
+            anonymize_paramset_descriptions[self._anonymize_address(address=address)] = paramset_description
 
         # Save device_descriptions for device to file.
         await self._save(
@@ -1217,11 +1150,7 @@ class _DefinitionExporter:
                 file=os.path.join(file_dir, filename),
                 mode="wb",
             ) as fptr:
-                fptr.write(
-                    orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
-                )
+                fptr.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
             return DataOperationResult.SAVE_SUCCESS
 
-        return await self._central.looper.async_add_executor_job(
-            _save, name="save-device-description"
-        )
+        return await self._central.looper.async_add_executor_job(_save, name="save-device-description")

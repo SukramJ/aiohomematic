@@ -79,43 +79,26 @@ async def test_generate_unique_id(
 ) -> None:
     """Test generate_unique_id."""
     central, _, _ = central_client_factory
+    assert generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL") == "vcu2128127_level"
     assert (
-        generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL")
-        == "vcu2128127_level"
-    )
-    assert (
-        generate_unique_id(
-            central=central, address="VCU2128127", parameter="LEVEL", prefix="PREFIX"
-        )
+        generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL", prefix="PREFIX")
         == "prefix_vcu2128127_level"
     )
-    assert (
-        generate_unique_id(central=central, address="INT0001", parameter="LEVEL")
-        == "test1234_int0001_level"
-    )
+    assert generate_unique_id(central=central, address="INT0001", parameter="LEVEL") == "test1234_int0001_level"
 
 
 def test_build_xml_rpc_uri() -> None:
     """Test build_xml_rpc_uri."""
     assert build_xml_rpc_uri(host="1.2.3.4", port=80, path=None) == "http://1.2.3.4:80"
     assert build_xml_rpc_uri(host="1.2.3.4", port=80, path="group") == "http://1.2.3.4:80/group"
-    assert (
-        build_xml_rpc_uri(host="1.2.3.4", port=80, path="group", tls=True)
-        == "https://1.2.3.4:80/group"
-    )
+    assert build_xml_rpc_uri(host="1.2.3.4", port=80, path="group", tls=True) == "https://1.2.3.4:80/group"
 
 
 def test_build_headers() -> None:
     """Test build_xml_rpc_uri."""
-    assert build_xml_rpc_headers(username="Martin", password="") == [
-        ("Authorization", "Basic TWFydGluOg==")
-    ]
-    assert build_xml_rpc_headers(username="", password="asdf") == [
-        ("Authorization", "Basic OmFzZGY=")
-    ]
-    assert build_xml_rpc_headers(username="Martin", password="asdf") == [
-        ("Authorization", "Basic TWFydGluOmFzZGY=")
-    ]
+    assert build_xml_rpc_headers(username="Martin", password="") == [("Authorization", "Basic TWFydGluOg==")]
+    assert build_xml_rpc_headers(username="", password="asdf") == [("Authorization", "Basic OmFzZGY=")]
+    assert build_xml_rpc_headers(username="Martin", password="asdf") == [("Authorization", "Basic TWFydGluOmFzZGY=")]
 
 
 def test_check_or_create_directory() -> None:
@@ -357,14 +340,9 @@ async def test_get_device_name(
 ) -> None:
     """Test get_device_name."""
     central, _, _ = central_client_factory
-    assert (
-        get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM")
-        == "HmIP-BSM_VCU2128127"
-    )
+    assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM_VCU2128127"
     central.device_details.add_name(address="VCU2128127", name="Roof")
-    assert (
-        get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"
-    )
+    assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"
 
 
 @pytest.mark.asyncio
@@ -377,14 +355,8 @@ async def test_tls_context() -> None:
 @pytest.mark.asyncio
 async def test_changed_within_seconds() -> None:
     """Test changed_within_seconds."""
-    assert (
-        changed_within_seconds(last_change=(datetime.now() - timedelta(seconds=10)), max_age=60)
-        is True
-    )
-    assert (
-        changed_within_seconds(last_change=(datetime.now() - timedelta(seconds=70)), max_age=60)
-        is False
-    )
+    assert changed_within_seconds(last_change=(datetime.now() - timedelta(seconds=10)), max_age=60) is True
+    assert changed_within_seconds(last_change=(datetime.now() - timedelta(seconds=70)), max_age=60) is False
     assert changed_within_seconds(last_change=INIT_DATETIME, max_age=60) is False
 
 
@@ -394,18 +366,9 @@ async def test_convert_value() -> None:
     assert convert_value(value=None, target_type=ParameterType.BOOL, value_list=None) is None
     assert convert_value(value=True, target_type=ParameterType.BOOL, value_list=None) is True
     assert convert_value(value="true", target_type=ParameterType.BOOL, value_list=None) is True
-    assert (
-        convert_value(value=1, target_type=ParameterType.BOOL, value_list=("CLOSED", "OPEN"))
-        is True
-    )
-    assert (
-        convert_value(value=0, target_type=ParameterType.BOOL, value_list=("CLOSED", "OPEN"))
-        is False
-    )
-    assert (
-        convert_value(value=2, target_type=ParameterType.BOOL, value_list=("CLOSED", "OPEN"))
-        is False
-    )
+    assert convert_value(value=1, target_type=ParameterType.BOOL, value_list=("CLOSED", "OPEN")) is True
+    assert convert_value(value=0, target_type=ParameterType.BOOL, value_list=("CLOSED", "OPEN")) is False
+    assert convert_value(value=2, target_type=ParameterType.BOOL, value_list=("CLOSED", "OPEN")) is False
     assert convert_value(value="0.1", target_type=ParameterType.FLOAT, value_list=None) == 0.1
     assert convert_value(value="1", target_type=ParameterType.INTEGER, value_list=None) == 1
     assert convert_value(value="test", target_type=ParameterType.STRING, value_list=None) == "test"
@@ -426,10 +389,7 @@ async def test_element_matches_key() -> None:
         )
         is False
     )
-    assert (
-        element_matches_key(search_elements=["HmIP-eTRV", "HmIP-BWTH"], compare_with="HmIP-eTRV-2")
-        is True
-    )
+    assert element_matches_key(search_elements=["HmIP-eTRV", "HmIP-BWTH"], compare_with="HmIP-eTRV-2") is True
     assert (
         element_matches_key(
             search_elements=["HmIP-eTRV", "HmIP-BWTH"],
@@ -487,18 +447,8 @@ async def test_element_matches_key() -> None:
 @pytest.mark.asyncio
 async def test_value_from_dict_by_wildcard_key() -> None:
     """Test value_from_dict_by_wildcard_key."""
-    assert (
-        _get_value_from_dict_by_wildcard_key(
-            search_elements={"HmIP-eTRV": True}, compare_with=None
-        )
-        is None
-    )
-    assert (
-        _get_value_from_dict_by_wildcard_key(
-            search_elements={"HmIP-eTRV-2": True}, compare_with="HmIP-eTRV"
-        )
-        is True
-    )
+    assert _get_value_from_dict_by_wildcard_key(search_elements={"HmIP-eTRV": True}, compare_with=None) is None
+    assert _get_value_from_dict_by_wildcard_key(search_elements={"HmIP-eTRV-2": True}, compare_with="HmIP-eTRV") is True
     assert (
         _get_value_from_dict_by_wildcard_key(
             search_elements={"HmIP-eTRV-2": False},

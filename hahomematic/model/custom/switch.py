@@ -38,12 +38,8 @@ class CustomDpSwitch(CustomDataPoint, TimerMixin):
         """Init the data_point fields."""
         TimerMixin.__init__(self)
         super()._init_data_point_fields()
-        self._dp_state: DpSwitch = self._get_data_point(
-            field=Field.STATE, data_point_type=DpSwitch
-        )
-        self._dp_on_time_value: DpAction = self._get_data_point(
-            field=Field.ON_TIME_VALUE, data_point_type=DpAction
-        )
+        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
+        self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
         self._dp_channel_state: DpBinarySensor = self._get_data_point(
             field=Field.CHANNEL_STATE, data_point_type=DpBinarySensor
         )
@@ -59,9 +55,7 @@ class CustomDpSwitch(CustomDataPoint, TimerMixin):
         return self._dp_state.value
 
     @bind_collector()
-    async def turn_on(
-        self, collector: CallParameterCollector | None = None, on_time: float | None = None
-    ) -> None:
+    async def turn_on(self, collector: CallParameterCollector | None = None, on_time: float | None = None) -> None:
         """Turn the switch on."""
         if on_time is not None:
             self.set_timer_on_time(on_time=on_time)
@@ -69,9 +63,7 @@ class CustomDpSwitch(CustomDataPoint, TimerMixin):
             return
 
         if (timer := self.get_and_start_timer()) is not None:
-            await self._dp_on_time_value.send_value(
-                value=timer, collector=collector, do_validate=False
-            )
+            await self._dp_on_time_value.send_value(value=timer, collector=collector, do_validate=False)
         await self._dp_state.turn_on(collector=collector)
 
     @bind_collector()
@@ -135,9 +127,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     ),
     "HmIP-FSI": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-FSM": CustomConfig(make_ce_func=make_ip_switch, channels=(2,)),
-    "HmIP-MOD-OC8": CustomConfig(
-        make_ce_func=make_ip_switch, channels=(10, 14, 18, 22, 26, 30, 34, 38)
-    ),
+    "HmIP-MOD-OC8": CustomConfig(make_ce_func=make_ip_switch, channels=(10, 14, 18, 22, 26, 30, 34, 38)),
     "HmIP-PCBS": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-PCBS-BAT": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-PCBS2": CustomConfig(make_ce_func=make_ip_switch, channels=(4, 8)),

@@ -70,9 +70,7 @@ def service(
     return service_decorator
 
 
-def _log_performance_message(
-    func: Callable, start: datetime, *args: P.args, **kwargs: P.kwargs
-) -> None:
+def _log_performance_message(func: Callable, start: datetime, *args: P.args, **kwargs: P.kwargs) -> None:
     """Log the performance message."""
     delta = (datetime.now() - start).total_seconds()
     caller = str(args[0]) if len(args) > 0 else ""
@@ -95,9 +93,7 @@ def get_service_calls(obj: object) -> dict[str, Callable]:
     return {
         name: getattr(obj, name)
         for name in dir(obj)
-        if not name.startswith("_")
-        and callable(getattr(obj, name))
-        and hasattr(getattr(obj, name), "ha_service")
+        if not name.startswith("_") and callable(getattr(obj, name)) and hasattr(getattr(obj, name), "ha_service")
     }
 
 

@@ -62,9 +62,7 @@ class RPCFunctions:
         central: hmcu.CentralUnit | None
         if central := self.get_central(interface_id):
             central.looper.create_task(
-                central.add_new_devices(
-                    interface_id=interface_id, device_descriptions=tuple(device_descriptions)
-                ),
+                central.add_new_devices(interface_id=interface_id, device_descriptions=tuple(device_descriptions)),
                 name=f"newDevices-{interface_id}",
             )
 
@@ -93,9 +91,7 @@ class RPCFunctions:
         )
 
     @callback_backend_system(system_event=BackendSystemEvent.REPLACE_DEVICE)
-    def replaceDevice(
-        self, interface_id: str, old_device_address: str, new_device_address: str
-    ) -> None:
+    def replaceDevice(self, interface_id: str, old_device_address: str, new_device_address: str) -> None:
         """Replace a device. Probably irrelevant for us."""
         _LOGGER.debug(
             "REPLACEDEVICE: interface_id = %s, oldDeviceAddress = %s, newDeviceAddress = %s",

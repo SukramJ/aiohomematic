@@ -42,9 +42,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Initialize the Client."""
         super().__init__(client_config=client_config)
         self._local_resources = local_resources
-        self._paramset_descriptions_cache: dict[
-            str, dict[ParamsetKey, dict[str, ParameterData]]
-        ] = {}
+        self._paramset_descriptions_cache: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
 
     async def init_client(self) -> None:
         """Init the client."""
@@ -142,9 +140,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Get all system variables from CCU / Homegear."""
         return ()
 
-    async def get_all_programs(
-        self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()
 
@@ -252,11 +248,7 @@ class ClientLocal(Client):  # pragma: no cover
 
         if (
             address not in self._paramset_descriptions_cache
-            and (
-                file_name := self._local_resources.address_device_translation.get(
-                    address.split(":")[0]
-                )
-            )
+            and (file_name := self._local_resources.address_device_translation.get(address.split(":")[0]))
             and (
                 data := await self._load_json_file(
                     anchor=self._local_resources.anchor,
@@ -296,9 +288,7 @@ class ClientLocal(Client):  # pragma: no cover
 
         # fire an event to fake the state change for the content of a paramset
         for parameter in values:
-            await self.central.data_point_event(
-                self.interface_id, channel_address, parameter, values[parameter]
-            )
+            await self.central.data_point_event(self.interface_id, channel_address, parameter, values[parameter])
         return result
 
     async def _load_all_json_files(
@@ -318,9 +308,7 @@ class ClientLocal(Client):  # pragma: no cover
         for filename in os.listdir(resource_path):
             if filename not in include_list or filename in exclude_list:
                 continue
-            if file_content := await self._load_json_file(
-                anchor=anchor, resource=resource, filename=filename
-            ):
+            if file_content := await self._load_json_file(anchor=anchor, resource=resource, filename=filename):
                 result.append(file_content)
         return result
 

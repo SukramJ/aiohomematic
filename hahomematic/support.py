@@ -107,18 +107,14 @@ def check_config(
         check_or_create_directory(storage_folder)
     except BaseHomematicException as haex:
         config_failures.append(reduce_args(haex.args)[0])
-    if callback_host and not (
-        is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)
-    ):
+    if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
         config_failures.append("Invalid callback hostname or ipv4 address")
     if callback_port and not is_port(port=callback_port):
         config_failures.append("Invalid callback port")
     if json_port and not is_port(port=json_port):
         config_failures.append("Invalid json port")
     if interface_configs and not has_primary_client(interface_configs=interface_configs):
-        config_failures.append(
-            f"No primary interface ({", ".join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined"
-        )
+        config_failures.append(f"No primary interface ({", ".join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined")
 
     return config_failures
 
@@ -239,14 +235,10 @@ def is_device_address(address: str) -> bool:
 
 def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
     """Check if it is a paramset key."""
-    return isinstance(paramset_key, ParamsetKey) or (
-        isinstance(paramset_key, str) and paramset_key in ParamsetKey
-    )
+    return isinstance(paramset_key, ParamsetKey) or (isinstance(paramset_key, str) and paramset_key in ParamsetKey)
 
 
-def get_data_point_key(
-    interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
-) -> DP_KEY:
+def get_data_point_key(interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str) -> DP_KEY:
     """Return a data point key."""
     return (str(interface_id), str(channel_address), paramset_key, str(parameter))
 
@@ -361,9 +353,7 @@ def element_matches_key(
         return compare_with == element
     if isinstance(search_elements, Collection):
         if isinstance(search_elements, dict) and (
-            match_key := _get_search_key(search_elements=search_elements, search_key=search_key)
-            if search_key
-            else None
+            match_key := _get_search_key(search_elements=search_elements, search_key=search_key) if search_key else None
         ):
             if (elements := search_elements.get(match_key)) is None:
                 return False

@@ -11,11 +11,7 @@ from hahomematic.caches.visibility import check_ignore_parameters_is_clean
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import CallSource, DataPointUsage
-from hahomematic.model.custom import (
-    CustomDpSwitch,
-    get_required_parameters,
-    validate_custom_data_point_definition,
-)
+from hahomematic.model.custom import CustomDpSwitch, get_required_parameters, validate_custom_data_point_definition
 from hahomematic.model.generic import DpSensor, DpSwitch
 
 from tests import const, helper
@@ -52,9 +48,7 @@ async def test_custom_data_point_callback(
 ) -> None:
     """Test CustomDpSwitch."""
     central, _, factory = central_client_factory
-    switch: CustomDpSwitch = cast(
-        CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
-    )
+    switch: CustomDpSwitch = cast(CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
 
     device_updated_mock = MagicMock()
@@ -63,18 +57,14 @@ async def test_custom_data_point_callback(
     unregister_data_point_updated_callback = switch.register_data_point_updated_callback(
         cb=device_updated_mock, custom_id="some_id"
     )
-    unregister_device_removed_callback = switch.register_device_removed_callback(
-        cb=device_removed_mock
-    )
+    unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
     assert switch.value is None
     assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
     await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
     assert switch.value is True
     await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
     assert switch.value is False
-    await central.delete_devices(
-        interface_id=const.INTERFACE_ID, addresses=[switch.device.address]
-    )
+    await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
     assert factory.system_event_mock.call_args_list[-1] == call(
         "deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
     )
@@ -113,17 +103,12 @@ async def test_generic_data_point_callback(
     switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
     switch.register_device_removed_callback(cb=device_removed_mock)
     assert switch.value is None
-    assert (
-        str(switch)
-        == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
-    )
+    assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
     await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
     assert switch.value is True
     await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
     assert switch.value is False
-    await central.delete_devices(
-        interface_id=const.INTERFACE_ID, addresses=[switch.device.address]
-    )
+    await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
     assert factory.system_event_mock.call_args_list[-1] == call(
         "deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
     )
@@ -153,9 +138,7 @@ async def test_load_custom_data_point(
 ) -> None:
     """Test load custom_data_point."""
     central, mock_client, _ = central_client_factory
-    switch: DpSwitch = cast(
-        DpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
-    )
+    switch: DpSwitch = cast(DpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-2] == call.get_value(
         channel_address="VCU2128127:4",
@@ -219,9 +202,7 @@ async def test_generic_wrapped_data_point(
 ) -> None:
     """Test wrapped data_point."""
     central, _, _ = central_client_factory
-    wrapped_data_point: DpSensor = cast(
-        DpSensor, central.get_generic_data_point("VCU3609622:1", "LEVEL")
-    )
+    wrapped_data_point: DpSensor = cast(DpSensor, central.get_generic_data_point("VCU3609622:1", "LEVEL"))
     assert wrapped_data_point.default_category() == "number"
     assert wrapped_data_point._is_forced_sensor is True
     assert wrapped_data_point.category == "sensor"

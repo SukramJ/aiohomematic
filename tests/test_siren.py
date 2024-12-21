@@ -42,9 +42,7 @@ async def test_ceipsiren(
 ) -> None:
     """Test CustomDpIpSiren."""
     central, mock_client, _ = central_client_factory
-    siren: CustomDpIpSiren = cast(
-        CustomDpIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3)
-    )
+    siren: CustomDpIpSiren = cast(CustomDpIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
 
@@ -150,21 +148,13 @@ async def test_ceipsirensmoke(
     assert siren.usage == DataPointUsage.CDP_PRIMARY
 
     assert siren.is_on is False
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 1
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 1)
     assert siren.is_on is True
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 2
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 2)
     assert siren.is_on is True
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 3
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 3)
     assert siren.is_on is True
-    await central.data_point_event(
-        const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 0
-    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU2822385:1", "SMOKE_DETECTOR_ALARM_STATUS", 0)
     assert siren.is_on is False
 
     await siren.turn_on()

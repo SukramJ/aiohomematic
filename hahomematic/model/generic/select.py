@@ -20,15 +20,11 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
     @state_property
     def value(self) -> str | None:  # type: ignore[override]
         """Get the value of the data_point."""
-        if (
-            value := get_value_from_value_list(value=self._value, value_list=self.values)
-        ) is not None:
+        if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value
         return str(self._default)
 
-    def _prepare_value_for_sending(
-        self, value: int | float | str, do_validate: bool = True
-    ) -> int:
+    def _prepare_value_for_sending(self, value: int | float | str, do_validate: bool = True) -> int:
         """Prepare value before sending."""
         # We allow setting the value via index as well, just in case.
         if isinstance(value, int | float) and self._values and 0 <= value < len(self._values):

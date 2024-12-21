@@ -8,11 +8,7 @@ import logging
 from typing import Any, Final, cast
 
 from hahomematic import central as hmcu
-from hahomematic.config import (
-    LAST_COMMAND_SEND_STORE_TIMEOUT,
-    PING_PONG_MISMATCH_COUNT,
-    PING_PONG_MISMATCH_COUNT_TTL,
-)
+from hahomematic.config import LAST_COMMAND_SEND_STORE_TIMEOUT, PING_PONG_MISMATCH_COUNT, PING_PONG_MISMATCH_COUNT_TTL
 from hahomematic.const import (
     DP_KEY,
     DP_KEY_VALUE,
@@ -83,9 +79,7 @@ class CommandCache:
         self, parameter: str, channel_address: str, combined_parameter: str
     ) -> set[DP_KEY_VALUE]:
         """Add data from combined parameter."""
-        if values := convert_combined_parameter_to_paramset(
-            parameter=parameter, cpv=combined_parameter
-        ):
+        if values := convert_combined_parameter_to_paramset(parameter=parameter, cpv=combined_parameter):
             return self.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey.VALUES,
@@ -93,9 +87,7 @@ class CommandCache:
             )
         return set()
 
-    def get_last_value_send(
-        self, data_point_key: DP_KEY, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT
-    ) -> Any:
+    def get_last_value_send(self, data_point_key: DP_KEY, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
         """Return the last send values."""
         if result := self._last_send_command.get(data_point_key):
             value, last_send_dt = result
@@ -261,9 +253,7 @@ class CentralDataCache:
         for data_point in self._central.get_readable_generic_data_points(
             paramset_key=paramset_key, interface=interface
         ):
-            await data_point.load_data_point_value(
-                call_source=CallSource.HM_INIT, direct_call=direct_call
-            )
+            await data_point.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
 
     def add_data(self, interface: Interface, all_device_data: dict[str, Any]) -> None:
         """Add data to cache."""
@@ -437,9 +427,7 @@ class PingPongCache:
                     pong_ts,
                 )
 
-    def _check_and_fire_pong_event(
-        self, event_type: InterfaceEventType, pong_mismatch_count: int
-    ) -> None:
+    def _check_and_fire_pong_event(self, event_type: InterfaceEventType, pong_mismatch_count: int) -> None:
         """Fire an event about the pong status."""
 
         def _fire_event(mismatch_count: int) -> None:

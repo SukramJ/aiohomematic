@@ -208,9 +208,7 @@ class Hub:
             if program_button.pid not in [x.pid for x in programs]
         )
 
-    def _identify_missing_variable_names(
-        self, variables: tuple[SystemVariableData, ...]
-    ) -> tuple[str, ...]:
+    def _identify_missing_variable_names(self, variables: tuple[SystemVariableData, ...]) -> tuple[str, ...]:
         """Identify missing variables."""
         variable_names: dict[str, bool] = {x.name: x.extended_sysvar for x in variables}
         missing_variables: list[str] = []
@@ -218,9 +216,7 @@ class Hub:
             if sysvar_data_point.data_type == SysvarType.STRING:
                 continue
             ccu_name = sysvar_data_point.ccu_var_name
-            if ccu_name not in variable_names or (
-                sysvar_data_point.is_extended is not variable_names.get(ccu_name)
-            ):
+            if ccu_name not in variable_names or (sysvar_data_point.is_extended is not variable_names.get(ccu_name)):
                 missing_variables.append(ccu_name)
         return tuple(missing_variables)
 

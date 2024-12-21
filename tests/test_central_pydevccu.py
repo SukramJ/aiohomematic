@@ -91,10 +91,7 @@ async def test_central_full(central_unit_full) -> None:
 
     parameters: list[tuple[str, int]] = []
     for data_point in central_unit_full.get_data_points(exclude_no_create=False):
-        if (
-            hasattr(data_point, "parameter")
-            and (data_point.parameter, data_point._operations) not in parameters
-        ):
+        if hasattr(data_point, "parameter") and (data_point.parameter, data_point._operations) not in parameters:
             parameters.append((data_point.parameter, data_point._operations))
     parameters = sorted(parameters)
 
@@ -133,16 +130,10 @@ async def test_central_full(central_unit_full) -> None:
 
     assert len(central_unit_full._devices) == 386
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
-    await central_unit_full.delete_devices(
-        interface_id=const.INTERFACE_ID, addresses=virtual_remotes
-    )
+    await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
     assert len(central_unit_full._devices) == 383
-    del_addresses = list(
-        central_unit_full.device_descriptions.get_device_descriptions(const.INTERFACE_ID)
-    )
+    del_addresses = list(central_unit_full.device_descriptions.get_device_descriptions(const.INTERFACE_ID))
     del_addresses = [adr for adr in del_addresses if ":" not in adr]
-    await central_unit_full.delete_devices(
-        interface_id=const.INTERFACE_ID, addresses=del_addresses
-    )
+    await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
     assert len(central_unit_full._devices) == 0
     assert len(central_unit_full.get_data_points(exclude_no_create=False)) == 0

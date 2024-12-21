@@ -52,13 +52,11 @@ def create_data_points_and_events(device: hmd.Device) -> None:
                         channel.address,
                     )
                     continue
-                parameter_is_un_ignored: bool = (
-                    device.central.parameter_visibility.parameter_is_un_ignored(
-                        model=device.model,
-                        channel_no=channel.no,
-                        paramset_key=paramset_key,
-                        parameter=parameter,
-                    )
+                parameter_is_un_ignored: bool = device.central.parameter_visibility.parameter_is_un_ignored(
+                    model=device.model,
+                    channel_no=channel.no,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
                 )
 
                 if paramset_key == ParamsetKey.MASTER:

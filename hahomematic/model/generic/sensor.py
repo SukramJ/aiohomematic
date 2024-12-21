@@ -26,9 +26,7 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
     @state_property
     def value(self) -> SensorT:  # type: ignore[override]
         """Return the value."""
-        if (
-            value := get_value_from_value_list(value=self._value, value_list=self.values)
-        ) is not None:
+        if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value  # type: ignore[return-value]
         if convert_func := self._get_converter_func():
             return convert_func(self._value)  # type: ignore[no-any-return]

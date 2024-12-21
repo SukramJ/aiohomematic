@@ -32,9 +32,7 @@ class Looper:
         await asyncio.sleep(0)
         start_time: float | None = None
         current_task = asyncio.current_task()
-        while tasks := [
-            task for task in self._tasks if task is not current_task and not cancelling(task)
-        ]:
+        while tasks := [task for task in self._tasks if task is not current_task and not cancelling(task)]:
             await self._await_and_log_pending(tasks)
 
             if start_time is None:
@@ -74,9 +72,7 @@ class Looper:
             )
             return
 
-    def _async_create_task[_R](
-        self, target: Coroutine[Any, Any, _R], name: str
-    ) -> asyncio.Task[_R]:
+    def _async_create_task[_R](self, target: Coroutine[Any, Any, _R], name: str) -> asyncio.Task[_R]:
         """Create a task from within the event_loop. This method must be run in the event_loop."""
         task = self._loop.create_task(target, name=name)
         self._tasks.add(task)
@@ -107,9 +103,7 @@ class Looper:
             self._tasks.add(task)
             task.add_done_callback(self._tasks.remove)
         except (TimeoutError, CancelledError) as err:  # pragma: no cover
-            message = (
-                f"async_add_executor_job: task cancelled for {name} [{reduce_args(args=err.args)}]"
-            )
+            message = f"async_add_executor_job: task cancelled for {name} [{reduce_args(args=err.args)}]"
             _LOGGER.debug(message)
             raise HaHomematicException(message) from err
         return task
@@ -144,9 +138,7 @@ def loop_check[**_P, _R](func: Callable[_P, _R]) -> Callable[_P, _R]:
 
         if not loop_running and func not in _with_loop:
             _with_loop.add(func)
-            _LOGGER.warning(
-                "Method %s must run in the event_loop. No loop detected.", func.__name__
-            )
+            _LOGGER.warning("Method %s must run in the event_loop. No loop detected.", func.__name__)
 
         return return_value
 

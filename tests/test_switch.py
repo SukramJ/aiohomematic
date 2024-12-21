@@ -43,9 +43,7 @@ async def test_ceswitch(
 ) -> None:
     """Test CustomDpSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: CustomDpSwitch = cast(
-        CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4)
-    )
+    switch: CustomDpSwitch = cast(CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
 
@@ -202,6 +200,4 @@ async def test_hmsysvarswitch(
 
     assert switch.value is False
     await switch.send_variable(True)
-    assert mock_client.method_calls[-1] == call.set_system_variable(
-        name="sv_alarm_ext", value=True
-    )
+    assert mock_client.method_calls[-1] == call.set_system_variable(name="sv_alarm_ext", value=True)

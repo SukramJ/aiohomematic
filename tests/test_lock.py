@@ -44,9 +44,7 @@ async def test_cerflock(
 ) -> None:
     """Test CustomDpRfLock."""
     central, mock_client, _ = central_client_factory
-    lock: CustomDpRfLock = cast(
-        CustomDpRfLock, helper.get_prepared_custom_data_point(central, "VCU0000146", 1)
-    )
+    lock: CustomDpRfLock = cast(CustomDpRfLock, helper.get_prepared_custom_data_point(central, "VCU0000146", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
 
     assert lock.is_locked is True
@@ -120,9 +118,7 @@ async def test_ceiplock(
 ) -> None:
     """Test CustomDpIpLock."""
     central, mock_client, _ = central_client_factory
-    lock: CustomDpIpLock = cast(
-        CustomDpIpLock, helper.get_prepared_custom_data_point(central, "VCU9724704", 1)
-    )
+    lock: CustomDpIpLock = cast(CustomDpIpLock, helper.get_prepared_custom_data_point(central, "VCU9724704", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
     assert lock.service_method_names == ("lock", "open", "unlock")
 

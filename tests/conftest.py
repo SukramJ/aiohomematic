@@ -36,9 +36,7 @@ def pydev_ccu_full() -> pydevccu.Server:
 @pytest.fixture
 def pydev_ccu_mini() -> pydevccu.Server:
     """Create the virtual ccu."""
-    ccu = pydevccu.Server(
-        addr=(const.CCU_HOST, const.CCU_PORT), devices=["HmIP-BWTH", "HmIP-eTRV-2"]
-    )
+    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_PORT), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
     ccu.start()
     yield ccu
     ccu.stop()
@@ -66,9 +64,7 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
     central = await helper.get_pydev_ccu_central_unit_full()
 
     unregister_homematic_callback = central.register_homematic_callback(homematic_callback)
-    unregister_backend_system_callback = central.register_backend_system_callback(
-        backend_system_callback
-    )
+    unregister_backend_system_callback = central.register_backend_system_callback(backend_system_callback)
 
     yield central
 

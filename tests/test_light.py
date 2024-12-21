@@ -57,9 +57,7 @@ async def test_cedimmer(
 ) -> None:
     """Test CustomDpDimmer."""
     central, mock_client, _ = central_client_factory
-    light: CustomDpDimmer = cast(
-        CustomDpDimmer, helper.get_prepared_custom_data_point(central, "VCU1399816", 4)
-    )
+    light: CustomDpDimmer = cast(CustomDpDimmer, helper.get_prepared_custom_data_point(central, "VCU1399816", 4))
     assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.service_method_names == ("turn_off", "turn_on")
     assert light.color_temp_kelvin is None

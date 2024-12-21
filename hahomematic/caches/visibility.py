@@ -32,9 +32,7 @@ _CLIMATE_MASTER_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.TEMPERATURE_MINIMUM,
     Parameter.TEMPERATURE_OFFSET,
 )
-_RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[
-    Mapping[str, tuple[tuple[int | None, ...], tuple[Parameter, ...]]]
-] = {
+_RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None, ...], tuple[Parameter, ...]]]] = {
     "ALPHA-IP-RBG": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
     "HM-CC-RT-DN": ((None, 1), _CLIMATE_MASTER_PARAMETERS),
     "HM-CC-VG-1": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
@@ -267,13 +265,10 @@ class ParameterVisibilityCache:
         self._custom_un_ignore_values_parameters: Final[set[str]] = set()
 
         # model, channel_no, paramset_key, parameter
-        self._custom_un_ignore_complex: Final[
-            dict[str, dict[int | str | None, dict[str, set[str]]]]
-        ] = {}
+        self._custom_un_ignore_complex: Final[dict[str, dict[int | str | None, dict[str, set[str]]]]] = {}
         self._ignore_custom_: Final[list[str]] = []
         self._ignore_parameters_by_device_lower: Final[dict[str, tuple[str, ...]]] = {
-            parameter: tuple(model.lower() for model in s)
-            for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
+            parameter: tuple(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
         }
 
         self._ignore_devices_for_data_point_events_lower: Final[dict[str, tuple[str, ...]]] = {
@@ -282,8 +277,7 @@ class ParameterVisibilityCache:
         }
 
         self._un_ignore_parameters_by_device_lower: Final[dict[str, tuple[str, ...]]] = {
-            model.lower(): parameters
-            for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
+            model.lower(): parameters for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
         }
 
         # model, channel_no, paramset_key, set[parameter]
@@ -311,13 +305,9 @@ class ParameterVisibilityCache:
             def _add_channel(dt_l: str, params: tuple[Parameter, ...], ch_no: int | None) -> None:
                 self._relevant_master_paramsets_by_device[dt_l].add(ch_no)
                 if ch_no not in self._un_ignore_parameters_by_device_paramset_key[dt_l]:
-                    self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no] = {
-                        ParamsetKey.MASTER: set()
-                    }
+                    self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no] = {ParamsetKey.MASTER: set()}
                 for parameter in params:
-                    self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][
-                        ParamsetKey.MASTER
-                    ].add(parameter)
+                    self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][ParamsetKey.MASTER].add(parameter)
 
             if channel_nos:
                 for channel_no in channel_nos:
@@ -380,9 +370,9 @@ class ParameterVisibilityCache:
             ) is not None and accept_channel != channel_no:
                 return True
         if paramset_key == ParamsetKey.MASTER:
-            if parameter in self._custom_un_ignore_complex.get(model_l, {}).get(
-                channel_no, {}
-            ).get(ParamsetKey.MASTER, []):
+            if parameter in self._custom_un_ignore_complex.get(model_l, {}).get(channel_no, {}).get(
+                ParamsetKey.MASTER, []
+            ):
                 return False  # pragma: no cover
 
             dt_short = tuple(
@@ -391,9 +381,9 @@ class ParameterVisibilityCache:
                     self._un_ignore_parameters_by_device_paramset_key,
                 )
             )
-            if dt_short and parameter not in self._un_ignore_parameters_by_device_paramset_key.get(
-                dt_short[0], {}
-            ).get(channel_no, {}).get(ParamsetKey.MASTER, []):
+            if dt_short and parameter not in self._un_ignore_parameters_by_device_paramset_key.get(dt_short[0], {}).get(
+                channel_no, {}
+            ).get(ParamsetKey.MASTER, []):
                 return True
 
         return False
@@ -415,10 +405,7 @@ class ParameterVisibilityCache:
         model_l = model.lower()
 
         # check if parameter is in custom_un_ignore
-        if (
-            paramset_key == ParamsetKey.VALUES
-            and parameter in self._custom_un_ignore_values_parameters
-        ):
+        if paramset_key == ParamsetKey.VALUES and parameter in self._custom_un_ignore_values_parameters:
             return True
 
         # check if parameter is in custom_un_ignore with paramset_key
@@ -479,9 +466,9 @@ class ParameterVisibilityCache:
             )
 
             # check if parameter is in _RELEVANT_MASTER_PARAMSETS_BY_DEVICE
-            if dt_short and parameter in self._un_ignore_parameters_by_device_paramset_key.get(
-                dt_short[0], {}
-            ).get(channel_no, {}).get(paramset_key, set()):
+            if dt_short and parameter in self._un_ignore_parameters_by_device_paramset_key.get(dt_short[0], {}).get(
+                channel_no, {}
+            ).get(paramset_key, set()):
                 return True
 
         return self._parameter_is_un_ignored(
@@ -520,9 +507,7 @@ class ParameterVisibilityCache:
                 line,
             )
 
-    def _get_un_ignore_line_details(
-        self, line: str
-    ) -> tuple[str, int | str | None, str, ParamsetKey] | str | None:
+    def _get_un_ignore_line_details(self, line: str) -> tuple[str, int | str | None, str, ParamsetKey] | str | None:
         """
         Check the format of the line for un_ignore file.
 
@@ -562,11 +547,7 @@ class ParameterVisibilityCache:
                         model = channel_data[0].lower()
                         _channel_no = channel_data[1]
                         channel_no = (
-                            int(_channel_no)
-                            if _channel_no.isnumeric()
-                            else None
-                            if _channel_no == ""
-                            else _channel_no
+                            int(_channel_no) if _channel_no.isnumeric() else None if _channel_no == "" else _channel_no
                         )
                     else:
                         _LOGGER.warning(
@@ -595,11 +576,7 @@ class ParameterVisibilityCache:
                 line,
             )
             return None
-        if (
-            model == UN_IGNORE_WILDCARD
-            and channel_no == UN_IGNORE_WILDCARD
-            and paramset_key == ParamsetKey.VALUES
-        ):
+        if model == UN_IGNORE_WILDCARD and channel_no == UN_IGNORE_WILDCARD and paramset_key == ParamsetKey.VALUES:
             return parameter
         if model is not None and parameter is not None and paramset_key is not None:
             return model, channel_no, parameter, paramset_key
@@ -690,9 +667,7 @@ class ParameterVisibilityCache:
         def _load() -> None:
             if not hms.check_or_create_directory(self._storage_folder):
                 return  # pragma: no cover
-            if not os.path.exists(
-                os.path.join(self._storage_folder, _FILE_CUSTOM_UN_IGNORE_PARAMETERS)
-            ):
+            if not os.path.exists(os.path.join(self._storage_folder, _FILE_CUSTOM_UN_IGNORE_PARAMETERS)):
                 _LOGGER.debug(
                     "LOAD: No file found in %s",
                     self._storage_folder,

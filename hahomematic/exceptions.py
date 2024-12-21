@@ -124,7 +124,9 @@ def log_exception[**_P, _R](
             try:
                 return_value = cast(_R, await func(*args, **kwargs))  # type: ignore[misc]
             except ex_type as ex:
-                message = f"{function_name.upper()} failed: {ex_type.__name__} [{_reduce_args(args=ex.args)}] {extra_msg}"
+                message = (
+                    f"{function_name.upper()} failed: {ex_type.__name__} [{_reduce_args(args=ex.args)}] {extra_msg}"
+                )
                 logger.log(level, message)
                 if re_raise:
                     raise

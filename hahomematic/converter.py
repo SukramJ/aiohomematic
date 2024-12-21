@@ -76,11 +76,7 @@ def convert_combined_parameter_to_paramset(parameter: str, cpv: str) -> dict[str
     try:
         if converter := _COMBINED_PARAMETER_TO_PARAMSET_CONVERTER.get(parameter):  # type: ignore[call-overload]
             return cast(dict[str, Any], converter(cpv))
-        _LOGGER.debug(
-            "CONVERT_COMBINED_PARAMETER_TO_PARAMSET: No converter found for %s: %s", parameter, cpv
-        )
+        _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: No converter found for %s: %s", parameter, cpv)
     except Exception as ex:
-        _LOGGER.debug(
-            "CONVERT_COMBINED_PARAMETER_TO_PARAMSET: Convert failed %s", reduce_args(args=ex.args)
-        )
+        _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: Convert failed %s", reduce_args(args=ex.args))
     return {}

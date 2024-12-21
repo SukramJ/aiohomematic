@@ -327,17 +327,13 @@ class JsonRpcAioHttpClient:
 
         def _load_script(script_name: str) -> str | None:
             """Load script from file system."""
-            script_file = os.path.join(
-                Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name
-            )
+            script_file = os.path.join(Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name)
             if script := Path(script_file).read_text(encoding=UTF_8):
                 self._script_cache[script_name] = script
                 return script
             return None
 
-        return await self._looper.async_add_executor_job(
-            _load_script, script_name, name=f"load_script-{script_name}"
-        )
+        return await self._looper.async_add_executor_job(_load_script, script_name, name=f"load_script-{script_name}")
 
     async def _do_post(
         self,
@@ -354,9 +350,7 @@ class JsonRpcAioHttpClient:
         if self._supported_methods and method not in self._supported_methods:
             raise UnsupportedException(f"POST: method '{method} not supported by backend.")
 
-        params = _get_params(
-            session_id=session_id, extra_params=extra_params, use_default_params=use_default_params
-        )
+        params = _get_params(session_id=session_id, extra_params=extra_params, use_default_params=use_default_params)
 
         try:
             payload = orjson.dumps({"method": method, "params": params, "jsonrpc": "1.1", "id": 0})
@@ -504,17 +498,12 @@ class JsonRpcAioHttpClient:
             if (clean_text := cleanup_text_from_html_tags(text=value)) != value:
                 params[_JsonKey.VALUE] = clean_text
                 _LOGGER.warning(
-                    "SET_SYSTEM_VARIABLE: "
-                    "Value (%s) contains html tags. These are filtered out when writing.",
+                    "SET_SYSTEM_VARIABLE: Value (%s) contains html tags. These are filtered out when writing.",
                     value,
                 )
-            response = await self._post_script(
-                script_name=RegaScript.SET_SYSTEM_VARIABLE, extra_params=params
-            )
+            response = await self._post_script(script_name=RegaScript.SET_SYSTEM_VARIABLE, extra_params=params)
         else:
-            response = await self._post(
-                method=_JsonRpcMethod.SYSVAR_SET_FLOAT, extra_params=params
-            )
+            response = await self._post(method=_JsonRpcMethod.SYSVAR_SET_FLOAT, extra_params=params)
 
         _LOGGER.debug("SET_SYSTEM_VARIABLE: Setting System variable")
         if json_result := response[_JsonKey.RESULT]:
@@ -660,9 +649,7 @@ class JsonRpcAioHttpClient:
         """Get all system variable descriptions from CCU via script."""
         descriptions: dict[str, str] = {}
         try:
-            response = await self._post_script(
-                script_name=RegaScript.GET_SYSTEM_VARIABLE_DESCRIPTIONS
-            )
+            response = await self._post_script(script_name=RegaScript.GET_SYSTEM_VARIABLE_DESCRIPTIONS)
 
             _LOGGER.debug("GET_SYSTEM_VARIABLE_DESCRIPTIONS: Getting system variable descriptions")
             if json_result := response[_JsonKey.RESULT]:
@@ -723,9 +710,7 @@ class JsonRpcAioHttpClient:
 
         return channel_ids_function
 
-    async def get_device_description(
-        self, interface: Interface, address: str
-    ) -> DeviceDescription | None:
+    async def get_device_description(self, interface: Interface, address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU."""
         device_description: DeviceDescription | None = None
         params = {
@@ -733,9 +718,7 @@ class JsonRpcAioHttpClient:
             _JsonKey.ADDRESS: address,
         }
 
-        response = await self._post(
-            method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION, extra_params=params
-        )
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION, extra_params=params)
 
         _LOGGER.debug("GET_DEVICE_DESCRIPTION: Getting the device description")
         if json_result := response[_JsonKey.RESULT]:
@@ -836,9 +819,7 @@ class JsonRpcAioHttpClient:
                 str(json_result),
             )
 
-    async def get_value(
-        self, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str
-    ) -> Any:
+    async def get_value(self, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str) -> Any:
         """Get value from CCU."""
         value: Any = None
         params = {
@@ -859,9 +840,7 @@ class JsonRpcAioHttpClient:
 
         return value
 
-    async def set_value(
-        self, interface: Interface, address: str, parameter: str, value_type: str, value: Any
-    ) -> None:
+    async def set_value(self, interface: Interface, address: str, parameter: str, value_type: str, value: Any) -> None:
         """Set value to CCU."""
         params = {
             _JsonKey.INTERFACE: interface,
@@ -894,15 +873,11 @@ class JsonRpcAioHttpClient:
             _JsonKey.PARAMSET_KEY: paramset_key,
         }
 
-        response = await self._post(
-            method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION, extra_params=params
-        )
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION, extra_params=params)
 
         _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS: Getting the paramset descriptions")
         if json_result := response[_JsonKey.RESULT]:
-            paramset_description = {
-                data["NAME"]: self._convert_parameter_data(json_data=data) for data in json_result
-            }
+            paramset_description = {data["NAME"]: self._convert_parameter_data(json_data=data) for data in json_result}
 
         return paramset_description
 
@@ -914,17 +889,11 @@ class JsonRpcAioHttpClient:
         _value_list = json_data.get("VALUE_LIST", ())
 
         parameter_data = ParameterData(
-            DEFAULT=convert_value(
-                value=json_data["DEFAULT"], target_type=_type, value_list=_value_list
-            ),
+            DEFAULT=convert_value(value=json_data["DEFAULT"], target_type=_type, value_list=_value_list),
             FLAGS=int(json_data["FLAGS"]),
             ID=json_data["ID"],
-            MAX=convert_value(
-                value=json_data.get("MAX"), target_type=_type, value_list=_value_list
-            ),
-            MIN=convert_value(
-                value=json_data.get("MIN"), target_type=_type, value_list=_value_list
-            ),
+            MAX=convert_value(value=json_data.get("MAX"), target_type=_type, value_list=_value_list),
+            MIN=convert_value(value=json_data.get("MIN"), target_type=_type, value_list=_value_list),
             OPERATIONS=int(json_data["OPERATIONS"]),
             TYPE=_type,
         )
@@ -944,13 +913,9 @@ class JsonRpcAioHttpClient:
             _JsonKey.INTERFACE: interface,
         }
         try:
-            response = await self._post_script(
-                script_name=RegaScript.FETCH_ALL_DEVICE_DATA, extra_params=params
-            )
+            response = await self._post_script(script_name=RegaScript.FETCH_ALL_DEVICE_DATA, extra_params=params)
 
-            _LOGGER.debug(
-                "GET_ALL_DEVICE_DATA: Getting all device data for interface %s", interface
-            )
+            _LOGGER.debug("GET_ALL_DEVICE_DATA: Getting all device data for interface %s", interface)
             if json_result := response[_JsonKey.RESULT]:
                 all_device_data = json_result
 
@@ -961,9 +926,7 @@ class JsonRpcAioHttpClient:
 
         return all_device_data
 
-    async def get_all_programs(
-        self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get the all programs of the backend."""
         all_programs: list[ProgramData] = []
 
@@ -1022,9 +985,7 @@ class JsonRpcAioHttpClient:
         value: bool = False
         params = {_JsonKey.INTERFACE: interface}
 
-        response = await self._post(
-            method=_JsonRpcMethod.INTERFACE_IS_PRESENT, extra_params=params
-        )
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_IS_PRESENT, extra_params=params)
 
         _LOGGER.debug("IS_PRESENT: Getting the value")
         if json_result := response[_JsonKey.RESULT]:
@@ -1062,9 +1023,7 @@ class JsonRpcAioHttpClient:
 
             _LOGGER.debug("GET_SUPPORTED_METHODS: Getting the supported methods")
             if json_result := response[_JsonKey.RESULT]:
-                supported_methods = tuple(
-                    method_description[_JsonKey.NAME] for method_description in json_result
-                )
+                supported_methods = tuple(method_description[_JsonKey.NAME] for method_description in json_result)
         except BaseHomematicException:
             return ()
 
@@ -1074,9 +1033,7 @@ class JsonRpcAioHttpClient:
         """Check, if all required api methods are supported by backend."""
         if self._supported_methods is None:
             self._supported_methods = await self._get_supported_methods()
-        if unsupport_methods := tuple(
-            method for method in _JsonRpcMethod if method not in self._supported_methods
-        ):
+        if unsupport_methods := tuple(method for method in _JsonRpcMethod if method not in self._supported_methods):
             _LOGGER.warning(
                 "CHECK_SUPPORTED_METHODS: methods not supported by backend: %s",
                 ", ".join(unsupport_methods),
@@ -1125,9 +1082,7 @@ class JsonRpcAioHttpClient:
         )
 
         if json_result := response[_JsonKey.RESULT]:
-            devices = tuple(
-                self._convert_device_description(json_data=data) for data in json_result
-            )
+            devices = tuple(self._convert_device_description(json_data=data) for data in json_result)
 
         return devices
 

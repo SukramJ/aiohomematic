@@ -52,12 +52,7 @@ from hahomematic.model.custom.lock import (
     CustomDpRfLock,
     LockState,
 )
-from hahomematic.model.custom.siren import (
-    BaseCustomDpSiren,
-    CustomDpIpSiren,
-    CustomDpIpSirenSmoke,
-    SirenOnArgs,
-)
+from hahomematic.model.custom.siren import BaseCustomDpSiren, CustomDpIpSiren, CustomDpIpSirenSmoke, SirenOnArgs
 from hahomematic.model.custom.switch import CustomDpSwitch
 
 __all__ = [

@@ -1580,12 +1580,13 @@ class _Scheduler(threading.Thread):
                 await self._fetch_device_firmware_update_data_in_delivery()
                 await self._fetch_device_firmware_update_data_in_update()
             if self._active:
-                await asyncio.sleep(10)
+                await asyncio.sleep(5)
 
     async def _check_connection(self) -> None:
         """Check connection to backend."""
         if not self._active or self._next_check_connection_run > datetime.now():
             return
+
         _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central.name)
         try:
             if not self._central.has_all_enabled_clients:
@@ -1627,6 +1628,7 @@ class _Scheduler(threading.Thread):
                 type(ex).__name__,
                 reduce_args(args=ex.args),
             )
+
         self._next_check_connection_run += timedelta(seconds=config.CONNECTION_CHECKER_INTERVAL)
 
     @service(re_raise=False)
@@ -1636,8 +1638,10 @@ class _Scheduler(threading.Thread):
             not self._active
             or not self._central.available
             or self._next_refresh_client_data_run > datetime.now()
+            or len(poll_clients) == 0
         ):
             return
+
         _LOGGER.debug("REFRESH_CLIENT_DATA: Checking connection to server %s", self._central.name)
         for client in poll_clients:
             await self._central.load_and_refresh_data_point_data(interface=client.interface)
@@ -1656,8 +1660,10 @@ class _Scheduler(threading.Thread):
             or self._next_refresh_sysvar_data_run > datetime.now()
         ):
             return
+
         _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central.name)
         await self._central.fetch_sysvar_data(scheduled=True)
+
         self._next_refresh_sysvar_data_run += timedelta(
             seconds=self._central.config.sys_scan_interval
         )
@@ -1671,8 +1677,10 @@ class _Scheduler(threading.Thread):
             or self._next_refresh_program_data_run > datetime.now()
         ):
             return
+
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central.name)
         await self._central.fetch_program_data(scheduled=True)
+
         self._next_refresh_program_data_run += timedelta(
             seconds=self._central.config.sys_scan_interval
         )
@@ -1685,11 +1693,13 @@ class _Scheduler(threading.Thread):
             or self._next_fetch_device_firmware_update_data_run > datetime.now()
         ):
             return
+
         _LOGGER.debug(
             "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching of device firmware update data for %s",
             self._central.name,
         )
         await self._central.refresh_firmware_data()
+
         self._next_fetch_device_firmware_update_data_run += timedelta(
             seconds=DEVICE_FIRMWARE_CHECK_INTERVAL
         )
@@ -1702,6 +1712,7 @@ class _Scheduler(threading.Thread):
             or self._next_fetch_device_firmware_update_data_in_delivery_run > datetime.now()
         ):
             return
+
         _LOGGER.debug(
             "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: Scheduled fetching of device firmware update data for delivering devices for %s",
             self._central.name,
@@ -1712,6 +1723,7 @@ class _Scheduler(threading.Thread):
                 DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
             )
         )
+
         self._next_fetch_device_firmware_update_data_in_delivery_run += timedelta(
             seconds=DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL
         )
@@ -1724,6 +1736,7 @@ class _Scheduler(threading.Thread):
             or self._next_fetch_device_firmware_update_data_in_update_run > datetime.now()
         ):
             return
+
         _LOGGER.debug(
             "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: Scheduled fetching of device firmware update data for updating devices for %s",
             self._central.name,
@@ -1735,6 +1748,7 @@ class _Scheduler(threading.Thread):
                 DeviceFirmwareState.PERFORMING_UPDATE,
             )
         )
+
         self._next_fetch_device_firmware_update_data_in_update_run += timedelta(
             seconds=DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL
         )

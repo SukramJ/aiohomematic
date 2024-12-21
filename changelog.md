@@ -1,3 +1,7 @@
+# Version 2024.12.10 (2024-12-21)
+
+- Refactor scheduler
+
 # Version 2024.12.9 (2024-12-20)
 
 - Add periodic checks for device firmware updates

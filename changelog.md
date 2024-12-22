@@ -1,5 +1,6 @@
 # Version 2024.12.11 (2024-12-22)
 
+- Rename has_markers to enabled_default
 - Use NamedTuple for datapoint key
 
 # Version 2024.12.10 (2024-12-21)

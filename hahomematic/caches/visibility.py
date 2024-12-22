@@ -5,18 +5,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 import logging
-import os
 from typing import Any, Final
 
 from hahomematic import central as hmcu, support as hms
-from hahomematic.const import CLICK_EVENTS, UN_IGNORE_WILDCARD, UTF_8, Parameter, ParamsetKey
+from hahomematic.const import CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
 from hahomematic.model.custom import get_required_parameters
-from hahomematic.support import element_matches_key, reduce_args
+from hahomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-_FILE_CUSTOM_UN_IGNORE_PARAMETERS: Final = "unignore"
-_IGNORE_MODEL: Final = "ignore_"
 
 # Define which additional parameters from MASTER paramset should be created as data_point.
 # By default these are also on the _HIDDEN_PARAMETERS, which prevents these data points
@@ -266,7 +262,9 @@ class ParameterVisibilityCache:
 
         # model, channel_no, paramset_key, parameter
         self._custom_un_ignore_complex: Final[dict[str, dict[int | str | None, dict[str, set[str]]]]] = {}
-        self._ignore_custom_: Final[list[str]] = []
+        self._ignore_custom_device_definition_models: Final[tuple[str, ...]] = (
+            central.config.ignore_custom_device_definition_models
+        )
         self._ignore_parameters_by_device_lower: Final[dict[str, tuple[str, ...]]] = {
             parameter: tuple(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
         }
@@ -315,12 +313,15 @@ class ParameterVisibilityCache:
             else:
                 _add_channel(dt_l=model_l, params=parameters, ch_no=None)
 
+        for line in self._raw_un_ignore_list:
+            self._add_un_ignore_item_to_cache(line)
+
     @lru_cache(maxsize=128)
     def model_is_ignored(self, model: str) -> bool:
         """Check if a model should be ignored for custom data points."""
         return element_matches_key(
-            search_elements=self._ignore_custom_,
-            compare_with=model.lower(),
+            search_elements=self._ignore_custom_device_definition_models,
+            compare_with=model,
         )
 
     @lru_cache(maxsize=1024)
@@ -479,15 +480,11 @@ class ParameterVisibilityCache:
             custom_only=custom_only,
         )
 
-    def _add_line_to_cache(self, line: str) -> None:
-        """Add line to from un ignore file to cache."""
+    def _add_un_ignore_item_to_cache(self, line: str) -> None:
+        """Add item to from _raw_un_ignore_list to cache."""
 
         # ignore empty line
         if not line.strip():
-            return
-
-        if line.lower().startswith(_IGNORE_MODEL):
-            self._ignore_custom_.append(line.lower().replace(_IGNORE_MODEL, ""))
             return
 
         if line_details := self._get_un_ignore_line_details(line=line):
@@ -660,43 +657,6 @@ class ParameterVisibilityCache:
                 ):
                     return True
         return False
-
-    async def load(self) -> None:
-        """Load custom un ignore parameters from disk."""
-
-        def _load() -> None:
-            if not hms.check_or_create_directory(self._storage_folder):
-                return  # pragma: no cover
-            if not os.path.exists(os.path.join(self._storage_folder, _FILE_CUSTOM_UN_IGNORE_PARAMETERS)):
-                _LOGGER.debug(
-                    "LOAD: No file found in %s",
-                    self._storage_folder,
-                )
-                return
-
-            try:
-                with open(
-                    file=os.path.join(
-                        self._storage_folder,
-                        _FILE_CUSTOM_UN_IGNORE_PARAMETERS,
-                    ),
-                    encoding=UTF_8,
-                ) as fptr:
-                    for file_line in fptr.readlines():
-                        if "#" not in file_line:
-                            self._raw_un_ignore_list.add(file_line.strip())
-            except Exception as ex:
-                _LOGGER.warning(
-                    "LOAD failed: Could not read un_ignore file %s",
-                    reduce_args(args=ex.args),
-                )
-
-        if self._central.config.load_un_ignore:
-            await self._central.looper.async_add_executor_job(_load, name="load-un_ignore-file")
-
-        for line in self._raw_un_ignore_list:
-            if "#" not in line:
-                self._add_line_to_cache(line)
 
 
 def check_ignore_parameters_is_clean() -> bool:

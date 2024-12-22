@@ -47,7 +47,6 @@ from hahomematic.const import (
     DEVICE_FIRMWARE_CHECK_INTERVAL,
     DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
     DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
-    DP_KEY,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     INTERFACES_REQUIRING_PERIODIC_REFRESH,
     IP_ANY_V4,
@@ -57,6 +56,7 @@ from hahomematic.const import (
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
     DataPointCategory,
+    DataPointKey,
     DescriptionMarker,
     DeviceDescription,
     DeviceFirmwareState,
@@ -87,14 +87,7 @@ from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
 from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton
 from hahomematic.model.support import PayloadMixin
-from hahomematic.support import (
-    check_config,
-    get_channel_no,
-    get_data_point_key,
-    get_device_address,
-    get_ip_addr,
-    reduce_args,
-)
+from hahomematic.support import check_config, get_channel_no, get_device_address, get_ip_addr, reduce_args
 
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
 
@@ -143,9 +136,9 @@ class CentralUnit(PayloadMixin):
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
         self._data_point_key_event_subscriptions: Final[
-            dict[DP_KEY, list[Callable[[Any], Coroutine[Any, Any, None]]]]
+            dict[DataPointKey, list[Callable[[Any], Coroutine[Any, Any, None]]]]
         ] = {}
-        self._data_point_path_event_subscriptions: Final[dict[str, DP_KEY]] = {}
+        self._data_point_path_event_subscriptions: Final[dict[str, DataPointKey]] = {}
         self._sysvar_data_point_event_subscriptions: Final[dict[str, Callable]] = {}
         # {device_address, device}
         self._devices: Final[dict[str, Device]] = {}
@@ -1015,16 +1008,16 @@ class CentralUnit(PayloadMixin):
                     )
             return
 
-        data_point_key = get_data_point_key(
+        dpk = DataPointKey(
             interface_id=interface_id,
             channel_address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
         )
 
-        if data_point_key in self._data_point_key_event_subscriptions:
+        if dpk in self._data_point_key_event_subscriptions:
             try:
-                for callback_handler in self._data_point_key_event_subscriptions[data_point_key]:
+                for callback_handler in self._data_point_key_event_subscriptions[dpk]:
                     if callable(callback_handler):
                         await callback_handler(value)
             except RuntimeError as rte:  # pragma: no cover
@@ -1052,16 +1045,15 @@ class CentralUnit(PayloadMixin):
             value,
         )
 
-        if (data_point_key := self._data_point_path_event_subscriptions.get(state_path)) is not None:
-            interface_id, channel_address, paramset_key, parameter = data_point_key
+        if (dpk := self._data_point_path_event_subscriptions.get(state_path)) is not None:
             self._looper.create_task(
                 self.data_point_event(
-                    interface_id=interface_id,
-                    channel_address=channel_address,
-                    parameter=parameter,
+                    interface_id=dpk.interface_id,
+                    channel_address=dpk.channel_address,
+                    parameter=dpk.parameter,
                     value=value,
                 ),
-                name=f"device-data-point-event-{interface_id}-{channel_address}-{parameter}",
+                name=f"device-data-point-event-{dpk.interface_id}-{dpk.channel_address}-{dpk.parameter}",
             )
 
     def sysvar_data_point_path_event(self, state_path: str, value: str) -> None:
@@ -1102,14 +1094,14 @@ class CentralUnit(PayloadMixin):
         if isinstance(data_point, (GenericDataPoint, GenericEvent)) and (
             data_point.is_readable or data_point.supports_events
         ):
-            if data_point.data_point_key not in self._data_point_key_event_subscriptions:
-                self._data_point_key_event_subscriptions[data_point.data_point_key] = []
-            self._data_point_key_event_subscriptions[data_point.data_point_key].append(data_point.event)
+            if data_point.dpk not in self._data_point_key_event_subscriptions:
+                self._data_point_key_event_subscriptions[data_point.dpk] = []
+            self._data_point_key_event_subscriptions[data_point.dpk].append(data_point.event)
             if (
                 not data_point.channel.device.client.supports_xml_rpc
                 and data_point.state_path not in self._data_point_path_event_subscriptions
             ):
-                self._data_point_path_event_subscriptions[data_point.state_path] = data_point.data_point_key
+                self._data_point_path_event_subscriptions[data_point.state_path] = data_point.dpk
 
     @service()
     async def create_central_links(self) -> None:
@@ -1141,8 +1133,8 @@ class CentralUnit(PayloadMixin):
     def remove_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Remove event subscription from central collections."""
         if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.supports_events:
-            if data_point.data_point_key in self._data_point_key_event_subscriptions:
-                del self._data_point_key_event_subscriptions[data_point.data_point_key]
+            if data_point.dpk in self._data_point_key_event_subscriptions:
+                del self._data_point_key_event_subscriptions[data_point.dpk]
             if data_point.state_path in self._data_point_path_event_subscriptions:
                 del self._data_point_path_event_subscriptions[data_point.state_path]
 

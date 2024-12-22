@@ -26,7 +26,6 @@ from hahomematic.const import (
     CCU_PASSWORD_PATTERN,
     CHANNEL_ADDRESS_PATTERN,
     DEVICE_ADDRESS_PATTERN,
-    DP_KEY,
     FILE_DEVICES,
     FILE_PARAMSETS,
     HTMLTAG_PATTERN,
@@ -236,11 +235,6 @@ def is_device_address(address: str) -> bool:
 def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
     """Check if it is a paramset key."""
     return isinstance(paramset_key, ParamsetKey) or (isinstance(paramset_key, str) and paramset_key in ParamsetKey)
-
-
-def get_data_point_key(interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str) -> DP_KEY:
-    """Return a data point key."""
-    return (str(interface_id), str(channel_address), paramset_key, str(parameter))
 
 
 @lru_cache(maxsize=2048)

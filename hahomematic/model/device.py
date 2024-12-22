@@ -21,7 +21,6 @@ from hahomematic.const import (
     CLICK_EVENTS,
     DEFAULT_DEVICE_DESCRIPTIONS_DIR,
     DEFAULT_PARAMSET_DESCRIPTIONS_DIR,
-    DP_KEY,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
     NO_CACHE_ENTRY,
@@ -32,6 +31,7 @@ from hahomematic.const import (
     CallSource,
     DataOperationResult,
     DataPointCategory,
+    DataPointKey,
     DataPointUsage,
     DeviceDescription,
     DeviceFirmwareState,
@@ -65,7 +65,6 @@ from hahomematic.support import (
     check_or_create_directory,
     get_channel_address,
     get_channel_no,
-    get_data_point_key,
     get_rx_modes,
     reduce_args,
 )
@@ -606,8 +605,8 @@ class Channel(PayloadMixin):
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
         self._base_no: Final = self._device.get_sub_device_base_channel(channel_no=self._no)
         self._custom_data_point: hmce.CustomDataPoint | None = None
-        self._generic_data_points: Final[dict[DP_KEY, GenericDataPoint]] = {}
-        self._generic_events: Final[dict[DP_KEY, GenericEvent]] = {}
+        self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
+        self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
@@ -770,24 +769,24 @@ class Channel(PayloadMixin):
         if isinstance(data_point, BaseParameterDataPoint):
             self._central.add_event_subscription(data_point=data_point)
         if isinstance(data_point, GenericDataPoint):
-            self._generic_data_points[data_point.data_point_key] = data_point
+            self._generic_data_points[data_point.dpk] = data_point
             self._device.register_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = data_point
         if isinstance(data_point, GenericEvent):
-            self._generic_events[data_point.data_point_key] = data_point
+            self._generic_events[data_point.dpk] = data_point
 
     def _remove_data_point(self, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
             self._central.remove_event_subscription(data_point=data_point)
         if isinstance(data_point, GenericDataPoint):
-            del self._generic_data_points[data_point.data_point_key]
+            del self._generic_data_points[data_point.dpk]
             self._device.unregister_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = None
         if isinstance(data_point, GenericEvent):
-            del self._generic_events[data_point.data_point_key]
+            del self._generic_events[data_point.dpk]
         data_point.fire_device_removed_callback()
 
     def remove(self) -> None:
@@ -840,7 +839,7 @@ class Channel(PayloadMixin):
         """Return a data_point from device."""
         if paramset_key:
             return self._generic_data_points.get(
-                get_data_point_key(
+                DataPointKey(
                     interface_id=self._device.interface_id,
                     channel_address=self._address,
                     paramset_key=paramset_key,
@@ -849,7 +848,7 @@ class Channel(PayloadMixin):
             )
 
         if dp := self._generic_data_points.get(
-            get_data_point_key(
+            DataPointKey(
                 interface_id=self._device.interface_id,
                 channel_address=self._address,
                 paramset_key=ParamsetKey.VALUES,
@@ -858,7 +857,7 @@ class Channel(PayloadMixin):
         ):
             return dp
         return self._generic_data_points.get(
-            get_data_point_key(
+            DataPointKey(
                 interface_id=self._device.interface_id,
                 channel_address=self._address,
                 paramset_key=ParamsetKey.MASTER,
@@ -869,7 +868,7 @@ class Channel(PayloadMixin):
     def get_generic_event(self, parameter: str) -> GenericEvent | None:
         """Return a generic event from device."""
         return self._generic_events.get(
-            get_data_point_key(
+            DataPointKey(
                 interface_id=self._device.interface_id,
                 channel_address=self._address,
                 paramset_key=ParamsetKey.VALUES,
@@ -904,7 +903,7 @@ class _ValueCache:
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
         # {key, CacheEntry}
-        self._device_cache: Final[dict[DP_KEY, CacheEntry]] = {}
+        self._device_cache: Final[dict[DataPointKey, CacheEntry]] = {}
 
     async def init_base_data_points(self) -> None:
         """Load data by get_value."""
@@ -1034,7 +1033,7 @@ class _ValueCache:
         self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any
     ) -> None:
         """Add value to cache."""
-        key = get_data_point_key(
+        key = DataPointKey(
             interface_id=self._device.interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -1066,7 +1065,7 @@ class _ValueCache:
             return global_value
 
         # Try to get data from device cache
-        key = get_data_point_key(
+        key = DataPointKey(
             interface_id=self._device.interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,

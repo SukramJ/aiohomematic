@@ -7,7 +7,7 @@ from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
-from hahomematic.const import CALLBACK_TYPE, DP_KEY, INIT_DATETIME, CallSource, DataPointUsage
+from hahomematic.const import CALLBACK_TYPE, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage
 from hahomematic.decorators import get_service_calls
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
@@ -301,11 +301,9 @@ class CustomDataPoint(BaseDataPoint):
             NoneTypeDataPoint(),
         )
 
-    def has_data_point_key(self, data_point_keys: set[DP_KEY]) -> bool:
+    def has_data_point_key(self, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
-        result = [
-            data_point for data_point in self._data_points.values() if data_point.data_point_key in data_point_keys
-        ]
+        result = [data_point for data_point in self._data_points.values() if data_point.dpk in data_point_keys]
         return len(result) > 0
 
 

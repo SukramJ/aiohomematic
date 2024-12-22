@@ -560,17 +560,17 @@ class Client(ABC):
             else:
                 await self._exec_set_value(channel_address=channel_address, parameter=parameter, value=value)
             # store the send value in the last_value_send_cache
-            data_point_key_values = self._last_value_send_cache.add_set_value(
+            dpk_values = self._last_value_send_cache.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
             )
-            self._write_temporary_value(data_point_key_values=data_point_key_values)
+            self._write_temporary_value(dpk_values=dpk_values)
 
             if wait_for_callback is not None and (
                 device := self.central.get_device(address=get_device_address(address=channel_address))
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
-                    data_point_key_values=data_point_key_values,
+                    dpk_values=dpk_values,
                     wait_for_callback=wait_for_callback,
                 )
         except BaseHomematicException as ex:
@@ -578,7 +578,7 @@ class Client(ABC):
                 f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {reduce_args(args=ex.args)}"
             ) from ex
         else:
-            return data_point_key_values
+            return dpk_values
 
     async def _exec_set_value(
         self,
@@ -603,16 +603,17 @@ class Client(ABC):
             operation=Operations.WRITE,
         )
 
-    def _write_temporary_value(self, data_point_key_values: set[DP_KEY_VALUE]) -> None:
+    def _write_temporary_value(self, dpk_values: set[DP_KEY_VALUE]) -> None:
         """Write data point temp value."""
         if self.supports_push_updates:
             return
 
-        for data_point_key_value in data_point_key_values:
-            data_point_key, value = data_point_key_value
-            interface_id, channel_address, paramset_key, parameter = data_point_key
+        for dpk_value in dpk_values:
+            dpk, value = dpk_value
             if data_point := self.central.get_generic_data_point(
-                channel_address=channel_address, parameter=parameter, paramset_key=paramset_key
+                channel_address=dpk.channel_address,
+                parameter=dpk.parameter,
+                paramset_key=dpk.paramset_key,
             ):
                 data_point.write_temporary_value(value=value)
 
@@ -734,19 +735,19 @@ class Client(ABC):
                 return set()
 
             # store the send value in the last_value_send_cache
-            data_point_key_values = self._last_value_send_cache.add_put_paramset(
+            dpk_values = self._last_value_send_cache.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey(paramset_key),
                 values=checked_values,
             )
-            self._write_temporary_value(data_point_key_values=data_point_key_values)
+            self._write_temporary_value(dpk_values=dpk_values)
 
             if wait_for_callback is not None and (
                 device := self.central.get_device(address=get_device_address(address=channel_address))
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
-                    data_point_key_values=data_point_key_values,
+                    dpk_values=dpk_values,
                     wait_for_callback=wait_for_callback,
                 )
         except BaseHomematicException as ex:
@@ -754,7 +755,7 @@ class Client(ABC):
                 f"PUT_PARAMSET failed for {channel_address}/{paramset_key}/{values}: {reduce_args(args=ex.args)}"
             ) from ex
         else:
-            return data_point_key_values
+            return dpk_values
 
     async def _exec_put_paramset(
         self,
@@ -1599,54 +1600,53 @@ def get_client(interface_id: str) -> Client | None:
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
     device: Device,
-    data_point_key_values: set[DP_KEY_VALUE],
+    dpk_values: set[DP_KEY_VALUE],
     wait_for_callback: int,
 ) -> None:
     """Wait for a data_point to change state."""
     waits = [
         _track_single_data_point_state_change_or_timeout(
             device=device,
-            data_point_key_value=data_point_key_value,
+            dpk_value=dpk_value,
             wait_for_callback=wait_for_callback,
         )
-        for data_point_key_value in data_point_key_values
+        for dpk_value in dpk_values
     ]
     await asyncio.gather(*waits)
 
 
 @measure_execution_time
 async def _track_single_data_point_state_change_or_timeout(
-    device: Device, data_point_key_value: DP_KEY_VALUE, wait_for_callback: int
+    device: Device, dpk_value: DP_KEY_VALUE, wait_for_callback: int
 ) -> None:
     """Wait for a data_point to change state."""
     ev = asyncio.Event()
-    data_point_key, value = data_point_key_value
+    dpk, value = dpk_value
 
     def _async_event_changed(*args: Any, **kwargs: Any) -> None:
         if dp:
             _LOGGER.debug(
                 "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Received event %s with value %s",
-                data_point_key,
+                dpk,
                 dp.value,
             )
             if _isclose(value, dp.value):
                 _LOGGER.debug(
                     "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Finished event %s with value %s",
-                    data_point_key,
+                    dpk,
                     dp.value,
                 )
                 ev.set()
 
-    interface_id, channel_address, paramset_key, parameter = data_point_key
     if dp := device.get_generic_data_point(
-        channel_address=channel_address,
-        parameter=parameter,
-        paramset_key=ParamsetKey(paramset_key),
+        channel_address=dpk.channel_address,
+        parameter=dpk.parameter,
+        paramset_key=ParamsetKey(dpk.paramset_key),
     ):
         if not dp.supports_events:
             _LOGGER.debug(
                 "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: DataPoint supports no events %s",
-                data_point_key,
+                dpk,
             )
             return
         if (
@@ -1660,7 +1660,7 @@ async def _track_single_data_point_state_change_or_timeout(
         except TimeoutError:
             _LOGGER.debug(
                 "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Timeout waiting for event %s with value %s",
-                data_point_key,
+                dpk,
                 dp.value,
             )
         finally:

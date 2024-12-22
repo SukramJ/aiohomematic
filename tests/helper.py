@@ -43,6 +43,7 @@ class Factory:
         self,
         interface_config: InterfaceConfig | None,
         un_ignore_list: list[str] | None = None,
+        ignore_custom_device_definition_models: list[str] | None = None,
     ) -> CentralUnit:
         """Return a central based on give address_device_translation."""
         interface_configs = {interface_config} if interface_config else set()
@@ -57,6 +58,7 @@ class Factory:
             default_callback_port=54321,
             client_session=self._client_session,
             un_ignore_list=un_ignore_list,
+            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
             start_direct=True,
         ).create_central()
 
@@ -71,6 +73,7 @@ class Factory:
         do_mock_client: bool = True,
         ignore_devices_on_create: list[str] | None = None,
         un_ignore_list: list[str] | None = None,
+        ignore_custom_device_definition_models: list[str] | None = None,
     ) -> tuple[CentralUnit, Client | Mock]:
         """Return a central based on give address_device_translation."""
         interface_config = InterfaceConfig(
@@ -82,6 +85,7 @@ class Factory:
         central = await self.get_raw_central(
             interface_config=interface_config,
             un_ignore_list=un_ignore_list,
+            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
         )
 
         _client = ClientLocal(
@@ -109,6 +113,7 @@ class Factory:
         add_programs: bool = False,
         ignore_devices_on_create: list[str] | None = None,
         un_ignore_list: list[str] | None = None,
+        ignore_custom_device_definition_models: list[str] | None = None,
     ) -> tuple[CentralUnit, Client | Mock]:
         """Return a central based on give address_device_translation."""
         central, client = await self.get_unpatched_default_central(
@@ -116,6 +121,7 @@ class Factory:
             do_mock_client=True,
             ignore_devices_on_create=ignore_devices_on_create,
             un_ignore_list=un_ignore_list,
+            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
         )
 
         patch("hahomematic.central.CentralUnit._get_primary_client", return_value=client).start()

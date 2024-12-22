@@ -351,22 +351,22 @@ async def test_device_un_ignore_hm2(
 
 
 @pytest.mark.parametrize(
-    ("lines", "model", "address", "expected_result"),
+    ("ignore_custom_device_definition_models", "model", "address", "expected_result"),
     [
         (
-            ["ignore_HmIP-BWTH"],
+            ["HmIP-BWTH"],
             "HmIP-BWTH",
             "VCU1769958",
             True,
         ),
         (
-            ["ignore_HmIP-2BWTH"],
+            ["HmIP-2BWTH"],
             "HmIP-BWTH",
             "VCU1769958",
             False,
         ),
         (
-            ["ignore_HmIP-eTRV"],
+            ["hmip-etrv"],
             "HmIP-eTRV-2",
             "VCU3609622",
             True,
@@ -376,14 +376,15 @@ async def test_device_un_ignore_hm2(
 @pytest.mark.asyncio
 async def test_ignore_(
     factory: helper.Factory,
-    lines: list[str],
+    ignore_custom_device_definition_models: list[str],
     model: str,
     address: str,
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
     central, _ = await factory.get_default_central(
-        {"VCU1769958": "HmIP-BWTH.json", "VCU3609622": "HmIP-eTRV-2.json"}, un_ignore_list=lines
+        {"VCU1769958": "HmIP-BWTH.json", "VCU3609622": "HmIP-eTRV-2.json"},
+        ignore_custom_device_definition_models=ignore_custom_device_definition_models,
     )
     try:
         assert central.parameter_visibility.model_is_ignored(model=model) is expected_result

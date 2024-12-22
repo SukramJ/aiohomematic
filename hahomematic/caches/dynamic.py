@@ -10,12 +10,12 @@ from typing import Any, Final, cast
 from hahomematic import central as hmcu
 from hahomematic.config import LAST_COMMAND_SEND_STORE_TIMEOUT, PING_PONG_MISMATCH_COUNT, PING_PONG_MISMATCH_COUNT_TTL
 from hahomematic.const import (
-    DP_KEY,
     DP_KEY_VALUE,
     INIT_DATETIME,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
     CallSource,
+    DataPointKey,
     EventKey,
     EventType,
     Interface,
@@ -24,7 +24,7 @@ from hahomematic.const import (
 )
 from hahomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
 from hahomematic.model.device import Device
-from hahomematic.support import changed_within_seconds, get_data_point_key
+from hahomematic.support import changed_within_seconds
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class CommandCache:
         """Init command cache."""
         self._interface_id: Final = interface_id
         # (paramset_key, device_address, channel_no, parameter)
-        self._last_send_command: Final[dict[DP_KEY, tuple[Any, datetime]]] = {}
+        self._last_send_command: Final[dict[DataPointKey, tuple[Any, datetime]]] = {}
 
     def add_set_value(
         self,
@@ -50,30 +50,30 @@ class CommandCache:
                 parameter=parameter, channel_address=channel_address, combined_parameter=value
             )
 
-        data_point_key = get_data_point_key(
+        dpk = DataPointKey(
             interface_id=self._interface_id,
             channel_address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
         )
-        self._last_send_command[data_point_key] = (value, datetime.now())
-        return {(data_point_key, value)}
+        self._last_send_command[dpk] = (value, datetime.now())
+        return {(dpk, value)}
 
     def add_put_paramset(
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
-        data_point_key_values: set[DP_KEY_VALUE] = set()
+        dpk_values: set[DP_KEY_VALUE] = set()
         for parameter, value in values.items():
-            data_point_key = get_data_point_key(
+            dpk = DataPointKey(
                 interface_id=self._interface_id,
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 parameter=parameter,
             )
-            self._last_send_command[data_point_key] = (value, datetime.now())
-            data_point_key_values.add((data_point_key, value))
-        return data_point_key_values
+            self._last_send_command[dpk] = (value, datetime.now())
+            dpk_values.add((dpk, value))
+        return dpk_values
 
     def add_combined_parameter(
         self, parameter: str, channel_address: str, combined_parameter: str
@@ -87,31 +87,31 @@ class CommandCache:
             )
         return set()
 
-    def get_last_value_send(self, data_point_key: DP_KEY, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
+    def get_last_value_send(self, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
         """Return the last send values."""
-        if result := self._last_send_command.get(data_point_key):
+        if result := self._last_send_command.get(dpk):
             value, last_send_dt = result
             if last_send_dt and changed_within_seconds(last_change=last_send_dt, max_age=max_age):
                 return value
             self.remove_last_value_send(
-                data_point_key=data_point_key,
+                dpk=dpk,
                 max_age=max_age,
             )
         return None
 
     def remove_last_value_send(
         self,
-        data_point_key: DP_KEY,
+        dpk: DataPointKey,
         value: Any = None,
         max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT,
     ) -> None:
         """Remove the last send value."""
-        if result := self._last_send_command.get(data_point_key):
+        if result := self._last_send_command.get(dpk):
             stored_value, last_send_dt = result
             if not changed_within_seconds(last_change=last_send_dt, max_age=max_age) or (
                 value is not None and stored_value == value
             ):
-                del self._last_send_command[data_point_key]
+                del self._last_send_command[dpk]
 
 
 class DeviceDetailsCache:

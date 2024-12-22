@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, IntEnum, StrEnum
 import re
-from typing import Any, Final, Required, TypedDict
+from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2024.12.10"
+VERSION: Final = "2024.12.11"
 
 DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -509,9 +509,17 @@ DATA_POINT_EVENTS: Final[tuple[EventType, ...]] = (
     EventType.KEYPRESS,
 )
 
-# interface_id, channel_address, paramset_key,parameter
-type DP_KEY = tuple[str, str, ParamsetKey, str]
-type DP_KEY_VALUE = tuple[DP_KEY, Any]
+
+class DataPointKey(NamedTuple):
+    """Key for data points."""
+
+    interface_id: str
+    channel_address: str
+    paramset_key: ParamsetKey
+    parameter: str
+
+
+type DP_KEY_VALUE = tuple[DataPointKey, Any]
 type SYSVAR_TYPE = bool | float | int | str | None
 
 HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (

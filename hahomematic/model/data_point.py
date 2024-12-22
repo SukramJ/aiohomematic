@@ -20,7 +20,6 @@ from hahomematic.const import (
     CALLBACK_TYPE,
     DEFAULT_CUSTOM_ID,
     DEFAULT_MULTIPLIER,
-    DP_KEY,
     DP_KEY_VALUE,
     INIT_DATETIME,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
@@ -28,6 +27,7 @@ from hahomematic.const import (
     NO_CACHE_ENTRY,
     CallSource,
     DataPointCategory,
+    DataPointKey,
     DataPointUsage,
     EventKey,
     Flag,
@@ -51,7 +51,7 @@ from hahomematic.model.support import (
     convert_value,
     generate_unique_id,
 )
-from hahomematic.support import get_data_point_key, reduce_args
+from hahomematic.support import reduce_args
 
 __all__ = [
     "BaseDataPoint",
@@ -492,9 +492,9 @@ class BaseParameterDataPoint[
         return self._is_un_ignored
 
     @property
-    def data_point_key(self) -> DP_KEY:
+    def dpk(self) -> DataPointKey:
         """Return data_point key value."""
-        return get_data_point_key(
+        return DataPointKey(
             interface_id=self._device.interface_id,
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
@@ -551,7 +551,7 @@ class BaseParameterDataPoint[
         """Return the unconfirmed value send for the data_point."""
         return cast(
             ParameterT,
-            self._client.last_value_send_cache.get_last_value_send(data_point_key=self.data_point_key),
+            self._client.last_value_send_cache.get_last_value_send(dpk=self.dpk),
         )
 
     @property
@@ -817,13 +817,13 @@ class CallParameterCollector:
 
     async def send_data(self, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
         """Send data to backend."""
-        data_point_key_values: set[DP_KEY_VALUE] = set()
+        dpk_values: set[DP_KEY_VALUE] = set()
         for paramset_key, paramsets in self._paramsets.items():
             for paramset_no in dict(sorted(paramsets.items())).values():
                 for channel_address, paramset in paramset_no.items():
                     if len(paramset.values()) == 1:
                         for parameter, value in paramset.items():
-                            data_point_key_values.update(
+                            dpk_values.update(
                                 await self._client.set_value(
                                     channel_address=channel_address,
                                     paramset_key=paramset_key,
@@ -833,7 +833,7 @@ class CallParameterCollector:
                                 )
                             )
                     else:
-                        data_point_key_values.update(
+                        dpk_values.update(
                             await self._client.put_paramset(
                                 channel_address=channel_address,
                                 paramset_key=paramset_key,
@@ -841,7 +841,7 @@ class CallParameterCollector:
                                 wait_for_callback=wait_for_callback,
                             )
                         )
-        return data_point_key_values
+        return dpk_values
 
 
 def bind_collector(

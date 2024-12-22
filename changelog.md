@@ -1,6 +1,6 @@
 # Version 2024.12.11 (2024-12-22)
 
-- Use namedtuple for datapoint key
+- Use NamedTuple for datapoint key
 
 # Version 2024.12.10 (2024-12-21)
 

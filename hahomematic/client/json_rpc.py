@@ -554,13 +554,13 @@ class JsonRpcAioHttpClient:
         if json_result := response[_JsonKey.RESULT]:
             descriptions = await self._get_system_variable_descriptions()
             for var in json_result:
-                has_markers = False
+                enabled_default = False
                 extended_sysvar = False
                 if (is_internal := var[_JsonKey.IS_INTERNAL]) is True:
                     if markers:
                         if DescriptionMarker.INTERNAL not in markers:
                             continue
-                        has_markers = True
+                        enabled_default = True
                     elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
                         continue  # type: ignore[unreachable]
                 var_id = var[_JsonKey.ID]
@@ -573,7 +573,7 @@ class JsonRpcAioHttpClient:
                         do_left_wildcard_search=True,
                     ):
                         continue
-                    has_markers = True
+                    enabled_default = True
 
                 name = var[_JsonKey.NAME]
                 org_data_type = var[_JsonKey.TYPE]
@@ -588,7 +588,7 @@ class JsonRpcAioHttpClient:
                     # Remove default markers from description
                     for marker in DescriptionMarker:
                         description = description.replace(marker, "").strip()
-                    has_markers = True
+                    enabled_default = True
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
                 if val_list := var.get(_JsonKey.VALUE_LIST):
@@ -613,7 +613,7 @@ class JsonRpcAioHttpClient:
                             max_value=max_value,
                             min_value=min_value,
                             extended_sysvar=extended_sysvar,
-                            has_markers=has_markers,
+                            enabled_default=enabled_default,
                         )
                     )
                 except (ValueError, TypeError) as vterr:
@@ -938,12 +938,12 @@ class JsonRpcAioHttpClient:
         if json_result := response[_JsonKey.RESULT]:
             descriptions = await self._get_program_descriptions()
             for prog in json_result:
-                has_markers = False
+                enabled_default = False
                 if (is_internal := prog[_JsonKey.IS_INTERNAL]) is True:
                     if markers:
                         if DescriptionMarker.INTERNAL not in markers:
                             continue
-                        has_markers = True
+                        enabled_default = True
                     elif DEFAULT_INCLUDE_INTERNAL_PROGRAMS is False:
                         continue
 
@@ -957,7 +957,7 @@ class JsonRpcAioHttpClient:
                         do_left_wildcard_search=True,
                     ):
                         continue
-                    has_markers = True
+                    enabled_default = True
                 if description:
                     # Remove default markers from description
                     for marker in DescriptionMarker:
@@ -974,7 +974,7 @@ class JsonRpcAioHttpClient:
                         is_active=is_active,
                         is_internal=is_internal,
                         last_execute_time=last_execute_time,
-                        has_markers=has_markers,
+                        enabled_default=enabled_default,
                     )
                 )
 

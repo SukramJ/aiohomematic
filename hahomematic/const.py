@@ -627,7 +627,7 @@ class HubData:
     """Dataclass for hub data points."""
 
     name: str
-    has_markers: bool = False
+    enabled_default: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

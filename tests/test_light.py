@@ -9,8 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import DataPointUsage, ParamsetKey
+from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from hahomematic.model.custom import (
     CustomDpColorDimmer,
     CustomDpColorDimmerEffect,

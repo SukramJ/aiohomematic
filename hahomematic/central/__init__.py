@@ -19,7 +19,7 @@ from aiohttp import ClientSession
 import orjson
 import voluptuous as vol
 
-from hahomematic import client as hmcl, config
+from hahomematic import client as hmcl
 from hahomematic.async_support import Looper, loop_check
 from hahomematic.caches.dynamic import CentralDataCache, DeviceDetailsCache
 from hahomematic.caches.persistent import DeviceDescriptionCache, ParamsetDescriptionCache
@@ -31,6 +31,7 @@ from hahomematic.client.xml_rpc import XmlRpcProxy
 from hahomematic.const import (
     CALLBACK_TYPE,
     CATEGORIES,
+    CONNECTION_CHECKER_INTERVAL,
     DATA_POINT_EVENTS,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
@@ -54,6 +55,7 @@ from hahomematic.const import (
     LOCAL_HOST,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
+    TIMEOUT,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
     DataPointCategory,
@@ -647,8 +649,8 @@ class CentralUnit(PayloadMixin):
             except HaHomematicException:
                 ip_addr = LOCAL_HOST
             if ip_addr is None:
-                _LOGGER.warning("GET_IP_ADDR: Waiting for %i s,", config.CONNECTION_CHECKER_INTERVAL)
-                await asyncio.sleep(config.TIMEOUT / 10)
+                _LOGGER.warning("GET_IP_ADDR: Waiting for %i s,", CONNECTION_CHECKER_INTERVAL)
+                await asyncio.sleep(TIMEOUT / 10)
         return ip_addr
 
     def _start_scheduler(self) -> None:
@@ -1454,7 +1456,7 @@ class _Scheduler(threading.Thread):
         self._central: Final = central
         self._active = True
         self._scheduler_jobs = [
-            _SchedulerJob(task=self._check_connection, run_interval=config.CONNECTION_CHECKER_INTERVAL),
+            _SchedulerJob(task=self._check_connection, run_interval=CONNECTION_CHECKER_INTERVAL),
             _SchedulerJob(
                 task=self._refresh_client_data,
                 run_interval=self._central.config.periodic_refresh_interval,

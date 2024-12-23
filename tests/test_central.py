@@ -10,10 +10,10 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.config import PING_PONG_MISMATCH_COUNT
 from hahomematic.const import (
     DATETIME_FORMAT_MILLIS,
     LOCAL_HOST,
+    PING_PONG_MISMATCH_COUNT,
     DataPointCategory,
     DataPointUsage,
     EventKey,

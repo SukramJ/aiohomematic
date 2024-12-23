@@ -9,8 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.config import WAIT_FOR_CALLBACK
-from hahomematic.const import DataPointUsage
+from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage
 from hahomematic.model.custom import CustomDpSwitch
 from hahomematic.model.generic import DpSwitch
 from hahomematic.model.hub import SysvarDpSwitch

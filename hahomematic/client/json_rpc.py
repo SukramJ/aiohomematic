@@ -24,15 +24,18 @@ from aiohttp import (
 )
 import orjson
 
-from hahomematic import central as hmcu, config
+from hahomematic import central as hmcu
 from hahomematic.async_support import Looper
 from hahomematic.const import (
+    ALWAYS_ENABLE_SYSVARS,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     ISO_8859_1,
+    JSON_SESSION_AGE,
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
+    TIMEOUT,
     UTF_8,
     DescriptionMarker,
     DeviceDescription,
@@ -210,7 +213,7 @@ class JsonRpcAioHttpClient:
         if self._last_session_id_refresh is None:
             return False
         delta = datetime.now() - self._last_session_id_refresh
-        return delta.seconds < config.JSON_SESSION_AGE
+        return delta.seconds < JSON_SESSION_AGE
 
     async def _do_login(self) -> str | None:
         """Login to CCU and return session."""
@@ -365,7 +368,7 @@ class JsonRpcAioHttpClient:
                 url=self._url,
                 data=payload,
                 headers=headers,
-                timeout=ClientTimeout(total=config.TIMEOUT),
+                timeout=ClientTimeout(total=TIMEOUT),
                 ssl=self._tls_context,
             )
             if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
@@ -556,8 +559,11 @@ class JsonRpcAioHttpClient:
             for var in json_result:
                 enabled_default = False
                 extended_sysvar = False
+                name = var[_JsonKey.NAME]
                 if (is_internal := var[_JsonKey.IS_INTERNAL]) is True:
-                    if markers:
+                    if name in ALWAYS_ENABLE_SYSVARS:
+                        enabled_default = True
+                    elif markers:
                         if DescriptionMarker.INTERNAL not in markers:
                             continue
                         enabled_default = True
@@ -575,7 +581,6 @@ class JsonRpcAioHttpClient:
                         continue
                     enabled_default = True
 
-                name = var[_JsonKey.NAME]
                 org_data_type = var[_JsonKey.TYPE]
                 raw_value = var[_JsonKey.VALUE]
                 if org_data_type == SysvarType.NUMBER:

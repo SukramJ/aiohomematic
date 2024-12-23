@@ -8,12 +8,14 @@ import logging
 from typing import Any, Final, cast
 
 from hahomematic import central as hmcu
-from hahomematic.config import LAST_COMMAND_SEND_STORE_TIMEOUT, PING_PONG_MISMATCH_COUNT, PING_PONG_MISMATCH_COUNT_TTL
 from hahomematic.const import (
     DP_KEY_VALUE,
     INIT_DATETIME,
+    LAST_COMMAND_SEND_STORE_TIMEOUT,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
+    PING_PONG_MISMATCH_COUNT,
+    PING_PONG_MISMATCH_COUNT_TTL,
     CallSource,
     DataPointKey,
     EventKey,

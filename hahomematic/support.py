@@ -19,7 +19,6 @@ import sys
 from typing import Any, Final
 
 from hahomematic import client as hmcl
-from hahomematic.config import TIMEOUT
 from hahomematic.const import (
     ALLOWED_HOSTNAME_PATTERN,
     CACHE_PATH,
@@ -35,6 +34,7 @@ from hahomematic.const import (
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
+    TIMEOUT,
     CommandRxMode,
     ParamsetKey,
     RxMode,

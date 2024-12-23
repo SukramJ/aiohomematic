@@ -8,7 +8,7 @@ import logging
 import sys
 from unittest.mock import patch
 
-from hahomematic import config, const
+from hahomematic import const
 from hahomematic.central import CentralConfig
 from hahomematic.client import InterfaceConfig, _ClientConfig
 from hahomematic.model.custom import validate_custom_data_point_definition
@@ -466,7 +466,7 @@ class Example:
         await client.init_client()
 
         # For testing we set a short INIT_TIMEOUT
-        config.INIT_TIMEOUT = 10
+        const.INIT_TIMEOUT = 10
 
         with (
             patch("hahomematic.central.CentralUnit._get_primary_client", return_value=client),

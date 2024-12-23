@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2024.12.11"
+VERSION: Final = "2024.12.12"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -49,12 +49,14 @@ SCHEDULER_PROFILE_PATTERN = re.compile(
 )
 SCHEDULER_TIME_PATTERN = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
 
-ALWAYS_ENABLE_SYSVARS: Final = (
-    "${sysVarAlarmMessages}",
-    "${sysVarServiceMessages}",
-    "Alarmmeldungen",
-    "Servicemeldungen",
-)
+ALWAYS_ENABLE_SYSVARS_BY_ID: Final = "40", "41"
+RENAME_SYSVAR_BY_ID: Final = {
+    "40": "ALARM_MESSAGES",
+    "41": "SERVICE_MESSAGES",
+}
+
+SYSVAR_ENABLE_DEFAULT: Final = "40", "41"
+
 BLOCK_LOG_TIMEOUT = 60
 CACHE_PATH: Final = "cache"
 CONF_PASSWORD: Final = "password"

@@ -88,8 +88,7 @@ async def test_hmprogrambutton(
     assert button.available is True
     assert button.is_active is True
     assert button.is_internal is False
-    assert button.ccu_program_name == "p1"
-    assert button.name == "P_p1"
+    assert button.name == "p1"
     await button.press()
     assert mock_client.method_calls[-1] == call.execute_program(pid="pid1")
     updated_program = ProgramData(
@@ -108,5 +107,4 @@ async def test_hmprogrambutton(
     assert button2.usage == DataPointUsage.DATA_POINT
     assert button2.is_active is False
     assert button2.is_internal is False
-    assert button2.ccu_program_name == "p_2"
     assert button2.name == "p_2"

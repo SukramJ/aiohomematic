@@ -201,7 +201,7 @@ async def test_hmsysvarnumber(
     central, mock_client, _ = central_client_factory
     enumber: SysvarDpNumber = cast(
         SysvarDpNumber,
-        central.get_sysvar_data_point("sv_float_ext"),
+        central.get_sysvar_data_point("float_ext"),
     )
     assert enumber.usage == DataPointUsage.DATA_POINT
     assert enumber.unit == "°C"
@@ -211,7 +211,7 @@ async def test_hmsysvarnumber(
     assert enumber.value == 23.2
 
     await enumber.send_variable(23.0)
-    assert mock_client.method_calls[-1] == call.set_system_variable(name="sv_float_ext", value=23.0)
+    assert mock_client.method_calls[-1] == call.set_system_variable(name="float_ext", value=23.0)
     assert enumber.value == 23.0
 
     await enumber.send_variable(35.0)

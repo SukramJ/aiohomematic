@@ -207,9 +207,10 @@ class Hub:
         for sysvar_data_point in self._central.sysvar_data_points:
             if sysvar_data_point.data_type == SysvarType.STRING:
                 continue
-            ccu_name = sysvar_data_point.ccu_var_name
-            if ccu_name not in variable_names or (sysvar_data_point.is_extended is not variable_names.get(ccu_name)):
-                missing_variables.append(ccu_name)
+            if (name := sysvar_data_point.name) is not None and (
+                name not in variable_names or (sysvar_data_point.is_extended is not variable_names.get(name))
+            ):
+                missing_variables.append(name)
         return tuple(missing_variables)
 
 

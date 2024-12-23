@@ -27,7 +27,7 @@ import orjson
 from hahomematic import central as hmcu
 from hahomematic.async_support import Looper
 from hahomematic.const import (
-    ALWAYS_ENABLE_SYSVARS,
+    ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     ISO_8859_1,
@@ -35,6 +35,7 @@ from hahomematic.const import (
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
+    RENAME_SYSVAR_BY_ID,
     TIMEOUT,
     UTF_8,
     DescriptionMarker,
@@ -559,9 +560,16 @@ class JsonRpcAioHttpClient:
             for var in json_result:
                 enabled_default = False
                 extended_sysvar = False
+                var_id = var[_JsonKey.ID]
                 name = var[_JsonKey.NAME]
-                if (is_internal := var[_JsonKey.IS_INTERNAL]) is True:
-                    if name in ALWAYS_ENABLE_SYSVARS:
+                is_internal = var[_JsonKey.IS_INTERNAL]
+                if new_name := RENAME_SYSVAR_BY_ID.get(var_id):
+                    name = new_name
+                if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
+                    enabled_default = True
+
+                if not enabled_default and is_internal is True:
+                    if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
                         enabled_default = True
                     elif markers:
                         if DescriptionMarker.INTERNAL not in markers:
@@ -569,9 +577,9 @@ class JsonRpcAioHttpClient:
                         enabled_default = True
                     elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
                         continue  # type: ignore[unreachable]
-                var_id = var[_JsonKey.ID]
+
                 description = descriptions.get(var_id)
-                if not is_internal and markers:
+                if not enabled_default and not is_internal and markers:
                     if not element_matches_key(
                         search_elements=markers,
                         compare_with=description,

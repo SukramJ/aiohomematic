@@ -131,14 +131,14 @@ async def test_hmsysvarsensor(
 ) -> None:
     """Test HmSysvarSensor."""
     central, _, _ = central_client_factory
-    sensor: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("sv_list"))
+    sensor: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("list"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.available is True
     assert sensor.unit is None
     assert sensor.values == ("v1", "v2", "v3")
     assert sensor.value == "v1"
 
-    sensor2: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("sv_float"))
+    sensor2: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point("float"))
     assert sensor2.usage == DataPointUsage.DATA_POINT
     assert sensor2.unit is None
     assert sensor2.values is None

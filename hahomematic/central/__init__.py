@@ -340,8 +340,8 @@ class CentralUnit(PayloadMixin):
 
     def add_sysvar_data_point(self, sysvar_data_point: GenericSysvarDataPoint) -> None:
         """Add new program button."""
-        if (ccu_var_name := sysvar_data_point.ccu_var_name) is not None:
-            self._sysvar_data_points[ccu_var_name] = sysvar_data_point
+        if (name := sysvar_data_point.name) is not None:
+            self._sysvar_data_points[name] = sysvar_data_point
         if sysvar_data_point.state_path not in self._sysvar_data_point_event_subscriptions:
             self._sysvar_data_point_event_subscriptions[sysvar_data_point.state_path] = sysvar_data_point.event
 

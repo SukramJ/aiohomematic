@@ -194,9 +194,9 @@ async def test_hmsysvarswitch(
 ) -> None:
     """Test HmSysvarSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: SysvarDpSwitch = cast(SysvarDpSwitch, central.get_sysvar_data_point("sv_alarm_ext"))
+    switch: SysvarDpSwitch = cast(SysvarDpSwitch, central.get_sysvar_data_point("alarm_ext"))
     assert switch.usage == DataPointUsage.DATA_POINT
 
     assert switch.value is False
     await switch.send_variable(True)
-    assert mock_client.method_calls[-1] == call.set_system_variable(name="sv_alarm_ext", value=True)
+    assert mock_client.method_calls[-1] == call.set_system_variable(name="alarm_ext", value=True)

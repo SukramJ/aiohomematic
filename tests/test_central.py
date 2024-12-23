@@ -745,8 +745,8 @@ async def test_central_services(
     assert mock_client.method_calls[-1] == call.get_system_variable("SysVar_Name")
 
     assert len(mock_client.method_calls) == 61
-    await central.set_system_variable(name="sv_alarm", value=True)
-    assert mock_client.method_calls[-1] == call.set_system_variable(name="sv_alarm", value=True)
+    await central.set_system_variable(name="alarm", value=True)
+    assert mock_client.method_calls[-1] == call.set_system_variable(name="alarm", value=True)
     assert len(mock_client.method_calls) == 62
     await central.set_system_variable(name="SysVar_Name", value=True)
     assert len(mock_client.method_calls) == 62

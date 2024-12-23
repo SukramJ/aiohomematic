@@ -568,7 +568,7 @@ class JsonRpcAioHttpClient:
                 if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
                     enabled_default = True
 
-                if not enabled_default and is_internal is True:
+                if enabled_default is False and is_internal is True:
                     if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
                         enabled_default = True
                     elif markers:
@@ -579,7 +579,7 @@ class JsonRpcAioHttpClient:
                         continue  # type: ignore[unreachable]
 
                 description = descriptions.get(var_id)
-                if not enabled_default and not is_internal and markers:
+                if enabled_default is False and not is_internal and markers:
                     if not element_matches_key(
                         search_elements=markers,
                         compare_with=description,
@@ -601,7 +601,6 @@ class JsonRpcAioHttpClient:
                     # Remove default markers from description
                     for marker in DescriptionMarker:
                         description = description.replace(marker, "").strip()
-                    enabled_default = True
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
                 if val_list := var.get(_JsonKey.VALUE_LIST):

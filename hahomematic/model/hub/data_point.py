@@ -47,7 +47,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         return self._enabled_default
 
     @config_property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the data_point."""
         return self._name
 

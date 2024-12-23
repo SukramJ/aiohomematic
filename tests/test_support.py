@@ -206,7 +206,7 @@ async def test_get_data_point_name(
     ):
         name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == ""
-        assert name_data.data_point_name is None
+        assert name_data.data_point_name == ""
 
 
 @pytest.mark.asyncio
@@ -249,7 +249,7 @@ async def test_get_event_name(
     ):
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == ""
-        assert name_data.data_point_name is None
+        assert name_data.data_point_name == ""
 
 
 @pytest.mark.asyncio
@@ -318,7 +318,7 @@ async def test_custom_data_point_name(
             usage=DataPointUsage.CDP_SECONDARY,
         )
         assert name_data.full_name == ""
-        assert name_data.data_point_name is None
+        assert name_data.data_point_name == ""
 
 
 @pytest.mark.asyncio

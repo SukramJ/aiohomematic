@@ -179,7 +179,7 @@ class CallbackDataPoint(ABC):
 
     @config_property
     @abstractmethod
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the data_point."""
 
     @config_property
@@ -366,7 +366,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         return self._is_in_multiple_channels
 
     @config_property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the data_point."""
         return self._data_point_name_data.data_point_name
 

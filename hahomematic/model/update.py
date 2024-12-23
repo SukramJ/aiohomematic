@@ -60,7 +60,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         return f"{self._device.name} Update"
 
     @config_property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the data_point."""
         return "Update"
 

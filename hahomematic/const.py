@@ -50,9 +50,10 @@ SCHEDULER_PROFILE_PATTERN = re.compile(
 SCHEDULER_TIME_PATTERN = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
 
 ALWAYS_ENABLE_SYSVARS_BY_ID: Final = "40", "41"
-RENAME_SYSVAR_BY_ID: Final = {
-    "40": "ALARM_MESSAGES",
-    "41": "SERVICE_MESSAGES",
+RENAME_SYSVAR_BY_NAME: Final = {
+    "${sysVarAlarmMessages}": "ALARM_MESSAGES",
+    "${sysVarPresence}": "PRESENCE",
+    "${sysVarServiceMessages}": "SERVICE_MESSAGES",
 }
 
 SYSVAR_ENABLE_DEFAULT: Final = "40", "41"

@@ -35,7 +35,7 @@ from hahomematic.const import (
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
-    RENAME_SYSVAR_BY_ID,
+    RENAME_SYSVAR_BY_NAME,
     TIMEOUT,
     UTF_8,
     DescriptionMarker,
@@ -563,7 +563,7 @@ class JsonRpcAioHttpClient:
                 var_id = var[_JsonKey.ID]
                 name = var[_JsonKey.NAME]
                 is_internal = var[_JsonKey.IS_INTERNAL]
-                if new_name := RENAME_SYSVAR_BY_ID.get(var_id):
+                if new_name := RENAME_SYSVAR_BY_NAME.get(name):
                     name = new_name
                 if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
                     enabled_default = True

@@ -175,10 +175,10 @@ class DataPointNameData(ChannelNameData):
         """Init the DataPointNameData class."""
         super().__init__(device_name=device_name, channel_name=channel_name)
 
-        self.data_point_name: Final = self._get_data_point_name(
+        self.name: Final = self._get_data_point_name(
             device_name=device_name, channel_name=channel_name, parameter_name=parameter_name
         )
-        self.full_name = f"{device_name} {self.data_point_name}".strip() if self.data_point_name else device_name
+        self.full_name = f"{device_name} {self.name}".strip() if self.name else device_name
         self.parameter_name = parameter_name
 
     @staticmethod

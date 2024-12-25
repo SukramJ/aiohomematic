@@ -368,7 +368,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     @config_property
     def name(self) -> str:
         """Return the name of the data_point."""
-        return self._data_point_name_data.data_point_name
+        return self._data_point_name_data.name
 
     @property
     def name_data(self) -> DataPointNameData:

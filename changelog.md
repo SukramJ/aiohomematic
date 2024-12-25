@@ -1,3 +1,8 @@
+# Version 2024.12.12 (2024-12-23)
+
+- Ensure service and alarm messages are always displayed
+- Remove sv prefix from sysvar / p prefix from program
+
 # Version 2024.12.11 (2024-12-22)
 
 - Fix remove last sysvar/program

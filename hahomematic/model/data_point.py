@@ -15,7 +15,6 @@ import voluptuous as vol
 
 from hahomematic import central as hmcu, client as hmcl, support as hms, validator as val
 from hahomematic.async_support import loop_check
-from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
     CALLBACK_TYPE,
     DEFAULT_CUSTOM_ID,
@@ -25,6 +24,7 @@ from hahomematic.const import (
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
     KWARGS_ARG_DATA_POINT,
     NO_CACHE_ENTRY,
+    WAIT_FOR_CALLBACK,
     CallSource,
     DataPointCategory,
     DataPointKey,
@@ -179,7 +179,7 @@ class CallbackDataPoint(ABC):
 
     @config_property
     @abstractmethod
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the data_point."""
 
     @config_property
@@ -366,9 +366,9 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         return self._is_in_multiple_channels
 
     @config_property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the data_point."""
-        return self._data_point_name_data.data_point_name
+        return self._data_point_name_data.name
 
     @property
     def name_data(self) -> DataPointNameData:

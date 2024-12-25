@@ -24,15 +24,19 @@ from aiohttp import (
 )
 import orjson
 
-from hahomematic import central as hmcu, config
+from hahomematic import central as hmcu
 from hahomematic.async_support import Looper
 from hahomematic.const import (
+    ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     ISO_8859_1,
+    JSON_SESSION_AGE,
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
+    RENAME_SYSVAR_BY_NAME,
+    TIMEOUT,
     UTF_8,
     DescriptionMarker,
     DeviceDescription,
@@ -210,7 +214,7 @@ class JsonRpcAioHttpClient:
         if self._last_session_id_refresh is None:
             return False
         delta = datetime.now() - self._last_session_id_refresh
-        return delta.seconds < config.JSON_SESSION_AGE
+        return delta.seconds < JSON_SESSION_AGE
 
     async def _do_login(self) -> str | None:
         """Login to CCU and return session."""
@@ -365,7 +369,7 @@ class JsonRpcAioHttpClient:
                 url=self._url,
                 data=payload,
                 headers=headers,
-                timeout=ClientTimeout(total=config.TIMEOUT),
+                timeout=ClientTimeout(total=TIMEOUT),
                 ssl=self._tls_context,
             )
             if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
@@ -556,16 +560,26 @@ class JsonRpcAioHttpClient:
             for var in json_result:
                 enabled_default = False
                 extended_sysvar = False
-                if (is_internal := var[_JsonKey.IS_INTERNAL]) is True:
-                    if markers:
+                var_id = var[_JsonKey.ID]
+                name = var[_JsonKey.NAME]
+                is_internal = var[_JsonKey.IS_INTERNAL]
+                if new_name := RENAME_SYSVAR_BY_NAME.get(name):
+                    name = new_name
+                if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
+                    enabled_default = True
+
+                if enabled_default is False and is_internal is True:
+                    if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
+                        enabled_default = True
+                    elif markers:
                         if DescriptionMarker.INTERNAL not in markers:
                             continue
                         enabled_default = True
                     elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
                         continue  # type: ignore[unreachable]
-                var_id = var[_JsonKey.ID]
+
                 description = descriptions.get(var_id)
-                if not is_internal and markers:
+                if enabled_default is False and not is_internal and markers:
                     if not element_matches_key(
                         search_elements=markers,
                         compare_with=description,
@@ -575,7 +589,6 @@ class JsonRpcAioHttpClient:
                         continue
                     enabled_default = True
 
-                name = var[_JsonKey.NAME]
                 org_data_type = var[_JsonKey.TYPE]
                 raw_value = var[_JsonKey.VALUE]
                 if org_data_type == SysvarType.NUMBER:
@@ -588,7 +601,6 @@ class JsonRpcAioHttpClient:
                     # Remove default markers from description
                     for marker in DescriptionMarker:
                         description = description.replace(marker, "").strip()
-                    enabled_default = True
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
                 if val_list := var.get(_JsonKey.VALUE_LIST):

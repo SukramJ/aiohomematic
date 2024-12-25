@@ -11,10 +11,10 @@ from typing import Any, Final, cast
 import orjson
 
 from hahomematic.client import _LOGGER, Client, _ClientConfig
-from hahomematic.config import WAIT_FOR_CALLBACK
 from hahomematic.const import (
     DP_KEY_VALUE,
     UTF_8,
+    WAIT_FOR_CALLBACK,
     CallSource,
     CommandRxMode,
     DescriptionMarker,

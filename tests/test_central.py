@@ -10,10 +10,10 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.config import PING_PONG_MISMATCH_COUNT
 from hahomematic.const import (
     DATETIME_FORMAT_MILLIS,
     LOCAL_HOST,
+    PING_PONG_MISMATCH_COUNT,
     DataPointCategory,
     DataPointUsage,
     EventKey,
@@ -745,8 +745,8 @@ async def test_central_services(
     assert mock_client.method_calls[-1] == call.get_system_variable("SysVar_Name")
 
     assert len(mock_client.method_calls) == 61
-    await central.set_system_variable(name="sv_alarm", value=True)
-    assert mock_client.method_calls[-1] == call.set_system_variable(name="sv_alarm", value=True)
+    await central.set_system_variable(name="alarm", value=True)
+    assert mock_client.method_calls[-1] == call.set_system_variable(name="alarm", value=True)
     assert len(mock_client.method_calls) == 62
     await central.set_system_variable(name="SysVar_Name", value=True)
     assert len(mock_client.method_calls) == 62

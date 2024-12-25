@@ -29,7 +29,6 @@ class ProgramDpButton(GenericHubDataPoint):
             address=PROGRAM_ADDRESS,
             data=data,
         )
-        self._ccu_program_name: Final = data.name
         self._description = data.description
         self._is_active: bool = data.is_active
         self._is_internal: bool = data.is_internal
@@ -40,11 +39,6 @@ class ProgramDpButton(GenericHubDataPoint):
     def available(self) -> bool:
         """Return the availability of the device."""
         return self._is_active
-
-    @config_property
-    def ccu_program_name(self) -> str:
-        """Return the ccu program name."""
-        return self._ccu_program_name
 
     @config_property
     def description(self) -> str | None:

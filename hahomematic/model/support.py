@@ -175,10 +175,10 @@ class DataPointNameData(ChannelNameData):
         """Init the DataPointNameData class."""
         super().__init__(device_name=device_name, channel_name=channel_name)
 
-        self.data_point_name: Final = self._get_data_point_name(
+        self.name: Final = self._get_data_point_name(
             device_name=device_name, channel_name=channel_name, parameter_name=parameter_name
         )
-        self.full_name = f"{device_name} {self.data_point_name}".strip() if self.data_point_name else device_name
+        self.full_name = f"{device_name} {self.name}".strip() if self.name else device_name
         self.parameter_name = parameter_name
 
     @staticmethod
@@ -187,15 +187,13 @@ class DataPointNameData(ChannelNameData):
         return DataPointNameData(device_name="", channel_name="")
 
     @staticmethod
-    def _get_channel_parameter_name(channel_name: str, parameter_name: str | None) -> str | None:
+    def _get_channel_parameter_name(channel_name: str, parameter_name: str | None) -> str:
         """Return the channel parameter name of the data_point."""
         if channel_name and parameter_name:
             return f"{channel_name} {parameter_name}".strip()
-        if channel_name:
-            return channel_name.strip()
-        return None
+        return channel_name.strip()
 
-    def _get_data_point_name(self, device_name: str, channel_name: str, parameter_name: str | None) -> str | None:
+    def _get_data_point_name(self, device_name: str, channel_name: str, parameter_name: str | None) -> str:
         """Return the name of the data_point only name."""
         channel_parameter_name = self._get_channel_parameter_name(
             channel_name=channel_name, parameter_name=parameter_name

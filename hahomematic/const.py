@@ -9,9 +9,9 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2024.12.11"
+VERSION: Final = "2024.12.12"
 
-DEFAULT_CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
+# default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True
@@ -19,37 +19,22 @@ DEFAULT_ENABLE_SYSVAR_SCAN: Final = True
 DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS: Final[tuple[str, ...]] = ()
 DEFAULT_INCLUDE_INTERNAL_PROGRAMS: Final = False
 DEFAULT_INCLUDE_INTERNAL_SYSVARS: Final = True
-DEFAULT_JSON_SESSION_AGE: Final = 90
-DEFAULT_LAST_COMMAND_SEND_STORE_TIMEOUT: Final = 60
 DEFAULT_MAX_READ_WORKERS: Final = 1
 DEFAULT_MAX_WORKERS: Final = 1
 DEFAULT_MULTIPLIER: Final = 1.0
 DEFAULT_PERIODIC_REFRESH_INTERVAL: Final = 15
-DEFAULT_PING_PONG_MISMATCH_COUNT: Final = 15
-DEFAULT_PING_PONG_MISMATCH_COUNT_TTL: Final = 300
 DEFAULT_PROGRAM_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
-DEFAULT_RECONNECT_WAIT: Final = 120  # wait with reconnect after a first ping was successful
 DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SYS_SCAN_INTERVAL: Final = 30
-DEFAULT_TIMEOUT: Final = 60  # default timeout for a connection
 DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[tuple[str, ...]] = ()
 DEFAULT_VERIFY_TLS: Final = False
-DEFAULT_WAIT_FOR_CALLBACK: Final[int | None] = None
 
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"
 # Default encoding for xmlrpc service calls and script files
 ISO_8859_1: Final = "iso-8859-1"
 
-MAX_WAIT_FOR_CALLBACK: Final = 60
-MAX_CACHE_AGE: Final = 10
-MAX_CONCURRENT_HTTP_SESSIONS: Final = 3
-
-REGA_SCRIPT_PATH: Final = "../rega_scripts"
-
-DEFAULT_DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
-DEFAULT_PARAMSET_DESCRIPTIONS_DIR: Final = "export_paramset_descriptions"
 # Password can be empty.
 # Allowed characters: A-Z, a-z, 0-9, .!$():;#-
 # The CCU WebUI also supports ÄäÖöÜüß, but these characters are not supported by the XmlRPC servers
@@ -64,36 +49,60 @@ SCHEDULER_PROFILE_PATTERN = re.compile(
 )
 SCHEDULER_TIME_PATTERN = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
 
+ALWAYS_ENABLE_SYSVARS_BY_ID: Final = "40", "41"
+RENAME_SYSVAR_BY_NAME: Final = {
+    "${sysVarAlarmMessages}": "ALARM_MESSAGES",
+    "${sysVarPresence}": "PRESENCE",
+    "${sysVarServiceMessages}": "SERVICE_MESSAGES",
+}
+
+SYSVAR_ENABLE_DEFAULT: Final = "40", "41"
+
 BLOCK_LOG_TIMEOUT = 60
 CACHE_PATH: Final = "cache"
+CONF_PASSWORD: Final = "password"
+CONF_USERNAME: Final = "username"
+CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
 DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
+DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
 DEVICE_FIRMWARE_CHECK_INTERVAL: Final = 21600  # 6h
 DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL: Final = 3600  # 1h
 DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
+DUMMY_SERIAL = "SN0815"
+FILE_DEVICES: Final = "homematic_devices.json"
+FILE_PARAMSETS: Final = "homematic_paramsets.json"
 HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
 IP_ANY_V4: Final = "0.0.0.0"
+JSON_SESSION_AGE: Final = 90
 KWARGS_ARG_DATA_POINT = "data_point"
+LAST_COMMAND_SEND_STORE_TIMEOUT: Final = 60
 LOCAL_HOST: Final = "127.0.0.1"
+MAX_CACHE_AGE: Final = 10
+MAX_CONCURRENT_HTTP_SESSIONS: Final = 3
+MAX_WAIT_FOR_CALLBACK: Final = 60
+NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
+PARAMSET_DESCRIPTIONS_DIR: Final = "export_paramset_descriptions"
 PATH_JSON_RPC: Final = "/api/homematic.cgi"
+PING_PONG_MISMATCH_COUNT: Final = 15
+PING_PONG_MISMATCH_COUNT_TTL: Final = 300
 PORT_ANY: Final = 0
-
-REPORT_VALUE_USAGE_VALUE_ID: Final = "PRESS_SHORT"
-REPORT_VALUE_USAGE_DATA: Final = "reportValueUsageData"
-
-DUMMY_SERIAL = "SN0815"
-
 PROGRAM_ADDRESS: Final = "program"
+RECONNECT_WAIT: Final = 120  # wait with reconnect after a first ping was successful
+REGA_SCRIPT_PATH: Final = "../rega_scripts"
+REPORT_VALUE_USAGE_DATA: Final = "reportValueUsageData"
+REPORT_VALUE_USAGE_VALUE_ID: Final = "PRESS_SHORT"
 SYSVAR_ADDRESS: Final = "sysvar"
+TIMEOUT: Final = 60  # default timeout for a connection
+UN_IGNORE_WILDCARD: Final = "all"
+WAIT_FOR_CALLBACK: Final[int | None] = None
 
-CONF_PASSWORD: Final = "password"
-CONF_USERNAME: Final = "username"
 
-FILE_DEVICES: Final = "homematic_devices.json"
-FILE_PARAMSETS: Final = "homematic_paramsets.json"
+CALLBACK_WARN_INTERVAL = CONNECTION_CHECKER_INTERVAL * 40
 
+# Path
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
 PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 SET_PATH_ROOT: Final = "device/set"
@@ -103,12 +112,7 @@ SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
 VIRTDEV_SET_PATH_ROOT: Final = "virtdev/set"
 VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
 
-
-NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
-
 CALLBACK_TYPE = Callable[[], None] | None
-
-UN_IGNORE_WILDCARD: Final = "all"
 
 
 class Backend(StrEnum):

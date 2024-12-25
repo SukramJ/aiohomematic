@@ -7,7 +7,7 @@ import asyncio
 import logging
 import sys
 
-from hahomematic import config, const
+from hahomematic import const
 from hahomematic.central import CentralConfig
 from hahomematic.client import InterfaceConfig
 from hahomematic.model.custom import validate_custom_data_point_definition
@@ -84,7 +84,7 @@ class Example:
         ).create_central()
 
         # For testing we set a short INIT_TIMEOUT
-        config.INIT_TIMEOUT = 10
+        const.INIT_TIMEOUT = 10
         # Add callbacks to handle the events and see what happens on the system.
         self.central.register_backend_system_callback(self._systemcallback)
 

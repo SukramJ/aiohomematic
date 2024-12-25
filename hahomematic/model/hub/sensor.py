@@ -26,7 +26,7 @@ class SysvarDpSensor(GenericSysvarDataPoint):
             and (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None
         ):
             return value
-        return _check_length_and_log(name=self.ccu_var_name, value=self._value)
+        return _check_length_and_log(name=self._name, value=self._value)
 
 
 def _check_length_and_log(name: str | None, value: Any) -> Any:

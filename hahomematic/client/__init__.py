@@ -11,8 +11,8 @@ from typing import Any, Final, cast
 from hahomematic import central as hmcu
 from hahomematic.caches.dynamic import CommandCache, PingPongCache
 from hahomematic.client.xml_rpc import XmlRpcProxy
-from hahomematic.config import CALLBACK_WARN_INTERVAL, RECONNECT_WAIT, WAIT_FOR_CALLBACK
 from hahomematic.const import (
+    CALLBACK_WARN_INTERVAL,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_CUSTOM_ID,
     DEFAULT_MAX_WORKERS,
@@ -21,7 +21,9 @@ from hahomematic.const import (
     INIT_DATETIME,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_XML_RPC,
+    RECONNECT_WAIT,
     VIRTUAL_REMOTE_MODELS,
+    WAIT_FOR_CALLBACK,
     Backend,
     CallSource,
     CommandRxMode,

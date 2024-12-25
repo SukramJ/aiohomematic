@@ -60,12 +60,12 @@ async def test_sysvardptext(
 ) -> None:
     """Test SysvarDpText. There are currently no text data points."""
     central, mock_client, _ = central_client_factory
-    text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point("sv_string_ext"))
+    text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point("string_ext"))
     assert text.usage == DataPointUsage.DATA_POINT
 
     assert text.unit is None
     assert text.values is None
     assert text.value == "test1"
     await text.send_variable("test23")
-    assert mock_client.method_calls[-1] == call.set_system_variable(name="sv_string_ext", value="test23")
+    assert mock_client.method_calls[-1] == call.set_system_variable(name="string_ext", value="test23")
     assert text.value == "test23"

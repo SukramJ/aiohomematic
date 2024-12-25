@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from typing import Any, Final
 
 from slugify import slugify
@@ -32,14 +31,10 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
             address=address,
             parameter=slugify(data.name),
         )
-        self._name: Final = self.get_name(data=data)
+        self._name: Final = data.name
         super().__init__(central=central, unique_id=unique_id)
         self._full_name: Final = f"{self._central.name}_{self._name}"
         self._enabled_default: Final = data.enabled_default
-
-    @abstractmethod
-    def get_name(self, data: HubData) -> str:
-        """Return the name of the hub data_point."""
 
     @property
     def full_name(self) -> str:
@@ -52,7 +47,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         return self._enabled_default
 
     @config_property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the data_point."""
         return self._name
 
@@ -69,7 +64,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     ) -> None:
         """Initialize the data_point."""
         self._vid: Final = data.vid
-        self.ccu_var_name: Final = data.name
         super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
         self._description = data.description
         self._data_type = data.data_type
@@ -161,12 +155,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the path data of the data_point."""
         return SysvarPathData(vid=self._vid)
 
-    def get_name(self, data: HubData) -> str:
-        """Return the name of the sysvar data_point."""
-        if data.name.lower().startswith(tuple({"v_", "sv_", "sv"})):
-            return data.name
-        return f"Sv_{data.name}"
-
     async def event(self, value: Any) -> None:
         """Handle event for which this data_point has subscribed."""
         self.write_value(value=value)
@@ -225,5 +213,5 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     async def send_variable(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
         if client := self.central.primary_client:
-            await client.set_system_variable(name=self.ccu_var_name, value=parse_sys_var(self._data_type, value))
+            await client.set_system_variable(name=self._name, value=parse_sys_var(self._data_type, value))
         self._write_temporary_value(value=value)

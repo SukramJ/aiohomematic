@@ -19,11 +19,11 @@ from hahomematic.async_support import loop_check
 from hahomematic.const import (
     CALLBACK_TYPE,
     CLICK_EVENTS,
-    DEFAULT_DEVICE_DESCRIPTIONS_DIR,
-    DEFAULT_PARAMSET_DESCRIPTIONS_DIR,
+    DEVICE_DESCRIPTIONS_DIR,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
     NO_CACHE_ENTRY,
+    PARAMSET_DESCRIPTIONS_DIR,
     RELEVANT_INIT_PARAMETERS,
     REPORT_VALUE_USAGE_DATA,
     REPORT_VALUE_USAGE_VALUE_ID,
@@ -1122,14 +1122,14 @@ class _DefinitionExporter:
 
         # Save device_descriptions for device to file.
         await self._save(
-            file_dir=f"{self._storage_folder}/{DEFAULT_DEVICE_DESCRIPTIONS_DIR}",
+            file_dir=f"{self._storage_folder}/{DEVICE_DESCRIPTIONS_DIR}",
             filename=filename,
             data=anonymize_device_descriptions,
         )
 
         # Save device_descriptions for device to file.
         await self._save(
-            file_dir=f"{self._storage_folder}/{DEFAULT_PARAMSET_DESCRIPTIONS_DIR}",
+            file_dir=f"{self._storage_folder}/{PARAMSET_DESCRIPTIONS_DIR}",
             filename=filename,
             data=anonymize_paramset_descriptions,
         )

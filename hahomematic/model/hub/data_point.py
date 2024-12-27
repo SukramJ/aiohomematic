@@ -265,12 +265,6 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         """Return the program id."""
         return self._pid
 
-    def get_name(self, data: HubData) -> str:
-        """Return the name of the program button data_point."""
-        if data.name.lower().startswith(tuple({"p_", "prg_"})):
-            return data.name
-        return f"P_{data.name}"
-
     def update_data(self, data: ProgramData) -> None:
         """Set variable value on CCU/Homegear."""
         do_update: bool = False

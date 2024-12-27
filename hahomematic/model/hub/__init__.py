@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Collection, Mapping, Set as AbstractSet
 import logging
-from typing import Final
+from typing import Final, NamedTuple
 
 from hahomematic import central as hmcu
 from hahomematic.const import (
@@ -20,18 +20,20 @@ from hahomematic.const import (
 from hahomematic.decorators import service
 from hahomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from hahomematic.model.hub.button import ProgramDpButton
-from hahomematic.model.hub.data_point import GenericHubDataPoint, GenericSysvarDataPoint
+from hahomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
 from hahomematic.model.hub.number import SysvarDpNumber
 from hahomematic.model.hub.select import SysvarDpSelect
 from hahomematic.model.hub.sensor import SysvarDpSensor
-from hahomematic.model.hub.switch import SysvarDpSwitch
+from hahomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from hahomematic.model.hub.text import SysvarDpText
 
 __all__ = [
-    "GenericHubDataPoint",
+    "GenericProgramDataPoint",
     "GenericSysvarDataPoint",
     "Hub",
     "ProgramDpButton",
+    "ProgramDpSwitch",
+    "ProgramDpType",
     "SysvarDpBinarySensor",
     "SysvarDpNumber",
     "SysvarDpSelect",
@@ -46,6 +48,14 @@ _EXCLUDED: Final = [
     "OldVal",
     "pcCCUID",
 ]
+
+
+class ProgramDpType(NamedTuple):
+    """Key for data points."""
+
+    pid: str
+    button: ProgramDpButton
+    switch: ProgramDpSwitch
 
 
 class Hub:
@@ -100,13 +110,16 @@ class Hub:
         if missing_program_ids := self._identify_missing_program_ids(programs=programs):
             self._remove_program_data_point(ids=missing_program_ids)
 
-        new_programs: list[ProgramDpButton] = []
+        new_programs: list[GenericProgramDataPoint] = []
 
         for program_data in programs:
-            if dp := self._central.get_program_button(pid=program_data.pid):
-                dp.update_data(data=program_data)
+            if program_dp := self._central.get_program_data_point(pid=program_data.pid):
+                program_dp.button.update_data(data=program_data)
+                program_dp.switch.update_data(data=program_data)
             else:
-                new_programs.append(self._create_program(data=program_data))
+                program_dp = self._create_program_dp(data=program_data)
+                new_programs.append(program_dp.button)
+                new_programs.append(program_dp.switch)
 
         if new_programs:
             self._central.fire_backend_system_callback(
@@ -152,11 +165,15 @@ class Hub:
                 new_hub_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )
 
-    def _create_program(self, data: ProgramData) -> ProgramDpButton:
+    def _create_program_dp(self, data: ProgramData) -> ProgramDpType:
         """Create program as data_point."""
-        program_button = ProgramDpButton(central=self._central, data=data)
-        self._central.add_program_button(program_button=program_button)
-        return program_button
+        program_dp = ProgramDpType(
+            pid=data.pid,
+            button=ProgramDpButton(central=self._central, data=data),
+            switch=ProgramDpSwitch(central=self._central, data=data),
+        )
+        self._central.add_program_data_point(program_dp=program_dp)
+        return program_dp
 
     def _create_system_variable(self, data: SystemVariableData) -> GenericSysvarDataPoint:
         """Create system variable as data_point."""
@@ -182,25 +199,25 @@ class Hub:
 
         return SysvarDpSensor(central=self._central, data=data)
 
-    def _remove_program_data_point(self, ids: tuple[str, ...]) -> None:
+    def _remove_program_data_point(self, ids: set[str]) -> None:
         """Remove sysvar data_point from hub."""
         for pid in ids:
             self._central.remove_program_button(pid=pid)
 
-    def _remove_sysvar_data_point(self, del_data_points: tuple[str, ...]) -> None:
+    def _remove_sysvar_data_point(self, del_data_points: set[str]) -> None:
         """Remove sysvar data_point from hub."""
         for name in del_data_points:
             self._central.remove_sysvar_data_point(name=name)
 
-    def _identify_missing_program_ids(self, programs: tuple[ProgramData, ...]) -> tuple[str, ...]:
+    def _identify_missing_program_ids(self, programs: tuple[ProgramData, ...]) -> set[str]:
         """Identify missing programs."""
-        return tuple(
-            program_button.pid
-            for program_button in self._central.program_buttons
-            if program_button.pid not in [x.pid for x in programs]
-        )
+        return {
+            program_dp.pid
+            for program_dp in self._central.program_data_points
+            if program_dp.pid not in [x.pid for x in programs]
+        }
 
-    def _identify_missing_variable_names(self, variables: tuple[SystemVariableData, ...]) -> tuple[str, ...]:
+    def _identify_missing_variable_names(self, variables: tuple[SystemVariableData, ...]) -> set[str]:
         """Identify missing variables."""
         variable_names: dict[str, bool] = {x.name: x.extended_sysvar for x in variables}
         missing_variables: list[str] = []
@@ -211,7 +228,7 @@ class Hub:
                 name not in variable_names or (sysvar_data_point.is_extended is not variable_names.get(name))
             ):
                 missing_variables.append(name)
-        return tuple(missing_variables)
+        return set(missing_variables)
 
 
 def _is_excluded(variable: str, excludes: list[str]) -> bool:

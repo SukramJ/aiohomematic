@@ -356,7 +356,11 @@ class Client(ABC):
 
     @abstractmethod
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU / Homegear.."""
+        """Execute a program on CCU / Homegear."""
+
+    @abstractmethod
+    async def set_program_state(self, pid: str, state: bool) -> bool:
+        """Set the program state on CCU / Homegear."""
 
     @abstractmethod
     async def set_system_variable(self, name: str, value: Any) -> bool:
@@ -1075,6 +1079,11 @@ class ClientCCU(Client):
         return await self._json_rpc_client.execute_program(pid=pid)
 
     @service()
+    async def set_program_state(self, pid: str, state: bool) -> bool:
+        """Set the program state on CCU."""
+        return await self._json_rpc_client.set_program_state(pid=pid, state=state)
+
+    @service()
     async def has_program_ids(self, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         return await self._json_rpc_client.has_program_ids(channel_hmid=channel_hmid)
@@ -1404,9 +1413,12 @@ class ClientHomegear(Client):
         self.modified_at = INIT_DATETIME
         return False
 
-    @service()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on Homegear."""
+        return True
+
+    async def set_program_state(self, pid: str, state: bool) -> bool:
+        """Set the program state on Homegear."""
         return True
 
     @service(measure_performance=True)

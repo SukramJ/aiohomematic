@@ -88,7 +88,7 @@ from hahomematic.model.decorators import info_property
 from hahomematic.model.device import Device
 from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
-from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton
+from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton, ProgramDpSwitch
 from hahomematic.model.support import PayloadMixin
 from hahomematic.support import check_config, get_channel_no, get_device_address, get_ip_addr, reduce_args
 
@@ -147,8 +147,10 @@ class CentralUnit(PayloadMixin):
         self._devices: Final[dict[str, Device]] = {}
         # {sysvar_name, sysvar_data_point}
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
-        # {sysvar_name, program_button}U
+        # {sysvar_name, program_button}
         self._program_buttons: Final[dict[str, ProgramDpButton]] = {}
+        # {sysvar_name, program_switch}
+        self._program_switches: Final[dict[str, ProgramDpSwitch]] = {}
         # Signature: (name, *args)
         # e.g. DEVICES_CREATED, HUB_REFRESHED
         self._backend_system_callbacks: Final[set[Callable]] = set()
@@ -307,6 +309,11 @@ class CentralUnit(PayloadMixin):
         return tuple(self._program_buttons.values())
 
     @property
+    def program_switches(self) -> tuple[ProgramDpSwitch, ...]:
+        """Return the program data points."""
+        return tuple(self._program_switches.values())
+
+    @property
     def started(self) -> bool:
         """Return if the central is started."""
         return self._started
@@ -357,11 +364,21 @@ class CentralUnit(PayloadMixin):
         """Add new program button."""
         self._program_buttons[program_button.pid] = program_button
 
+    def add_program_switch(self, program_switch: ProgramDpSwitch) -> None:
+        """Add new program button."""
+        self._program_switches[program_switch.pid] = program_switch
+
     def remove_program_button(self, pid: str) -> None:
         """Remove a program button."""
         if (program_button := self.get_program_button(pid=pid)) is not None:
             program_button.fire_device_removed_callback()
             del self._program_buttons[pid]
+
+    def remove_program_switch(self, pid: str) -> None:
+        """Remove a program button."""
+        if (program_switch := self.get_program_switch(pid=pid)) is not None:
+            program_switch.fire_device_removed_callback()
+            del self._program_switches[pid]
 
     async def save_caches(
         self, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
@@ -749,10 +766,10 @@ class CentralUnit(PayloadMixin):
     def get_hub_data_points(
         self, category: DataPointCategory | None = None, registered: bool | None = None
     ) -> tuple[GenericHubDataPoint, ...]:
-        """Return the hub data points."""
+        """Return the program data points."""
         return tuple(
             he
-            for he in (self.program_buttons + self.sysvar_data_points)
+            for he in (self.program_buttons + self.program_switches + self.sysvar_data_points)
             if (category is None or he.category == category) and (registered is None or he.is_registered == registered)
         )
 
@@ -1154,6 +1171,12 @@ class CentralUnit(PayloadMixin):
             return await client.execute_program(pid=pid)
         return False
 
+    async def set_program_state(self, pid: str, state: bool) -> bool:
+        """Execute a program on CCU / Homegear."""
+        if client := self.primary_client:
+            return await client.set_program_state(pid=pid, state=state)
+        return False
+
     @service(re_raise=False)
     async def fetch_sysvar_data(self, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
@@ -1303,6 +1326,10 @@ class CentralUnit(PayloadMixin):
     def get_program_button(self, pid: str) -> ProgramDpButton | None:
         """Return the program button."""
         return self._program_buttons.get(pid)
+
+    def get_program_switch(self, pid: str) -> ProgramDpSwitch | None:
+        """Return the program switch."""
+        return self._program_switches.get(pid)
 
     def get_data_point_path(self) -> tuple[str, ...]:
         """Return the registered state path."""

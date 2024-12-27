@@ -7,11 +7,19 @@ from typing import Any, Final
 from slugify import slugify
 
 from hahomematic import central as hmcu
-from hahomematic.const import SYSVAR_ADDRESS, SYSVAR_TYPE, HubData, SystemVariableData, SysvarType
+from hahomematic.const import (
+    PROGRAM_ADDRESS,
+    SYSVAR_ADDRESS,
+    SYSVAR_TYPE,
+    HubData,
+    ProgramData,
+    SystemVariableData,
+    SysvarType,
+)
 from hahomematic.decorators import get_service_calls, service
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import config_property, state_property
-from hahomematic.model.support import PathData, PayloadMixin, SysvarPathData, generate_unique_id
+from hahomematic.model.support import PathData, PayloadMixin, ProgramPathData, SysvarPathData, generate_unique_id
 from hahomematic.support import parse_sys_var
 
 
@@ -32,9 +40,22 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
             parameter=slugify(data.name),
         )
         self._name: Final = data.name
+        self._description = data.description
         super().__init__(central=central, unique_id=unique_id)
         self._full_name: Final = f"{self._central.name}_{self._name}"
         self._enabled_default: Final = data.enabled_default
+
+        self._state_uncertain: bool = True
+
+    @state_property
+    def available(self) -> bool:
+        """Return the availability of the device."""
+        return self.central.available
+
+    @config_property
+    def description(self) -> str | None:
+        """Return sysvar description."""
+        return self._description
 
     @property
     def full_name(self) -> str:
@@ -51,6 +72,11 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         """Return the name of the data_point."""
         return self._name
 
+    @property
+    def state_uncertain(self) -> bool:
+        """Return, if the state is uncertain."""
+        return self._state_uncertain
+
 
 class GenericSysvarDataPoint(GenericHubDataPoint):
     """Class for a HomeMatic system variable."""
@@ -65,24 +91,15 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Initialize the data_point."""
         self._vid: Final = data.vid
         super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
-        self._description = data.description
         self._data_type = data.data_type
         self._values: Final[tuple[str, ...] | None] = tuple(data.values) if data.values else None
         self._max: Final = data.max_value
         self._min: Final = data.min_value
         self._unit: Final = data.unit
-
         self._current_value: SYSVAR_TYPE = data.value
         self._previous_value: SYSVAR_TYPE = None
         self._temporary_value: SYSVAR_TYPE = None
-
-        self._state_uncertain: bool = True
         self._service_methods = get_service_calls(obj=self)
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self.central.available
 
     @property
     def data_type(self) -> SysvarType | None:
@@ -95,11 +112,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._data_type = data_type
 
     @config_property
-    def description(self) -> str | None:
-        """Return sysvar description."""
-        return self._description
-
-    @config_property
     def vid(self) -> str:
         """Return sysvar id."""
         return self._vid
@@ -108,11 +120,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     def previous_value(self) -> SYSVAR_TYPE:
         """Return the previous value."""
         return self._previous_value
-
-    @property
-    def state_uncertain(self) -> bool:
-        """Return, if the state is uncertain."""
-        return self._state_uncertain
 
     @property
     def _value(self) -> Any | None:
@@ -215,3 +222,70 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         if client := self.central.primary_client:
             await client.set_system_variable(name=self._name, value=parse_sys_var(self._data_type, value))
         self._write_temporary_value(value=value)
+
+
+class GenericProgramDataPoint(GenericHubDataPoint):
+    """Class for a generic HomeMatic progran data point."""
+
+    def __init__(
+        self,
+        central: hmcu.CentralUnit,
+        data: ProgramData,
+    ) -> None:
+        """Initialize the data_point."""
+        self._pid: Final = data.pid
+        super().__init__(
+            central=central,
+            address=PROGRAM_ADDRESS,
+            data=data,
+        )
+        self._is_active: bool = data.is_active
+        self._is_internal: bool = data.is_internal
+        self._last_execute_time: str = data.last_execute_time
+        self._state_uncertain: bool = True
+        self._service_methods = get_service_calls(obj=self)
+
+    @state_property
+    def is_active(self) -> bool:
+        """Return the program is active."""
+        return self._is_active
+
+    @config_property
+    def is_internal(self) -> bool:
+        """Return the program is internal."""
+        return self._is_internal
+
+    @state_property
+    def last_execute_time(self) -> str:
+        """Return the last execute time."""
+        return self._last_execute_time
+
+    @config_property
+    def pid(self) -> str:
+        """Return the program id."""
+        return self._pid
+
+    def get_name(self, data: HubData) -> str:
+        """Return the name of the program button data_point."""
+        if data.name.lower().startswith(tuple({"p_", "prg_"})):
+            return data.name
+        return f"P_{data.name}"
+
+    def update_data(self, data: ProgramData) -> None:
+        """Set variable value on CCU/Homegear."""
+        do_update: bool = False
+        if self._is_active != data.is_active:
+            self._is_active = data.is_active
+            do_update = True
+        if self._is_internal != data.is_internal:
+            self._is_internal = data.is_internal
+            do_update = True
+        if self._last_execute_time != data.last_execute_time:
+            self._last_execute_time = data.last_execute_time
+            do_update = True
+        if do_update:
+            self.fire_data_point_updated_callback()
+
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data_point."""
+        return ProgramPathData(pid=self.pid)

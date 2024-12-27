@@ -92,6 +92,7 @@ class _JsonKey(StrEnum):
     SERIAL = "serial"
     SESSION_ID = "_session_id_"
     SET = "set"
+    STATE = "state"
     TYPE = "type"
     UNIT = "unit"
     USERNAME = "username"
@@ -487,6 +488,23 @@ class JsonRpcAioHttpClient:
         if json_result := response[_JsonKey.RESULT]:
             _LOGGER.debug(
                 "EXECUTE_PROGRAM: Result while executing program: %s",
+                str(json_result),
+            )
+
+        return True
+
+    async def set_program_state(self, pid: str, state: bool) -> bool:
+        """Set the program state on CCU / Homegear."""
+        params = {
+            _JsonKey.ID: pid,
+            _JsonKey.STATE: "1" if state else "0",
+        }
+        response = await self._post_script(script_name=RegaScript.SET_PROGRAM_STATE, extra_params=params)
+
+        _LOGGER.debug("SET_PROGRAM_STATE: Setting program state: %s", state)
+        if json_result := response[_JsonKey.RESULT]:
+            _LOGGER.debug(
+                "SET_PROGRAM_STATE: Result while setting program state: %s",
                 str(json_result),
             )
 

@@ -20,18 +20,19 @@ from hahomematic.const import (
 from hahomematic.decorators import service
 from hahomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from hahomematic.model.hub.button import ProgramDpButton
-from hahomematic.model.hub.data_point import GenericHubDataPoint, GenericSysvarDataPoint
+from hahomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
 from hahomematic.model.hub.number import SysvarDpNumber
 from hahomematic.model.hub.select import SysvarDpSelect
 from hahomematic.model.hub.sensor import SysvarDpSensor
-from hahomematic.model.hub.switch import SysvarDpSwitch
+from hahomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from hahomematic.model.hub.text import SysvarDpText
 
 __all__ = [
-    "GenericHubDataPoint",
+    "GenericProgramDataPoint",
     "GenericSysvarDataPoint",
     "Hub",
     "ProgramDpButton",
+    "ProgramDpSwitch",
     "SysvarDpBinarySensor",
     "SysvarDpNumber",
     "SysvarDpSelect",
@@ -100,13 +101,18 @@ class Hub:
         if missing_program_ids := self._identify_missing_program_ids(programs=programs):
             self._remove_program_data_point(ids=missing_program_ids)
 
-        new_programs: list[ProgramDpButton] = []
+        new_programs: list[GenericProgramDataPoint] = []
 
         for program_data in programs:
-            if dp := self._central.get_program_button(pid=program_data.pid):
-                dp.update_data(data=program_data)
+            if dp_button := self._central.get_program_button(pid=program_data.pid):
+                dp_button.update_data(data=program_data)
             else:
-                new_programs.append(self._create_program(data=program_data))
+                new_programs.append(self._create_program_button(data=program_data))
+
+            if dp_switch := self._central.get_program_switch(pid=program_data.pid):
+                dp_switch.update_data(data=program_data)
+            else:
+                new_programs.append(self._create_program_switch(data=program_data))
 
         if new_programs:
             self._central.fire_backend_system_callback(
@@ -152,11 +158,17 @@ class Hub:
                 new_hub_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )
 
-    def _create_program(self, data: ProgramData) -> ProgramDpButton:
+    def _create_program_button(self, data: ProgramData) -> ProgramDpButton:
         """Create program as data_point."""
         program_button = ProgramDpButton(central=self._central, data=data)
         self._central.add_program_button(program_button=program_button)
         return program_button
+
+    def _create_program_switch(self, data: ProgramData) -> ProgramDpSwitch:
+        """Create program as data_point."""
+        program_switch = ProgramDpSwitch(central=self._central, data=data)
+        self._central.add_program_switch(program_switch=program_switch)
+        return program_switch
 
     def _create_system_variable(self, data: SystemVariableData) -> GenericSysvarDataPoint:
         """Create system variable as data_point."""

@@ -1,3 +1,7 @@
+# Version 2024.12.13 (2024-12-27)
+
+- Add program switch
+
 # Version 2024.12.12 (2024-12-23)
 
 - Ensure service and alarm messages are always displayed

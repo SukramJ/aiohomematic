@@ -1,0 +1,12 @@
+!# set_program_state.fn
+!#
+!#  Dieses Script setzt den Zustand eines Programmes auf der CCU.
+!#
+string p_id = "##id##";
+integer p_state = ##state##;
+
+object program = dom.GetObject(ID_PROGRAMS).Get(p_id);
+if (program) {
+    program.Active(p_state);
+    Write(program.Active())
+}

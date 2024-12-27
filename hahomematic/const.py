@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2024.12.12"
+VERSION: Final = "2024.12.13"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -420,6 +420,7 @@ class RegaScript(StrEnum):
     GET_PROGRAM_DESCRIPTIONS: Final = "get_program_descriptions.fn"
     GET_SERIAL: Final = "get_serial.fn"
     GET_SYSTEM_VARIABLE_DESCRIPTIONS: Final = "get_system_variable_descriptions.fn"
+    SET_PROGRAM_STATE: Final = "set_program_state.fn"
     SET_SYSTEM_VARIABLE: Final = "set_system_variable.fn"
 
 
@@ -633,6 +634,7 @@ class HubData:
 
     name: str
     enabled_default: bool = False
+    description: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -640,7 +642,6 @@ class ProgramData(HubData):
     """Dataclass for programs."""
 
     pid: str
-    description: str | None
     is_active: bool
     is_internal: bool
     last_execute_time: str
@@ -653,7 +654,6 @@ class SystemVariableData(HubData):
     vid: str
     value: SYSVAR_TYPE
     data_type: SysvarType | None = None
-    description: str | None = None
     extended_sysvar: bool = False
     max_value: float | int | None = None
     min_value: float | int | None = None

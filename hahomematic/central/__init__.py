@@ -88,7 +88,13 @@ from hahomematic.model.decorators import info_property
 from hahomematic.model.device import Device
 from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
-from hahomematic.model.hub import GenericHubDataPoint, GenericSysvarDataPoint, Hub, ProgramDpButton, ProgramDpSwitch
+from hahomematic.model.hub import (
+    GenericHubDataPoint,
+    GenericProgramDataPoint,
+    GenericSysvarDataPoint,
+    Hub,
+    ProgramDpType,
+)
 from hahomematic.model.support import PayloadMixin
 from hahomematic.support import check_config, get_channel_no, get_device_address, get_ip_addr, reduce_args
 
@@ -148,9 +154,7 @@ class CentralUnit(PayloadMixin):
         # {sysvar_name, sysvar_data_point}
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {sysvar_name, program_button}
-        self._program_buttons: Final[dict[str, ProgramDpButton]] = {}
-        # {sysvar_name, program_switch}
-        self._program_switches: Final[dict[str, ProgramDpSwitch]] = {}
+        self._program_data_points: Final[dict[str, ProgramDpType]] = {}
         # Signature: (name, *args)
         # e.g. DEVICES_CREATED, HUB_REFRESHED
         self._backend_system_callbacks: Final[set[Callable]] = set()
@@ -304,14 +308,12 @@ class CentralUnit(PayloadMixin):
         return self._config.name
 
     @property
-    def program_buttons(self) -> tuple[ProgramDpButton, ...]:
+    def program_data_points(self) -> tuple[GenericProgramDataPoint, ...]:
         """Return the program data points."""
-        return tuple(self._program_buttons.values())
-
-    @property
-    def program_switches(self) -> tuple[ProgramDpSwitch, ...]:
-        """Return the program data points."""
-        return tuple(self._program_switches.values())
+        return tuple(
+            [x.button for x in self._program_data_points.values()]
+            + [x.switch for x in self._program_data_points.values()]
+        )
 
     @property
     def started(self) -> bool:
@@ -360,25 +362,16 @@ class CentralUnit(PayloadMixin):
             if sysvar_dp.state_path in self._sysvar_data_point_event_subscriptions:
                 del self._sysvar_data_point_event_subscriptions[sysvar_dp.state_path]
 
-    def add_program_button(self, program_button: ProgramDpButton) -> None:
+    def add_program_data_point(self, program_dp: ProgramDpType) -> None:
         """Add new program button."""
-        self._program_buttons[program_button.pid] = program_button
-
-    def add_program_switch(self, program_switch: ProgramDpSwitch) -> None:
-        """Add new program button."""
-        self._program_switches[program_switch.pid] = program_switch
+        self._program_data_points[program_dp.pid] = program_dp
 
     def remove_program_button(self, pid: str) -> None:
         """Remove a program button."""
-        if (program_button := self.get_program_button(pid=pid)) is not None:
-            program_button.fire_device_removed_callback()
-            del self._program_buttons[pid]
-
-    def remove_program_switch(self, pid: str) -> None:
-        """Remove a program button."""
-        if (program_switch := self.get_program_switch(pid=pid)) is not None:
-            program_switch.fire_device_removed_callback()
-            del self._program_switches[pid]
+        if (program_dp := self.get_program_data_point(pid=pid)) is not None:
+            program_dp.button.fire_device_removed_callback()
+            program_dp.switch.fire_device_removed_callback()
+            del self._program_data_points[pid]
 
     async def save_caches(
         self, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
@@ -769,7 +762,7 @@ class CentralUnit(PayloadMixin):
         """Return the program data points."""
         return tuple(
             he
-            for he in (self.program_buttons + self.program_switches + self.sysvar_data_points)
+            for he in (self.program_data_points + self.sysvar_data_points)
             if (category is None or he.category == category) and (registered is None or he.is_registered == registered)
         )
 
@@ -1323,13 +1316,9 @@ class CentralUnit(PayloadMixin):
                 return sysvar
         return None
 
-    def get_program_button(self, pid: str) -> ProgramDpButton | None:
-        """Return the program button."""
-        return self._program_buttons.get(pid)
-
-    def get_program_switch(self, pid: str) -> ProgramDpSwitch | None:
-        """Return the program switch."""
-        return self._program_switches.get(pid)
+    def get_program_data_point(self, pid: str) -> ProgramDpType | None:
+        """Return the program data points."""
+        return self._program_data_points.get(pid)
 
     def get_data_point_path(self) -> tuple[str, ...]:
         """Return the registered state path."""

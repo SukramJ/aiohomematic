@@ -1006,5 +1006,5 @@ async def test_central_getter(
     assert central.get_custom_data_point("123", 1) is None
     assert central.get_generic_data_point("123", 1) is None
     assert central.get_event("123", 1) is None
-    assert central.get_program_button("123") is None
+    assert central.get_program_data_point("123") is None
     assert central.get_sysvar_data_point("123") is None

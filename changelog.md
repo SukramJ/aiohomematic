@@ -1,3 +1,7 @@
+# Version 2025.1.0 (2025-01-01)
+
+- Remove get-/set_install_mode
+
 # Version 2024.12.13 (2024-12-27)
 
 - Add program switch

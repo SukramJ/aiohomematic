@@ -751,12 +751,6 @@ async def test_central_services(
     await central.set_system_variable(name="SysVar_Name", value=True)
     assert len(mock_client.method_calls) == 62
 
-    await central.set_install_mode(interface_id=const.INTERFACE_ID)
-    assert mock_client.method_calls[-1] == call.set_install_mode(on=True, t=60, mode=1, device_address=None)
-    assert len(mock_client.method_calls) == 63
-    await central.set_install_mode(interface_id="NOT_A_VALID_INTERFACE_ID")
-    assert len(mock_client.method_calls) == 63
-
     await central.get_client(interface_id=const.INTERFACE_ID).set_value(
         channel_address="123",
         paramset_key=ParamsetKey.VALUES,
@@ -769,7 +763,7 @@ async def test_central_services(
         parameter="LEVEL",
         value=1.0,
     )
-    assert len(mock_client.method_calls) == 64
+    assert len(mock_client.method_calls) == 63
 
     with pytest.raises(HaHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
@@ -778,7 +772,7 @@ async def test_central_services(
             parameter="LEVEL",
             value=1.0,
         )
-    assert len(mock_client.method_calls) == 64
+    assert len(mock_client.method_calls) == 63
 
     await central.get_client(interface_id=const.INTERFACE_ID).put_paramset(
         channel_address="123",
@@ -788,14 +782,14 @@ async def test_central_services(
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="123", paramset_key="VALUES", values={"LEVEL": 1.0}
     )
-    assert len(mock_client.method_calls) == 65
+    assert len(mock_client.method_calls) == 64
     with pytest.raises(HaHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
             channel_address="123",
             paramset_key=ParamsetKey.VALUES,
             values={"LEVEL": 1.0},
         )
-    assert len(mock_client.method_calls) == 65
+    assert len(mock_client.method_calls) == 64
 
     assert (
         central.get_generic_data_point(channel_address="VCU6354483:0", parameter="DUTY_CYCLE").parameter == "DUTY_CYCLE"

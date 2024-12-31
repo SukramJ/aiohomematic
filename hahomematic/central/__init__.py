@@ -1207,26 +1207,6 @@ class CentralUnit(PayloadMixin):
         else:
             _LOGGER.warning("Variable %s not found on %s", name, self.name)
 
-    async def set_install_mode(
-        self,
-        interface_id: str,
-        on: bool = True,
-        t: int = 60,
-        mode: int = 1,
-        device_address: str | None = None,
-    ) -> bool:
-        """Activate or deactivate install-mode on CCU / Homegear."""
-        if not self.has_client(interface_id=interface_id):
-            _LOGGER.warning(
-                "SET_INSTALL_MODE: interface_id %s does not exist on %s",
-                interface_id,
-                self.name,
-            )
-            return False
-        return await self.get_client(interface_id=interface_id).set_install_mode(  # type: ignore[no-any-return]
-            on=on, t=t, mode=mode, device_address=device_address
-        )
-
     def get_parameters(
         self,
         paramset_key: ParamsetKey,

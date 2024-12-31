@@ -182,20 +182,6 @@ class ClientLocal(Client):  # pragma: no cover
                 device_descriptions.extend(device_description)
         return tuple(device_descriptions)
 
-    async def set_install_mode(
-        self,
-        on: bool = True,
-        t: int = 60,
-        mode: int = 1,
-        device_address: str | None = None,
-    ) -> bool:
-        """Activate or deactivate installmode on CCU / Homegear."""
-        return True
-
-    async def get_install_mode(self) -> Any:
-        """Get remaining time in seconds install mode is active from CCU / Homegear."""
-        return 0
-
     async def get_value(
         self,
         channel_address: str,

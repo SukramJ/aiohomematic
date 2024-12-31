@@ -418,37 +418,6 @@ class Client(ABC):
         return None
 
     @service()
-    async def set_install_mode(
-        self,
-        on: bool = True,
-        t: int = 60,
-        mode: int = 1,
-        device_address: str | None = None,
-    ) -> bool:
-        """Activate or deactivate installmode on CCU / Homegear."""
-        try:
-            args: list[Any] = [on]
-            if on and t:
-                args.append(t)
-                if device_address:
-                    args.append(device_address)
-                else:
-                    args.append(mode)
-
-            await self._proxy.setInstallMode(*args)
-        except BaseHomematicException as ex:
-            raise ClientException(f"SET_INSTALL_MODE failed: {reduce_args(args=ex.args)}") from ex
-        return True
-
-    @service()
-    async def get_install_mode(self) -> int:
-        """Get remaining time in seconds install mode is active from CCU / Homegear."""
-        try:
-            return await self._proxy.getInstallMode()  # type: ignore[no-any-return]
-        except BaseHomematicException as ex:
-            raise ClientException(f"GET_INSTALL_MODE failed: {reduce_args(args=ex.args)}") from ex
-
-    @service()
     async def add_link(self, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""
         try:

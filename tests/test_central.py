@@ -751,12 +751,6 @@ async def test_central_services(
     await central.set_system_variable(name="SysVar_Name", value=True)
     assert len(mock_client.method_calls) == 62
 
-    await central.set_install_mode(interface_id=const.INTERFACE_ID)
-    assert mock_client.method_calls[-1] == call.set_install_mode(on=True, t=60, mode=1, device_address=None)
-    assert len(mock_client.method_calls) == 63
-    await central.set_install_mode(interface_id="NOT_A_VALID_INTERFACE_ID")
-    assert len(mock_client.method_calls) == 63
-
     await central.get_client(interface_id=const.INTERFACE_ID).set_value(
         channel_address="123",
         paramset_key=ParamsetKey.VALUES,

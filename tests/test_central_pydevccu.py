@@ -30,7 +30,7 @@ async def test_central_mini(central_unit_mini) -> None:
     assert central_unit_mini.get_client(const.INTERFACE_ID).model == "PyDevCCU"
     assert central_unit_mini.primary_client.model == "PyDevCCU"
     assert len(central_unit_mini._devices) == 2
-    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 63
+    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 64
 
 
 @pytest.mark.enable_socket
@@ -118,7 +118,7 @@ async def test_central_full(central_unit_full) -> None:
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    assert usage_types[DataPointUsage.NO_CREATE] == 4090
+    assert usage_types[DataPointUsage.NO_CREATE] == 4092
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 261
     assert usage_types[DataPointUsage.DATA_POINT] == 3688
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 133
@@ -126,7 +126,7 @@ async def test_central_full(central_unit_full) -> None:
 
     assert len(ce_channels) == 124
     assert len(data_point_types) == 6
-    assert len(parameters) == 221
+    assert len(parameters) == 222
 
     assert len(central_unit_full._devices) == 386
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

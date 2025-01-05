@@ -1,3 +1,7 @@
+# Version 2025.1.1 (2025-01-05)
+
+- Consider heating value type when calculating hvac action
+
 # Version 2025.1.0 (2025-01-01)
 
 - Remove get-/set_install_mode

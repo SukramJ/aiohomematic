@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.1.0"
+VERSION: Final = "2025.1.1"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -319,6 +319,7 @@ class Parameter(StrEnum):
     FREQUENCY = "FREQUENCY"
     GLOBAL_BUTTON_LOCK = "GLOBAL_BUTTON_LOCK"
     HEATING_COOLING = "HEATING_COOLING"
+    HEATING_VALVE_TYPE = "HEATING_VALVE_TYPE"
     HUE = "HUE"
     HUMIDITY = "HUMIDITY"
     ILLUMINATION = "ILLUMINATION"

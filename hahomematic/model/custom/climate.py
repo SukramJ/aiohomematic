@@ -827,13 +827,19 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return ClimateActivity.OFF
         if (
             (self._dp_level.value and self._dp_level.value > _CLOSED_LEVEL)
+            or (self._dp_heating_valve_type.value is None and self._dp_state.value is True)
             or (
-                self._dp_state.value is True
-                and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_CLOSE
-            )
-            or (
-                self._dp_state.value is False
-                and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_OPEN
+                self._dp_heating_valve_type.value
+                and (
+                    (
+                        self._dp_state.value is True
+                        and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_CLOSE
+                    )
+                    or (
+                        self._dp_state.value is False
+                        and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_OPEN
+                    )
+                )
             )
         ):
             return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL

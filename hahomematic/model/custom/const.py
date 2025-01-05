@@ -91,6 +91,7 @@ class Field(Enum):
     ERROR = "error"
     FREQUENCY = "frequency"
     HEATING_COOLING = "heating_cooling"
+    HEATING_VALVE_TYPE = "heating_valve_type"
     HUE = "hue"
     HUMIDITY = "humidity"
     INHIBIT = "inhibit"

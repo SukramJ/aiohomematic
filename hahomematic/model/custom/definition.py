@@ -328,6 +328,11 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                         Field.STATE: Parameter.STATE,
                     },
                 },
+                CDPD.FIELDS: {
+                    7: {
+                        Field.HEATING_VALVE_TYPE: Parameter.HEATING_VALVE_TYPE,
+                    },
+                },
             },
         },
         DeviceProfile.IP_THERMOSTAT_GROUP: {
@@ -336,6 +341,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                     Field.ACTIVE_PROFILE: Parameter.ACTIVE_PROFILE,
                     Field.BOOST_MODE: Parameter.BOOST_MODE,
                     Field.CONTROL_MODE: Parameter.CONTROL_MODE,
+                    Field.HEATING_VALVE_TYPE: Parameter.HEATING_VALVE_TYPE,
                     Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
                     Field.OPTIMUM_START_STOP: Parameter.OPTIMUM_START_STOP,
                     Field.PARTY_MODE: Parameter.PARTY_MODE,

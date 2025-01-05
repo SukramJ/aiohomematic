@@ -22,6 +22,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 _CLIMATE_MASTER_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.GLOBAL_BUTTON_LOCK,
+    Parameter.HEATING_VALVE_TYPE,
     Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
     Parameter.OPTIMUM_START_STOP,
     Parameter.TEMPERATURE_MAXIMUM,
@@ -33,7 +34,7 @@ _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None,
     "HM-CC-RT-DN": ((None, 1), _CLIMATE_MASTER_PARAMETERS),
     "HM-CC-VG-1": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
     "HM-TC-IT-WM-W-EU": ((None,), (Parameter.GLOBAL_BUTTON_LOCK,)),
-    "HmIP-BWTH": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-BWTH": ((0, 1, 8), _CLIMATE_MASTER_PARAMETERS),
     "HmIP-DRBLI4": (
         (1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 17, 21),
         (Parameter.CHANNEL_OPERATION_MODE,),
@@ -73,6 +74,7 @@ _HIDDEN_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.CONFIG_PENDING,
     Parameter.DIRECTION,
     Parameter.ERROR,
+    Parameter.HEATING_VALVE_TYPE,
     Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
     Parameter.OPTIMUM_START_STOP,
     Parameter.SECTION,

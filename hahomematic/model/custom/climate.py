@@ -71,6 +71,13 @@ class ClimateActivity(StrEnum):
     OFF = "off"
 
 
+class ClimateHeatingValveType(StrEnum):
+    """Enum with the climate heating valve types."""
+
+    NORMALLY_CLOSE = "NORMALLY_CLOSE"
+    NORMALLY_OPEN = "NORMALLY_OPEN"
+
+
 class ClimateMode(StrEnum):
     """Enum with the thermostat modes."""
 
@@ -788,6 +795,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         self._dp_boost_mode: DpSwitch = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpSwitch)
         self._dp_control_mode: DpAction = self._get_data_point(field=Field.CONTROL_MODE, data_point_type=DpAction)
         self._dp_heating_mode: DpSelect = self._get_data_point(field=Field.HEATING_COOLING, data_point_type=DpSelect)
+        self._dp_heating_valve_type: DpSelect = self._get_data_point(
+            field=Field.HEATING_VALVE_TYPE, data_point_type=DpSelect
+        )
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
         self._dp_optimum_start_stop: DpBinarySensor = self._get_data_point(
             field=Field.OPTIMUM_START_STOP, data_point_type=DpBinarySensor
@@ -815,7 +825,21 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return None
         if self.mode == ClimateMode.OFF:
             return ClimateActivity.OFF
-        if self._dp_state.value is True or (self._dp_level.value and self._dp_level.value > _CLOSED_LEVEL):
+        if self._dp_level.value and self._dp_level.value > _CLOSED_LEVEL:
+            return ClimateActivity.HEAT
+        if (self._dp_heating_valve_type.value is None and self._dp_state.value is True) or (
+            self._dp_heating_valve_type.value
+            and (
+                (
+                    self._dp_state.value is True
+                    and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_CLOSE
+                )
+                or (
+                    self._dp_state.value is False
+                    and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_OPEN
+                )
+            )
+        ):
             return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL
         return ClimateActivity.IDLE
 

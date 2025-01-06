@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.1.1"
+VERSION: Final = "2025.1.2"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -40,8 +40,8 @@ ISO_8859_1: Final = "iso-8859-1"
 # The CCU WebUI also supports ÄäÖöÜüß, but these characters are not supported by the XmlRPC servers
 CCU_PASSWORD_PATTERN: Final = re.compile(r"[A-Za-z0-9.!$():;#-]{0,}")
 # Pattern is bigger than needed
-CHANNEL_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{5,20}:[0-9]{1,3}$")
-DEVICE_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{5,20}$")
+CHANNEL_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{10,14}:[0-9]{1,2}$")
+DEVICE_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{10,14}$")
 ALLOWED_HOSTNAME_PATTERN: Final = re.compile(r"(?!-)[a-z0-9-]{1,63}(?<!-)$", re.IGNORECASE)
 HTMLTAG_PATTERN: Final = re.compile(r"<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
 SCHEDULER_PROFILE_PATTERN = re.compile(

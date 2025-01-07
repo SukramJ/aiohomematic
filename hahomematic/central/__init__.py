@@ -85,7 +85,7 @@ from hahomematic.model import create_data_points_and_events
 from hahomematic.model.custom import CustomDataPoint, create_custom_data_points
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
 from hahomematic.model.decorators import info_property
-from hahomematic.model.device import Device
+from hahomematic.model.device import Channel, Device
 from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
 from hahomematic.model.hub import (
@@ -372,6 +372,13 @@ class CentralUnit(PayloadMixin):
             program_dp.button.fire_device_removed_callback()
             program_dp.switch.fire_device_removed_callback()
             del self._program_data_points[pid]
+
+    def identify_channel(self, text: str) -> Channel | None:
+        """Identify channel within a text."""
+        for device in self._devices.values():
+            if channel := device.identify_channel(text=text):
+                return channel
+        return None
 
     async def save_caches(
         self, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
@@ -704,6 +711,12 @@ class CentralUnit(PayloadMixin):
         if not self.has_client(interface_id=interface_id):
             raise HaHomematicException(f"get_client: interface_id {interface_id} does not exist on {self.name}")
         return self._clients[interface_id]
+
+    def get_channel(self, channel_address: str) -> Channel | None:
+        """Return homematic channel."""
+        if device := self.get_device(address=channel_address):
+            return device.get_channel(channel_address=channel_address)
+        return None
 
     def get_device(self, address: str) -> Device | None:
         """Return homematic device."""

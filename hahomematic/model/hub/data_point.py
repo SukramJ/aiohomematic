@@ -19,6 +19,7 @@ from hahomematic.const import (
 from hahomematic.decorators import get_service_calls, service
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import config_property, state_property
+from hahomematic.model.device import Channel
 from hahomematic.model.support import PathData, PayloadMixin, ProgramPathData, SysvarPathData, generate_unique_id
 from hahomematic.support import parse_sys_var
 
@@ -44,13 +45,18 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         super().__init__(central=central, unique_id=unique_id)
         self._full_name: Final = f"{self._central.name}_{self._name}"
         self._enabled_default: Final = data.enabled_default
-
+        self._channel = self._central.identify_channel(text=data.name)
         self._state_uncertain: bool = True
 
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
         return self.central.available
+
+    @property
+    def channel(self) -> Channel | None:
+        """Return the identified channel."""
+        return self._channel
 
     @config_property
     def description(self) -> str | None:

@@ -1,3 +1,7 @@
+# Version 2025.1.2 (2025-01-06)
+
+- Identify channel of a system variable if name ends with channel address
+
 # Version 2025.1.1 (2025-01-05)
 
 - Consider heating value type when calculating hvac action

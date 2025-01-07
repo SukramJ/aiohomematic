@@ -363,7 +363,7 @@ class Client(ABC):
         """Set the program state on CCU / Homegear."""
 
     @abstractmethod
-    async def set_system_variable(self, name: str, value: Any) -> bool:
+    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
 
     @abstractmethod
@@ -1068,9 +1068,9 @@ class ClientCCU(Client):
             ) from ex
 
     @service(measure_performance=True)
-    async def set_system_variable(self, name: str, value: Any) -> bool:
+    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
-        return await self._json_rpc_client.set_system_variable(name=name, value=value)
+        return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
 
     @service()
     async def delete_system_variable(self, name: str) -> bool:
@@ -1391,9 +1391,9 @@ class ClientHomegear(Client):
         return True
 
     @service(measure_performance=True)
-    async def set_system_variable(self, name: str, value: Any) -> bool:
+    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
-        await self._proxy.setSystemVariable(name, value)
+        await self._proxy.setSystemVariable(legacy_name, value)
         return True
 
     @service()
@@ -1415,7 +1415,7 @@ class ClientHomegear(Client):
         variables: list[SystemVariableData] = []
         if hg_variables := await self._proxy.getAllSystemVariables():
             for name, value in hg_variables.items():
-                variables.append(SystemVariableData(vid=name, name=name, value=value))
+                variables.append(SystemVariableData(vid=name, legacy_name=name, value=value))
         return tuple(variables)
 
     @service(re_raise=False, no_raise_return=())

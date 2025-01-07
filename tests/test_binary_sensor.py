@@ -82,10 +82,10 @@ async def test_hmsysvarbinarysensor(
     central, _, _ = central_client_factory
     binary_sensor: SysvarDpBinarySensor = cast(
         SysvarDpBinarySensor,
-        central.get_sysvar_data_point("logic"),
+        central.get_sysvar_data_point(legacy_name="logic"),
     )
     assert binary_sensor.name == "logic"
-    assert binary_sensor.full_name == "CentralTest_logic"
+    assert binary_sensor.full_name == "CentralTest logic"
     assert binary_sensor.value is False
     assert binary_sensor.is_extended is False
     assert binary_sensor._data_type == "LOGIC"

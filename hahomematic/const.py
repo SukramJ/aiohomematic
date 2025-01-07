@@ -633,7 +633,7 @@ VIRTUAL_REMOTE_ADDRESSES: Final[tuple[str, ...]] = (
 class HubData:
     """Dataclass for hub data points."""
 
-    name: str
+    legacy_name: str
     enabled_default: bool = False
     description: str | None = None
 

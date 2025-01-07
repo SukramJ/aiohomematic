@@ -741,14 +741,14 @@ async def test_central_services(
     await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
     assert len(mock_client.method_calls) == 60
 
-    await central.get_system_variable(name="SysVar_Name")
+    await central.get_system_variable(legacy_name="SysVar_Name")
     assert mock_client.method_calls[-1] == call.get_system_variable("SysVar_Name")
 
     assert len(mock_client.method_calls) == 61
-    await central.set_system_variable(name="alarm", value=True)
-    assert mock_client.method_calls[-1] == call.set_system_variable(name="alarm", value=True)
+    await central.set_system_variable(legacy_name="alarm", value=True)
+    assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm", value=True)
     assert len(mock_client.method_calls) == 62
-    await central.set_system_variable(name="SysVar_Name", value=True)
+    await central.set_system_variable(legacy_name="SysVar_Name", value=True)
     assert len(mock_client.method_calls) == 62
 
     await central.get_client(interface_id=const.INTERFACE_ID).set_value(
@@ -840,7 +840,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
         assert len(central._devices) == 0
         assert len(central.get_data_points()) == 0
 
-        assert await central.get_system_variable(name="SysVar_Name") is None
+        assert await central.get_system_variable(legacy_name="SysVar_Name") is None
         assert central._get_virtual_remote("VCU4264293") is None
     finally:
         await central.stop()
@@ -1001,4 +1001,4 @@ async def test_central_getter(
     assert central.get_generic_data_point("123", 1) is None
     assert central.get_event("123", 1) is None
     assert central.get_program_data_point("123") is None
-    assert central.get_sysvar_data_point("123") is None
+    assert central.get_sysvar_data_point(legacy_name="123") is None

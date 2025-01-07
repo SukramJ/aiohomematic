@@ -203,6 +203,22 @@ class DataPointNameData(ChannelNameData):
         return channel_parameter_name
 
 
+class HubNameData:
+    """Class for hub data_point name parts."""
+
+    def __init__(self, name: str, central_name: str | None = None, channel_name: str | None = None) -> None:
+        """Init the DataPointNameData class."""
+        self.name: Final = name
+        self.full_name = (
+            f"{channel_name} {self.name}".strip() if channel_name else f"{central_name} {self.name}".strip()
+        )
+
+    @staticmethod
+    def empty() -> HubNameData:
+        """Return an empty HubNameData."""
+        return HubNameData(name="")
+
+
 def get_device_name(central: hmcu.CentralUnit, device_address: str, model: str) -> str:
     """Return the cached name for a device, or an auto-generated."""
     if name := central.device_details.get_name(address=device_address):
@@ -355,6 +371,40 @@ def get_data_point_name_data(
         parameter,
     )
     return DataPointNameData.empty()
+
+
+def get_hub_data_point_name_data(
+    channel: hmd.Channel | None,
+    legacy_name: str,
+    central_name: str,
+) -> HubNameData:
+    """Get name for hub data_point."""
+    if not channel:
+        return HubNameData(
+            central_name=central_name,
+            name=legacy_name,
+        )
+    if channel_name := _get_base_name_from_channel_or_device(channel=channel):
+        p_name = (
+            legacy_name.replace("_", " ")
+            .replace(channel.address, "")
+            .replace(channel.id, "")
+            .replace(channel.device.id, "")
+            .strip()
+        )
+
+        if _check_channel_name_with_channel_no(name=channel_name):
+            channel_name = channel_name.split(":")[0]
+
+        return HubNameData(channel_name=channel_name, name=p_name)
+
+    _LOGGER.debug(
+        "GET_DATA_POINT_NAME: Using unique_id for %s %s %s",
+        channel.device.model,
+        channel.address,
+        legacy_name,
+    )
+    return HubNameData.empty()
 
 
 def get_event_name(

@@ -145,17 +145,14 @@ class Hub:
         if self._central.model is Backend.CCU:
             variables = _clean_variables(variables)
 
-        if missing_variable_names := self._identify_missing_variable_names(variables=variables):
-            self._remove_sysvar_data_point(del_data_points=missing_variable_names)
+        if missing_variable_ids := self._identify_missing_variable_ids(variables=variables):
+            self._remove_sysvar_data_point(del_data_point_ids=missing_variable_ids)
 
         new_sysvars: list[GenericSysvarDataPoint] = []
 
         for sysvar in variables:
-            name = sysvar.name
-            value = sysvar.value
-
-            if dp := self._central.get_sysvar_data_point(name=name):
-                dp.write_value(value)
+            if dp := self._central.get_sysvar_data_point(vid=sysvar.vid):
+                dp.write_value(sysvar.value)
             else:
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 
@@ -204,10 +201,10 @@ class Hub:
         for pid in ids:
             self._central.remove_program_button(pid=pid)
 
-    def _remove_sysvar_data_point(self, del_data_points: set[str]) -> None:
+    def _remove_sysvar_data_point(self, del_data_point_ids: set[str]) -> None:
         """Remove sysvar data_point from hub."""
-        for name in del_data_points:
-            self._central.remove_sysvar_data_point(name=name)
+        for vid in del_data_point_ids:
+            self._central.remove_sysvar_data_point(vid=vid)
 
     def _identify_missing_program_ids(self, programs: tuple[ProgramData, ...]) -> set[str]:
         """Identify missing programs."""
@@ -217,18 +214,18 @@ class Hub:
             if program_dp.pid not in [x.pid for x in programs]
         }
 
-    def _identify_missing_variable_names(self, variables: tuple[SystemVariableData, ...]) -> set[str]:
+    def _identify_missing_variable_ids(self, variables: tuple[SystemVariableData, ...]) -> set[str]:
         """Identify missing variables."""
-        variable_names: dict[str, bool] = {x.name: x.extended_sysvar for x in variables}
-        missing_variables: list[str] = []
+        variable_ids: dict[str, bool] = {x.vid: x.extended_sysvar for x in variables}
+        missing_variable_ids: list[str] = []
         for sysvar_data_point in self._central.sysvar_data_points:
             if sysvar_data_point.data_type == SysvarType.STRING:
                 continue
-            if (name := sysvar_data_point.name) is not None and (
-                name not in variable_names or (sysvar_data_point.is_extended is not variable_names.get(name))
+            if (vid := sysvar_data_point.vid) is not None and (
+                vid not in variable_ids or (sysvar_data_point.is_extended is not variable_ids.get(vid))
             ):
-                missing_variables.append(name)
-        return set(missing_variables)
+                missing_variable_ids.append(vid)
+        return set(missing_variable_ids)
 
 
 def _is_excluded(variable: str, excludes: list[str]) -> bool:
@@ -238,7 +235,7 @@ def _is_excluded(variable: str, excludes: list[str]) -> bool:
 
 def _clean_variables(variables: tuple[SystemVariableData, ...]) -> tuple[SystemVariableData, ...]:
     """Clean variables by removing excluded."""
-    return tuple(sv for sv in variables if not _is_excluded(sv.name, _EXCLUDED))
+    return tuple(sv for sv in variables if not _is_excluded(sv.legacy_name, _EXCLUDED))
 
 
 def _get_new_hub_data_points(

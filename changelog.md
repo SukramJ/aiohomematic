@@ -1,5 +1,7 @@
 # Version 2025.1.2 (2025-01-06)
 
+- Add legacy name for hub entities
+- Cleanup hub entity name if channel exists
 - Identify channel of a system variable:
   - name ends with channel address
   - name contains channel/device id

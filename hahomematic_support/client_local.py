@@ -126,7 +126,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Set the program state on CCU / Homegear."""
         return True
 
-    async def set_system_variable(self, name: str, value: Any) -> bool:
+    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
         return True
 

@@ -15,7 +15,7 @@ INTERFACE_ID = f"{CENTRAL_NAME}-{Interface.BIDCOS_RF}"
 SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(
         vid="1",
-        name="alarm",
+        legacy_name="alarm",
         description="",
         data_type=SysvarType.ALARM,
         unit=None,
@@ -27,7 +27,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="2",
-        name="alarm_ext",
+        legacy_name="alarm_ext",
         description="",
         data_type=SysvarType.ALARM,
         unit=None,
@@ -39,7 +39,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="3",
-        name="logic",
+        legacy_name="logic",
         description="",
         data_type=SysvarType.LOGIC,
         unit=None,
@@ -51,7 +51,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="4",
-        name="logic_ext",
+        legacy_name="logic_ext",
         description="",
         data_type=SysvarType.LOGIC,
         unit=None,
@@ -63,7 +63,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="5",
-        name="list",
+        legacy_name="list",
         description="",
         data_type=SysvarType.LIST,
         unit=None,
@@ -75,7 +75,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="6",
-        name="list_ext",
+        legacy_name="list_ext",
         description="",
         data_type=SysvarType.LIST,
         unit=None,
@@ -87,7 +87,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="7",
-        name="string",
+        legacy_name="string",
         description="",
         data_type=SysvarType.STRING,
         unit=None,
@@ -99,7 +99,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="8",
-        name="string_ext",
+        legacy_name="string_ext",
         description="",
         data_type=SysvarType.STRING,
         unit=None,
@@ -111,7 +111,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="9",
-        name="float",
+        legacy_name="float",
         description="",
         data_type=SysvarType.FLOAT,
         unit=None,
@@ -123,7 +123,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="10",
-        name="float_ext",
+        legacy_name="float_ext",
         description="",
         data_type=SysvarType.FLOAT,
         unit="°C",
@@ -135,7 +135,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="11",
-        name="integer",
+        legacy_name="integer",
         description="",
         data_type=SysvarType.INTEGER,
         unit=None,
@@ -147,7 +147,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     ),
     SystemVariableData(
         vid="12",
-        name="integer_ext",
+        legacy_name="integer_ext",
         description="",
         data_type=SysvarType.INTEGER,
         unit=None,
@@ -161,7 +161,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
 
 PROGRAM_DATA: list[ProgramData] = [
     ProgramData(
-        name="p1",
+        legacy_name="p1",
         pid="pid1",
         description="1",
         is_active=True,
@@ -169,7 +169,7 @@ PROGRAM_DATA: list[ProgramData] = [
         last_execute_time="",
     ),
     ProgramData(
-        name="p_2",
+        legacy_name="p_2",
         pid="pid2",
         description="2",
         is_active=False,

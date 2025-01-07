@@ -349,16 +349,16 @@ class CentralUnit(PayloadMixin):
 
     def add_sysvar_data_point(self, sysvar_data_point: GenericSysvarDataPoint) -> None:
         """Add new program button."""
-        if (name := sysvar_data_point.name) is not None:
-            self._sysvar_data_points[name] = sysvar_data_point
+        if (vid := sysvar_data_point.vid) is not None:
+            self._sysvar_data_points[vid] = sysvar_data_point
         if sysvar_data_point.state_path not in self._sysvar_data_point_event_subscriptions:
             self._sysvar_data_point_event_subscriptions[sysvar_data_point.state_path] = sysvar_data_point.event
 
-    def remove_sysvar_data_point(self, name: str) -> None:
+    def remove_sysvar_data_point(self, vid: str) -> None:
         """Remove a sysvar data_point."""
-        if (sysvar_dp := self.get_sysvar_data_point(name=name)) is not None:
+        if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
             sysvar_dp.fire_device_removed_callback()
-            del self._sysvar_data_points[name]
+            del self._sysvar_data_points[vid]
             if sysvar_dp.state_path in self._sysvar_data_point_event_subscriptions:
                 del self._sysvar_data_point_event_subscriptions[sysvar_dp.state_path]
 
@@ -1207,18 +1207,18 @@ class CentralUnit(PayloadMixin):
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
-    async def get_system_variable(self, name: str) -> Any | None:
+    async def get_system_variable(self, legacy_name: str) -> Any | None:
         """Get system variable from CCU / Homegear."""
         if client := self.primary_client:
-            return await client.get_system_variable(name)
+            return await client.get_system_variable(legacy_name)
         return None
 
-    async def set_system_variable(self, name: str, value: Any) -> None:
+    async def set_system_variable(self, legacy_name: str, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
-        if dp := self.get_sysvar_data_point(name=name):
+        if dp := self.get_sysvar_data_point(legacy_name=legacy_name):
             await dp.send_variable(value=value)
         else:
-            _LOGGER.warning("Variable %s not found on %s", name, self.name)
+            _LOGGER.warning("Variable %s not found on %s", legacy_name, self.name)
 
     def get_parameters(
         self,
@@ -1300,18 +1300,27 @@ class CentralUnit(PayloadMixin):
             return device.get_custom_data_point(channel_no=channel_no)
         return None
 
-    def get_sysvar_data_point(self, name: str) -> GenericSysvarDataPoint | None:
+    def get_sysvar_data_point(
+        self, vid: str | None = None, legacy_name: str | None = None
+    ) -> GenericSysvarDataPoint | None:
         """Return the sysvar data_point."""
-        if sysvar := self._sysvar_data_points.get(name):
+        if vid and (sysvar := self._sysvar_data_points.get(vid)):
             return sysvar
-        for sysvar in self._sysvar_data_points.values():
-            if sysvar.name == name:
-                return sysvar
+        if legacy_name:
+            for sysvar in self._sysvar_data_points.values():
+                if sysvar.legacy_name == legacy_name:
+                    return sysvar
         return None
 
-    def get_program_data_point(self, pid: str) -> ProgramDpType | None:
+    def get_program_data_point(self, pid: str | None = None, legacy_name: str | None = None) -> ProgramDpType | None:
         """Return the program data points."""
-        return self._program_data_points.get(pid)
+        if pid and (program := self._program_data_points.get(pid)):
+            return program
+        if legacy_name:
+            for program in self._program_data_points.values():
+                if legacy_name in (program.button.legacy_name, program.switch.legacy_name):
+                    return program
+        return None
 
     def get_data_point_path(self) -> tuple[str, ...]:
         """Return the registered state path."""

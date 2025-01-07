@@ -92,7 +92,7 @@ async def test_hmprogrambutton(
     await button.press()
     assert mock_client.method_calls[-1] == call.execute_program(pid="pid1")
     updated_program = ProgramData(
-        name="p1",
+        legacy_name="p1",
         description="",
         pid="pid1",
         is_active=False,

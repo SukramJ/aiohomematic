@@ -100,7 +100,7 @@ async def test_hmsysvarselect(
 ) -> None:
     """Test HmSysvarSelect."""
     central, mock_client, _ = central_client_factory
-    select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point("list_ext"))
+    select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
     assert select.usage == DataPointUsage.DATA_POINT
     assert select.unit is None
     assert select.min is None
@@ -108,7 +108,7 @@ async def test_hmsysvarselect(
     assert select.values == ("v1", "v2", "v3")
     assert select.value == "v1"
     await select.send_variable("v2")
-    assert mock_client.method_calls[-1] == call.set_system_variable(name="list_ext", value=1)
+    assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="list_ext", value=1)
     assert select.value == "v2"
     await select.send_variable(3)
     # do not write. value above max

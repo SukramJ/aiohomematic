@@ -20,7 +20,14 @@ from hahomematic.decorators import get_service_calls, service
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.device import Channel
-from hahomematic.model.support import PathData, PayloadMixin, ProgramPathData, SysvarPathData, generate_unique_id
+from hahomematic.model.support import (
+    PathData,
+    PayloadMixin,
+    ProgramPathData,
+    SysvarPathData,
+    generate_unique_id,
+    get_hub_data_point_name_data,
+)
 from hahomematic.support import parse_sys_var
 
 
@@ -38,20 +45,27 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         unique_id: Final = generate_unique_id(
             central=central,
             address=address,
-            parameter=slugify(data.name),
+            parameter=slugify(data.legacy_name),
         )
-        self._name: Final = data.name
+        self._legacy_name = data.legacy_name
+        self._channel = central.identify_channel(text=data.legacy_name)
+        self._name_data: Final = get_hub_data_point_name_data(
+            channel=self._channel, legacy_name=data.legacy_name, central_name=central.name
+        )
         self._description = data.description
         super().__init__(central=central, unique_id=unique_id)
-        self._full_name: Final = f"{self._central.name}_{self._name}"
         self._enabled_default: Final = data.enabled_default
-        self._channel = self._central.identify_channel(text=data.name)
         self._state_uncertain: bool = True
 
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
         return self.central.available
+
+    @property
+    def legacy_name(self) -> str | None:
+        """Return the original sysvar name."""
+        return self._legacy_name
 
     @property
     def channel(self) -> Channel | None:
@@ -66,7 +80,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     @property
     def full_name(self) -> str:
         """Return the fullname of the data_point."""
-        return self._full_name
+        return self._name_data.full_name
 
     @property
     def enabled_default(self) -> bool:
@@ -76,7 +90,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     @config_property
     def name(self) -> str:
         """Return the name of the data_point."""
-        return self._name
+        return self._name_data.name
 
     @property
     def state_uncertain(self) -> bool:
@@ -226,7 +240,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     async def send_variable(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
         if client := self.central.primary_client:
-            await client.set_system_variable(name=self._name, value=parse_sys_var(self._data_type, value))
+            await client.set_system_variable(legacy_name=self._legacy_name, value=parse_sys_var(self._data_type, value))
         self._write_temporary_value(value=value)
 
 

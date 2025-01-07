@@ -510,9 +510,9 @@ class JsonRpcAioHttpClient:
 
         return True
 
-    async def set_system_variable(self, name: str, value: Any) -> bool:
+    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
-        params = {_JsonKey.NAME: name, _JsonKey.VALUE: value}
+        params = {_JsonKey.NAME: legacy_name, _JsonKey.VALUE: value}
         if isinstance(value, bool):
             params[_JsonKey.VALUE] = int(value)
             response = await self._post(method=_JsonRpcMethod.SYSVAR_SET_BOOL, extra_params=params)
@@ -579,10 +579,10 @@ class JsonRpcAioHttpClient:
                 enabled_default = False
                 extended_sysvar = False
                 var_id = var[_JsonKey.ID]
-                name = var[_JsonKey.NAME]
+                legacy_name = var[_JsonKey.NAME]
                 is_internal = var[_JsonKey.IS_INTERNAL]
-                if new_name := RENAME_SYSVAR_BY_NAME.get(name):
-                    name = new_name
+                if new_name := RENAME_SYSVAR_BY_NAME.get(legacy_name):
+                    legacy_name = new_name
                 if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
                     enabled_default = True
 
@@ -634,7 +634,7 @@ class JsonRpcAioHttpClient:
                     variables.append(
                         SystemVariableData(
                             vid=var_id,
-                            name=name,
+                            legacy_name=legacy_name,
                             data_type=data_type,
                             description=description,
                             unit=unit,
@@ -651,7 +651,7 @@ class JsonRpcAioHttpClient:
                         "GET_ALL_SYSTEM_VARIABLES failed: %s [%s] Failed to parse SysVar %s ",
                         vterr.__class__.__name__,
                         reduce_args(args=vterr.args),
-                        name,
+                        legacy_name,
                     )
 
         return tuple(variables)
@@ -999,7 +999,7 @@ class JsonRpcAioHttpClient:
                 all_programs.append(
                     ProgramData(
                         pid=pid,
-                        name=name,
+                        legacy_name=name,
                         description=description,
                         is_active=is_active,
                         is_internal=is_internal,

@@ -84,7 +84,7 @@ class Device(PayloadMixin):
         self._interface_id: Final = interface_id
         self._address: Final = device_address
         self._sub_device_channels: Final[dict[int | None, int]] = {}
-        self._hmid: Final = self._central.device_details.get_address_id(address=device_address)
+        self._id: Final = self._central.device_details.get_address_id(address=device_address)
         self._interface: Final = central.device_details.get_interface(address=device_address)
         self._client: Final = central.get_client(interface_id=interface_id)
         self._description = self._central.device_descriptions.get_device_description(
@@ -245,6 +245,11 @@ class Device(PayloadMixin):
         """Return if device has multiple sub device channels."""
         return len(set(self._sub_device_channels.values())) > 1
 
+    @property
+    def id(self) -> str:
+        """Return the id of the device."""
+        return self._id
+
     @info_property
     def identifier(self) -> str:
         """Return the identifier of the device."""
@@ -389,6 +394,11 @@ class Device(PayloadMixin):
         for channel_address, channel in self._channels.items():
             if text.endswith(channel_address):
                 return channel
+            if channel.id in text:
+                return channel
+            if channel.device.id in text:
+                return channel
+
         return None
 
     def remove(self) -> None:
@@ -601,7 +611,7 @@ class Channel(PayloadMixin):
         self._device: Final = device
         self._central: Final = device.central
         self._address: Final = channel_address
-        self._hmid: Final = self._central.device_details.get_address_id(address=channel_address)
+        self._id: Final = self._central.device_details.get_address_id(address=channel_address)
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
         self._description = self._central.device_descriptions.get_device_description(
@@ -677,6 +687,11 @@ class Channel(PayloadMixin):
     def generic_events(self) -> tuple[GenericEvent, ...]:
         """Return the generic events."""
         return tuple(self._generic_events.values())
+
+    @property
+    def id(self) -> str:
+        """Return the id of the channel."""
+        return self._id
 
     @property
     def name(self) -> str:
@@ -765,7 +780,7 @@ class Channel(PayloadMixin):
 
     async def _has_program_ids(self) -> bool:
         """Return if a channel has program ids."""
-        return bool(await self._device.client.has_program_ids(channel_hmid=self._hmid))
+        return bool(await self._device.client.has_program_ids(channel_hmid=self._id))
 
     @property
     def _has_key_press_events(self) -> bool:

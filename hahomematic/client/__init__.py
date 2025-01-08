@@ -377,11 +377,11 @@ class Client(ABC):
     @abstractmethod
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[SystemVariableData, ...]:
+    ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
-    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
 
     @abstractmethod
@@ -1082,14 +1082,14 @@ class ClientCCU(Client):
         """Get single system variable from CCU / Homegear."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
-    @service(re_raise=False, no_raise_return=())
+    @service(re_raise=False, no_raise_return=None)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[SystemVariableData, ...]:
+    ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from CCU."""
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
-    @service(re_raise=False, no_raise_return=())
+    @service(re_raise=False, no_raise_return=None)
     async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(markers=markers)
@@ -1407,10 +1407,10 @@ class ClientHomegear(Client):
         """Get single system variable from CCU / Homegear."""
         return await self._proxy.getSystemVariable(name)
 
-    @service(re_raise=False, no_raise_return=())
+    @service(re_raise=False, no_raise_return=None)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[SystemVariableData, ...]:
+    ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from Homegear."""
         variables: list[SystemVariableData] = []
         if hg_variables := await self._proxy.getAllSystemVariables():
@@ -1418,8 +1418,8 @@ class ClientHomegear(Client):
                 variables.append(SystemVariableData(vid=name, legacy_name=name, value=value))
         return tuple(variables)
 
-    @service(re_raise=False, no_raise_return=())
-    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
+    @service(re_raise=False, no_raise_return=None)
+    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
         return ()
 

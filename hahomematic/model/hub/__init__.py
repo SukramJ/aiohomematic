@@ -96,10 +96,11 @@ class Hub:
 
     async def _update_program_data_points(self) -> None:
         """Retrieve all program data and update program values."""
-        programs: tuple[ProgramData, ...] = ()
         if not (client := self._central.primary_client):
             return
-        programs = await client.get_all_programs(markers=self._config.program_markers)
+        if (programs := await client.get_all_programs(markers=self._config.program_markers)) is None:
+            _LOGGER.debug("UPDATE_PROGRAM_DATA_POINTS: Unable to retrieve programs for %s", self._central.name)
+            return
 
         _LOGGER.debug(
             "UPDATE_PROGRAM_DATA_POINTS: %i programs received for %s",
@@ -129,10 +130,11 @@ class Hub:
 
     async def _update_sysvar_data_points(self) -> None:
         """Retrieve all variable data and update hmvariable values."""
-        variables: tuple[SystemVariableData, ...] = ()
         if not (client := self._central.primary_client):
             return
-        variables = await client.get_all_system_variables(markers=self._config.sysvar_markers)
+        if (variables := await client.get_all_system_variables(markers=self._config.sysvar_markers)) is None:
+            _LOGGER.debug("UPDATE_SYSVAR_DATA_POINTS: Unable to retrieve sysvars for %s", self._central.name)
+            return
 
         _LOGGER.debug(
             "UPDATE_SYSVAR_DATA_POINTS: %i sysvars received for %s",

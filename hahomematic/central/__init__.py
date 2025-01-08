@@ -1517,6 +1517,10 @@ class _Scheduler(threading.Thread):
     async def _run_scheduler_tasks(self) -> None:
         """Run all tasks."""
         while self._active:
+            if not self._central.started:
+                _LOGGER.debug("SCHEDULER: Waiting till central %s is started", self._central.name)
+                await asyncio.sleep(5)
+                continue
             for job in self._scheduler_jobs:
                 if not self._active or not job.ready:
                     continue

@@ -1,3 +1,7 @@
+# Version 2025.1.3 (2025-01-08)
+
+- Fix issue with programs/sysvars on backend restart
+
 # Version 2025.1.2 (2025-01-06)
 
 - Add legacy name for hub entities

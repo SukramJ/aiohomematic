@@ -46,7 +46,7 @@ from hahomematic.const import (
     ProductGroup,
     RxMode,
 )
-from hahomematic.decorators import service
+from hahomematic.decorators import async_inspector
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.model.custom import data_point as hmce, definition as hmed
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
@@ -359,14 +359,14 @@ class Device(PayloadMixin):
         elif self._sub_device_channels[channel_no] != base_channel_no:
             return
 
-    @service()
+    @async_inspector()
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
         if self.relevant_for_central_link_management:
             for channel in self._channels.values():
                 await channel.create_central_link()
 
-    @service()
+    @async_inspector()
     async def remove_central_links(self) -> None:
         """Remove central links."""
         if self.relevant_for_central_link_management:
@@ -504,7 +504,7 @@ class Device(PayloadMixin):
             for data_point in self.generic_data_points:
                 data_point.fire_data_point_updated_callback()
 
-    @service()
+    @async_inspector()
     async def export_device_definition(self) -> None:
         """Export the device definition for current device."""
         try:
@@ -533,7 +533,7 @@ class Device(PayloadMixin):
             for callback_handler in self._firmware_update_callbacks:
                 callback_handler()
 
-    @service()
+    @async_inspector()
     async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Update the firmware of the homematic device."""
         update_result = await self._client.update_device_firmware(device_address=self._address)
@@ -548,7 +548,7 @@ class Device(PayloadMixin):
 
         return update_result  # type: ignore[no-any-return]
 
-    @service()
+    @async_inspector()
     async def load_value_cache(self) -> None:
         """Init the parameter cache."""
         if len(self.generic_data_points) > 0:
@@ -560,7 +560,7 @@ class Device(PayloadMixin):
             self._address,
         )
 
-    @service()
+    @async_inspector()
     async def reload_paramset_descriptions(self) -> None:
         """Reload paramset for device."""
         for (
@@ -743,7 +743,7 @@ class Channel(PayloadMixin):
         """Return the unique_id of the channel."""
         return self._unique_id
 
-    @service()
+    @async_inspector()
     async def create_central_link(self) -> None:
         """Create a central link to support press events."""
         if self._has_key_press_events and not await self._has_central_link():
@@ -751,7 +751,7 @@ class Channel(PayloadMixin):
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
             )
 
-    @service()
+    @async_inspector()
     async def remove_central_link(self) -> None:
         """Remove a central link."""
         if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
@@ -759,7 +759,7 @@ class Channel(PayloadMixin):
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
 
-    @service()
+    @async_inspector()
     async def cleanup_central_link_metadata(self) -> None:
         """Cleanup the metadata for central links."""
         if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
@@ -1112,7 +1112,7 @@ class _DefinitionExporter:
         self._device_address: Final = device.address
         self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
 
-    @service()
+    @async_inspector()
     async def export_data(self) -> None:
         """Export data."""
         device_descriptions: Mapping[str, DeviceDescription] = (

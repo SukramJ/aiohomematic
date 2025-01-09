@@ -18,6 +18,7 @@ from hahomematic.const import (
     ParameterData,
     ParamsetKey,
 )
+from hahomematic.decorators import sync_inspector
 from hahomematic.model import device as hmd
 from hahomematic.model.data_point import BaseParameterDataPoint
 from hahomematic.model.support import DataPointNameData, get_event_name
@@ -122,6 +123,7 @@ class ImpulseEvent(GenericEvent):
     _event_type = EventType.IMPULSE
 
 
+@sync_inspector()
 def create_event_and_append_to_channel(channel: hmd.Channel, parameter: str, parameter_data: ParameterData) -> None:
     """Create action event data_point."""
     _LOGGER.debug(

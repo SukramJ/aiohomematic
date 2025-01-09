@@ -6,7 +6,7 @@ import logging
 from typing import Final
 
 from hahomematic.const import DataPointCategory
-from hahomematic.decorators import service
+from hahomematic.decorators import async_inspector
 from hahomematic.model.hub.data_point import GenericSysvarDataPoint
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class SysvarDpNumber(GenericSysvarDataPoint):
     _category = DataPointCategory.HUB_NUMBER
     _is_extended = True
 
-    @service()
+    @async_inspector()
     async def send_variable(self, value: float) -> None:
         """Set the value of the data_point."""
         if value is not None and self.max is not None and self.min is not None:

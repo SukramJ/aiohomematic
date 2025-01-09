@@ -11,6 +11,7 @@ from typing import Any, Final
 
 from hahomematic import central as hmcu
 from hahomematic.const import (
+    ADDRESS_SEPARATOR,
     INIT_DATETIME,
     PROGRAM_ADDRESS,
     PROGRAM_SET_PATH_ROOT,
@@ -162,7 +163,7 @@ class ChannelNameData:
         """Return the channel_name of the data_point only name."""
         if device_name and channel_name and channel_name.startswith(device_name):
             c_name = channel_name.replace(device_name, "").strip()
-            if c_name.startswith(":"):
+            if c_name.startswith(ADDRESS_SEPARATOR):
                 c_name = c_name[1:]
             return c_name
         return channel_name.strip()
@@ -345,7 +346,7 @@ def get_data_point_name_data(
         p_name = parameter.title().replace("_", " ")
 
         if _check_channel_name_with_channel_no(name=channel_name):
-            c_name = channel_name.split(":")[0]
+            c_name = channel_name.split(ADDRESS_SEPARATOR)[0]
             c_postfix = ""
             if channel.central.paramset_descriptions.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter
@@ -449,12 +450,12 @@ def get_custom_data_point_name(
         if is_only_primary_channel and _check_channel_name_with_channel_no(name=channel_name):
             return DataPointNameData(
                 device_name=channel.device.name,
-                channel_name=channel_name.split(":")[0],
+                channel_name=channel_name.split(ADDRESS_SEPARATOR)[0],
                 parameter_name=postfix,
             )
         if _check_channel_name_with_channel_no(name=channel_name):
-            c_name = channel_name.split(":")[0]
-            p_name = channel_name.split(":")[1]
+            c_name = channel_name.split(ADDRESS_SEPARATOR)[0]
+            p_name = channel_name.split(ADDRESS_SEPARATOR)[1]
             marker = "ch" if usage == DataPointUsage.CDP_PRIMARY else "vch"
             p_name = f"{marker}{p_name}"
             return DataPointNameData(device_name=channel.device.name, channel_name=c_name, parameter_name=p_name)
@@ -481,7 +482,7 @@ def generate_unique_id(
     Central id is additionally used for heating groups.
     Prefix is used for events and buttons.
     """
-    unique_id = address.replace(":", "_").replace("-", "_")
+    unique_id = address.replace(ADDRESS_SEPARATOR, "_").replace("-", "_")
     if parameter:
         unique_id = f"{unique_id}_{parameter}"
 
@@ -490,7 +491,7 @@ def generate_unique_id(
     if (
         address in (PROGRAM_ADDRESS, SYSVAR_ADDRESS)
         or address.startswith("INT000")
-        or address.split(":")[0] in VIRTUAL_REMOTE_ADDRESSES
+        or address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES
     ):
         return f"{central.config.central_id}_{unique_id}".lower()
     return f"{unique_id}".lower()
@@ -501,8 +502,8 @@ def generate_channel_unique_id(
     address: str,
 ) -> str:
     """Build unique identifier for a channel from address."""
-    unique_id = address.replace(":", "_").replace("-", "_")
-    if address.split(":")[0] in VIRTUAL_REMOTE_ADDRESSES:
+    unique_id = address.replace(ADDRESS_SEPARATOR, "_").replace("-", "_")
+    if address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES:
         return f"{central.config.central_id}_{unique_id}".lower()
     return unique_id.lower()
 
@@ -518,8 +519,8 @@ def _get_base_name_from_channel_or_device(channel: hmd.Channel) -> str | None:
 
 def _check_channel_name_with_channel_no(name: str) -> bool:
     """Check if name contains channel and this is an int."""
-    if name.count(":") == 1:
-        channel_part = name.split(":")[1]
+    if name.count(ADDRESS_SEPARATOR) == 1:
+        channel_part = name.split(ADDRESS_SEPARATOR)[1]
         try:
             int(channel_part)
         except ValueError:

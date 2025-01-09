@@ -58,6 +58,7 @@ RENAME_SYSVAR_BY_NAME: Final = {
 
 SYSVAR_ENABLE_DEFAULT: Final = "40", "41"
 
+ADDRESS_SEPARATOR: Final = ":"
 BLOCK_LOG_TIMEOUT = 60
 CACHE_PATH: Final = "cache"
 CONF_PASSWORD: Final = "password"

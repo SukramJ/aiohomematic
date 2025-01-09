@@ -7,7 +7,7 @@ import os
 import orjson
 import pytest
 
-from hahomematic.const import DataPointUsage
+from hahomematic.const import ADDRESS_SEPARATOR, DataPointUsage
 from hahomematic.model.decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
@@ -133,7 +133,7 @@ async def test_central_full(central_unit_full) -> None:
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
     assert len(central_unit_full._devices) == 383
     del_addresses = list(central_unit_full.device_descriptions.get_device_descriptions(const.INTERFACE_ID))
-    del_addresses = [adr for adr in del_addresses if ":" not in adr]
+    del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
     assert len(central_unit_full._devices) == 0
     assert len(central_unit_full.get_data_points(exclude_no_create=False)) == 0

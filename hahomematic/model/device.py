@@ -17,6 +17,7 @@ import orjson
 from hahomematic import central as hmcu, client as hmcl
 from hahomematic.async_support import loop_check
 from hahomematic.const import (
+    ADDRESS_SEPARATOR,
     CALLBACK_TYPE,
     CLICK_EVENTS,
     DEVICE_DESCRIPTIONS_DIR,
@@ -1131,7 +1132,7 @@ class _DefinitionExporter:
             new_device_description: DeviceDescription = copy(device_description)
             new_device_description["ADDRESS"] = self._anonymize_address(address=new_device_description["ADDRESS"])
             if new_device_description.get("PARENT"):
-                new_device_description["PARENT"] = new_device_description["ADDRESS"].split(":")[0]
+                new_device_description["PARENT"] = new_device_description["ADDRESS"].split(ADDRESS_SEPARATOR)[0]
             elif new_device_description.get("CHILDREN"):
                 new_device_description["CHILDREN"] = [
                     self._anonymize_address(a) for a in new_device_description["CHILDREN"]
@@ -1158,14 +1159,14 @@ class _DefinitionExporter:
         )
 
     def _anonymize_address(self, address: str) -> str:
-        address_parts = address.split(":")
+        address_parts = address.split(ADDRESS_SEPARATOR)
         address_parts[0] = self._random_id
-        return ":".join(address_parts)
+        return ADDRESS_SEPARATOR.join(address_parts)
 
     async def _save(self, file_dir: str, filename: str, data: Any) -> DataOperationResult:
         """Save file to disk."""
 
-        def _save() -> DataOperationResult:
+        def perform_save() -> DataOperationResult:
             if not check_or_create_directory(file_dir):
                 return DataOperationResult.NO_SAVE  # pragma: no cover
             with open(
@@ -1175,4 +1176,4 @@ class _DefinitionExporter:
                 fptr.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
             return DataOperationResult.SAVE_SUCCESS
 
-        return await self._central.looper.async_add_executor_job(_save, name="save-device-description")
+        return await self._central.looper.async_add_executor_job(perform_save, name="save-device-description")

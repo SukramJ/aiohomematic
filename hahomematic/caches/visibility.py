@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping
 from functools import lru_cache
 import logging
 from typing import Any, Final
 
 from hahomematic import central as hmcu, support as hms
-from hahomematic.const import CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
+from hahomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
 from hahomematic.model.custom import get_required_parameters
 from hahomematic.support import element_matches_key
 
@@ -263,7 +264,9 @@ class ParameterVisibilityCache:
         self._custom_un_ignore_values_parameters: Final[set[str]] = set()
 
         # model, channel_no, paramset_key, parameter
-        self._custom_un_ignore_complex: Final[dict[str, dict[int | str | None, dict[str, set[str]]]]] = {}
+        self._custom_un_ignore_complex: Final[dict[str, dict[int | str | None, dict[str, set[str]]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(set))
+        )
         self._ignore_custom_device_definition_models: Final[tuple[str, ...]] = (
             central.config.ignore_custom_device_definition_models
         )
@@ -283,10 +286,10 @@ class ParameterVisibilityCache:
         # model, channel_no, paramset_key, set[parameter]
         self._un_ignore_parameters_by_device_paramset_key: Final[
             dict[str, dict[int | None, dict[ParamsetKey, set[str]]]]
-        ] = {}
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
 
         # model, channel_no
-        self._relevant_master_paramsets_by_device: Final[dict[str, set[int | None]]] = {}
+        self._relevant_master_paramsets_by_device: Final[dict[str, set[int | None]]] = defaultdict(set)
         self._init()
 
     def _init(self) -> None:
@@ -297,17 +300,10 @@ class ParameterVisibilityCache:
         ) in _RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items():
             model_l = model.lower()
             channel_nos, parameters = channels_parameter
-            if model_l not in self._relevant_master_paramsets_by_device:
-                self._relevant_master_paramsets_by_device[model_l] = set()
-            if model_l not in self._un_ignore_parameters_by_device_paramset_key:
-                self._un_ignore_parameters_by_device_paramset_key[model_l] = {}
 
             def _add_channel(dt_l: str, params: tuple[Parameter, ...], ch_no: int | None) -> None:
                 self._relevant_master_paramsets_by_device[dt_l].add(ch_no)
-                if ch_no not in self._un_ignore_parameters_by_device_paramset_key[dt_l]:
-                    self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no] = {ParamsetKey.MASTER: set()}
-                for parameter in params:
-                    self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][ParamsetKey.MASTER].add(parameter)
+                self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][ParamsetKey.MASTER].update(params)
 
             if channel_nos:
                 for channel_no in channel_nos:
@@ -373,9 +369,7 @@ class ParameterVisibilityCache:
             ) is not None and accept_channel != channel_no:
                 return True
         if paramset_key == ParamsetKey.MASTER:
-            if parameter in self._custom_un_ignore_complex.get(model_l, {}).get(channel_no, {}).get(
-                ParamsetKey.MASTER, []
-            ):
+            if parameter in self._custom_un_ignore_complex[model_l][channel_no][ParamsetKey.MASTER]:
                 return False  # pragma: no cover
 
             dt_short = tuple(
@@ -384,9 +378,11 @@ class ParameterVisibilityCache:
                     self._un_ignore_parameters_by_device_paramset_key,
                 )
             )
-            if dt_short and parameter not in self._un_ignore_parameters_by_device_paramset_key.get(dt_short[0], {}).get(
-                channel_no, {}
-            ).get(ParamsetKey.MASTER, []):
+            if (
+                dt_short
+                and parameter
+                not in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel_no][ParamsetKey.MASTER]
+            ):
                 return True
 
         return False
@@ -425,12 +421,7 @@ class ParameterVisibilityCache:
         )
 
         for ml, cno in search_matrix:
-            if (
-                (custom_un_ignore := self._custom_un_ignore_complex)
-                and (channel_values := custom_un_ignore.get(ml))
-                and (paramset_key_values := channel_values.get(cno))
-                and parameter in paramset_key_values.get(paramset_key, set())
-            ):
+            if parameter in self._custom_un_ignore_complex[ml][cno][paramset_key]:
                 return True  # pragma: no cover
 
         # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
@@ -469,9 +460,11 @@ class ParameterVisibilityCache:
             )
 
             # check if parameter is in _RELEVANT_MASTER_PARAMSETS_BY_DEVICE
-            if dt_short and parameter in self._un_ignore_parameters_by_device_paramset_key.get(dt_short[0], {}).get(
-                channel_no, {}
-            ).get(paramset_key, set()):
+            if (
+                dt_short
+                and parameter
+                in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel_no][paramset_key]
+            ):
                 return True
 
         return self._parameter_is_un_ignored(
@@ -521,8 +514,8 @@ class ParameterVisibilityCache:
         if "@" in line:
             data = line.split("@")
             if len(data) == 2:
-                if ":" in data[0]:
-                    param_data = data[0].split(":")
+                if ADDRESS_SEPARATOR in data[0]:
+                    param_data = data[0].split(ADDRESS_SEPARATOR)
                     if len(param_data) == 2:
                         parameter = param_data[0]
                         paramset_key = ParamsetKey(param_data[1])
@@ -540,8 +533,8 @@ class ParameterVisibilityCache:
                         line,
                     )
                     return None
-                if ":" in data[1]:
-                    channel_data = data[1].split(":")
+                if ADDRESS_SEPARATOR in data[1]:
+                    channel_data = data[1].split(ADDRESS_SEPARATOR)
                     if len(channel_data) == 2:
                         model = channel_data[0].lower()
                         _channel_no = channel_data[1]
@@ -569,7 +562,7 @@ class ParameterVisibilityCache:
                     line,
                 )
                 return None
-        elif ":" in line:
+        elif ADDRESS_SEPARATOR in line:
             _LOGGER.warning(
                 "GET_UN_IGNORE_LINE_DETAILS failed: No supported format detected for un ignore line '%s'. ",
                 line,
@@ -592,8 +585,6 @@ class ParameterVisibilityCache:
         if paramset_key == ParamsetKey.MASTER:
             if isinstance(channel_no, int) or channel_no is None:
                 # add master channel for a device to fetch paramset descriptions
-                if model not in self._relevant_master_paramsets_by_device:
-                    self._relevant_master_paramsets_by_device[model] = set()
                 self._relevant_master_paramsets_by_device[model].add(channel_no)
             else:
                 _LOGGER.warning(
@@ -605,13 +596,6 @@ class ParameterVisibilityCache:
                 _LOGGER.warning("ADD_UN_IGNORE_ENTRY: model must be set for paramset_key MASTER.")
                 return
 
-            # model, channel_no, paramset_key, parameter
-        if model not in self._custom_un_ignore_complex:
-            self._custom_un_ignore_complex[model] = {}
-        if channel_no not in self._custom_un_ignore_complex[model]:
-            self._custom_un_ignore_complex[model][channel_no] = {}
-        if paramset_key not in self._custom_un_ignore_complex[model][channel_no]:
-            self._custom_un_ignore_complex[model][channel_no][paramset_key] = set()
         self._custom_un_ignore_complex[model][channel_no][paramset_key].add(parameter)
 
     @lru_cache(maxsize=1024)

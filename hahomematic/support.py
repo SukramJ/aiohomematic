@@ -20,6 +20,7 @@ from typing import Any, Final
 
 from hahomematic import client as hmcl
 from hahomematic.const import (
+    ADDRESS_SEPARATOR,
     ALLOWED_HOSTNAME_PATTERN,
     CACHE_PATH,
     CCU_PASSWORD_PATTERN,
@@ -240,8 +241,8 @@ def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
 @lru_cache(maxsize=2048)
 def get_split_channel_address(channel_address: str) -> tuple[str, int | None]:
     """Return the device part of an address."""
-    if ":" in channel_address:
-        device_address, channel_no = channel_address.split(":")
+    if ADDRESS_SEPARATOR in channel_address:
+        device_address, channel_no = channel_address.split(ADDRESS_SEPARATOR)
         if channel_no in (None, "None"):
             return device_address, None
         return device_address, int(channel_no)

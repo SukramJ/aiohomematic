@@ -948,9 +948,7 @@ class CentralUnit(PayloadMixin):
             save_device_descriptions = False
             for dev_desc in device_descriptions:
                 try:
-                    self._device_descriptions.add_device_description(
-                        interface_id=interface_id, device_description=dev_desc
-                    )
+                    self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
                     save_device_descriptions = True
                     if dev_desc["ADDRESS"] not in known_addresses:
                         await client.fetch_paramset_descriptions(device_description=dev_desc)

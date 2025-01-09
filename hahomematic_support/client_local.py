@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from _collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 import importlib.resources
@@ -12,6 +13,7 @@ import orjson
 
 from hahomematic.client import _LOGGER, Client, _ClientConfig
 from hahomematic.const import (
+    ADDRESS_SEPARATOR,
     DP_KEY_VALUE,
     UTF_8,
     WAIT_FOR_CALLBACK,
@@ -42,7 +44,9 @@ class ClientLocal(Client):  # pragma: no cover
         """Initialize the Client."""
         super().__init__(client_config=client_config)
         self._local_resources = local_resources
-        self._paramset_descriptions_cache: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
+        self._paramset_descriptions_cache: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = defaultdict(
+            lambda: defaultdict(dict)
+        )
 
     async def init_client(self) -> None:
         """Init the client."""
@@ -81,11 +85,11 @@ class ClientLocal(Client):  # pragma: no cover
         """Return the client supports push update."""
         return True
 
-    async def proxy_init(self) -> ProxyInitState:
+    async def initialize_proxy(self) -> ProxyInitState:
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
         return ProxyInitState.INIT_SUCCESS
 
-    async def proxy_de_init(self) -> ProxyInitState:
+    async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop CCU from sending events for this remote."""
         return ProxyInitState.DE_INIT_SUCCESS
 
@@ -238,7 +242,7 @@ class ClientLocal(Client):  # pragma: no cover
 
         if (
             address not in self._paramset_descriptions_cache
-            and (file_name := self._local_resources.address_device_translation.get(address.split(":")[0]))
+            and (file_name := self._local_resources.address_device_translation.get(address.split(ADDRESS_SEPARATOR)[0]))
             and (
                 data := await self._load_json_file(
                     anchor=self._local_resources.anchor,
@@ -249,7 +253,7 @@ class ClientLocal(Client):  # pragma: no cover
         ):
             self._paramset_descriptions_cache.update(data)
 
-        return self._paramset_descriptions_cache.get(address, {}).get(paramset_key)
+        return self._paramset_descriptions_cache[address].get(paramset_key)
 
     async def put_paramset(
         self,
@@ -306,14 +310,14 @@ class ClientLocal(Client):  # pragma: no cover
         """Load json file from disk into dict."""
         package_path = str(importlib.resources.files(anchor))
 
-        def _load() -> Any | None:
+        def _perform_load() -> Any | None:
             with open(
                 file=os.path.join(package_path, resource, filename),
                 encoding=UTF_8,
             ) as fptr:
                 return orjson.loads(fptr.read())
 
-        return await self.central.looper.async_add_executor_job(_load, name="load-json-file")
+        return await self.central.looper.async_add_executor_job(_perform_load, name="load-json-file")
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

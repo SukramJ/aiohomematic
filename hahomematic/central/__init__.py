@@ -123,7 +123,7 @@ class CentralUnit(PayloadMixin):
     def __init__(self, central_config: CentralConfig) -> None:
         """Init the central unit."""
         self._started: bool = False
-        self._sema_add_devices: Final = asyncio.Semaphore()
+        self._device_add_semaphore: Final = asyncio.Semaphore()
         self._connection_state: Final = CentralConnectionState()
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         # Keep the config for the central
@@ -171,7 +171,7 @@ class CentralUnit(PayloadMixin):
         self._version: str | None = None
         # store last event received datetime by interface_id
         self._last_events: Final[dict[str, datetime]] = {}
-        self._callback_ip_addr: str = IP_ANY_V4
+        self._xml_rpc_callback_ip: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
         self._listen_port: int = PORT_ANY
 
@@ -183,7 +183,7 @@ class CentralUnit(PayloadMixin):
     @property
     def callback_ip_addr(self) -> str:
         """Return the xml rpc server callback ip address."""
-        return self._callback_ip_addr
+        return self._xml_rpc_callback_ip
 
     @info_property
     def url(self) -> str:
@@ -398,7 +398,7 @@ class CentralUnit(PayloadMixin):
         if self._config.enabled_interface_configs and (
             ip_addr := await self._identify_ip_addr(port=tuple(self._config.enabled_interface_configs)[0].port)
         ):
-            self._callback_ip_addr = ip_addr
+            self._xml_rpc_callback_ip = ip_addr
             self._listen_ip_addr = self._config.listen_ip_addr if self._config.listen_ip_addr else ip_addr
 
         listen_port: int = (
@@ -619,13 +619,13 @@ class CentralUnit(PayloadMixin):
                 )
                 del self._clients[client.interface_id]
                 continue
-            if await client.proxy_init() == ProxyInitState.INIT_SUCCESS:
+            if await client.initialize_proxy() == ProxyInitState.INIT_SUCCESS:
                 _LOGGER.debug("INIT_CLIENTS: client %s initialized for %s", client.interface_id, self.name)
 
     async def _de_init_clients(self) -> None:
         """De-init clients."""
         for name, client in self._clients.items():
-            if await client.proxy_de_init():
+            if await client.deinitialize_proxy():
                 _LOGGER.debug("DE_INIT_CLIENTS: Proxy de-initialized: %s", name)
 
     async def _init_hub(self) -> None:
@@ -937,7 +937,7 @@ class CentralUnit(PayloadMixin):
             )
             return
 
-        async with self._sema_add_devices:
+        async with self._device_add_semaphore:
             # We need this to avoid adding duplicates.
             known_addresses = tuple(
                 dev_desc["ADDRESS"]
@@ -948,9 +948,7 @@ class CentralUnit(PayloadMixin):
             save_device_descriptions = False
             for dev_desc in device_descriptions:
                 try:
-                    self._device_descriptions.add_device_description(
-                        interface_id=interface_id, device_description=dev_desc
-                    )
+                    self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
                     save_device_descriptions = True
                     if dev_desc["ADDRESS"] not in known_addresses:
                         await client.fetch_paramset_descriptions(device_description=dev_desc)

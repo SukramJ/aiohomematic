@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
+from functools import lru_cache
 import logging
 from typing import Any, Final, cast
 
@@ -122,7 +124,7 @@ class DeviceDetailsCache:
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Init the device details cache."""
         self._central: Final = central
-        self._channel_rooms: Final[dict[str, set[str]]] = {}
+        self._channel_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         self._device_channel_ids: Final[dict[str, str]] = {}
         self._functions: Final[dict[str, set[str]]] = {}
         self._interface_cache: Final[dict[str, Interface]] = {}
@@ -156,6 +158,7 @@ class DeviceDetailsCache:
         """Add name to cache."""
         self._names_cache[address] = name
 
+    @lru_cache(maxsize=1000)
     def get_name(self, address: str) -> str | None:
         """Get name from cache."""
         return self._names_cache.get(address)
@@ -164,6 +167,7 @@ class DeviceDetailsCache:
         """Add interface to cache."""
         self._interface_cache[address] = interface
 
+    @lru_cache(maxsize=1000)
     def get_interface(self, address: str) -> Interface:
         """Get interface from cache."""
         return self._interface_cache.get(address) or Interface.BIDCOS_RF
@@ -172,6 +176,7 @@ class DeviceDetailsCache:
         """Add channel id for a channel."""
         self._device_channel_ids[address] = hmid
 
+    @lru_cache(maxsize=1000)
     def get_address_id(self, address: str) -> str:
         """Get id for address."""
         return self._device_channel_ids.get(address) or "0"
@@ -192,7 +197,7 @@ class DeviceDetailsCache:
 
     def get_channel_rooms(self, channel_address: str) -> set[str]:
         """Return rooms by channel_address."""
-        return self._channel_rooms.get(channel_address) or set()
+        return self._channel_rooms[channel_address]
 
     async def _get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""

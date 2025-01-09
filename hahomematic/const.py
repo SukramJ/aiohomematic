@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.1.3"
+VERSION: Final = "2025.1.4"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -58,6 +58,7 @@ RENAME_SYSVAR_BY_NAME: Final = {
 
 SYSVAR_ENABLE_DEFAULT: Final = "40", "41"
 
+ADDRESS_SEPARATOR: Final = ":"
 BLOCK_LOG_TIMEOUT = 60
 CACHE_PATH: Final = "cache"
 CONF_PASSWORD: Final = "password"

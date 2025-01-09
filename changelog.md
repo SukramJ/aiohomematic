@@ -1,3 +1,7 @@
+# Version 2025.1.4 (2025-01-09)
+
+- Cleanup: Use defaultdict, improve naming
+
 # Version 2025.1.3 (2025-01-08)
 
 - Fix issue with programs/sysvars on backend restart

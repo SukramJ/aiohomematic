@@ -193,7 +193,7 @@ class JsonRpcAioHttpClient:
 
     async def _do_renew_login(self, session_id: str) -> str | None:
         """Renew JSON-RPC session or perform login."""
-        if self._modified_within_seconds:
+        if self._has_session_recently_refreshed:
             return session_id
         method = _JsonRpcMethod.SESSION_RENEW
         response = await self._do_post(
@@ -201,8 +201,7 @@ class JsonRpcAioHttpClient:
             method=method,
             extra_params={_JsonKey.SESSION_ID: session_id},
         )
-
-        if response[_JsonKey.RESULT] and response[_JsonKey.RESULT] is True:
+        if response[_JsonKey.RESULT] is True:
             self._last_session_id_refresh = datetime.now()
             _LOGGER.debug("DO_RENEW_LOGIN: method: %s [%s]", method, session_id)
             return session_id
@@ -210,7 +209,7 @@ class JsonRpcAioHttpClient:
         return await self._do_login()
 
     @property
-    def _modified_within_seconds(self) -> bool:
+    def _has_session_recently_refreshed(self) -> bool:
         """Check if session id has been modified within 90 seconds."""
         if self._last_session_id_refresh is None:
             return False

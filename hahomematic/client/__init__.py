@@ -186,7 +186,7 @@ class Client(ABC):
         """Return the supports_ping_pong info of the backend."""
         return self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
 
-    async def proxy_init(self) -> ProxyInitState:
+    async def initialize_proxy(self) -> ProxyInitState:
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
 
         if not self.supports_xml_rpc:
@@ -214,7 +214,7 @@ class Client(ABC):
         self.modified_at = datetime.now()
         return ProxyInitState.INIT_SUCCESS
 
-    async def proxy_de_init(self) -> ProxyInitState:
+    async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop CCU from sending events for this remote."""
         if not self.supports_xml_rpc:
             return ProxyInitState.DE_INIT_SUCCESS
@@ -240,10 +240,10 @@ class Client(ABC):
         self.modified_at = INIT_DATETIME
         return ProxyInitState.DE_INIT_SUCCESS
 
-    async def proxy_re_init(self) -> ProxyInitState:
+    async def reinitialize_proxy(self) -> ProxyInitState:
         """Reinit Proxy."""
-        if await self.proxy_de_init() != ProxyInitState.DE_INIT_FAILED:
-            return await self.proxy_init()
+        if await self.deinitialize_proxy() != ProxyInitState.DE_INIT_FAILED:
+            return await self.initialize_proxy()
         return ProxyInitState.DE_INIT_FAILED
 
     def _mark_all_devices_forced_availability(self, forced_availability: ForcedDeviceAvailability) -> None:
@@ -275,7 +275,7 @@ class Client(ABC):
             )
             await asyncio.sleep(RECONNECT_WAIT)
 
-            await self.proxy_re_init()
+            await self.reinitialize_proxy()
             _LOGGER.info(
                 "RECONNECT: re-connected client %s",
                 self.interface_id,

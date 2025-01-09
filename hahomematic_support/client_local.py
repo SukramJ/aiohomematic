@@ -85,11 +85,11 @@ class ClientLocal(Client):  # pragma: no cover
         """Return the client supports push update."""
         return True
 
-    async def proxy_init(self) -> ProxyInitState:
+    async def initialize_proxy(self) -> ProxyInitState:
         """Init the proxy has to tell the CCU / Homegear where to send the events."""
         return ProxyInitState.INIT_SUCCESS
 
-    async def proxy_de_init(self) -> ProxyInitState:
+    async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop CCU from sending events for this remote."""
         return ProxyInitState.DE_INIT_SUCCESS
 

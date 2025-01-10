@@ -101,10 +101,10 @@ class Device(PayloadMixin):
         self._forced_availability: ForcedDeviceAvailability = ForcedDeviceAvailability.NOT_SET
         self._device_updated_callbacks: Final[list[Callable]] = []
         self._firmware_update_callbacks: Final[list[Callable]] = []
-        self._model: Final = self._description["TYPE"]
+        self._model: Final[str] = self._description["TYPE"]
         self._is_updatable: Final = self._description.get("UPDATABLE") or False
         self._rx_modes: Final = get_rx_modes(mode=self._description.get("RX_MODE", 0))
-        self._sub_model: Final = self._description.get("SUBTYPE")
+        self._sub_model: Final[str | None] = self._description.get("SUBTYPE")
         self._ignore_for_custom_data_point: Final[bool] = central.parameter_visibility.model_is_ignored(
             model=self._model
         )
@@ -615,10 +615,10 @@ class Channel(PayloadMixin):
         self._id: Final = self._central.device_details.get_address_id(address=channel_address)
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
-        self._description = self._central.device_descriptions.get_device_description(
+        self._description: DeviceDescription = self._central.device_descriptions.get_device_description(
             interface_id=self._device.interface_id, address=channel_address
         )
-        self._type_name: Final = self._description["TYPE"]
+        self._type_name: Final[str] = self._description["TYPE"]
         self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
 
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)

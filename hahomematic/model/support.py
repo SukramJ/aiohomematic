@@ -282,7 +282,7 @@ class DataPointPathData(PathData):
         """Init the path data."""
         path_item: Final = f"{address.upper()}/{channel_no}/{kind.upper()}"
         self._set_path: Final = (
-            f"{VIRTDEV_SET_PATH_ROOT if interface==Interface.CCU_JACK else SET_PATH_ROOT}/{path_item}"
+            f"{VIRTDEV_SET_PATH_ROOT if interface == Interface.CCU_JACK else SET_PATH_ROOT}/{path_item}"
         )
         self._state_path: Final = (
             f"{VIRTDEV_STATE_PATH_ROOT if interface == Interface.CCU_JACK else STATE_PATH_ROOT}/{path_item}"

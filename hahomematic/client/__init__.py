@@ -35,6 +35,7 @@ from hahomematic.const import (
     InterfaceEventType,
     Operations,
     ParameterData,
+    ParameterType,
     ParamsetKey,
     ProductGroup,
     ProgramData,
@@ -793,7 +794,7 @@ class Client(ABC):
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
-    ) -> str | None:
+    ) -> ParameterType | None:
         if parameter_data := self.central.paramset_descriptions.get_parameter_data(
             interface_id=self.interface_id,
             channel_address=channel_address,
@@ -942,9 +943,7 @@ class Client(ABC):
             await self.fetch_paramset_descriptions(device_description=device_description)
         else:
             _LOGGER.warning(
-                "UPDATE_PARAMSET_DESCRIPTIONS failed: "
-                "Channel missing in central.cache. "
-                "Not updating paramsets for %s",
+                "UPDATE_PARAMSET_DESCRIPTIONS failed: Channel missing in central.cache. Not updating paramsets for %s",
                 device_address,
             )
             return
@@ -1454,11 +1453,9 @@ class _ClientConfig:
         self.interface_id: Final = interface_config.interface_id
         self.max_read_workers: Final[int] = central.config.max_read_workers
         self.has_credentials: Final[bool] = central.config.username is not None and central.config.password is not None
-        self.init_url: Final[str] = f"http://{central.config.callback_host
-            if central.config.callback_host
-            else central.callback_ip_addr}:{central.config.callback_port
-            if central.config.callback_port
-            else central.listen_port}"
+        self.init_url: Final[str] = f"http://{
+            central.config.callback_host if central.config.callback_host else central.callback_ip_addr
+        }:{central.config.callback_port if central.config.callback_port else central.listen_port}"
         self.xml_rpc_uri: Final = build_xml_rpc_uri(
             host=central.config.host,
             port=interface_config.port,

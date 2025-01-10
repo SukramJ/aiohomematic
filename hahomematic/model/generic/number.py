@@ -27,7 +27,7 @@ class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[Number
         if self._special and isinstance(value, str) and value in self._special:
             return type_converter(self._special[value])  # type: ignore[no-any-return]
         raise ValueError(
-            f"NUMBER failed: Invalid value: {value} (min: {self._min}, " f"max: {self._max}, special:{self._special})"
+            f"NUMBER failed: Invalid value: {value} (min: {self._min}, max: {self._max}, special:{self._special})"
         )
 
 

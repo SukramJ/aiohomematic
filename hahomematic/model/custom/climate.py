@@ -598,7 +598,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         previous_endtime = 0
         if len(weekday_data) != 13:
             raise ValidationException(
-                f"VALIDATE_PROFILE: {"Too many" if len(weekday_data) > 13 else "Too few"} slots in profile: {profile} / week day: {weekday}"
+                f"VALIDATE_PROFILE: {'Too many' if len(weekday_data) > 13 else 'Too few'} slots in profile: {profile} / week day: {weekday}"
             )
         for no in SCHEDULE_SLOT_RANGE:
             if no not in weekday_data:
@@ -780,7 +780,7 @@ def _party_mode_code(start: datetime, end: datetime, away_temperature: float) ->
     e.g. 21.5,1200,20,10,16,1380,20,10,16
     away_temperature,start_minutes_of_day, day(2), month(2), year(2), end_minutes_of_day, day(2), month(2), year(2)
     """
-    return f"{away_temperature:.1f},{start.hour*60+start.minute},{start.strftime('%d,%m,%y')},{end.hour*60+end.minute},{end.strftime('%d,%m,%y')}"
+    return f"{away_temperature:.1f},{start.hour * 60 + start.minute},{start.strftime('%d,%m,%y')},{end.hour * 60 + end.minute},{end.strftime('%d,%m,%y')}"
 
 
 class CustomDpIpThermostat(BaseCustomDpClimate):
@@ -998,7 +998,7 @@ def _convert_minutes_to_time_str(minutes: Any) -> str:
     """Convert minutes to a time string."""
     if not isinstance(minutes, int):
         return _MAX_SCHEDULER_TIME
-    time_str = f"{minutes//60:0=2}:{minutes%60:0=2}"
+    time_str = f"{minutes // 60:0=2}:{minutes % 60:0=2}"
     if SCHEDULER_TIME_PATTERN.match(time_str) is None:
         raise ValidationException(
             f"Time {time_str} is not valid. Format must be hh:mm with min: {_MIN_SCHEDULER_TIME} and max: {_MAX_SCHEDULER_TIME}"

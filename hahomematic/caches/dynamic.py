@@ -275,7 +275,7 @@ class CentralDataCache:
     ) -> Any:
         """Get data from cache."""
         if not self._is_empty(interface=interface):
-            key = f"{interface}.{channel_address.replace(':','%3A')}.{parameter}"
+            key = f"{interface}.{channel_address.replace(':', '%3A')}.{parameter}"
             return self._value_cache[interface].get(key, NO_CACHE_ENTRY)
         return NO_CACHE_ENTRY
 

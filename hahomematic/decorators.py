@@ -54,8 +54,7 @@ def inspector(  # noqa: C901
 
         """
 
-        is_performance_measured = measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG)
-        start = monotonic() if is_performance_measured else None
+        start = monotonic() if measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG) else None
 
         def handle_exception(ex: Exception, func: Callable, is_sub_service_call: bool, is_homematic: bool) -> R:
             """Handle exceptions for decorated functions."""
@@ -86,7 +85,7 @@ def inspector(  # noqa: C901
                     IN_SERVICE_VAR.reset(token)
                 return return_value
             finally:
-                if start and is_performance_measured:
+                if start:
                     _log_performance_message(func, start, *args, **kwargs)
 
         @wraps(func)
@@ -109,7 +108,7 @@ def inspector(  # noqa: C901
                     IN_SERVICE_VAR.reset(token)
                 return cast(R, return_value)
             finally:
-                if start and is_performance_measured:
+                if start:
                     _log_performance_message(func, start, *args, **kwargs)
 
         # Check if the function is a coroutine or not and select the appropriate wrapper
@@ -151,28 +150,24 @@ def get_service_calls(obj: object) -> dict[str, Callable]:
 def measure_execution_time[_CallableT: Callable[..., Any]](func: _CallableT) -> _CallableT:
     """Decorate function to measure the function execution time."""
 
-    is_enabled = _LOGGER.isEnabledFor(level=logging.DEBUG)
+    start = monotonic() if _LOGGER.isEnabledFor(level=logging.DEBUG) else None
 
     @wraps(func)
     async def async_measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
-        if is_enabled:
-            start = monotonic()
         try:
             return await func(*args, **kwargs)
         finally:
-            if is_enabled:
+            if start:
                 _log_performance_message(func, start, *args, **kwargs)
 
     @wraps(func)
     def measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
-        if is_enabled:
-            start = monotonic()
         try:
             return func(*args, **kwargs)
         finally:
-            if is_enabled:
+            if start:
                 _log_performance_message(func, start, *args, **kwargs)
 
     if asyncio.iscoroutinefunction(func):

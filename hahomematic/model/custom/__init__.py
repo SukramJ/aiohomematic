@@ -20,6 +20,8 @@ from hahomematic.model.custom.climate import (
     CustomDpIpThermostat,
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
+    ScheduleProfile,
+    ScheduleWeekday,
 )
 from hahomematic.model.custom.cover import (
     CustomDpBlind,
@@ -92,6 +94,8 @@ __all__ = [
     "PROFILE_PREFIX",
     "SIMPLE_PROFILE_DICT",
     "SIMPLE_WEEKDAY_LIST",
+    "ScheduleProfile",
+    "ScheduleWeekday",
     "SirenOnArgs",
     "WEEKDAY_DICT",
     "create_custom_data_points",

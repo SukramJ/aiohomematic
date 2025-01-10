@@ -9,7 +9,7 @@ import logging
 from typing import Any, Final, cast
 
 from hahomematic.const import SCHEDULER_PROFILE_PATTERN, SCHEDULER_TIME_PATTERN, DataPointCategory, ParamsetKey
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.exceptions import ClientException, ValidationException
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
@@ -292,15 +292,15 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def set_profile(self, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new profile."""
 
-    @async_inspector()
+    @inspector()
     async def enable_away_mode_by_calendar(self, start: datetime, end: datetime, away_temperature: float) -> None:
         """Enable the away mode by calendar on thermostat."""
 
-    @async_inspector()
+    @inspector()
     async def enable_away_mode_by_duration(self, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
 
-    @async_inspector()
+    @inspector()
     async def disable_away_mode(self) -> None:
         """Disable the away mode on thermostat."""
 
@@ -316,7 +316,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
-    @async_inspector()
+    @inspector()
     async def copy_schedule(self, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device."""
 
@@ -331,7 +331,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             values=raw_schedule,
         )
 
-    @async_inspector()
+    @inspector()
     async def copy_schedule_profile(
         self,
         source_profile: ScheduleProfile,
@@ -363,7 +363,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             do_validate=False,
         )
 
-    @async_inspector()
+    @inspector()
     async def get_schedule_profile(self, profile: ScheduleProfile) -> PROFILE_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
@@ -371,7 +371,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         schedule_data = await self._get_schedule_profile(profile=profile)
         return schedule_data.get(profile, {})
 
-    @async_inspector()
+    @inspector()
     async def get_schedule_profile_weekday(self, profile: ScheduleProfile, weekday: ScheduleWeekday) -> WEEKDAY_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
@@ -423,7 +423,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
         return schedule_data
 
-    @async_inspector()
+    @inspector()
     async def set_schedule_profile(
         self, profile: ScheduleProfile, profile_data: PROFILE_DICT, do_validate: bool = True
     ) -> None:
@@ -463,7 +463,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             values=_get_raw_schedule_paramset(schedule_data=schedule_data),
         )
 
-    @async_inspector()
+    @inspector()
     async def set_simple_schedule_profile(
         self,
         profile: ScheduleProfile,
@@ -476,7 +476,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
         await self.set_schedule_profile(profile=profile, profile_data=profile_data)
 
-    @async_inspector()
+    @inspector()
     async def set_schedule_profile_weekday(
         self,
         profile: ScheduleProfile,
@@ -504,7 +504,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             values=_get_raw_schedule_paramset(schedule_data=schedule_data),
         )
 
-    @async_inspector()
+    @inspector()
     async def set_simple_schedule_profile_weekday(
         self,
         profile: ScheduleProfile,
@@ -742,7 +742,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         elif profile == ClimateProfile.ECO:
             await self._dp_lowering_mode.send_value(value=True, collector=collector)
 
-    @async_inspector()
+    @inspector()
     async def enable_away_mode_by_calendar(self, start: datetime, end: datetime, away_temperature: float) -> None:
         """Enable the away mode by calendar on thermostat."""
         await self._client.set_value(
@@ -752,14 +752,14 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             value=_party_mode_code(start=start, end=end, away_temperature=away_temperature),
         )
 
-    @async_inspector()
+    @inspector()
     async def enable_away_mode_by_duration(self, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
         start = datetime.now() - timedelta(minutes=10)
         end = datetime.now() + timedelta(hours=hours)
         await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
 
-    @async_inspector()
+    @inspector()
     async def disable_away_mode(self) -> None:
         """Disable the away mode on thermostat."""
         start = datetime.now() - timedelta(hours=11)
@@ -931,7 +931,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             if profile_idx := self._profiles.get(profile):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
 
-    @async_inspector()
+    @inspector()
     async def enable_away_mode_by_calendar(self, start: datetime, end: datetime, away_temperature: float) -> None:
         """Enable the away mode by calendar on thermostat."""
         await self._client.put_paramset(
@@ -945,14 +945,14 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             },
         )
 
-    @async_inspector()
+    @inspector()
     async def enable_away_mode_by_duration(self, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
         start = datetime.now() - timedelta(minutes=10)
         end = datetime.now() + timedelta(hours=hours)
         await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
 
-    @async_inspector()
+    @inspector()
     async def disable_away_mode(self) -> None:
         """Disable the away mode on thermostat."""
         await self._client.put_paramset(

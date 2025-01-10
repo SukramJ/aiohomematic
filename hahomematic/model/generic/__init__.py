@@ -16,7 +16,7 @@ from hahomematic.const import (
     ParameterType,
     ParamsetKey,
 )
-from hahomematic.decorators import sync_inspector
+from hahomematic.decorators import inspector
 from hahomematic.exceptions import HaHomematicException
 from hahomematic.model import device as hmd
 from hahomematic.model.generic.action import DpAction
@@ -54,7 +54,7 @@ _SWITCH_DP_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
 }
 
 
-@sync_inspector()
+@inspector()
 def create_data_point_and_append_to_channel(
     channel: hmd.Channel,
     paramset_key: ParamsetKey,

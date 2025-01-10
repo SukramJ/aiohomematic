@@ -43,7 +43,7 @@ from hahomematic.const import (
     SystemInformation,
     SystemVariableData,
 )
-from hahomematic.decorators import async_inspector, measure_execution_time
+from hahomematic.decorators import inspector, measure_execution_time
 from hahomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from hahomematic.model.device import Device
 from hahomematic.model.support import convert_value
@@ -292,16 +292,16 @@ class Client(ABC):
         await self._proxy_read.stop()
 
     @abstractmethod
-    @async_inspector(re_raise=False, measure_performance=True)
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
 
     @abstractmethod
-    @async_inspector(re_raise=False, measure_performance=True)
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Fetch names from backend."""
 
-    @async_inspector(re_raise=False, no_raise_return=False)
+    @inspector(re_raise=False, no_raise_return=False)
     async def is_connected(self) -> bool:
         """
         Perform actions required for connectivity check.
@@ -354,54 +354,54 @@ class Client(ABC):
         return True
 
     @abstractmethod
-    @async_inspector(re_raise=False, no_raise_return=False)
+    @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Send ping to CCU to generate PONG event."""
 
     @abstractmethod
-    @async_inspector()
+    @inspector()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
 
     @abstractmethod
-    @async_inspector()
+    @inspector()
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on CCU / Homegear."""
 
     @abstractmethod
-    @async_inspector(measure_performance=True)
+    @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
 
     @abstractmethod
-    @async_inspector()
+    @inspector()
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
 
     @abstractmethod
-    @async_inspector()
+    @inspector()
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
 
     @abstractmethod
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
 
     @abstractmethod
-    @async_inspector(re_raise=False, no_raise_return={})
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
 
     @abstractmethod
-    @async_inspector(re_raise=False, no_raise_return={})
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
 
@@ -417,7 +417,7 @@ class Client(ABC):
                     return device
         return None
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
@@ -430,7 +430,7 @@ class Client(ABC):
             _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args))
         return None
 
-    @async_inspector()
+    @inspector()
     async def add_link(self, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""
         try:
@@ -440,7 +440,7 @@ class Client(ABC):
                 f"ADD_LINK failed with for: {sender_address}/{receiver_address}/{name}/{description}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector()
+    @inspector()
     async def remove_link(self, sender_address: str, receiver_address: str) -> None:
         """Return a list of links."""
         try:
@@ -450,7 +450,7 @@ class Client(ABC):
                 f"REMOVE_LINK failed with for: {sender_address}/{receiver_address}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector()
+    @inspector()
     async def get_link_peers(self, address: str) -> tuple[str, ...] | None:
         """Return a list of link pers."""
         try:
@@ -458,7 +458,7 @@ class Client(ABC):
         except BaseHomematicException as ex:
             raise ClientException(f"GET_LINK_PEERS failed with for: {address}: {reduce_args(args=ex.args)}") from ex
 
-    @async_inspector()
+    @inspector()
     async def get_links(self, address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
         try:
@@ -466,7 +466,7 @@ class Client(ABC):
         except BaseHomematicException as ex:
             raise ClientException(f"GET_LINKS failed with for: {address}: {reduce_args(args=ex.args)}") from ex
 
-    @async_inspector()
+    @inspector()
     async def get_metadata(self, address: str, data_id: str) -> dict[str, Any]:
         """Return the metadata for an object."""
         try:
@@ -476,7 +476,7 @@ class Client(ABC):
                 f"GET_METADATA failed with for: {address}/{data_id}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector()
+    @inspector()
     async def set_metadata(self, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
         try:
@@ -486,7 +486,7 @@ class Client(ABC):
                 f"SET_METADATA failed with for: {address}/{data_id}/{value}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector(log_level=logging.NOTSET)
+    @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
         channel_address: str,
@@ -512,7 +512,7 @@ class Client(ABC):
                 f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector(measure_performance=True)
+    @inspector(measure_performance=True)
     async def _set_value(
         self,
         channel_address: str,
@@ -605,7 +605,7 @@ class Client(ABC):
             ):
                 data_point.write_temporary_value(value=value)
 
-    @async_inspector(re_raise=False, no_raise_return=set())
+    @inspector(re_raise=False, no_raise_return=set())
     async def set_value(
         self,
         channel_address: str,
@@ -635,7 +635,7 @@ class Client(ABC):
             check_against_pd=check_against_pd,
         )
 
-    @async_inspector()
+    @inspector()
     async def get_paramset(
         self,
         address: str,
@@ -661,7 +661,7 @@ class Client(ABC):
                 f"GET_PARAMSET failed with for {address}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector(measure_performance=True)
+    @inspector(measure_performance=True)
     async def put_paramset(
         self,
         channel_address: str,
@@ -816,7 +816,7 @@ class Client(ABC):
             return parameter_data["TYPE"]
         return None
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def fetch_paramset_description(self, channel_address: str, paramset_key: ParamsetKey) -> None:
         """Fetch a specific paramset and add it to the known ones."""
         _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION: %s for %s", paramset_key, channel_address)
@@ -831,7 +831,7 @@ class Client(ABC):
                 paramset_description=paramset_description,
             )
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def fetch_paramset_descriptions(self, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
         data = await self.get_paramset_descriptions(device_description=device_description)
@@ -845,7 +845,7 @@ class Client(ABC):
                     paramset_description=paramset_description,
                 )
 
-    @async_inspector(re_raise=False, no_raise_return={})
+    @inspector(re_raise=False, no_raise_return={})
     async def get_paramset_descriptions(
         self, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
@@ -879,7 +879,7 @@ class Client(ABC):
             )
         return None
 
-    @async_inspector()
+    @inspector()
     async def get_all_paramset_descriptions(
         self, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
@@ -889,12 +889,12 @@ class Client(ABC):
             all_paramsets.update(await self.get_paramset_descriptions(device_description=device_description))
         return all_paramsets
 
-    @async_inspector()
+    @inspector()
     async def has_program_ids(self, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         return False
 
-    @async_inspector(re_raise=False, measure_performance=True)
+    @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -907,12 +907,12 @@ class Client(ABC):
             )
         return None
 
-    @async_inspector()
+    @inspector()
     async def report_value_usage(self, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         return False
 
-    @async_inspector()
+    @inspector()
     async def update_device_firmware(self, device_address: str) -> bool:
         """Update the firmware of a homematic device."""
         if device := self.central.get_device(address=device_address):
@@ -937,7 +937,7 @@ class Client(ABC):
             return result
         return False
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def update_paramset_descriptions(self, device_address: str) -> None:
         """Update paramsets descriptions for provided device_address."""
         if not self.central.device_descriptions.get_device_descriptions(interface_id=self.interface_id):
@@ -984,7 +984,7 @@ class ClientCCU(Client):
         """Return the supports_ping_pong info of the backend."""
         return True
 
-    @async_inspector(re_raise=False, measure_performance=True)
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Get all names via JSON-RPS and store in data.NAMES."""
         if json_result := await self._json_rpc_client.get_device_details():
@@ -1004,7 +1004,7 @@ class ClientCCU(Client):
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
-    @async_inspector(re_raise=False, measure_performance=True)
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
         try:
@@ -1028,7 +1028,7 @@ class ClientCCU(Client):
             self.interface,
         )
 
-    @async_inspector(re_raise=False, no_raise_return=False)
+    @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Check if _proxy is still initialized."""
         try:
@@ -1053,22 +1053,22 @@ class ClientCCU(Client):
         self.modified_at = INIT_DATETIME
         return False
 
-    @async_inspector()
+    @inspector()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU."""
         return await self._json_rpc_client.execute_program(pid=pid)
 
-    @async_inspector()
+    @inspector()
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on CCU."""
         return await self._json_rpc_client.set_program_state(pid=pid, state=state)
 
-    @async_inspector()
+    @inspector()
     async def has_program_ids(self, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         return await self._json_rpc_client.has_program_ids(channel_hmid=channel_hmid)
 
-    @async_inspector()
+    @inspector()
     async def report_value_usage(self, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         try:
@@ -1078,34 +1078,34 @@ class ClientCCU(Client):
                 f"REPORT_VALUE_USAGE failed with: {address}/{value_id}/{ref_counter}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector(measure_performance=True)
+    @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
         return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
 
-    @async_inspector()
+    @inspector()
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
         return await self._json_rpc_client.delete_system_variable(name=name)
 
-    @async_inspector()
+    @inspector()
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from CCU."""
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(markers=markers)
 
-    @async_inspector(re_raise=False, no_raise_return={})
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from CCU."""
         rooms: dict[str, set[str]] = {}
@@ -1117,7 +1117,7 @@ class ClientCCU(Client):
                 rooms[address].update(names)
         return rooms
 
-    @async_inspector(re_raise=False, no_raise_return={})
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from CCU."""
         functions: dict[str, set[str]] = {}
@@ -1141,7 +1141,7 @@ class ClientJsonCCU(ClientCCU):
         """Init the client."""
         self._system_information = await self._get_system_information()
 
-    @async_inspector(re_raise=False, no_raise_return=False)
+    @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
         return await self._json_rpc_client.is_present(interface=self.interface)
@@ -1151,7 +1151,7 @@ class ClientJsonCCU(ClientCCU):
         """Return the supports_ping_pong info of the backend."""
         return False
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from CCU / Homegear."""
         try:
@@ -1163,7 +1163,7 @@ class ClientJsonCCU(ClientCCU):
             _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", ex.name, reduce_args(args=ex.args))
         return None
 
-    @async_inspector()
+    @inspector()
     async def get_paramset(
         self,
         address: str,
@@ -1194,7 +1194,7 @@ class ClientJsonCCU(ClientCCU):
                 f"GET_PARAMSET failed with for {address}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector(log_level=logging.NOTSET)
+    @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
         channel_address: str,
@@ -1232,7 +1232,7 @@ class ClientJsonCCU(ClientCCU):
                 f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex
 
-    @async_inspector(re_raise=False, measure_performance=True)
+    @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
@@ -1353,12 +1353,12 @@ class ClientHomegear(Client):
         """Return the supports_ping_pong info of the backend."""
         return False
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
         return
 
-    @async_inspector(re_raise=False, measure_performance=True)
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Get all names from metadata (Homegear)."""
         _LOGGER.debug("FETCH_DEVICE_DETAILS: Fetching names via Metadata")
@@ -1376,7 +1376,7 @@ class ClientHomegear(Client):
                     address,
                 )
 
-    @async_inspector(re_raise=False, no_raise_return=False)
+    @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
         try:
@@ -1393,34 +1393,34 @@ class ClientHomegear(Client):
         self.modified_at = INIT_DATETIME
         return False
 
-    @async_inspector()
+    @inspector()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on Homegear."""
         return True
 
-    @async_inspector()
+    @inspector()
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on Homegear."""
         return True
 
-    @async_inspector(measure_performance=True)
+    @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
         await self._proxy.setSystemVariable(legacy_name, value)
         return True
 
-    @async_inspector()
+    @inspector()
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
         await self._proxy.deleteSystemVariable(name)
         return True
 
-    @async_inspector()
+    @inspector()
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
         return await self._proxy.getSystemVariable(name)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
@@ -1431,17 +1431,17 @@ class ClientHomegear(Client):
                 variables.append(SystemVariableData(vid=name, legacy_name=name, value=value))
         return tuple(variables)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
         return ()
 
-    @async_inspector(re_raise=False, no_raise_return={})
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from Homegear."""
         return {}
 
-    @async_inspector(re_raise=False, no_raise_return={})
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from Homegear."""
         return {}

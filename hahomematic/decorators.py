@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Callable
 from contextvars import Token
 from datetime import datetime
 from functools import wraps
@@ -20,85 +20,52 @@ R = TypeVar("R")
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def async_inspector(
-    log_level: int = logging.ERROR,
-    re_raise: bool = True,
-    no_raise_return: Any = None,
-    measure_performance: bool = False,
-) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Coroutine[Any, Any, R]]]:
-    """Mark function as service call and log exceptions."""
-
-    def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Coroutine[Any, Any, R]]:
-        """Decorate service."""
-
-        do_measure_performance = measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG)
-
-        @wraps(func)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            """Wrap service to log exception."""
-            if do_measure_performance:
-                start = datetime.now()
-
-            token: Token | None = None
-            if not IN_SERVICE_VAR.get():
-                token = IN_SERVICE_VAR.set(True)
-            try:
-                return_value: R = await func(*args, **kwargs)
-            except BaseHomematicException as bhe:
-                if token:
-                    IN_SERVICE_VAR.reset(token)
-                if not IN_SERVICE_VAR.get() and log_level > logging.NOTSET:
-                    message = f"{func.__name__.upper()} failed: {reduce_args(args=bhe.args)}"
-                    logging.getLogger(args[0].__module__).log(
-                        level=log_level,
-                        msg=message,
-                    )
-                if re_raise:
-                    raise
-                return cast(R, no_raise_return)
-            except Exception as ex:
-                logging.getLogger(args[0].__module__).debug(
-                    "%s failed: %s", func.__name__.upper(), reduce_args(args=ex.args)
-                )
-                if re_raise:
-                    raise
-                return cast(R, no_raise_return)
-            else:
-                if token:
-                    IN_SERVICE_VAR.reset(token)
-                return return_value
-            finally:
-                if do_measure_performance:
-                    _log_performance_message(func, start, *args, **kwargs)
-
-        setattr(wrapper, "ha_service", True)
-        return wrapper
-
-    return decorator
-
-
-def sync_inspector(
+def inspector(  # noqa: C901
     log_level: int = logging.ERROR,
     re_raise: bool = True,
     no_raise_return: Any = None,
     measure_performance: bool = False,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """Mark function as service call and log exceptions."""
+    """
+    Support with exception handling and performance measurement.
 
-    def decorator(func: Callable[P, R]) -> Callable[P, R]:
-        """Decorate service."""
+    A decorator that works for both synchronous and asynchronous functions,
+    providing common functionality such as exception handling and performance measurement.
 
+    Args:
+        log_level: Logging level for exceptions.
+        re_raise: Whether to re-raise exceptions.
+        no_raise_return: Value to return when an exception is caught and not re-raised.
+        measure_performance: Whether to measure function execution time.
+
+    Returns:
+        A decorator that wraps sync or async functions.
+
+    """
+
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:  # noqa: C901
+        """
+        Decorate function for wrapping sync or async functions.
+
+        Args:
+            func: The function to decorate.
+
+        Returns:
+            The decorated function.
+
+        """
         do_measure_performance = measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG)
 
         @wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            """Wrap service to log exception."""
+        def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """Wrap sync functions."""
             if do_measure_performance:
                 start = datetime.now()
 
             token: Token | None = None
             if not IN_SERVICE_VAR.get():
                 token = IN_SERVICE_VAR.set(True)
+
             try:
                 return_value: R = func(*args, **kwargs)
             except BaseHomematicException as bhe:
@@ -128,8 +95,51 @@ def sync_inspector(
                 if do_measure_performance:
                     _log_performance_message(func, start, *args, **kwargs)
 
-        setattr(wrapper, "ha_service", True)
-        return wrapper
+        @wraps(func)
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """Wrap async functions."""
+            if do_measure_performance:
+                start = datetime.now()
+
+            token: Token | None = None
+            if not IN_SERVICE_VAR.get():
+                token = IN_SERVICE_VAR.set(True)
+
+            try:
+                return_value = await func(*args, **kwargs)  # type: ignore[misc]  # Await the async call
+            except BaseHomematicException as bhe:
+                if token:
+                    IN_SERVICE_VAR.reset(token)
+                if not IN_SERVICE_VAR.get() and log_level > logging.NOTSET:
+                    message = f"{func.__name__.upper()} failed: {reduce_args(args=bhe.args)}"
+                    logging.getLogger(args[0].__module__).log(
+                        level=log_level,
+                        msg=message,
+                    )
+                if re_raise:
+                    raise
+                return cast(R, no_raise_return)
+            except Exception as ex:
+                logging.getLogger(args[0].__module__).debug(
+                    "%s failed: %s", func.__name__.upper(), reduce_args(args=ex.args)
+                )
+                if re_raise:
+                    raise
+                return cast(R, no_raise_return)
+            else:
+                if token:
+                    IN_SERVICE_VAR.reset(token)
+                return cast(R, return_value)
+            finally:
+                if do_measure_performance:
+                    _log_performance_message(func, start, *args, **kwargs)
+
+        # Check if the function is a coroutine or not and select the appropriate wrapper
+        if asyncio.iscoroutinefunction(func):
+            setattr(async_wrapper, "ha_service", True)
+            return async_wrapper  # type: ignore[return-value]
+        setattr(sync_wrapper, "ha_service", True)
+        return sync_wrapper
 
     return decorator
 

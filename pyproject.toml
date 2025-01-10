@@ -483,6 +483,7 @@ lint.select = [
 ]
 
 lint.ignore = [
+    "A005", # Module shadows a Python standard-library module
     "D202", # No blank lines allowed after function docstring
     "D203", # 1 blank line required before class docstring
     "D212",  # Multi-line docstring summary should start at the second line

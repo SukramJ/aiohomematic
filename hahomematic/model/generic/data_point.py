@@ -6,7 +6,7 @@ import logging
 from typing import Any, Final
 
 from hahomematic.const import DP_KEY_VALUE, CallSource, DataPointUsage, EventType, Parameter, ParameterData, ParamsetKey
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.model import data_point as hme, device as hmd
 from hahomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
 
@@ -73,7 +73,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
                 event_data=self.get_event_data(new_value),
             )
 
-    @async_inspector()
+    @inspector()
     async def send_value(
         self,
         value: InputParameterT,

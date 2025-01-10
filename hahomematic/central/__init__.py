@@ -73,7 +73,7 @@ from hahomematic.const import (
     ProxyInitState,
     SystemInformation,
 )
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.exceptions import (
     BaseHomematicException,
     HaHomematicConfigException,
@@ -470,7 +470,7 @@ class CentralUnit(PayloadMixin):
         await self._stop_clients()
         await self._start_clients()
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def refresh_firmware_data(self, device_address: str | None = None) -> None:
         """Refresh device firmware data."""
         if device_address and (device := self.get_device(address=device_address)) is not None and device.is_updatable:
@@ -483,7 +483,7 @@ class CentralUnit(PayloadMixin):
                 if device.is_updatable:
                     device.refresh_firmware_data()
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def refresh_firmware_data_by_state(self, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
         """Refresh device firmware data for processing devices."""
         for device in [
@@ -914,7 +914,7 @@ class CentralUnit(PayloadMixin):
         """Add new devices to central unit."""
         await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions)
 
-    @async_inspector(measure_performance=True)
+    @inspector(measure_performance=True)
     async def _add_new_devices(self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
         if not device_descriptions:
@@ -1126,13 +1126,13 @@ class CentralUnit(PayloadMixin):
             ):
                 self._data_point_path_event_subscriptions[data_point.state_path] = data_point.dpk
 
-    @async_inspector()
+    @inspector()
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
         for device in self.devices:
             await device.create_central_links()
 
-    @async_inspector()
+    @inspector()
     async def remove_central_links(self) -> None:
         """Remove central links."""
         for device in self.devices:
@@ -1181,17 +1181,17 @@ class CentralUnit(PayloadMixin):
             return await client.set_program_state(pid=pid, state=state)
         return False
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def fetch_sysvar_data(self, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
         await self._hub.fetch_sysvar_data(scheduled=scheduled)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def fetch_program_data(self, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         await self._hub.fetch_program_data(scheduled=scheduled)
 
-    @async_inspector(measure_performance=True)
+    @inspector(measure_performance=True)
     async def load_and_refresh_data_point_data(
         self,
         interface: Interface,
@@ -1562,7 +1562,7 @@ class _Scheduler(threading.Thread):
                 reduce_args(args=ex.args),
             )
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def _refresh_client_data(self) -> None:
         """Refresh client data."""
         if not self._central.available:
@@ -1574,7 +1574,7 @@ class _Scheduler(threading.Thread):
                 await self._central.load_and_refresh_data_point_data(interface=client.interface)
                 self._central.set_last_event_dt(interface_id=client.interface_id)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def _refresh_sysvar_data(self) -> None:
         """Refresh system variables."""
         if not self._central.config.enable_sysvar_scan or not self._central.available:
@@ -1583,7 +1583,7 @@ class _Scheduler(threading.Thread):
         _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central.name)
         await self._central.fetch_sysvar_data(scheduled=True)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def _refresh_program_data(self) -> None:
         """Refresh system program_data."""
         if not self._central.config.enable_program_scan or not self._central.available:
@@ -1592,7 +1592,7 @@ class _Scheduler(threading.Thread):
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central.name)
         await self._central.fetch_program_data(scheduled=True)
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def _fetch_device_firmware_update_data(self) -> None:
         """Periodically fetch device firmware update data from backend."""
         if not self._central.config.enable_device_firmware_check or not self._central.available:
@@ -1604,7 +1604,7 @@ class _Scheduler(threading.Thread):
         )
         await self._central.refresh_firmware_data()
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
         """Periodically fetch device firmware update data from backend."""
         if not self._central.config.enable_device_firmware_check or not self._central.available:
@@ -1621,7 +1621,7 @@ class _Scheduler(threading.Thread):
             )
         )
 
-    @async_inspector(re_raise=False)
+    @inspector(re_raise=False)
     async def _fetch_device_firmware_update_data_in_update(self) -> None:
         """Periodically fetch device firmware update data from backend."""
         if not self._central.config.enable_device_firmware_check or not self._central.available:

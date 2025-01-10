@@ -16,7 +16,7 @@ from hahomematic.const import (
     SystemVariableData,
     SysvarType,
 )
-from hahomematic.decorators import async_inspector, get_service_calls
+from hahomematic.decorators import get_service_calls, inspector
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.device import Channel
@@ -236,7 +236,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             value = float(new_value)
         return value
 
-    @async_inspector()
+    @inspector()
     async def send_variable(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
         if client := self.central.primary_client:

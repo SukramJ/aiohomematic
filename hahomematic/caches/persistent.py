@@ -310,7 +310,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         self, interface_id: str, channel_address: str
     ) -> dict[ParamsetKey, dict[str, ParameterData]]:
         """Get paramset descriptions for a channelfrom cache."""
-        return self._raw_paramset_descriptions[interface_id][channel_address]
+        return self._raw_paramset_descriptions[interface_id].get(channel_address, {})
 
     def get_paramset_key_descriptions(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey

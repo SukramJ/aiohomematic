@@ -20,7 +20,7 @@ T = TypeVar("T")
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def service(
+def async_inspector(  # noqa: C901
     log_level: int = logging.ERROR,
     re_raise: bool = True,
     no_raise_return: Any = None,
@@ -28,13 +28,15 @@ def service(
 ) -> Callable:
     """Mark function as service call and log exceptions."""
 
-    def service_decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
+    def decorator(
+        func: Callable[P, Awaitable[T]],
+    ) -> Callable[P, Awaitable[T]]:  # noqa: C901
         """Decorate service."""
 
         do_measure_performance = measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG)
 
         @wraps(func)
-        async def service_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             """Wrap service to log exception."""
             if do_measure_performance:
                 start = datetime.now()
@@ -56,6 +58,13 @@ def service(
                 if re_raise:
                     raise
                 return cast(T, no_raise_return)
+            except Exception as ex:
+                logging.getLogger(args[0].__module__).debug(
+                    "%s failed: %s", func.__name__.upper(), reduce_args(args=ex.args)
+                )
+                if re_raise:
+                    raise
+                return cast(T, no_raise_return)
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -64,10 +73,69 @@ def service(
                 if do_measure_performance:
                     _log_performance_message(func, start, *args, **kwargs)
 
-        setattr(service_wrapper, "ha_service", True)
-        return service_wrapper
+        setattr(wrapper, "ha_service", True)
+        return wrapper
 
-    return service_decorator
+    return decorator
+
+
+def sync_inspector(  # noqa: C901
+    log_level: int = logging.ERROR,
+    re_raise: bool = True,
+    no_raise_return: Any = None,
+    measure_performance: bool = False,
+) -> Callable:
+    """Mark function as service call and log exceptions."""
+
+    def decorator(
+        func: Callable[P, T],
+    ) -> Callable[P, T]:  # noqa: C901
+        """Decorate service."""
+
+        do_measure_performance = measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG)
+
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            """Wrap service to log exception."""
+            if do_measure_performance:
+                start = datetime.now()
+
+            token: Token | None = None
+            if not IN_SERVICE_VAR.get():
+                token = IN_SERVICE_VAR.set(True)
+            try:
+                return_value = func(*args, **kwargs)
+            except BaseHomematicException as bhe:
+                if token:
+                    IN_SERVICE_VAR.reset(token)
+                if not IN_SERVICE_VAR.get() and log_level > logging.NOTSET:
+                    message = f"{func.__name__.upper()} failed: {reduce_args(args=bhe.args)}"
+                    logging.getLogger(args[0].__module__).log(
+                        level=log_level,
+                        msg=message,
+                    )
+                if re_raise:
+                    raise
+                return cast(T, no_raise_return)
+            except Exception as ex:
+                logging.getLogger(args[0].__module__).debug(
+                    "%s failed: %s", func.__name__.upper(), reduce_args(args=ex.args)
+                )
+                if re_raise:
+                    raise
+                return cast(T, no_raise_return)
+            else:
+                if token:
+                    IN_SERVICE_VAR.reset(token)
+                return return_value
+            finally:
+                if do_measure_performance:
+                    _log_performance_message(func, start, *args, **kwargs)
+
+        setattr(wrapper, "ha_service", True)
+        return wrapper
+
+    return decorator
 
 
 def _log_performance_message(func: Callable, start: datetime, *args: P.args, **kwargs: P.kwargs) -> None:

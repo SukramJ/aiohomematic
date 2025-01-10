@@ -30,7 +30,7 @@ from hahomematic.const import (
     SystemInformation,
     SystemVariableData,
 )
-from hahomematic.decorators import service
+from hahomematic.decorators import async_inspector
 from hahomematic.support import is_channel_address
 
 LOCAL_SERIAL: Final = "0815_4711"
@@ -115,7 +115,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Return if XmlRPC-Server is alive based on received events for this client."""
         return True
 
-    @service(re_raise=False, no_raise_return=False)
+    @async_inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Send ping to CCU to generate PONG event."""
         if handle_ping_pong and self.supports_ping_pong:

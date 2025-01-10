@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
+from hahomematic.decorators import sync_inspector
 from hahomematic.model import device as hmd
 from hahomematic.model.custom.climate import (
     PROFILE_DICT,
@@ -101,6 +102,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
+@sync_inspector()
 def create_custom_data_points(device: hmd.Device) -> None:
     """Decides which data point category should be used, and creates the required data points."""
 

@@ -27,7 +27,6 @@ from hahomematic.const import (
     ParameterData,
     ParamsetKey,
 )
-from hahomematic.decorators import inspector
 from hahomematic.model.device import Device
 from hahomematic.support import (
     check_or_create_directory,
@@ -307,12 +306,11 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """Get paramset_keys from paramset descriptions cache."""
         return tuple(self._raw_paramset_descriptions[interface_id][channel_address])
 
-    @inspector()
     def get_channel_paramset_descriptions(
         self, interface_id: str, channel_address: str
     ) -> dict[ParamsetKey, dict[str, ParameterData]]:
         """Get paramset descriptions for a channelfrom cache."""
-        return self._raw_paramset_descriptions[interface_id][channel_address]  # .get(channel_address, {})
+        return self._raw_paramset_descriptions[interface_id].get(channel_address, {})
 
     def get_paramset_key_descriptions(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey
@@ -320,7 +318,6 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """Get paramset descriptions from cache."""
         return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
 
-    @inspector()
     def get_parameter_data(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
     ) -> ParameterData | None:

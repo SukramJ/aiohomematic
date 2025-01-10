@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from contextvars import Token
 from datetime import datetime
 from functools import wraps
@@ -15,28 +15,26 @@ from hahomematic.exceptions import BaseHomematicException
 from hahomematic.support import reduce_args
 
 P = ParamSpec("P")
-T = TypeVar("T")
+R = TypeVar("R")
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def async_inspector(  # noqa: C901
+def async_inspector(
     log_level: int = logging.ERROR,
     re_raise: bool = True,
     no_raise_return: Any = None,
     measure_performance: bool = False,
-) -> Callable:
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Coroutine[Any, Any, R]]]:
     """Mark function as service call and log exceptions."""
 
-    def decorator(
-        func: Callable[P, Awaitable[T]],
-    ) -> Callable[P, Awaitable[T]]:  # noqa: C901
+    def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Coroutine[Any, Any, R]]:
         """Decorate service."""
 
         do_measure_performance = measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG)
 
         @wraps(func)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap service to log exception."""
             if do_measure_performance:
                 start = datetime.now()
@@ -45,7 +43,7 @@ def async_inspector(  # noqa: C901
             if not IN_SERVICE_VAR.get():
                 token = IN_SERVICE_VAR.set(True)
             try:
-                return_value = await func(*args, **kwargs)
+                return_value: R = await func(*args, **kwargs)
             except BaseHomematicException as bhe:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -57,14 +55,14 @@ def async_inspector(  # noqa: C901
                     )
                 if re_raise:
                     raise
-                return cast(T, no_raise_return)
+                return cast(R, no_raise_return)
             except Exception as ex:
                 logging.getLogger(args[0].__module__).debug(
                     "%s failed: %s", func.__name__.upper(), reduce_args(args=ex.args)
                 )
                 if re_raise:
                     raise
-                return cast(T, no_raise_return)
+                return cast(R, no_raise_return)
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -79,23 +77,21 @@ def async_inspector(  # noqa: C901
     return decorator
 
 
-def sync_inspector(  # noqa: C901
+def sync_inspector(
     log_level: int = logging.ERROR,
     re_raise: bool = True,
     no_raise_return: Any = None,
     measure_performance: bool = False,
-) -> Callable:
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Mark function as service call and log exceptions."""
 
-    def decorator(
-        func: Callable[P, T],
-    ) -> Callable[P, T]:  # noqa: C901
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         """Decorate service."""
 
         do_measure_performance = measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG)
 
         @wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap service to log exception."""
             if do_measure_performance:
                 start = datetime.now()
@@ -104,7 +100,7 @@ def sync_inspector(  # noqa: C901
             if not IN_SERVICE_VAR.get():
                 token = IN_SERVICE_VAR.set(True)
             try:
-                return_value = func(*args, **kwargs)
+                return_value: R = func(*args, **kwargs)
             except BaseHomematicException as bhe:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -116,14 +112,14 @@ def sync_inspector(  # noqa: C901
                     )
                 if re_raise:
                     raise
-                return cast(T, no_raise_return)
+                return cast(R, no_raise_return)
             except Exception as ex:
                 logging.getLogger(args[0].__module__).debug(
                     "%s failed: %s", func.__name__.upper(), reduce_args(args=ex.args)
                 )
                 if re_raise:
                     raise
-                return cast(T, no_raise_return)
+                return cast(R, no_raise_return)
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)

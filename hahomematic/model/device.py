@@ -546,7 +546,7 @@ class Device(PayloadMixin):
         if refresh_after_update_intervals:
             self._central.looper.create_task(target=refresh_data(), name="refresh_firmware_data")
 
-        return update_result  # type: ignore[no-any-return]
+        return update_result
 
     @async_inspector()
     async def load_value_cache(self) -> None:
@@ -1049,7 +1049,7 @@ class _ValueCache:
                     call_source=CallSource.HM_INIT,
                 )
             }
-        return await self._device.client.get_paramset(  # type: ignore[no-any-return]
+        return await self._device.client.get_paramset(
             address=channel_address, paramset_key=paramset_key, call_source=CallSource.HM_INIT
         )
 

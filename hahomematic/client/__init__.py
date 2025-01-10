@@ -292,10 +292,12 @@ class Client(ABC):
         await self._proxy_read.stop()
 
     @abstractmethod
+    @async_inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
 
     @abstractmethod
+    @async_inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Fetch names from backend."""
 
@@ -352,44 +354,54 @@ class Client(ABC):
         return True
 
     @abstractmethod
+    @async_inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Send ping to CCU to generate PONG event."""
 
     @abstractmethod
+    @async_inspector()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
 
     @abstractmethod
+    @async_inspector()
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on CCU / Homegear."""
 
     @abstractmethod
+    @async_inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
 
     @abstractmethod
+    @async_inspector()
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
 
     @abstractmethod
+    @async_inspector()
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
 
     @abstractmethod
+    @async_inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from CCU / Homegear."""
 
     @abstractmethod
+    @async_inspector(re_raise=False)
     async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
 
     @abstractmethod
+    @async_inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
 
     @abstractmethod
+    @async_inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
 
@@ -606,7 +618,7 @@ class Client(ABC):
     ) -> set[DP_KEY_VALUE]:
         """Set single value on paramset VALUES."""
         if paramset_key == ParamsetKey.VALUES:
-            return await self._set_value(  # type: ignore[no-any-return]
+            return await self._set_value(
                 channel_address=channel_address,
                 parameter=parameter,
                 value=value,
@@ -614,7 +626,7 @@ class Client(ABC):
                 rx_mode=rx_mode,
                 check_against_pd=check_against_pd,
             )
-        return await self.put_paramset(  # type: ignore[no-any-return]
+        return await self.put_paramset(
             channel_address=channel_address,
             paramset_key=paramset_key,
             values={parameter: value},
@@ -1381,10 +1393,12 @@ class ClientHomegear(Client):
         self.modified_at = INIT_DATETIME
         return False
 
+    @async_inspector()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on Homegear."""
         return True
 
+    @async_inspector()
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on Homegear."""
         return True

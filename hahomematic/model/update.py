@@ -125,9 +125,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     @async_inspector()
     async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Turn the update on."""
-        return await self._device.update_firmware(  # type: ignore[no-any-return]
-            refresh_after_update_intervals=refresh_after_update_intervals
-        )
+        return await self._device.update_firmware(refresh_after_update_intervals=refresh_after_update_intervals)
 
     @async_inspector()
     async def refresh_firmware_data(self) -> None:

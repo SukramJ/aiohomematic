@@ -27,6 +27,7 @@ from hahomematic.const import (
     ParameterData,
     ParamsetKey,
 )
+from hahomematic.decorators import sync_inspector
 from hahomematic.model.device import Device
 from hahomematic.support import (
     check_or_create_directory,
@@ -318,6 +319,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """Get paramset descriptions from cache."""
         return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
 
+    @sync_inspector()
     def get_parameter_data(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
     ) -> ParameterData | None:

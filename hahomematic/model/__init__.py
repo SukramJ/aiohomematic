@@ -14,7 +14,7 @@ from hahomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from hahomematic.decorators import sync_inspector
+from hahomematic.decorators import inspector
 from hahomematic.model import device as hmd
 from hahomematic.model.event import create_event_and_append_to_channel
 from hahomematic.model.generic import create_data_point_and_append_to_channel
@@ -27,7 +27,7 @@ _ALLOWED_INTERNAL_PARAMETERS: Final[tuple[Parameter, ...]] = (Parameter.DIRECTIO
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-@sync_inspector()
+@inspector()
 def create_data_points_and_events(device: hmd.Device) -> None:
     """Create the data points associated to this device."""
     for channel in device.channels.values():

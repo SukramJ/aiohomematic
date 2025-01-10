@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from hahomematic.const import DataPointCategory
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.model.decorators import state_property
 from hahomematic.model.hub.data_point import GenericProgramDataPoint
 
@@ -18,7 +18,7 @@ class ProgramDpButton(GenericProgramDataPoint):
         """Return the availability of the device."""
         return self._is_active and self._central.available
 
-    @async_inspector()
+    @inspector()
     async def press(self) -> None:
         """Handle the button press."""
         await self.central.execute_program(pid=self.pid)

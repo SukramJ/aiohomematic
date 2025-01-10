@@ -6,6 +6,7 @@ from _collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 import importlib.resources
+import logging
 import os
 from typing import Any, Final, cast
 
@@ -30,7 +31,7 @@ from hahomematic.const import (
     SystemInformation,
     SystemVariableData,
 )
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.support import is_channel_address
 
 LOCAL_SERIAL: Final = "0815_4711"
@@ -96,12 +97,15 @@ class ClientLocal(Client):  # pragma: no cover
     async def stop(self) -> None:
         """Stop depending services."""
 
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from CCU."""
 
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Fetch names from backend."""
 
+    @inspector(re_raise=False, no_raise_return=False)
     async def is_connected(self) -> bool:
         """
         Perform actions required for connectivity check.
@@ -115,47 +119,56 @@ class ClientLocal(Client):  # pragma: no cover
         """Return if XmlRPC-Server is alive based on received events for this client."""
         return True
 
-    @async_inspector(re_raise=False, no_raise_return=False)
+    @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
         """Send ping to CCU to generate PONG event."""
         if handle_ping_pong and self.supports_ping_pong:
             self._ping_pong_cache.handle_send_ping(ping_ts=datetime.now())
         return True
 
+    @inspector()
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
         return True
 
+    @inspector()
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on CCU / Homegear."""
         return True
 
+    @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
         """Set a system variable on CCU / Homegear."""
         return True
 
+    @inspector()
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
         return True
 
+    @inspector()
     async def get_system_variable(self, name: str) -> str:
         """Get single system variable from CCU / Homegear."""
         return "Empty"
 
+    @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from CCU / Homegear."""
         return ()
 
+    @inspector(re_raise=False)
     async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()
 
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
         return {}
 
+    @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
         return {}
@@ -164,6 +177,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Get system information of the backend."""
         return SystemInformation(available_interfaces=(Interface.BIDCOS_RF,), serial=LOCAL_SERIAL)
 
+    @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """Get device descriptions from CCU / Homegear."""
         if not self._local_resources:
@@ -186,6 +200,7 @@ class ClientLocal(Client):  # pragma: no cover
                 device_descriptions.extend(device_description)
         return tuple(device_descriptions)
 
+    @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
         channel_address: str,
@@ -196,6 +211,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Return a value from CCU."""
         return
 
+    @inspector(re_raise=False, no_raise_return=set())
     async def set_value(
         self,
         channel_address: str,
@@ -215,6 +231,7 @@ class ClientLocal(Client):  # pragma: no cover
         await self.central.data_point_event(self.interface_id, channel_address, parameter, value)
         return result
 
+    @inspector()
     async def get_paramset(
         self,
         address: str,
@@ -255,6 +272,7 @@ class ClientLocal(Client):  # pragma: no cover
 
         return self._paramset_descriptions_cache[address].get(paramset_key)
 
+    @inspector(measure_performance=True)
     async def put_paramset(
         self,
         channel_address: str,

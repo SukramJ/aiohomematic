@@ -6,7 +6,7 @@ import logging
 from typing import Final
 
 from hahomematic.const import DataPointCategory
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.model.decorators import state_property
 from hahomematic.model.hub.data_point import GenericSysvarDataPoint
 from hahomematic.model.support import get_value_from_value_list
@@ -27,7 +27,7 @@ class SysvarDpSelect(GenericSysvarDataPoint):
             return value
         return None
 
-    @async_inspector()
+    @inspector()
     async def send_variable(self, value: int | str) -> None:
         """Set the value of the data_point."""
         # We allow setting the value via index as well, just in case.

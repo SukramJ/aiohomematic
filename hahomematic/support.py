@@ -114,7 +114,7 @@ def check_config(
     if json_port and not is_port(port=json_port):
         config_failures.append("Invalid json port")
     if interface_configs and not has_primary_client(interface_configs=interface_configs):
-        config_failures.append(f"No primary interface ({", ".join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined")
+        config_failures.append(f"No primary interface ({', '.join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined")
 
     return config_failures
 

@@ -6,7 +6,7 @@ import logging
 from typing import Any, Final
 
 from hahomematic.const import DP_KEY_VALUE, CallSource, DataPointUsage, EventType, Parameter, ParameterData, ParamsetKey
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.model import data_point as hme, device as hmd
 from hahomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
 
@@ -73,7 +73,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
                 event_data=self.get_event_data(new_value),
             )
 
-    @async_inspector()
+    @inspector()
     async def send_value(
         self,
         value: InputParameterT,
@@ -99,7 +99,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         if self._validate_state_change and not self.is_state_change(value=converted_value):
             return set()
 
-        return await self._client.set_value(  # type: ignore[no-any-return]
+        return await self._client.set_value(
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
             parameter=self._parameter,

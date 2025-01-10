@@ -46,7 +46,7 @@ from hahomematic.const import (
     ProductGroup,
     RxMode,
 )
-from hahomematic.decorators import async_inspector
+from hahomematic.decorators import inspector
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.model.custom import data_point as hmce, definition as hmed
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
@@ -101,10 +101,10 @@ class Device(PayloadMixin):
         self._forced_availability: ForcedDeviceAvailability = ForcedDeviceAvailability.NOT_SET
         self._device_updated_callbacks: Final[list[Callable]] = []
         self._firmware_update_callbacks: Final[list[Callable]] = []
-        self._model: Final = self._description["TYPE"]
+        self._model: Final[str] = self._description["TYPE"]
         self._is_updatable: Final = self._description.get("UPDATABLE") or False
         self._rx_modes: Final = get_rx_modes(mode=self._description.get("RX_MODE", 0))
-        self._sub_model: Final = self._description.get("SUBTYPE")
+        self._sub_model: Final[str | None] = self._description.get("SUBTYPE")
         self._ignore_for_custom_data_point: Final[bool] = central.parameter_visibility.model_is_ignored(
             model=self._model
         )
@@ -359,14 +359,14 @@ class Device(PayloadMixin):
         elif self._sub_device_channels[channel_no] != base_channel_no:
             return
 
-    @async_inspector()
+    @inspector()
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
         if self.relevant_for_central_link_management:
             for channel in self._channels.values():
                 await channel.create_central_link()
 
-    @async_inspector()
+    @inspector()
     async def remove_central_links(self) -> None:
         """Remove central links."""
         if self.relevant_for_central_link_management:
@@ -504,7 +504,7 @@ class Device(PayloadMixin):
             for data_point in self.generic_data_points:
                 data_point.fire_data_point_updated_callback()
 
-    @async_inspector()
+    @inspector()
     async def export_device_definition(self) -> None:
         """Export the device definition for current device."""
         try:
@@ -533,7 +533,7 @@ class Device(PayloadMixin):
             for callback_handler in self._firmware_update_callbacks:
                 callback_handler()
 
-    @async_inspector()
+    @inspector()
     async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Update the firmware of the homematic device."""
         update_result = await self._client.update_device_firmware(device_address=self._address)
@@ -546,9 +546,9 @@ class Device(PayloadMixin):
         if refresh_after_update_intervals:
             self._central.looper.create_task(target=refresh_data(), name="refresh_firmware_data")
 
-        return update_result  # type: ignore[no-any-return]
+        return update_result
 
-    @async_inspector()
+    @inspector()
     async def load_value_cache(self) -> None:
         """Init the parameter cache."""
         if len(self.generic_data_points) > 0:
@@ -560,7 +560,7 @@ class Device(PayloadMixin):
             self._address,
         )
 
-    @async_inspector()
+    @inspector()
     async def reload_paramset_descriptions(self) -> None:
         """Reload paramset for device."""
         for (
@@ -615,10 +615,10 @@ class Channel(PayloadMixin):
         self._id: Final = self._central.device_details.get_address_id(address=channel_address)
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
-        self._description = self._central.device_descriptions.get_device_description(
+        self._description: DeviceDescription = self._central.device_descriptions.get_device_description(
             interface_id=self._device.interface_id, address=channel_address
         )
-        self._type_name: Final = self._description["TYPE"]
+        self._type_name: Final[str] = self._description["TYPE"]
         self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
 
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
@@ -743,7 +743,7 @@ class Channel(PayloadMixin):
         """Return the unique_id of the channel."""
         return self._unique_id
 
-    @async_inspector()
+    @inspector()
     async def create_central_link(self) -> None:
         """Create a central link to support press events."""
         if self._has_key_press_events and not await self._has_central_link():
@@ -751,7 +751,7 @@ class Channel(PayloadMixin):
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
             )
 
-    @async_inspector()
+    @inspector()
     async def remove_central_link(self) -> None:
         """Remove a central link."""
         if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
@@ -759,7 +759,7 @@ class Channel(PayloadMixin):
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
 
-    @async_inspector()
+    @inspector()
     async def cleanup_central_link_metadata(self) -> None:
         """Cleanup the metadata for central links."""
         if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
@@ -1049,7 +1049,7 @@ class _ValueCache:
                     call_source=CallSource.HM_INIT,
                 )
             }
-        return await self._device.client.get_paramset(  # type: ignore[no-any-return]
+        return await self._device.client.get_paramset(
             address=channel_address, paramset_key=paramset_key, call_source=CallSource.HM_INIT
         )
 
@@ -1112,7 +1112,7 @@ class _DefinitionExporter:
         self._device_address: Final = device.address
         self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
 
-    @async_inspector()
+    @inspector()
     async def export_data(self) -> None:
         """Export data."""
         device_descriptions: Mapping[str, DeviceDescription] = (

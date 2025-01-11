@@ -715,7 +715,7 @@ class Channel(PayloadMixin):
         return self._paramset_keys
 
     @property
-    def paramsset_descriptions(self) -> dict[ParamsetKey, dict[str, ParameterData]]:
+    def paramset_descriptions(self) -> dict[ParamsetKey, dict[str, ParameterData]]:
         """Return the paramset descriptions of the channel."""
         return self._central.paramset_descriptions.get_channel_paramset_descriptions(
             interface_id=self._device.interface_id, channel_address=self._address

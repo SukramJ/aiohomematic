@@ -68,6 +68,27 @@ def create_data_point_and_append_to_channel(
         parameter,
         channel.device.interface_id,
     )
+
+    if (dp_t := _determine_data_point_type(channel, parameter, parameter_data)) and (
+        dp := _safe_create_data_point(
+            dp_t=dp_t, channel=channel, paramset_key=paramset_key, parameter=parameter, parameter_data=parameter_data
+        )
+    ):
+        _LOGGER.debug(
+            "CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: %s: %s %s",
+            dp.category,
+            channel.address,
+            parameter,
+        )
+        channel.add_data_point(dp)
+        if _check_switch_to_sensor(data_point=dp):
+            dp.force_to_sensor()
+
+
+def _determine_data_point_type(
+    channel: hmd.Channel, parameter: str, parameter_data: ParameterData
+) -> type[GenericDataPoint] | None:
+    """Determine the type of data point based on parameter and operations."""
     p_type = parameter_data["TYPE"]
     p_operations = parameter_data["OPERATIONS"]
     dp_t: type[GenericDataPoint] | None = None
@@ -102,27 +123,28 @@ def create_data_point_and_append_to_channel(
         else:
             dp_t = DpSensor
 
-    if dp_t:
-        try:
-            dp = dp_t(
-                channel=channel,
-                paramset_key=paramset_key,
-                parameter=parameter,
-                parameter_data=parameter_data,
-            )
-        except Exception as ex:
-            raise HaHomematicException(
-                f"CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: Unable to create data_point:{hms.reduce_args(args=ex.args)}"
-            ) from ex
-        _LOGGER.debug(
-            "CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: %s: %s %s",
-            dp.category,
-            channel.address,
-            parameter,
+    return dp_t
+
+
+def _safe_create_data_point(
+    dp_t: type[GenericDataPoint],
+    channel: hmd.Channel,
+    paramset_key: ParamsetKey,
+    parameter: str,
+    parameter_data: ParameterData,
+) -> GenericDataPoint:
+    """Safely create a data point and handle exceptions."""
+    try:
+        return dp_t(
+            channel=channel,
+            paramset_key=paramset_key,
+            parameter=parameter,
+            parameter_data=parameter_data,
         )
-        channel.add_data_point(dp)
-        if _check_switch_to_sensor(data_point=dp):
-            dp.force_to_sensor()
+    except Exception as ex:
+        raise HaHomematicException(
+            f"CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: Unable to create data_point:{hms.reduce_args(args=ex.args)}"
+        ) from ex
 
 
 def _check_switch_to_sensor(data_point: GenericDataPoint) -> bool:

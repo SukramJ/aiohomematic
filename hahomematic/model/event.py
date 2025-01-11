@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Final
 
+from hahomematic import support as hms
 from hahomematic.async_support import loop_check
 from hahomematic.const import (
     CLICK_EVENTS,
@@ -19,6 +20,7 @@ from hahomematic.const import (
     ParamsetKey,
 )
 from hahomematic.decorators import inspector
+from hahomematic.exceptions import HaHomematicException
 from hahomematic.model import device as hmd
 from hahomematic.model.data_point import BaseParameterDataPoint
 from hahomematic.model.support import DataPointNameData, get_event_name
@@ -132,6 +134,15 @@ def create_event_and_append_to_channel(channel: hmd.Channel, parameter: str, par
         parameter,
         channel.device.interface_id,
     )
+    if (event_t := _determine_event_type(parameter=parameter, parameter_data=parameter_data)) and (
+        event := _safe_create_event(
+            event_t=event_t, channel=channel, parameter=parameter, parameter_data=parameter_data
+        )
+    ):
+        channel.add_data_point(event)
+
+
+def _determine_event_type(parameter: str, parameter_data: ParameterData) -> type[GenericEvent] | None:
     event_t: type[GenericEvent] | None = None
     if parameter_data["OPERATIONS"] & Operations.EVENT:
         if parameter in CLICK_EVENTS:
@@ -140,10 +151,23 @@ def create_event_and_append_to_channel(channel: hmd.Channel, parameter: str, par
             event_t = DeviceErrorEvent
         if parameter in IMPULSE_EVENTS:
             event_t = ImpulseEvent
-    if event_t:
-        event = event_t(
+    return event_t
+
+
+def _safe_create_event(
+    event_t: type[GenericEvent],
+    channel: hmd.Channel,
+    parameter: str,
+    parameter_data: ParameterData,
+) -> GenericEvent:
+    """Safely create a event and handle exceptions."""
+    try:
+        return event_t(
             channel=channel,
             parameter=parameter,
             parameter_data=parameter_data,
         )
-        channel.add_data_point(event)
+    except Exception as ex:
+        raise HaHomematicException(
+            f"CREATE_EVENT_AND_APPEND_TO_CHANNEL: Unable to create event:{hms.reduce_args(args=ex.args)}"
+        ) from ex

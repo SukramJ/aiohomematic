@@ -253,6 +253,11 @@ class DeviceDescriptionCache(BasePersistentCache):
             self._convert_device_descriptions(interface_id, device_descriptions)
         return result
 
+    async def clear(self) -> None:
+        """Remove stored file from disk."""
+        self.get_model.cache_clear()
+        await super().clear()
+
 
 class ParamsetDescriptionCache(BasePersistentCache):
     """Cache for paramset descriptions."""

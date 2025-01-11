@@ -6,7 +6,8 @@ from collections import defaultdict
 from collections.abc import Mapping
 from functools import lru_cache
 import logging
-from typing import Any, Final
+import re
+from typing import Final
 
 from hahomematic import central as hmcu, support as hms
 from hahomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
@@ -66,6 +67,10 @@ _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None,
 # Ignore events for some devices
 _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS: Final[Mapping[str, tuple[Parameter, ...]]] = {
     "HmIP-PS": CLICK_EVENTS,
+}
+
+_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER: Final[dict[str, tuple[str, ...]]] = {
+    model.lower(): tuple(event for event in events) for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
 }
 
 # data points that will be created, but should be hidden.
@@ -164,27 +169,19 @@ _IGNORED_PARAMETERS: Final[tuple[str, ...]] = (
     "WIN_RELEASE_ACT",
 )
 
+
+# Precompile Regex patterns for wildcard checks
 # Ignore Parameter that end with
-_IGNORED_PARAMETERS_WILDCARDS_END: Final[tuple[str, ...]] = (
-    "_OVERFLOW",
-    "_OVERRUN",
-    "_REPORTING",
-    "_RESULT",
-    "_STATUS",
-    "_SUBMIT",
+_IGNORED_PARAMETERS_END_RE: Final = re.compile(r".*(_OVERFLOW|_OVERRUN|_REPORTING|_RESULT|_STATUS|_SUBMIT)$")
+# Ignore Parameter that start with
+_IGNORED_PARAMETERS_START_RE: Final = re.compile(
+    r"^(ADJUSTING_|ERR_TTM_|HANDLE_|IDENTIFY_|PARTY_START_|PARTY_STOP_|STATUS_FLAG_|WEEK_PROGRAM_)"
 )
 
-# Ignore Parameter that start with
-_IGNORED_PARAMETERS_WILDCARDS_START: Final[tuple[str, ...]] = (
-    "ADJUSTING_",
-    "ERR_TTM_",
-    "HANDLE_",
-    "IDENTIFY_",
-    "PARTY_START_",
-    "PARTY_STOP_",
-    "STATUS_FLAG_",
-    "WEEK_PROGRAM_",
-)
+
+def _parameter_is_wildcard_ignored(parameter: str) -> bool:
+    """Check if a parameter matches common wildcard patterns."""
+    return bool(_IGNORED_PARAMETERS_END_RE.match(parameter) or _IGNORED_PARAMETERS_START_RE.match(parameter))
 
 
 # Parameters within the paramsets for which we create data points.
@@ -199,6 +196,22 @@ _UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, tuple[Parameter, ...]]] = {
         Parameter.LOW_BAT,
     ),  # To override ignore for HmIP-PCBS
 }
+
+_UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[str, tuple[str, ...]]] = {
+    model.lower(): parameters for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
+}
+
+
+def _get_parameters_for_model_prefix(model_prefix: str | None) -> tuple[str, ...] | None:
+    """Return the dict value by wildcard type."""
+    if model_prefix is None:
+        return None
+
+    for model, parameters in _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER.items():
+        if model.startswith(model_prefix):
+            return parameters
+    return None
+
 
 # Parameters by device within the VALUES paramset for which we don't create data points.
 _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
@@ -241,6 +254,10 @@ _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
     Parameter.VALVE_STATE: ("HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"),
 }
 
+_IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[str, tuple[str, ...]]] = {
+    parameter: tuple(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
+}
+
 # Some devices have parameters on multiple channels,
 # but we want to use it only from a certain channel.
 _ACCEPT_PARAMETER_ONLY_ON_CHANNEL: Final[Mapping[str, int]] = {Parameter.LOWBAT: 0}
@@ -257,7 +274,7 @@ class ParameterVisibilityCache:
         self._central = central
         self._storage_folder: Final = central.config.storage_folder
         self._required_parameters: Final = get_required_parameters()
-        self._raw_un_ignore_list: Final[set[str]] = set(central.config.un_ignore_list or set())
+        self._raw_un_ignores: Final[tuple[str, ...]] = central.config.un_ignore_list or ()
 
         # un_ignore from custom un_ignore files
         # parameter
@@ -270,18 +287,6 @@ class ParameterVisibilityCache:
         self._ignore_custom_device_definition_models: Final[tuple[str, ...]] = (
             central.config.ignore_custom_device_definition_models
         )
-        self._ignore_parameters_by_device_lower: Final[dict[str, tuple[str, ...]]] = {
-            parameter: tuple(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
-        }
-
-        self._ignore_devices_for_data_point_events_lower: Final[dict[str, tuple[str, ...]]] = {
-            model.lower(): tuple(event for event in events)
-            for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
-        }
-
-        self._un_ignore_parameters_by_device_lower: Final[dict[str, tuple[str, ...]]] = {
-            model.lower(): parameters for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
-        }
 
         # model, channel_no, paramset_key, set[parameter]
         self._un_ignore_parameters_by_device_paramset_key: Final[
@@ -311,8 +316,7 @@ class ParameterVisibilityCache:
             else:
                 _add_channel(dt_l=model_l, params=parameters, ch_no=None)
 
-        for line in self._raw_un_ignore_list:
-            self._add_un_ignore_item_to_cache(line)
+        self._process_un_ignore_entries(lines=self._raw_un_ignores)
 
     @lru_cache(maxsize=128)
     def model_is_ignored(self, model: str) -> bool:
@@ -344,19 +348,15 @@ class ParameterVisibilityCache:
 
             if (
                 (
-                    (
-                        parameter in _IGNORED_PARAMETERS
-                        or parameter.endswith(tuple(_IGNORED_PARAMETERS_WILDCARDS_END))
-                        or parameter.startswith(tuple(_IGNORED_PARAMETERS_WILDCARDS_START))
-                    )
+                    (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
                     and parameter not in self._required_parameters
                 )
                 or hms.element_matches_key(
-                    search_elements=self._ignore_parameters_by_device_lower.get(parameter, []),
+                    search_elements=_IGNORE_PARAMETERS_BY_DEVICE_LOWER.get(parameter, []),
                     compare_with=model_l,
                 )
                 or hms.element_matches_key(
-                    search_elements=self._ignore_devices_for_data_point_events_lower,
+                    search_elements=_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER,
                     compare_with=parameter,
                     search_key=model_l,
                     do_right_wildcard_search=False,
@@ -427,12 +427,7 @@ class ParameterVisibilityCache:
         # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
         return bool(
             not custom_only
-            and (
-                un_ignore_parameters := _get_value_from_dict_by_wildcard_key(
-                    search_elements=self._un_ignore_parameters_by_device_lower,
-                    compare_with=model_l,
-                )
-            )
+            and (un_ignore_parameters := _get_parameters_for_model_prefix(model_prefix=model_l))
             and parameter in un_ignore_parameters
         )
 
@@ -475,29 +470,28 @@ class ParameterVisibilityCache:
             custom_only=custom_only,
         )
 
-    def _add_un_ignore_item_to_cache(self, line: str) -> None:
-        """Add item to from _raw_un_ignore_list to cache."""
+    def _process_un_ignore_entries(self, lines: tuple[str, ...]) -> None:
+        """Batch process un_ignore entries into cache."""
+        for line in lines:
+            # ignore empty line
+            if not line.strip():
+                continue
 
-        # ignore empty line
-        if not line.strip():
-            return
-
-        if line_details := self._get_un_ignore_line_details(line=line):
-            if isinstance(line_details, str):
-                self._custom_un_ignore_values_parameters.add(line_details)
-                return
-
-            self._add_complex_un_ignore_entry(
-                model=line_details[0],
-                channel_no=line_details[1],
-                parameter=line_details[2],
-                paramset_key=line_details[3],
-            )
-        else:
-            _LOGGER.warning(
-                "ADD_LINE_TO_CACHE failed: No supported format detected for un ignore line '%s'. ",
-                line,
-            )
+            if line_details := self._get_un_ignore_line_details(line=line):
+                if isinstance(line_details, str):
+                    self._custom_un_ignore_values_parameters.add(line_details)
+                else:
+                    self._add_complex_un_ignore_entry(
+                        model=line_details[0],
+                        channel_no=line_details[1],
+                        parameter=line_details[2],
+                        paramset_key=line_details[3],
+                    )
+            else:
+                _LOGGER.warning(
+                    "PROCESS_UN_IGNORE_ENTRY failed: No supported format detected for un ignore line '%s'. ",
+                    line,
+                )
 
     def _get_un_ignore_line_details(self, line: str) -> tuple[str, int | str | None, str, ParamsetKey] | str | None:
         """
@@ -656,31 +650,9 @@ def check_ignore_parameters_is_clean() -> bool:
             [
                 parameter
                 for parameter in get_required_parameters()
-                if (
-                    parameter in _IGNORED_PARAMETERS
-                    or parameter.endswith(tuple(_IGNORED_PARAMETERS_WILDCARDS_END))
-                    or parameter.startswith(tuple(_IGNORED_PARAMETERS_WILDCARDS_START))
-                )
+                if (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
                 and parameter not in un_ignore_parameters_by_device
             ]
         )
         == 0
     )
-
-
-def _get_value_from_dict_by_wildcard_key(
-    search_elements: Mapping[str, Any],
-    compare_with: str | None,
-    do_wildcard_search: bool = True,
-) -> Any | None:
-    """Return the dict value by wildcard type."""
-    if compare_with is None:
-        return None
-
-    for key, value in search_elements.items():
-        if do_wildcard_search:
-            if key.lower().startswith(compare_with.lower()):
-                return value
-        elif key.lower() == compare_with.lower():
-            return value
-    return None

@@ -168,14 +168,14 @@ _IGNORED_PARAMETERS: Final[tuple[str, ...]] = (
 
 # Precompile Regex patterns for wildcard checks
 # Ignore Parameter that end with
-_IGNORED_PARAMETERS_END_RE = re.compile(r".*(_OVERFLOW|_OVERRUN|_REPORTING|_RESULT|_STATUS|_SUBMIT)$")
+_IGNORED_PARAMETERS_END_RE: Final = re.compile(r".*(_OVERFLOW|_OVERRUN|_REPORTING|_RESULT|_STATUS|_SUBMIT)$")
 # Ignore Parameter that start with
-_IGNORED_PARAMETERS_START_RE = re.compile(
+_IGNORED_PARAMETERS_START_RE: Final = re.compile(
     r"^(ADJUSTING_|ERR_TTM_|HANDLE_|IDENTIFY_|PARTY_START_|PARTY_STOP_|STATUS_FLAG_|WEEK_PROGRAM_)"
 )
 
 
-def parameter_is_wildcard_ignored(parameter: str) -> bool:
+def _parameter_is_wildcard_ignored(parameter: str) -> bool:
     """Check if a parameter matches common wildcard patterns."""
     return bool(_IGNORED_PARAMETERS_END_RE.match(parameter) or _IGNORED_PARAMETERS_START_RE.match(parameter))
 
@@ -336,7 +336,7 @@ class ParameterVisibilityCache:
 
             if (
                 (
-                    (parameter in _IGNORED_PARAMETERS or parameter_is_wildcard_ignored(parameter=parameter))
+                    (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
                     and parameter not in self._required_parameters
                 )
                 or hms.element_matches_key(
@@ -648,7 +648,7 @@ def check_ignore_parameters_is_clean() -> bool:
             [
                 parameter
                 for parameter in get_required_parameters()
-                if (parameter in _IGNORED_PARAMETERS or parameter_is_wildcard_ignored(parameter=parameter))
+                if (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
                 and parameter not in un_ignore_parameters_by_device
             ]
         )

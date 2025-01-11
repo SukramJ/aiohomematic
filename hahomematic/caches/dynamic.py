@@ -221,6 +221,10 @@ class DeviceDetailsCache:
 
     def clear(self) -> None:
         """Clear the cache."""
+        self.get_name.cache_clear()
+        self.get_interface.cache_clear()
+        self.get_address_id.cache_clear()
+
         self._names_cache.clear()
         self._channel_rooms.clear()
         self._functions.clear()

@@ -655,7 +655,7 @@ class Client(ABC):
                 paramset_key,
                 call_source,
             )
-            return await self._proxy_read.getParamset(address, paramset_key)  # type: ignore[no-any-return]
+            return cast(dict[str, Any], await self._proxy_read.getParamset(address, paramset_key))
         except BaseHomematicException as ex:
             raise ClientException(
                 f"GET_PARAMSET failed with for {address}/{paramset_key}: {reduce_args(args=ex.args)}"

@@ -751,14 +751,15 @@ class BaseParameterDataPoint[
                 and value is not None
                 and isinstance(value, str)
             ):
-                return convert_value(  # type: ignore[no-any-return]
-                    value=self._values.index(value),
-                    target_type=self._type,
-                    value_list=self.values,
+                return cast(
+                    ParameterT,
+                    convert_value(
+                        value=self._values.index(value),
+                        target_type=self._type,
+                        value_list=self.values,
+                    ),
                 )
-            return convert_value(  # type: ignore[no-any-return]
-                value=value, target_type=self._type, value_list=self.values
-            )
+            return cast(ParameterT, convert_value(value=value, target_type=self._type, value_list=self.values))
         except (ValueError, TypeError):  # pragma: no cover
             _LOGGER.debug(
                 "CONVERT_VALUE: conversion failed for %s, %s, %s, value: [%s]",

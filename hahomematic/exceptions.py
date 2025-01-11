@@ -130,7 +130,7 @@ def log_exception[**_P, _R](
                 logger.log(level, message)
                 if re_raise:
                     raise
-                return ex_return  # type: ignore[no-any-return]
+                return cast(_R, ex_return)
             return return_value
 
         @wraps(func)

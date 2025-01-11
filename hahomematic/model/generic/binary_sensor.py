@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from hahomematic.const import DataPointCategory
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic.data_point import GenericDataPoint
@@ -20,5 +22,5 @@ class DpBinarySensor(GenericDataPoint[bool | None, bool]):
     def value(self) -> bool | None:  # type: ignore[override]
         """Return the value of the data_point."""
         if self._value is not None:
-            return self._value  # type: ignore[no-any-return]
-        return self._default  # type: ignore[no-any-return]
+            return cast(bool | None, self._value)
+        return cast(bool | None, self._default)

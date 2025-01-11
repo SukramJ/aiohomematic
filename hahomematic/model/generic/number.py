@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from hahomematic.const import DataPointCategory
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic.data_point import GenericDataPoint
@@ -23,9 +25,9 @@ class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[Number
         if not do_validate or (
             value is not None and isinstance(value, int | float) and self._min <= type_converter(value) <= self._max
         ):
-            return type_converter(value)  # type: ignore[no-any-return]
+            return cast(NumberParameterT, type_converter(value))
         if self._special and isinstance(value, str) and value in self._special:
-            return type_converter(self._special[value])  # type: ignore[no-any-return]
+            return cast(NumberParameterT, type_converter(self._special[value]))
         raise ValueError(
             f"NUMBER failed: Invalid value: {value} (min: {self._min}, max: {self._max}, special:{self._special})"
         )
@@ -45,7 +47,7 @@ class DpFloat(BaseDpNumber[float | None]):
     @state_property
     def value(self) -> float | None:  # type: ignore[override]
         """Return the value of the data_point."""
-        return self._value  # type: ignore[no-any-return]
+        return cast(float | None, self._value)
 
 
 class DpInteger(BaseDpNumber[int | None]):
@@ -62,4 +64,4 @@ class DpInteger(BaseDpNumber[int | None]):
     @state_property
     def value(self) -> int | None:  # type: ignore[override]
         """Return the value of the data_point."""
-        return self._value  # type: ignore[no-any-return]
+        return cast(int | None, self._value)

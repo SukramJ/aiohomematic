@@ -9,7 +9,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from hahomematic.caches.visibility import _get_value_from_dict_by_wildcard_key
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
 from hahomematic.const import (
@@ -445,29 +444,6 @@ async def test_element_matches_key() -> None:
             do_right_wildcard_search=True,
         )
         is True
-    )
-
-
-@pytest.mark.asyncio
-async def test_value_from_dict_by_wildcard_key() -> None:
-    """Test value_from_dict_by_wildcard_key."""
-    assert _get_value_from_dict_by_wildcard_key(search_elements={"HmIP-eTRV": True}, compare_with=None) is None
-    assert _get_value_from_dict_by_wildcard_key(search_elements={"HmIP-eTRV-2": True}, compare_with="HmIP-eTRV") is True
-    assert (
-        _get_value_from_dict_by_wildcard_key(
-            search_elements={"HmIP-eTRV-2": False},
-            compare_with="HmIP-eTRV",
-            do_wildcard_search=False,
-        )
-        is None
-    )
-    assert (
-        _get_value_from_dict_by_wildcard_key(
-            search_elements={"HmIP-eTRV-2": False},
-            compare_with="HmIP-eTRV-2",
-            do_wildcard_search=False,
-        )
-        is False
     )
 
 

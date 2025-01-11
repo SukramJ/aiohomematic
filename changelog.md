@@ -1,6 +1,9 @@
-# Version 2025.1.5 (2025-01-1)
+# Version 2025.1.5 (2025-01-11)
 
-- Refactor create_data_points_and_events and create_data_point_and_append_to_channel
+- Refactor
+  - create_data_points_and_events
+  - create_data_point_and_append_to_channel
+  - create_event_and_append_to_channel
 - Speedup wildcard lookup
 
 # Version 2025.1.4 (2025-01-09)

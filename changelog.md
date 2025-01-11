@@ -1,3 +1,7 @@
+# Version 2025.1.5 (2025-01-1)
+
+- Speedup wildcard lookup
+
 # Version 2025.1.4 (2025-01-09)
 
 - Cleanup: Use defaultdict, improve naming

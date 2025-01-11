@@ -69,6 +69,10 @@ _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS: Final[Mapping[str, tuple[Parameter, ...]]
     "HmIP-PS": CLICK_EVENTS,
 }
 
+_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER: Final[dict[str, tuple[str, ...]]] = {
+    model.lower(): tuple(event for event in events) for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
+}
+
 # data points that will be created, but should be hidden.
 _HIDDEN_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.ACTIVITY_STATE,
@@ -193,6 +197,22 @@ _UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, tuple[Parameter, ...]]] = {
     ),  # To override ignore for HmIP-PCBS
 }
 
+_UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[str, tuple[str, ...]]] = {
+    model.lower(): parameters for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
+}
+
+
+def _find_un_ignore_parameters_by_model_l(model_l: str | None) -> tuple[str, ...] | None:
+    """Return the dict value by wildcard type."""
+    if model_l is None:
+        return None
+
+    for model_key, parameters in _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER.items():
+        if model_key.startswith(model_l):
+            return parameters
+    return None
+
+
 # Parameters by device within the VALUES paramset for which we don't create data points.
 _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
     Parameter.CURRENT_ILLUMINATION: (
@@ -234,6 +254,10 @@ _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
     Parameter.VALVE_STATE: ("HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"),
 }
 
+_IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[str, tuple[str, ...]]] = {
+    parameter: tuple(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
+}
+
 # Some devices have parameters on multiple channels,
 # but we want to use it only from a certain channel.
 _ACCEPT_PARAMETER_ONLY_ON_CHANNEL: Final[Mapping[str, int]] = {Parameter.LOWBAT: 0}
@@ -263,18 +287,6 @@ class ParameterVisibilityCache:
         self._ignore_custom_device_definition_models: Final[tuple[str, ...]] = (
             central.config.ignore_custom_device_definition_models
         )
-        self._ignore_parameters_by_device_lower: Final[dict[str, tuple[str, ...]]] = {
-            parameter: tuple(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
-        }
-
-        self._ignore_devices_for_data_point_events_lower: Final[dict[str, tuple[str, ...]]] = {
-            model.lower(): tuple(event for event in events)
-            for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
-        }
-
-        self._un_ignore_parameters_by_model_lower: Final[dict[str, tuple[str, ...]]] = {
-            model.lower(): parameters for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
-        }
 
         # model, channel_no, paramset_key, set[parameter]
         self._un_ignore_parameters_by_device_paramset_key: Final[
@@ -340,11 +352,11 @@ class ParameterVisibilityCache:
                     and parameter not in self._required_parameters
                 )
                 or hms.element_matches_key(
-                    search_elements=self._ignore_parameters_by_device_lower.get(parameter, []),
+                    search_elements=_IGNORE_PARAMETERS_BY_DEVICE_LOWER.get(parameter, []),
                     compare_with=model_l,
                 )
                 or hms.element_matches_key(
-                    search_elements=self._ignore_devices_for_data_point_events_lower,
+                    search_elements=_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER,
                     compare_with=parameter,
                     search_key=model_l,
                     do_right_wildcard_search=False,
@@ -415,19 +427,9 @@ class ParameterVisibilityCache:
         # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
         return bool(
             not custom_only
-            and (un_ignore_parameters := self._find_un_ignore_parameters_by_model_l(model_l=model_l))
+            and (un_ignore_parameters := _find_un_ignore_parameters_by_model_l(model_l=model_l))
             and parameter in un_ignore_parameters
         )
-
-    def _find_un_ignore_parameters_by_model_l(self, model_l: str | None) -> tuple[str, ...] | None:
-        """Return the dict value by wildcard type."""
-        if model_l is None:
-            return None
-
-        for model_key, parameters in self._un_ignore_parameters_by_model_lower.items():
-            if model_key.startswith(model_l):
-                return parameters
-        return None
 
     @lru_cache(maxsize=4096)
     def parameter_is_un_ignored(

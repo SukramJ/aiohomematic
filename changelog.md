@@ -1,6 +1,6 @@
 # Version 2025.1.5 (2025-01-11)
 
-- Refactor
+- Refactor create\_\* methods:
   - create_data_points_and_events
   - create_data_point_and_append_to_channel
   - create_event_and_append_to_channel

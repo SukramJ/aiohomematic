@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import logging
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from hahomematic.const import DataPointCategory, Parameter
 from hahomematic.model.decorators import state_property
@@ -27,10 +27,10 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
     def value(self) -> SensorT:  # type: ignore[override]
         """Return the value."""
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
-            return value  # type: ignore[return-value]
+            return cast(SensorT, value)
         if convert_func := self._get_converter_func():
-            return convert_func(self._value)  # type: ignore[no-any-return]
-        return self._value  # type: ignore[no-any-return]
+            return cast(SensorT, convert_func(self._value))
+        return cast(SensorT, self._value)
 
     def _get_converter_func(self) -> Any:
         """Return a converter based on sensor."""

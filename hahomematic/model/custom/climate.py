@@ -219,7 +219,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Return the maximum temperature."""
         if self._dp_temperature_maximum.value is not None:
             return float(self._dp_temperature_maximum.value)
-        return self._dp_setpoint.max  # type: ignore[no-any-return]
+        return cast(float, self._dp_setpoint.max)
 
     @state_property
     def profile(self) -> ClimateProfile:

@@ -669,7 +669,9 @@ def get_sub_device_base_channel(device: hmd.Device, channel_no: int | None) -> i
 
 def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:
     """Return the default data point."""
-    return VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]  # type: ignore[no-any-return]
+    return cast(
+        Mapping[int | tuple[int, ...], tuple[Parameter, ...]], VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]
+    )
 
 
 def get_include_default_data_points(device_profile: DeviceProfile) -> bool:
@@ -727,11 +729,12 @@ def _get_device_data_points(
     device_profile: DeviceProfile, base_channel_no: int | None
 ) -> Mapping[int, tuple[Parameter, ...]]:
     """Return the device data points."""
-    additional_dps = (
-        VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS].get(device_profile, {}).get(CDPD.ADDITIONAL_DPS, {})
-    )
-    if not base_channel_no:
-        return additional_dps  # type: ignore[no-any-return]
+    if (
+        additional_dps := VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]
+        .get(device_profile, {})
+        .get(CDPD.ADDITIONAL_DPS, {})
+    ) and not base_channel_no:
+        return cast(Mapping[int, tuple[Parameter, ...]], additional_dps)
     new_dps: dict[int, tuple[Parameter, ...]] = {}
     if additional_dps:
         for channel_no, field in additional_dps.items():

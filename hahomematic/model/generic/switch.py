@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Final
+from typing import Final, cast
 
 from hahomematic.const import DataPointCategory, ParameterType
 from hahomematic.decorators import inspector
@@ -27,7 +27,7 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
         """Get the value of the data_point."""
         if self._type == ParameterType.ACTION:
             return False
-        return self._value  # type: ignore[no-any-return]
+        return cast(bool | None, self._value)
 
     @inspector()
     async def turn_on(self, collector: CallParameterCollector | None = None, on_time: float | None = None) -> None:

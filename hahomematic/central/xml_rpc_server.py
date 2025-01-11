@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, Final
+from typing import Any, Final, cast
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 from hahomematic import central as hmcu
@@ -54,7 +54,7 @@ class RPCFunctions:
     def listDevices(self, interface_id: str) -> list[dict[str, Any]]:
         """Return already existing devices to CCU / Homegear."""
         if central := self.get_central(interface_id):
-            return central.list_devices(interface_id=interface_id)  # type: ignore[no-any-return]
+            return cast(list[dict[str, Any]], central.list_devices(interface_id=interface_id))
         return []
 
     def newDevices(self, interface_id: str, device_descriptions: list[dict[str, Any]]) -> None:

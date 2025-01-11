@@ -202,13 +202,13 @@ _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[str, tuple[str, ...]]] = {
 }
 
 
-def _find_un_ignore_parameters_by_model_l(model_l: str | None) -> tuple[str, ...] | None:
+def _get_parameters_for_model_prefix(model_prefix: str | None) -> tuple[str, ...] | None:
     """Return the dict value by wildcard type."""
-    if model_l is None:
+    if model_prefix is None:
         return None
 
-    for model_key, parameters in _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER.items():
-        if model_key.startswith(model_l):
+    for model, parameters in _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER.items():
+        if model.startswith(model_prefix):
             return parameters
     return None
 
@@ -427,7 +427,7 @@ class ParameterVisibilityCache:
         # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
         return bool(
             not custom_only
-            and (un_ignore_parameters := _find_un_ignore_parameters_by_model_l(model_l=model_l))
+            and (un_ignore_parameters := _get_parameters_for_model_prefix(model_prefix=model_l))
             and parameter in un_ignore_parameters
         )
 

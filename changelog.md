@@ -1,3 +1,7 @@
+# Version 2025.1.7 (2025-01-14)
+
+- Fix KeyError on uninitialised dict pt2
+
 # Version 2025.1.6 (2025-01-14)
 
 - Fix KeyError on uninitialised dict

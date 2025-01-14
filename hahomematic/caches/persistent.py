@@ -293,6 +293,13 @@ class ParamsetDescriptionCache(BasePersistentCache):
         paramset_description: dict[str, ParameterData],
     ) -> None:
         """Add paramset description to cache."""
+        if interface_id not in self._raw_paramset_descriptions:
+            self._raw_paramset_descriptions[interface_id] = {}
+        if channel_address not in self._raw_paramset_descriptions[interface_id]:
+            self._raw_paramset_descriptions[interface_id][channel_address] = {}
+        if paramset_key not in self._raw_paramset_descriptions[interface_id][channel_address]:
+            self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = {}
+
         self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].update(paramset_description)
         self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
 

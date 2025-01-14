@@ -1,3 +1,7 @@
+# Version 2025.1.6 (2025-01-14)
+
+- Fix KeyError on uninitialised dict
+
 # Version 2025.1.5 (2025-01-11)
 
 - Refactor create\_\* methods:

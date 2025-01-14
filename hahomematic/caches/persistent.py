@@ -268,7 +268,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """Init the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
         self._raw_paramset_descriptions: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = (
-            defaultdict(lambda: defaultdict(dict))
+            defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         )
         super().__init__(
             central=central,
@@ -293,7 +293,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         paramset_description: dict[str, ParameterData],
     ) -> None:
         """Add paramset description to cache."""
-        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
+        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].update(paramset_description)
         self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
 
     def remove_device(self, device: Device) -> None:

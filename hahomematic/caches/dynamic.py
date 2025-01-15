@@ -238,7 +238,7 @@ class CentralDataCache:
         """Init the central data cache."""
         self._central: Final = central
         # { key, value}
-        self._value_cache: Final[dict[Interface, dict[str, Any]]] = {}
+        self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
 
     async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
@@ -266,7 +266,7 @@ class CentralDataCache:
         ):
             await data_point.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
 
-    def add_data(self, interface: Interface, all_device_data: dict[str, Any]) -> None:
+    def add_data(self, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""
         self._value_cache[interface] = all_device_data
         self._refreshed_at[interface] = datetime.now()

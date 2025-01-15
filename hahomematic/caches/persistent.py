@@ -8,6 +8,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
 from functools import lru_cache
+import json
 import logging
 import os
 from typing import Any, Final
@@ -30,6 +31,7 @@ from hahomematic.const import (
 from hahomematic.model.device import Device
 from hahomematic.support import (
     check_or_create_directory,
+    defaultdict_from_dict,
     delete_file,
     get_device_address,
     get_split_channel_address,
@@ -111,7 +113,7 @@ class BasePersistentCache(ABC):
 
         def _perform_load() -> DataOperationResult:
             with open(file=self._file_path, encoding=UTF_8) as file_pointer:
-                data = orjson.loads(file_pointer.read())
+                data = json.loads(file_pointer.read(), object_hook=defaultdict_from_dict)
                 if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
                     return DataOperationResult.NO_LOAD
                 self._persistent_cache.clear()

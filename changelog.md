@@ -1,3 +1,7 @@
+# Version 2025.1.9 (2025-01-15)
+
+- Load cached files as defaultdicts
+
 # Version 2025.1.8 (2025-01-15)
 
 - Improve defaultdict usage

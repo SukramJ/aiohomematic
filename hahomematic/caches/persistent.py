@@ -149,9 +149,9 @@ class DeviceDescriptionCache(BasePersistentCache):
             persistent_cache=self._raw_device_descriptions,
         )
         # {interface_id, {device_address, [channel_address]}}
-        self._addresses: Final[dict[str, dict[str, set[str]]]] = defaultdict(lambda: defaultdict(set))
+        self._addresses: Final[defaultdict[str, defaultdict[str, set[str]]]] = defaultdict(lambda: defaultdict(set))
         # {interface_id, {address, device_descriptions}}
-        self._device_descriptions: Final[dict[str, dict[str, DeviceDescription]]] = defaultdict(dict)
+        self._device_descriptions: Final[defaultdict[str, dict[str, DeviceDescription]]] = defaultdict(dict)
 
     def add_device(self, interface_id: str, device_description: DeviceDescription) -> None:
         """Add a device to the cache."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from asyncio import Semaphore
+from collections.abc import Mapping
 from datetime import datetime
 from enum import StrEnum
 from functools import partial
@@ -655,7 +656,7 @@ class JsonRpcAioHttpClient:
 
         return tuple(variables)
 
-    async def _get_program_descriptions(self) -> dict[str, str]:
+    async def _get_program_descriptions(self) -> Mapping[str, str]:
         """Get all program descriptions from CCU via script."""
         descriptions: dict[str, str] = {}
         try:
@@ -674,7 +675,7 @@ class JsonRpcAioHttpClient:
             )
         return descriptions
 
-    async def _get_system_variable_descriptions(self) -> dict[str, str]:
+    async def _get_system_variable_descriptions(self) -> Mapping[str, str]:
         """Get all system variable descriptions from CCU via script."""
         descriptions: dict[str, str] = {}
         try:
@@ -693,7 +694,7 @@ class JsonRpcAioHttpClient:
             )
         return descriptions
 
-    async def get_all_channel_ids_room(self) -> dict[str, set[str]]:
+    async def get_all_channel_ids_room(self) -> Mapping[str, set[str]]:
         """Get all channel_ids per room from CCU / Homegear."""
         channel_ids_room: dict[str, set[str]] = {}
 
@@ -716,7 +717,7 @@ class JsonRpcAioHttpClient:
 
         return channel_ids_room
 
-    async def get_all_channel_ids_function(self) -> dict[str, set[str]]:
+    async def get_all_channel_ids_function(self) -> Mapping[str, set[str]]:
         """Get all channel_ids per function from CCU / Homegear."""
         channel_ids_function: dict[str, set[str]] = {}
 
@@ -893,7 +894,7 @@ class JsonRpcAioHttpClient:
 
     async def get_paramset_description(
         self, interface: Interface, address: str, paramset_key: ParamsetKey
-    ) -> dict[str, ParameterData] | None:
+    ) -> Mapping[str, ParameterData] | None:
         """Get paramset description from CCU."""
         paramset_description: dict[str, ParameterData] = {}
         params = {
@@ -935,7 +936,7 @@ class JsonRpcAioHttpClient:
 
         return parameter_data
 
-    async def get_all_device_data(self, interface: Interface) -> dict[str, Any]:
+    async def get_all_device_data(self, interface: Interface) -> Mapping[str, Any]:
         """Get the all device data of the backend."""
         all_device_data: dict[str, dict[str, dict[str, Any]]] = {}
         params = {
@@ -1156,7 +1157,7 @@ def _get_params(
     session_id: bool | str,
     extra_params: dict[_JsonKey, Any] | None,
     use_default_params: bool,
-) -> dict[str, Any]:
+) -> Mapping[str, Any]:
     """Add additional params to default prams."""
     params: dict[_JsonKey, Any] = {_JsonKey.SESSION_ID: session_id} if use_default_params else {}
     if extra_params:

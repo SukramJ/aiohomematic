@@ -196,7 +196,7 @@ def _cleanup_parameter(value: Any) -> Any:
     return value
 
 
-def _cleanup_paramset(paramset: Mapping[str, Any]) -> dict[str, Any]:
+def _cleanup_paramset(paramset: Mapping[str, Any]) -> Mapping[str, Any]:
     """Cleanup a single parameter."""
     new_paramset: dict[str, Any] = {}
     for name, value in paramset.items():

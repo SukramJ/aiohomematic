@@ -274,7 +274,7 @@ class Device(PayloadMixin):
     @property
     def info(self) -> Mapping[str, Any]:
         """Return the device info."""
-        device_info = self.info_payload
+        device_info = dict(self.info_payload)
         device_info["central"] = self._central.info_payload
         return device_info
 

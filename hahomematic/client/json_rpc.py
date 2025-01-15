@@ -894,7 +894,7 @@ class JsonRpcAioHttpClient:
 
     async def get_paramset_description(
         self, interface: Interface, address: str, paramset_key: ParamsetKey
-    ) -> dict[str, ParameterData] | None:
+    ) -> Mapping[str, ParameterData] | None:
         """Get paramset description from CCU."""
         paramset_description: dict[str, ParameterData] = {}
         params = {

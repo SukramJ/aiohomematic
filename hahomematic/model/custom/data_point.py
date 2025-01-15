@@ -97,7 +97,7 @@ class CustomDataPoint(BaseDataPoint):
         return refreshed_at
 
     @property
-    def unconfirmed_last_values_send(self) -> dict[Field, Any]:
+    def unconfirmed_last_values_send(self) -> Mapping[Field, Any]:
         """Return the unconfirmed values send for the data point."""
         unconfirmed_values: dict[Field, Any] = {}
         for field, dp in self._data_points.items():

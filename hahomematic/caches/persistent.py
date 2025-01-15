@@ -47,7 +47,7 @@ class BasePersistentCache(ABC):
     def __init__(
         self,
         central: hmcu.CentralUnit,
-        persistent_cache: dict[str, Any],
+        persistent_cache: defaultdict[str, Any],
     ) -> None:
         """Initialize the base class of the persistent cache."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
@@ -143,7 +143,7 @@ class DeviceDescriptionCache(BasePersistentCache):
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Initialize the device description cache."""
         # {interface_id, [device_descriptions]}
-        self._raw_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
+        self._raw_device_descriptions: Final[defaultdict[str, list[DeviceDescription]]] = defaultdict(list)
         super().__init__(
             central=central,
             persistent_cache=self._raw_device_descriptions,
@@ -193,7 +193,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         """Return the addresses by interface."""
         return tuple(self._addresses[interface_id].keys())
 
-    def get_device_descriptions(self, interface_id: str) -> dict[str, DeviceDescription]:
+    def get_device_descriptions(self, interface_id: str) -> Mapping[str, DeviceDescription]:
         """Return the devices by interface."""
         return self._device_descriptions[interface_id]
 
@@ -267,9 +267,9 @@ class ParamsetDescriptionCache(BasePersistentCache):
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Init the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
-        self._raw_paramset_descriptions: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = (
-            defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        )
+        self._raw_paramset_descriptions: Final[
+            defaultdict[str, defaultdict[str, defaultdict[ParamsetKey, dict[str, ParameterData]]]]
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         super().__init__(
             central=central,
             persistent_cache=self._raw_paramset_descriptions,
@@ -281,7 +281,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
     @property
     def raw_paramset_descriptions(
         self,
-    ) -> dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]:
+    ) -> Mapping[str, Mapping[str, Mapping[ParamsetKey, Mapping[str, ParameterData]]]]:
         """Return the paramset descriptions."""
         return self._raw_paramset_descriptions
 
@@ -293,14 +293,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         paramset_description: dict[str, ParameterData],
     ) -> None:
         """Add paramset description to cache."""
-        if interface_id not in self._raw_paramset_descriptions:
-            self._raw_paramset_descriptions[interface_id] = {}
-        if channel_address not in self._raw_paramset_descriptions[interface_id]:
-            self._raw_paramset_descriptions[interface_id][channel_address] = {}
-        if paramset_key not in self._raw_paramset_descriptions[interface_id][channel_address]:
-            self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = {}
-
-        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].update(paramset_description)
+        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
         self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
 
     def remove_device(self, device: Device) -> None:
@@ -320,13 +313,13 @@ class ParamsetDescriptionCache(BasePersistentCache):
 
     def get_channel_paramset_descriptions(
         self, interface_id: str, channel_address: str
-    ) -> dict[ParamsetKey, dict[str, ParameterData]]:
+    ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Get paramset descriptions for a channelfrom cache."""
         return self._raw_paramset_descriptions[interface_id].get(channel_address, {})
 
     def get_paramset_descriptions(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey
-    ) -> dict[str, ParameterData]:
+    ) -> Mapping[str, ParameterData]:
         """Get paramset descriptions from cache."""
         return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
 
@@ -346,7 +339,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
 
     def get_channel_addresses_by_paramset_key(
         self, interface_id: str, device_address: str
-    ) -> dict[ParamsetKey, list[str]]:
+    ) -> Mapping[ParamsetKey, list[str]]:
         """Get device channel addresses."""
         channel_addresses: dict[ParamsetKey, list[str]] = {}
         interface_paramset_descriptions = self._raw_paramset_descriptions[interface_id]

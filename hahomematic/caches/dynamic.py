@@ -181,7 +181,7 @@ class DeviceDetailsCache:
         """Get id for address."""
         return self._device_channel_ids.get(address) or "0"
 
-    async def _get_all_rooms(self) -> dict[str, set[str]]:
+    async def _get_all_rooms(self) -> Mapping[str, set[str]]:
         """Get all rooms, if available."""
         if client := self._central.primary_client:
             return await client.get_all_rooms()
@@ -199,7 +199,7 @@ class DeviceDetailsCache:
         """Return rooms by channel_address."""
         return self._channel_rooms[channel_address]
 
-    async def _get_all_functions(self) -> dict[str, set[str]]:
+    async def _get_all_functions(self) -> Mapping[str, set[str]]:
         """Get all functions, if available."""
         if client := self._central.primary_client:
             return await client.get_all_functions()

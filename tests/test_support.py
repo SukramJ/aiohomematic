@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Final
 from unittest.mock import Mock, patch
 
 import pytest
@@ -17,7 +18,9 @@ from hahomematic.const import (
     SCHEDULER_TIME_PATTERN,
     VIRTUAL_REMOTE_ADDRESSES,
     DataPointUsage,
+    ParameterData,
     ParameterType,
+    ParamsetKey,
     SysvarType,
 )
 from hahomematic.converter import _COMBINED_PARAMETER_TO_HM_CONVERTER, convert_hm_level_to_cpv
@@ -594,3 +597,20 @@ def test_scheduler_time_pattern() -> None:
     assert SCHEDULER_TIME_PATTERN.match("5:00")
     assert SCHEDULER_TIME_PATTERN.match("25:00") is None
     assert SCHEDULER_TIME_PATTERN.match("F:00") is None
+
+
+def test_default_dict() -> None:
+    """Test the default dict."""
+    def_dict: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(dict))
+    )
+
+    assert def_dict == {}
+    assert def_dict["k1"] == {}
+    assert def_dict["k1"]["k2"] == {}
+    assert def_dict["k1"]["k2"][ParamsetKey.VALUES] == {}
+    # assert def_dict["k1"]["k2"][ParamsetKey.VALUES]["k4"] == {}
+    def_dict["k1"]["k2"][ParamsetKey.VALUES]["k4"] = ParameterData(ID="13")
+    assert def_dict["k1"]["k2"][ParamsetKey.VALUES] == {"k4": ParameterData(ID="13")}
+    def_dict["k1"]["k2"][ParamsetKey.VALUES] = {"k4.1": ParameterData(ID="14")}
+    assert def_dict["k1"]["k2"][ParamsetKey.VALUES]["k4.1"] == ParameterData(ID="14")

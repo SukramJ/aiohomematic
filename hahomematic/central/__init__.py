@@ -827,7 +827,7 @@ class CentralUnit(PayloadMixin):
             )
             await self.clear_caches()
 
-    async def _create_devices(self, new_device_addresses: dict[str, set[str]]) -> None:
+    async def _create_devices(self, new_device_addresses: Mapping[str, set[str]]) -> None:
         """Trigger creation of the objects that expose the functionality."""
         if not self._clients:
             raise HaHomematicException(
@@ -969,7 +969,7 @@ class CentralUnit(PayloadMixin):
                 await self._data_cache.load()
                 await self._create_devices(new_device_addresses=new_device_addresses)
 
-    def _check_for_new_device_addresses(self) -> dict[str, set[str]]:
+    def _check_for_new_device_addresses(self) -> Mapping[str, set[str]]:
         """Check if there are new devices, that needs to be created."""
         new_device_addresses: dict[str, set[str]] = {}
         for interface_id in self.interface_ids:

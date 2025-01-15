@@ -182,7 +182,7 @@ class Device(PayloadMixin):
         return self._central
 
     @property
-    def channels(self) -> dict[str, Channel]:
+    def channels(self) -> Mapping[str, Channel]:
         """Return the channels."""
         return self._channels
 
@@ -272,7 +272,7 @@ class Device(PayloadMixin):
         return self._ignore_for_custom_data_point
 
     @property
-    def info(self) -> dict[str, Any]:
+    def info(self) -> Mapping[str, Any]:
         """Return the device info."""
         device_info = self.info_payload
         device_info["central"] = self._central.info_payload
@@ -715,7 +715,7 @@ class Channel(PayloadMixin):
         return self._paramset_keys
 
     @property
-    def paramset_descriptions(self) -> dict[ParamsetKey, dict[str, ParameterData]]:
+    def paramset_descriptions(self) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Return the paramset descriptions of the channel."""
         return self._central.paramset_descriptions.get_channel_paramset_descriptions(
             interface_id=self._device.interface_id, channel_address=self._address

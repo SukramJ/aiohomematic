@@ -31,11 +31,11 @@ from hahomematic.const import (
 from hahomematic.model.device import Device
 from hahomematic.support import (
     check_or_create_directory,
-    defaultdict_from_dict,
     delete_file,
     get_device_address,
     get_split_channel_address,
     hash_sha256,
+    regular_to_default_dict_hook,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class BasePersistentCache(ABC):
     def __init__(
         self,
         central: hmcu.CentralUnit,
-        persistent_cache: defaultdict[str, Any],
+        persistent_cache: dict[str, Any],
     ) -> None:
         """Initialize the base class of the persistent cache."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
@@ -113,7 +113,7 @@ class BasePersistentCache(ABC):
 
         def _perform_load() -> DataOperationResult:
             with open(file=self._file_path, encoding=UTF_8) as file_pointer:
-                data = json.loads(file_pointer.read(), object_hook=defaultdict_from_dict)
+                data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
                 if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
                     return DataOperationResult.NO_LOAD
                 self._persistent_cache.clear()
@@ -145,15 +145,15 @@ class DeviceDescriptionCache(BasePersistentCache):
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Initialize the device description cache."""
         # {interface_id, [device_descriptions]}
-        self._raw_device_descriptions: Final[defaultdict[str, list[DeviceDescription]]] = defaultdict(list)
+        self._raw_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         super().__init__(
             central=central,
             persistent_cache=self._raw_device_descriptions,
         )
         # {interface_id, {device_address, [channel_address]}}
-        self._addresses: Final[defaultdict[str, defaultdict[str, set[str]]]] = defaultdict(lambda: defaultdict(set))
+        self._addresses: Final[dict[str, dict[str, set[str]]]] = defaultdict(lambda: defaultdict(set))
         # {interface_id, {address, device_descriptions}}
-        self._device_descriptions: Final[defaultdict[str, dict[str, DeviceDescription]]] = defaultdict(dict)
+        self._device_descriptions: Final[dict[str, dict[str, DeviceDescription]]] = defaultdict(dict)
 
     def add_device(self, interface_id: str, device_description: DeviceDescription) -> None:
         """Add a device to the cache."""
@@ -269,9 +269,9 @@ class ParamsetDescriptionCache(BasePersistentCache):
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Init the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
-        self._raw_paramset_descriptions: Final[
-            defaultdict[str, defaultdict[str, defaultdict[ParamsetKey, dict[str, ParameterData]]]]
-        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        self._raw_paramset_descriptions: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = (
+            defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        )
         super().__init__(
             central=central,
             persistent_cache=self._raw_paramset_descriptions,

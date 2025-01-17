@@ -281,9 +281,9 @@ class ParameterVisibilityCache:
         self._custom_un_ignore_values_parameters: Final[set[str]] = set()
 
         # model, channel_no, paramset_key, parameter
-        self._custom_un_ignore_complex: Final[
-            defaultdict[str, defaultdict[int | str | None, defaultdict[str, set[str]]]]
-        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+        self._custom_un_ignore_complex: Final[dict[str, dict[int | str | None, dict[str, set[str]]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(set))
+        )
         self._ignore_custom_device_definition_models: Final[tuple[str, ...]] = (
             central.config.ignore_custom_device_definition_models
         )
@@ -294,7 +294,7 @@ class ParameterVisibilityCache:
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
 
         # model, channel_no
-        self._relevant_master_paramsets_by_device: Final[defaultdict[str, set[int | None]]] = defaultdict(set)
+        self._relevant_master_paramsets_by_device: Final[dict[str, set[int | None]]] = defaultdict(set)
         self._init()
 
     def _init(self) -> None:

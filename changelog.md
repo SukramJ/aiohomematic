@@ -1,3 +1,7 @@
+# Version 2025.1.10 (2025-01-17)
+
+- Return regular dict from list_devices
+
 # Version 2025.1.9 (2025-01-15)
 
 - Load cached files as defaultdicts

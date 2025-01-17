@@ -954,6 +954,8 @@ class CentralUnit(PayloadMixin):
                         await client.fetch_paramset_descriptions(device_description=dev_desc)
                         save_paramset_descriptions = True
                 except Exception as ex:  # pragma: no cover
+                    save_device_descriptions = False
+                    save_paramset_descriptions = False
                     _LOGGER.error(
                         "ADD_NEW_DEVICES failed: %s [%s]",
                         type(ex).__name__,

@@ -191,7 +191,7 @@ def check_password(password: str | None) -> bool:
     return True
 
 
-def defaultdict_from_dict(origin: dict) -> defaultdict[Any, Any]:
+def regular_to_default_dict_hook(origin: dict) -> defaultdict[Any, Any]:
     """Use defaultdict in json.loads object_hook."""
     new_dict: Callable = lambda: defaultdict(new_dict)
     new_instance = new_dict()

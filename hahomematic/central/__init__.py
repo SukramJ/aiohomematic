@@ -1472,7 +1472,9 @@ class _Scheduler(threading.Thread):
         """Init the connection checker."""
         threading.Thread.__init__(self, name=f"ConnectionChecker for {central.name}")
         self._central: Final = central
+        self._unregister_callback = self._central.register_backend_system_callback(cb=self._backend_system_callback)
         self._active = True
+        self._devices_created = False
         self._scheduler_jobs = [
             _SchedulerJob(task=self._check_connection, run_interval=CONNECTION_CHECKER_INTERVAL),
             _SchedulerJob(
@@ -1498,6 +1500,11 @@ class _Scheduler(threading.Thread):
             ),
         ]
 
+    def _backend_system_callback(self, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+        """Handle event of new device creation, to delay the start of the sysvar scan."""
+        if system_event == BackendSystemEvent.DEVICES_CREATED:
+            self._devices_created = True
+
     def run(self) -> None:
         """Run the scheduler thread."""
         _LOGGER.debug(
@@ -1512,14 +1519,16 @@ class _Scheduler(threading.Thread):
 
     def stop(self) -> None:
         """To stop the ConnectionChecker."""
+        if self._unregister_callback is not None:
+            self._unregister_callback()
         self._active = False
 
     async def _run_scheduler_tasks(self) -> None:
         """Run all tasks."""
         while self._active:
-            if not self._central.started:
+            if not self._central.started or not self._devices_created:
                 _LOGGER.debug("SCHEDULER: Waiting till central %s is started", self._central.name)
-                await asyncio.sleep(5)
+                await asyncio.sleep(10)
                 continue
             for job in self._scheduler_jobs:
                 if not self._active or not job.ready:

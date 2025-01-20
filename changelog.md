@@ -1,3 +1,7 @@
+# Version 2025.1.11 (2025-01-20)
+
+- Delay start of scheduler until devices are created
+
 # Version 2025.1.10 (2025-01-17)
 
 - Return regular dict from list_devices

@@ -55,8 +55,8 @@ class BasePersistentCache(ABC):
         """Initialize the base class of the persistent cache."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
         self._central: Final = central
-        self._cache_dir: Final = f"{central.config.storage_folder}/{CACHE_PATH}"
-        self._filename: Final = f"{slugify(central.name)}_{self._file_postfix}"
+        self._cache_dir: Final = _get_cache_path(storage_folder=central.config.storage_folder)
+        self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_postfix)
         self._persistent_cache: Final = persistent_cache
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_cache)
@@ -393,8 +393,18 @@ class ParamsetDescriptionCache(BasePersistentCache):
         return await super().save()
 
 
+def _get_cache_path(storage_folder: str) -> str:
+    """Return the cache path."""
+    return f"{storage_folder}/{CACHE_PATH}"
+
+
+def _get_filename(central_name: str, file_name: str) -> str:
+    """Return the cache filename."""
+    return f"{slugify(central_name)}_{file_name}"
+
+
 def cleanup_cache_dirs(central_name: str, storage_folder: str) -> None:
     """Clean up the used cached directories."""
-    cache_dir = f"{storage_folder}/{CACHE_PATH}"
+    cache_dir = _get_cache_path(storage_folder=storage_folder)
     for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS):
-        delete_file(folder=cache_dir, file_name=f"{slugify(central_name)}_{file_to_delete}")
+        delete_file(folder=cache_dir, file_name=_get_filename(central_name=central_name, file_name=file_to_delete))

@@ -1,5 +1,6 @@
 # Version 2025.1.11 (2025-01-20)
 
+- Cleanup cache file clear
 - Delay start of scheduler until devices are created
 - Rename instance_name to central_name
 - Slugify cache file name

@@ -14,6 +14,7 @@ import os
 from typing import Any, Final
 
 import orjson
+from slugify import slugify
 
 from hahomematic import central as hmcu
 from hahomematic.const import (
@@ -55,7 +56,7 @@ class BasePersistentCache(ABC):
         self._save_load_semaphore: Final = asyncio.Semaphore()
         self._central: Final = central
         self._cache_dir: Final = f"{central.config.storage_folder}/{CACHE_PATH}"
-        self._filename: Final = f"{central.name}_{self._file_postfix}"
+        self._filename: Final = f"{slugify(central.name)}_{self._file_postfix}"
         self._persistent_cache: Final = persistent_cache
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_cache)

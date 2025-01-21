@@ -451,7 +451,7 @@ class PingPongCache:
                             EventKey.INTERFACE_ID: self._interface_id,
                             EventKey.TYPE: event_type,
                             EventKey.DATA: {
-                                EventKey.INSTANCE_NAME: self._central.name,
+                                EventKey.CENTRAL_NAME: self._central.name,
                                 EventKey.PONG_MISMATCH_COUNT: mismatch_count,
                             },
                         }

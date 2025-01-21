@@ -907,7 +907,7 @@ async def test_pending_pong_failure(
         EventType.INTERFACE,
         {
             "data": {
-                "instance_name": "CentralTest",
+                "central_name": "CentralTest",
                 "pong_mismatch_count": 16,
             },
             "interface_id": "CentralTest-BidCos-RF",

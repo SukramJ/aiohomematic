@@ -23,12 +23,9 @@ from hahomematic import client as hmcl
 from hahomematic.const import (
     ADDRESS_SEPARATOR,
     ALLOWED_HOSTNAME_PATTERN,
-    CACHE_PATH,
     CCU_PASSWORD_PATTERN,
     CHANNEL_ADDRESS_PATTERN,
     DEVICE_ADDRESS_PATTERN,
-    FILE_DEVICES,
-    FILE_PARAMSETS,
     HTMLTAG_PATTERN,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
@@ -384,15 +381,6 @@ def _get_search_key(search_elements: Collection[str], search_key: str) -> str | 
         if search_key.startswith(element):
             return element
     return None
-
-
-def cleanup_cache_dirs(instance_name: str, storage_folder: str) -> None:
-    """Clean up the used cached directories."""
-    cache_dir = f"{storage_folder}/{CACHE_PATH}"
-    files_to_delete = [FILE_DEVICES, FILE_PARAMSETS]
-
-    for file_to_delete in files_to_delete:
-        delete_file(folder=cache_dir, file_name=f"{instance_name}_{file_to_delete}")
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

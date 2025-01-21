@@ -1,6 +1,7 @@
 # Version 2025.1.11 (2025-01-20)
 
 - Delay start of scheduler until devices are created
+- Rename instance_name to central_name
 - Slugify cache file name
 
 # Version 2025.1.10 (2025-01-17)

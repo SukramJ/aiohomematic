@@ -102,7 +102,7 @@ __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-# {instance_name, central}
+# {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
 ConnectionProblemIssuer = JsonRpcAioHttpClient | XmlRpcProxy
 

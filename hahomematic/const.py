@@ -225,9 +225,9 @@ class EventKey(StrEnum):
 
     ADDRESS = "address"
     AVAILABLE = "available"
+    CENTRAL_NAME = "central_name"
     CHANNEL_NO = "channel_no"
     DATA = "data"
-    INSTANCE_NAME = "instance_name"
     INTERFACE_ID = "interface_id"
     MODEL = "model"
     PARAMETER = "parameter"

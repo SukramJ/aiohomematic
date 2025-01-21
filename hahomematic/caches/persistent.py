@@ -45,7 +45,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class BasePersistentCache(ABC):
     """Cache for files."""
 
-    _file_name: str
+    _file_postfix: str
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class BasePersistentCache(ABC):
         self._save_load_semaphore: Final = asyncio.Semaphore()
         self._central: Final = central
         self._cache_dir: Final = _get_cache_path(storage_folder=central.config.storage_folder)
-        self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_name)
+        self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_postfix)
         self._persistent_cache: Final = persistent_cache
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_cache)
@@ -141,7 +141,7 @@ class BasePersistentCache(ABC):
 class DeviceDescriptionCache(BasePersistentCache):
     """Cache for device/channel names."""
 
-    _file_name = FILE_DEVICES
+    _file_postfix = FILE_DEVICES
 
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Initialize the device description cache."""

@@ -396,7 +396,5 @@ class ParamsetDescriptionCache(BasePersistentCache):
 def cleanup_cache_dirs(central_name: str, storage_folder: str) -> None:
     """Clean up the used cached directories."""
     cache_dir = f"{storage_folder}/{CACHE_PATH}"
-    files_to_delete = [FILE_DEVICES, FILE_PARAMSETS]
-
-    for file_to_delete in files_to_delete:
+    for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS):
         delete_file(folder=cache_dir, file_name=f"{slugify(central_name)}_{file_to_delete}")

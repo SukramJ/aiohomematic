@@ -122,8 +122,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         if self._forced_usage:
             return self._forced_usage
         if self._central.parameter_visibility.parameter_is_hidden(
-            model=self._device.model,
-            channel_no=self._channel.no,
+            channel=self._channel,
             paramset_key=self._paramset_key,
             parameter=self._parameter,
         ):

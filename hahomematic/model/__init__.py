@@ -34,8 +34,7 @@ def create_data_points_and_events(device: hmd.Device) -> None:
     for channel in device.channels.values():
         for paramset_key, paramsset_key_descriptions in channel.paramset_descriptions.items():
             if not device.central.parameter_visibility.is_relevant_paramset(
-                model=device.model,
-                channel_no=channel.no,
+                channel=channel,
                 paramset_key=paramset_key,
             ):
                 continue
@@ -44,12 +43,11 @@ def create_data_points_and_events(device: hmd.Device) -> None:
                 parameter_data,
             ) in paramsset_key_descriptions.items():
                 parameter_is_un_ignored = channel.device.central.parameter_visibility.parameter_is_un_ignored(
-                    model=channel.device.model,
-                    channel_no=channel.no,
+                    channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
                 )
-                if _should_skip_parameter(
+                if channel.device.central.parameter_visibility.should_skip_parameter(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -63,26 +61,6 @@ def create_data_points_and_events(device: hmd.Device) -> None:
                     parameter_data=parameter_data,
                     parameter_is_un_ignored=parameter_is_un_ignored,
                 )
-
-
-def _should_skip_parameter(
-    channel: hmd.Channel, paramset_key: ParamsetKey, parameter: str, parameter_is_un_ignored: bool
-) -> bool:
-    """Determine if a parameter should be skipped."""
-    if channel.device.central.parameter_visibility.parameter_is_ignored(
-        model=channel.device.model,
-        channel_no=channel.no,
-        paramset_key=paramset_key,
-        parameter=parameter,
-    ):
-        _LOGGER.debug(
-            "CREATE_DATA_POINTS_AND_APPEND_TO_DEVICE: Ignoring parameter: %s [%s]",
-            parameter,
-            channel.address,
-        )
-        return True
-
-    return paramset_key == ParamsetKey.MASTER and not parameter_is_un_ignored
 
 
 def _process_parameter(

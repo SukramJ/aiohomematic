@@ -30,7 +30,20 @@ async def test_central_mini(central_unit_mini) -> None:
     assert central_unit_mini.get_client(const.INTERFACE_ID).model == "PyDevCCU"
     assert central_unit_mini.primary_client.model == "PyDevCCU"
     assert len(central_unit_mini._devices) == 2
-    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 64
+    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 65
+
+    usage_types: dict[DataPointUsage, int] = {}
+    for data_point in central_unit_mini.get_data_points(exclude_no_create=False):
+        if hasattr(data_point, "usage"):
+            if data_point.usage not in usage_types:
+                usage_types[data_point.usage] = 0
+            counter = usage_types[data_point.usage]
+            usage_types[data_point.usage] = counter + 1
+
+    assert usage_types[DataPointUsage.NO_CREATE] == 45
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
+    assert usage_types[DataPointUsage.DATA_POINT] == 11
+    assert usage_types[DataPointUsage.CDP_VISIBLE] == 5
 
 
 @pytest.mark.enable_socket
@@ -118,15 +131,15 @@ async def test_central_full(central_unit_full) -> None:
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    assert usage_types[DataPointUsage.NO_CREATE] == 4091
+    assert usage_types[DataPointUsage.NO_CREATE] == 4110
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 261
-    assert usage_types[DataPointUsage.DATA_POINT] == 3688
+    assert usage_types[DataPointUsage.DATA_POINT] == 3728
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 133
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 154
 
     assert len(ce_channels) == 124
     assert len(data_point_types) == 6
-    assert len(parameters) == 222
+    assert len(parameters) == 223
 
     assert len(central_unit_full._devices) == 386
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

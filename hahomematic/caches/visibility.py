@@ -11,6 +11,7 @@ from typing import Final
 
 from hahomematic import central as hmcu, support as hms
 from hahomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
+from hahomematic.model import hmd
 from hahomematic.model.custom import get_required_parameters
 from hahomematic.support import element_matches_key
 
@@ -22,8 +23,12 @@ _LOGGER: Final = logging.getLogger(__name__)
 # and not for general display.
 # {model: (channel_no, parameter)}
 
+_RELEVANT_MASTER_PARAMSETS_BY_CHANNEL: Final[Mapping[int | str | None, tuple[Parameter, ...]]] = {
+    None: (Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT),
+    0: (Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT),
+}
+
 _CLIMATE_MASTER_PARAMETERS: Final[tuple[Parameter, ...]] = (
-    Parameter.GLOBAL_BUTTON_LOCK,
     Parameter.HEATING_VALVE_TYPE,
     Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
     Parameter.OPTIMUM_START_STOP,
@@ -31,12 +36,24 @@ _CLIMATE_MASTER_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.TEMPERATURE_MINIMUM,
     Parameter.TEMPERATURE_OFFSET,
 )
+
 _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None, ...], tuple[Parameter, ...]]]] = {
-    "ALPHA-IP-RBG": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
-    "HM-CC-RT-DN": ((None, 1), _CLIMATE_MASTER_PARAMETERS),
-    "HM-CC-VG-1": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
-    "HM-TC-IT-WM-W-EU": ((None,), (Parameter.GLOBAL_BUTTON_LOCK,)),
-    "HmIP-BWTH": ((0, 1, 8), _CLIMATE_MASTER_PARAMETERS),
+    "ALPHA-IP-RBG": ((1,), _CLIMATE_MASTER_PARAMETERS),
+    "HM-CC-RT-DN": (
+        (
+            None,
+            1,
+        ),
+        _CLIMATE_MASTER_PARAMETERS,
+    ),
+    "HM-CC-VG-1": (
+        (
+            None,
+            1,
+        ),
+        _CLIMATE_MASTER_PARAMETERS,
+    ),
+    "HmIP-BWTH": ((1, 8), _CLIMATE_MASTER_PARAMETERS),
     "HmIP-DRBLI4": (
         (1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 17, 21),
         (Parameter.CHANNEL_OPERATION_MODE,),
@@ -45,23 +62,21 @@ _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None,
     "HmIP-DRSI1": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIP-DRSI4": ((1, 2, 3, 4), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIP-DSD-PCB": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-FAL": ((0,), (Parameter.GLOBAL_BUTTON_LOCK,)),
     "HmIP-FCI1": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIP-FCI6": (tuple(range(1, 7)), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIP-FSI16": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-HEATING": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-HEATING": ((1,), _CLIMATE_MASTER_PARAMETERS),
     "HmIP-MIO16-PCB": ((13, 14, 15, 16), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIP-MOD-RC8": (tuple(range(1, 9)), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIP-RGBW": ((0,), (Parameter.DEVICE_OPERATION_MODE,)),
     "HmIP-STH": ((1,), _CLIMATE_MASTER_PARAMETERS),
-    "HmIP-WTH": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
-    "HmIP-eTRV": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-WTH": ((1,), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-eTRV": ((1,), _CLIMATE_MASTER_PARAMETERS),
     "HmIPW-DRBL4": ((1, 5, 9, 13), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIPW-DRI16": (tuple(range(1, 17)), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIPW-DRI32": (tuple(range(1, 33)), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIPW-FAL": ((0,), (Parameter.GLOBAL_BUTTON_LOCK,)),
     "HmIPW-FIO6": (tuple(range(1, 7)), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIPW-STH": ((0, 1), _CLIMATE_MASTER_PARAMETERS),
+    "HmIPW-STH": ((1,), _CLIMATE_MASTER_PARAMETERS),
 }
 
 # Ignore events for some devices
@@ -329,18 +344,16 @@ class ParameterVisibilityCache:
     @lru_cache(maxsize=1024)
     def parameter_is_ignored(
         self,
-        model: str,
-        channel_no: int | None,
+        channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
     ) -> bool:
         """Check if parameter can be ignored."""
-        model_l = model.lower()
+        model_l = channel.device.model.lower()
 
         if paramset_key == ParamsetKey.VALUES:
             if self.parameter_is_un_ignored(
-                model=model,
-                channel_no=channel_no,
+                channel=channel,
                 paramset_key=paramset_key,
                 parameter=parameter,
             ):
@@ -366,10 +379,15 @@ class ParameterVisibilityCache:
 
             if (
                 accept_channel := _ACCEPT_PARAMETER_ONLY_ON_CHANNEL.get(parameter)
-            ) is not None and accept_channel != channel_no:
+            ) is not None and accept_channel != channel.no:
                 return True
         if paramset_key == ParamsetKey.MASTER:
-            if parameter in self._custom_un_ignore_complex[model_l][channel_no][ParamsetKey.MASTER]:
+            if (
+                parameters := _RELEVANT_MASTER_PARAMSETS_BY_CHANNEL.get(channel.no)
+            ) is not None and parameter in parameters:
+                return False
+
+            if parameter in self._custom_un_ignore_complex[model_l][channel.no][ParamsetKey.MASTER]:
                 return False  # pragma: no cover
 
             dt_short = tuple(
@@ -381,7 +399,7 @@ class ParameterVisibilityCache:
             if (
                 dt_short
                 and parameter
-                not in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel_no][ParamsetKey.MASTER]
+                not in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel.no][ParamsetKey.MASTER]
             ):
                 return True
 
@@ -389,8 +407,7 @@ class ParameterVisibilityCache:
 
     def _parameter_is_un_ignored(
         self,
-        model: str,
-        channel_no: int | str | None,
+        channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
         custom_only: bool = False,
@@ -401,23 +418,22 @@ class ParameterVisibilityCache:
         This can be either be the users un_ignore file, or in the
         predefined _UN_IGNORE_PARAMETERS_BY_DEVICE.
         """
-        model_l = model.lower()
 
         # check if parameter is in custom_un_ignore
         if paramset_key == ParamsetKey.VALUES and parameter in self._custom_un_ignore_values_parameters:
             return True
 
         # check if parameter is in custom_un_ignore with paramset_key
-
+        model_l = channel.device.model.lower()
         search_matrix = (
             (
-                (model_l, channel_no),
+                (model_l, channel.no),
                 (model_l, UN_IGNORE_WILDCARD),
-                (UN_IGNORE_WILDCARD, channel_no),
+                (UN_IGNORE_WILDCARD, channel.no),
                 (UN_IGNORE_WILDCARD, UN_IGNORE_WILDCARD),
             )
             if paramset_key == ParamsetKey.VALUES
-            else ((model_l, channel_no),)
+            else ((model_l, channel.no),)
         )
 
         for ml, cno in search_matrix:
@@ -434,8 +450,7 @@ class ParameterVisibilityCache:
     @lru_cache(maxsize=4096)
     def parameter_is_un_ignored(
         self,
-        model: str,
-        channel_no: int | None,
+        channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
         custom_only: bool = False,
@@ -449,7 +464,7 @@ class ParameterVisibilityCache:
         if not custom_only:
             dt_short = tuple(
                 filter(
-                    model.lower().startswith,
+                    channel.device.model.lower().startswith,
                     self._un_ignore_parameters_by_device_paramset_key,
                 )
             )
@@ -458,17 +473,40 @@ class ParameterVisibilityCache:
             if (
                 dt_short
                 and parameter
-                in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel_no][paramset_key]
+                in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel.no][paramset_key]
             ):
                 return True
 
         return self._parameter_is_un_ignored(
-            model=model,
-            channel_no=channel_no,
+            channel=channel,
             paramset_key=paramset_key,
             parameter=parameter,
             custom_only=custom_only,
         )
+
+    def should_skip_parameter(
+        self, channel: hmd.Channel, paramset_key: ParamsetKey, parameter: str, parameter_is_un_ignored: bool
+    ) -> bool:
+        """Determine if a parameter should be skipped."""
+        if self.parameter_is_ignored(
+            channel=channel,
+            paramset_key=paramset_key,
+            parameter=parameter,
+        ):
+            _LOGGER.debug(
+                "SHOULD_SKIP_PARAMETER: Ignoring parameter: %s [%s]",
+                parameter,
+                channel.address,
+            )
+            return True
+        if (
+            paramset_key == ParamsetKey.MASTER
+            and (parameters := _RELEVANT_MASTER_PARAMSETS_BY_CHANNEL.get(channel.no)) is not None
+            and parameter in parameters
+        ):
+            return False
+
+        return paramset_key == ParamsetKey.MASTER and not parameter_is_un_ignored
 
     def _process_un_ignore_entries(self, lines: tuple[str, ...]) -> None:
         """Batch process un_ignore entries into cache."""
@@ -595,8 +633,7 @@ class ParameterVisibilityCache:
     @lru_cache(maxsize=1024)
     def parameter_is_hidden(
         self,
-        model: str,
-        channel_no: int | None,
+        channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
     ) -> bool:
@@ -607,17 +644,15 @@ class ParameterVisibilityCache:
         Return only hidden parameters, that are no defined in the un_ignore file.
         """
         return parameter in _HIDDEN_PARAMETERS and not self._parameter_is_un_ignored(
-            model=model,
-            channel_no=channel_no,
+            channel=channel,
             paramset_key=paramset_key,
             parameter=parameter,
         )
 
     def is_relevant_paramset(
         self,
-        model: str,
+        channel: hmd.Channel,
         paramset_key: ParamsetKey,
-        channel_no: int | None,
     ) -> bool:
         """
         Return if a paramset is relevant.
@@ -627,13 +662,15 @@ class ParameterVisibilityCache:
         if paramset_key == ParamsetKey.VALUES:
             return True
         if paramset_key == ParamsetKey.MASTER:
+            if channel.no in _RELEVANT_MASTER_PARAMSETS_BY_CHANNEL:
+                return True
             for (
                 d_type,
                 channel_nos,
             ) in self._relevant_master_paramsets_by_device.items():
-                if channel_no in channel_nos and hms.element_matches_key(
+                if channel.no in channel_nos and hms.element_matches_key(
                     search_elements=d_type,
-                    compare_with=model,
+                    compare_with=channel.device.model,
                 ):
                     return True
         return False

@@ -1,3 +1,8 @@
+# Version 2025.1.12 (2025-01-23)
+
+- Refactor parameter_visibility
+- Add LOW_BAT_LIMIT
+
 # Version 2025.1.11 (2025-01-20)
 
 - Cleanup cache file clear

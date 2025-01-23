@@ -440,8 +440,7 @@ class BaseParameterDataPoint[
             ),
         )
         self._is_un_ignored: Final[bool] = self._central.parameter_visibility.parameter_is_un_ignored(
-            model=self._device.model,
-            channel_no=self._channel.no,
+            channel=channel,
             paramset_key=self._paramset_key,
             parameter=self._parameter,
             custom_only=True,

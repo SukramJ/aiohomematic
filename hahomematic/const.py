@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.1.11"
+VERSION: Final = "2025.1.12"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -334,6 +334,7 @@ class Parameter(StrEnum):
     LOWBAT = "LOWBAT"
     LOWERING_MODE = "LOWERING_MODE"
     LOW_BAT = "LOW_BAT"
+    LOW_BAT_LIMIT = "LOW_BAT_LIMIT"
     MANU_MODE = "MANU_MODE"
     MASS_CONCENTRATION_PM_10_24H_AVERAGE = "MASS_CONCENTRATION_PM_10_24H_AVERAGE"
     MASS_CONCENTRATION_PM_1_24H_AVERAGE = "MASS_CONCENTRATION_PM_1_24H_AVERAGE"

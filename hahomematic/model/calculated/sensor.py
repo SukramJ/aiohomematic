@@ -64,15 +64,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     def value(self) -> float | None:
         """Return the value."""
         try:
-            if (
-                self._min is not None
-                or self._max is not None
-                or (self._dp_operating_voltage and self._dp_operating_voltage.value is not None)
-            ):
+            if self._min is None or self._max is None:
                 return None
             if self._dp_operating_voltage and self._dp_operating_voltage.value is not None:
                 return float(
-                    round(((float(self._dp_operating_voltage.value) - self._min) / (self._max - self._min) * 100), 1)  # type: ignore[operator]
+                    round(((float(self._dp_operating_voltage.value) - self._min) / (self._max - self._min) * 100), 1)
                 )
         except Exception as ex:
             _LOGGER.debug(

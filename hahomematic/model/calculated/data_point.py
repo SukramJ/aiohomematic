@@ -152,6 +152,11 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Return the if data_point is visible in ccu."""
         return self._service
 
+    @property
+    def supports_events(self) -> bool:
+        """Return, if data_point is supports events."""
+        return bool(self._operations & Operations.EVENT)
+
     @config_property
     def unit(self) -> str | None:
         """Return unit value."""

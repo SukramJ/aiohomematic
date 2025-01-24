@@ -33,7 +33,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
         self._unit = "%"
-        self._battery_data = get_battery_data(model=self._channel.device.model)
+        self._battery_data = _get_battery_data(model=self._channel.device.model)
         self._max = float(
             _BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity  # type: ignore[assignment, operator]
             if self._battery_data is not None
@@ -57,7 +57,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         """Return if this calculated data point is relevant for the model."""
         return (
             element_matches_key(
-                search_elements=OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
+                search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
             )
             and channel.get_generic_data_point(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES)
             is not None
@@ -116,7 +116,7 @@ class _BatteryData:
     quantity: int = 1
 
 
-BATTERY_DATA: Final = (
+_BATTERY_DATA: Final = (
     _BatteryData(model="ELV-SH-CTH", battery=_BatteryType.CR2032),
     _BatteryData(model="HM-CC-RT-DN", battery=_BatteryType.AA, quantity=2),
     _BatteryData(model="HM-Dis-EP-WM55", battery=_BatteryType.AAA, quantity=2),
@@ -184,19 +184,19 @@ BATTERY_DATA: Final = (
     _BatteryData(model="M-WDS40-TH-I", battery=_BatteryType.AA, quantity=2),
 )
 
-OPERATING_VOLTAGE_LEVEL_MODELS: Final[Mapping[str, _BatteryData]] = {
-    battery.model: battery for battery in BATTERY_DATA if battery.model != _BatteryType.UNKNOWN
+_OPERATING_VOLTAGE_LEVEL_MODELS: Final[Mapping[str, _BatteryData]] = {
+    battery.model: battery for battery in _BATTERY_DATA if battery.model != _BatteryType.UNKNOWN
 }
 
 
-def get_battery_data(model: str) -> _BatteryData | None:
+def _get_battery_data(model: str) -> _BatteryData | None:
     """Return the battery data by model."""
     model_l = model.lower()
-    for battery_data in OPERATING_VOLTAGE_LEVEL_MODELS.values():
+    for battery_data in _OPERATING_VOLTAGE_LEVEL_MODELS.values():
         if battery_data.model.lower() == model_l:
             return battery_data
 
-    for battery_data in OPERATING_VOLTAGE_LEVEL_MODELS.values():
+    for battery_data in _OPERATING_VOLTAGE_LEVEL_MODELS.values():
         if model_l.startswith(battery_data.model.lower()):
             return battery_data
 

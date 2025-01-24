@@ -1,3 +1,7 @@
+# Version 2025.1.13 (2025-01-23)
+
+- Fix OperatingVoltageLevel sensor value
+
 # Version 2025.1.12 (2025-01-23)
 
 - Add LOW_BAT_LIMIT

@@ -18,14 +18,9 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT]):
-    """
-    Implementation of a sensor.
-
-    This is a default data point that gets automatically generated.
-    """
+    """Implementation of a calculated sensor for OperatingVoltageLevel."""
 
     _calculated_parameter = "OPERATING_VOLTAGE_LEVEL"
-
     _category = DataPointCategory.SENSOR
 
     def __init__(self, channel: hmd.Channel) -> None:

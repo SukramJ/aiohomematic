@@ -96,6 +96,7 @@ _HIDDEN_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.DIRECTION,
     Parameter.ERROR,
     Parameter.HEATING_VALVE_TYPE,
+    Parameter.LOW_BAT_LIMIT,
     Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
     Parameter.OPTIMUM_START_STOP,
     Parameter.SECTION,

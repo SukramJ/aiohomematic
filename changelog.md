@@ -2,6 +2,7 @@
 
 - Refactor parameter_visibility
 - Add LOW_BAT_LIMIT
+- Add calculated data points: OperatingVoltageLevel
 
 # Version 2025.1.11 (2025-01-20)
 

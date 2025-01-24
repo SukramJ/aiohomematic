@@ -48,6 +48,7 @@ from hahomematic.const import (
 )
 from hahomematic.decorators import inspector
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
+from hahomematic.model.calculated import CalculatedDataPoint
 from hahomematic.model.custom import data_point as hmce, definition as hmed
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
 from hahomematic.model.decorators import info_property, state_property
@@ -175,6 +176,14 @@ class Device(PayloadMixin):
     def available_firmware(self) -> str | None:
         """Return the available firmware of the device."""
         return str(self._description.get("AVAILABLE_FIRMWARE", ""))
+
+    @property
+    def calculated_data_points(self) -> tuple[CalculatedDataPoint, ...]:
+        """Return the generic data points."""
+        data_points: list[CalculatedDataPoint] = []
+        for channel in self._channels.values():
+            data_points.extend(channel.calculated_data_points)
+        return tuple(data_points)
 
     @property
     def central(self) -> hmcu.CentralUnit:
@@ -468,8 +477,14 @@ class Device(PayloadMixin):
                 events[channel.no] = values
         return events
 
+    def get_calculated_data_point(self, channel_address: str, parameter: str) -> CalculatedDataPoint | None:
+        """Return a calculated data_point from device."""
+        if channel := self.get_channel(channel_address=channel_address):
+            return channel.get_calculated_data_point(parameter=parameter)
+        return None
+
     def get_custom_data_point(self, channel_no: int) -> hmce.CustomDataPoint | None:
-        """Return a data_point from device."""
+        """Return a custom data_point from device."""
         if channel := self.get_channel(
             channel_address=get_channel_address(device_address=self._address, channel_no=channel_no)
         ):
@@ -479,7 +494,7 @@ class Device(PayloadMixin):
     def get_generic_data_point(
         self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
-        """Return a data_point from device."""
+        """Return a generic data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
             return channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key)
         return None
@@ -623,6 +638,7 @@ class Channel(PayloadMixin):
 
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
         self._base_no: Final = self._device.get_sub_device_base_channel(channel_no=self._no)
+        self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
@@ -678,6 +694,11 @@ class Channel(PayloadMixin):
     def full_name(self) -> str:
         """Return the full name of the channel."""
         return self._name_data.full_name
+
+    @property
+    def calculated_data_points(self) -> tuple[CalculatedDataPoint, ...]:
+        """Return the generic data points."""
+        return tuple(self._calculated_data_points.values())
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
@@ -792,6 +813,8 @@ class Channel(PayloadMixin):
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
             self._central.add_event_subscription(data_point=data_point)
+        if isinstance(data_point, CalculatedDataPoint):
+            self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
             self._generic_data_points[data_point.dpk] = data_point
             self._device.register_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
@@ -804,6 +827,8 @@ class Channel(PayloadMixin):
         """Remove a data_point from a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
             self._central.remove_event_subscription(data_point=data_point)
+        if isinstance(data_point, CalculatedDataPoint):
+            del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):
             del self._generic_data_points[data_point.dpk]
             self._device.unregister_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
@@ -819,8 +844,12 @@ class Channel(PayloadMixin):
             self._remove_data_point(event)
         self._generic_events.clear()
 
-        for data_point in self.generic_data_points:
-            self._remove_data_point(data_point)
+        for calculated_data_point in self.calculated_data_points:
+            self._remove_data_point(calculated_data_point)
+        self._calculated_data_points.clear()
+
+        for generic_data_point in self.generic_data_points:
+            self._remove_data_point(generic_data_point)
         self._generic_data_points.clear()
 
         if self._custom_data_point:
@@ -836,7 +865,9 @@ class Channel(PayloadMixin):
         registered: bool | None = None,
     ) -> tuple[CallbackDataPoint, ...]:
         """Get all data points of the device."""
-        all_data_points: list[CallbackDataPoint] = list(self._generic_data_points.values())
+        all_data_points: list[CallbackDataPoint] = list(self._generic_data_points.values()) + list(
+            self._calculated_data_points.values()
+        )
         if self._custom_data_point:
             all_data_points.append(self._custom_data_point)
 
@@ -857,10 +888,21 @@ class Channel(PayloadMixin):
             if (event.event_type == event_type and (registered is None or event.is_registered == registered))
         )
 
+    def get_calculated_data_point(self, parameter: str) -> CalculatedDataPoint | None:
+        """Return a calculated data_point from device."""
+        return self._calculated_data_points.get(
+            DataPointKey(
+                interface_id=self._device.interface_id,
+                channel_address=self._address,
+                paramset_key=ParamsetKey.CALCULATED,
+                parameter=parameter,
+            )
+        )
+
     def get_generic_data_point(
         self, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
-        """Return a data_point from device."""
+        """Return a generic data_point from device."""
         if paramset_key:
             return self._generic_data_points.get(
                 DataPointKey(

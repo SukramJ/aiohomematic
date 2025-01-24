@@ -17,6 +17,7 @@ from hahomematic.const import (
 )
 from hahomematic.decorators import inspector
 from hahomematic.model import device as hmd
+from hahomematic.model.calculated import create_calculated_data_points
 from hahomematic.model.event import create_event_and_append_to_channel
 from hahomematic.model.generic import create_data_point_and_append_to_channel
 
@@ -61,6 +62,8 @@ def create_data_points_and_events(device: hmd.Device) -> None:
                     parameter_data=parameter_data,
                     parameter_is_un_ignored=parameter_is_un_ignored,
                 )
+
+        create_calculated_data_points(channel=channel)
 
 
 def _process_parameter(

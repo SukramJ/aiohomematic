@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 import logging
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from hahomematic.const import (
     CALLBACK_TYPE,
@@ -20,7 +20,7 @@ from hahomematic.const import (
 from hahomematic.decorators import get_service_calls
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
-from hahomematic.model.data_point import BaseDataPoint
+from hahomematic.model.data_point import BaseDataPoint, NoneTypeDataPoint
 from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.generic import data_point as hmge
 from hahomematic.model.support import (
@@ -75,7 +75,9 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             self.full_name,
         )
 
-    def _add_data_point(self, parameter: str, paramset_key: ParamsetKey | None = None) -> hmge.GenericDataPoint | None:
+    def _add_data_point[_DataPointT: hmge.GenericDataPoint](
+        self, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[_DataPointT]
+    ) -> _DataPointT:
         """Add a new data point."""
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
             self._data_points.append(generic_data_point)
@@ -84,8 +86,11 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
                     cb=self.fire_data_point_updated_callback
                 )
             )
-            return generic_data_point
-        return None
+            return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
+        return cast(
+            data_point_type,  # type:ignore[valid-type]
+            NoneTypeDataPoint(),
+        )
 
     @property
     def is_readable(self) -> bool:

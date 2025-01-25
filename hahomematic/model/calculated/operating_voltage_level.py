@@ -1,4 +1,4 @@
-"""Module for data points implemented using the sensor category."""
+"""Module for calculating the operating voltage level in the sensor category."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from hahomematic.const import DataPointCategory, Parameter, ParameterType, Param
 from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
 from hahomematic.model.decorators import state_property
+from hahomematic.model.generic import DpSensor
 from hahomematic.support import element_matches_key, reduce_args
 
 _BATTERY_TYPE: Final = "Battery Type"
@@ -44,11 +45,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._dp_operating_voltage = self._add_data_point(
-            parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES
+        self._dp_operating_voltage: DpSensor = self._add_data_point(
+            parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
         )
-        self._dp_low_bat_limit = self._add_data_point(
-            parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER
+        self._dp_low_bat_limit: DpSensor = self._add_data_point(
+            parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, data_point_type=DpSensor
         )
 
     @staticmethod
@@ -58,7 +59,10 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             element_matches_key(
                 search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
             )
-            and channel.get_generic_data_point(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES)
+            and channel.get_generic_data_point(
+                parameter=Parameter.OPERATING_VOLTAGE,
+                paramset_key=ParamsetKey.VALUES,
+            )
             is not None
             and channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
             is not None

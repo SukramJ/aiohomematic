@@ -115,4 +115,4 @@ def calculate_frost_point(temperature: float, humidity: float) -> float:
     dewpoint = calculate_dew_point(temperature=temperature, humidity=humidity)
     t = temperature + 273.15
     td = dewpoint + 273.15
-    return (td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(t) - 13.3448)) - t) - 273.15
+    return round((td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(t) - 13.3448)) - t) - 273.15, 1)

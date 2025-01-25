@@ -6,13 +6,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 import logging
-from typing import Final
+from typing import Any, Final
 
 from hahomematic.const import DataPointCategory, Parameter, ParameterType, ParamsetKey
 from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
 from hahomematic.model.decorators import state_property
 from hahomematic.support import element_matches_key, reduce_args
+
+_BATTERY_TYPE: Final = "Battery Type"
+_BATTERY_QTY: Final = "Battery Qty"
+_VOLTAGE_MAX: Final = "Voltage max"
+_VOLTAGE_MIN: Final = "Voltage min"
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -25,10 +30,10 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
 
     def __init__(self, channel: hmd.Channel) -> None:
         """Initialize the data point."""
+        self._battery_data = _get_battery_data(model=channel.device.model)
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
         self._unit = "%"
-        self._battery_data = _get_battery_data(model=self._channel.device.model)
         self._max = float(
             _BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity  # type: ignore[assignment, operator]
             if self._battery_data is not None
@@ -58,6 +63,21 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             and channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
             is not None
         )
+
+    @state_property
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information about the entity."""
+        ainfo = super().additional_information
+        if self._battery_data is not None:
+            ainfo.update(
+                {
+                    _BATTERY_TYPE: self._battery_data.battery,
+                    _BATTERY_QTY: self._battery_data.quantity,
+                    _VOLTAGE_MIN: f"{self._min}V",
+                    _VOLTAGE_MAX: f"{self._max}V",
+                }
+            )
+        return ainfo
 
     @state_property
     def value(self) -> float | None:

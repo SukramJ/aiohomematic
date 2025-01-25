@@ -1,3 +1,7 @@
+# Version 2025.1.15 (2025-01-25)
+
+- Add calculated data points: FrostPoint
+
 # Version 2025.1.14 (2025-01-25)
 
 - Add calculated data points: ApparentTemperature, DewPoint, VaporConcentration

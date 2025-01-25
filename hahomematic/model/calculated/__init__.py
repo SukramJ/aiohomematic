@@ -7,7 +7,7 @@ from typing import Final
 
 from hahomematic.decorators import inspector
 from hahomematic.model import device as hmd
-from hahomematic.model.calculated.climate import ApparentTemperature, DewPoint, VaporConcentration
+from hahomematic.model.calculated.climate import ApparentTemperature, DewPoint, FrostPoint, VaporConcentration
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
 from hahomematic.model.calculated.operating_voltage_level import OperatingVoltageLevel
 
@@ -15,6 +15,7 @@ __all__ = [
     "ApparentTemperature",
     "CalculatedDataPoint",
     "DewPoint",
+    "FrostPoint",
     "OperatingVoltageLevel",
     "VaporConcentration",
     "create_calculated_data_points",
@@ -22,7 +23,7 @@ __all__ = [
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-_CALCULATORS: Final = (ApparentTemperature, DewPoint, OperatingVoltageLevel, VaporConcentration)
+_CALCULATORS: Final = (ApparentTemperature, DewPoint, FrostPoint, OperatingVoltageLevel, VaporConcentration)
 
 
 @inspector()

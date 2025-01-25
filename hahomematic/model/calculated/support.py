@@ -98,7 +98,7 @@ def calculate_apparent_temperature(temperature: float, humidity: float, wind_spe
 
 
 def calculate_dew_point(temperature: float, humidity: float) -> float:
-    """Calculate the dew point based on NOAA."""
+    """Calculate the dew point."""
     a0 = 373.15 / (273.15 + temperature)
     s = -7.90298 * (a0 - 1)
     s += 5.02808 * math.log(a0, 10)
@@ -108,3 +108,11 @@ def calculate_dew_point(temperature: float, humidity: float) -> float:
     vp = pow(10, s - 3) * humidity
     td = math.log(vp / 0.61078)
     return round((241.88 * td) / (17.558 - td), 1)
+
+
+def calculate_frost_point(temperature: float, humidity: float) -> float:
+    """Calculate the frost point."""
+    dewpoint = calculate_dew_point(temperature=temperature, humidity=humidity)
+    t = temperature + 273.15
+    td = dewpoint + 273.15
+    return (td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(t) - 13.3448)) - t) - 273.15

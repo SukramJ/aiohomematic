@@ -502,7 +502,7 @@ async def test_data_points_by_category(
     central, _, _ = central_client_factory
     ebp_sensor = central.get_data_points(category=DataPointCategory.SENSOR)
     assert ebp_sensor
-    assert len(ebp_sensor) == 15
+    assert len(ebp_sensor) == 16
 
     def _device_changed(self, *args: Any, **kwargs: Any) -> None:
         """Handle device state changes."""
@@ -510,7 +510,7 @@ async def test_data_points_by_category(
     ebp_sensor[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
     ebp_sensor2 = central.get_data_points(category=DataPointCategory.SENSOR, registered=False)
     assert ebp_sensor2
-    assert len(ebp_sensor2) == 14
+    assert len(ebp_sensor2) == 15
 
 
 @pytest.mark.asyncio
@@ -576,13 +576,13 @@ async def test_add_device(
     """Test add_device."""
     central, _, _ = central_client_factory
     assert len(central._devices) == 1
-    assert len(central.get_data_points(exclude_no_create=False)) == 31
+    assert len(central.get_data_points(exclude_no_create=False)) == 32
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
     assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
     dev_desc = helper.load_device_description(central=central, filename="HmIP-BSM.json")
     await central.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
     assert len(central._devices) == 2
-    assert len(central.get_data_points(exclude_no_create=False)) == 62
+    assert len(central.get_data_points(exclude_no_create=False)) == 63
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
     assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
     await central.add_new_devices(interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc)
@@ -609,13 +609,13 @@ async def test_delete_device(
     """Test device delete_device."""
     central, _, _ = central_client_factory
     assert len(central._devices) == 2
-    assert len(central.get_data_points(exclude_no_create=False)) == 62
+    assert len(central.get_data_points(exclude_no_create=False)) == 63
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
     assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
 
     await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
     assert len(central._devices) == 1
-    assert len(central.get_data_points(exclude_no_create=False)) == 31
+    assert len(central.get_data_points(exclude_no_create=False)) == 32
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
     assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
 
@@ -828,7 +828,7 @@ async def test_central_direct(factory: helper.Factory) -> None:
         assert central.available is False
         assert central.system_information.serial == "0815_4711"
         assert len(central._devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 62
+        assert len(central.get_data_points(exclude_no_create=False)) == 63
     finally:
         await central.stop()
 

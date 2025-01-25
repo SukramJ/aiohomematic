@@ -1,4 +1,8 @@
-"""A number of functions used to calculate climate related values."""
+"""
+A number of functions used to calculate values based on existing data.
+
+Climate related formula are based on thermal comfort (https://github.com/dolezsa/thermal_comfort) ground works.
+"""
 
 from __future__ import annotations
 

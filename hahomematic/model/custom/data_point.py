@@ -13,7 +13,7 @@ from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
 from hahomematic.model.custom.const import CDPD, DeviceProfile, Field
 from hahomematic.model.custom.support import CustomConfig
-from hahomematic.model.data_point import BaseDataPoint, CallParameterCollector
+from hahomematic.model.data_point import BaseDataPoint, NoneTypeDataPoint
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import data_point as hmge
 from hahomematic.model.support import (
@@ -305,27 +305,3 @@ class CustomDataPoint(BaseDataPoint):
         """Return if a data_point with one of the data points is part of this data_point."""
         result = [data_point for data_point in self._data_points.values() if data_point.dpk in data_point_keys]
         return len(result) > 0
-
-
-class NoneTypeDataPoint:
-    """DataPoint to return an empty value."""
-
-    default: Any = None
-    hmtype: Any = None
-    is_valid: bool = False
-    max: Any = None
-    min: Any = None
-    unit: Any = None
-    value: Any = None
-    values: list[Any] = []
-    visible: Any = None
-    channel_operation_mode: str | None = None
-    is_hmtype = False
-
-    async def send_value(
-        self,
-        value: Any,
-        collector: CallParameterCollector | None = None,
-        do_validate: bool = True,
-    ) -> None:
-        """Send value dummy method."""

@@ -1,5 +1,6 @@
 # Version 2025.1.14 (2025-01-25)
 
+- Add calculated data points: ApparentTemperature, DewPoint, VaporConcentration
 - Refactor OperatingVoltageLevel
 
 # Version 2025.1.13 (2025-01-24)

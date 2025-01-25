@@ -1,8 +1,12 @@
-# Version 2025.1.13 (2025-01-23)
+# Version 2025.1.14 (2025-01-25)
+
+- Refactor OperatingVoltageLevel
+
+# Version 2025.1.13 (2025-01-24)
 
 - Fix OperatingVoltageLevel sensor value
 
-# Version 2025.1.12 (2025-01-23)
+# Version 2025.1.12 (2025-01-24)
 
 - Add LOW_BAT_LIMIT
 - Add calculated data points: OperatingVoltageLevel

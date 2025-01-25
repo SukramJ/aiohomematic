@@ -8,7 +8,7 @@ from typing import Final
 from hahomematic.decorators import inspector
 from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
-from hahomematic.model.calculated.sensor import OperatingVoltageLevel
+from hahomematic.model.calculated.operating_voltage_level import OperatingVoltageLevel
 
 __all__ = [
     "CalculatedDataPoint",

@@ -129,6 +129,11 @@ class CallbackDataPoint(ABC):
         self._service_methods: dict[str, Callable] = {}
 
     @state_property
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information about the entity."""
+        return {}
+
+    @state_property
     @abstractmethod
     def available(self) -> bool:
         """Return the availability of the device."""

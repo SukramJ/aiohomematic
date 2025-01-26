@@ -75,7 +75,6 @@ def _calculate_wind_chill(temperature: float, wind_speed: float) -> float | None
     [2] https://www.wpc.ncep.noaa.gov/html/windchill.shtml
 
     """
-
     # Wind Chill Temperature is only defined for temperatures at or below 10°C and wind speeds above 4.8 Km/h.
     if temperature > 10 or wind_speed <= 4.8:  # if temperature > 50 or wind_speed <= 3:    # (°F, Mph)
         return None
@@ -92,6 +91,7 @@ def calculate_vapor_concentration(temperature: float, humidity: int) -> float | 
         vapor_concentration *= humidity
         vapor_concentration *= 2.1674
         vapor_concentration /= abs_temperature
+
         return round(vapor_concentration, 2)
     except ValueError as ve:
         _LOGGER.debug(
@@ -139,6 +139,7 @@ def calculate_dew_point(temperature: float, humidity: int) -> float | None:
         s += math.log(1013.246, 10)
         vp = pow(10, s - 3) * humidity
         td = math.log(vp / 0.61078)
+
         return round((241.88 * td) / (17.558 - td), 1)
     except ValueError as ve:
         if temperature == 0.0 and humidity == 0:
@@ -159,6 +160,7 @@ def calculate_frost_point(temperature: float, humidity: int) -> float | None:
             return None
         t = temperature + 273.15
         td = dewpoint + 273.15
+
         return round((td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(t) - 13.3448)) - t) - 273.15, 1)
     except ValueError as ve:
         if temperature == 0.0 and humidity == 0:

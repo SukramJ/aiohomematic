@@ -1,7 +1,9 @@
 """
 A number of functions used to calculate values based on existing data.
 
-Climate related formula are based on thermal comfort (https://github.com/dolezsa/thermal_comfort) ground works.
+Climate related formula are based on:
+ - thermal comfort (https://github.com/dolezsa/thermal_comfort) ground works.
+ - https://gist.github.com/E3V3A/8f9f0aa18380d4ab2546cd50b725a219
 """
 
 from __future__ import annotations
@@ -38,8 +40,7 @@ def calculate_heat_index(temperature: float, humidity: float) -> float:
     )
 
     if ((heat_index_fahrenheit + temperature_fahrenheit) / 2) >= 80:  # [°F]
-        # IF (temperature > 27C) & (humidity > 40 %):
-        # Use the full Rothfusz regression formula (now in Celsius)
+        # temperature > 27C and humidity > 40 %
         heat_index_celsius = math.fsum(
             [
                 c1,

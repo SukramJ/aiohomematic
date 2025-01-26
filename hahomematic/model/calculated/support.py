@@ -133,12 +133,12 @@ def calculate_dew_point(temperature: float, humidity: int) -> float | None:
     try:
         a0 = 373.15 / (273.15 + temperature)
         s = -7.90298 * (a0 - 1)
-        s += 5.02808 * math.log(x=a0, base=10)
+        s += 5.02808 * math.log(a0, 10)
         s += -1.3816e-7 * (pow(10, (11.344 * (1 - 1 / a0))) - 1)
         s += 8.1328e-3 * (pow(10, (-3.49149 * (a0 - 1))) - 1)
-        s += math.log(x=1013.246, base=10)
+        s += math.log(1013.246, 10)
         vp = pow(10, s - 3) * humidity
-        td = math.log(x=vp / 0.61078)
+        td = math.log(vp / 0.61078)
         return round((241.88 * td) / (17.558 - td), 1)
     except ValueError as ve:
         if temperature == 0.0 and humidity == 0:
@@ -159,7 +159,7 @@ def calculate_frost_point(temperature: float, humidity: int) -> float | None:
             return None
         t = temperature + 273.15
         td = dewpoint + 273.15
-        return round((td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(x=t) - 13.3448)) - t) - 273.15, 1)
+        return round((td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(t) - 13.3448)) - t) - 273.15, 1)
     except ValueError as ve:
         if temperature == 0.0 and humidity == 0:
             return 0.0

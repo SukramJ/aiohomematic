@@ -1,3 +1,7 @@
+# Version 2025.1.16 (2025-01-26)
+
+- Limit calculated climate sensors to selected devices
+
 # Version 2025.1.15 (2025-01-25)
 
 - Add calculated data points: FrostPoint

@@ -48,23 +48,6 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
             parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
         )
 
-    @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
-        """Return if this calculated data point is relevant for the model."""
-        return (
-            element_matches_key(search_elements=_RELEVANT_MODELS, compare_with=channel.device.model)
-            and (
-                channel.get_generic_data_point(parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES)
-                is not None
-                or channel.get_generic_data_point(
-                    parameter=Parameter.ACTUAL_TEMPERATURE, paramset_key=ParamsetKey.VALUES
-                )
-                is not None
-            )
-            and channel.get_generic_data_point(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES)
-            is not None
-        )
-
 
 class ApparentTemperature(BaseClimateSensor):
     """Implementation of a calculated sensor for apparent temperature."""
@@ -87,7 +70,9 @@ class ApparentTemperature(BaseClimateSensor):
     def is_relevant_for_model(channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return (
-            element_matches_key(search_elements=_RELEVANT_MODELS, compare_with=channel.device.model)
+            element_matches_key(
+                search_elements=_RELEVANT_MODELS_APPARENT_TEMPERATURE, compare_with=channel.device.model
+            )
             and channel.get_generic_data_point(parameter=Parameter.ACTUAL_TEMPERATURE, paramset_key=ParamsetKey.VALUES)
             is not None
             and channel.get_generic_data_point(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES)
@@ -122,6 +107,13 @@ class DewPoint(BaseClimateSensor):
         super().__init__(channel=channel)
         self._unit = "°C"
 
+    @staticmethod
+    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+        """Return if this calculated data point is relevant for the model."""
+        return _is_relevant_for_model_temperature_and_humidity(
+            channel=channel, relevant_models=_RELEVANT_MODELS_DEW_AND_FROST_POINT
+        )
+
     @state_property
     def value(self) -> float | None:
         """Return the value."""
@@ -142,6 +134,13 @@ class FrostPoint(BaseClimateSensor):
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "°C"
+
+    @staticmethod
+    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+        """Return if this calculated data point is relevant for the model."""
+        return _is_relevant_for_model_temperature_and_humidity(
+            channel=channel, relevant_models=_RELEVANT_MODELS_DEW_AND_FROST_POINT
+        )
 
     @state_property
     def value(self) -> float | None:
@@ -164,6 +163,13 @@ class VaporConcentration(BaseClimateSensor):
         super().__init__(channel=channel)
         self._unit = "g/m³"
 
+    @staticmethod
+    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+        """Return if this calculated data point is relevant for the model."""
+        return _is_relevant_for_model_temperature_and_humidity(
+            channel=channel, relevant_models=_RELEVANT_MODELS_VAPOR_CONCENTRATION
+        )
+
     @state_property
     def value(self) -> float | None:
         """Return the value."""
@@ -175,7 +181,22 @@ class VaporConcentration(BaseClimateSensor):
         return None
 
 
-_RELEVANT_MODELS: Final[tuple[str, ...]] = (
+def _is_relevant_for_model_temperature_and_humidity(channel: hmd.Channel, relevant_models: tuple[str, ...]) -> bool:
+    """Return if this calculated data point is relevant for the model with temperature and humidity."""
+    return (
+        element_matches_key(search_elements=relevant_models, compare_with=channel.device.model)
+        and (
+            channel.get_generic_data_point(parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES) is not None
+            or channel.get_generic_data_point(parameter=Parameter.ACTUAL_TEMPERATURE, paramset_key=ParamsetKey.VALUES)
+            is not None
+        )
+        and channel.get_generic_data_point(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES) is not None
+    )
+
+
+_RELEVANT_MODELS_APPARENT_TEMPERATURE: Final[tuple[str, ...]] = ("HmIP-SWO",)
+
+_RELEVANT_MODELS_VAPOR_CONCENTRATION: Final[tuple[str, ...]] = (
     "ELV-SH-CTH",
     "HmIP-BWTH",
     "HmIP-SFD",
@@ -184,4 +205,9 @@ _RELEVANT_MODELS: Final[tuple[str, ...]] = (
     "HmIP-WTH",
     "HmIPW-STH",
     "HmIPW-WTH",
+)
+
+_RELEVANT_MODELS_DEW_AND_FROST_POINT: Final[tuple[str, ...]] = (
+    "HmIP-STHO",
+    "HmIP-SWO",
 )

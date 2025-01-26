@@ -21,14 +21,13 @@ __all__ = [
     "create_calculated_data_points",
 ]
 
+_CALCULATED_DATA_POINTS: Final = (ApparentTemperature, DewPoint, FrostPoint, OperatingVoltageLevel, VaporConcentration)
 _LOGGER: Final = logging.getLogger(__name__)
-
-_CALCULATORS: Final = (ApparentTemperature, DewPoint, FrostPoint, OperatingVoltageLevel, VaporConcentration)
 
 
 @inspector()
 def create_calculated_data_points(channel: hmd.Channel) -> None:
     """Decides which data point category should be used, and creates the required data points."""
-    for calculator in _CALCULATORS:
-        if calculator.is_relevant_for_model(channel=channel):
-            channel.add_data_point(data_point=calculator(channel=channel))
+    for cdp in _CALCULATED_DATA_POINTS:
+        if cdp.is_relevant_for_model(channel=channel):
+            channel.add_data_point(data_point=cdp(channel=channel))

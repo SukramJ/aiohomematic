@@ -1,3 +1,7 @@
+# Version 2025.1.17 (2025-01-26)
+
+- Catch math related value errors
+
 # Version 2025.1.16 (2025-01-26)
 
 - Limit calculated climate sensors to selected devices

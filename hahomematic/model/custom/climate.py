@@ -109,6 +109,17 @@ class ClimateProfile(StrEnum):
     WEEK_PROGRAM_6 = "week_program_6"
 
 
+_HM_WEEK_PROFILE_POINTERS_TO_NAMES: Final = {
+    0: "WEEK PROGRAM 1",
+    1: "WEEK PROGRAM 2",
+    2: "WEEK PROGRAM 3",
+    3: "WEEK PROGRAM 4",
+    4: "WEEK PROGRAM 5",
+    5: "WEEK PROGRAM 6",
+}
+_HM_WEEK_PROFILE_POINTERS_TO_IDX: Final = {v: k for k, v in _HM_WEEK_PROFILE_POINTERS_TO_NAMES.items()}
+
+
 class ScheduleSlotType(StrEnum):
     """Enum for climate item type."""
 
@@ -707,17 +718,17 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             return ClimateProfile.BOOST
         if self._dp_control_mode.value == _ModeHm.AWAY:
             return ClimateProfile.AWAY
+        if self.mode == ClimateMode.AUTO:
+            return self._current_profile_name if self._current_profile_name else ClimateProfile.NONE
         return ClimateProfile.NONE
 
     @state_property
     def profiles(self) -> tuple[ClimateProfile, ...]:
         """Return available profile."""
-        return (
-            ClimateProfile.BOOST,
-            ClimateProfile.COMFORT,
-            ClimateProfile.ECO,
-            ClimateProfile.NONE,
-        )
+        control_modes = [ClimateProfile.BOOST, ClimateProfile.COMFORT, ClimateProfile.ECO, ClimateProfile.NONE]
+        if self.mode == ClimateMode.AUTO:
+            control_modes.extend(self._profile_names)
+        return tuple(control_modes)
 
     @property
     def supports_profiles(self) -> bool:
@@ -755,6 +766,14 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             await self._dp_comfort_mode.send_value(value=True, collector=collector)
         elif profile == ClimateProfile.ECO:
             await self._dp_lowering_mode.send_value(value=True, collector=collector)
+        elif profile in self._profile_names:
+            if self.mode != ClimateMode.AUTO:
+                await self.set_mode(mode=ClimateMode.AUTO, collector=collector)
+                await self._dp_boost_mode.send_value(value=False, collector=collector)
+            if profile_idx := self._profiles.get(profile):
+                await self._dp_week_program_pointer.send_value(
+                    value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector
+                )
 
     @inspector()
     async def enable_away_mode_by_calendar(self, start: datetime, end: datetime, away_temperature: float) -> None:
@@ -785,6 +804,29 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             parameter="PARTY_MODE_SUBMIT",
             value=_party_mode_code(start=start, end=end, away_temperature=12.0),
         )
+
+    @property
+    def _profile_names(self) -> tuple[ClimateProfile, ...]:
+        """Return a collection of profile names."""
+        return tuple(self._profiles.keys())
+
+    @property
+    def _current_profile_name(self) -> ClimateProfile | None:
+        """Return a profile index by name."""
+        inv_profiles = {v: k for k, v in self._profiles.items()}
+        if self._dp_week_program_pointer.value is not None:
+            return inv_profiles.get(_HM_WEEK_PROFILE_POINTERS_TO_IDX[self._dp_week_program_pointer.value])
+        return None
+
+    @property
+    def _profiles(self) -> Mapping[ClimateProfile, int]:
+        """Return the profile groups."""
+        profiles: dict[ClimateProfile, int] = {}
+        if self._dp_week_program_pointer.min is not None and self._dp_week_program_pointer.max is not None:
+            for i in range(int(self._dp_week_program_pointer.min) + 1, int(self._dp_week_program_pointer.max) + 2):
+                profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i - 1
+
+        return profiles
 
 
 def _party_mode_code(start: datetime, end: datetime, away_temperature: float) -> str:

@@ -8,7 +8,13 @@ from enum import IntEnum, StrEnum
 import logging
 from typing import Any, Final, cast
 
-from hahomematic.const import SCHEDULER_PROFILE_PATTERN, SCHEDULER_TIME_PATTERN, DataPointCategory, ParamsetKey
+from hahomematic.const import (
+    SCHEDULER_PROFILE_PATTERN,
+    SCHEDULER_TIME_PATTERN,
+    DataPointCategory,
+    ParamsetKey,
+    ProductGroup,
+)
 from hahomematic.decorators import inspector
 from hahomematic.exceptions import ClientException, ValidationException
 from hahomematic.model import device as hmd
@@ -242,6 +248,15 @@ class BaseCustomDpClimate(CustomDataPoint):
         return _DEFAULT_TEMPERATURE_STEP
 
     @property
+    def schedule_channel_address(self) -> str:
+        """Return schedule channel address."""
+        return (
+            self._channel.address
+            if self._channel.device.product_group in (ProductGroup.HMIP, ProductGroup.HMIPW)
+            else self._device.address
+        )
+
+    @property
     def supports_profiles(self) -> bool:
         """Flag if climate supports profiles."""
         return False
@@ -320,13 +335,11 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def copy_schedule(self, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device."""
 
-        if self.device.product_group != target_climate_data_point.device.product_group:
-            raise ValidationException("Copy schedule profile is only possible within the same product group")
         if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
             raise ValidationException("Copy schedule profile is only: No of schedule profile must be identical")
         raw_schedule = await self._get_raw_schedule()
         await self._client.put_paramset(
-            channel_address=target_climate_data_point.channel.address,
+            channel_address=target_climate_data_point.schedule_channel_address,
             paramset_key=ParamsetKey.MASTER,
             values=raw_schedule,
         )
@@ -347,8 +360,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         if self is target_climate_data_point:
             same_device = True
 
-        if self.device.product_group != target_climate_data_point.device.product_group:
-            raise ValidationException("Copy schedule profile is only possible within the same product group")
         if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
             raise ValidationException(
                 "Copy schedule profile on same device is only possible with defined and different source/target profiles"
@@ -357,7 +368,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         if (source_profile_data := await self.get_schedule_profile(profile=source_profile)) is None:
             raise ValidationException(f"Source profile {source_profile} could not be loaded.")
         await self._set_schedule_profile(
-            target_channel_address=target_climate_data_point.channel.address,
+            target_channel_address=target_climate_data_point.schedule_channel_address,
             profile=target_profile,
             profile_data=source_profile_data,
             do_validate=False,
@@ -383,7 +394,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Return the raw schedule."""
         try:
             raw_data = await self._client.get_paramset(
-                address=self._channel.address,
+                address=self.schedule_channel_address,
                 paramset_key=ParamsetKey.MASTER,
             )
             raw_schedule = {key: value for key, value in raw_data.items() if SCHEDULER_PROFILE_PATTERN.match(key)}
@@ -429,7 +440,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     ) -> None:
         """Set a profile to device."""
         await self._set_schedule_profile(
-            target_channel_address=self._channel.address,
+            target_channel_address=self.schedule_channel_address,
             profile=profile,
             profile_data=profile_data,
             do_validate=do_validate,
@@ -499,7 +510,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                     slot_value=slot_value,
                 )
         await self._client.put_paramset(
-            channel_address=self._channel.address,
+            channel_address=self.schedule_channel_address,
             paramset_key=ParamsetKey.MASTER,
             values=_get_raw_schedule_paramset(schedule_data=schedule_data),
         )

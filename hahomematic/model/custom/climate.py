@@ -815,7 +815,12 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         """Return a profile index by name."""
         inv_profiles = {v: k for k, v in self._profiles.items()}
         if self._dp_week_program_pointer.value is not None:
-            return inv_profiles.get(_HM_WEEK_PROFILE_POINTERS_TO_IDX[self._dp_week_program_pointer.value])
+            idx = (
+                int(self._dp_week_program_pointer.value)
+                if self._dp_week_program_pointer.value.isnumeric()
+                else _HM_WEEK_PROFILE_POINTERS_TO_IDX[self._dp_week_program_pointer.value]
+            )
+            return inv_profiles.get(idx)
         return None
 
     @property

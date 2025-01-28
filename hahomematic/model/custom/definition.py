@@ -31,7 +31,7 @@ _SCHEMA_ADDITIONAL_DPS = vol.Schema(
 
 _SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
 
-_SCHEMA_FIELD = vol.Schema({vol.Required(int): _SCHEMA_FIELD_DETAILS})
+_SCHEMA_FIELD = vol.Schema({vol.Required(vol.Any(int, None)): _SCHEMA_FIELD_DETAILS})
 
 _SCHEMA_DEVICE_GROUP = vol.Schema(
     {
@@ -482,11 +482,16 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                     Field.CONTROL_MODE: Parameter.CONTROL_MODE,
                     Field.LOWERING_MODE: Parameter.LOWERING_MODE,
                     Field.MANU_MODE: Parameter.MANU_MODE,
-                    Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
                     Field.SETPOINT: Parameter.SET_TEMPERATURE,
-                    Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
-                    Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
-                    Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
+                },
+                CDPD.FIELDS: {
+                    None: {
+                        Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
+                        Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
+                        Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
+                        Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
+                        Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
+                    }
                 },
                 CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
@@ -508,17 +513,22 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                     Field.CONTROL_MODE: Parameter.CONTROL_MODE,
                     Field.LOWERING_MODE: Parameter.LOWERING_MODE,
                     Field.MANU_MODE: Parameter.MANU_MODE,
-                    Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
                     Field.SETPOINT: Parameter.SET_TEMPERATURE,
-                    Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
-                    Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
-                    Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
+                },
+                CDPD.FIELDS: {
+                    None: {
+                        Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
+                        Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
+                        Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
+                        Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
+                        Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
+                    }
                 },
                 CDPD.VISIBLE_REPEATABLE_FIELDS: {
                     Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
                     Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
                 },
-                CDPD.FIELDS: {
+                CDPD.VISIBLE_FIELDS: {
                     0: {
                         Field.VALVE_STATE: Parameter.VALVE_STATE,
                     },
@@ -716,12 +726,15 @@ def _get_device_group(device_profile: DeviceProfile, base_channel_no: int | None
 
 def _rebase_data_point_dict(
     data_point_dict: CDPD, group: Mapping[CDPD, Any], base_channel_no: int
-) -> Mapping[int, Any]:
+) -> Mapping[int | None, Any]:
     """Rebase data_point_dict with base_channel_no."""
-    new_fields = {}
+    new_fields: dict[int | None, Any] = {}
     if fields := group.get(data_point_dict):
         for channel_no, field in fields.items():
-            new_fields[channel_no + base_channel_no] = field
+            if channel_no is None:
+                new_fields[channel_no] = field
+            else:
+                new_fields[channel_no + base_channel_no] = field
     return new_fields
 
 

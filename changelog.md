@@ -1,6 +1,8 @@
 # Version 2025.1.18 (2025-01-28)
 
+- Add WEEK_PROGRAM_POINTER for bidcos climate devices
 - Define schedule_channel_address for HM schedule usage
+- Fix usage of master dps for bidcos climate devices
 
 # Version 2025.1.17 (2025-01-26)
 

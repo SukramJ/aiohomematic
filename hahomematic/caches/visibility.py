@@ -35,22 +35,21 @@ _CLIMATE_MASTER_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.TEMPERATURE_MAXIMUM,
     Parameter.TEMPERATURE_MINIMUM,
     Parameter.TEMPERATURE_OFFSET,
+    Parameter.WEEK_PROGRAM_POINTER,
 )
 
 _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None, ...], tuple[Parameter, ...]]]] = {
     "ALPHA-IP-RBG": ((1,), _CLIMATE_MASTER_PARAMETERS),
     "HM-CC-RT-DN": (
-        (
-            None,
-            1,
-        ),
+        (None,),
         _CLIMATE_MASTER_PARAMETERS,
     ),
     "HM-CC-VG-1": (
-        (
-            None,
-            1,
-        ),
+        (None,),
+        _CLIMATE_MASTER_PARAMETERS,
+    ),
+    "HM-TC-IT-WM-W-EU": (
+        (None,),
         _CLIMATE_MASTER_PARAMETERS,
     ),
     "HmIP-BWTH": ((1, 8), _CLIMATE_MASTER_PARAMETERS),

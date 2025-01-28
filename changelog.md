@@ -1,3 +1,7 @@
+# Version 2025.1.18 (2025-01-28)
+
+- Define schedule_channel_address for HM schedule usage
+
 # Version 2025.1.17 (2025-01-26)
 
 - Catch math related value errors

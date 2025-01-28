@@ -1082,6 +1082,11 @@ class _ValueCache:
         self, channel_address: str, paramset_key: ParamsetKey, parameter: str
     ) -> dict[str, Any]:
         """Return a value from CCU to store in cache."""
+        if not self._device.available:
+            _LOGGER.debug(
+                "GET_VALUES_FOR_CACHE failed: device %s (%s) is not available", self._device.name, self._device.address
+            )
+            return {}
         if paramset_key == ParamsetKey.VALUES:
             return {
                 parameter: await self._device.client.get_value(

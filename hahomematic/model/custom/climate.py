@@ -669,6 +669,9 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         self._dp_valve_state: DpSensor[int | None] = self._get_data_point(
             field=Field.VALVE_STATE, data_point_type=DpSensor[int | None]
         )
+        self._dp_week_program_pointer: DpSelect = self._get_data_point(
+            field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
+        )
 
     @state_property
     def activity(self) -> ClimateActivity | None:

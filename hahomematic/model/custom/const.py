@@ -141,3 +141,4 @@ class Field(Enum):
     TEMPERATURE_OFFSET = "temperature_offset"
     VALVE_STATE = "valve_state"
     VOLTAGE = "voltage"
+    WEEK_PROGRAM_POINTER = "week_program_pointer"

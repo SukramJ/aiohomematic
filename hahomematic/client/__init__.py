@@ -158,12 +158,17 @@ class Client(ABC):
 
     def get_product_group(self, model: str) -> ProductGroup:
         """Return the product group."""
+        l_model = model.lower()
+        if l_model.startswith("hmipw-"):
+            return ProductGroup.HMIPW
+        if l_model.startswith("hmip-"):
+            return ProductGroup.HMIP
+        if l_model.startswith("hmw-"):
+            return ProductGroup.HMW
+        if l_model.startswith("hm-"):
+            return ProductGroup.HM
         if self.interface == Interface.HMIP_RF:
-            l_model = model.lower()
-            if l_model.startswith("hmipw"):
-                return ProductGroup.HMIPW
-            if l_model.startswith("hmip"):
-                return ProductGroup.HMIP
+            return ProductGroup.HMIP
         if self.interface == Interface.BIDCOS_WIRED:
             return ProductGroup.HMW
         if self.interface == Interface.BIDCOS_RF:

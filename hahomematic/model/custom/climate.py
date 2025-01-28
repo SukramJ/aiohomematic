@@ -12,8 +12,8 @@ from hahomematic.const import (
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     DataPointCategory,
-    Interface,
     ParamsetKey,
+    ProductGroup,
 )
 from hahomematic.decorators import inspector
 from hahomematic.exceptions import ClientException, ValidationException
@@ -250,7 +250,11 @@ class BaseCustomDpClimate(CustomDataPoint):
     @property
     def schedule_channel_address(self) -> str:
         """Return schedule channel address."""
-        return self._channel.address if self._channel.device.interface == Interface.HMIP_RF else self._device.address
+        return (
+            self._channel.address
+            if self._channel.device.product_group in (ProductGroup.HMIP, ProductGroup.HMIPW)
+            else self._device.address
+        )
 
     @property
     def supports_profiles(self) -> bool:
@@ -331,8 +335,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def copy_schedule(self, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device."""
 
-        if self.device.product_group != target_climate_data_point.device.product_group:
-            raise ValidationException("Copy schedule profile is only possible within the same product group")
         if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
             raise ValidationException("Copy schedule profile is only: No of schedule profile must be identical")
         raw_schedule = await self._get_raw_schedule()
@@ -358,8 +360,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         if self is target_climate_data_point:
             same_device = True
 
-        if self.device.product_group != target_climate_data_point.device.product_group:
-            raise ValidationException("Copy schedule profile is only possible within the same product group")
         if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
             raise ValidationException(
                 "Copy schedule profile on same device is only possible with defined and different source/target profiles"

@@ -663,6 +663,8 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 class CustomDpRfThermostat(BaseCustomDpClimate):
     """Classic HomeMatic thermostat like HM-CC-RT-DN."""
 
+    _supports_schedule = True
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()

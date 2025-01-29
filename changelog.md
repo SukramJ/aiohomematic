@@ -1,3 +1,8 @@
+# Version 2025.1.19 (2025-01-29)
+
+- Don't read on unavailable devices
+- Enable schedule on hm thermostat
+
 # Version 2025.1.18 (2025-01-28)
 
 - Add climate presets based on WEEK_PROGRAM_POINTER

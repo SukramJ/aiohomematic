@@ -123,6 +123,7 @@ class CentralUnit(PayloadMixin):
     def __init__(self, central_config: CentralConfig) -> None:
         """Init the central unit."""
         self._started: bool = False
+        self._clients_started: bool = False
         self._device_add_semaphore: Final = asyncio.Semaphore()
         self._connection_state: Final = CentralConnectionState()
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
@@ -425,7 +426,7 @@ class CentralUnit(PayloadMixin):
                 for client in self._clients.values():
                     await self._refresh_device_descriptions(client=client)
         else:
-            await self._start_clients()
+            self._clients_started = await self._start_clients()
             if self._config.enable_server:
                 self._start_scheduler()
 
@@ -468,7 +469,8 @@ class CentralUnit(PayloadMixin):
     async def restart_clients(self) -> None:
         """Restart clients."""
         await self._stop_clients()
-        await self._start_clients()
+        if await self._start_clients():
+            _LOGGER.info("RESTART_CLIENTS: Central %s restarted clients", self.name)
 
     @inspector(re_raise=False)
     async def refresh_firmware_data(self, device_address: str | None = None) -> None:
@@ -510,14 +512,16 @@ class CentralUnit(PayloadMixin):
                 device_descriptions=device_descriptions,
             )
 
-    async def _start_clients(self) -> None:
+    async def _start_clients(self) -> bool:
         """Start clients ."""
-        if await self._create_clients():
-            await self._load_caches()
-            if new_device_addresses := self._check_for_new_device_addresses():
-                await self._create_devices(new_device_addresses=new_device_addresses)
-            await self._init_hub()
-            await self._init_clients()
+        if not await self._create_clients():
+            return False
+        await self._load_caches()
+        if new_device_addresses := self._check_for_new_device_addresses():
+            await self._create_devices(new_device_addresses=new_device_addresses)
+        await self._init_hub()
+        await self._init_clients()
+        return True
 
     async def _stop_clients(self) -> None:
         """Stop clients."""
@@ -527,6 +531,7 @@ class CentralUnit(PayloadMixin):
             await client.stop()
         _LOGGER.debug("STOP_CLIENTS: Clearing existing clients.")
         self._clients.clear()
+        self._clients_started = False
 
     async def _create_clients(self) -> bool:
         """Create clients for the central unit. Start connection checker afterwards."""
@@ -564,25 +569,22 @@ class CentralUnit(PayloadMixin):
                     continue
                 await self._create_client(interface_config=interface_config)
 
-        if self.has_all_enabled_clients:
-            _LOGGER.debug(
-                "CREATE_CLIENTS: All clients successfully created for %s",
-                self.name,
-            )
-            return True
-
-        if self.primary_client is not None:
+        if not self.all_clients_active:
             _LOGGER.warning(
-                "CREATE_CLIENTS: Created %i of %i clients",
+                "CREATE_CLIENTS failed: Created %i of %i clients",
                 len(self._clients),
                 len(self._config.enabled_interface_configs),
             )
+            return False
+
+        if self.primary_client is None:
+            _LOGGER.warning("CREATE_CLIENTS failed: No primary client identified for %s", self.name)
             return True
 
-        _LOGGER.debug("CREATE_CLIENTS failed for %s", self.name)
-        return False
+        _LOGGER.debug("CREATE_CLIENTS successful for %s", self.name)
+        return True
 
-    async def _create_client(self, interface_config: hmcl.InterfaceConfig) -> None:
+    async def _create_client(self, interface_config: hmcl.InterfaceConfig) -> bool:
         """Create a client."""
         try:
             if client := await hmcl.create_client(
@@ -595,6 +597,7 @@ class CentralUnit(PayloadMixin):
                     self.name,
                 )
                 self._clients[client.interface_id] = client
+                return True
         except BaseHomematicException as ex:
             self.fire_interface_event(
                 interface_id=interface_config.interface_id,
@@ -607,6 +610,7 @@ class CentralUnit(PayloadMixin):
                 interface_config.interface_id,
                 reduce_args(args=ex.args),
             )
+        return False
 
     async def _init_clients(self) -> None:
         """Init clients of control unit, and start connection checker."""
@@ -802,7 +806,7 @@ class CentralUnit(PayloadMixin):
         return interface_id in self._clients
 
     @property
-    def has_all_enabled_clients(self) -> bool:
+    def all_clients_active(self) -> bool:
         """Check if all configured clients exists in central."""
         count_client = len(self._clients)
         return count_client > 0 and count_client == len(self._config.enabled_interface_configs)
@@ -1526,7 +1530,7 @@ class _Scheduler(threading.Thread):
     async def _run_scheduler_tasks(self) -> None:
         """Run all tasks."""
         while self._active:
-            if not self._central.started or not self._devices_created:
+            if not self._central.started:
                 _LOGGER.debug("SCHEDULER: Waiting till central %s is started", self._central.name)
                 await asyncio.sleep(10)
                 continue
@@ -1542,7 +1546,7 @@ class _Scheduler(threading.Thread):
         """Check connection to backend."""
         _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central.name)
         try:
-            if not self._central.has_all_enabled_clients:
+            if not self._central.all_clients_active:
                 _LOGGER.warning(
                     "CHECK_CONNECTION failed: No clients exist. Trying to create clients for server %s",
                     self._central.name,
@@ -1580,7 +1584,7 @@ class _Scheduler(threading.Thread):
             return
 
         if (poll_clients := self._central.poll_clients) is not None and len(poll_clients) > 0:
-            _LOGGER.debug("REFRESH_CLIENT_DATA: Checking connection to server %s", self._central.name)
+            _LOGGER.debug("REFRESH_CLIENT_DATA: Loading data for %s", self._central.name)
             for client in poll_clients:
                 await self._central.load_and_refresh_data_point_data(interface=client.interface)
                 self._central.set_last_event_dt(interface_id=client.interface_id)
@@ -1588,7 +1592,7 @@ class _Scheduler(threading.Thread):
     @inspector(re_raise=False)
     async def _refresh_sysvar_data(self) -> None:
         """Refresh system variables."""
-        if not self._central.config.enable_sysvar_scan or not self._central.available:
+        if not self._central.config.enable_sysvar_scan or not self._central.available or not self._devices_created:
             return
 
         _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central.name)
@@ -1597,7 +1601,7 @@ class _Scheduler(threading.Thread):
     @inspector(re_raise=False)
     async def _refresh_program_data(self) -> None:
         """Refresh system program_data."""
-        if not self._central.config.enable_program_scan or not self._central.available:
+        if not self._central.config.enable_program_scan or not self._central.available or not self._devices_created:
             return
 
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central.name)
@@ -1606,7 +1610,11 @@ class _Scheduler(threading.Thread):
     @inspector(re_raise=False)
     async def _fetch_device_firmware_update_data(self) -> None:
         """Periodically fetch device firmware update data from backend."""
-        if not self._central.config.enable_device_firmware_check or not self._central.available:
+        if (
+            not self._central.config.enable_device_firmware_check
+            or not self._central.available
+            or not self._devices_created
+        ):
             return
 
         _LOGGER.debug(
@@ -1618,7 +1626,11 @@ class _Scheduler(threading.Thread):
     @inspector(re_raise=False)
     async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
         """Periodically fetch device firmware update data from backend."""
-        if not self._central.config.enable_device_firmware_check or not self._central.available:
+        if (
+            not self._central.config.enable_device_firmware_check
+            or not self._central.available
+            or not self._devices_created
+        ):
             return
 
         _LOGGER.debug(
@@ -1635,7 +1647,11 @@ class _Scheduler(threading.Thread):
     @inspector(re_raise=False)
     async def _fetch_device_firmware_update_data_in_update(self) -> None:
         """Periodically fetch device firmware update data from backend."""
-        if not self._central.config.enable_device_firmware_check or not self._central.available:
+        if (
+            not self._central.config.enable_device_firmware_check
+            or not self._central.available
+            or not self._devices_created
+        ):
             return
 
         _LOGGER.debug(

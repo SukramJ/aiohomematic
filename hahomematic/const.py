@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.1.20"
+VERSION: Final = "2025.1.21"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"

@@ -1,3 +1,7 @@
+# Version 2025.1.21 (2025-01-30)
+
+- Improve connection error handling
+
 # Version 2025.1.20 (2025-01-30)
 
 - Fix index issue with WEEK_PROGRAM_POINTER

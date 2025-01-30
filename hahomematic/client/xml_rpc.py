@@ -54,9 +54,10 @@ _SSL_ERROR_CODES: Final[dict[int, str]] = {
 
 _OS_ERROR_CODES: Final[dict[int, str]] = {
     errno.ECONNREFUSED: "Connection refused",
-    errno.ENETUNREACH: "Network is unreachable",
-    errno.ETIMEDOUT: "Operation timed out",
     errno.EHOSTUNREACH: "No route to host",
+    errno.ENETUNREACH: "Network is unreachable",
+    errno.ENOEXEC: "Exec",
+    errno.ETIMEDOUT: "Operation timed out",
 }
 
 

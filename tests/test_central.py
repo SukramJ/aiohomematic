@@ -838,7 +838,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
     """Test central other methods."""
     central = await factory.get_raw_central(interface_config=None)
     try:
-        assert central.has_all_enabled_clients is False
+        assert central.all_clients_active is False
 
         with pytest.raises(NoClientsException):
             await central.validate_config_and_get_system_information()
@@ -847,7 +847,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
             central.get_client("NOT_A_VALID_INTERFACE_ID")
 
         await central.start()
-        assert central.has_all_enabled_clients is False
+        assert central.all_clients_active is False
 
         assert central.available is True
         assert central.system_information.serial is None

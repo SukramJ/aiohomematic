@@ -23,7 +23,7 @@ from hahomematic.model.custom import (
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
 )
-from hahomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHmIP
+from hahomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
 
 from tests import const, helper
 
@@ -478,6 +478,46 @@ async def test_cerfthermostat_with_profiles(
         parameter="PARTY_MODE_SUBMIT",
         value="12.0,1260,02,03,23,1320,02,03,23",
     )
+    assert climate.profile == ClimateProfile.BOOST
+
+    await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_2)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341",
+        paramset_key=ParamsetKey.MASTER,
+        parameter="WEEK_PROGRAM_POINTER",
+        value=1,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    climate._dp_control_mode._current_value = _ModeHm.AUTO
+    climate._dp_boost_mode._current_value = 0
+    climate._dp_week_program_pointer._current_value = 1
+    assert climate.profile == ClimateProfile.WEEK_PROGRAM_2
+
+    await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_3)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341",
+        paramset_key=ParamsetKey.MASTER,
+        parameter="WEEK_PROGRAM_POINTER",
+        value=2,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    climate._dp_control_mode._current_value = _ModeHm.AUTO
+    climate._dp_boost_mode._current_value = 0
+    climate._dp_week_program_pointer._current_value = 2
+    assert climate.profile == ClimateProfile.WEEK_PROGRAM_3
+
+    await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_1)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341",
+        paramset_key=ParamsetKey.MASTER,
+        parameter="WEEK_PROGRAM_POINTER",
+        value=0,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    climate._dp_control_mode._current_value = _ModeHm.AUTO
+    climate._dp_boost_mode._current_value = 0
+    climate._dp_week_program_pointer._current_value = 0
+    assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
 
 
 @pytest.mark.asyncio

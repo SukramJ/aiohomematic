@@ -1,3 +1,8 @@
+# Version 2025.1.20 (2025-01-30)
+
+- Fix index issue with WEEK_PROGRAM_POINTER
+- Use ParamsetKey enum in tests
+
 # Version 2025.1.19 (2025-01-29)
 
 - Don't read on unavailable devices

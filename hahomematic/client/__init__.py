@@ -633,7 +633,7 @@ class Client(ABC):
             )
         return await self.put_paramset(
             channel_address=channel_address,
-            paramset_key=paramset_key,
+            paramset_key_or_link_address=paramset_key,
             values={parameter: value},
             wait_for_callback=wait_for_callback,
             rx_mode=rx_mode,
@@ -670,7 +670,7 @@ class Client(ABC):
     async def put_paramset(
         self,
         channel_address: str,
-        paramset_key: ParamsetKey | str,
+        paramset_key_or_link_address: ParamsetKey | str,
         values: dict[str, Any],
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
@@ -688,10 +688,10 @@ class Client(ABC):
         try:
             if check_against_pd:
                 check_paramset_key = (
-                    ParamsetKey(paramset_key)
-                    if is_paramset_key(paramset_key=paramset_key)
+                    ParamsetKey(paramset_key_or_link_address)
+                    if is_paramset_key(paramset_key=paramset_key_or_link_address)
                     else ParamsetKey.LINK
-                    if (is_link_call := is_channel_address(address=paramset_key))
+                    if (is_link_call := is_channel_address(address=paramset_key_or_link_address))
                     else None
                 )
                 if check_paramset_key:
@@ -705,12 +705,12 @@ class Client(ABC):
                         "Parameter paramset_key is neither a valid ParamsetKey nor a channel address."
                     )
 
-            _LOGGER.debug("PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key, checked_values)
+            _LOGGER.debug("PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key_or_link_address, checked_values)
             if rx_mode and (device := self.central.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._exec_put_paramset(
                         channel_address=channel_address,
-                        paramset_key=paramset_key,
+                        paramset_key=paramset_key_or_link_address,
                         values=checked_values,
                         rx_mode=rx_mode,
                     )
@@ -719,7 +719,7 @@ class Client(ABC):
             else:
                 await self._exec_put_paramset(
                     channel_address=channel_address,
-                    paramset_key=paramset_key,
+                    paramset_key=paramset_key_or_link_address,
                     values=checked_values,
                 )
 
@@ -730,14 +730,14 @@ class Client(ABC):
             # store the send value in the last_value_send_cache
             dpk_values = self._last_value_send_cache.add_put_paramset(
                 channel_address=channel_address,
-                paramset_key=ParamsetKey(paramset_key),
+                paramset_key=ParamsetKey(paramset_key_or_link_address),
                 values=checked_values,
             )
             self._write_temporary_value(dpk_values=dpk_values)
 
             if (
                 self.interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED)
-                and paramset_key == ParamsetKey.MASTER
+                and paramset_key_or_link_address == ParamsetKey.MASTER
                 and (channel := self.central.get_channel(channel_address=channel_address)) is not None
             ):
 
@@ -746,7 +746,7 @@ class Client(ABC):
                     if not channel:
                         return
                     await asyncio.sleep(5)
-                    for dp in channel.get_readable_data_points(paramset_key=ParamsetKey(paramset_key)):
+                    for dp in channel.get_readable_data_points(paramset_key=ParamsetKey(paramset_key_or_link_address)):
                         await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
                 self.central.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
@@ -761,7 +761,7 @@ class Client(ABC):
                 )
         except BaseHomematicException as ex:
             raise ClientException(
-                f"PUT_PARAMSET failed for {channel_address}/{paramset_key}/{values}: {reduce_args(args=ex.args)}"
+                f"PUT_PARAMSET failed for {channel_address}/{paramset_key_or_link_address}/{values}: {reduce_args(args=ex.args)}"
             ) from ex
         else:
             return dpk_values

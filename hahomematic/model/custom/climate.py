@@ -351,7 +351,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         raw_schedule = await self._get_raw_schedule()
         await self._client.put_paramset(
             channel_address=target_climate_data_point.schedule_channel_address,
-            paramset_key=ParamsetKey.MASTER,
+            paramset_key_or_link_address=ParamsetKey.MASTER,
             values=raw_schedule,
         )
 
@@ -481,7 +481,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                     )
         await self._client.put_paramset(
             channel_address=target_channel_address,
-            paramset_key=ParamsetKey.MASTER,
+            paramset_key_or_link_address=ParamsetKey.MASTER,
             values=_get_raw_schedule_paramset(schedule_data=schedule_data),
         )
 
@@ -522,7 +522,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                 )
         await self._client.put_paramset(
             channel_address=self.schedule_channel_address,
-            paramset_key=ParamsetKey.MASTER,
+            paramset_key_or_link_address=ParamsetKey.MASTER,
             values=_get_raw_schedule_paramset(schedule_data=schedule_data),
         )
 
@@ -999,7 +999,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         """Enable the away mode by calendar on thermostat."""
         await self._client.put_paramset(
             channel_address=self._channel.address,
-            paramset_key=ParamsetKey.VALUES,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "SET_POINT_MODE": _ModeHmIP.AWAY,
                 "SET_POINT_TEMPERATURE": away_temperature,
@@ -1020,7 +1020,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         """Disable the away mode on thermostat."""
         await self._client.put_paramset(
             channel_address=self._channel.address,
-            paramset_key=ParamsetKey.VALUES,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "SET_POINT_MODE": _ModeHmIP.AWAY,
                 "PARTY_TIME_START": _PARTY_INIT_DATE,

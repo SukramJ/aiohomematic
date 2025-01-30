@@ -790,17 +790,17 @@ async def test_central_services(
 
     await central.get_client(interface_id=const.INTERFACE_ID).put_paramset(
         channel_address="123",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL": 1.0},
     )
     assert mock_client.method_calls[-1] == call.put_paramset(
-        channel_address="123", paramset_key="VALUES", values={"LEVEL": 1.0}
+        channel_address="123", paramset_key_or_link_address="VALUES", values={"LEVEL": 1.0}
     )
     assert len(mock_client.method_calls) == 65
     with pytest.raises(HaHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
             channel_address="123",
-            paramset_key=ParamsetKey.VALUES,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL": 1.0},
         )
     assert len(mock_client.method_calls) == 65

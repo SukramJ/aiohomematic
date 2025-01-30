@@ -658,7 +658,7 @@ async def test_ceipblind_hdm(
     await cover.set_position(position=81)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3560967:1",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": 0.81},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -669,7 +669,7 @@ async def test_ceipblind_hdm(
     await cover.open()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3560967:1",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL_2": _OPEN_TILT_LEVEL, "LEVEL": _OPEN_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -681,7 +681,7 @@ async def test_ceipblind_hdm(
     await cover.close()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3560967:1",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -693,7 +693,7 @@ async def test_ceipblind_hdm(
     await cover.open_tilt()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3560967:1",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL_2": _OPEN_TILT_LEVEL, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -704,7 +704,7 @@ async def test_ceipblind_hdm(
     await cover.set_position(tilt_position=45)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3560967:1",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL_2": 0.45, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -715,7 +715,7 @@ async def test_ceipblind_hdm(
     await cover.close_tilt()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3560967:1",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": _CLOSED_LEVEL},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -727,7 +727,7 @@ async def test_ceipblind_hdm(
     await cover.set_position(position=10, tilt_position=20)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU3560967:1",
-        paramset_key=ParamsetKey.VALUES,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL_2": 0.2, "LEVEL": 0.1},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )

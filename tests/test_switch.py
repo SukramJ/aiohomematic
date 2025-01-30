@@ -70,7 +70,7 @@ async def test_ceswitch(
     await switch.turn_on(on_time=60)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key_or_link_address="VALUES",
         values={"ON_TIME": 60.0, "STATE": True},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -81,7 +81,7 @@ async def test_ceswitch(
     await switch.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key_or_link_address="VALUES",
         values={"ON_TIME": 35.4, "STATE": True},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )

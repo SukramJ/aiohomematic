@@ -276,7 +276,7 @@ class ClientLocal(Client):  # pragma: no cover
     async def put_paramset(
         self,
         channel_address: str,
-        paramset_key: ParamsetKey | str,
+        paramset_key_or_link_address: ParamsetKey | str,
         values: Any,
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
@@ -289,12 +289,12 @@ class ClientLocal(Client):  # pragma: no cover
         but for bidcos devices there is a master paramset at the device.
         """
         # store the send value in the last_value_send_cache
-        if isinstance(paramset_key, str) and is_channel_address(address=paramset_key):
+        if isinstance(paramset_key_or_link_address, str) and is_channel_address(address=paramset_key_or_link_address):
             result = set()
         else:
             result = self._last_value_send_cache.add_put_paramset(
                 channel_address=channel_address,
-                paramset_key=ParamsetKey(paramset_key),
+                paramset_key=ParamsetKey(paramset_key_or_link_address),
                 values=values,
             )
 

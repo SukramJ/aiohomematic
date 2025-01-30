@@ -735,6 +735,22 @@ class Client(ABC):
             )
             self._write_temporary_value(dpk_values=dpk_values)
 
+            if (
+                self.interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED)
+                and paramset_key == ParamsetKey.MASTER
+                and (channel := self.central.get_channel(channel_address=channel_address)) is not None
+            ):
+
+                async def poll_master_dp_values() -> None:
+                    """Load master paramset values."""
+                    if not channel:
+                        return
+                    await asyncio.sleep(5)
+                    for dp in channel.get_readable_data_points(paramset_key=ParamsetKey(paramset_key)):
+                        await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
+
+                self.central.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
+
             if wait_for_callback is not None and (
                 device := self.central.get_device(address=get_device_address(address=channel_address))
             ):

@@ -2,6 +2,7 @@
 
 - Don't read on unavailable devices
 - Enable schedule on hm thermostat
+- Poll master dp values 5s after send for bidcos devices
 
 # Version 2025.1.18 (2025-01-28)
 

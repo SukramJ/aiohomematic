@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import DataPointUsage
+from hahomematic.const import DataPointUsage, ParamsetKey
 from hahomematic.model.generic import DpFloat, DpInteger
 from hahomematic.model.hub import SysvarDpNumber
 
@@ -54,7 +54,7 @@ async def test_hmfloat(
     await efloat.send_value(0.3)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000011:3",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.3,
     )
@@ -100,7 +100,7 @@ async def test_hmfloat_special(
     await efloat.send_value(8.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000054:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SETPOINT",
         value=8.0,
     )
@@ -109,7 +109,7 @@ async def test_hmfloat_special(
     await efloat.send_value("VENT_OPEN")
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000054:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SETPOINT",
         value=100.0,
     )
@@ -148,7 +148,7 @@ async def test_hminteger(
     await einteger.send_value(3)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU4984404:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SET_POINT_MODE",
         value=3,
     )
@@ -157,7 +157,7 @@ async def test_hminteger(
     await einteger.send_value(1.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU4984404:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SET_POINT_MODE",
         value=1,
     )
@@ -168,7 +168,7 @@ async def test_hminteger(
     await einteger.send_value(6)
     assert mock_client.method_calls[-1] != call.set_value(
         channel_address="VCU4984404:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SET_POINT_MODE",
         value=6,
     )

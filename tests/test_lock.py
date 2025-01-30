@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage
+from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from hahomematic.model.custom import CustomDpIpLock, CustomDpRfLock
 
 from tests import const, helper
@@ -50,7 +50,7 @@ async def test_cerflock(
     await lock.unlock()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000146:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -59,7 +59,7 @@ async def test_cerflock(
     await lock.lock()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000146:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         value=False,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -68,7 +68,7 @@ async def test_cerflock(
     await lock.open()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000146:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="OPEN",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -125,7 +125,7 @@ async def test_ceiplock(
     await lock.lock()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9724704:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LOCK_TARGET_LEVEL",
         value=0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -135,7 +135,7 @@ async def test_ceiplock(
     await lock.unlock()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9724704:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LOCK_TARGET_LEVEL",
         value=1,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -145,7 +145,7 @@ async def test_ceiplock(
     await lock.open()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9724704:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LOCK_TARGET_LEVEL",
         value=2,
         wait_for_callback=WAIT_FOR_CALLBACK,

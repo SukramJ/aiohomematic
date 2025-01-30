@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage
+from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from hahomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 
 from tests import const, helper
@@ -62,7 +62,7 @@ async def test_ceipsiren(
     )
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU8249617:3",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={
             "ACOUSTIC_ALARM_SELECTION": 3,
             "OPTICAL_ALARM_SELECTION": 1,
@@ -79,7 +79,7 @@ async def test_ceipsiren(
     )
     assert mock_client.method_calls[-2] == call.put_paramset(
         channel_address="VCU8249617:3",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={
             "ACOUSTIC_ALARM_SELECTION": 3,
             "OPTICAL_ALARM_SELECTION": 1,
@@ -106,7 +106,7 @@ async def test_ceipsiren(
     await siren.turn_off()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU8249617:3",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={
             "ACOUSTIC_ALARM_SELECTION": 0,
             "OPTICAL_ALARM_SELECTION": 0,
@@ -159,7 +159,7 @@ async def test_ceipsirensmoke(
     await siren.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2822385:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SMOKE_DETECTOR_COMMAND",
         value=2,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -168,7 +168,7 @@ async def test_ceipsirensmoke(
     await siren.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2822385:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SMOKE_DETECTOR_COMMAND",
         value=1,
         wait_for_callback=WAIT_FOR_CALLBACK,

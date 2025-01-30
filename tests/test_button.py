@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import DataPointUsage, ProgramData
+from hahomematic.const import DataPointUsage, ParamsetKey, ProgramData
 from hahomematic.model.generic import DpButton
 from hahomematic.model.hub import ProgramDpButton
 
@@ -54,7 +54,7 @@ async def test_hmbutton(
     await button.press()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1437294:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="RESET_MOTION",
         value=True,
     )

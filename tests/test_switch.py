@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage
+from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from hahomematic.model.custom import CustomDpSwitch
 from hahomematic.model.generic import DpSwitch
 from hahomematic.model.hub import SysvarDpSwitch
@@ -52,7 +52,7 @@ async def test_ceswitch(
     await switch.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         value=True,
         wait_for_callback=None,
@@ -61,7 +61,7 @@ async def test_ceswitch(
     await switch.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         value=False,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -70,7 +70,7 @@ async def test_ceswitch(
     await switch.turn_on(on_time=60)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU2128127:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"ON_TIME": 60.0, "STATE": True},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -81,7 +81,7 @@ async def test_ceswitch(
     await switch.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU2128127:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"ON_TIME": 35.4, "STATE": True},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -129,7 +129,7 @@ async def test_hmswitch(
     await switch.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         value=True,
     )
@@ -137,7 +137,7 @@ async def test_hmswitch(
     await switch.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         value=False,
     )
@@ -145,13 +145,13 @@ async def test_hmswitch(
     await switch.turn_on(on_time=60)
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="ON_TIME",
         value=60.0,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         value=True,
     )
@@ -159,7 +159,7 @@ async def test_hmswitch(
     await switch.set_on_time(35.4)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="ON_TIME",
         value=35.4,
     )

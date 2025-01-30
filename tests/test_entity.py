@@ -10,7 +10,7 @@ import pytest
 from hahomematic.caches.visibility import check_ignore_parameters_is_clean
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import CallSource, DataPointUsage
+from hahomematic.const import CallSource, DataPointUsage, ParamsetKey
 from hahomematic.model.custom import CustomDpSwitch, get_required_parameters, validate_custom_data_point_definition
 from hahomematic.model.generic import DpSensor, DpSwitch
 
@@ -142,13 +142,13 @@ async def test_load_custom_data_point(
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-2] == call.get_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         call_source="hm_init",
     )
     assert mock_client.method_calls[-1] == call.get_value(
         channel_address="VCU2128127:3",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         call_source="hm_init",
     )
@@ -177,7 +177,7 @@ async def test_load_generic_data_point(
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-1] == call.get_value(
         channel_address="VCU2128127:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         call_source="hm_init",
     )

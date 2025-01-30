@@ -772,7 +772,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             if self.mode != ClimateMode.AUTO:
                 await self.set_mode(mode=ClimateMode.AUTO, collector=collector)
                 await self._dp_boost_mode.send_value(value=False, collector=collector)
-            if profile_idx := self._profiles.get(profile):
+            if (profile_idx := self._profiles.get(profile)) is not None:
                 await self._dp_week_program_pointer.send_value(
                     value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector
                 )

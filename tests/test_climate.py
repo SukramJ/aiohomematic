@@ -23,7 +23,7 @@ from hahomematic.model.custom import (
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
 )
-from hahomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHmIP
+from hahomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
 
 from tests import const, helper
 
@@ -96,7 +96,7 @@ async def test_cesimplerfthermostat(
     await climate.set_temperature(12.0)
     last_call = call.set_value(
         channel_address="VCU0000054:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SETPOINT",
         value=12.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -182,7 +182,7 @@ async def test_cerfthermostat(
     await climate.set_temperature(12.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000050:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SET_TEMPERATURE",
         value=12.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -198,7 +198,7 @@ async def test_cerfthermostat(
     await climate.set_mode(ClimateMode.HEAT)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000050:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="MANU_MODE",
         value=12.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -209,7 +209,7 @@ async def test_cerfthermostat(
     await climate.set_mode(ClimateMode.OFF)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU0000050:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"MANU_MODE": 12.0, "SET_TEMPERATURE": 4.5},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -220,7 +220,7 @@ async def test_cerfthermostat(
     await climate.set_mode(ClimateMode.AUTO)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000050:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="AUTO_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -239,7 +239,7 @@ async def test_cerfthermostat(
     await climate.set_profile(ClimateProfile.BOOST)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000050:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="BOOST_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -251,7 +251,7 @@ async def test_cerfthermostat(
     await climate.set_profile(ClimateProfile.COMFORT)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000050:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="COMFORT_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -259,7 +259,7 @@ async def test_cerfthermostat(
     await climate.set_profile(ClimateProfile.ECO)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000050:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LOWERING_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -355,7 +355,7 @@ async def test_cerfthermostat_with_profiles(
     await climate.set_temperature(12.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000341:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SET_TEMPERATURE",
         value=12.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -371,7 +371,7 @@ async def test_cerfthermostat_with_profiles(
     await climate.set_mode(ClimateMode.HEAT)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000341:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="MANU_MODE",
         value=12.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -382,7 +382,7 @@ async def test_cerfthermostat_with_profiles(
     await climate.set_mode(ClimateMode.OFF)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU0000341:2",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"MANU_MODE": 12.0, "SET_TEMPERATURE": 4.5},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -392,7 +392,7 @@ async def test_cerfthermostat_with_profiles(
     await climate.set_mode(ClimateMode.AUTO)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000341:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="AUTO_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -414,7 +414,7 @@ async def test_cerfthermostat_with_profiles(
     await climate.set_profile(ClimateProfile.BOOST)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000341:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="BOOST_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -426,7 +426,7 @@ async def test_cerfthermostat_with_profiles(
     await climate.set_profile(ClimateProfile.COMFORT)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000341:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="COMFORT_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -434,7 +434,7 @@ async def test_cerfthermostat_with_profiles(
     await climate.set_profile(ClimateProfile.ECO)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000341:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LOWERING_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -478,6 +478,46 @@ async def test_cerfthermostat_with_profiles(
         parameter="PARTY_MODE_SUBMIT",
         value="12.0,1260,02,03,23,1320,02,03,23",
     )
+    assert climate.profile == ClimateProfile.BOOST
+
+    await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_2)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341",
+        paramset_key=ParamsetKey.MASTER,
+        parameter="WEEK_PROGRAM_POINTER",
+        value=1,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    climate._dp_control_mode._current_value = _ModeHm.AUTO
+    climate._dp_boost_mode._current_value = 0
+    climate._dp_week_program_pointer._current_value = 1
+    assert climate.profile == ClimateProfile.WEEK_PROGRAM_2
+
+    await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_3)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341",
+        paramset_key=ParamsetKey.MASTER,
+        parameter="WEEK_PROGRAM_POINTER",
+        value=2,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    climate._dp_control_mode._current_value = _ModeHm.AUTO
+    climate._dp_boost_mode._current_value = 0
+    climate._dp_week_program_pointer._current_value = 2
+    assert climate.profile == ClimateProfile.WEEK_PROGRAM_3
+
+    await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_1)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341",
+        paramset_key=ParamsetKey.MASTER,
+        parameter="WEEK_PROGRAM_POINTER",
+        value=0,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    climate._dp_control_mode._current_value = _ModeHm.AUTO
+    climate._dp_boost_mode._current_value = 0
+    climate._dp_week_program_pointer._current_value = 0
+    assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
 
 
 @pytest.mark.asyncio
@@ -537,7 +577,7 @@ async def test_ceipthermostat(
     await climate.set_temperature(12.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1769958:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="SET_POINT_TEMPERATURE",
         value=12.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -555,7 +595,7 @@ async def test_ceipthermostat(
     await climate.set_mode(ClimateMode.OFF)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 4.5},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -565,7 +605,7 @@ async def test_ceipthermostat(
     await climate.set_mode(ClimateMode.HEAT)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 5.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -580,7 +620,7 @@ async def test_ceipthermostat(
     await climate.set_profile(ClimateProfile.BOOST)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1769958:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="BOOST_MODE",
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -591,7 +631,7 @@ async def test_ceipthermostat(
     await climate.set_mode(ClimateMode.AUTO)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"BOOST_MODE": False, "CONTROL_MODE": 0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -611,7 +651,7 @@ async def test_ceipthermostat(
     await climate.set_profile(ClimateProfile.NONE)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1769958:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="BOOST_MODE",
         value=False,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -623,7 +663,7 @@ async def test_ceipthermostat(
     await climate.set_profile(ClimateProfile.WEEK_PROGRAM_1)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1769958:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="ACTIVE_PROFILE",
         value=1,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -634,7 +674,7 @@ async def test_ceipthermostat(
         await climate.enable_away_mode_by_duration(hours=100, away_temperature=17.0)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={
             "SET_POINT_MODE": 2,
             "SET_POINT_TEMPERATURE": 17.0,
@@ -648,7 +688,7 @@ async def test_ceipthermostat(
     )
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={
             "SET_POINT_MODE": 2,
             "SET_POINT_TEMPERATURE": 17.0,
@@ -660,7 +700,7 @@ async def test_ceipthermostat(
     await climate.disable_away_mode()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={
             "SET_POINT_MODE": 2,
             "PARTY_TIME_START": "2000_01_01 00:00",

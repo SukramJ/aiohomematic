@@ -157,20 +157,20 @@ async def test_identify_ip_addr(
 @pytest.mark.parametrize(
     ("line", "parameter", "channel_no", "paramset_key", "expected_result"),
     [
-        ("", "LEVEL", 1, "VALUES", False),
-        ("LEVEL", "LEVEL", 1, "VALUES", True),
-        ("VALVE_ADAPTION", "VALVE_ADAPTION", 1, "VALUES", True),
-        ("ACTIVE_PROFILE", "ACTIVE_PROFILE", 1, "VALUES", True),
-        ("LEVEL@HmIP-eTRV-2:1:VALUES", "LEVEL", 1, "VALUES", False),
-        ("LEVEL@HmIP-eTRV-2", "LEVEL", 1, "VALUES", False),
-        ("LEVEL@@HmIP-eTRV-2", "LEVEL", 1, "VALUES", False),
-        ("HmIP-eTRV-2:1:MASTER", "LEVEL", 1, "VALUES", False),
-        ("LEVEL:VALUES@all:all", "LEVEL", 1, "VALUES", True),
-        ("LEVEL:VALUES@HmIP-eTRV-2:all", "LEVEL", 1, "VALUES", True),
-        ("LEVEL:VALUES@all:1", "LEVEL", 1, "VALUES", True),
-        ("LEVEL:VALUES@all", "LEVEL", 1, "VALUES", False),
-        ("LEVEL::VALUES@all:1", "LEVEL", 1, "VALUES", False),
-        ("LEVEL:VALUES@all::1", "LEVEL", 1, "VALUES", False),
+        ("", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("LEVEL", "LEVEL", 1, ParamsetKey.VALUES, True),
+        ("VALVE_ADAPTION", "VALVE_ADAPTION", 1, ParamsetKey.VALUES, True),
+        ("ACTIVE_PROFILE", "ACTIVE_PROFILE", 1, ParamsetKey.VALUES, True),
+        ("LEVEL@HmIP-eTRV-2:1:VALUES", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("LEVEL@HmIP-eTRV-2", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("LEVEL@@HmIP-eTRV-2", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("HmIP-eTRV-2:1:MASTER", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("LEVEL:VALUES@all:all", "LEVEL", 1, ParamsetKey.VALUES, True),
+        ("LEVEL:VALUES@HmIP-eTRV-2:all", "LEVEL", 1, ParamsetKey.VALUES, True),
+        ("LEVEL:VALUES@all:1", "LEVEL", 1, ParamsetKey.VALUES, True),
+        ("LEVEL:VALUES@all", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("LEVEL::VALUES@all:1", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("LEVEL:VALUES@all::1", "LEVEL", 1, ParamsetKey.VALUES, False),
     ],
 )
 @pytest.mark.asyncio
@@ -203,12 +203,12 @@ async def test_device_un_ignore_etrv(
 @pytest.mark.parametrize(
     ("line", "parameter", "channel_no", "paramset_key", "expected_result"),
     [
-        ("LEVEL", "LEVEL", 3, "VALUES", True),
-        ("LEVEL@HmIP-BROLL:3:VALUES", "LEVEL", 3, "VALUES", False),
-        ("LEVEL:VALUES@HmIP-BROLL:3", "LEVEL", 3, "VALUES", True),
-        ("LEVEL:VALUES@all:3", "LEVEL", 3, "VALUES", True),
-        ("LEVEL:VALUES@all:3", "LEVEL", 4, "VALUES", False),
-        ("LEVEL:VALUES@HmIP-BROLL:all", "LEVEL", 3, "VALUES", True),
+        ("LEVEL", "LEVEL", 3, ParamsetKey.VALUES, True),
+        ("LEVEL@HmIP-BROLL:3:VALUES", "LEVEL", 3, ParamsetKey.VALUES, False),
+        ("LEVEL:VALUES@HmIP-BROLL:3", "LEVEL", 3, ParamsetKey.VALUES, True),
+        ("LEVEL:VALUES@all:3", "LEVEL", 3, ParamsetKey.VALUES, True),
+        ("LEVEL:VALUES@all:3", "LEVEL", 4, ParamsetKey.VALUES, False),
+        ("LEVEL:VALUES@HmIP-BROLL:all", "LEVEL", 3, ParamsetKey.VALUES, True),
     ],
 )
 @pytest.mark.asyncio
@@ -247,7 +247,7 @@ async def test_device_un_ignore_broll(
             "GLOBAL_BUTTON_LOCK:MASTER@HM-TC-IT-WM-W-EU:",
             "GLOBAL_BUTTON_LOCK",
             None,
-            "MASTER",
+            ParamsetKey.MASTER,
             True,
         ),
     ],
@@ -284,15 +284,15 @@ async def test_device_un_ignore_hm(
 @pytest.mark.parametrize(
     ("lines", "parameter", "channel_no", "paramset_key", "expected_result"),
     [
-        (["DECISION_VALUE:VALUES@all:all"], "DECISION_VALUE", 3, "VALUES", True),
-        (["INHIBIT:VALUES@HM-ES-PMSw1-Pl:1"], "INHIBIT", 1, "VALUES", True),
-        (["WORKING:VALUES@all:all"], "WORKING", 1, "VALUES", True),
-        (["AVERAGING:MASTER@HM-ES-PMSw1-Pl:2"], "AVERAGING", 2, "MASTER", True),
+        (["DECISION_VALUE:VALUES@all:all"], "DECISION_VALUE", 3, ParamsetKey.VALUES, True),
+        (["INHIBIT:VALUES@HM-ES-PMSw1-Pl:1"], "INHIBIT", 1, ParamsetKey.VALUES, True),
+        (["WORKING:VALUES@all:all"], "WORKING", 1, ParamsetKey.VALUES, True),
+        (["AVERAGING:MASTER@HM-ES-PMSw1-Pl:2"], "AVERAGING", 2, ParamsetKey.MASTER, True),
         (
             ["DECISION_VALUE:VALUES@all:all", "AVERAGING:MASTER@HM-ES-PMSw1-Pl:2"],
             "DECISION_VALUE",
             3,
-            "VALUES",
+            ParamsetKey.VALUES,
             True,
         ),
         (
@@ -304,7 +304,7 @@ async def test_device_un_ignore_hm(
             ],
             "DECISION_VALUE",
             3,
-            "VALUES",
+            ParamsetKey.VALUES,
             True,
         ),
         (
@@ -316,21 +316,21 @@ async def test_device_un_ignore_hm(
             ],
             "AVERAGING",
             2,
-            "MASTER",
+            ParamsetKey.MASTER,
             True,
         ),
         (
             ["DECISION_VALUE", "INHIBIT:VALUES", "WORKING", "AVERAGING:MASTER@HM-ES-PMSw1-Pl:2"],
             "AVERAGING",
             2,
-            "MASTER",
+            ParamsetKey.MASTER,
             True,
         ),
         (
             ["DECISION_VALUE", "INHIBIT:VALUES", "WORKING", "AVERAGING:MASTER@HM-ES-PMSw1-Pl:2"],
             "DECISION_VALUE",
             3,
-            "VALUES",
+            ParamsetKey.VALUES,
             True,
         ),
     ],
@@ -794,7 +794,7 @@ async def test_central_services(
         values={"LEVEL": 1.0},
     )
     assert mock_client.method_calls[-1] == call.put_paramset(
-        channel_address="123", paramset_key_or_link_address="VALUES", values={"LEVEL": 1.0}
+        channel_address="123", paramset_key_or_link_address=ParamsetKey.VALUES, values={"LEVEL": 1.0}
     )
     assert len(mock_client.method_calls) == 65
     with pytest.raises(HaHomematicException):

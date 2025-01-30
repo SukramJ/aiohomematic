@@ -74,7 +74,7 @@ async def test_cedimmer(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1399816:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -84,7 +84,7 @@ async def test_cedimmer(
     await light.turn_on(brightness=28)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1399816:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.10980392156862745,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -100,14 +100,14 @@ async def test_cedimmer(
     await light.turn_on(on_time=5.0, ramp_time=6.0)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"LEVEL": 0.10980392156862745, "RAMP_TIME": 6.0, "ON_TIME": 5.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     await light.turn_on(on_time=5.0)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"ON_TIME": 5.0, "LEVEL": 0.10980392156862745},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -115,7 +115,7 @@ async def test_cedimmer(
     await light.turn_off(ramp_time=6.0)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"RAMP_TIME": 6.0, "LEVEL": 0.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -125,7 +125,7 @@ async def test_cedimmer(
     await light.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU1399816:4",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -136,7 +136,7 @@ async def test_cedimmer(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"ON_TIME": 0.5, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -145,7 +145,7 @@ async def test_cedimmer(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"ON_TIME": 1.6, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -206,7 +206,7 @@ async def test_cecolordimmereffect(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU3747418:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -215,7 +215,7 @@ async def test_cecolordimmereffect(
     await light.turn_on(brightness=28)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU3747418:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.10980392156862745,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -224,7 +224,7 @@ async def test_cecolordimmereffect(
     await light.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU3747418:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -235,14 +235,14 @@ async def test_cecolordimmereffect(
     await light.turn_on(hs_color=(44.4, 69.3))
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU3747418:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="COLOR",
         value=25,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU3747418:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -252,14 +252,14 @@ async def test_cecolordimmereffect(
     await light.turn_on(hs_color=(0, 50))
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU3747418:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="COLOR",
         value=0,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU3747418:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -270,14 +270,14 @@ async def test_cecolordimmereffect(
 
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU3747418:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU3747418:3",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="PROGRAM",
         value=1,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -303,14 +303,14 @@ async def test_cecolordimmereffect(
     await light.turn_on(brightness=28, effect="Slow color change")
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU3747418:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.10980392156862745,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU3747418:3",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="PROGRAM",
         value=1,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -353,7 +353,7 @@ async def test_cecolortempdimmer(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000115:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -362,7 +362,7 @@ async def test_cecolortempdimmer(
     await light.turn_on(brightness=28)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000115:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.10980392156862745,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -371,7 +371,7 @@ async def test_cecolortempdimmer(
     await light.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000115:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -382,14 +382,14 @@ async def test_cecolortempdimmer(
     await light.turn_on(color_temp_kelvin=2309)
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU0000115:2",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.1930835734870317,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000115:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -459,7 +459,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 7, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -467,7 +467,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(brightness=28)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "LEVEL": 0.10980392156862745},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -475,7 +475,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU6985973:8",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -486,7 +486,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(hs_color=(350, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 4, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -495,7 +495,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(hs_color=(0.0, 0.0))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 7, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -504,7 +504,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(hs_color=(60.0, 50.0))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 6, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -513,7 +513,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(hs_color=(120, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 2, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -522,7 +522,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(hs_color=(180, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 3, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -531,7 +531,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(hs_color=(240, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 1, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -540,7 +540,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(hs_color=(300, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR": 5, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -558,7 +558,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"DURATION_VALUE": 18, "COLOR_BEHAVIOUR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -568,7 +568,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "DURATION_UNIT": 1, "DURATION_VALUE": 283, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -578,14 +578,14 @@ async def test_ceipfixedcolorlight(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "DURATION_UNIT": 2, "DURATION_VALUE": 277, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     await light.turn_on(ramp_time=18)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "RAMP_TIME_VALUE": 18, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -593,7 +593,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(ramp_time=17000)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "RAMP_TIME_UNIT": 1, "RAMP_TIME_VALUE": 283, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -601,7 +601,7 @@ async def test_ceipfixedcolorlight(
     await light.turn_on(ramp_time=1000000)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "RAMP_TIME_UNIT": 2, "RAMP_TIME_VALUE": 277, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -666,7 +666,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 7, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -676,7 +676,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(brightness=100)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "LEVEL": 0.39215686274509803},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -687,7 +687,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU4704397:8",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -699,7 +699,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(hs_color=(350, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 4, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -710,7 +710,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(hs_color=(0.0, 0.0))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 7, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -721,7 +721,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(hs_color=(60.0, 50.0))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 6, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -732,7 +732,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(hs_color=(120, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 2, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -743,7 +743,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(hs_color=(180, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 3, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -754,7 +754,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(hs_color=(240, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -765,7 +765,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(hs_color=(300, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "COLOR": 5, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -781,7 +781,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(brightness=100)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "LEVEL": 0.39215686274509803},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -792,7 +792,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(brightness=33)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 1, "LEVEL": 0.12941176470588237},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -803,7 +803,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(effect="FLASH_MIDDLE")
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "LEVEL": 0.12941176470588237},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -814,7 +814,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(brightness=66)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "LEVEL": 0.25882352941176473},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -828,7 +828,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "DURATION_VALUE": 18, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -838,7 +838,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "DURATION_UNIT": 1, "DURATION_VALUE": 283, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -848,14 +848,14 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "DURATION_UNIT": 2, "DURATION_VALUE": 277, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     await light.turn_on(ramp_time=18)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "RAMP_TIME_VALUE": 18, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -863,7 +863,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(ramp_time=17000)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "RAMP_TIME_UNIT": 1, "RAMP_TIME_VALUE": 283, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -871,7 +871,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(ramp_time=1000000)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "RAMP_TIME_UNIT": 2, "RAMP_TIME_VALUE": 277, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -890,7 +890,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(effect="BLINKING_SLOW")
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 2, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -899,7 +899,7 @@ async def test_ceipfixedcolorlightwired(
     await light.turn_on(effect="FLASH_MIDDLE")
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_BEHAVIOUR": 6, "LEVEL": 0.10980392156862745},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -965,7 +965,7 @@ async def test_ceiprgbwlight(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU5629873:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -974,7 +974,7 @@ async def test_ceiprgbwlight(
     await light.turn_on(brightness=28)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU5629873:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.10980392156862745,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -983,7 +983,7 @@ async def test_ceiprgbwlight(
     await light.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU5629873:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -994,7 +994,7 @@ async def test_ceiprgbwlight(
     await light.turn_on(color_temp_kelvin=3000)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU5629873:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"COLOR_TEMPERATURE": 3000, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -1014,7 +1014,7 @@ async def test_ceiprgbwlight(
     await light.turn_on(hs_color=(44.4, 69.3))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU5629873:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"HUE": 44, "SATURATION": 0.693, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -1023,7 +1023,7 @@ async def test_ceiprgbwlight(
     await light.turn_on(hs_color=(0, 50))
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU5629873:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"HUE": 0, "SATURATION": 0.5, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -1032,7 +1032,7 @@ async def test_ceiprgbwlight(
     await light.turn_on(effect="EFFECT_01_END_CURRENT_PROFILE")
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU5629873:1",
-        paramset_key_or_link_address="VALUES",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
         values={"EFFECT": 1, "LEVEL": 1.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
@@ -1119,7 +1119,7 @@ async def test_cecolordimmer(
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9973336:13",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -1128,7 +1128,7 @@ async def test_cecolordimmer(
     await light.turn_on(brightness=28)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9973336:13",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.10980392156862745,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -1137,7 +1137,7 @@ async def test_cecolordimmer(
     await light.turn_off()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9973336:13",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=0.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -1148,14 +1148,14 @@ async def test_cecolordimmer(
     await light.turn_on(hs_color=(44.4, 69.3))
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU9973336:15",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="COLOR",
         value=25,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9973336:13",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -1165,14 +1165,14 @@ async def test_cecolordimmer(
     await light.turn_on(hs_color=(0, 50))
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU9973336:15",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="COLOR",
         value=0,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9973336:13",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,
@@ -1181,14 +1181,14 @@ async def test_cecolordimmer(
     await light.turn_on(hs_color=(0, 1))
     assert mock_client.method_calls[-2] == call.set_value(
         channel_address="VCU9973336:15",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="COLOR",
         value=200,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9973336:13",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.0,
         wait_for_callback=WAIT_FOR_CALLBACK,

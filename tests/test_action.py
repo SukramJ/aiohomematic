@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import DataPointUsage
+from hahomematic.const import DataPointUsage, ParamsetKey
 from hahomematic.model.generic import DpAction
 
 from tests import helper
@@ -52,14 +52,14 @@ async def test_hmaction(
     await action.send_value("OPEN")
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9724704:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LOCK_TARGET_LEVEL",
         value=2,
     )
     await action.send_value(1)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9724704:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LOCK_TARGET_LEVEL",
         value=1,
     )

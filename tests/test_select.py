@@ -9,7 +9,7 @@ import pytest
 
 from hahomematic.central import CentralUnit
 from hahomematic.client import Client
-from hahomematic.const import DataPointUsage
+from hahomematic.const import DataPointUsage, ParamsetKey
 from hahomematic.model.generic import DpSelect
 from hahomematic.model.hub import SysvarDpSelect
 
@@ -54,7 +54,7 @@ async def test_hmselect(
     await select.send_value("OPEN")
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU6354483:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="WINDOW_STATE",
         value=1,
     )
@@ -69,7 +69,7 @@ async def test_hmselect(
     await select.send_value(1)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU6354483:1",
-        paramset_key="VALUES",
+        paramset_key=ParamsetKey.VALUES,
         parameter="WINDOW_STATE",
         value=1,
     )

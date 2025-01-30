@@ -62,7 +62,7 @@ async def test_ceipsiren(
     )
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU8249617:3",
-        paramset_key="VALUES",
+        paramset_key_or_link_address="VALUES",
         values={
             "ACOUSTIC_ALARM_SELECTION": 3,
             "OPTICAL_ALARM_SELECTION": 1,
@@ -79,7 +79,7 @@ async def test_ceipsiren(
     )
     assert mock_client.method_calls[-2] == call.put_paramset(
         channel_address="VCU8249617:3",
-        paramset_key="VALUES",
+        paramset_key_or_link_address="VALUES",
         values={
             "ACOUSTIC_ALARM_SELECTION": 3,
             "OPTICAL_ALARM_SELECTION": 1,
@@ -106,7 +106,7 @@ async def test_ceipsiren(
     await siren.turn_off()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU8249617:3",
-        paramset_key="VALUES",
+        paramset_key_or_link_address="VALUES",
         values={
             "ACOUSTIC_ALARM_SELECTION": 0,
             "OPTICAL_ALARM_SELECTION": 0,

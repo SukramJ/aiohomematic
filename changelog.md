@@ -2,6 +2,8 @@
 
 - Don't read on unavailable devices
 - Enable schedule on hm thermostat
+- Poll master dp values 5s after send for bidcos devices
+- Rename paramset_key to paramset_key_or_link_address for put_paramset
 
 # Version 2025.1.18 (2025-01-28)
 

@@ -846,7 +846,7 @@ class CallParameterCollector:
                         dpk_values.update(
                             await self._client.put_paramset(
                                 channel_address=channel_address,
-                                paramset_key=paramset_key,
+                                paramset_key_or_link_address=paramset_key,
                                 values=paramset,
                                 wait_for_callback=wait_for_callback,
                             )

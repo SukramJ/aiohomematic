@@ -30,7 +30,7 @@ async def test_central_mini(central_unit_mini) -> None:
     assert central_unit_mini.get_client(const.INTERFACE_ID).model == "PyDevCCU"
     assert central_unit_mini.primary_client.model == "PyDevCCU"
     assert len(central_unit_mini._devices) == 2
-    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 67
+    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 68
 
     usage_types: dict[DataPointUsage, int] = {}
     for data_point in central_unit_mini.get_data_points(exclude_no_create=False):
@@ -42,7 +42,7 @@ async def test_central_mini(central_unit_mini) -> None:
 
     assert usage_types[DataPointUsage.NO_CREATE] == 45
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
-    assert usage_types[DataPointUsage.DATA_POINT] == 13
+    assert usage_types[DataPointUsage.DATA_POINT] == 14
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 5
 
 
@@ -133,7 +133,7 @@ async def test_central_full(central_unit_full) -> None:
 
     assert usage_types[DataPointUsage.NO_CREATE] == 4156
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 261
-    assert usage_types[DataPointUsage.DATA_POINT] == 3765
+    assert usage_types[DataPointUsage.DATA_POINT] == 3774
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 133
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 154
 

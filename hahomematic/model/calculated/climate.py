@@ -111,7 +111,7 @@ class DewPoint(BaseClimateSensor):
     def is_relevant_for_model(channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(
-            channel=channel, relevant_models=_RELEVANT_MODELS_DEW_AND_FROST_POINT
+            channel=channel, relevant_models=_RELEVANT_MODELS_DEW_POINT
         )
 
     @state_property
@@ -139,7 +139,7 @@ class FrostPoint(BaseClimateSensor):
     def is_relevant_for_model(channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(
-            channel=channel, relevant_models=_RELEVANT_MODELS_DEW_AND_FROST_POINT
+            channel=channel, relevant_models=_RELEVANT_MODELS_FROST_POINT
         )
 
     @state_property
@@ -207,7 +207,18 @@ _RELEVANT_MODELS_VAPOR_CONCENTRATION: Final[tuple[str, ...]] = (
     "HmIPW-WTH",
 )
 
-_RELEVANT_MODELS_DEW_AND_FROST_POINT: Final[tuple[str, ...]] = (
+_RELEVANT_MODELS_DEW_POINT: Final[tuple[str, ...]] = (
+    "ELV-SH-CTH",
+    "HmIP-BWTH",
+    "HmIP-SFD",
+    "HmIP-STH",
+    "HmIP-SWO",
+    "HmIP-WTH",
+    "HmIPW-STH",
+    "HmIPW-WTH",
+)
+
+_RELEVANT_MODELS_FROST_POINT: Final[tuple[str, ...]] = (
     "HmIP-STHO",
     "HmIP-SWO",
 )

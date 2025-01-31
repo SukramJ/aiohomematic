@@ -1,3 +1,7 @@
+# Version 2025.1.22 (2025-01-31)
+
+- Enable DEW_POINT calculation for internal thermostats
+
 # Version 2025.1.21 (2025-01-30)
 
 - Improve connection error handling

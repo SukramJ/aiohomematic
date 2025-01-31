@@ -37,6 +37,7 @@ from hahomematic.const import (
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
     DEFAULT_ENABLE_PROGRAM_SCAN,
     DEFAULT_ENABLE_SYSVAR_SCAN,
+    DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
     DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
@@ -1714,6 +1715,7 @@ class CentralConfig:
         enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
         enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
         enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
+        hm_master_poll_after_send_intervals: tuple[int, ...] = DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
         ignore_custom_device_definition_models: tuple[str, ...] = DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
         interfaces_requiring_periodic_refresh: tuple[Interface, ...] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
         json_port: int | None = None,
@@ -1739,6 +1741,7 @@ class CentralConfig:
         self.enable_device_firmware_check: Final = enable_device_firmware_check
         self.enable_program_scan: Final = enable_program_scan
         self.enable_sysvar_scan: Final = enable_sysvar_scan
+        self.hm_master_poll_after_send_intervals: Final = hm_master_poll_after_send_intervals
         self.host: Final = host
         self.ignore_custom_device_definition_models: Final = ignore_custom_device_definition_models
         self.interfaces_requiring_periodic_refresh: Final = interfaces_requiring_periodic_refresh

@@ -2,6 +2,7 @@
 
 - Add config option to define the hm_master_poll_after_send_intervals
 - Enable DEW_POINT calculation for internal thermostats
+- Use temporary values where push is not supported
 
 # Version 2025.1.21 (2025-01-30)
 

@@ -36,6 +36,7 @@ from hahomematic.const import (
     ParameterData,
     ParameterType,
     ParamsetKey,
+    ProductGroup,
 )
 from hahomematic.context import IN_SERVICE_VAR
 from hahomematic.decorators import get_service_calls
@@ -534,6 +535,14 @@ class BaseParameterDataPoint[
     def raw_unit(self) -> str | None:
         """Return raw unit value."""
         return self._raw_unit
+
+    @property
+    def requires_polling(self) -> bool:
+        """Return whether the data_point requires polling."""
+        return not self._channel.device.client.supports_push_updates or (
+            self._channel.device.product_group in (ProductGroup.HM, ProductGroup.HMW)
+            and self._paramset_key == ParamsetKey.MASTER
+        )
 
     @property
     def is_forced_sensor(self) -> bool:

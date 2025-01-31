@@ -598,16 +598,14 @@ class Client(ABC):
 
     def _write_temporary_value(self, dpk_values: set[DP_KEY_VALUE]) -> None:
         """Write data point temp value."""
-        if self.supports_push_updates:
-            return
-
-        for dpk_value in dpk_values:
-            dpk, value = dpk_value
-            if data_point := self.central.get_generic_data_point(
-                channel_address=dpk.channel_address,
-                parameter=dpk.parameter,
-                paramset_key=dpk.paramset_key,
-            ):
+        for dpk, value in dpk_values:
+            if (
+                data_point := self.central.get_generic_data_point(
+                    channel_address=dpk.channel_address,
+                    parameter=dpk.parameter,
+                    paramset_key=dpk.paramset_key,
+                )
+            ) and data_point.requires_polling:
                 data_point.write_temporary_value(value=value)
 
     @inspector(re_raise=False, no_raise_return=set())

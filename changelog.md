@@ -4,6 +4,7 @@
 
 # Version 2025.1.21 (2025-01-30)
 
+- Add config option to define the hm_master_poll_after_send_intervals
 - Improve connection error handling
 
 # Version 2025.1.20 (2025-01-30)

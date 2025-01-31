@@ -745,9 +745,12 @@ class Client(ABC):
                     """Load master paramset values."""
                     if not channel:
                         return
-                    await asyncio.sleep(5)
-                    for dp in channel.get_readable_data_points(paramset_key=ParamsetKey(paramset_key_or_link_address)):
-                        await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
+                    for interval in self.central.config.hm_master_poll_after_send_intervals:
+                        await asyncio.sleep(interval)
+                        for dp in channel.get_readable_data_points(
+                            paramset_key=ParamsetKey(paramset_key_or_link_address)
+                        ):
+                            await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
                 self.central.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
 

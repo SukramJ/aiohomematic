@@ -177,7 +177,7 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-ASIR", battery=_BatteryType.R6, quantity=3),
     _BatteryData(model="HmIP-ASIR-O", battery=_BatteryType.UNKNOWN),
     _BatteryData(model="HmIP-DBB", battery=_BatteryType.R03),
-    _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=4),
+    _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=3),
     _BatteryData(model="HmIP-DLS", battery=_BatteryType.CR2032),
     _BatteryData(model="HmIP-DSD-PCB", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-ESI", battery=_BatteryType.R6, quantity=2),

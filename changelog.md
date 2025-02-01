@@ -1,4 +1,4 @@
-# Version 2025.2.2 (2025-02-01)
+# Version 2025.2.1 (2025-02-01)
 
 - Remove python 3.12 for github tests and pylint
 - Use py 3.13 for mypy and pylint

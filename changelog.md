@@ -1,3 +1,8 @@
+# Version 2025.2.2 (2025-02-01)
+
+- Remove python 3.12 for github tests and pylint
+- Use py 3.13 for mypy and pylint
+
 # Version 2025.2.0 (2025-02-01)
 
 - Fix battery qty

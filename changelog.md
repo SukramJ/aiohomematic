@@ -1,3 +1,7 @@
+# Version 2025.2.0 (2025-02-01)
+
+- Fix battery qty
+
 # Version 2025.1.22 (2025-01-31)
 
 - Add config option to define the hm_master_poll_after_send_intervals

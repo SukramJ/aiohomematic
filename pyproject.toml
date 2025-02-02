@@ -9,8 +9,8 @@ license     = {text = "MIT License"}
 description = "Homematic interface for Home Assistant running on Python 3."
 readme      = "README.md"
 authors     = [
-    {name = "Daniel Perna", email = "danielperna84@gmail.com"},
     {name = "SukramJ", email = "sukramj@icloud.com"},
+    {name = "Daniel Perna", email = "danielperna84@gmail.com"},
 ]
 keywords    = ["home", "automation", "homematic"]
 classifiers = [

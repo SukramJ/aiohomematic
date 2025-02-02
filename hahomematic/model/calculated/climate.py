@@ -44,8 +44,14 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
                 parameter=Parameter.ACTUAL_TEMPERATURE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
             )
         )
-        self._dp_humidity: DpSensor = self._add_data_point(
-            parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
+        self._dp_humidity: DpSensor = (
+            self._add_data_point(
+                parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
+            )
+            if self._channel.get_generic_data_point(parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES)
+            else self._add_data_point(
+                parameter=Parameter.ACTUAL_HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
+            )
         )
 
 
@@ -190,16 +196,24 @@ def _is_relevant_for_model_temperature_and_humidity(channel: hmd.Channel, releva
             or channel.get_generic_data_point(parameter=Parameter.ACTUAL_TEMPERATURE, paramset_key=ParamsetKey.VALUES)
             is not None
         )
-        and channel.get_generic_data_point(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES) is not None
+        and (
+            channel.get_generic_data_point(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES) is not None
+            or channel.get_generic_data_point(parameter=Parameter.ACTUAL_HUMIDITY, paramset_key=ParamsetKey.VALUES)
+            is not None
+        )
     )
 
 
 _RELEVANT_MODELS_APPARENT_TEMPERATURE: Final[tuple[str, ...]] = ("HmIP-SWO",)
 
 _RELEVANT_MODELS_VAPOR_CONCENTRATION: Final[tuple[str, ...]] = (
+    "ALPHA-IP-RBG",
     "ELV-SH-CTH",
+    "HM-CC-TC",
+    "HM-CC-VG-1",
     "HM-TC-IT-WM-W-EU",
     "HmIP-BWTH",
+    "HmIP-HEATING",
     "HmIP-SFD",
     "HmIP-STH",
     "HmIP-SWO",
@@ -209,9 +223,13 @@ _RELEVANT_MODELS_VAPOR_CONCENTRATION: Final[tuple[str, ...]] = (
 )
 
 _RELEVANT_MODELS_DEW_POINT: Final[tuple[str, ...]] = (
+    "ALPHA-IP-RBG",
     "ELV-SH-CTH",
+    "HM-CC-TC",
+    "HM-CC-VG-1",
     "HM-TC-IT-WM-W-EU",
     "HmIP-BWTH",
+    "HmIP-HEATING",
     "HmIP-SFD",
     "HmIP-STH",
     "HmIP-SWO",

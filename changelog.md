@@ -1,5 +1,6 @@
 # Version 2025.2.1 (2025-02-01)
 
+- Add calculated data points for HM devices
 - Remove python 3.12 for github tests and pylint
 - Use py 3.13 for mypy and pylint
 

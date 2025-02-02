@@ -205,6 +205,7 @@ _RELEVANT_MODELS_VAPOR_CONCENTRATION: Final[tuple[str, ...]] = (
     "HmIP-WTH",
     "HmIPW-STH",
     "HmIPW-WTH",
+    "HM-IT-WM-W-EU",
 )
 
 _RELEVANT_MODELS_DEW_POINT: Final[tuple[str, ...]] = (
@@ -216,6 +217,7 @@ _RELEVANT_MODELS_DEW_POINT: Final[tuple[str, ...]] = (
     "HmIP-WTH",
     "HmIPW-STH",
     "HmIPW-WTH",
+    "HM-IT-WM-W-EU",
 )
 
 _RELEVANT_MODELS_FROST_POINT: Final[tuple[str, ...]] = (

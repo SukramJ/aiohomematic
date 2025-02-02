@@ -198,6 +198,7 @@ _RELEVANT_MODELS_APPARENT_TEMPERATURE: Final[tuple[str, ...]] = ("HmIP-SWO",)
 
 _RELEVANT_MODELS_VAPOR_CONCENTRATION: Final[tuple[str, ...]] = (
     "ELV-SH-CTH",
+    "HM-TC-IT-WM-W-EU",
     "HmIP-BWTH",
     "HmIP-SFD",
     "HmIP-STH",
@@ -205,11 +206,11 @@ _RELEVANT_MODELS_VAPOR_CONCENTRATION: Final[tuple[str, ...]] = (
     "HmIP-WTH",
     "HmIPW-STH",
     "HmIPW-WTH",
-    "HM-TC-IT-WM-W-EU",
 )
 
 _RELEVANT_MODELS_DEW_POINT: Final[tuple[str, ...]] = (
     "ELV-SH-CTH",
+    "HM-TC-IT-WM-W-EU",
     "HmIP-BWTH",
     "HmIP-SFD",
     "HmIP-STH",
@@ -217,7 +218,6 @@ _RELEVANT_MODELS_DEW_POINT: Final[tuple[str, ...]] = (
     "HmIP-WTH",
     "HmIPW-STH",
     "HmIPW-WTH",
-    "HM-TC-IT-WM-W-EU",
 )
 
 _RELEVANT_MODELS_FROST_POINT: Final[tuple[str, ...]] = (

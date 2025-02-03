@@ -56,6 +56,10 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     @staticmethod
     def is_relevant_for_model(channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
+        if element_matches_key(
+            search_elements=_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS, compare_with=channel.device.model
+        ):
+            return False
         return (
             element_matches_key(
                 search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
@@ -218,8 +222,12 @@ _BATTERY_DATA: Final = (
 )
 
 _OPERATING_VOLTAGE_LEVEL_MODELS: Final[Mapping[str, _BatteryData]] = {
-    battery.model: battery for battery in _BATTERY_DATA if battery.model != _BatteryType.UNKNOWN
+    battery.model: battery for battery in _BATTERY_DATA if battery.battery != _BatteryType.UNKNOWN
 }
+
+_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS: Final[tuple[str, ...]] = tuple(
+    [battery.model for battery in _BATTERY_DATA if battery.battery == _BatteryType.UNKNOWN]
+)
 
 
 def _get_battery_data(model: str) -> _BatteryData | None:

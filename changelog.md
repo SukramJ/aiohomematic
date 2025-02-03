@@ -1,4 +1,8 @@
-# Version 2025.2.1 (2025-02-01)
+# Version 2025.2.2 (2025-02-03)
+
+- Ignore devices with unknown battery
+
+# Version 2025.2.1 (2025-02-02)
 
 - Add calculated data points for HM devices
 - Remove python 3.12 for github tests and pylint

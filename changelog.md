@@ -1,5 +1,6 @@
 # Version 2025.2.2 (2025-02-03)
 
+- Catch get_metadata XMLRPC fault
 - Ignore devices with unknown battery
 
 # Version 2025.2.1 (2025-02-02)

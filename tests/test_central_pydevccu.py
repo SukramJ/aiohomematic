@@ -133,7 +133,7 @@ async def test_central_full(central_unit_full) -> None:
 
     assert usage_types[DataPointUsage.NO_CREATE] == 4170
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 262
-    assert usage_types[DataPointUsage.DATA_POINT] == 3804
+    assert usage_types[DataPointUsage.DATA_POINT] == 3803
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 133
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 154
 

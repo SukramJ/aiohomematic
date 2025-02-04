@@ -2,6 +2,7 @@
 
 - Catch get_metadata XMLRPC fault
 - Ignore devices with unknown battery
+- Set battery to UNKNOWN for HmIP-PCBS-BAT
 
 # Version 2025.2.1 (2025-02-02)
 

@@ -792,12 +792,20 @@ class Channel(PayloadMixin):
 
     async def _has_central_link(self) -> bool:
         """Check if central link exists."""
-        if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
-            return any(
-                key
-                for key, value in metadata.items()
-                if isinstance(key, str) and isinstance(value, int) and key == REPORT_VALUE_USAGE_VALUE_ID and value > 0
-            )
+        try:
+            if metadata := await self._device.client.get_metadata(
+                address=self._address, data_id=REPORT_VALUE_USAGE_DATA
+            ):
+                return any(
+                    key
+                    for key, value in metadata.items()
+                    if isinstance(key, str)
+                    and isinstance(value, int)
+                    and key == REPORT_VALUE_USAGE_VALUE_ID
+                    and value > 0
+                )
+        except BaseHomematicException as bhe:
+            _LOGGER.debug("HAS_CENTRAL_LINK failed: %s", reduce_args(args=bhe.args))
         return False
 
     async def _has_program_ids(self) -> bool:

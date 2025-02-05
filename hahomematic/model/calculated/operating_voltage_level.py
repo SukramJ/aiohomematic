@@ -41,7 +41,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             if self._battery_data is not None
             else None
         )
-        self._min = float(self._dp_low_bat_limit.default) if self._dp_low_bat_limit is not None else None  # type: ignore[assignment]
+        self._min = (
+            float(self._dp_low_bat_limit.value)  # type: ignore[assignment]
+            if self._dp_low_bat_limit is not None and self._dp_low_bat_limit.value is not None
+            else None
+        )
 
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""

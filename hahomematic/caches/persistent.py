@@ -82,14 +82,17 @@ class BasePersistentCache(ABC):
             return DataOperationResult.NO_SAVE
 
         def _perform_save() -> DataOperationResult:
-            with open(file=self._file_path, mode="wb") as file_pointer:
-                file_pointer.write(
-                    orjson.dumps(
-                        self._persistent_cache,
-                        option=orjson.OPT_NON_STR_KEYS,
+            try:
+                with open(file=self._file_path, mode="wb") as file_pointer:
+                    file_pointer.write(
+                        orjson.dumps(
+                            self._persistent_cache,
+                            option=orjson.OPT_NON_STR_KEYS,
+                        )
                     )
-                )
-            self.last_hash_saved = self.cache_hash
+                self.last_hash_saved = self.cache_hash
+            except json.JSONDecodeError:
+                return DataOperationResult.SAVE_FAIL
             return DataOperationResult.SAVE_SUCCESS
 
         async with self._save_load_semaphore:
@@ -114,12 +117,15 @@ class BasePersistentCache(ABC):
 
         def _perform_load() -> DataOperationResult:
             with open(file=self._file_path, encoding=UTF_8) as file_pointer:
-                data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
-                if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
-                    return DataOperationResult.NO_LOAD
-                self._persistent_cache.clear()
-                self._persistent_cache.update(data)
-                self.last_hash_saved = converted_hash
+                try:
+                    data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
+                    if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
+                        return DataOperationResult.NO_LOAD
+                    self._persistent_cache.clear()
+                    self._persistent_cache.update(data)
+                    self.last_hash_saved = converted_hash
+                except json.JSONDecodeError:
+                    return DataOperationResult.LOAD_FAIL
             return DataOperationResult.LOAD_SUCCESS
 
         async with self._save_load_semaphore:
@@ -248,12 +254,12 @@ class DeviceDescriptionCache(BasePersistentCache):
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching paramset descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        result = await super().load()
-        for (
-            interface_id,
-            device_descriptions,
-        ) in self._raw_device_descriptions.items():
-            self._convert_device_descriptions(interface_id, device_descriptions)
+        if (result := await super().load()) == DataOperationResult.LOAD_SUCCESS:
+            for (
+                interface_id,
+                device_descriptions,
+            ) in self._raw_device_descriptions.items():
+                self._convert_device_descriptions(interface_id, device_descriptions)
         return result
 
     async def clear(self) -> None:
@@ -384,8 +390,8 @@ class ParamsetDescriptionCache(BasePersistentCache):
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching device descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        result = await super().load()
-        self._init_address_parameter_list()
+        if (result := await super().load()) == DataOperationResult.LOAD_SUCCESS:
+            self._init_address_parameter_list()
         return result
 
     async def save(self) -> DataOperationResult:

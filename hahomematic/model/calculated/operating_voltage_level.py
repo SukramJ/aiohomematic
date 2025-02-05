@@ -41,7 +41,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             if self._battery_data is not None
             else None
         )
-        self._min = float(self._dp_low_bat_limit.default) if self._dp_low_bat_limit is not None else None  # type: ignore[assignment]
+        self._min = (
+            float(self._dp_low_bat_limit.value)  # type: ignore[assignment]
+            if self._dp_low_bat_limit is not None and self._dp_low_bat_limit.value is not None
+            else None
+        )
 
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
@@ -194,12 +198,12 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-STHD", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-STHO", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-SWDM", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-SWDO", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-SWDO-I", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-SWDO-PL", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-SWSD", battery=_BatteryType.UNKNOWN),
     _BatteryData(model="HmIP-WTH-B-2", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-eTRV-CL", battery=_BatteryType.R6, quantity=4),
+    _BatteryData(model="HmIP-SWDO", battery=_BatteryType.R03),
     # HmIP short model
     _BatteryData(model="HmIP-DBB", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=3),

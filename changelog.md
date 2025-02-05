@@ -1,3 +1,7 @@
+# Version 2025.2.4 (2025-02-05)
+
+- Use value instead of default for low_bat_limit
+
 # Version 2025.2.3 (2025-02-05)
 
 - Fix calculated climate sensor identification

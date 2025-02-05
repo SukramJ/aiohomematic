@@ -1,4 +1,4 @@
-# Version 2025.2.4 (2025-02-05)
+# Version 2025.2.5 (2025-02-05)
 
 - Use value instead of default for low_bat_limit
 

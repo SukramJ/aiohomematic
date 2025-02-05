@@ -16,7 +16,6 @@ import threading
 from typing import Any, Final, cast
 
 from aiohttp import ClientSession
-import orjson
 import voluptuous as vol
 
 from hahomematic import client as hmcl
@@ -59,6 +58,7 @@ from hahomematic.const import (
     TIMEOUT,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
+    DataOperationResult,
     DataPointCategory,
     DataPointKey,
     DescriptionMarker,
@@ -817,20 +817,18 @@ class CentralUnit(PayloadMixin):
         """Check if clients exists in central."""
         return len(self._clients) > 0
 
-    async def _load_caches(self) -> None:
+    async def _load_caches(self) -> bool:
         """Load files to caches."""
-        try:
-            await self._device_descriptions.load()
-            await self._paramset_descriptions.load()
-            await self._device_details.load()
-            await self._data_cache.load()
-        except orjson.JSONDecodeError as ex:  # pragma: no cover
-            _LOGGER.warning(
-                "LOAD_CACHES failed: Unable to load caches for %s: %s",
-                self.name,
-                reduce_args(args=ex.args),
-            )
+        if DataOperationResult.LOAD_FAIL in (
+            await self._device_descriptions.load(),
+            await self._paramset_descriptions.load(),
+        ):
+            _LOGGER.warning("LOAD_CACHES failed: Unable to load caches for %s. Clearing files", self.name)
             await self.clear_caches()
+            return False
+        await self._device_details.load()
+        await self._data_cache.load()
+        return True
 
     async def _create_devices(self, new_device_addresses: Mapping[str, set[str]]) -> None:
         """Trigger creation of the objects that expose the functionality."""

@@ -1,6 +1,7 @@
 # Version 2025.2.2 (2025-02-03)
 
 - Catch get_metadata XMLRPC fault
+- Catch JSONDecodeError on load/save cache files
 - Ignore devices with unknown battery
 - Set battery to UNKNOWN for HmIP-PCBS-BAT
 - Sort battery list for correct wildcard search

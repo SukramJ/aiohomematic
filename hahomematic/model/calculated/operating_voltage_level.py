@@ -198,12 +198,12 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-STHD", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-STHO", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-SWDM", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-SWDO", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-SWDO-I", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-SWDO-PL", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-SWSD", battery=_BatteryType.UNKNOWN),
     _BatteryData(model="HmIP-WTH-B-2", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-eTRV-CL", battery=_BatteryType.R6, quantity=4),
+    _BatteryData(model="HmIP-SWDO", battery=_BatteryType.R03),
     # HmIP short model
     _BatteryData(model="HmIP-DBB", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=3),

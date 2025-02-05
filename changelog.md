@@ -1,4 +1,8 @@
-# Version 2025.2.2 (2025-02-03)
+# Version 2025.2.3 (2025-02-05)
+
+- Fix calculated climate sensor identification
+
+# Version 2025.2.2 (2025-02-05)
 
 - Catch get_metadata XMLRPC fault
 - Catch JSONDecodeError on load/save cache files

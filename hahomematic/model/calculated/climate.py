@@ -48,7 +48,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
             self._add_data_point(
                 parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
             )
-            if self._channel.get_generic_data_point(parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES)
+            if self._channel.get_generic_data_point(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES)
             else self._add_data_point(
                 parameter=Parameter.ACTUAL_HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
             )

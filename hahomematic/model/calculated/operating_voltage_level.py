@@ -155,7 +155,7 @@ class _BatteryData:
 
 # This list is sorted. models with shorted model types are sorted to
 _BATTERY_DATA: Final = (
-    # HmIP long model
+    # HM long model str
     _BatteryData(model="HM-CC-RT-DN", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HM-Dis-EP-WM55", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HM-ES-TX-WM", battery=_BatteryType.R6, quantity=4),
@@ -186,30 +186,32 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HM-WDS30-OT2-SM", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HM-WDS30-T-O", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HM-WDS40-TH-I", battery=_BatteryType.R6, quantity=2),
-    # HM short model
+    # HM short model str
     _BatteryData(model="HM-Sec-SD", battery=_BatteryType.R6, quantity=3),
-    # HmIP long model
+    # HmIP model > 4
     _BatteryData(model="ELV-SH-CTH", battery=_BatteryType.CR2032),
-    _BatteryData(model="HmIP-ASIR", battery=_BatteryType.R6, quantity=3),
     _BatteryData(model="HmIP-ASIR-O", battery=_BatteryType.UNKNOWN),
     _BatteryData(model="HmIP-DSD-PCB", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-MP3P", battery=_BatteryType.R14, quantity=2),
     _BatteryData(model="HmIP-PCBS-BAT", battery=_BatteryType.UNKNOWN),
-    _BatteryData(model="HmIP-RCB1", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-SMI55", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-SPDR", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-STE2-PCB", battery=_BatteryType.R6, quantity=2),
+    _BatteryData(model="HmIP-SWDO-I", battery=_BatteryType.R03, quantity=2),
+    _BatteryData(model="HmIP-SWDO-PL", battery=_BatteryType.R03, quantity=2),
+    _BatteryData(model="HmIP-WTH-B-2", battery=_BatteryType.R6, quantity=2),
+    _BatteryData(model="HmIP-eTRV-CL", battery=_BatteryType.R6, quantity=4),
+    # HmIP model 4
+    _BatteryData(model="HmIP-ASIR", battery=_BatteryType.R6, quantity=3),
+    _BatteryData(model="HmIP-FCI1", battery=_BatteryType.CR2032),
+    _BatteryData(model="HmIP-MP3P", battery=_BatteryType.R14, quantity=2),
+    _BatteryData(model="HmIP-RCB1", battery=_BatteryType.R03, quantity=2),
+    _BatteryData(model="HmIP-SPDR", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-STHD", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-STHO", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-SWDM", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-SWDO-I", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-SWDO-PL", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-SWSD", battery=_BatteryType.UNKNOWN),
-    _BatteryData(model="HmIP-WTH-B-2", battery=_BatteryType.R6, quantity=2),
-    _BatteryData(model="HmIP-eTRV-CL", battery=_BatteryType.R6, quantity=4),
     _BatteryData(model="HmIP-SWDO", battery=_BatteryType.R03),
-    _BatteryData(model="HmIP-FCI1", battery=_BatteryType.CR2032),
-    # HmIP short model
+    _BatteryData(model="HmIP-SWSD", battery=_BatteryType.UNKNOWN),
+    _BatteryData(model="HmIP-eTRV", battery=_BatteryType.R6, quantity=2),
+    # HmIP model 3
     _BatteryData(model="HmIP-DBB", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=3),
     _BatteryData(model="HmIP-DLS", battery=_BatteryType.CR2032),
@@ -231,7 +233,6 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-WKP", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-WRC", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-WTH", battery=_BatteryType.R03, quantity=2),
-    _BatteryData(model="HmIP-eTRV", battery=_BatteryType.R6, quantity=2),
 )
 
 _OPERATING_VOLTAGE_LEVEL_MODELS: Final[Mapping[str, _BatteryData]] = {

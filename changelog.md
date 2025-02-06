@@ -1,3 +1,7 @@
+# Version 2025.2.6 (2025-02-06)
+
+- Add vapor concentration and dew point to all device channels that support temperature and humidity
+
 # Version 2025.2.5 (2025-02-05)
 
 - Use value instead of default for low_bat_limit

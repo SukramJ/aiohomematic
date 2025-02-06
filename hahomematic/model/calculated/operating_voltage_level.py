@@ -208,6 +208,7 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-WTH-B-2", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-eTRV-CL", battery=_BatteryType.R6, quantity=4),
     _BatteryData(model="HmIP-SWDO", battery=_BatteryType.R03),
+    _BatteryData(model="HmIP-FCI1", battery=_BatteryType.CR2032),
     # HmIP short model
     _BatteryData(model="HmIP-DBB", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=3),

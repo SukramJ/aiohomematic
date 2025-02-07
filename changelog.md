@@ -1,6 +1,8 @@
 # Version 2025.2.6 (2025-02-06)
 
 - Add vapor concentration and dew point to all device channels that support temperature and humidity
+- Add HmIP-FCI6 to batteries
+- Fix OperatingVoltageLevel attributes: low_bat_limit, low_bat_limit_default
 
 # Version 2025.2.5 (2025-02-05)
 

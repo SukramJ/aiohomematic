@@ -202,6 +202,7 @@ _BATTERY_DATA: Final = (
     # HmIP model 4
     _BatteryData(model="HmIP-ASIR", battery=_BatteryType.R6, quantity=3),
     _BatteryData(model="HmIP-FCI1", battery=_BatteryType.CR2032),
+    _BatteryData(model="HmIP-FCI6", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-MP3P", battery=_BatteryType.R14, quantity=2),
     _BatteryData(model="HmIP-RCB1", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-SPDR", battery=_BatteryType.R6, quantity=2),

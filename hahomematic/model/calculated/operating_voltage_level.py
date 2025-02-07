@@ -11,7 +11,7 @@ from typing import Any, Final
 from hahomematic.const import DataPointCategory, Parameter, ParameterType, ParamsetKey
 from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
-from hahomematic.model.decorators import config_property, state_property
+from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import DpSensor
 from hahomematic.support import element_matches_key, reduce_args
 
@@ -36,9 +36,6 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
         self._unit = "%"
-        self._low_bat_limit_default = (
-            float(self._dp_low_bat_limit.default) if self._dp_low_bat_limit is not None else None
-        )
         self._max = (
             float(_BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity)  # type: ignore[assignment, operator]
             if self._battery_data is not None
@@ -53,6 +50,9 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         )
         self._dp_low_bat_limit: DpSensor = self._add_data_point(
             parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, data_point_type=DpSensor
+        )
+        self._low_bat_limit_default = (
+            float(self._dp_low_bat_limit.default) if self._dp_low_bat_limit is not None else None
         )
 
     @staticmethod
@@ -84,27 +84,18 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
                 {
                     _BATTERY_QTY: self._battery_data.quantity,
                     _BATTERY_TYPE: self._battery_data.battery,
-                    _LOW_BAT_LIMIT: f"{str(self.min)}V",
+                    _LOW_BAT_LIMIT: f"{self._low_bat_limit}V",
                     _LOW_BAT_LIMIT_DEFAULT: f"{self._low_bat_limit_default}V",
                     _VOLTAGE_MAX: f"{self._max}V",
                 }
             )
         return ainfo
 
-    @config_property
-    def min(self) -> float | None:  # type: ignore[override]
-        """Return the min value."""
-        return (
-            float(self._dp_low_bat_limit.value)
-            if self._dp_low_bat_limit is not None and self._dp_low_bat_limit.value is not None
-            else None
-        )
-
     @state_property
     def value(self) -> float | None:
         """Return the value."""
         try:
-            if self.min is None or self._max is None:
+            if (low_bat_limit := self._low_bat_limit) is None or self._max is None:
                 return None
             if self._dp_operating_voltage and self._dp_operating_voltage.value is not None:
                 return max(
@@ -113,7 +104,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
                         100,
                         float(
                             round(
-                                ((float(self._dp_operating_voltage.value) - self.min) / (self._max - self.min) * 100),
+                                (
+                                    (float(self._dp_operating_voltage.value) - low_bat_limit)
+                                    / (self._max - low_bat_limit)
+                                    * 100
+                                ),
                                 1,
                             )
                         ),
@@ -127,6 +122,15 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             )
             return None
         return None
+
+    @property
+    def _low_bat_limit(self) -> float | None:
+        """Return the min value."""
+        return (
+            float(self._dp_low_bat_limit.value)
+            if self._dp_low_bat_limit is not None and self._dp_low_bat_limit.value is not None
+            else None
+        )
 
 
 class _BatteryType(StrEnum):

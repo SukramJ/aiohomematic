@@ -36,11 +36,6 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
         self._unit = "%"
-        self._max = (
-            float(_BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity)  # type: ignore[assignment, operator]
-            if self._battery_data is not None
-            else None
-        )
 
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
@@ -53,6 +48,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         )
         self._low_bat_limit_default = (
             float(self._dp_low_bat_limit.default) if self._dp_low_bat_limit is not None else None
+        )
+        self._voltage_max = (
+            float(_BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity)  # type: ignore[operator]
+            if self._battery_data is not None
+            else None
         )
 
     @staticmethod
@@ -86,7 +86,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
                     _BATTERY_TYPE: self._battery_data.battery,
                     _LOW_BAT_LIMIT: f"{self._low_bat_limit}V",
                     _LOW_BAT_LIMIT_DEFAULT: f"{self._low_bat_limit_default}V",
-                    _VOLTAGE_MAX: f"{self._max}V",
+                    _VOLTAGE_MAX: f"{self._voltage_max}V",
                 }
             )
         return ainfo
@@ -95,7 +95,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     def value(self) -> float | None:
         """Return the value."""
         try:
-            if (low_bat_limit := self._low_bat_limit) is None or self._max is None:
+            if (low_bat_limit := self._low_bat_limit) is None or self._voltage_max is None:
                 return None
             if self._dp_operating_voltage and self._dp_operating_voltage.value is not None:
                 return max(
@@ -106,7 +106,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
                             round(
                                 (
                                     (float(self._dp_operating_voltage.value) - low_bat_limit)
-                                    / (self._max - low_bat_limit)
+                                    / (self._voltage_max - low_bat_limit)
                                     * 100
                                 ),
                                 1,

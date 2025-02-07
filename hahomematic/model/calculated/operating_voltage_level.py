@@ -32,7 +32,6 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
 
     def __init__(self, channel: hmd.Channel) -> None:
         """Initialize the data point."""
-        self._battery_data = _get_battery_data(model=channel.device.model)
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
         self._unit = "%"
@@ -40,6 +39,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
+        self._battery_data = _get_battery_data(model=self._channel.device.model)
         self._dp_operating_voltage: DpSensor = self._add_data_point(
             parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
         )

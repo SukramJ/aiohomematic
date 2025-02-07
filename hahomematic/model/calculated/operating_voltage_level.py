@@ -18,7 +18,7 @@ from hahomematic.support import element_matches_key, reduce_args
 _BATTERY_QTY: Final = "Battery Qty"
 _BATTERY_TYPE: Final = "Battery Type"
 _LOW_BAT_LIMIT: Final = "Low Battery Limit"
-_LOW_BAT_LIMIT_DEFAULT: Final = "Low Battery Default"
+_LOW_BAT_LIMIT_DEFAULT: Final = "Low Battery Limit Default"
 _VOLTAGE_MAX: Final = "Voltage max"
 
 _LOGGER: Final = logging.getLogger(__name__)

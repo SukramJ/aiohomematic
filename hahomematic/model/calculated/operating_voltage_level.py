@@ -15,11 +15,11 @@ from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.generic import DpSensor
 from hahomematic.support import element_matches_key, reduce_args
 
-_BATTERY_TYPE: Final = "Battery Type"
 _BATTERY_QTY: Final = "Battery Qty"
+_BATTERY_TYPE: Final = "Battery Type"
 _LOW_BAT_LIMIT: Final = "Low Battery Limit"
+_LOW_BAT_LIMIT_DEFAULT: Final = "Low Battery Default"
 _VOLTAGE_MAX: Final = "Voltage max"
-_VOLTAGE_MIN: Final = "Voltage min"
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -36,6 +36,9 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
         self._unit = "%"
+        self._low_bat_limit_default = (
+            float(self._dp_low_bat_limit.default) if self._dp_low_bat_limit is not None else None
+        )
         self._max = (
             float(_BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity)  # type: ignore[assignment, operator]
             if self._battery_data is not None
@@ -79,12 +82,10 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         if self._battery_data is not None:
             ainfo.update(
                 {
-                    _BATTERY_TYPE: self._battery_data.battery,
                     _BATTERY_QTY: self._battery_data.quantity,
-                    _LOW_BAT_LIMIT: f"{str(self._dp_low_bat_limit.value)}V"
-                    if self._dp_low_bat_limit is not None
-                    else None,
-                    _VOLTAGE_MIN: f"{self.min}V",
+                    _BATTERY_TYPE: self._battery_data.battery,
+                    _LOW_BAT_LIMIT: f"{str(self.min)}V",
+                    _LOW_BAT_LIMIT_DEFAULT: f"{self._low_bat_limit_default}V",
                     _VOLTAGE_MAX: f"{self._max}V",
                 }
             )

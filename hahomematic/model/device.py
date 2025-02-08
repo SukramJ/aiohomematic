@@ -45,6 +45,7 @@ from hahomematic.const import (
     ParamsetKey,
     ProductGroup,
     RxMode,
+    check_ignore_model_on_initial_load,
 )
 from hahomematic.decorators import inspector
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
@@ -103,6 +104,7 @@ class Device(PayloadMixin):
         self._device_updated_callbacks: Final[list[Callable]] = []
         self._firmware_update_callbacks: Final[list[Callable]] = []
         self._model: Final[str] = self._description["TYPE"]
+        self._ignore_on_initial_load: Final[bool] = check_ignore_model_on_initial_load(model=self._model)
         self._is_updatable: Final = self._description.get("UPDATABLE") or False
         self._rx_modes: Final = get_rx_modes(mode=self._description.get("RX_MODE", 0))
         self._sub_model: Final[str | None] = self._description.get("SUBTYPE")
@@ -264,6 +266,11 @@ class Device(PayloadMixin):
     def identifier(self) -> str:
         """Return the identifier of the device."""
         return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
+
+    @property
+    def ignore_on_initial_load(self) -> bool:
+        """Return if model should be ignored on initial load."""
+        return self._ignore_on_initial_load
 
     @property
     def interface(self) -> Interface:

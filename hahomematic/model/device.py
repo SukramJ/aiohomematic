@@ -983,13 +983,7 @@ class _ValueCache:
         """Load data by get_value."""
         try:
             for data_point in self._get_base_data_points():
-                value = await self.get_value(
-                    channel_address=data_point.channel.address,
-                    paramset_key=data_point.paramset_key,
-                    parameter=data_point.parameter,
-                    call_source=CallSource.HM_INIT,
-                )
-                data_point.write_value(value=value)
+                await data_point.load_data_point_value(call_source=CallSource.HM_INIT)
         except BaseHomematicException as ex:
             _LOGGER.debug(
                 "init_base_data_points: Failed to init cache for channel0 %s, %s [%s]",
@@ -1015,13 +1009,7 @@ class _ValueCache:
         """Load data by get_value."""
         try:
             for event in self._get_readable_events():
-                value = await self.get_value(
-                    channel_address=event.channel.address,
-                    paramset_key=event.paramset_key,
-                    parameter=event.parameter,
-                    call_source=CallSource.HM_INIT,
-                )
-                event.write_value(value=value)
+                await event.load_data_point_value(call_source=CallSource.HM_INIT)
         except BaseHomematicException as ex:
             _LOGGER.debug(
                 "init_base_events: Failed to init cache for channel0 %s, %s [%s]",

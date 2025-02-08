@@ -75,6 +75,7 @@ DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
 DUMMY_SERIAL = "SN0815"
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
+FILE_DEVICE_VALUE_FAILURES: Final = "homematic_device-value-failures.json"
 HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
@@ -531,6 +532,10 @@ class DataPointKey(NamedTuple):
     channel_address: str
     paramset_key: ParamsetKey
     parameter: str
+
+    def __str__(self) -> str:
+        """Return string representation of data point key."""
+        return f"{self.interface_id}:{self.channel_address}:{self.paramset_key}:{self.parameter}"
 
 
 type DP_KEY_VALUE = tuple[DataPointKey, Any]

@@ -21,7 +21,7 @@ import voluptuous as vol
 from hahomematic import client as hmcl
 from hahomematic.async_support import Looper, loop_check
 from hahomematic.caches.dynamic import CentralDataCache, DeviceDetailsCache
-from hahomematic.caches.persistent import DeviceDescriptionCache, ParamsetDescriptionCache
+from hahomematic.caches.persistent import DeviceDescriptionCache, DeviceValueFailureCache, ParamsetDescriptionCache
 from hahomematic.caches.visibility import ParameterVisibilityCache
 from hahomematic.central import xml_rpc_server as xmlrpc
 from hahomematic.central.decorators import callback_backend_system, callback_event
@@ -140,6 +140,7 @@ class CentralUnit(PayloadMixin):
         self._data_cache: Final = CentralDataCache(central=self)
         self._device_details: Final = DeviceDetailsCache(central=self)
         self._device_descriptions: Final = DeviceDescriptionCache(central=self)
+        self._device_value_failures: Final = DeviceValueFailureCache(central=self)
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
 
@@ -257,6 +258,11 @@ class CentralUnit(PayloadMixin):
         if not self._json_rpc_client:
             self._json_rpc_client = self._config.create_json_rpc_client(central=self)
         return self._json_rpc_client
+
+    @property
+    def device_value_failures(self) -> DeviceValueFailureCache:
+        """Return device value failures cache."""
+        return self._device_value_failures
 
     @property
     def paramset_descriptions(self) -> ParamsetDescriptionCache:
@@ -390,6 +396,8 @@ class CentralUnit(PayloadMixin):
             await self._device_descriptions.save()
         if save_paramset_descriptions:
             await self._paramset_descriptions.save()
+
+        await self._device_value_failures.save()
 
     async def start(self) -> None:
         """Start processing of the central unit."""
@@ -821,6 +829,7 @@ class CentralUnit(PayloadMixin):
         """Load files to caches."""
         if DataOperationResult.LOAD_FAIL in (
             await self._device_descriptions.load(),
+            await self._device_value_failures.load(),
             await self._paramset_descriptions.load(),
         ):
             _LOGGER.warning("LOAD_CACHES failed: Unable to load caches for %s. Clearing files", self.name)
@@ -1373,6 +1382,7 @@ class CentralUnit(PayloadMixin):
     async def clear_caches(self) -> None:
         """Clear all stored data."""
         await self._device_descriptions.clear()
+        await self._device_value_failures.clear()
         await self._paramset_descriptions.clear()
         self._device_details.clear()
         self._data_cache.clear()

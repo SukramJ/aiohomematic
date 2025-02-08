@@ -20,6 +20,7 @@ from hahomematic import central as hmcu
 from hahomematic.const import (
     ADDRESS_SEPARATOR,
     CACHE_PATH,
+    FILE_DEVICE_VALUE_FAILURES,
     FILE_DEVICES,
     FILE_PARAMSETS,
     INIT_DATETIME,
@@ -393,6 +394,60 @@ class ParamsetDescriptionCache(BasePersistentCache):
         if (result := await super().load()) == DataOperationResult.LOAD_SUCCESS:
             self._init_address_parameter_list()
         return result
+
+    async def save(self) -> DataOperationResult:
+        """Save current paramset descriptions to disk."""
+        return await super().save()
+
+
+class DeviceValueFailureCache(BasePersistentCache):
+    """Cache for device value failures."""
+
+    _file_postfix = FILE_DEVICE_VALUE_FAILURES
+
+    def __init__(self, central: hmcu.CentralUnit) -> None:
+        """Init the device value failure cache."""
+
+        # interface_id, channel_address, paramset_key, parameter
+        self._raw_device_value_failures: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, Any]]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(dict))
+        )
+        super().__init__(
+            central=central,
+            persistent_cache=self._raw_device_value_failures,
+        )
+
+    def add(
+        self, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: str
+    ) -> None:
+        """Add dpk to cache."""
+        self._raw_device_value_failures[interface_id][channel_address][paramset_key][parameter] = value
+
+    def remove_channel(self, interface_id: str, channel_address: str) -> None:
+        """Remove dpk from cache."""
+        if (
+            interface_id in self._raw_device_value_failures
+            and channel_address in self._raw_device_value_failures[interface_id]
+        ):
+            del self._raw_device_value_failures[interface_id][channel_address]
+
+    def has_entry(self, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str) -> bool:
+        """Return if dpk is in cache."""
+        return self._raw_device_value_failures[interface_id][channel_address][paramset_key].get(parameter) is not None
+        # return (
+        #    interface_id in self._raw_device_value_failures
+        #    and channel_address in self._raw_device_value_failures[interface_id]
+        #    and paramset_key in self._raw_device_value_failures[interface_id][channel_address]
+        #    and parameter
+        #    in self._raw_device_value_failures[interface_id][channel_address][paramset_key]
+        # )
+
+    async def load(self) -> DataOperationResult:
+        """Load device failures from disk into cache."""
+        if not self._central.config.use_caches:
+            _LOGGER.debug("load: not caching device value failures for %s", self._central.name)
+            return DataOperationResult.NO_LOAD
+        return await super().load()
 
     async def save(self) -> DataOperationResult:
         """Save current paramset descriptions to disk."""

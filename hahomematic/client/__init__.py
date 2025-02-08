@@ -500,6 +500,13 @@ class Client(ABC):
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
         """Return a value from CCU."""
+        if self.central.device_value_failures.has_entry(
+            interface_id=self.interface_id,
+            channel_address=channel_address,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=parameter,
+        ):
+            return None
         try:
             _LOGGER.debug(
                 "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
@@ -513,6 +520,13 @@ class Client(ABC):
             paramset = await self._proxy_read.getParamset(channel_address, ParamsetKey.MASTER) or {}
             return paramset.get(parameter)
         except BaseHomematicException as ex:
+            self.central.device_value_failures.add(
+                interface_id=self.interface_id,
+                channel_address=channel_address,
+                paramset_key=ParamsetKey.VALUES,
+                parameter=parameter,
+                value=str(reduce_args(args=ex.args)),
+            )
             raise ClientException(
                 f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {reduce_args(args=ex.args)}"
             ) from ex

@@ -8,7 +8,6 @@ from collections.abc import Callable, Collection, Set as AbstractSet
 import contextlib
 from dataclasses import dataclass
 from datetime import datetime
-from functools import lru_cache
 import hashlib
 from ipaddress import IPv4Address
 import logging
@@ -244,7 +243,6 @@ def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
     return isinstance(paramset_key, ParamsetKey) or (isinstance(paramset_key, str) and paramset_key in ParamsetKey)
 
 
-@lru_cache(maxsize=2048)
 def get_split_channel_address(channel_address: str) -> tuple[str, int | None]:
     """Return the device part of an address."""
     if ADDRESS_SEPARATOR in channel_address:

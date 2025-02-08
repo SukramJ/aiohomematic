@@ -7,7 +7,6 @@ import asyncio
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
-from functools import lru_cache
 import json
 import logging
 import os
@@ -226,7 +225,6 @@ class DeviceDescriptionCache(BasePersistentCache):
             )
         return device_descriptions
 
-    @lru_cache
     def get_model(self, device_address: str) -> str | None:
         """Return the device type."""
         for data in self._device_descriptions.values():
@@ -261,11 +259,6 @@ class DeviceDescriptionCache(BasePersistentCache):
             ) in self._raw_device_descriptions.items():
                 self._convert_device_descriptions(interface_id, device_descriptions)
         return result
-
-    async def clear(self) -> None:
-        """Remove stored file from disk."""
-        self.get_model.cache_clear()
-        await super().clear()
 
 
 class ParamsetDescriptionCache(BasePersistentCache):

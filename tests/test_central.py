@@ -753,17 +753,17 @@ async def test_central_services(
     await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER)
     assert len(mock_client.method_calls) == 43
     await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
-    assert len(mock_client.method_calls) == 61
+    assert len(mock_client.method_calls) == 57
 
     await central.get_system_variable(legacy_name="SysVar_Name")
     assert mock_client.method_calls[-1] == call.get_system_variable("SysVar_Name")
 
-    assert len(mock_client.method_calls) == 62
+    assert len(mock_client.method_calls) == 58
     await central.set_system_variable(legacy_name="alarm", value=True)
     assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm", value=True)
-    assert len(mock_client.method_calls) == 63
+    assert len(mock_client.method_calls) == 59
     await central.set_system_variable(legacy_name="SysVar_Name", value=True)
-    assert len(mock_client.method_calls) == 63
+    assert len(mock_client.method_calls) == 59
 
     await central.get_client(interface_id=const.INTERFACE_ID).set_value(
         channel_address="123",
@@ -777,7 +777,7 @@ async def test_central_services(
         parameter="LEVEL",
         value=1.0,
     )
-    assert len(mock_client.method_calls) == 64
+    assert len(mock_client.method_calls) == 60
 
     with pytest.raises(HaHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
@@ -786,7 +786,7 @@ async def test_central_services(
             parameter="LEVEL",
             value=1.0,
         )
-    assert len(mock_client.method_calls) == 64
+    assert len(mock_client.method_calls) == 60
 
     await central.get_client(interface_id=const.INTERFACE_ID).put_paramset(
         channel_address="123",
@@ -796,14 +796,14 @@ async def test_central_services(
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="123", paramset_key_or_link_address=ParamsetKey.VALUES, values={"LEVEL": 1.0}
     )
-    assert len(mock_client.method_calls) == 65
+    assert len(mock_client.method_calls) == 61
     with pytest.raises(HaHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
             channel_address="123",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL": 1.0},
         )
-    assert len(mock_client.method_calls) == 65
+    assert len(mock_client.method_calls) == 61
 
     assert (
         central.get_generic_data_point(channel_address="VCU6354483:0", parameter="DUTY_CYCLE").parameter == "DUTY_CYCLE"

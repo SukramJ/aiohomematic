@@ -621,6 +621,16 @@ IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.UN_REACH,
 )
 
+
+# Ignore Parameter on initial load that start with
+_IGNORE_ON_INITIAL_PARAMETERS_START_RE: Final = re.compile(r"^(ERROR_|RSSI_)")
+
+
+def check_ignore_parameter_on_initial_load(parameter: str) -> bool:
+    """Check if a parameter matches common wildcard patterns."""
+    return bool(_IGNORE_ON_INITIAL_PARAMETERS_START_RE.match(parameter))
+
+
 # virtual remotes s
 VIRTUAL_REMOTE_MODELS: Final[tuple[str, ...]] = (
     "HM-RCV-50",

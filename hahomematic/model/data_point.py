@@ -37,6 +37,7 @@ from hahomematic.const import (
     ParameterType,
     ParamsetKey,
     ProductGroup,
+    check_ignore_parameter_on_initial_load,
 )
 from hahomematic.context import IN_SERVICE_VAR
 from hahomematic.decorators import get_service_calls
@@ -432,6 +433,9 @@ class BaseParameterDataPoint[
         self._paramset_key: Final = paramset_key
         # required for name in BaseDataPoint
         self._parameter: Final[str] = parameter
+        self._ignore_parameter_on_initial_load: Final[bool] = check_ignore_parameter_on_initial_load(
+            parameter=parameter
+        )
 
         super().__init__(
             channel=channel,
@@ -485,6 +489,11 @@ class BaseParameterDataPoint[
     def hmtype(self) -> ParameterType:
         """Return the HomeMatic type."""
         return self._type
+
+    @property
+    def ignore_parameter_on_initial_load(self) -> bool:
+        """Return if parameter should be ignored on initial load."""
+        return self._ignore_parameter_on_initial_load
 
     @property
     def is_unit_fixed(self) -> bool:
@@ -696,6 +705,9 @@ class BaseParameterDataPoint[
 
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data_point data."""
+        if self._ignore_parameter_on_initial_load is True and call_source in (CallSource.HM_INIT, CallSource.HA_INIT):
+            return
+
         if direct_call is False and hms.changed_within_seconds(last_change=self._refreshed_at):
             return
 

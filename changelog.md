@@ -5,6 +5,7 @@
 - Ensure load_data_point_value usage for initial load
 - Fix OperatingVoltageLevel attributes: low_bat_limit, low_bat_limit_default
 - Ignore parameters on initial load (ERROR*, RSSI*)
+- Ignore model on initial load (HmIP-SWSD, HmIP-SWD)
 
 # Version 2025.2.5 (2025-02-05)
 

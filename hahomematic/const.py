@@ -6,6 +6,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, IntEnum, StrEnum
+from functools import cache
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
@@ -622,13 +623,42 @@ IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (
 )
 
 
+# Ignore Parameter on initial load that end with
+_IGNORE_ON_INITIAL_LOAD_PARAMETERS_END_RE: Final = re.compile(r".*(_ERROR)$")
 # Ignore Parameter on initial load that start with
-_IGNORE_ON_INITIAL_PARAMETERS_START_RE: Final = re.compile(r"^(ERROR_|RSSI_)")
+_IGNORE_ON_INITIAL_LOAD_PARAMETERS_START_RE: Final = re.compile(r"^(ERROR_|RSSI_)")
+_IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final = (
+    Parameter.DUTY_CYCLE,
+    Parameter.DUTYCYCLE,
+    Parameter.LOW_BAT,
+    Parameter.LOWBAT,
+    Parameter.OPERATING_VOLTAGE,
+)
 
 
+@cache
 def check_ignore_parameter_on_initial_load(parameter: str) -> bool:
     """Check if a parameter matches common wildcard patterns."""
-    return bool(_IGNORE_ON_INITIAL_PARAMETERS_START_RE.match(parameter))
+    return (
+        bool(_IGNORE_ON_INITIAL_LOAD_PARAMETERS_START_RE.match(parameter))
+        or bool(_IGNORE_ON_INITIAL_LOAD_PARAMETERS_END_RE.match(parameter))
+        or parameter in _IGNORE_ON_INITIAL_LOAD_PARAMETERS
+    )
+
+
+# Ignore Parameter on initial load that start with
+_IGNORE_ON_INITIAL_LOAD_MODEL_START_RE: Final = re.compile(r"^(HmIP-SWSD)")
+_IGNORE_ON_INITIAL_LOAD_MODEL: Final = ("HmIP-SWD",)
+_IGNORE_ON_INITIAL_LOAD_MODEL_LOWER: Final = tuple(model.lower() for model in _IGNORE_ON_INITIAL_LOAD_MODEL)
+
+
+@cache
+def check_ignore_model_on_initial_load(model: str) -> bool:
+    """Check if a model matches common wildcard patterns."""
+    return (
+        bool(_IGNORE_ON_INITIAL_LOAD_MODEL_START_RE.match(model))
+        or model.lower() in _IGNORE_ON_INITIAL_LOAD_MODEL_LOWER
+    )
 
 
 # virtual remotes s

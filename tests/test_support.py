@@ -196,7 +196,6 @@ async def test_get_data_point_name(
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
     assert name_data.name == "Level"
 
-    central.device_details.get_name.cache_clear()
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
@@ -239,7 +238,6 @@ async def test_get_event_name(
     assert name_data.name == "ch4 Level"
     assert name_data.full_name == "HmIP-BSM_VCU2128127 ch4 Level"
 
-    central.device_details.get_name.cache_clear()
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_event_name(channel=channel5, parameter="LEVEL")
@@ -294,7 +292,6 @@ async def test_custom_data_point_name(
     assert name_data.full_name == "HmIP-BSM_VCU2128127 vch4"
     assert name_data.name == "vch4"
 
-    central.device_details.get_name.cache_clear()
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_custom_data_point_name(
@@ -346,7 +343,6 @@ async def test_get_device_name(
     """Test get_device_name."""
     central, _, _ = central_client_factory
     assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM_VCU2128127"
-    central.device_details.get_name.cache_clear()
     central.device_details.add_name(address="VCU2128127", name="Roof")
     assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"
 

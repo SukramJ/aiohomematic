@@ -1,4 +1,8 @@
-# Version 2025.2.6 (2025-02-06)
+# Version 2025.2.7 (2025-02-08)
+
+- Remove @cache and @lru_cache annotations
+
+# Version 2025.2.6 (2025-02-08)
 
 - Add vapor concentration and dew point to all device channels that support temperature and humidity
 - Add HmIP-FCI1 and HmIP-FCI6 to batteries

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from functools import lru_cache
 import logging
 import re
 from typing import Final
@@ -333,7 +332,6 @@ class ParameterVisibilityCache:
 
         self._process_un_ignore_entries(lines=self._raw_un_ignores)
 
-    @lru_cache(maxsize=128)
     def model_is_ignored(self, model: str) -> bool:
         """Check if a model should be ignored for custom data points."""
         return element_matches_key(
@@ -341,7 +339,6 @@ class ParameterVisibilityCache:
             compare_with=model,
         )
 
-    @lru_cache(maxsize=1024)
     def parameter_is_ignored(
         self,
         channel: hmd.Channel,
@@ -447,7 +444,6 @@ class ParameterVisibilityCache:
             and parameter in un_ignore_parameters
         )
 
-    @lru_cache(maxsize=4096)
     def parameter_is_un_ignored(
         self,
         channel: hmd.Channel,
@@ -630,7 +626,6 @@ class ParameterVisibilityCache:
 
         self._custom_un_ignore_complex[model][channel_no][paramset_key].add(parameter)
 
-    @lru_cache(maxsize=1024)
     def parameter_is_hidden(
         self,
         channel: hmd.Channel,

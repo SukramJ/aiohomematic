@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import Callable, Mapping
 from copy import copy
 from datetime import datetime
-from functools import lru_cache, partial
+from functools import partial
 import logging
 import os
 import random
@@ -405,7 +405,6 @@ class Device(PayloadMixin):
         """Get channel of device."""
         return self._channels.get(channel_address)
 
-    @lru_cache(maxsize=100)
     def identify_channel(self, text: str) -> Channel | None:
         """Identify channel within a text."""
         for channel_address, channel in self._channels.items():

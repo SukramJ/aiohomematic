@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
-from functools import lru_cache
 import logging
 from typing import Any, Final, cast
 
@@ -158,7 +157,6 @@ class DeviceDetailsCache:
         """Add name to cache."""
         self._names_cache[address] = name
 
-    @lru_cache(maxsize=1000)
     def get_name(self, address: str) -> str | None:
         """Get name from cache."""
         return self._names_cache.get(address)
@@ -167,7 +165,6 @@ class DeviceDetailsCache:
         """Add interface to cache."""
         self._interface_cache[address] = interface
 
-    @lru_cache(maxsize=1000)
     def get_interface(self, address: str) -> Interface:
         """Get interface from cache."""
         return self._interface_cache.get(address) or Interface.BIDCOS_RF
@@ -176,7 +173,6 @@ class DeviceDetailsCache:
         """Add channel id for a channel."""
         self._device_channel_ids[address] = hmid
 
-    @lru_cache(maxsize=1000)
     def get_address_id(self, address: str) -> str:
         """Get id for address."""
         return self._device_channel_ids.get(address) or "0"
@@ -221,10 +217,6 @@ class DeviceDetailsCache:
 
     def clear(self) -> None:
         """Clear the cache."""
-        self.get_name.cache_clear()
-        self.get_interface.cache_clear()
-        self.get_address_id.cache_clear()
-
         self._names_cache.clear()
         self._channel_rooms.clear()
         self._functions.clear()

@@ -6,11 +6,10 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, IntEnum, StrEnum
-from functools import cache
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.2.6"
+VERSION: Final = "2025.2.7"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -636,7 +635,6 @@ _IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final = (
 )
 
 
-@cache
 def check_ignore_parameter_on_initial_load(parameter: str) -> bool:
     """Check if a parameter matches common wildcard patterns."""
     return (
@@ -652,7 +650,6 @@ _IGNORE_ON_INITIAL_LOAD_MODEL: Final = ("HmIP-SWD",)
 _IGNORE_ON_INITIAL_LOAD_MODEL_LOWER: Final = tuple(model.lower() for model in _IGNORE_ON_INITIAL_LOAD_MODEL)
 
 
-@cache
 def check_ignore_model_on_initial_load(model: str) -> bool:
     """Check if a model matches common wildcard patterns."""
     return (

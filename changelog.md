@@ -9,7 +9,7 @@
 - Add HmIP-FCI1 and HmIP-FCI6 to batteries
 - Ensure load_data_point_value usage for initial load
 - Fix OperatingVoltageLevel attributes: low_bat_limit, low_bat_limit_default
-- Ignore parameters on initial load (ERROR*, RSSI*)
+- Ignore parameters on initial load, if not already fetched by rega script (ERROR*, RSSI*, DUTY_CYCLE, DUTYCYCLE, LOW_BAT, LOWBAT, OPERATING_VOLTAGE)
 - Ignore model on initial load (HmIP-SWSD, HmIP-SWD)
 
 # Version 2025.2.5 (2025-02-05)

@@ -1,6 +1,7 @@
 # Version 2025.2.7 (2025-02-08)
 
 - Remove @cache and @lru_cache annotations
+- Use @cached_property for expensive, one time calculated properties
 
 # Version 2025.2.6 (2025-02-08)
 

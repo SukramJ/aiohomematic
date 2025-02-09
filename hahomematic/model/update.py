@@ -14,7 +14,7 @@ from hahomematic.const import (
     DataPointCategory,
     Interface,
 )
-from hahomematic.decorators import get_service_calls, inspector
+from hahomematic.decorators import inspector
 from hahomematic.exceptions import HaHomematicException
 from hahomematic.model import device as hmd
 from hahomematic.model.data_point import CallbackDataPoint
@@ -42,7 +42,6 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             unique_id=generate_unique_id(central=device.central, address=device.address, parameter="Update"),
         )
         self._set_modified_at()
-        self._service_methods = get_service_calls(obj=self)
 
     @state_property
     def available(self) -> bool:

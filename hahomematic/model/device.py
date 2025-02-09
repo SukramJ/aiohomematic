@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import Callable, Mapping
 from copy import copy
 from datetime import datetime
-from functools import partial
+from functools import cached_property, partial
 import logging
 import os
 import random
@@ -389,7 +389,7 @@ class Device(PayloadMixin):
             for channel in self._channels.values():
                 await channel.remove_central_link()
 
-    @property
+    @cached_property
     def relevant_for_central_link_management(self) -> bool:
         """Return if channel is relevant for central link management."""
         return (

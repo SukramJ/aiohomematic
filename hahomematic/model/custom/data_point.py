@@ -8,7 +8,6 @@ import logging
 from typing import Any, Final, cast
 
 from hahomematic.const import CALLBACK_TYPE, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage
-from hahomematic.decorators import get_service_calls
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
 from hahomematic.model.custom.const import CDPD, DeviceProfile, Field
@@ -59,7 +58,6 @@ class CustomDataPoint(BaseDataPoint):
         self._data_points: Final[dict[Field, hmge.GenericDataPoint]] = {}
         self._init_data_points()
         self._init_data_point_fields()
-        self._service_methods = get_service_calls(obj=self)
 
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""

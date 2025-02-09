@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime
-from functools import partial, wraps
+from functools import cached_property, partial, wraps
 from inspect import getfullargspec
 import logging
 from typing import Any, Final, cast
@@ -128,7 +128,6 @@ class CallbackDataPoint(ABC):
         self._refreshed_at: datetime = INIT_DATETIME
         self._temporary_modified_at: datetime = INIT_DATETIME
         self._temporary_refreshed_at: datetime = INIT_DATETIME
-        self._service_methods: dict[str, Callable] = {}
 
     @state_property
     def additional_information(self) -> dict[str, Any]:
@@ -199,7 +198,7 @@ class CallbackDataPoint(ABC):
         """Return the data_point usage."""
         return DataPointUsage.DATA_POINT
 
-    @property
+    @cached_property
     def enabled_default(self) -> bool:
         """Return, if data_point should be enabled based on usage attribute."""
         return self.usage in (
@@ -225,15 +224,15 @@ class CallbackDataPoint(ABC):
         return self._path_data.state_path
 
     # @property
-    @property
+    @cached_property
     def service_methods(self) -> Mapping[str, Callable]:
         """Return all service methods."""
-        return self._service_methods
+        return get_service_calls(obj=self)
 
-    @property
+    @cached_property
     def service_method_names(self) -> tuple[str, ...]:
         """Return all service methods."""
-        return tuple(self._service_methods.keys())
+        return tuple(self.service_methods.keys())
 
     def register_internal_data_point_updated_callback(self, cb: Callable) -> CALLBACK_TYPE:
         """Register internal data_point updated callback."""
@@ -460,7 +459,6 @@ class BaseParameterDataPoint[
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
         self._assign_parameter_data(parameter_data=parameter_data)
-        self._service_methods = get_service_calls(obj=self)
 
     def _assign_parameter_data(self, parameter_data: ParameterData) -> None:
         """Assign parameter data to instance variables."""
@@ -503,7 +501,7 @@ class BaseParameterDataPoint[
         """Return if the parameter is un ignored."""
         return self._is_un_ignored
 
-    @property
+    @cached_property
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
         return DataPointKey(
@@ -543,7 +541,7 @@ class BaseParameterDataPoint[
         """Return raw unit value."""
         return self._raw_unit
 
-    @property
+    @cached_property
     def requires_polling(self) -> bool:
         """Return whether the data_point requires polling."""
         return not self._channel.device.client.supports_push_updates or (
@@ -631,7 +629,7 @@ class BaseParameterDataPoint[
         """Return the if data_point is visible in ccu."""
         return self._visible
 
-    @property
+    @cached_property
     def _enabled_by_channel_operation_mode(self) -> bool | None:
         """Return, if the data_point/event must be enabled."""
         if self._channel.type_name not in _CONFIGURABLE_CHANNEL:

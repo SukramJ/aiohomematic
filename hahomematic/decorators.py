@@ -143,7 +143,10 @@ def get_service_calls(obj: object) -> dict[str, Callable]:
     return {
         name: getattr(obj, name)
         for name in dir(obj)
-        if not name.startswith("_") and callable(getattr(obj, name)) and hasattr(getattr(obj, name), "ha_service")
+        if not name.startswith("_")
+        and name not in ("service_methods", "service_method_names")
+        and callable(getattr(obj, name))
+        and hasattr(getattr(obj, name), "ha_service")
     }
 
 

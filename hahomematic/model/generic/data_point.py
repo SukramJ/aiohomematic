@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import cached_property
 import logging
 from typing import Any, Final
 
@@ -36,7 +37,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             parameter_data=parameter_data,
         )
 
-    @property
+    @cached_property
     def usage(self) -> DataPointUsage:
         """Return the data_point usage."""
         if self._is_forced_sensor or self._is_un_ignored:

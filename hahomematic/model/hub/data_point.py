@@ -16,7 +16,7 @@ from hahomematic.const import (
     SystemVariableData,
     SysvarType,
 )
-from hahomematic.decorators import get_service_calls, inspector
+from hahomematic.decorators import inspector
 from hahomematic.model.data_point import CallbackDataPoint
 from hahomematic.model.decorators import config_property, state_property
 from hahomematic.model.device import Channel
@@ -119,7 +119,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._current_value: SYSVAR_TYPE = data.value
         self._previous_value: SYSVAR_TYPE = None
         self._temporary_value: SYSVAR_TYPE = None
-        self._service_methods = get_service_calls(obj=self)
 
     @property
     def data_type(self) -> SysvarType | None:
@@ -263,7 +262,6 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         self._is_internal: bool = data.is_internal
         self._last_execute_time: str = data.last_execute_time
         self._state_uncertain: bool = True
-        self._service_methods = get_service_calls(obj=self)
 
     @state_property
     def is_active(self) -> bool:

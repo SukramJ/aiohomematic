@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
-from hahomematic.const import DataPointCategory, Parameter, ParameterType, ParamsetKey
+from hahomematic.const import CalulatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
 from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
 from hahomematic.model.calculated.support import (
@@ -58,7 +58,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
 class ApparentTemperature(BaseClimateSensor):
     """Implementation of a calculated sensor for apparent temperature."""
 
-    _calculated_parameter = "APPARENT_TEMPERATURE"
+    _calculated_parameter = CalulatedParameter.APPARENT_TEMPERATURE
 
     def __init__(self, channel: hmd.Channel) -> None:
         """Initialize the data point."""
@@ -106,7 +106,7 @@ class ApparentTemperature(BaseClimateSensor):
 class DewPoint(BaseClimateSensor):
     """Implementation of a calculated sensor for dew point."""
 
-    _calculated_parameter = "DEW_POINT"
+    _calculated_parameter = CalulatedParameter.DEW_POINT
 
     def __init__(self, channel: hmd.Channel) -> None:
         """Initialize the data point."""
@@ -132,7 +132,7 @@ class DewPoint(BaseClimateSensor):
 class FrostPoint(BaseClimateSensor):
     """Implementation of a calculated sensor for frost point."""
 
-    _calculated_parameter = "FROST_POINT"
+    _calculated_parameter = CalulatedParameter.FROST_POINT
 
     def __init__(self, channel: hmd.Channel) -> None:
         """Initialize the data point."""
@@ -160,7 +160,7 @@ class FrostPoint(BaseClimateSensor):
 class VaporConcentration(BaseClimateSensor):
     """Implementation of a calculated sensor for vapor concentration."""
 
-    _calculated_parameter = "VAPOR_CONCENTRATION"
+    _calculated_parameter = CalulatedParameter.VAPOR_CONCENTRATION
 
     def __init__(self, channel: hmd.Channel) -> None:
         """Initialize the data point."""

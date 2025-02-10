@@ -8,7 +8,7 @@ from enum import StrEnum
 import logging
 from typing import Any, Final
 
-from hahomematic.const import DataPointCategory, Parameter, ParameterType, ParamsetKey
+from hahomematic.const import CalulatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
 from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
 from hahomematic.model.decorators import state_property
@@ -27,7 +27,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT]):
     """Implementation of a calculated sensor for operating voltage level."""
 
-    _calculated_parameter = "OPERATING_VOLTAGE_LEVEL"
+    _calculated_parameter = CalulatedParameter.OPERATING_VOLTAGE_LEVEL
     _category = DataPointCategory.SENSOR
 
     def __init__(self, channel: hmd.Channel) -> None:

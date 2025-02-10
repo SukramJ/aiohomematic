@@ -180,26 +180,26 @@ def _cleanup_args(*args: Any) -> Any:
             if isinstance(data, dict):
                 new_args.append(_cleanup_paramset(paramset=data))
             else:
-                new_args.append(_cleanup_parameter(value=data))
+                new_args.append(_cleanup_item(item=data))
         return (args[0], tuple(new_args))
     _LOGGER.error("XmlRpcProxy command: Too many arguments")
     return args
 
 
-def _cleanup_parameter(value: Any) -> Any:
-    """Cleanup a single parameter."""
-    if isinstance(value, StrEnum):
-        return str(value)
-    if isinstance(value, IntEnum):
-        return int(value)
-    if isinstance(value, Enum):
+def _cleanup_item(item: Any) -> Any:
+    """Cleanup a single item."""
+    if isinstance(item, StrEnum):
+        return str(item)
+    if isinstance(item, IntEnum):
+        return int(item)
+    if isinstance(item, Enum):
         _LOGGER.error("XmlRpcProxy command: Enum is not supported as parameter value")
-    return value
+    return item
 
 
 def _cleanup_paramset(paramset: Mapping[str, Any]) -> Mapping[str, Any]:
-    """Cleanup a single parameter."""
+    """Cleanup a paramset."""
     new_paramset: dict[str, Any] = {}
     for name, value in paramset.items():
-        new_paramset[name] = _cleanup_parameter(value=value)
+        new_paramset[_cleanup_item(item=name)] = _cleanup_item(item=value)
     return new_paramset

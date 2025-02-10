@@ -12,6 +12,7 @@ from hahomematic.const import (
     CALLBACK_TYPE,
     INIT_DATETIME,
     CallSource,
+    CalulatedParameter,
     DataPointKey,
     DataPointUsage,
     Operations,
@@ -38,7 +39,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     """Base class for calculated data point."""
 
-    _calculated_parameter = ""
+    _calculated_parameter: CalulatedParameter = None  # type: ignore[assignment]
 
     def __init__(
         self,

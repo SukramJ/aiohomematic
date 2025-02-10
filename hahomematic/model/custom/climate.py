@@ -12,6 +12,7 @@ from hahomematic.const import (
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     DataPointCategory,
+    Parameter,
     ParamsetKey,
     ProductGroup,
 )
@@ -783,7 +784,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         await self._client.set_value(
             channel_address=self._channel.address,
             paramset_key=ParamsetKey.VALUES,
-            parameter="PARTY_MODE_SUBMIT",
+            parameter=Parameter.PARTY_MODE_SUBMIT,
             value=_party_mode_code(start=start, end=end, away_temperature=away_temperature),
         )
 
@@ -803,7 +804,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         await self._client.set_value(
             channel_address=self._channel.address,
             paramset_key=ParamsetKey.VALUES,
-            parameter="PARTY_MODE_SUBMIT",
+            parameter=Parameter.PARTY_MODE_SUBMIT,
             value=_party_mode_code(start=start, end=end, away_temperature=12.0),
         )
 
@@ -1001,10 +1002,10 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             channel_address=self._channel.address,
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "SET_POINT_MODE": _ModeHmIP.AWAY,
-                "SET_POINT_TEMPERATURE": away_temperature,
-                "PARTY_TIME_START": start.strftime(_PARTY_DATE_FORMAT),
-                "PARTY_TIME_END": end.strftime(_PARTY_DATE_FORMAT),
+                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
+                Parameter.SET_POINT_TEMPERATURE: away_temperature,
+                Parameter.PARTY_TIME_START: start.strftime(_PARTY_DATE_FORMAT),
+                Parameter.PARTY_TIME_END: end.strftime(_PARTY_DATE_FORMAT),
             },
         )
 
@@ -1022,9 +1023,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             channel_address=self._channel.address,
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "SET_POINT_MODE": _ModeHmIP.AWAY,
-                "PARTY_TIME_START": _PARTY_INIT_DATE,
-                "PARTY_TIME_END": _PARTY_INIT_DATE,
+                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
+                Parameter.PARTY_TIME_START: _PARTY_INIT_DATE,
+                Parameter.PARTY_TIME_END: _PARTY_INIT_DATE,
             },
         )
 

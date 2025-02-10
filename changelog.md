@@ -1,3 +1,7 @@
+# Version 2025.2.8 (2025-02-10)
+
+- Use enums for const parameter values
+
 # Version 2025.2.7 (2025-02-08)
 
 - Remove @cache and @lru_cache annotations

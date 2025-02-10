@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.2.7"
+VERSION: Final = "2025.2.8"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -283,8 +283,18 @@ class Operations(IntEnum):
     EVENT = 4
 
 
+class CalulatedParameter(StrEnum):
+    """Enum with calculated homematic parameters."""
+
+    APPARENT_TEMPERATURE = "APPARENT_TEMPERATURE"
+    DEW_POINT = "DEW_POINT"
+    FROST_POINT = "FROST_POINT"
+    OPERATING_VOLTAGE_LEVEL = "OPERATING_VOLTAGE_LEVEL"
+    VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
+
+
 class Parameter(StrEnum):
-    """Enum with homematic params."""
+    """Enum with homematic parameters."""
 
     ACOUSTIC_ALARM_ACTIVE = "ACOUSTIC_ALARM_ACTIVE"
     ACOUSTIC_ALARM_SELECTION = "ACOUSTIC_ALARM_SELECTION"
@@ -348,6 +358,9 @@ class Parameter(StrEnum):
     OPTICAL_ALARM_SELECTION = "OPTICAL_ALARM_SELECTION"
     OPTIMUM_START_STOP = "OPTIMUM_START_STOP"
     PARTY_MODE = "PARTY_MODE"
+    PARTY_MODE_SUBMIT = "PARTY_MODE_SUBMIT"
+    PARTY_TIME_END = "PARTY_TIME_END"
+    PARTY_TIME_START = "PARTY_TIME_START"
     PONG = "PONG"
     POWER = "POWER"
     PRESS = "PRESS"

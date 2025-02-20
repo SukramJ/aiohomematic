@@ -121,7 +121,7 @@ def inspector(  # noqa: C901
     return create_wrapped_decorator
 
 
-def _log_performance_message(func: Callable, start: float, *args: P.args, **kwargs: P.kwargs) -> None:
+def _log_performance_message(func: Callable, start: float, *args: P.args, **kwargs: P.kwargs) -> None:  # type: ignore[valid-type]
     delta = monotonic() - start
     caller = str(args[0]) if len(args) > 0 else ""
 

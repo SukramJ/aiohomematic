@@ -4,7 +4,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        This issue form is for reporting bugs only!
+        This issue form is for reporting bugs only! Use the discussions fpr feature requests and support stuff.
         Language/Sprache: english/ deutsch
   - type: checkboxes
     attributes:
@@ -29,8 +29,9 @@ body:
       label: The problem
       description: >-
         Describe the issue you are experiencing here, to communicate to the
-        maintainers. Tell us what you were trying to do and what happened.
-
+        maintainers. Tell us what you were trying to do and what happened, and show code samples if used.
+        
+        Sample code and screenshots are much better then long texts!
         Provide a clear and concise description of what the problem is.
   - type: markdown
     attributes:
@@ -42,13 +43,13 @@ body:
       required: true
     attributes:
       label: What version of HomematicIP (local) has the issue?
-      placeholder: 1.5x.x
+      placeholder: 1.8x.x
       description: >
         Can be found in: HACS -> Integrations
   - type: input
     attributes:
       label: What was the last working version of HomematicIP (local)?
-      placeholder: 1.5x.x
+      placeholder: 1.8x.x
       description: >
         If known, otherwise leave blank.
   - type: dropdown
@@ -116,7 +117,7 @@ body:
 
   - type: textarea
     attributes:
-      label: Diagnostics information (no logs here)
+      label: Diagnostics information (very helpful) (no logs here)
       placeholder: "drag-and-drop the diagnostics data file here (do not copy-and-paste the content)"
       description: >-
         This integrations provides the ability to [download diagnostic data](https://www.home-assistant.io/docs/configuration/troubleshooting/#debug-logs-and-diagnostics).
@@ -127,7 +128,7 @@ body:
         It generally allows pinpointing defects and thus resolving issues faster.
   - type: textarea
     attributes:
-      label: Log file extract. Anything in the logs that might be useful for us? The log (Setting/System/Logs -> load full log) is the best source to support trouble shooting!
+      label: Log file extract (very helpful). Anything in the logs that might be useful for us? The log (Setting/System/Logs -> load full log) is the best source to support trouble shooting!
       description: For example, error message, or stack traces. Don't switch to DEBUG level if not requested.
       render: txt
   - type: textarea

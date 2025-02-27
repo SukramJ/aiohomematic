@@ -30,7 +30,7 @@ body:
       description: >-
         Describe the issue you are experiencing here, to communicate to the
         maintainers. Tell us what you were trying to do and what happened, and show code samples if used.
-        
+
         Sample code and screenshots are much better then long texts!
         Provide a clear and concise description of what the problem is.
   - type: markdown

@@ -405,7 +405,7 @@ class JsonRpcAioHttpClient:
                 message = f"{message}: {error_message}"
             raise ClientException(message)
         except BaseHomematicException:
-            if method == _JsonRpcMethod.SESSION_LOGOUT:
+            if method in (_JsonRpcMethod.SESSION_LOGIN, _JsonRpcMethod.SESSION_LOGOUT, _JsonRpcMethod.SESSION_RENEW):
                 self.clear_session()
             raise
         except ClientConnectorCertificateError as cccerr:

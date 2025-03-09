@@ -1,5 +1,6 @@
-# Version 2025.3.0 (2025-02-10)
+# Version 2025.3.0 (2025-03-09)
 
+- Clear session on auth failure
 - Use enums for const parameter values
 
 # Version 2025.2.7 (2025-02-08)

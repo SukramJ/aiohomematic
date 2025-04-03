@@ -195,8 +195,8 @@ def regular_to_default_dict_hook(origin: dict) -> defaultdict[Any, Any]:
     return cast(defaultdict[Any, Any], new_instance)
 
 
-def get_tls_context(verify_tls: bool) -> ssl.SSLContext:
-    """Return tls verified/unverified ssl/tls context."""
+def _create_tls_context(verify_tls: bool) -> ssl.SSLContext:
+    """Create tls verified/unverified context."""
     sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     if not verify_tls:
         sslcontext.check_hostname = False
@@ -206,6 +206,15 @@ def get_tls_context(verify_tls: bool) -> ssl.SSLContext:
         sslcontext.options |= ssl.OP_NO_COMPRESSION
     sslcontext.set_default_verify_paths()
     return sslcontext
+
+
+_DEFAULT_NO_VERIFY_SSL_CONTEXT = _create_tls_context(verify_tls=False)
+_DEFAULT_SSL_CONTEXT = _create_tls_context(verify_tls=True)
+
+
+def get_tls_context(verify_tls: bool) -> ssl.SSLContext:
+    """Return tls verified/unverified context."""
+    return _DEFAULT_SSL_CONTEXT if verify_tls else _DEFAULT_NO_VERIFY_SSL_CONTEXT
 
 
 def get_channel_address(device_address: str, channel_no: int | None) -> str:

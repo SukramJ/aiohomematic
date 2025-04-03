@@ -1,3 +1,7 @@
+# Version 2025.4.0 (2025-04-03)
+
+- Create TLS context during module load
+
 # Version 2025.3.0 (2025-03-09)
 
 - Clear session on auth failure

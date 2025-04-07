@@ -1,3 +1,7 @@
+# Version 2025.4.1 (2025-04-07)
+
+- limit all values to 255 characters
+
 # Version 2025.4.0 (2025-04-03)
 
 - Create TLS context during module load

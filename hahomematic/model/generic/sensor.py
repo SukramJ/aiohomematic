@@ -6,10 +6,10 @@ from collections.abc import Mapping
 import logging
 from typing import Any, Final, cast
 
-from hahomematic.const import DataPointCategory, Parameter
+from hahomematic.const import DataPointCategory, Parameter, ParameterType
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic.data_point import GenericDataPoint
-from hahomematic.model.support import get_value_from_value_list
+from hahomematic.model.support import check_length_and_log, get_value_from_value_list
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -30,7 +30,12 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
             return cast(SensorT, value)
         if convert_func := self._get_converter_func():
             return cast(SensorT, convert_func(self._value))
-        return cast(SensorT, self._value)
+        return cast(
+            SensorT,
+            check_length_and_log(name=self.name, value=self._value)
+            if self._type == ParameterType.STRING
+            else self._value,
+        )
 
     def _get_converter_func(self) -> Any:
         """Return a converter based on sensor."""

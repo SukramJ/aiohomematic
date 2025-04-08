@@ -143,9 +143,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     @property
     def _value(self) -> Any | None:
         """Return the value."""
-        if self._temporary_refreshed_at > self._refreshed_at:
-            return self._temporary_value
-        return self._current_value
+        return self._temporary_value if self._temporary_refreshed_at > self._refreshed_at else self._current_value
 
     @state_property
     def value(self) -> Any | None:

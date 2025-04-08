@@ -220,6 +220,17 @@ class HubNameData:
         return HubNameData(name="")
 
 
+def check_length_and_log(name: str | None, value: Any) -> Any:
+    """Check the length of a datapoint and log if too long."""
+    if isinstance(value, str) and len(value) > 255:
+        _LOGGER.debug(
+            "Value of datapoint %s exceedes maximum allowed length of 255 chars. Value will be limited to 255 chars",
+            name,
+        )
+        return value[0:255:1]
+    return value
+
+
 def get_device_name(central: hmcu.CentralUnit, device_address: str, model: str) -> str:
     """Return the cached name for a device, or an auto-generated."""
     if name := central.device_details.get_name(address=device_address):

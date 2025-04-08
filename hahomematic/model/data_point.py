@@ -590,9 +590,7 @@ class BaseParameterDataPoint[
     @property
     def _value(self) -> ParameterT:
         """Return the value of the data_point."""
-        if self._temporary_refreshed_at > self._refreshed_at:
-            return self._temporary_value
-        return self._current_value
+        return self._temporary_value if self._temporary_refreshed_at > self._refreshed_at else self._current_value
 
     @state_property
     def value(self) -> ParameterT:

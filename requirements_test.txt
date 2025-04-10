@@ -13,10 +13,10 @@ pylint-strict-informational==0.1
 pylint==3.3.6
 pytest-aiohttp==1.1.0
 pytest-asyncio==0.26.0
-pytest-cov==6.1.0
+pytest-cov==6.1.1
 pytest-rerunfailures==15.0
 pytest-socket==0.7.0
 pytest-timeout==2.3.1
 pytest==8.3.5
 types-python-slugify==8.0.2.20240310
-uv==0.6.12
+uv==0.6.14

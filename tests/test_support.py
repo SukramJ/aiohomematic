@@ -279,6 +279,7 @@ async def test_custom_data_point_name(
     name_data = get_custom_data_point_name(
         channel=channel4,
         is_only_primary_channel=True,
+        ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127"
@@ -287,6 +288,7 @@ async def test_custom_data_point_name(
     name_data = get_custom_data_point_name(
         channel=channel4,
         is_only_primary_channel=False,
+        ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 vch4"
@@ -297,6 +299,7 @@ async def test_custom_data_point_name(
     name_data = get_custom_data_point_name(
         channel=channel5,
         is_only_primary_channel=True,
+        ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_PRIMARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
@@ -305,6 +308,7 @@ async def test_custom_data_point_name(
     name_data = get_custom_data_point_name(
         channel=channel5,
         is_only_primary_channel=False,
+        ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_SECONDARY,
     )
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
@@ -317,6 +321,7 @@ async def test_custom_data_point_name(
         name_data = get_custom_data_point_name(
             channel=channel5,
             is_only_primary_channel=False,
+            ignore_multiple_channels_for_name=False,
             usage=DataPointUsage.CDP_SECONDARY,
         )
         assert name_data.full_name == ""

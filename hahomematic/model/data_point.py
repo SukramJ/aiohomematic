@@ -325,6 +325,8 @@ class CallbackDataPoint(ABC):
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     """Base class for regular data point."""
 
+    _ignore_multiple_channels_for_name: bool = False
+
     def __init__(
         self,
         channel: hmd.Channel,

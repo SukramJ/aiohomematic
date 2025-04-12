@@ -52,6 +52,7 @@ class BaseCustomDpLock(CustomDataPoint):
     """Class for HomematicIP lock data point."""
 
     _category = DataPointCategory.LOCK
+    _ignore_multiple_channels_for_name = True
 
     @state_property
     @abstractmethod
@@ -316,12 +317,18 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
             }
         ),
     ),
-    "HmIP-DLD": CustomConfig(
-        make_ce_func=make_ip_lock,
-        extended=ExtendedConfig(
-            additional_data_points={
-                0: (Parameter.ERROR_JAMMED,),
-            }
+    "HmIP-DLD": (
+        CustomConfig(
+            make_ce_func=make_ip_lock,
+            extended=ExtendedConfig(
+                additional_data_points={
+                    0: (Parameter.ERROR_JAMMED,),
+                }
+            ),
+        ),
+        CustomConfig(
+            make_ce_func=make_ip_button_lock,
+            channels=(0,),
         ),
     ),
     "HM-TC-IT-WM-W-EU": CustomConfig(

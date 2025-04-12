@@ -152,6 +152,7 @@ class CustomDataPoint(BaseDataPoint):
         return get_custom_data_point_name(
             channel=self._channel,
             is_only_primary_channel=is_only_primary_channel,
+            ignore_multiple_channels_for_name=self._ignore_multiple_channels_for_name,
             usage=self._get_data_point_usage(),
             postfix=self.data_point_name_postfix.replace("_", " ").title(),
         )

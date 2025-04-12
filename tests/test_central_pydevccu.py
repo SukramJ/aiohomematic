@@ -131,7 +131,7 @@ async def test_central_full(central_unit_full) -> None:
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 262
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 263
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 154
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 133
     assert usage_types[DataPointUsage.DATA_POINT] == 3856

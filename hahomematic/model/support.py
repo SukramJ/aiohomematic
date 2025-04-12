@@ -453,12 +453,15 @@ def get_event_name(
 def get_custom_data_point_name(
     channel: hmd.Channel,
     is_only_primary_channel: bool,
+    ignore_multiple_channels_for_name: bool,
     usage: DataPointUsage,
     postfix: str = "",
 ) -> DataPointNameData:
     """Get name for custom data_point."""
     if channel_name := _get_base_name_from_channel_or_device(channel=channel):
-        if is_only_primary_channel and _check_channel_name_with_channel_no(name=channel_name):
+        if (is_only_primary_channel or ignore_multiple_channels_for_name) and _check_channel_name_with_channel_no(
+            name=channel_name
+        ):
             return DataPointNameData(
                 device_name=channel.device.name,
                 channel_name=channel_name.split(ADDRESS_SEPARATOR)[0],

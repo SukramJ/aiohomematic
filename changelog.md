@@ -1,3 +1,7 @@
+# Version 2025.4.2 (2025-04-11)
+
+- Add button_lock to HmIP-DLD
+
 # Version 2025.4.1 (2025-04-07)
 
 - limit text values to 255 characters

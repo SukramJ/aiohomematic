@@ -54,8 +54,6 @@ def inspector(  # noqa: C901
 
         """
 
-        start = monotonic() if measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG) else None
-
         def handle_exception(ex: Exception, func: Callable, is_sub_service_call: bool, is_homematic: bool) -> R:
             """Handle exceptions for decorated functions."""
             if not is_sub_service_call and log_level > logging.NOTSET:
@@ -69,6 +67,7 @@ def inspector(  # noqa: C901
         def wrap_sync_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap sync functions."""
 
+            start = monotonic() if measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG) else None
             token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
             try:
                 return_value: R = func(*args, **kwargs)
@@ -92,6 +91,7 @@ def inspector(  # noqa: C901
         async def wrap_async_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap async functions."""
 
+            start = monotonic() if measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG) else None
             token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
             try:
                 return_value = await func(*args, **kwargs)  # type: ignore[misc]  # Await the async call
@@ -153,11 +153,11 @@ def get_service_calls(obj: object) -> dict[str, Callable]:
 def measure_execution_time[_CallableT: Callable[..., Any]](func: _CallableT) -> _CallableT:
     """Decorate function to measure the function execution time."""
 
-    start = monotonic() if _LOGGER.isEnabledFor(level=logging.DEBUG) else None
-
     @wraps(func)
     async def async_measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
+
+        start = monotonic() if _LOGGER.isEnabledFor(level=logging.DEBUG) else None
         try:
             return await func(*args, **kwargs)
         finally:
@@ -167,6 +167,8 @@ def measure_execution_time[_CallableT: Callable[..., Any]](func: _CallableT) -> 
     @wraps(func)
     def measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
+
+        start = monotonic() if _LOGGER.isEnabledFor(level=logging.DEBUG) else None
         try:
             return func(*args, **kwargs)
         finally:

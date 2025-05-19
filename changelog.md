@@ -1,5 +1,6 @@
 # Version 2025.5.0 (2025-05-19)
 
+- Fix performance measurement
 - Wait with PING/PONG handling until interface is initialized
 
 # Version 2025.4.2 (2025-04-11)

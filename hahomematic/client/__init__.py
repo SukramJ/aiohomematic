@@ -89,6 +89,7 @@ class Client(ABC):
         self._available: bool = True
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
+        self._is_initialized: bool = False
         self._ping_pong_cache: Final = PingPongCache(
             central=client_config.central, interface_id=client_config.interface_id
         )
@@ -125,6 +126,11 @@ class Client(ABC):
     def interface_id(self) -> str:
         """Return the interface id of the client."""
         return self._config.interface_id
+
+    @property
+    def is_initialized(self) -> bool:
+        """Return if interface is initialized."""
+        return self._is_initialized
 
     @property
     def last_value_send_cache(self) -> CommandCache:
@@ -206,6 +212,7 @@ class Client(ABC):
             _LOGGER.debug("PROXY_INIT: init('%s', '%s')", self._config.init_url, self.interface_id)
             self._ping_pong_cache.clear()
             await self._proxy.init(self._config.init_url, self.interface_id)
+            self._is_initialized = True
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
             _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
         except BaseHomematicException as ex:
@@ -234,6 +241,7 @@ class Client(ABC):
         try:
             _LOGGER.debug("PROXY_DE_INIT: init('%s')", self._config.init_url)
             await self._proxy.init(self._config.init_url)
+            self._is_initialized = False
         except BaseHomematicException as ex:
             _LOGGER.warning(
                 "PROXY_DE_INIT failed: %s [%s] Unable to de-initialize proxy for %s",
@@ -1055,14 +1063,16 @@ class ClientCCU(Client):
         """Check if _proxy is still initialized."""
         try:
             dt_now = datetime.now()
-            if handle_ping_pong and self.supports_ping_pong:
+            if handle_ping_pong and self.supports_ping_pong and self._is_initialized:
+                callerId = (
+                    f"{self.interface_id}#{dt_now.strftime(format=DATETIME_FORMAT_MILLIS)}"
+                    if handle_ping_pong
+                    else self.interface_id
+                )
                 self._ping_pong_cache.handle_send_ping(ping_ts=dt_now)
-            calllerId = (
-                f"{self.interface_id}#{dt_now.strftime(format=DATETIME_FORMAT_MILLIS)}"
-                if handle_ping_pong
-                else self.interface_id
-            )
-            await self._proxy.ping(calllerId)
+                await self._proxy.ping(callerId)
+            elif not self._is_initialized:
+                await self._proxy.ping(self.interface_id)
             self.modified_at = dt_now
         except BaseHomematicException as ex:
             _LOGGER.debug(

@@ -1063,15 +1063,15 @@ class ClientCCU(Client):
         """Check if _proxy is still initialized."""
         try:
             dt_now = datetime.now()
-            if handle_ping_pong and self.supports_ping_pong and self.is_initialized:
-                calllerId = (
+            if handle_ping_pong and self.supports_ping_pong and self._is_initialized:
+                callerId = (
                     f"{self.interface_id}#{dt_now.strftime(format=DATETIME_FORMAT_MILLIS)}"
                     if handle_ping_pong
                     else self.interface_id
                 )
                 self._ping_pong_cache.handle_send_ping(ping_ts=dt_now)
-                await self._proxy.ping(calllerId)
-            elif not self.is_initialized:
+                await self._proxy.ping(callerId)
+            elif not self._is_initialized:
                 await self._proxy.ping(self.interface_id)
             self.modified_at = dt_now
         except BaseHomematicException as ex:

@@ -398,7 +398,7 @@ class CentralUnit(PayloadMixin):
             _LOGGER.debug("START: Central %s already started", self.name)
             return
         if self._config.enabled_interface_configs and (
-            ip_addr := await self._identify_ip_addr(port=tuple(self._config.enabled_interface_configs)[0].port)
+            ip_addr := await self._identify_ip_addr(port=self._config.connection_check_port)
         ):
             self._xml_rpc_callback_ip = ip_addr
             self._listen_ip_addr = self._config.listen_ip_addr if self._config.listen_ip_addr else ip_addr
@@ -658,10 +658,7 @@ class CentralUnit(PayloadMixin):
             event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
-    async def _identify_ip_addr(self, port: int | None) -> str:
-        if port is None:
-            return LOCAL_HOST
-
+    async def _identify_ip_addr(self, port: int) -> str:
         ip_addr: str | None = None
         while ip_addr is None:
             try:
@@ -1769,6 +1766,15 @@ class CentralConfig:
     def load_un_ignore(self) -> bool:
         """Return if un_ignore should be loaded."""
         return self.start_direct is False
+
+    @property
+    def connection_check_port(self) -> int:
+        """Return the connection check port."""
+        if used_ports := tuple(ic.port for ic in self._interface_configs if ic.port is not None):
+            return used_ports[0]
+        if self.json_port:
+            return self.json_port
+        return 443 if self.tls else 80
 
     @property
     def enabled_interface_configs(self) -> tuple[hmcl.InterfaceConfig, ...]:

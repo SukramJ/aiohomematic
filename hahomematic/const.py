@@ -183,6 +183,7 @@ class DataPointCategory(StrEnum):
     SWITCH = "switch"
     TEXT = "text"
     UPDATE = "update"
+    VALVE = "valve"
 
 
 class DataPointUsage(StrEnum):

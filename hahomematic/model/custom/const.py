@@ -15,6 +15,7 @@ class DeviceProfile(StrEnum):
     IP_FIXED_COLOR_LIGHT = "IPFixedColorLight"
     IP_GARAGE = "IPGarage"
     IP_HDM = "IPHdm"
+    IP_IRRIGATION_VALVE = "IPIrrigationValve"
     IP_LOCK = "IPLock"
     IP_RGBW_LIGHT = "IPRGBW"
     IP_SIMPLE_FIXED_COLOR_LIGHT = "IPSimpleFixedColorLight"

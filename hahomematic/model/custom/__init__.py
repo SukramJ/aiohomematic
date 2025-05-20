@@ -57,6 +57,7 @@ from hahomematic.model.custom.lock import (
 )
 from hahomematic.model.custom.siren import BaseCustomDpSiren, CustomDpIpSiren, CustomDpIpSirenSmoke, SirenOnArgs
 from hahomematic.model.custom.switch import CustomDpSwitch
+from hahomematic.model.custom.valve import CustomDpIpIrrigationValve
 
 __all__ = [
     "BaseCustomDpClimate",
@@ -77,6 +78,7 @@ __all__ = [
     "CustomDpIpBlind",
     "CustomDpIpDrgDaliLight",
     "CustomDpIpFixedColorLight",
+    "CustomDpIpIrrigationValve",
     "CustomDpIpLock",
     "CustomDpIpRGBWLight",
     "CustomDpIpSiren",

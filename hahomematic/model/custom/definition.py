@@ -239,6 +239,27 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 },
             },
         },
+        DeviceProfile.IP_IRRIGATION_VALVE: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.REPEATABLE_FIELDS: {
+                    Field.STATE: Parameter.STATE,
+                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
+                },
+                CDPD.VISIBLE_FIELDS: {
+                    -1: {
+                        Field.CHANNEL_STATE: Parameter.STATE,
+                    },
+                },
+            },
+            CDPD.ADDITIONAL_DPS: {
+                2: (
+                    Parameter.WATER_FLOW,
+                    Parameter.WATER_VOLUME,
+                    Parameter.WATER_VOLUME_SINCE_OPEN,
+                ),
+            },
+        },
         DeviceProfile.IP_SWITCH: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),

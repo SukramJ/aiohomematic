@@ -26,7 +26,6 @@ class _StateChangeArg(StrEnum):
 
     OFF = "off"
     ON = "on"
-    ON_TIME_RUNNING = "on_time_running"
 
 
 class CustomDpIpIrrigationValve(CustomDataPoint, TimerMixin):

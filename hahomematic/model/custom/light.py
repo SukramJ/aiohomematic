@@ -77,7 +77,6 @@ class _StateChangeArg(StrEnum):
     OFF = "off"
     ON = "on"
     ON_TIME = "on_time"
-    ON_TIME_RUNNING = "on_time_running"
     RAMP_TIME = "ramp_time"
 
 

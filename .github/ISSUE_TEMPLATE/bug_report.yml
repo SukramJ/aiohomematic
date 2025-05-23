@@ -1,11 +1,10 @@
-name: Report an issue with HomematicIP (local)
-description: Report an issue with HomematicIP (local).
+name: Report an issue with HomematicIP (local) in english
+description: Report an issue with HomematicIP (local) in english.
 body:
   - type: markdown
     attributes:
       value: |
         This issue form is for reporting bugs only! Use the discussions for feature requests and support stuff.
-        Language/Sprache: english/ deutsch
   - type: checkboxes
     attributes:
       label: I agree to the following
@@ -114,6 +113,10 @@ body:
           required: false
         - label: BidCos-Wired (HM-Wired)
           required: false
+        - label: CuXD
+          required: false
+        - label: CCU-Jack
+          required: false
 
   - type: textarea
     attributes:
@@ -128,7 +131,7 @@ body:
         It generally allows pinpointing defects and thus resolving issues faster.
   - type: textarea
     attributes:
-      label: Log file extract (very helpful). Anything in the logs that might be useful for us? The log (Setting/System/Logs -> load full log) is the best source to support trouble shooting!
+      label: Protocol file extract (very helpful). Anything in the protocols that might be useful for us? The log (Setting/System/Protocols -> load unchanged protocol) is the best source to support trouble shooting!
       description: For example, error message, or stack traces. Don't switch to DEBUG level if not requested.
       render: txt
   - type: textarea

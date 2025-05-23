@@ -1,5 +1,5 @@
-name: Melde ein Problem mit HomematicIP (local) in german
-description: Melde ein Problem mit HomematicIP (local) in german
+name: Melde ein Problem mit HomematicIP (local)
+description: Melde ein Problem mit HomematicIP (local)
 body:
   - type: markdown
     attributes:
@@ -9,9 +9,9 @@ body:
     attributes:
       label: Ich stimme dem Folgenden zu
       options:
-        - label: Ich habe die [Dokumentation](https://github.com/sukramj/custom_homematic#custom_homematic) gerade gelesen
+        - label: Ich habe die [Dokumentation](https://github.com/sukramj/custom_homematic#custom_homematic) gelesen
           required: true
-        - label: Ich habe gerade die [FAQs](https://github.com/sukramj/custom_homematic#frequently-asked-questions) gelesen
+        - label: Ich habe die [FAQs](https://github.com/sukramj/custom_homematic#frequently-asked-questions) gelesen
           required: true
         - label: Ich kenne die neuesten [Versionshinweise](https://github.com/sukramj/custom_homematic/releases)
           required: true
@@ -27,14 +27,14 @@ body:
     attributes:
       label: Das Problem
       description: >-
-        Beschreiben hier das Problem. Erzählen, was Du versucht hast, um das Problem selber zu lösen, und was dabei passiert ist. Zeige ggf. Codebeispiele.
+        Beschreiben hier das Problem. Erzähle was Du versucht hast, um das Problem selber zu lösen, und was dabei passiert ist. Zeige ggf. Codebeispiele.
 
         Beispielcode und Screenshots sind viel besser als lange Texte!
-        Beschreibe das Problem klar und eindeutig.
+        Beschreibe das Problem klar und eindeutig!
   - type: markdown
     attributes:
       value: |
-        ## Environment
+        ## Systemumgebung
   - type: input
     id: version
     validations:
@@ -46,7 +46,7 @@ body:
         Zu finden unter: HACS -> Integrationen
   - type: input
     attributes:
-      label: Was war die letzte funktionierende Version von HomematicIP (local)?
+      label: Welche war die letzte funktionierende Version von HomematicIP (local)?
       placeholder: 1.8x.x
       description: >
         Falls bekannt, andernfalls leer lassen.
@@ -68,7 +68,7 @@ body:
     validations:
       required: true
     attributes:
-      label: Welche Art von Installation verwendest Du als Homematic-Backend??
+      label: Welche Art von Installation verwendest Du als Homematic-Backend?
       options:
         - RaspberryMatic Einzeln
         - RaspberryMatic HA-Addon
@@ -98,11 +98,11 @@ body:
       options:
         - label: TLS
           required: false
-        - label: Callback Daten ([see](https://github.com/sukramj/custom_homematic#callback_host-and-callback_port))
+        - label: Callback Daten ([siehe](https://github.com/sukramj/custom_homematic#callback_host-and-callback_port))
           required: false
   - type: checkboxes
     attributes:
-      label: Welche Schnittstellen nutzt Du?
+      label: Welche Schnittstellen werden verwendet?
       options:
         - label: Homematic IP
           required: false
@@ -122,15 +122,15 @@ body:
       label: Diagnoseinformationen (sehr hilfreich!) (keine Protokolle hier)
       placeholder: "Ziehe die Diagnosedatendatei per Drag-and-Drop hierher (kopiere nicht den Inhalt)"
       description: >-
-        Diese Integrationen bieten die Möglichkeit [Diagnosedaten herunterzuladen](https://www.home-assistant.io/docs/configuration/troubleshooting/#debug-logs-and-diagnostics).
+        Diese Integration bieten die Möglichkeit [Diagnosedaten herunterzuladen](https://www.home-assistant.io/docs/configuration/troubleshooting/#debug-logs-and-diagnostics).
 
-        **Es wäre sehr hilfreich, wenn Du die Diagnosedaten für das Gerät, mit dem das Probleme besteht, herunterladen und die Datei per <ins>Drag-and-Drop</ins> in das Textfeld unten ziehen könntest.**
+        **Es ist sehr hilfreich, wenn Du die Diagnosedaten für das Gerät, mit dem das Probleme besteht, herunterladen und die Datei per <ins>Drag-and-Drop</ins> in das Textfeld unten ziehen könntest.**
 
         Dadurch können im Allgemeinen Fehler genauer lokalisiert und Probleme schneller gelöst werden.
   - type: textarea
     attributes:
       label: Auszug aus der Protokolldatei (sehr hilfreich). Gibt es in den Protokollen etwas, das nützlich sein könnte? Das Protokoll (Einstellungen/System/Protokolle -> Unveränderte Protokolle laden) ist die beste Quelle zur Fehlerbehebung!
-      description: Beispielsweise Fehlermeldungen oder Stapelüberwachungen. Wechseln Sie nicht zur DEBUG-Ebene, wenn dies nicht angefordert wird.
+      description: Beispielsweise Fehlermeldungen. Wechsele nicht zum DEBUG, wenn das nicht angefordert wurde.
       render: txt
   - type: textarea
     attributes:

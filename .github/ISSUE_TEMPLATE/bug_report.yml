@@ -1,5 +1,5 @@
-name: Report an issue with HomematicIP (local) in english
-description: Report an issue with HomematicIP (local) in english.
+name: Report an issue with HomematicIP (local)
+description: Report an issue with HomematicIP (local)
 body:
   - type: markdown
     attributes:
@@ -9,9 +9,9 @@ body:
     attributes:
       label: I agree to the following
       options:
-        - label: I have read the [documentation](https://github.com/sukramj/custom_homematic#custom_homematic) right now
+        - label: I have read the [documentation](https://github.com/sukramj/custom_homematic#custom_homematic)
           required: true
-        - label: I have read the [FAQs](https://github.com/sukramj/custom_homematic#frequently-asked-questions) right now
+        - label: I have read the [FAQs](https://github.com/sukramj/custom_homematic#frequently-asked-questions)
           required: true
         - label: I am aware of the latest [release notes](https://github.com/sukramj/custom_homematic/releases)
           required: true

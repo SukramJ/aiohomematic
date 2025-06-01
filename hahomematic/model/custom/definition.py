@@ -26,7 +26,7 @@ ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomCon
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
 _SCHEMA_ADDITIONAL_DPS = vol.Schema(
-    {vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
+    {vol.Required(vol.Any(int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
 )
 
 _SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
@@ -253,7 +253,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 },
             },
             CDPD.ADDITIONAL_DPS: {
-                2: (
+                -2: (
                     Parameter.WATER_FLOW,
                     Parameter.WATER_VOLUME,
                     Parameter.WATER_VOLUME_SINCE_OPEN,

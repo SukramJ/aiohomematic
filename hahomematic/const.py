@@ -598,6 +598,7 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.SWITCH,
     DataPointCategory.TEXT,
     DataPointCategory.UPDATE,
+    DataPointCategory.VALVE,
 )
 
 PRIMARY_CLIENT_CANDIDATE_INTERFACES: Final = (

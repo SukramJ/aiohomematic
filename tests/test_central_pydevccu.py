@@ -134,8 +134,8 @@ async def test_central_full(central_unit_full) -> None:
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 264
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 156
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 134
-    assert usage_types[DataPointUsage.DATA_POINT] == 3862
-    assert usage_types[DataPointUsage.NO_CREATE] == 4192
+    assert usage_types[DataPointUsage.DATA_POINT] == 3865
+    assert usage_types[DataPointUsage.NO_CREATE] == 4189
 
     assert len(ce_channels) == 126
     assert len(data_point_types) == 6

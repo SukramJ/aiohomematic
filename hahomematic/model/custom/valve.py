@@ -102,7 +102,7 @@ def make_ip_irrigation_valve(
 # Case for device model is not relevant.
 # HomeBrew (HB-) devices are always listed as HM-.
 DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
-    "ELV-SH-WSM": CustomConfig(make_ce_func=make_ip_irrigation_valve, channels=(3,)),
-    "HmIP-WSM": CustomConfig(make_ce_func=make_ip_irrigation_valve, channels=(3,)),
+    "ELV-SH-WSM": CustomConfig(make_ce_func=make_ip_irrigation_valve, channels=(4,)),
+    "HmIP-WSM": CustomConfig(make_ce_func=make_ip_irrigation_valve, channels=(4,)),
 }
 hmed.ALL_DEVICES[DataPointCategory.VALVE] = DEVICES

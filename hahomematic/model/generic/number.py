@@ -45,7 +45,7 @@ class DpFloat(BaseDpNumber[float | None]):
         return self._prepare_number_for_sending(value=value, type_converter=float, do_validate=do_validate)
 
     @state_property
-    def value(self) -> float | None:  # type: ignore[override]
+    def value(self) -> float | None:
         """Return the value of the data_point."""
         return cast(float | None, self._value)
 
@@ -62,6 +62,6 @@ class DpInteger(BaseDpNumber[int | None]):
         return self._prepare_number_for_sending(value=value, type_converter=int, do_validate=do_validate)
 
     @state_property
-    def value(self) -> int | None:  # type: ignore[override]
+    def value(self) -> int | None:
         """Return the value of the data_point."""
         return cast(int | None, self._value)

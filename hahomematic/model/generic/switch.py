@@ -23,7 +23,7 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
     _category = DataPointCategory.SWITCH
 
     @state_property
-    def value(self) -> bool | None:  # type: ignore[override]
+    def value(self) -> bool | None:
         """Get the value of the data_point."""
         if self._type == ParameterType.ACTION:
             return False

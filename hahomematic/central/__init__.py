@@ -615,7 +615,7 @@ class CentralUnit(PayloadMixin):
 
     async def _init_clients(self) -> None:
         """Init clients of control unit, and start connection checker."""
-        for client in self._clients.values():
+        for client in self._clients.copy().values():
             if client.interface not in self.system_information.available_interfaces:
                 _LOGGER.debug(
                     "INIT_CLIENTS failed: Interface: %s is not available for backend %s",

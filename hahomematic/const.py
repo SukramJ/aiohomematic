@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.5.0"
+VERSION: Final = "2025.5.1"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -183,6 +183,7 @@ class DataPointCategory(StrEnum):
     SWITCH = "switch"
     TEXT = "text"
     UPDATE = "update"
+    VALVE = "valve"
 
 
 class DataPointUsage(StrEnum):
@@ -405,6 +406,9 @@ class Parameter(StrEnum):
     UPDATE_PENDING = "UPDATE_PENDING"
     VALVE_STATE = "VALVE_STATE"
     VOLTAGE = "VOLTAGE"
+    WATER_FLOW = "WATER_FLOW"
+    WATER_VOLUME = "WATER_VOLUME"
+    WATER_VOLUME_SINCE_OPEN = "WATER_VOLUME_SINCE_OPEN"
     WEEK_PROGRAM_POINTER = "WEEK_PROGRAM_POINTER"
     WIND_DIRECTION = "WIND_DIRECTION"
     WIND_DIRECTION_RANGE = "WIND_DIRECTION_RANGE"
@@ -594,6 +598,7 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.SWITCH,
     DataPointCategory.TEXT,
     DataPointCategory.UPDATE,
+    DataPointCategory.VALVE,
 )
 
 PRIMARY_CLIENT_CANDIDATE_INTERFACES: Final = (

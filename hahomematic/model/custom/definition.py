@@ -26,7 +26,7 @@ ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomCon
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
 _SCHEMA_ADDITIONAL_DPS = vol.Schema(
-    {vol.Required(vol.Any(val.positive_int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
+    {vol.Required(vol.Any(int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
 )
 
 _SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
@@ -237,6 +237,27 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                     Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
                     Field.SATURATION: Parameter.SATURATION,
                 },
+            },
+        },
+        DeviceProfile.IP_IRRIGATION_VALVE: {
+            CDPD.DEVICE_GROUP: {
+                CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.REPEATABLE_FIELDS: {
+                    Field.STATE: Parameter.STATE,
+                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
+                },
+                CDPD.VISIBLE_FIELDS: {
+                    -1: {
+                        Field.CHANNEL_STATE: Parameter.STATE,
+                    },
+                },
+            },
+            CDPD.ADDITIONAL_DPS: {
+                -2: (
+                    Parameter.WATER_FLOW,
+                    Parameter.WATER_VOLUME,
+                    Parameter.WATER_VOLUME_SINCE_OPEN,
+                ),
             },
         },
         DeviceProfile.IP_SWITCH: {

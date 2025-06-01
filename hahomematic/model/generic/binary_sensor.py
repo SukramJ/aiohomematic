@@ -19,7 +19,7 @@ class DpBinarySensor(GenericDataPoint[bool | None, bool]):
     _category = DataPointCategory.BINARY_SENSOR
 
     @state_property
-    def value(self) -> bool | None:  # type: ignore[override]
+    def value(self) -> bool | None:
         """Return the value of the data_point."""
         if self._value is not None:
             return cast(bool | None, self._value)

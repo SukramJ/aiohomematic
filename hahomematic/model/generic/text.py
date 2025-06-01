@@ -20,6 +20,6 @@ class DpText(GenericDataPoint[str, str]):
     _category = DataPointCategory.TEXT
 
     @state_property
-    def value(self) -> str | None:  # type: ignore[override]
+    def value(self) -> str | None:
         """Get the value of the data_point."""
         return cast(str | None, check_length_and_log(name=self.name, value=self._value))

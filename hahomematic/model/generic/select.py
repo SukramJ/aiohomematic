@@ -18,7 +18,7 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
     _category = DataPointCategory.SELECT
 
     @state_property
-    def value(self) -> str | None:  # type: ignore[override]
+    def value(self) -> str | None:
         """Get the value of the data_point."""
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value

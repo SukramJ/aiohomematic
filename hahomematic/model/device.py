@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Mapping
-from copy import copy
 from datetime import datetime
 from functools import cached_property, partial
 import logging
@@ -1178,7 +1177,7 @@ class _DefinitionExporter:
         # anonymize device_descriptions
         anonymize_device_descriptions: list[DeviceDescription] = []
         for device_description in device_descriptions.values():
-            new_device_description: DeviceDescription = copy(device_description)
+            new_device_description: DeviceDescription = device_description.copy()
             new_device_description["ADDRESS"] = self._anonymize_address(address=new_device_description["ADDRESS"])
             if new_device_description.get("PARENT"):
                 new_device_description["PARENT"] = new_device_description["ADDRESS"].split(ADDRESS_SEPARATOR)[0]

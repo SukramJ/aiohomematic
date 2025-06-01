@@ -1,3 +1,7 @@
+# Version 2025.5.1 (2025-05-20)
+
+- Add CustomDP valve for ELV-SH-WSM / HmIP-WSM
+
 # Version 2025.5.0 (2025-05-19)
 
 - Fix performance measurement

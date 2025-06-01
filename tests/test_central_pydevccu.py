@@ -75,7 +75,7 @@ async def test_central_full(central_unit_full) -> None:
         for channel in device.channels.values():
             channel_type_names.add(channel.type_name)
     channel_type_names = sorted(channel_type_names)
-    assert len(channel_type_names) == 543
+    assert len(channel_type_names) == 548
     ce_channels = {}
     for cdp in custom_dps:
         if cdp.device.model not in ce_channels:
@@ -131,20 +131,20 @@ async def test_central_full(central_unit_full) -> None:
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 263
-    assert usage_types[DataPointUsage.CDP_SECONDARY] == 154
-    assert usage_types[DataPointUsage.CDP_VISIBLE] == 133
-    assert usage_types[DataPointUsage.DATA_POINT] == 3856
-    assert usage_types[DataPointUsage.NO_CREATE] == 4170
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 264
+    assert usage_types[DataPointUsage.CDP_SECONDARY] == 156
+    assert usage_types[DataPointUsage.CDP_VISIBLE] == 134
+    assert usage_types[DataPointUsage.DATA_POINT] == 3865
+    assert usage_types[DataPointUsage.NO_CREATE] == 4189
 
-    assert len(ce_channels) == 125
+    assert len(ce_channels) == 126
     assert len(data_point_types) == 6
-    assert len(parameters) == 228
+    assert len(parameters) == 231
 
-    assert len(central_unit_full._devices) == 388
+    assert len(central_unit_full._devices) == 389
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-    assert len(central_unit_full._devices) == 385
+    assert len(central_unit_full._devices) == 386
     del_addresses = list(central_unit_full.device_descriptions.get_device_descriptions(const.INTERFACE_ID))
     del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)

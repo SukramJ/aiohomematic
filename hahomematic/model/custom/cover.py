@@ -686,11 +686,6 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-DRBLI4": CustomConfig(
         make_ce_func=make_ip_blind,
         channels=(10, 14, 18, 22),
-        extended=ExtendedConfig(
-            additional_data_points={
-                0: (Parameter.ACTUAL_TEMPERATURE,),
-            }
-        ),
     ),
     "HmIP-FBL": CustomConfig(make_ce_func=make_ip_blind, channels=(4,)),
     "HmIP-FROLL": CustomConfig(make_ce_func=make_ip_cover, channels=(4,)),
@@ -700,11 +695,6 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIPW-DRBL4": CustomConfig(
         make_ce_func=make_ip_blind,
         channels=(2, 6, 10, 14),
-        extended=ExtendedConfig(
-            additional_data_points={
-                0: (Parameter.ACTUAL_TEMPERATURE,),
-            }
-        ),
     ),
     "ZEL STG RM FEP 230V": CustomConfig(make_ce_func=make_rf_cover),
 }

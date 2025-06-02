@@ -1,3 +1,8 @@
+# Version 2025.5.2 (2025-02-01)
+
+- Add operating voltage level to ELV-SH-WSM / HmIP-WSM
+- Enable ACTUAL_TEMPERATURE on maintenance channel
+
 # Version 2025.5.1 (2025-05-20)
 
 - Add CustomDP valve for ELV-SH-WSM / HmIP-WSM

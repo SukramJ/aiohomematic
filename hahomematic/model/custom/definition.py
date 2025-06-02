@@ -67,6 +67,7 @@ _SCHEMA_DEVICE_DESCRIPTION = vol.Schema(
 _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] = {
     CDPD.DEFAULT_DPS: {
         0: (
+            Parameter.ACTUAL_TEMPERATURE,
             Parameter.DUTY_CYCLE,
             Parameter.DUTYCYCLE,
             Parameter.LOW_BAT,

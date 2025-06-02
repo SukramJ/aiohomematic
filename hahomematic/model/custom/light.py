@@ -1021,11 +1021,6 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-DRDI3": CustomConfig(
         make_ce_func=make_ip_dimmer,
         channels=(5, 9, 13),
-        extended=ExtendedConfig(
-            additional_data_points={
-                0: (Parameter.ACTUAL_TEMPERATURE,),
-            }
-        ),
     ),
     "HmIP-FDT": CustomConfig(make_ce_func=make_ip_dimmer, channels=(2,)),
     "HmIP-PDT": CustomConfig(make_ce_func=make_ip_dimmer, channels=(3,)),
@@ -1046,11 +1041,6 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIPW-DRD3": CustomConfig(
         make_ce_func=make_ip_dimmer,
         channels=(2, 6, 10),
-        extended=ExtendedConfig(
-            additional_data_points={
-                0: (Parameter.ACTUAL_TEMPERATURE,),
-            }
-        ),
     ),
     "HmIPW-WRC6": CustomConfig(make_ce_func=make_ip_simple_fixed_color_light_wired, channels=(7, 8, 9, 10, 11, 12, 13)),
     "OLIGO.smart.iq.HM": CustomConfig(make_ce_func=make_rf_dimmer, channels=(1, 2, 3, 4, 5, 6)),

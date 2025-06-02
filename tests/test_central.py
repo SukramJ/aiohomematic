@@ -420,9 +420,9 @@ async def test_ignore_(
         "expected_result",
     ),
     [
-        ((Operations.READ, Operations.EVENT), True, True, 44),
+        ((Operations.READ, Operations.EVENT), True, True, 43),
         ((Operations.READ, Operations.EVENT), True, False, 65),
-        ((Operations.READ, Operations.EVENT), False, True, 30),
+        ((Operations.READ, Operations.EVENT), False, True, 29),
         ((Operations.READ, Operations.EVENT), False, False, 43),
     ],
 )
@@ -454,9 +454,9 @@ async def test_all_parameters(
         "expected_result",
     ),
     [
-        ((Operations.READ, Operations.EVENT), True, True, 45),
+        ((Operations.READ, Operations.EVENT), True, True, 43),
         ((Operations.READ, Operations.EVENT), True, False, 65),
-        ((Operations.READ, Operations.EVENT), False, True, 30),
+        ((Operations.READ, Operations.EVENT), False, True, 29),
         ((Operations.READ, Operations.EVENT), False, False, 43),
     ],
 )
@@ -468,9 +468,7 @@ async def test_all_parameters_with_un_ignore(
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory.get_default_central(
-        TEST_DEVICES, un_ignore_list=["ACTUAL_TEMPERATURE", "ACTIVE_PROFILE"]
-    )
+    central, _ = await factory.get_default_central(TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"])
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -502,7 +500,7 @@ async def test_data_points_by_category(
     central, _, _ = central_client_factory
     ebp_sensor = central.get_data_points(category=DataPointCategory.SENSOR)
     assert ebp_sensor
-    assert len(ebp_sensor) == 15
+    assert len(ebp_sensor) == 16
 
     def _device_changed(self, *args: Any, **kwargs: Any) -> None:
         """Handle device state changes."""
@@ -510,7 +508,7 @@ async def test_data_points_by_category(
     ebp_sensor[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
     ebp_sensor2 = central.get_data_points(category=DataPointCategory.SENSOR, registered=False)
     assert ebp_sensor2
-    assert len(ebp_sensor2) == 14
+    assert len(ebp_sensor2) == 15
 
 
 @pytest.mark.asyncio
@@ -753,17 +751,17 @@ async def test_central_services(
     await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER)
     assert len(mock_client.method_calls) == 41
     await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
-    assert len(mock_client.method_calls) == 51
+    assert len(mock_client.method_calls) == 52
 
     await central.get_system_variable(legacy_name="SysVar_Name")
     assert mock_client.method_calls[-1] == call.get_system_variable("SysVar_Name")
 
-    assert len(mock_client.method_calls) == 52
+    assert len(mock_client.method_calls) == 53
     await central.set_system_variable(legacy_name="alarm", value=True)
     assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm", value=True)
-    assert len(mock_client.method_calls) == 53
+    assert len(mock_client.method_calls) == 54
     await central.set_system_variable(legacy_name="SysVar_Name", value=True)
-    assert len(mock_client.method_calls) == 53
+    assert len(mock_client.method_calls) == 54
 
     await central.get_client(interface_id=const.INTERFACE_ID).set_value(
         channel_address="123",
@@ -777,7 +775,7 @@ async def test_central_services(
         parameter="LEVEL",
         value=1.0,
     )
-    assert len(mock_client.method_calls) == 54
+    assert len(mock_client.method_calls) == 55
 
     with pytest.raises(HaHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
@@ -786,7 +784,7 @@ async def test_central_services(
             parameter="LEVEL",
             value=1.0,
         )
-    assert len(mock_client.method_calls) == 54
+    assert len(mock_client.method_calls) == 55
 
     await central.get_client(interface_id=const.INTERFACE_ID).put_paramset(
         channel_address="123",
@@ -796,14 +794,14 @@ async def test_central_services(
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="123", paramset_key_or_link_address=ParamsetKey.VALUES, values={"LEVEL": 1.0}
     )
-    assert len(mock_client.method_calls) == 55
+    assert len(mock_client.method_calls) == 56
     with pytest.raises(HaHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
             channel_address="123",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL": 1.0},
         )
-    assert len(mock_client.method_calls) == 55
+    assert len(mock_client.method_calls) == 56
 
     assert (
         central.get_generic_data_point(channel_address="VCU6354483:0", parameter="DUTY_CYCLE").parameter == "DUTY_CYCLE"

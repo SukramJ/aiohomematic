@@ -1,9 +1,9 @@
 -r requirements.txt
 -r requirements_test_pre_commit.txt
 
-coverage==7.9.0
+coverage==7.9.1
 freezegun==1.5.2
-mypy==1.16.0
+mypy==1.16.1
 pip==25.1.1
 pre-commit==4.2.0
 pur==7.3.3
@@ -13,10 +13,10 @@ pylint-strict-informational==0.1
 pylint==3.3.7
 pytest-aiohttp==1.1.0
 pytest-asyncio==1.0.0
-pytest-cov==6.2.0
+pytest-cov==6.2.1
 pytest-rerunfailures==15.1
 pytest-socket==0.7.0
 pytest-timeout==2.4.0
 pytest==8.4.0
 types-python-slugify==8.0.2.20240310
-uv==0.7.12
+uv==0.7.13

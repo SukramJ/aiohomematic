@@ -85,7 +85,7 @@ class Device(PayloadMixin):
         self._central: Final = central
         self._interface_id: Final = interface_id
         self._address: Final = device_address
-        self._sub_device_channels: Final[dict[int | None, int]] = {}
+        self._channel_groups: Final[dict[int | None, int]] = {}
         self._id: Final = self._central.device_details.get_address_id(address=device_address)
         self._interface: Final = central.device_details.get_interface(address=device_address)
         self._client: Final = central.get_client(interface_id=interface_id)
@@ -254,7 +254,7 @@ class Device(PayloadMixin):
     @property
     def has_sub_devices(self) -> bool:
         """Return if device has multiple sub device channels."""
-        return len(set(self._sub_device_channels.values())) > 1
+        return len(set(self._channel_groups.values())) > 1
 
     @property
     def id(self) -> str:
@@ -365,13 +365,13 @@ class Device(PayloadMixin):
         """Return th CONFIG_PENDING data_point."""
         return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING)
 
-    def add_sub_device_channel(self, channel_no: int | None, base_channel_no: int) -> None:
-        """Assign channel no to base channel no."""
-        if base_channel_no not in self._sub_device_channels:
-            self._sub_device_channels[base_channel_no] = base_channel_no
-        if channel_no not in self._sub_device_channels:
-            self._sub_device_channels[channel_no] = base_channel_no
-        elif self._sub_device_channels[channel_no] != base_channel_no:
+    def add_channel_to_group(self, channel_no: int | None, group_no: int) -> None:
+        """Add channel no group."""
+        if group_no not in self._channel_groups:
+            self._channel_groups[group_no] = group_no
+        if channel_no not in self._channel_groups:
+            self._channel_groups[channel_no] = group_no
+        elif self._channel_groups[channel_no] != group_no:
             return
 
     @inspector()
@@ -396,9 +396,9 @@ class Device(PayloadMixin):
             and self._model not in VIRTUAL_REMOTE_MODELS
         )
 
-    def get_sub_device_base_channel(self, channel_no: int | None) -> int | None:
+    def get_group_no(self, channel_no: int | None) -> int | None:
         """Return the sub device channel."""
-        return self._sub_device_channels.get(channel_no)
+        return self._channel_groups.get(channel_no)
 
     def get_channel(self, channel_address: str) -> Channel | None:
         """Get channel of device."""
@@ -642,7 +642,7 @@ class Channel(PayloadMixin):
         self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
 
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
-        self._base_no: Final = self._device.get_sub_device_base_channel(channel_no=self._no)
+        self._group_no: int | None = None
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
@@ -657,9 +657,11 @@ class Channel(PayloadMixin):
         return self._address
 
     @property
-    def base_no(self) -> int | None:
-        """Return the base channel no of the channel."""
-        return self._base_no
+    def group_no(self) -> int | None:
+        """Return the no of the channel group."""
+        if self._group_no is None:
+            self._group_no = self._device.get_group_no(channel_no=self._no)
+        return self._group_no
 
     @property
     def central(self) -> hmcu.CentralUnit:

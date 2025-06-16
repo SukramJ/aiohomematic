@@ -37,6 +37,7 @@ _SCHEMA_DEVICE_GROUP = vol.Schema(
     {
         vol.Required(CDPD.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
         vol.Required(CDPD.ALLOW_UNDEFINED_GENERIC_DPS.value, default=False): bool,
+        vol.Optional(CDPD.STATE_CHANNEL.value): vol.Any(int, None),
         vol.Optional(CDPD.SECONDARY_CHANNELS.value): (val.positive_int,),
         vol.Optional(CDPD.REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
         vol.Optional(CDPD.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
@@ -93,6 +94,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_COVER: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
                     Field.LEVEL: Parameter.LEVEL,
@@ -116,6 +118,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_DIMMER: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
@@ -157,6 +160,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_FIXED_COLOR_LIGHT: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.COLOR: Parameter.COLOR,
                     Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
@@ -264,6 +268,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_SWITCH: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.STATE: Parameter.STATE,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
@@ -597,17 +602,17 @@ def make_custom_data_point(
 
     We use a helper-function to avoid raising exceptions during object-init.
     """
-    add_sub_device_channels_to_device(device=channel.device, device_profile=device_profile, custom_config=custom_config)
-    base_channel_no = get_sub_device_base_channel(device=channel.device, channel_no=channel.no)
+    add_channel_groups_to_device(device=channel.device, device_profile=device_profile, custom_config=custom_config)
+    group_no = get_group_no(device=channel.device, channel_no=channel.no)
     channels = _relevant_channels(device_profile=device_profile, custom_config=custom_config)
     if channel.no in set(channels):
         _create_custom_data_point(
             channel=channel,
             custom_data_point_class=data_point_class,
             device_profile=device_profile,
-            device_def=_get_device_group(device_profile, base_channel_no),
-            custom_data_point_def=_get_device_data_points(device_profile, base_channel_no),
-            base_channel_no=base_channel_no,
+            device_def=_get_device_group(device_profile=device_profile, group_no=group_no),
+            custom_data_point_def=_get_device_data_points(device_profile=device_profile, group_no=group_no),
+            group_no=group_no,
             custom_config=_rebase_pri_channels(device_profile=device_profile, custom_config=custom_config),
         )
 
@@ -618,7 +623,7 @@ def _create_custom_data_point(
     device_profile: DeviceProfile,
     device_def: Mapping[CDPD, Any],
     custom_data_point_def: Mapping[int, tuple[Parameter, ...]],
-    base_channel_no: int | None,
+    group_no: int | None,
     custom_config: CustomConfig,
 ) -> None:
     """Create custom data point."""
@@ -632,7 +637,7 @@ def _create_custom_data_point(
                 device_profile=device_profile,
                 device_def=device_def,
                 custom_data_point_def=custom_data_point_def,
-                base_channel_no=base_channel_no,
+                group_no=group_no,
                 custom_config=custom_config,
             )
         ) and dp.has_data_points:
@@ -673,30 +678,28 @@ def _relevant_channels(device_profile: DeviceProfile, custom_config: CustomConfi
     return tuple(channels)
 
 
-def add_sub_device_channels_to_device(
+def add_channel_groups_to_device(
     device: hmd.Device, device_profile: DeviceProfile, custom_config: CustomConfig
 ) -> None:
     """Return the relevant channels."""
     device_def = _get_device_group(device_profile, 0)
-    pri_channel = device_def[CDPD.PRIMARY_CHANNEL]
-    sec_channels = device_def.get(CDPD.SECONDARY_CHANNELS)
-    if pri_channel is None:
+    if (pri_channel := device_def[CDPD.PRIMARY_CHANNEL]) is None:
         return
     for conf_channel in custom_config.channels:
         if conf_channel is None:
             continue
-        rebased_pri_channel = conf_channel + pri_channel
-        device.add_sub_device_channel(channel_no=rebased_pri_channel, base_channel_no=rebased_pri_channel)
-        if sec_channels:
+        group_no = conf_channel + pri_channel
+        device.add_channel_to_group(channel_no=group_no, group_no=group_no)
+        if state_channel := device_def.get(CDPD.STATE_CHANNEL):
+            device.add_channel_to_group(channel_no=conf_channel + state_channel, group_no=group_no)
+        if sec_channels := device_def.get(CDPD.SECONDARY_CHANNELS):
             for sec_channel in sec_channels:
-                device.add_sub_device_channel(
-                    channel_no=conf_channel + sec_channel, base_channel_no=rebased_pri_channel
-                )
+                device.add_channel_to_group(channel_no=conf_channel + sec_channel, group_no=group_no)
 
 
-def get_sub_device_base_channel(device: hmd.Device, channel_no: int | None) -> int | None:
-    """Get base channel of sub_device."""
-    return device.get_sub_device_base_channel(channel_no=channel_no)
+def get_group_no(device: hmd.Device, channel_no: int | None) -> int | None:
+    """Get channel group of sub_device."""
+    return device.get_group_no(channel_no=channel_no)
 
 
 def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:
@@ -720,60 +723,56 @@ def _get_device_definition(device_profile: DeviceProfile) -> Mapping[CDPD, Any]:
     )
 
 
-def _get_device_group(device_profile: DeviceProfile, base_channel_no: int | None) -> Mapping[CDPD, Any]:
+def _get_device_group(device_profile: DeviceProfile, group_no: int | None) -> Mapping[CDPD, Any]:
     """Return the device group."""
     device = _get_device_definition(device_profile)
     group = cast(dict[CDPD, Any], device[CDPD.DEVICE_GROUP])
     # Create a deep copy of the group due to channel rebase
     group = deepcopy(group)
-    if not base_channel_no:
+    if not group_no:
         return group
-    # Add base_channel_no to the primary_channel to get the real primary_channel number
+    # Add group_no to the primary_channel to get the real primary_channel number
     if (primary_channel := group[CDPD.PRIMARY_CHANNEL]) is not None:
-        group[CDPD.PRIMARY_CHANNEL] = primary_channel + base_channel_no
+        group[CDPD.PRIMARY_CHANNEL] = primary_channel + group_no
 
-    # Add base_channel_no to the secondary_channels
+    # Add group_no to the secondary_channels
     # to get the real secondary_channel numbers
     if secondary_channel := group.get(CDPD.SECONDARY_CHANNELS):
-        group[CDPD.SECONDARY_CHANNELS] = [x + base_channel_no for x in secondary_channel]
+        group[CDPD.SECONDARY_CHANNELS] = [x + group_no for x in secondary_channel]
 
     group[CDPD.VISIBLE_FIELDS] = _rebase_data_point_dict(
-        data_point_dict=CDPD.VISIBLE_FIELDS, group=group, base_channel_no=base_channel_no
+        data_point_dict=CDPD.VISIBLE_FIELDS, group=group, group_no=group_no
     )
-    group[CDPD.FIELDS] = _rebase_data_point_dict(
-        data_point_dict=CDPD.FIELDS, group=group, base_channel_no=base_channel_no
-    )
+    group[CDPD.FIELDS] = _rebase_data_point_dict(data_point_dict=CDPD.FIELDS, group=group, group_no=group_no)
     return group
 
 
 def _rebase_data_point_dict(
-    data_point_dict: CDPD, group: Mapping[CDPD, Any], base_channel_no: int
+    data_point_dict: CDPD, group: Mapping[CDPD, Any], group_no: int
 ) -> Mapping[int | None, Any]:
-    """Rebase data_point_dict with base_channel_no."""
+    """Rebase data_point_dict with group_no."""
     new_fields: dict[int | None, Any] = {}
     if fields := group.get(data_point_dict):
         for channel_no, field in fields.items():
             if channel_no is None:
                 new_fields[channel_no] = field
             else:
-                new_fields[channel_no + base_channel_no] = field
+                new_fields[channel_no + group_no] = field
     return new_fields
 
 
-def _get_device_data_points(
-    device_profile: DeviceProfile, base_channel_no: int | None
-) -> Mapping[int, tuple[Parameter, ...]]:
+def _get_device_data_points(device_profile: DeviceProfile, group_no: int | None) -> Mapping[int, tuple[Parameter, ...]]:
     """Return the device data points."""
     if (
         additional_dps := VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]
         .get(device_profile, {})
         .get(CDPD.ADDITIONAL_DPS, {})
-    ) and not base_channel_no:
+    ) and not group_no:
         return cast(Mapping[int, tuple[Parameter, ...]], additional_dps)
     new_dps: dict[int, tuple[Parameter, ...]] = {}
     if additional_dps:
         for channel_no, field in additional_dps.items():
-            new_dps[channel_no + base_channel_no] = field
+            new_dps[channel_no + group_no] = field
     return new_dps
 
 

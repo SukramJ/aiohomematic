@@ -37,7 +37,7 @@ class CustomDataPoint(BaseDataPoint):
         device_profile: DeviceProfile,
         device_def: Mapping[str, Any],
         custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        base_channel_no: int,
+        group_no: int,
         custom_config: CustomConfig,
     ) -> None:
         """Initialize the data point."""
@@ -46,7 +46,7 @@ class CustomDataPoint(BaseDataPoint):
         # required for name in BaseDataPoint
         self._device_def: Final = device_def
         self._custom_data_point_def: Final = custom_data_point_def
-        self._base_no: int = base_channel_no
+        self._group_no: int = group_no
         self._custom_config: Final = custom_config
         self._extended: Final = custom_config.extended
         super().__init__(
@@ -72,9 +72,9 @@ class CustomDataPoint(BaseDataPoint):
         return self._allow_undefined_generic_data_points
 
     @property
-    def base_no(self) -> int | None:
+    def group_no(self) -> int | None:
         """Return the base channel no of the data point."""
-        return self._base_no
+        return self._group_no
 
     @state_property
     def modified_at(self) -> datetime:

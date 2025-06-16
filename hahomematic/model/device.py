@@ -396,7 +396,7 @@ class Device(PayloadMixin):
             and self._model not in VIRTUAL_REMOTE_MODELS
         )
 
-    def get_channel_group_no(self, channel_no: int | None) -> int | None:
+    def get_group_no(self, channel_no: int | None) -> int | None:
         """Return the sub device channel."""
         return self._channel_groups.get(channel_no)
 
@@ -642,7 +642,7 @@ class Channel(PayloadMixin):
         self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
 
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
-        self._channel_group_no: Final = self._device.get_channel_group_no(channel_no=self._no)
+        self._group_no: Final = self._device.get_group_no(channel_no=self._no)
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
@@ -657,9 +657,9 @@ class Channel(PayloadMixin):
         return self._address
 
     @property
-    def channel_group_no(self) -> int | None:
+    def group_no(self) -> int | None:
         """Return the no of the channel group."""
-        return self._channel_group_no
+        return self._group_no
 
     @property
     def central(self) -> hmcu.CentralUnit:

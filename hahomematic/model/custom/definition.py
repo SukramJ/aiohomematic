@@ -603,16 +603,16 @@ def make_custom_data_point(
     We use a helper-function to avoid raising exceptions during object-init.
     """
     add_channel_groups_to_device(device=channel.device, device_profile=device_profile, custom_config=custom_config)
-    base_channel_no = get_channel_groups(device=channel.device, channel_no=channel.no)
+    channel_group_no = get_channel_group_no(device=channel.device, channel_no=channel.no)
     channels = _relevant_channels(device_profile=device_profile, custom_config=custom_config)
     if channel.no in set(channels):
         _create_custom_data_point(
             channel=channel,
             custom_data_point_class=data_point_class,
             device_profile=device_profile,
-            device_def=_get_device_group(device_profile, base_channel_no),
-            custom_data_point_def=_get_device_data_points(device_profile, base_channel_no),
-            base_channel_no=base_channel_no,
+            device_def=_get_device_group(device_profile, channel_group_no),
+            custom_data_point_def=_get_device_data_points(device_profile, channel_group_no),
+            base_channel_no=channel_group_no,
             custom_config=_rebase_pri_channels(device_profile=device_profile, custom_config=custom_config),
         )
 
@@ -697,7 +697,7 @@ def add_channel_groups_to_device(
                 device.add_channel_to_group(channel_no=conf_channel + sec_channel, group_no=group_no)
 
 
-def get_channel_groups(device: hmd.Device, channel_no: int | None) -> int | None:
+def get_channel_group_no(device: hmd.Device, channel_no: int | None) -> int | None:
     """Get channel group of sub_device."""
     return device.get_channel_group_no(channel_no=channel_no)
 

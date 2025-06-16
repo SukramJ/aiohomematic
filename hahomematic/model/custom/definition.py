@@ -602,8 +602,8 @@ def make_custom_data_point(
 
     We use a helper-function to avoid raising exceptions during object-init.
     """
-    add_sub_device_channels_to_device(device=channel.device, device_profile=device_profile, custom_config=custom_config)
-    base_channel_no = get_sub_device_base_channel(device=channel.device, channel_no=channel.no)
+    add_channel_groups_to_device(device=channel.device, device_profile=device_profile, custom_config=custom_config)
+    base_channel_no = get_channel_groups(device=channel.device, channel_no=channel.no)
     channels = _relevant_channels(device_profile=device_profile, custom_config=custom_config)
     if channel.no in set(channels):
         _create_custom_data_point(
@@ -678,7 +678,7 @@ def _relevant_channels(device_profile: DeviceProfile, custom_config: CustomConfi
     return tuple(channels)
 
 
-def add_sub_device_channels_to_device(
+def add_channel_groups_to_device(
     device: hmd.Device, device_profile: DeviceProfile, custom_config: CustomConfig
 ) -> None:
     """Return the relevant channels."""
@@ -688,20 +688,18 @@ def add_sub_device_channels_to_device(
     for conf_channel in custom_config.channels:
         if conf_channel is None:
             continue
-        rebased_pri_channel = conf_channel + pri_channel
-        device.add_sub_device_channel(channel_no=rebased_pri_channel, base_channel_no=rebased_pri_channel)
+        group_no = conf_channel + pri_channel
+        device.add_channel_to_group(channel_no=group_no, group_no=group_no)
         if state_channel := device_def.get(CDPD.STATE_CHANNEL):
-            device.add_sub_device_channel(channel_no=conf_channel + state_channel, base_channel_no=rebased_pri_channel)
+            device.add_channel_to_group(channel_no=conf_channel + state_channel, group_no=group_no)
         if sec_channels := device_def.get(CDPD.SECONDARY_CHANNELS):
             for sec_channel in sec_channels:
-                device.add_sub_device_channel(
-                    channel_no=conf_channel + sec_channel, base_channel_no=rebased_pri_channel
-                )
+                device.add_channel_to_group(channel_no=conf_channel + sec_channel, group_no=group_no)
 
 
-def get_sub_device_base_channel(device: hmd.Device, channel_no: int | None) -> int | None:
-    """Get base channel of sub_device."""
-    return device.get_sub_device_base_channel(channel_no=channel_no)
+def get_channel_groups(device: hmd.Device, channel_no: int | None) -> int | None:
+    """Get channel group of sub_device."""
+    return device.get_channel_group_no(channel_no=channel_no)
 
 
 def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:

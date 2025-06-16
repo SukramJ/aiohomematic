@@ -1,3 +1,7 @@
+# Version 2025.5.3 (2025-02-16)
+
+- Add state channel to sub_device_channel mapping
+
 # Version 2025.5.2 (2025-02-01)
 
 - Add operating voltage level to ELV-SH-WSM / HmIP-WSM

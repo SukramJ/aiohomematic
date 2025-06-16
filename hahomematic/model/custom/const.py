@@ -43,18 +43,19 @@ class DeviceProfile(StrEnum):
 class CDPD(StrEnum):
     """Enum for custom data point definitions."""
 
+    ADDITIONAL_DPS = "additional_dps"
     ALLOW_UNDEFINED_GENERIC_DPS = "allow_undefined_generic_dps"
     DEFAULT_DPS = "default_dps"
-    INCLUDE_DEFAULT_DPS = "include_default_dps"
-    DEVICE_GROUP = "device_group"
     DEVICE_DEFINITIONS = "device_definitions"
-    ADDITIONAL_DPS = "additional_dps"
+    DEVICE_GROUP = "device_group"
     FIELDS = "fields"
-    REPEATABLE_FIELDS = "repeatable_fields"
-    VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
+    INCLUDE_DEFAULT_DPS = "include_default_dps"
     PRIMARY_CHANNEL = "primary_channel"
+    REPEATABLE_FIELDS = "repeatable_fields"
     SECONDARY_CHANNELS = "secondary_channels"
+    STATE_CHANNEL = "state_channel"
     VISIBLE_FIELDS = "visible_fields"
+    VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
 
 
 class Field(Enum):

@@ -37,6 +37,7 @@ _SCHEMA_DEVICE_GROUP = vol.Schema(
     {
         vol.Required(CDPD.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
         vol.Required(CDPD.ALLOW_UNDEFINED_GENERIC_DPS.value, default=False): bool,
+        vol.Optional(CDPD.STATE_CHANNEL.value): vol.Any(int, None),
         vol.Optional(CDPD.SECONDARY_CHANNELS.value): (val.positive_int,),
         vol.Optional(CDPD.REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
         vol.Optional(CDPD.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
@@ -93,6 +94,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_COVER: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
                     Field.LEVEL: Parameter.LEVEL,
@@ -116,6 +118,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_DIMMER: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.LEVEL: Parameter.LEVEL,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
@@ -157,6 +160,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_FIXED_COLOR_LIGHT: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.COLOR: Parameter.COLOR,
                     Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
@@ -264,6 +268,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
         DeviceProfile.IP_SWITCH: {
             CDPD.DEVICE_GROUP: {
                 CDPD.SECONDARY_CHANNELS: (1, 2),
+                CDPD.STATE_CHANNEL: -1,
                 CDPD.REPEATABLE_FIELDS: {
                     Field.STATE: Parameter.STATE,
                     Field.ON_TIME_VALUE: Parameter.ON_TIME,
@@ -678,16 +683,16 @@ def add_sub_device_channels_to_device(
 ) -> None:
     """Return the relevant channels."""
     device_def = _get_device_group(device_profile, 0)
-    pri_channel = device_def[CDPD.PRIMARY_CHANNEL]
-    sec_channels = device_def.get(CDPD.SECONDARY_CHANNELS)
-    if pri_channel is None:
+    if (pri_channel := device_def[CDPD.PRIMARY_CHANNEL]) is None:
         return
     for conf_channel in custom_config.channels:
         if conf_channel is None:
             continue
         rebased_pri_channel = conf_channel + pri_channel
         device.add_sub_device_channel(channel_no=rebased_pri_channel, base_channel_no=rebased_pri_channel)
-        if sec_channels:
+        if state_channel := device_def.get(CDPD.STATE_CHANNEL):
+            device.add_sub_device_channel(channel_no=conf_channel + state_channel, base_channel_no=rebased_pri_channel)
+        if sec_channels := device_def.get(CDPD.SECONDARY_CHANNELS):
             for sec_channel in sec_channels:
                 device.add_sub_device_channel(
                     channel_no=conf_channel + sec_channel, base_channel_no=rebased_pri_channel

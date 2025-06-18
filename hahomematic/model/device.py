@@ -716,7 +716,9 @@ class Channel(PayloadMixin):
         if self.group_no is None:
             return None
         if self._group_master is None:
-            self._group_master = self._device.get_channel(f"{self._device.address}:{self.group_no}")
+            self._group_master = (
+                self if self.is_group_master else self._device.get_channel(f"{self._device.address}:{self.group_no}")
+            )
         return self._group_master
 
     @property
@@ -742,11 +744,6 @@ class Channel(PayloadMixin):
     def is_group_master(self) -> bool:
         """Return if group master of channel."""
         return self.group_no == self._no
-
-    @property
-    def is_group_member(self) -> bool:
-        """Return if channel group member channel."""
-        return self.group_no != self._no
 
     @property
     def name(self) -> str:

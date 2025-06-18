@@ -396,9 +396,16 @@ class Device(PayloadMixin):
             and self._model not in VIRTUAL_REMOTE_MODELS
         )
 
-    def get_group_no(self, channel_no: int | None) -> int | None:
-        """Return the sub device channel."""
+    def get_channel_group_no(self, channel_no: int | None) -> int | None:
+        """Return the group no of the channel."""
         return self._channel_groups.get(channel_no)
+
+    def is_in_multi_channel_group(self, channel_no: int | None) -> bool:
+        """Return if multiple channels are in the group."""
+        if channel_no is None:
+            return False
+
+        return len([s for s, m in self._channel_groups.items() if m == self._channel_groups.get(channel_no)]) > 1
 
     def get_channel(self, channel_address: str) -> Channel | None:
         """Get channel of device."""
@@ -643,6 +650,8 @@ class Channel(PayloadMixin):
 
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
         self._group_no: int | None = None
+        self._group_master: Channel | None = None
+        self._is_in_multi_group: bool | None = None
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
@@ -657,25 +666,14 @@ class Channel(PayloadMixin):
         return self._address
 
     @property
-    def group_no(self) -> int | None:
-        """Return the no of the channel group."""
-        if self._group_no is None:
-            self._group_no = self._device.get_group_no(channel_no=self._no)
-        return self._group_no
+    def calculated_data_points(self) -> tuple[CalculatedDataPoint, ...]:
+        """Return the generic data points."""
+        return tuple(self._calculated_data_points.values())
 
     @property
     def central(self) -> hmcu.CentralUnit:
         """Return the central."""
         return self._central
-
-    @property
-    def operation_mode(self) -> str | None:
-        """Return the channel operation mode if available."""
-        if (
-            cop := self.get_generic_data_point(parameter=Parameter.CHANNEL_OPERATION_MODE)
-        ) is not None and cop.value is not None:
-            return str(cop.value)
-        return None
 
     @property
     def custom_data_point(self) -> hmce.CustomDataPoint | None:
@@ -703,11 +701,6 @@ class Channel(PayloadMixin):
         return self._name_data.full_name
 
     @property
-    def calculated_data_points(self) -> tuple[CalculatedDataPoint, ...]:
-        """Return the generic data points."""
-        return tuple(self._calculated_data_points.values())
-
-    @property
     def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
         """Return the generic data points."""
         return tuple(self._generic_data_points.values())
@@ -718,9 +711,42 @@ class Channel(PayloadMixin):
         return tuple(self._generic_events.values())
 
     @property
+    def group_master(self) -> Channel | None:
+        """Return the master channel of the group."""
+        if self.group_no is None:
+            return None
+        if self._group_master is None:
+            self._group_master = self._device.get_channel(f"{self._device.address}:{self.group_no}")
+        return self._group_master
+
+    @property
+    def group_no(self) -> int | None:
+        """Return the no of the channel group."""
+        if self._group_no is None:
+            self._group_no = self._device.get_channel_group_no(channel_no=self._no)
+        return self._group_no
+
+    @property
     def id(self) -> str:
         """Return the id of the channel."""
         return self._id
+
+    @property
+    def is_in_multi_group(self) -> bool:
+        """Return if multiple channels are in the group."""
+        if self._is_in_multi_group is None:
+            self._is_in_multi_group = self._device.is_in_multi_channel_group(channel_no=self._no)
+        return self._is_in_multi_group
+
+    @property
+    def is_group_master(self) -> bool:
+        """Return if group master of channel."""
+        return self.group_no == self._no
+
+    @property
+    def is_group_member(self) -> bool:
+        """Return if channel group member channel."""
+        return self.group_no != self._no
 
     @property
     def name(self) -> str:
@@ -736,6 +762,15 @@ class Channel(PayloadMixin):
     def no(self) -> int | None:
         """Return the channel_no of the channel."""
         return self._no
+
+    @property
+    def operation_mode(self) -> str | None:
+        """Return the channel operation mode if available."""
+        if (
+            cop := self.get_generic_data_point(parameter=Parameter.CHANNEL_OPERATION_MODE)
+        ) is not None and cop.value is not None:
+            return str(cop.value)
+        return None
 
     @property
     def paramset_keys(self) -> tuple[ParamsetKey, ...]:

@@ -603,7 +603,7 @@ def make_custom_data_point(
     We use a helper-function to avoid raising exceptions during object-init.
     """
     add_channel_groups_to_device(device=channel.device, device_profile=device_profile, custom_config=custom_config)
-    group_no = get_group_no(device=channel.device, channel_no=channel.no)
+    group_no = get_channel_group_no(device=channel.device, channel_no=channel.no)
     channels = _relevant_channels(device_profile=device_profile, custom_config=custom_config)
     if channel.no in set(channels):
         _create_custom_data_point(
@@ -697,9 +697,9 @@ def add_channel_groups_to_device(
                 device.add_channel_to_group(channel_no=conf_channel + sec_channel, group_no=group_no)
 
 
-def get_group_no(device: hmd.Device, channel_no: int | None) -> int | None:
+def get_channel_group_no(device: hmd.Device, channel_no: int | None) -> int | None:
     """Get channel group of sub_device."""
-    return device.get_group_no(channel_no=channel_no)
+    return device.get_channel_group_no(channel_no=channel_no)
 
 
 def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:

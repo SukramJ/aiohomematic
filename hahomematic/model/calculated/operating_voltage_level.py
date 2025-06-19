@@ -194,7 +194,6 @@ _BATTERY_DATA: Final = (
     # HM short model str
     _BatteryData(model="HM-Sec-SD", battery=_BatteryType.R6, quantity=3),
     # HmIP model > 4
-    _BatteryData(model="ELV-SH-CTH", battery=_BatteryType.CR2032),
     _BatteryData(model="HmIP-ASIR-O", battery=_BatteryType.UNKNOWN),
     _BatteryData(model="HmIP-DSD-PCB", battery=_BatteryType.R03, quantity=2),
     _BatteryData(model="HmIP-PCBS-BAT", battery=_BatteryType.UNKNOWN),
@@ -205,6 +204,7 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-WTH-B-2", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-eTRV-CL", battery=_BatteryType.R6, quantity=4),
     # HmIP model 4
+    _BatteryData(model="ELV-SH-TACO", battery=_BatteryType.R03, quantity=1),
     _BatteryData(model="HmIP-ASIR", battery=_BatteryType.R6, quantity=3),
     _BatteryData(model="HmIP-FCI1", battery=_BatteryType.CR2032),
     _BatteryData(model="HmIP-FCI6", battery=_BatteryType.R03),
@@ -218,6 +218,7 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-SWSD", battery=_BatteryType.UNKNOWN),
     _BatteryData(model="HmIP-eTRV", battery=_BatteryType.R6, quantity=2),
     # HmIP model 3
+    _BatteryData(model="ELV-SH-CTH", battery=_BatteryType.CR2032),
     _BatteryData(model="ELV-SH-WSM", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-DBB", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=3),

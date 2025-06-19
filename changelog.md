@@ -1,8 +1,10 @@
-# Version 2025.5.3 (2025-02-16)
+# Version 2025.6.0 (2025-06-16)
 
+- Add batteries for ELV-SH-TACO
 - Add state channel to sub_device_channel mapping
+- Improve sub_device_channel identification
 
-# Version 2025.5.2 (2025-02-01)
+# Version 2025.5.2 (2025-06-01)
 
 - Add operating voltage level to ELV-SH-WSM / HmIP-WSM
 - Enable ACTUAL_TEMPERATURE on maintenance channel

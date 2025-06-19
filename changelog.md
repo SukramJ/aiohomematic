@@ -1,5 +1,6 @@
 # Version 2025.6.0 (2025-06-16)
 
+- Add batteries for ELV-SH-TACO
 - Add state channel to sub_device_channel mapping
 - Improve sub_device_channel identification
 

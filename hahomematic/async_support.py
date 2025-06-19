@@ -72,7 +72,7 @@ class Looper:
             )
             return
 
-    def _async_create_task[_R](self, target: Coroutine[Any, Any, _R], name: str) -> asyncio.Task[_R]:
+    def _async_create_task[R](self, target: Coroutine[Any, Any, R], name: str) -> asyncio.Task[R]:
         """Create a task from within the event_loop. This method must be run in the event_loop."""
         task = self._loop.create_task(target, name=name)
         self._tasks.add(task)
@@ -90,13 +90,13 @@ class Looper:
             )
             return None
 
-    def async_add_executor_job[_T](
+    def async_add_executor_job[T](
         self,
-        target: Callable[..., _T],
+        target: Callable[..., T],
         *args: Any,
         name: str,
         executor: ThreadPoolExecutor | None = None,
-    ) -> asyncio.Future[_T]:
+    ) -> asyncio.Future[T]:
         """Add an executor job from within the event_loop."""
         try:
             task = self._loop.run_in_executor(executor, target, *args)
@@ -120,13 +120,13 @@ def cancelling(task: asyncio.Future[Any]) -> bool:
     return bool((cancelling_ := getattr(task, "cancelling", None)) and cancelling_())
 
 
-def loop_check[**_P, _R](func: Callable[_P, _R]) -> Callable[_P, _R]:
+def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     """Annotation to mark method that must be run within the event loop."""
 
     _with_loop: set = set()
 
     @wraps(func)
-    def wrapper_loop_check(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+    def wrapper_loop_check(*args: P.args, **kwargs: P.kwargs) -> R:
         """Wrap loop check."""
         return_value = func(*args, **kwargs)
 
@@ -143,4 +143,4 @@ def loop_check[**_P, _R](func: Callable[_P, _R]) -> Callable[_P, _R]:
         return return_value
 
     setattr(func, "_loop_check", True)
-    return cast(Callable[_P, _R], wrapper_loop_check) if debug_enabled() else func
+    return cast(Callable[P, R], wrapper_loop_check) if debug_enabled() else func

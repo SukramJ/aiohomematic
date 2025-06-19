@@ -885,7 +885,7 @@ def bind_collector(
     Additionally, thrown exceptions are logged.
     """
 
-    def bind_decorator[_CallableT: Callable[..., Any]](func: _CallableT) -> _CallableT:
+    def bind_decorator[CallableT: Callable[..., Any]](func: CallableT) -> CallableT:
         """Decorate function to automatically add collector if not set."""
         argument_index = getfullargspec(func).args.index(_COLLECTOR_ARGUMENT_NAME)
 

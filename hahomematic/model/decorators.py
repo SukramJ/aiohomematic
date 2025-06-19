@@ -21,17 +21,17 @@ T = TypeVar("T")
 
 
 # pylint: disable=invalid-name
-class generic_property[_GETTER, _SETTER](property):
+class generic_property[GETTER, SETTER](property):
     """Generic property implementation."""
 
-    fget: Callable[[Any], _GETTER] | None
-    fset: Callable[[Any, _SETTER], None] | None
+    fget: Callable[[Any], GETTER] | None
+    fset: Callable[[Any, SETTER], None] | None
     fdel: Callable[[Any], None] | None
 
     def __init__(
         self,
-        fget: Callable[[Any], _GETTER] | None = None,
-        fset: Callable[[Any, _SETTER], None] | None = None,
+        fget: Callable[[Any], GETTER] | None = None,
+        fset: Callable[[Any, SETTER], None] | None = None,
         fdel: Callable[[Any], None] | None = None,
         doc: str | None = None,
     ) -> None:
@@ -41,11 +41,11 @@ class generic_property[_GETTER, _SETTER](property):
             doc = fget.__doc__
         self.__doc__ = doc
 
-    def getter(self, fget: Callable[[Any], _GETTER], /) -> generic_property:
+    def getter(self, fget: Callable[[Any], GETTER], /) -> generic_property:
         """Return generic getter."""
         return type(self)(fget, self.fset, self.fdel, self.__doc__)  # pragma: no cover
 
-    def setter(self, fset: Callable[[Any, _SETTER], None], /) -> generic_property:
+    def setter(self, fset: Callable[[Any, SETTER], None], /) -> generic_property:
         """Return generic setter."""
         return type(self)(self.fget, fset, self.fdel, self.__doc__)
 
@@ -53,7 +53,7 @@ class generic_property[_GETTER, _SETTER](property):
         """Return generic deleter."""
         return type(self)(self.fget, self.fset, fdel, self.__doc__)
 
-    def __get__(self, obj: Any, gtype: type | None = None, /) -> _GETTER:
+    def __get__(self, obj: Any, gtype: type | None = None, /) -> GETTER:
         """Return the attribute."""
         if obj is None:
             return self  # type: ignore[return-value]
@@ -75,17 +75,17 @@ class generic_property[_GETTER, _SETTER](property):
 
 
 # pylint: disable=invalid-name
-class config_property[_GETTER, _SETTER](generic_property[_GETTER, _SETTER]):
+class config_property[GETTER, SETTER](generic_property[GETTER, SETTER]):
     """Decorate to mark own config properties."""
 
 
 # pylint: disable=invalid-name
-class info_property[_GETTER, _SETTER](generic_property[_GETTER, _SETTER]):
+class info_property[GETTER, SETTER](generic_property[GETTER, SETTER]):
     """Decorate to mark own info properties."""
 
 
 # pylint: disable=invalid-name
-class state_property[_GETTER, _SETTER](generic_property[_GETTER, _SETTER]):
+class state_property[GETTER, SETTER](generic_property[GETTER, SETTER]):
     """Decorate to mark own value properties."""
 
 

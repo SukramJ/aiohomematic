@@ -279,9 +279,9 @@ class CustomDataPoint(BaseDataPoint):
             if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                 dp.force_usage(forced_usage=DataPointUsage.DATA_POINT)
 
-    def _get_data_point[_DataPointT: hmge.GenericDataPoint](
-        self, field: Field, data_point_type: type[_DataPointT]
-    ) -> _DataPointT:
+    def _get_data_point[DataPointT: hmge.GenericDataPoint](
+        self, field: Field, data_point_type: type[DataPointT]
+    ) -> DataPointT:
         """Get data point."""
         if dp := self._data_points.get(field):
             if type(dp).__name__ != data_point_type.__name__:

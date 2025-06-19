@@ -101,7 +101,7 @@ def _reduce_args(args: tuple[Any, ...]) -> tuple[Any, ...] | Any:
     return args[0] if len(args) == 1 else args
 
 
-def log_exception[**_P, _R](
+def log_exception[**P, R](
     ex_type: type[BaseException],
     logger: logging.Logger = _LOGGER,
     level: int = logging.ERROR,
@@ -112,17 +112,17 @@ def log_exception[**_P, _R](
     """Decorate methods for exception logging."""
 
     def decorator_log_exception(
-        func: Callable[_P, _R | Awaitable[_R]],
-    ) -> Callable[_P, _R | Awaitable[_R]]:
+        func: Callable[P, R | Awaitable[R]],
+    ) -> Callable[P, R | Awaitable[R]]:
         """Decorate log exception method."""
 
         function_name = func.__name__
 
         @wraps(func)
-        async def async_wrapper_log_exception(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        async def async_wrapper_log_exception(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap async methods."""
             try:
-                return_value = cast(_R, await func(*args, **kwargs))  # type: ignore[misc]
+                return_value = cast(R, await func(*args, **kwargs))  # type: ignore[misc]
             except ex_type as ex:
                 message = (
                     f"{function_name.upper()} failed: {ex_type.__name__} [{_reduce_args(args=ex.args)}] {extra_msg}"
@@ -130,13 +130,13 @@ def log_exception[**_P, _R](
                 logger.log(level, message)
                 if re_raise:
                     raise
-                return cast(_R, ex_return)
+                return cast(R, ex_return)
             return return_value
 
         @wraps(func)
-        def wrapper_log_exception(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        def wrapper_log_exception(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap sync methods."""
-            return cast(_R, func(*args, **kwargs))
+            return cast(R, func(*args, **kwargs))
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper_log_exception

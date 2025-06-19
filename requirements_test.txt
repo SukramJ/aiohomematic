@@ -17,6 +17,6 @@ pytest-cov==6.2.1
 pytest-rerunfailures==15.1
 pytest-socket==0.7.0
 pytest-timeout==2.4.0
-pytest==8.4.0
+pytest==8.4.1
 types-python-slugify==8.0.2.20240310
 uv==0.7.13

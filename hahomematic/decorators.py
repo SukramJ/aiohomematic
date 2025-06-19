@@ -150,7 +150,7 @@ def get_service_calls(obj: object) -> dict[str, Callable]:
     }
 
 
-def measure_execution_time[_CallableT: Callable[..., Any]](func: _CallableT) -> _CallableT:
+def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> CallableT:
     """Decorate function to measure the function execution time."""
 
     @wraps(func)

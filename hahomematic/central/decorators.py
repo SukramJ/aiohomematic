@@ -22,22 +22,22 @@ _INTERFACE_ID: Final = "interface_id"
 def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
     """Check if backend_system_callback is set and call it AFTER original function."""
 
-    def decorator_backend_system_callback[**_P, _R](
-        func: Callable[_P, _R | Awaitable[_R]],
-    ) -> Callable[_P, _R | Awaitable[_R]]:
+    def decorator_backend_system_callback[**P, R](
+        func: Callable[P, R | Awaitable[R]],
+    ) -> Callable[P, R | Awaitable[R]]:
         """Decorate callback system events."""
 
         @wraps(func)
-        async def async_wrapper_backend_system_callback(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        async def async_wrapper_backend_system_callback(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap async callback system events."""
-            return_value = cast(_R, await func(*args, **kwargs))  # type: ignore[misc]
+            return_value = cast(R, await func(*args, **kwargs))  # type: ignore[misc]
             await _exec_backend_system_callback(*args, **kwargs)
             return return_value
 
         @wraps(func)
-        def wrapper_backend_system_callback(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        def wrapper_backend_system_callback(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap callback system events."""
-            return_value = cast(_R, func(*args, **kwargs))
+            return_value = cast(R, func(*args, **kwargs))
             try:
                 unit = args[0]
                 central: hmcu.CentralUnit | None = None
@@ -83,15 +83,15 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
     return decorator_backend_system_callback
 
 
-def callback_event[**_P, _R](
-    func: Callable[_P, _R],
+def callback_event[**P, R](
+    func: Callable[P, R],
 ) -> Callable:
     """Check if event_callback is set and call it AFTER original function."""
 
     @wraps(func)
-    async def async_wrapper_event_callback(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+    async def async_wrapper_event_callback(*args: P.args, **kwargs: P.kwargs) -> R:
         """Wrap callback events."""
-        return_value = cast(_R, await func(*args, **kwargs))  # type: ignore[misc]
+        return_value = cast(R, await func(*args, **kwargs))  # type: ignore[misc]
         _exec_event_callback(*args, **kwargs)
         return return_value
 

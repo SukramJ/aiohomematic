@@ -75,9 +75,9 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             self.full_name,
         )
 
-    def _add_data_point[_DataPointT: hmge.GenericDataPoint](
-        self, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[_DataPointT]
-    ) -> _DataPointT:
+    def _add_data_point[DataPointT: hmge.GenericDataPoint](
+        self, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
+    ) -> DataPointT:
         """Add a new data point."""
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
             self._data_points.append(generic_data_point)

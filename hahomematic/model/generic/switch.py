@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Final, cast
+from typing import cast
 
-from hahomematic.const import DataPointCategory, ParameterType
+from hahomematic.const import DataPointCategory, Parameter, ParameterType
 from hahomematic.decorators import inspector
 from hahomematic.model.data_point import CallParameterCollector
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic.data_point import GenericDataPoint
-
-_PARAM_ON_TIME: Final = "ON_TIME"
 
 
 class DpSwitch(GenericDataPoint[bool | None, bool]):
@@ -47,6 +45,6 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
         await self._client.set_value(
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
-            parameter=_PARAM_ON_TIME,
+            parameter=Parameter.ON_TIME,
             value=float(on_time),
         )

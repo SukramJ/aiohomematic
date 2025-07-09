@@ -84,24 +84,23 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             search_elements=_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS, compare_with=channel.device.model
         ):
             return False
-        return (
-            element_matches_key(
-                search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
-            )
-            and (
+        return element_matches_key(
+            search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
+        ) and (
+            (
                 channel.get_generic_data_point(
                     parameter=Parameter.OPERATING_VOLTAGE,
                     paramset_key=ParamsetKey.VALUES,
                 )
-                or channel.get_generic_data_point(
+                and channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
+            )
+            is not None
+            or (
+                channel.get_generic_data_point(
                     parameter=Parameter.BATTERY_STATE,
                     paramset_key=ParamsetKey.VALUES,
                 )
-            )
-            is not None
-            and (
-                channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
-                or channel.device.get_generic_data_point(
+                and channel.device.get_generic_data_point(
                     channel_address=channel.device.address,
                     parameter=Parameter.LOW_BAT_LIMIT,
                     paramset_key=ParamsetKey.MASTER,

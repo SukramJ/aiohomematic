@@ -75,7 +75,7 @@ def _process_parameter(
 ) -> None:
     """Process individual parameter to create data points and events."""
 
-    if paramset_key == ParamsetKey.MASTER and parameter_is_un_ignored and parameter_data["OPERATIONS"] == 0:
+    if paramset_key == ParamsetKey.MASTER and parameter_data["OPERATIONS"] == 0:
         # required to fix hm master paramset operation values
         parameter_data["OPERATIONS"] = 3
 

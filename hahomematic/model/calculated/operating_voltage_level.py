@@ -12,7 +12,7 @@ from hahomematic.const import CalulatedParameter, DataPointCategory, Parameter, 
 from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
 from hahomematic.model.decorators import state_property
-from hahomematic.model.generic import DpSensor
+from hahomematic.model.generic import DpFloat, DpSensor
 from hahomematic.support import element_matches_key, reduce_args
 
 _BATTERY_QTY: Final = "Battery Qty"
@@ -40,14 +40,36 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         """Init the data point fields."""
         super()._init_data_point_fields()
         self._battery_data = _get_battery_data(model=self._channel.device.model)
-        self._dp_operating_voltage: DpSensor = self._add_data_point(
+
+        operating_voltage: DpSensor = self._add_data_point(
             parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
         )
-        self._dp_low_bat_limit: DpSensor = self._add_data_point(
+
+        self._dp_operating_voltage: DpSensor = (
+            operating_voltage
+            if isinstance(operating_voltage, DpSensor)
+            else self._add_data_point(
+                parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
+            )
+        )
+
+        low_bat_limit: DpSensor = self._add_data_point(
             parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, data_point_type=DpSensor
         )
+
+        self._dp_low_bat_limit: DpFloat = (
+            low_bat_limit
+            if isinstance(low_bat_limit, DpFloat)
+            else self._add_device_data_point(
+                channel_address=self.channel.device.address,
+                parameter=Parameter.LOW_BAT_LIMIT,
+                paramset_key=ParamsetKey.MASTER,
+                data_point_type=DpFloat,
+            )
+        )
+
         self._low_bat_limit_default = (
-            float(self._dp_low_bat_limit.default) if self._dp_low_bat_limit is not None else None
+            float(self._dp_low_bat_limit.default) if isinstance(self._dp_low_bat_limit, DpFloat) else None
         )
         self._voltage_max = (
             float(_BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity)  # type: ignore[operator]
@@ -62,16 +84,28 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             search_elements=_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS, compare_with=channel.device.model
         ):
             return False
-        return (
-            element_matches_key(
-                search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
-            )
-            and channel.get_generic_data_point(
-                parameter=Parameter.OPERATING_VOLTAGE,
-                paramset_key=ParamsetKey.VALUES,
+        return element_matches_key(
+            search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
+        ) and (
+            (
+                channel.get_generic_data_point(
+                    parameter=Parameter.OPERATING_VOLTAGE,
+                    paramset_key=ParamsetKey.VALUES,
+                )
+                and channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
             )
             is not None
-            and channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
+            or (
+                channel.get_generic_data_point(
+                    parameter=Parameter.BATTERY_STATE,
+                    paramset_key=ParamsetKey.VALUES,
+                )
+                and channel.device.get_generic_data_point(
+                    channel_address=channel.device.address,
+                    parameter=Parameter.LOW_BAT_LIMIT,
+                    paramset_key=ParamsetKey.MASTER,
+                )
+            )
             is not None
         )
 
@@ -204,7 +238,7 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="HmIP-WTH-B-2", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-eTRV-CL", battery=_BatteryType.R6, quantity=4),
     # HmIP model 4
-    _BatteryData(model="ELV-SH-SW1-BAT", battery=_BatteryType.R6, quantity=1),
+    _BatteryData(model="ELV-SH-SW1-BAT", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="ELV-SH-TACO", battery=_BatteryType.R03, quantity=1),
     _BatteryData(model="HmIP-ASIR", battery=_BatteryType.R6, quantity=3),
     _BatteryData(model="HmIP-FCI1", battery=_BatteryType.CR2032),

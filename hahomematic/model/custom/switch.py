@@ -103,6 +103,7 @@ def make_ip_switch(
 # HomeBrew (HB-) devices are always listed as HM-.
 DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "ELV-SH-BS2": CustomConfig(make_ce_func=make_ip_switch, channels=(4, 8)),
+    "ELV-SH-SW1-BAT": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-BS2": CustomConfig(make_ce_func=make_ip_switch, channels=(4, 8)),
     "HmIP-BSL": CustomConfig(make_ce_func=make_ip_switch, channels=(4,)),
     "HmIP-BSM": CustomConfig(make_ce_func=make_ip_switch, channels=(4,)),

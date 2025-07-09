@@ -1,3 +1,7 @@
+# Version 2025.7.0 (2025-07-09)
+
+- Add default customization for ELV-SH-SW1-BAT (Deleting of obsolete entities might be required)
+
 # Version 2025.6.0 (2025-06-16)
 
 - Add batteries for ELV-SH-TACO

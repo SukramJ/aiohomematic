@@ -101,7 +101,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             is not None
             and (
                 channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
-                or channel.get_generic_data_point(parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES)
+                or channel.device.get_generic_data_point(
+                    channel_address=channel.device.address,
+                    parameter=Parameter.LOW_BAT_LIMIT,
+                    paramset_key=ParamsetKey.MASTER,
+                )
             )
             is not None
         )

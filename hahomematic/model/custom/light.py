@@ -145,8 +145,8 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
         TimerMixin.__init__(self)
         super()._init_data_point_fields()
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._dp_channel_level: DpSensor[float | None] = self._get_data_point(
-            field=Field.CHANNEL_LEVEL, data_point_type=DpSensor[float | None]
+        self._dp_group_level: DpSensor[float | None] = self._get_data_point(
+            field=Field.GROUP_LEVEL, data_point_type=DpSensor[float | None]
         )
         self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
         self._dp_ramp_time_value: DpAction = self._get_data_point(field=Field.RAMP_TIME_VALUE, data_point_type=DpAction)
@@ -167,17 +167,17 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
         return int((self._dp_level.value or _MIN_BRIGHTNESS) * _LEVEL_TO_BRIGHTNESS_MULTIPLIER)
 
     @property
-    def channel_brightness(self) -> int | None:
-        """Return the channel_brightness of this light between min/max brightness."""
-        if self._dp_channel_level.value is not None:
-            return int(self._dp_channel_level.value * _MAX_BRIGHTNESS)
+    def group_brightness(self) -> int | None:
+        """Return the group brightness of this light between min/max brightness."""
+        if self._dp_group_level.value is not None:
+            return int(self._dp_group_level.value * _MAX_BRIGHTNESS)
         return None
 
     @property
-    def channel_brightness_pct(self) -> int | None:
-        """Return the channel_brightness in percent of this light."""
-        if self._dp_channel_level.value is not None:
-            return int(self._dp_channel_level.value * _LEVEL_TO_BRIGHTNESS_MULTIPLIER)
+    def group_brightness_pct(self) -> int | None:
+        """Return the group brightness in percent of this light."""
+        if self._dp_group_level.value is not None:
+            return int(self._dp_group_level.value * _LEVEL_TO_BRIGHTNESS_MULTIPLIER)
         return None
 
     @state_property

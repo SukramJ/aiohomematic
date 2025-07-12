@@ -93,9 +93,9 @@ async def test_cedimmer(
     assert light.brightness_pct == 10
     assert light.is_on
 
-    assert light.channel_brightness is None
+    assert light.group_brightness is None
     await central.data_point_event(const.INTERFACE_ID, "VCU1399816:3", "LEVEL", 0.4)
-    assert light.channel_brightness == 102
+    assert light.group_brightness == 102
 
     await light.turn_on(on_time=5.0, ramp_time=6.0)
     assert mock_client.method_calls[-1] == call.put_paramset(
@@ -454,7 +454,7 @@ async def test_ceipfixedcolorlight(
     assert light.is_on is False
     assert light.color_name == _FixedColor.BLACK
     assert light.channel_color_name is None
-    assert light.channel_brightness is None
+    assert light.group_brightness is None
     assert light.channel_hs_color is None
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
@@ -547,7 +547,7 @@ async def test_ceipfixedcolorlight(
     assert light.color_name == _FixedColor.PURPLE
 
     await central.data_point_event(const.INTERFACE_ID, "VCU6985973:7", "LEVEL", 0.5)
-    assert light.channel_brightness == 127
+    assert light.group_brightness == 127
 
     await central.data_point_event(const.INTERFACE_ID, "VCU6985973:7", "COLOR", 1)
     assert light.channel_hs_color == (240.0, 100.0)

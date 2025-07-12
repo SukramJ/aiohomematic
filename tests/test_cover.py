@@ -59,7 +59,7 @@ async def test_cecover(
     cover: CustomDpCover = cast(CustomDpCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
-    assert cover._channel_level == _CLOSED_LEVEL
+    assert cover._group_level == _CLOSED_LEVEL
     assert cover.is_closed is True
     await cover.set_position(position=81)
     assert cover.service_method_names == ("close", "open", "set_position", "stop")
@@ -100,7 +100,7 @@ async def test_cecover(
     await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "ACTIVITY_STATE", 0)
 
     await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", 0.5)
-    assert cover._channel_level == 0.5
+    assert cover._group_level == 0.5
     assert cover.current_position == 50
 
     await central.data_point_event(const.INTERFACE_ID, "VCU8537918:3", "LEVEL", _CLOSED_LEVEL)
@@ -151,7 +151,7 @@ async def test_ceipblind_dr(
     )
 
     assert cover.current_position == 0
-    assert cover._channel_level == _CLOSED_LEVEL
+    assert cover._group_level == _CLOSED_LEVEL
     assert cover.operation_mode == "SHUTTER"
     assert cover.is_closed is True
     await cover.set_position(position=81)
@@ -207,7 +207,7 @@ async def test_ceipblind_dr(
     assert cover.is_closing is True
 
     await central.data_point_event(const.INTERFACE_ID, "VCU7807849:13", "LEVEL", 0.5)
-    assert cover._channel_level == 0.5
+    assert cover._group_level == 0.5
     assert cover.current_position == 50
 
 
@@ -235,7 +235,7 @@ async def test_cewindowdrive(
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
-    assert cover._channel_level == _WD_CLOSED_LEVEL
+    assert cover._group_level == _WD_CLOSED_LEVEL
     assert cover.is_closed is True
     await cover.set_position(position=81)
     assert mock_client.method_calls[-1] == call.set_value(
@@ -266,17 +266,17 @@ async def test_cewindowdrive(
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert cover.current_position == 0
-    assert cover._channel_level == _WD_CLOSED_LEVEL
+    assert cover._group_level == _WD_CLOSED_LEVEL
     assert cover.is_closed is True
 
     await cover.set_position(position=1)
     assert cover.current_position == 1
-    assert cover._channel_level == _CLOSED_LEVEL
+    assert cover._group_level == _CLOSED_LEVEL
     assert cover.is_closed is False
 
     await cover.set_position(position=_WD_CLOSED_LEVEL)
     assert cover.current_position == 0
-    assert cover._channel_level == _WD_CLOSED_LEVEL
+    assert cover._group_level == _WD_CLOSED_LEVEL
     assert cover.is_closed is True
 
 
@@ -588,19 +588,19 @@ async def test_ceipblind(
     assert cover.current_tilt_position == 20
 
     await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL", 0.5)
-    assert cover._channel_level == 0.5
+    assert cover._group_level == 0.5
     assert cover.current_position == 50
 
     await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL_2", 0.8)
-    assert cover._channel_tilt_level == 0.8
+    assert cover._group_tilt_level == 0.8
     assert cover.current_tilt_position == 80
 
     await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL", _CLOSED_LEVEL)
-    assert cover._channel_level == _CLOSED_LEVEL
+    assert cover._group_level == _CLOSED_LEVEL
     assert cover.current_position == 0
 
     await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "LEVEL_2", _CLOSED_LEVEL)
-    assert cover._channel_tilt_level == _CLOSED_LEVEL
+    assert cover._group_tilt_level == _CLOSED_LEVEL
     assert cover.current_tilt_position == 0
 
     await central.data_point_event(const.INTERFACE_ID, "VCU1223813:3", "ACTIVITY_STATE", 1)

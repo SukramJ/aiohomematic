@@ -89,6 +89,7 @@ class CustomDpCover(CustomDataPoint):
 
     _category = DataPointCategory.COVER
     _closed_level: float = _CLOSED_LEVEL
+    _closed_position: int = int(_CLOSED_LEVEL * _LEVEL_TO_POSITION_MULTIPLIER)
     _open_level: float = _OPEN_LEVEL
 
     def _init_data_point_fields(self) -> None:
@@ -100,21 +101,30 @@ class CustomDpCover(CustomDataPoint):
         )
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
         self._dp_stop: DpAction = self._get_data_point(field=Field.STOP, data_point_type=DpAction)
-        self._dp_channel_level: DpSensor[float | None] = self._get_data_point(
-            field=Field.CHANNEL_LEVEL, data_point_type=DpSensor[float | None]
+        self._dp_group_level: DpSensor[float | None] = self._get_data_point(
+            field=Field.GROUP_LEVEL, data_point_type=DpSensor[float | None]
         )
 
     @property
-    def _channel_level(self) -> float:
+    def _group_level(self) -> float:
         """Return the channel level of the cover."""
-        if self._dp_channel_level.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
-            return float(self._dp_channel_level.value)
+        if self._dp_group_level.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
+            return float(self._dp_group_level.value)
         return self._dp_level.value if self._dp_level.value is not None else self._closed_level
 
     @state_property
+    def current_channel_position(self) -> int:
+        """Return current channel position of cover."""
+        return (
+            int(self._dp_level.value * _LEVEL_TO_POSITION_MULTIPLIER)
+            if self._dp_level.value is not None
+            else self._closed_position
+        )
+
+    @state_property
     def current_position(self) -> int:
-        """Return current position of cover."""
-        return int(self._channel_level * _LEVEL_TO_POSITION_MULTIPLIER)
+        """Return current group position of cover."""
+        return int(self._group_level * _LEVEL_TO_POSITION_MULTIPLIER)
 
     @bind_collector()
     async def set_position(
@@ -147,7 +157,7 @@ class CustomDpCover(CustomDataPoint):
     @state_property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed."""
-        return self._channel_level == self._closed_level
+        return self._group_level == self._closed_level
 
     @state_property
     def is_opening(self) -> bool | None:
@@ -184,9 +194,9 @@ class CustomDpCover(CustomDataPoint):
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
-        if kwargs.get(_StateChangeArg.OPEN) is not None and self._channel_level != self._open_level:
+        if kwargs.get(_StateChangeArg.OPEN) is not None and self._group_level != self._open_level:
             return True
-        if kwargs.get(_StateChangeArg.CLOSE) is not None and self._channel_level != self._closed_level:
+        if kwargs.get(_StateChangeArg.CLOSE) is not None and self._group_level != self._closed_level:
             return True
         if (position := kwargs.get(_StateChangeArg.POSITION)) is not None and position != self.current_position:
             return True
@@ -236,23 +246,32 @@ class CustomDpBlind(CustomDpCover):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
-        self._dp_channel_level_2: DpSensor[float | None] = self._get_data_point(
-            field=Field.CHANNEL_LEVEL_2, data_point_type=DpSensor[float | None]
+        self._dp_group_level_2: DpSensor[float | None] = self._get_data_point(
+            field=Field.GROUP_LEVEL_2, data_point_type=DpSensor[float | None]
         )
         self._dp_level_2: DpFloat = self._get_data_point(field=Field.LEVEL_2, data_point_type=DpFloat)
         self._dp_combined: DpAction = self._get_data_point(field=Field.LEVEL_COMBINED, data_point_type=DpAction)
 
     @property
-    def _channel_tilt_level(self) -> float:
-        """Return the channel level of the tilt."""
-        if self._dp_channel_level_2.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
-            return float(self._dp_channel_level_2.value)
+    def _group_tilt_level(self) -> float:
+        """Return the group level of the tilt."""
+        if self._dp_group_level_2.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
+            return float(self._dp_group_level_2.value)
         return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level
+
+    @state_property
+    def current_channel_tilt_position(self) -> int:
+        """Return current channel_tilt position of cover."""
+        return (
+            int(self._dp_level_2.value * _LEVEL_TO_POSITION_MULTIPLIER)
+            if self._dp_level_2.value is not None
+            else self._closed_position
+        )
 
     @state_property
     def current_tilt_position(self) -> int:
         """Return current tilt position of cover."""
-        return int(self._channel_tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)
+        return int(self._group_tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)
 
     @property
     def _target_level(self) -> float | None:
@@ -311,7 +330,7 @@ class CustomDpBlind(CustomDpCover):
                 currently_moving = True
                 _level = self._target_level
             else:  # The blind is at a standstill and no level is explicitly requested => we remain at the current level
-                _level = self._channel_level
+                _level = self._group_level
 
             if tilt_level is not None:
                 _tilt_level = tilt_level
@@ -320,7 +339,7 @@ class CustomDpBlind(CustomDpCover):
                 currently_moving = True
                 _tilt_level = self._target_tilt_level
             else:  # The blind is at a standstill and no tilt is explicitly desired => we remain at the current angle
-                _tilt_level = self._channel_tilt_level
+                _tilt_level = self._group_tilt_level
 
             if currently_moving:
                 # Blind actors are buggy when sending new coordinates while they are moving. So we stop them first.

@@ -283,6 +283,8 @@ class CallbackDataPoint(ABC):
     @loop_check
     def fire_data_point_updated_callback(self, *args: Any, **kwargs: Any) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
+        if not self._should_fire_data_point_updated_callback:
+            return
         for callback_handler in self._data_point_updated_callbacks:
             try:
                 kwargs[KWARGS_ARG_DATA_POINT] = self
@@ -298,6 +300,11 @@ class CallbackDataPoint(ABC):
                 callback_handler(*args)
             except Exception as ex:
                 _LOGGER.warning("FIRE_DEVICE_REMOVED_EVENT failed: %s", reduce_args(args=ex.args))
+
+    @property
+    def _should_fire_data_point_updated_callback(self) -> bool:
+        """Check if a data point has been updated or refreshed."""
+        return True
 
     def _set_modified_at(self, now: datetime = datetime.now()) -> None:
         """Set modified_at to current datetime."""

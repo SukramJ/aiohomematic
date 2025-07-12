@@ -1,3 +1,7 @@
+# Version 2025.7.1 (2025-07-12)
+
+- Fire updated events for calculated DPs when refreshed within a second
+
 # Version 2025.7.0 (2025-07-09)
 
 - Add default customization for ELV-SH-SW1-BAT (Deleting of obsolete entities might be required)

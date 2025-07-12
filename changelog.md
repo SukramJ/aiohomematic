@@ -1,3 +1,7 @@
+# Version 2025.7.3 (2025-07-12)
+
+- Improve: Fire updated events for calculated DPs when refreshed within a second
+
 # Version 2025.7.2 (2025-07-12)
 
 - Rename channel* to group* properties for cover, light and switch

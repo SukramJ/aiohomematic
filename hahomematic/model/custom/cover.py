@@ -254,7 +254,7 @@ class CustomDpBlind(CustomDpCover):
 
     @property
     def _group_tilt_level(self) -> float:
-        """Return the gr oup level of the tilt."""
+        """Return the group level of the tilt."""
         if self._dp_group_level_2.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
             return float(self._dp_group_level_2.value)
         return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level

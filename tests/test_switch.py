@@ -48,7 +48,7 @@ async def test_ceswitch(
 
     await switch.turn_off()
     assert switch.value is False
-    assert switch.channel_value is False
+    assert switch.group_value is False
     await switch.turn_on()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",

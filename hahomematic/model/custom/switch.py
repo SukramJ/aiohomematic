@@ -39,18 +39,18 @@ class CustomDpSwitch(CustomDataPoint, TimerMixin):
         super()._init_data_point_fields()
         self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
         self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
-        self._dp_channel_state: DpBinarySensor = self._get_data_point(
-            field=Field.CHANNEL_STATE, data_point_type=DpBinarySensor
+        self._dp_group_state: DpBinarySensor = self._get_data_point(
+            field=Field.GROUP_STATE, data_point_type=DpBinarySensor
         )
 
     @property
-    def channel_value(self) -> bool | None:
-        """Return the current channel value of the switch."""
-        return self._dp_channel_state.value
+    def group_value(self) -> bool | None:
+        """Return the current group value of the switch."""
+        return self._dp_group_state.value
 
     @state_property
     def value(self) -> bool | None:
-        """Return the current value of the switch."""
+        """Return the current channel value of the switch."""
         return self._dp_state.value
 
     @bind_collector()

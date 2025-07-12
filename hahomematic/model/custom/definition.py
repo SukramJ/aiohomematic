@@ -109,8 +109,8 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 },
                 CDPD.VISIBLE_FIELDS: {
                     -1: {
-                        Field.CHANNEL_LEVEL: Parameter.LEVEL,
-                        Field.CHANNEL_LEVEL_2: Parameter.LEVEL_2,
+                        Field.GROUP_LEVEL: Parameter.LEVEL,
+                        Field.GROUP_LEVEL_2: Parameter.LEVEL_2,
                     },
                 },
             },
@@ -126,7 +126,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 },
                 CDPD.VISIBLE_FIELDS: {
                     -1: {
-                        Field.CHANNEL_LEVEL: Parameter.LEVEL,
+                        Field.GROUP_LEVEL: Parameter.LEVEL,
                     },
                 },
             },
@@ -173,7 +173,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 CDPD.VISIBLE_FIELDS: {
                     -1: {
                         Field.CHANNEL_COLOR: Parameter.COLOR,
-                        Field.CHANNEL_LEVEL: Parameter.LEVEL,
+                        Field.GROUP_LEVEL: Parameter.LEVEL,
                     },
                 },
             },
@@ -253,7 +253,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 },
                 CDPD.VISIBLE_FIELDS: {
                     -1: {
-                        Field.CHANNEL_STATE: Parameter.STATE,
+                        Field.GROUP_STATE: Parameter.STATE,
                     },
                 },
             },
@@ -275,7 +275,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 },
                 CDPD.VISIBLE_FIELDS: {
                     -1: {
-                        Field.CHANNEL_STATE: Parameter.STATE,
+                        Field.GROUP_STATE: Parameter.STATE,
                     },
                 },
             },

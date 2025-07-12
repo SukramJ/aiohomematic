@@ -48,7 +48,7 @@ async def test_ceipirrigationvalve(
 
     await valve.close()
     assert valve.value is False
-    assert valve.channel_value is False
+    assert valve.group_value is False
     await valve.open()
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU8976407:4",

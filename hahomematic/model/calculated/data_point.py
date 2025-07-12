@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import cached_property
 import logging
 from typing import Any, Final, cast
@@ -247,15 +247,18 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     @property
     def _data_points_received_shortly(self) -> bool:
         """Check if all data points have been received shortly."""
-        min_received = datetime.now() - timedelta(seconds=10)
-        max_received = datetime.now()
+        min_received: datetime | None = None
+        max_received: datetime | None = None
         for data_point in self._relevant_data_points:
-            if (refreshed_at := data_point.refreshed_at) < min_received:
-                min_received = refreshed_at
-            elif (refreshed_at := data_point.refreshed_at) > max_received:
-                max_received = refreshed_at
+            if refreshed_at := data_point.refreshed_at:
+                if min_received is None or refreshed_at < min_received:
+                    min_received = refreshed_at
+                if max_received is None or refreshed_at > max_received:
+                    max_received = refreshed_at
 
-        return (max_received - min_received).total_seconds() < 1
+        if min_received and max_received:
+            return (max_received - min_received).total_seconds() < 1
+        return False
 
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""

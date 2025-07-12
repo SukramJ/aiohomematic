@@ -1,6 +1,6 @@
 # Version 2025.7.2 (2025-07-12)
 
-- rename channel* to group* properties for cover, light and switch
+- Rename channel* to group* properties for cover, light and switch
 
 # Version 2025.7.1 (2025-07-12)
 

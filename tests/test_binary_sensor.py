@@ -91,5 +91,5 @@ async def test_hmsysvarbinarysensor(
     assert binary_sensor.is_extended is False
     assert binary_sensor._data_type == "LOGIC"
     assert binary_sensor.value is False
-    binary_sensor.write_value(True, datetime)
+    binary_sensor.write_value(True, datetime.now())
     assert binary_sensor.value is True

@@ -294,6 +294,8 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             return True
 
         for data_point in relevant_values_data_point:
+            if not data_point.is_valid:
+                return False
             if refreshed_at := data_point.refreshed_at:
                 if min_received is None or refreshed_at < min_received:
                     min_received = refreshed_at

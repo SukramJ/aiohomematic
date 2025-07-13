@@ -614,7 +614,7 @@ class Client(ABC):
                     paramset_key=dpk.paramset_key,
                 )
             ) and data_point.requires_polling:
-                data_point.write_temporary_value(value=value)
+                data_point.write_temporary_value(value=value, write_at=datetime.now())
 
     @inspector(re_raise=False, no_raise_return=set())
     async def set_value(

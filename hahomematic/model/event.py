@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 from typing import Any, Final
 
@@ -69,11 +70,11 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         """Return the event_type of the event."""
         return self._event_type
 
-    async def event(self, value: Any) -> None:
+    async def event(self, value: Any, received_at: datetime = datetime.now()) -> None:
         """Handle event for which this handler has subscribed."""
         if self.event_type in DATA_POINT_EVENTS:
             self.fire_data_point_updated_callback(parameter=self.parameter.lower())
-        self._set_modified_at()
+        self._set_modified_at(modified_at=received_at)
         self.fire_event(value)
 
     @loop_check
@@ -104,10 +105,10 @@ class DeviceErrorEvent(GenericEvent):
 
     _event_type = EventType.DEVICE_ERROR
 
-    async def event(self, value: Any) -> None:
+    async def event(self, value: Any, received_at: datetime = datetime.now()) -> None:
         """Handle event for which this handler has subscribed."""
 
-        old_value, new_value = self.write_value(value=value)
+        old_value, new_value = self.write_value(value=value, write_at=received_at)
 
         if (
             isinstance(new_value, bool)

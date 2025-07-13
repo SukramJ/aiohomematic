@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Collection, Mapping, Set as AbstractSet
+from datetime import datetime
 import logging
 from typing import Final, NamedTuple
 
@@ -154,7 +155,7 @@ class Hub:
 
         for sysvar in variables:
             if dp := self._central.get_sysvar_data_point(vid=sysvar.vid):
-                dp.write_value(sysvar.value)
+                dp.write_value(value=sysvar.value, write_at=datetime.now())
             else:
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 

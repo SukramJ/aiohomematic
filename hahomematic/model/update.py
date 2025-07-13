@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from functools import partial
 from typing import Final
 
@@ -41,7 +42,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             central=device.central,
             unique_id=generate_unique_id(central=device.central, address=device.address, parameter="Update"),
         )
-        self._set_modified_at()
+        self._set_modified_at(modified_at=datetime.now())
 
     @state_property
     def available(self) -> bool:
@@ -130,4 +131,4 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     async def refresh_firmware_data(self) -> None:
         """Refresh device firmware data."""
         await self._device.central.refresh_firmware_data(device_address=self._device.address)
-        self._set_modified_at()
+        self._set_modified_at(modified_at=datetime.now())

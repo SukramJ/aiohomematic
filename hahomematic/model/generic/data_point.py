@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from functools import cached_property
 import logging
 from typing import Any, Final
@@ -46,13 +47,13 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             return self._get_data_point_usage()
         return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE
 
-    async def event(self, value: Any) -> None:
+    async def event(self, value: Any, received_at: datetime = datetime.now()) -> None:
         """Handle event for which this data_point has subscribed."""
         self._device.client.last_value_send_cache.remove_last_value_send(
             dpk=self.dpk,
             value=value,
         )
-        old_value, new_value = self.write_value(value=value)
+        old_value, new_value = self.write_value(value=value, write_at=received_at)
         if old_value == new_value:
             return
 

@@ -1,4 +1,8 @@
-# Version 2025.7.3 (2025-07-12)
+# Version 2025.7.4 (2025-07-13)
+
+- Replace asyncio.iscoroutinefunction
+
+# Version 2025.7.3 (2025-07-13)
 
 - Improve: Fire updated events for calculated DPs when refreshed within a second
 

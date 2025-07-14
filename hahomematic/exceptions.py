@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from functools import wraps
+import inspect
 import logging
 from typing import Any, Final, cast
 
@@ -138,7 +138,7 @@ def log_exception[**P, R](
             """Wrap sync methods."""
             return cast(R, func(*args, **kwargs))
 
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             return async_wrapper_log_exception
         return wrapper_log_exception
 

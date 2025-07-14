@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
 from functools import wraps
+import inspect
 import logging
 from time import monotonic
 from typing import Any, Final, ParamSpec, TypeVar, cast
@@ -112,7 +112,7 @@ def inspector(  # noqa: C901
                     _log_performance_message(func, start, *args, **kwargs)
 
         # Check if the function is a coroutine or not and select the appropriate wrapper
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             setattr(wrap_async_function, "ha_service", True)
             return wrap_async_function  # type: ignore[return-value]
         setattr(wrap_sync_function, "ha_service", True)
@@ -175,6 +175,6 @@ def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> Ca
             if start:
                 _log_performance_message(func, start, *args, **kwargs)
 
-    if asyncio.iscoroutinefunction(func):
+    if inspect.iscoroutinefunction(func):
         return async_measure_wrapper  # type: ignore[return-value]
     return measure_wrapper  # type: ignore[return-value]

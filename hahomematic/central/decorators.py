@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 from functools import wraps
+import inspect
 import logging
 from typing import Any, Final, cast
 
@@ -76,7 +76,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
                     f"args-exception backend_system_callback [{reduce_args(args=ex.args)}]"
                 ) from ex
 
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             return async_wrapper_backend_system_callback
         return wrapper_backend_system_callback
 

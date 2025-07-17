@@ -53,7 +53,7 @@ class generic_property[GETTER, SETTER](property):
         """Return generic deleter."""
         return type(self)(self.fget, self.fset, fdel, self.__doc__)
 
-    def __get__(self, obj: Any, gtype: type | None = None, /) -> GETTER:
+    def __get__(self, obj: Any, gtype: type | None = None, /) -> GETTER:  # type: ignore[override]
         """Return the attribute."""
         if obj is None:
             return self  # type: ignore[return-value]

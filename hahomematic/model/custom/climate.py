@@ -1223,7 +1223,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-HEATING": CustomConfig(make_ce_func=make_ip_thermostat_group),
     "HmIP-STH": CustomConfig(make_ce_func=make_ip_thermostat),
     "HmIP-WTH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIP-WGTC": CustomConfig(make_ce_func=make_ip_thermostat, channels=(8,)),
+    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_thermostat, channels=(8,)),
     "HmIP-eTRV": CustomConfig(make_ce_func=make_ip_thermostat),
     "HmIPW-SCTHD": CustomConfig(make_ce_func=make_ip_thermostat),
     "HmIPW-STH": CustomConfig(make_ce_func=make_ip_thermostat),

@@ -125,6 +125,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-SCTH230": CustomConfig(make_ce_func=make_ip_switch, channels=(8,)),
     "HmIP-USBSM": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-WGC": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
+    "HmIP-WGTC": CustomConfig(make_ce_func=make_ip_switch, channels=(4,)),
     "HmIP-WHS2": CustomConfig(make_ce_func=make_ip_switch, channels=(2, 6)),
     "HmIPW-DRS": CustomConfig(
         make_ce_func=make_ip_switch,

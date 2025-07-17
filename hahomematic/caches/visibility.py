@@ -39,6 +39,7 @@ _CLIMATE_MASTER_PARAMETERS: Final[tuple[Parameter, ...]] = (
 
 _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None, ...], tuple[Parameter, ...]]]] = {
     "ALPHA-IP-RBG": ((1,), _CLIMATE_MASTER_PARAMETERS),
+    "ELV-SH-TACO": ((2,), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HM-CC-RT-DN": (
         (None,),
         _CLIMATE_MASTER_PARAMETERS,
@@ -68,6 +69,7 @@ _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None,
     "HmIP-MOD-RC8": (tuple(range(1, 9)), (Parameter.CHANNEL_OPERATION_MODE,)),
     "HmIP-RGBW": ((0,), (Parameter.DEVICE_OPERATION_MODE,)),
     "HmIP-STH": ((1,), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-WGTC": ((8, 14), _CLIMATE_MASTER_PARAMETERS),
     "HmIP-WTH": ((1,), _CLIMATE_MASTER_PARAMETERS),
     "HmIP-eTRV": ((1,), _CLIMATE_MASTER_PARAMETERS),
     "HmIPW-DRBL4": ((1, 5, 9, 13), (Parameter.CHANNEL_OPERATION_MODE,)),
@@ -264,6 +266,7 @@ _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
         "HmIP-PMFS",
         "HmIP-PS",
         "HmIP-SFD",
+        "HmIP-WGTC",
     ),
     Parameter.VALVE_STATE: ("HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"),
 }

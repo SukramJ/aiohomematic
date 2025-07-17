@@ -1,5 +1,6 @@
 # Version 2025.7.4 (2025-07-13)
 
+- Add customization for HmIP-WGT/HmIP-WGTC (Deleting of obsolete entities/device) might be required)
 - Replace asyncio.iscoroutinefunction
 
 # Version 2025.7.3 (2025-07-13)

@@ -347,6 +347,10 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
         make_ce_func=make_ip_button_lock,
         channels=(0,),
     ),
+    "HmIP-WGT": CustomConfig(
+        make_ce_func=make_ip_button_lock,
+        channels=(0,),
+    ),
     "HmIP-WTH": CustomConfig(
         make_ce_func=make_ip_button_lock,
         channels=(0,),

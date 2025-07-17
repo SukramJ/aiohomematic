@@ -1038,6 +1038,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
             }
         ),
     ),
+    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_dimmer, channels=(2,)),
     "HmIPW-DRD3": CustomConfig(
         make_ce_func=make_ip_dimmer,
         channels=(2, 6, 10),

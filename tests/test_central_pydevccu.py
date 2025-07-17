@@ -75,7 +75,7 @@ async def test_central_full(central_unit_full) -> None:
         for channel in device.channels.values():
             channel_type_names.add(channel.type_name)
     channel_type_names = sorted(channel_type_names)
-    assert len(channel_type_names) == 550
+    assert len(channel_type_names) == 552
     ce_channels = {}
     for cdp in custom_dps:
         if cdp.device.model not in ce_channels:
@@ -131,20 +131,20 @@ async def test_central_full(central_unit_full) -> None:
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 266
-    assert usage_types[DataPointUsage.CDP_SECONDARY] == 158
-    assert usage_types[DataPointUsage.CDP_VISIBLE] == 135
-    assert usage_types[DataPointUsage.DATA_POINT] == 3906
-    assert usage_types[DataPointUsage.NO_CREATE] == 4208
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 270
+    assert usage_types[DataPointUsage.CDP_SECONDARY] == 160
+    assert usage_types[DataPointUsage.CDP_VISIBLE] == 140
+    assert usage_types[DataPointUsage.DATA_POINT] == 3912
+    assert usage_types[DataPointUsage.NO_CREATE] == 4250
 
-    assert len(ce_channels) == 127
+    assert len(ce_channels) == 128
     assert len(data_point_types) == 6
     assert len(parameters) == 232
 
-    assert len(central_unit_full._devices) == 391
+    assert len(central_unit_full._devices) == 392
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-    assert len(central_unit_full._devices) == 388
+    assert len(central_unit_full._devices) == 389
     del_addresses = list(central_unit_full.device_descriptions.get_device_descriptions(const.INTERFACE_ID))
     del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)

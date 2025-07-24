@@ -266,6 +266,7 @@ _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
         "HmIP-PMFS",
         "HmIP-PS",
         "HmIP-SFD",
+        "HmIP-SMO230",
         "HmIP-WGT",
     ),
     Parameter.VALVE_STATE: ("HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"),

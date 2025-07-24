@@ -1,6 +1,12 @@
+# Version 2025.7.5 (2025-07-23)
+
+- Add customization for (Deleting of obsolete entities/device) might be required):
+  - HmIP-SMO230
+
 # Version 2025.7.4 (2025-07-13)
 
-- Add customization for HmIP-WGT/HmIP-WGTC (Deleting of obsolete entities/device) might be required)
+- Add customization for (Deleting of obsolete entities/device) might be required):
+  - HmIP-WGT/HmIP-WGTC
 - Replace asyncio.iscoroutinefunction
 
 # Version 2025.7.3 (2025-07-13)

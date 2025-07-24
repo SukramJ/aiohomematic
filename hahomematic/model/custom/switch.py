@@ -7,12 +7,12 @@ from enum import StrEnum
 import logging
 from typing import Any, Final
 
-from hahomematic.const import DataPointCategory
+from hahomematic.const import DataPointCategory, Parameter
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
 from hahomematic.model.custom.const import DeviceProfile, Field
 from hahomematic.model.custom.data_point import CustomDataPoint
-from hahomematic.model.custom.support import CustomConfig
+from hahomematic.model.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.model.data_point import CallParameterCollector, bind_collector
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
@@ -123,6 +123,38 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-PCBS2": CustomConfig(make_ce_func=make_ip_switch, channels=(4, 8)),
     "HmIP-PS": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-SCTH230": CustomConfig(make_ce_func=make_ip_switch, channels=(8,)),
+    "HmIP-SMO230": CustomConfig(
+        make_ce_func=make_ip_switch,
+        channels=(10,),
+        extended=ExtendedConfig(
+            additional_data_points={
+                1: (
+                    Parameter.ILLUMINATION,
+                    Parameter.MOTION,
+                    Parameter.MOTION_DETECTION_ACTIVE,
+                    Parameter.RESET_MOTION,
+                ),
+                2: (
+                    Parameter.ILLUMINATION,
+                    Parameter.MOTION,
+                    Parameter.MOTION_DETECTION_ACTIVE,
+                    Parameter.RESET_MOTION,
+                ),
+                3: (
+                    Parameter.ILLUMINATION,
+                    Parameter.MOTION,
+                    Parameter.MOTION_DETECTION_ACTIVE,
+                    Parameter.RESET_MOTION,
+                ),
+                4: (
+                    Parameter.ILLUMINATION,
+                    Parameter.MOTION,
+                    Parameter.MOTION_DETECTION_ACTIVE,
+                    Parameter.RESET_MOTION,
+                ),
+            }
+        ),
+    ),
     "HmIP-USBSM": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-WGC": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
     "HmIP-WGT": CustomConfig(make_ce_func=make_ip_switch, channels=(4,)),

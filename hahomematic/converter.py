@@ -7,7 +7,7 @@ import logging
 from typing import Any, Final, cast
 
 from hahomematic.const import Parameter
-from hahomematic.support import reduce_args
+from hahomematic.support import extract_exc_args
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,6 +77,6 @@ def convert_combined_parameter_to_paramset(parameter: str, cpv: str) -> dict[str
         if converter := _COMBINED_PARAMETER_TO_PARAMSET_CONVERTER.get(parameter):  # type: ignore[call-overload]
             return cast(dict[str, Any], converter(cpv))
         _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: No converter found for %s: %s", parameter, cpv)
-    except Exception as ex:
-        _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: Convert failed %s", reduce_args(args=ex.args))
+    except Exception as exc:
+        _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: Convert failed %s", extract_exc_args(exc=exc))
     return {}

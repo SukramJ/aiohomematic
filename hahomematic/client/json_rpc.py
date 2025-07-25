@@ -62,9 +62,9 @@ from hahomematic.model.support import convert_value
 from hahomematic.support import (
     cleanup_text_from_html_tags,
     element_matches_key,
+    extract_exc_args,
     get_tls_context,
     parse_sys_var,
-    reduce_args,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -237,10 +237,10 @@ class JsonRpcAioHttpClient:
             use_default_params=False,
         )
 
-        _LOGGER.debug("DO_LOGIN: method: %s [%s]", method, session_id)
-
         if result := response[_JsonKey.RESULT]:
             session_id = result
+
+        _LOGGER.debug("DO_LOGIN: method: %s [%s]", method, session_id)
 
         return session_id
 
@@ -431,7 +431,7 @@ class JsonRpcAioHttpClient:
         except ValueError as ver:
             _LOGGER.debug(
                 "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
-                reduce_args(args=ver.args),
+                extract_exc_args(exc=ver),
             )
             # Workaround for bug in CCU
             return orjson.loads((await response.read()).decode(encoding=UTF_8))
@@ -650,7 +650,7 @@ class JsonRpcAioHttpClient:
                     _LOGGER.warning(
                         "GET_ALL_SYSTEM_VARIABLES failed: %s [%s] Failed to parse SysVar %s ",
                         vterr.__class__.__name__,
-                        reduce_args(args=vterr.args),
+                        extract_exc_args(exc=vterr),
                         legacy_name,
                     )
 
@@ -671,7 +671,7 @@ class JsonRpcAioHttpClient:
         except JSONDecodeError as err:
             _LOGGER.error(
                 "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s",
-                reduce_args(args=err.args),
+                extract_exc_args(exc=err),
             )
         return descriptions
 
@@ -690,7 +690,7 @@ class JsonRpcAioHttpClient:
         except JSONDecodeError as err:
             _LOGGER.error(
                 "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s",
-                reduce_args(args=err.args),
+                extract_exc_args(exc=err),
             )
         return descriptions
 

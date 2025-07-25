@@ -16,7 +16,7 @@ from hahomematic.model import device as hmd
 from hahomematic.model.custom.const import CDPD, DeviceProfile, Field
 from hahomematic.model.custom.support import CustomConfig
 from hahomematic.model.support import generate_unique_id
-from hahomematic.support import reduce_args
+from hahomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -642,10 +642,10 @@ def _create_custom_data_point(
             )
         ) and dp.has_data_points:
             channel.add_data_point(data_point=dp)
-    except Exception as ex:
+    except Exception as exc:
         raise HaHomematicException(
-            f"_CREATE_CUSTOM_DATA_POINT: unable to create custom data point: {reduce_args(args=ex.args)}"
-        ) from ex
+            f"_CREATE_CUSTOM_DATA_POINT: unable to create custom data point: {extract_exc_args(exc=exc)}"
+        ) from exc
 
 
 def _rebase_pri_channels(device_profile: DeviceProfile, custom_config: CustomConfig) -> CustomConfig:

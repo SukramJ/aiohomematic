@@ -13,7 +13,7 @@ from hahomematic.model import device as hmd
 from hahomematic.model.calculated.data_point import CalculatedDataPoint
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import DpFloat, DpSensor
-from hahomematic.support import element_matches_key, reduce_args
+from hahomematic.support import element_matches_key, extract_exc_args
 
 _BATTERY_QTY: Final = "Battery Qty"
 _BATTERY_TYPE: Final = "Battery Type"
@@ -148,11 +148,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
                         ),
                     ),
                 )
-        except Exception as ex:
+        except Exception as exc:
             _LOGGER.debug(
                 "OperatingVoltageLevel: Failed to calculate sensor for %s: %s",
                 self._channel.name,
-                reduce_args(args=ex.args),
+                extract_exc_args(exc=exc),
             )
             return None
         return None

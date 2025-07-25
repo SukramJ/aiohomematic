@@ -11,7 +11,7 @@ from typing import Any, Final, ParamSpec, TypeVar, cast
 
 from hahomematic.context import IN_SERVICE_VAR
 from hahomematic.exceptions import BaseHomematicException
-from hahomematic.support import reduce_args
+from hahomematic.support import extract_exc_args
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -54,13 +54,13 @@ def inspector(  # noqa: C901
 
         """
 
-        def handle_exception(ex: Exception, func: Callable, is_sub_service_call: bool, is_homematic: bool) -> R:
+        def handle_exception(exc: Exception, func: Callable, is_sub_service_call: bool, is_homematic: bool) -> R:
             """Handle exceptions for decorated functions."""
             if not is_sub_service_call and log_level > logging.NOTSET:
-                message = f"{func.__name__.upper()} failed: {reduce_args(args=ex.args)}"
+                message = f"{func.__name__.upper()} failed: {extract_exc_args(exc=exc)}"
                 logging.getLogger(func.__module__).log(level=log_level, msg=message)
             if re_raise or not is_homematic:
-                raise ex
+                raise exc
             return cast(R, no_raise_return)
 
         @wraps(func)
@@ -74,11 +74,11 @@ def inspector(  # noqa: C901
             except BaseHomematicException as bhe:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(ex=bhe, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True)
+                return handle_exception(exc=bhe, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True)
             except Exception as ex:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(ex=ex, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False)
+                return handle_exception(exc=ex, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False)
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -98,11 +98,11 @@ def inspector(  # noqa: C901
             except BaseHomematicException as bhe:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(ex=bhe, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True)
+                return handle_exception(exc=bhe, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True)
             except Exception as ex:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(ex=ex, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False)
+                return handle_exception(exc=ex, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False)
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)

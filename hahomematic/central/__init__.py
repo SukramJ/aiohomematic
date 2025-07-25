@@ -97,7 +97,7 @@ from hahomematic.model.hub import (
     ProgramDpType,
 )
 from hahomematic.model.support import PayloadMixin
-from hahomematic.support import check_config, get_channel_no, get_device_address, get_ip_addr, reduce_args
+from hahomematic.support import check_config, extract_exc_args, get_channel_no, get_device_address, get_ip_addr
 
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
 
@@ -419,7 +419,7 @@ class CentralUnit(PayloadMixin):
                 self._xml_rpc_server.add_central(self)
         except OSError as oserr:
             raise HaHomematicException(
-                f"START: Failed to start central unit {self.name}: {reduce_args(args=oserr.args)}"
+                f"START: Failed to start central unit {self.name}: {extract_exc_args(exc=oserr)}"
             ) from oserr
 
         if self._config.start_direct:
@@ -599,7 +599,7 @@ class CentralUnit(PayloadMixin):
                 )
                 self._clients[client.interface_id] = client
                 return True
-        except BaseHomematicException as ex:
+        except BaseHomematicException as exc:
             self.fire_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,
@@ -609,7 +609,7 @@ class CentralUnit(PayloadMixin):
             _LOGGER.warning(
                 "CREATE_CLIENT failed: No connection to interface %s [%s]",
                 interface_config.interface_id,
-                reduce_args(args=ex.args),
+                extract_exc_args(exc=exc),
             )
         return False
 
@@ -697,11 +697,11 @@ class CentralUnit(PayloadMixin):
         for interface_config in self._config.enabled_interface_configs:
             try:
                 client = await hmcl.create_client(central=self, interface_config=interface_config)
-            except BaseHomematicException as ex:
+            except BaseHomematicException as exc:
                 _LOGGER.error(
                     "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client %s: %s",
                     interface_config.interface,
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
                 raise
             if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and not system_information.serial:
@@ -849,11 +849,11 @@ class CentralUnit(PayloadMixin):
                         interface_id=interface_id,
                         device_address=device_address,
                     )
-                except Exception as ex:  # pragma: no cover
+                except Exception as exc:  # pragma: no cover
                     _LOGGER.error(
                         "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",
-                        type(ex).__name__,
-                        reduce_args(args=ex.args),
+                        type(exc).__name__,
+                        extract_exc_args(exc=exc),
                         interface_id,
                         device_address,
                     )
@@ -864,11 +864,11 @@ class CentralUnit(PayloadMixin):
                         await device.load_value_cache()
                         new_devices.add(device)
                         self._devices[device_address] = device
-                except Exception as ex:  # pragma: no cover
+                except Exception as exc:  # pragma: no cover
                     _LOGGER.error(
                         "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
-                        type(ex).__name__,
-                        reduce_args(args=ex.args),
+                        type(exc).__name__,
+                        extract_exc_args(exc=exc),
                         interface_id,
                         device_address,
                     )
@@ -953,13 +953,13 @@ class CentralUnit(PayloadMixin):
                     if dev_desc["ADDRESS"] not in known_addresses:
                         await client.fetch_paramset_descriptions(device_description=dev_desc)
                         save_paramset_descriptions = True
-                except Exception as ex:  # pragma: no cover
+                except Exception as exc:  # pragma: no cover
                     save_device_descriptions = False
                     save_paramset_descriptions = False
                     _LOGGER.error(
                         "ADD_NEW_DEVICES failed: %s [%s]",
-                        type(ex).__name__,
-                        reduce_args(args=ex.args),
+                        type(exc).__name__,
+                        extract_exc_args(exc=exc),
                     )
 
             await self.save_caches(
@@ -1048,18 +1048,18 @@ class CentralUnit(PayloadMixin):
             except RuntimeError as rte:  # pragma: no cover
                 _LOGGER.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
-                    reduce_args(args=rte.args),
+                    extract_exc_args(exc=rte),
                     interface_id,
                     channel_address,
                     parameter,
                 )
-            except Exception as ex:  # pragma: no cover
+            except Exception as exc:  # pragma: no cover
                 _LOGGER.warning(
                     "EVENT failed: Unable to call callback for: %s, %s, %s, %s",
                     interface_id,
                     channel_address,
                     parameter,
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
 
     def data_point_path_event(self, state_path: str, value: str) -> None:
@@ -1097,14 +1097,14 @@ class CentralUnit(PayloadMixin):
             except RuntimeError as rte:  # pragma: no cover
                 _LOGGER.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
-                    reduce_args(args=rte.args),
+                    extract_exc_args(exc=rte),
                     state_path,
                 )
-            except Exception as ex:  # pragma: no cover
+            except Exception as exc:  # pragma: no cover
                 _LOGGER.warning(
                     "EVENT failed: Unable to call callback for: %s, %s",
                     state_path,
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
 
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
@@ -1396,10 +1396,10 @@ class CentralUnit(PayloadMixin):
         for callback_handler in self._homematic_callbacks:
             try:
                 callback_handler(event_type, event_data)
-            except Exception as ex:
+            except Exception as exc:
                 _LOGGER.error(
                     "FIRE_HOMEMATIC_CALLBACK: Unable to call handler: %s",
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
 
     def register_backend_parameter_callback(self, cb: Callable) -> CALLBACK_TYPE:
@@ -1426,10 +1426,10 @@ class CentralUnit(PayloadMixin):
         for callback_handler in self._backend_parameter_callbacks:
             try:
                 callback_handler(interface_id, channel_address, parameter, value)
-            except Exception as ex:
+            except Exception as exc:
                 _LOGGER.error(
                     "FIRE_BACKEND_PARAMETER_CALLBACK: Unable to call handler: %s",
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
 
     def register_backend_system_callback(self, cb: Callable) -> CALLBACK_TYPE:
@@ -1454,10 +1454,10 @@ class CentralUnit(PayloadMixin):
         for callback_handler in self._backend_system_callbacks:
             try:
                 callback_handler(system_event, **kwargs)
-            except Exception as ex:
+            except Exception as exc:
                 _LOGGER.error(
                     "FIRE_BACKEND_SYSTEM_CALLBACK: Unable to call handler: %s",
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
 
     def __str__(self) -> str:
@@ -1565,12 +1565,12 @@ class _Scheduler(threading.Thread):
                     if self._central.available:
                         await asyncio.gather(*reloads)
         except NoConnectionException as nex:
-            _LOGGER.error("CHECK_CONNECTION failed: no connection: %s", reduce_args(args=nex.args))
-        except Exception as ex:
+            _LOGGER.error("CHECK_CONNECTION failed: no connection: %s", extract_exc_args(exc=nex))
+        except Exception as exc:
             _LOGGER.error(
                 "CHECK_CONNECTION failed: %s [%s]",
-                type(ex).__name__,
-                reduce_args(args=ex.args),
+                type(exc).__name__,
+                extract_exc_args(exc=exc),
             )
 
     @inspector(re_raise=False)
@@ -1807,10 +1807,10 @@ class CentralConfig:
         try:
             self.check_config()
             return CentralUnit(self)
-        except BaseHomematicException as ex:
+        except BaseHomematicException as exc:
             raise HaHomematicException(
-                f"CREATE_CENTRAL: Not able to create a central: : {reduce_args(args=ex.args)}"
-            ) from ex
+                f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=exc)}"
+            ) from exc
 
     def create_central_url(self) -> str:
         """Return the required url."""
@@ -1889,7 +1889,7 @@ class CentralConnectionState:
                 "%s failed: %s [%s] %s",
                 iid,
                 exception_name,
-                reduce_args(args=exception.args),
+                extract_exc_args(exc=exception),
                 extra_msg,
             )
         else:
@@ -1899,7 +1899,7 @@ class CentralConnectionState:
                 "%s failed: %s [%s] %s",
                 iid,
                 exception_name,
-                reduce_args(args=exception.args),
+                extract_exc_args(exc=exception),
                 extra_msg,
             )
 

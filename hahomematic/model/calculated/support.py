@@ -12,7 +12,7 @@ import logging
 import math
 from typing import Final
 
-from hahomematic.support import reduce_args
+from hahomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def calculate_vapor_concentration(temperature: float, humidity: int) -> float | 
             "Unable to calculate 'vapor concentration' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            reduce_args(args=ve.args),
+            extract_exc_args(exc=ve),
         )
     return None
 
@@ -123,7 +123,7 @@ def calculate_apparent_temperature(temperature: float, humidity: int, wind_speed
             "Unable to calculate 'apparent temperature' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            reduce_args(args=ve.args),
+            extract_exc_args(exc=ve),
         )
     return None
 
@@ -148,7 +148,7 @@ def calculate_dew_point(temperature: float, humidity: int) -> float | None:
             "Unable to calculate 'dew point' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            reduce_args(args=ve.args),
+            extract_exc_args(exc=ve),
         )
     return None
 
@@ -169,6 +169,6 @@ def calculate_frost_point(temperature: float, humidity: int) -> float | None:
             "Unable to calculate 'frost point' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            reduce_args(args=ve.args),
+            extract_exc_args(exc=ve),
         )
     return None

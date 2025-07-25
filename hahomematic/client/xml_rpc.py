@@ -21,7 +21,7 @@ from hahomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
-from hahomematic.support import get_tls_context, reduce_args
+from hahomematic.support import extract_exc_args, get_tls_context
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -131,14 +131,14 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         except BaseHomematicException:
             raise
         except SSLError as sslerr:
-            message = f"SSLError on {self.interface_id}: {reduce_args(args=sslerr.args)}"
+            message = f"SSLError on {self.interface_id}: {extract_exc_args(exc=sslerr)}"
             if sslerr.args[0] in _SSL_ERROR_CODES:
                 _LOGGER.debug(message)
             else:
                 _LOGGER.error(message)
             raise NoConnectionException(message) from sslerr
         except OSError as ose:
-            message = f"OSError on {self.interface_id}: {reduce_args(args=ose.args)}"
+            message = f"OSError on {self.interface_id}: {extract_exc_args(exc=ose)}"
             if ose.args[0] in _OS_ERROR_CODES:
                 if self._connection_state.add_issue(issuer=self, iid=self.interface_id):
                     _LOGGER.error(message)

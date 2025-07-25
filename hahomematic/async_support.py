@@ -13,7 +13,7 @@ from typing import Any, Final, cast
 
 from hahomematic.const import BLOCK_LOG_TIMEOUT
 from hahomematic.exceptions import HaHomematicException
-from hahomematic.support import debug_enabled, reduce_args
+from hahomematic.support import debug_enabled, extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class Looper:
             self._tasks.add(task)
             task.add_done_callback(self._tasks.remove)
         except (TimeoutError, CancelledError) as err:  # pragma: no cover
-            message = f"async_add_executor_job: task cancelled for {name} [{reduce_args(args=err.args)}]"
+            message = f"async_add_executor_job: task cancelled for {name} [{extract_exc_args(exc=err)}]"
             _LOGGER.debug(message)
             raise HaHomematicException(message) from err
         return task

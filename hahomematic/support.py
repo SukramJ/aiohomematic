@@ -43,9 +43,11 @@ from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def reduce_args(args: tuple[Any, ...]) -> tuple[Any, ...] | Any:
+def extract_exc_args(exc: Exception) -> tuple[Any, ...] | Any:
     """Return the first arg, if there is only one arg."""
-    return args[0] if len(args) == 1 else args
+    if exc.args:
+        return exc.args[0] if len(exc.args) == 1 else exc.args
+    return exc
 
 
 def build_xml_rpc_uri(
@@ -103,7 +105,7 @@ def check_config(
     try:
         check_or_create_directory(storage_folder)
     except BaseHomematicException as haex:
-        config_failures.append(reduce_args(haex.args)[0])
+        config_failures.append(extract_exc_args(exc=haex)[0])
     if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
         config_failures.append("Invalid callback hostname or ipv4 address")
     if callback_port and not is_port(port=callback_port):
@@ -282,10 +284,10 @@ def get_ip_addr(host: str, port: int) -> str | None:
     """Get local_ip from socket."""
     try:
         socket.gethostbyname(host)
-    except Exception as ex:
+    except Exception as exc:
         raise HaHomematicException(
-            f"GET_LOCAL_IP: Can't resolve host for {host}:{port}: {reduce_args(args=ex.args)}"
-        ) from ex
+            f"GET_LOCAL_IP: Can't resolve host for {host}:{port}: {extract_exc_args(exc=exc)}"
+        ) from exc
     tmp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     tmp_socket.settimeout(TIMEOUT)
     tmp_socket.connect((host, port))

@@ -65,10 +65,10 @@ from hahomematic.model.update import DpUpdate
 from hahomematic.support import (
     CacheEntry,
     check_or_create_directory,
+    extract_exc_args,
     get_channel_address,
     get_channel_no,
     get_rx_modes,
-    reduce_args,
 )
 
 __all__ = ["Channel", "Device"]
@@ -537,8 +537,8 @@ class Device(PayloadMixin):
         try:
             device_exporter = _DefinitionExporter(device=self)
             await device_exporter.export_data()
-        except Exception as ex:
-            raise HaHomematicException(f"EXPORT_DEVICE_DEFINITION failed: {reduce_args(args=ex.args)}") from ex
+        except Exception as exc:
+            raise HaHomematicException(f"EXPORT_DEVICE_DEFINITION failed: {extract_exc_args(exc=exc)}") from exc
 
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
@@ -614,8 +614,8 @@ class Device(PayloadMixin):
         for callback_handler in self._device_updated_callbacks:
             try:
                 callback_handler(*args)
-            except Exception as ex:
-                _LOGGER.warning("FIRE_DEVICE_UPDATED failed: %s", reduce_args(args=ex.args))
+            except Exception as exc:
+                _LOGGER.warning("FIRE_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -844,7 +844,7 @@ class Channel(PayloadMixin):
                     and value > 0
                 )
         except BaseHomematicException as bhe:
-            _LOGGER.debug("HAS_CENTRAL_LINK failed: %s", reduce_args(args=bhe.args))
+            _LOGGER.debug("HAS_CENTRAL_LINK failed: %s", extract_exc_args(exc=bhe))
         return False
 
     async def _has_program_ids(self) -> bool:
@@ -1091,14 +1091,14 @@ class _ValueCache:
                     paramset_key=paramset_key,
                     parameter=parameter,
                 )
-            except BaseHomematicException as ex:
+            except BaseHomematicException as exc:
                 _LOGGER.debug(
                     "GET_OR_LOAD_VALUE: Failed to get data for %s, %s, %s, %s: %s",
                     self._device.model,
                     channel_address,
                     parameter,
                     call_source,
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
             for d_parameter, d_value in value_dict.items():
                 self._add_entry_to_device_cache(

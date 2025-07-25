@@ -13,7 +13,7 @@ from hahomematic import central as hmcu, client as hmcl
 from hahomematic.central import xml_rpc_server as xmlrpc
 from hahomematic.const import BackendSystemEvent
 from hahomematic.exceptions import HaHomematicException
-from hahomematic.support import reduce_args
+from hahomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 _INTERFACE_ID: Final = "interface_id"
@@ -50,10 +50,10 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
                         _exec_backend_system_callback(*args, **kwargs),
                         name="wrapper_backend_system_callback",
                     )
-            except Exception as ex:
+            except Exception as exc:
                 _LOGGER.warning(
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Problem with identifying central: %s",
-                    reduce_args(args=ex.args),
+                    extract_exc_args(exc=exc),
                 )
             return return_value
 
@@ -68,13 +68,13 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
                 if client := hmcl.get_client(interface_id=interface_id):
                     client.modified_at = datetime.now()
                     client.central.fire_backend_system_callback(system_event=system_event, **kwargs)
-            except Exception as ex:  # pragma: no cover
+            except Exception as exc:  # pragma: no cover
                 _LOGGER.warning(
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Unable to reduce kwargs for backend_system_callback"
                 )
                 raise HaHomematicException(
-                    f"args-exception backend_system_callback [{reduce_args(args=ex.args)}]"
-                ) from ex
+                    f"args-exception backend_system_callback [{extract_exc_args(exc=exc)}]"
+                ) from exc
 
         if inspect.iscoroutinefunction(func):
             return async_wrapper_backend_system_callback
@@ -103,8 +103,8 @@ def callback_event[**P, R](
             if client := hmcl.get_client(interface_id=interface_id):
                 client.modified_at = datetime.now()
                 client.central.fire_backend_parameter_callback(*args, **kwargs)
-        except Exception as ex:  # pragma: no cover
+        except Exception as exc:  # pragma: no cover
             _LOGGER.warning("EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to reduce kwargs for event_callback")
-            raise HaHomematicException(f"args-exception event_callback [{reduce_args(args=ex.args)}]") from ex
+            raise HaHomematicException(f"args-exception event_callback [{extract_exc_args(exc=exc)}]") from exc
 
     return async_wrapper_event_callback

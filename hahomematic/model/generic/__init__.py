@@ -141,10 +141,10 @@ def _safe_create_data_point(
             parameter=parameter,
             parameter_data=parameter_data,
         )
-    except Exception as ex:
+    except Exception as exc:
         raise HaHomematicException(
-            f"CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: Unable to create data_point:{hms.reduce_args(args=ex.args)}"
-        ) from ex
+            f"CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: Unable to create data_point:{hms.extract_exc_args(exc=exc)}"
+        ) from exc
 
 
 def _check_switch_to_sensor(data_point: GenericDataPoint) -> bool:

@@ -53,7 +53,7 @@ from hahomematic.model.support import (
     convert_value,
     generate_unique_id,
 )
-from hahomematic.support import reduce_args
+from hahomematic.support import extract_exc_args
 
 __all__ = [
     "BaseDataPoint",
@@ -289,8 +289,8 @@ class CallbackDataPoint(ABC):
             try:
                 kwargs[KWARGS_ARG_DATA_POINT] = self
                 callback_handler(*args, **kwargs)
-            except Exception as ex:
-                _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", reduce_args(args=ex.args))
+            except Exception as exc:
+                _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     @loop_check
     def fire_device_removed_callback(self, *args: Any) -> None:
@@ -298,8 +298,8 @@ class CallbackDataPoint(ABC):
         for callback_handler in self._device_removed_callbacks:
             try:
                 callback_handler(*args)
-            except Exception as ex:
-                _LOGGER.warning("FIRE_DEVICE_REMOVED_EVENT failed: %s", reduce_args(args=ex.args))
+            except Exception as exc:
+                _LOGGER.warning("FIRE_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     @property
     def _should_fire_data_point_updated_callback(self) -> bool:
@@ -928,7 +928,7 @@ def bind_collector(
                     IN_SERVICE_VAR.reset(token)
                 in_service = IN_SERVICE_VAR.get()
                 if not in_service and log_level > logging.NOTSET:
-                    logging.getLogger(args[0].__module__).log(level=log_level, msg=reduce_args(args=bhe.args))
+                    logging.getLogger(args[0].__module__).log(level=log_level, msg=extract_exc_args(exc=bhe))
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)

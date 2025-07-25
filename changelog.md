@@ -1,3 +1,7 @@
+# Version 2025.7.6 (2025-07-25)
+
+- Refactor argument extraction from exceptions
+
 # Version 2025.7.5 (2025-07-23)
 
 - Add customization for (Deleting of obsolete entities/device) might be required):

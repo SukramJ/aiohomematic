@@ -168,7 +168,7 @@ def _safe_create_event(
             parameter=parameter,
             parameter_data=parameter_data,
         )
-    except Exception as ex:
+    except Exception as exc:
         raise HaHomematicException(
-            f"CREATE_EVENT_AND_APPEND_TO_CHANNEL: Unable to create event:{hms.reduce_args(args=ex.args)}"
-        ) from ex
+            f"CREATE_EVENT_AND_APPEND_TO_CHANNEL: Unable to create event:{hms.extract_exc_args(exc=exc)}"
+        ) from exc

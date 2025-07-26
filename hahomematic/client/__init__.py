@@ -215,11 +215,11 @@ class Client(ABC):
             self._is_initialized = True
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
             _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.warning(
                 "PROXY_INIT failed: %s [%s] Unable to initialize proxy for %s",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
                 self.interface_id,
             )
             self.modified_at = INIT_DATETIME
@@ -242,11 +242,11 @@ class Client(ABC):
             _LOGGER.debug("PROXY_DE_INIT: init('%s')", self._config.init_url)
             await self._proxy.init(self._config.init_url)
             self._is_initialized = False
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.warning(
                 "PROXY_DE_INIT failed: %s [%s] Unable to de-initialize proxy for %s",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
                 self.interface_id,
             )
             return ProxyInitState.DE_INIT_FAILED
@@ -439,8 +439,8 @@ class Client(ABC):
                 await self._proxy_read.getDeviceDescription(device_address),
             ):
                 return device_description
-        except BaseHomematicException as exc:
-            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", exc.name, extract_exc_args(exc=exc))
+        except BaseHomematicException as bhexc:
+            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc))
         return None
 
     @inspector()
@@ -448,56 +448,58 @@ class Client(ABC):
         """Return a list of links."""
         try:
             await self._proxy.addLink(sender_address, receiver_address, name, description)
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"ADD_LINK failed with for: {sender_address}/{receiver_address}/{name}/{description}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"ADD_LINK failed with for: {sender_address}/{receiver_address}/{name}/{description}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector()
     async def remove_link(self, sender_address: str, receiver_address: str) -> None:
         """Return a list of links."""
         try:
             await self._proxy.removeLink(sender_address, receiver_address)
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"REMOVE_LINK failed with for: {sender_address}/{receiver_address}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"REMOVE_LINK failed with for: {sender_address}/{receiver_address}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector()
     async def get_link_peers(self, address: str) -> tuple[str, ...] | None:
         """Return a list of link pers."""
         try:
             return tuple(await self._proxy.getLinkPeers(address))
-        except BaseHomematicException as exc:
-            raise ClientException(f"GET_LINK_PEERS failed with for: {address}: {extract_exc_args(exc=exc)}") from exc
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                f"GET_LINK_PEERS failed with for: {address}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector()
     async def get_links(self, address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
         try:
             return cast(dict[str, Any], await self._proxy.getLinks(address, flags))
-        except BaseHomematicException as exc:
-            raise ClientException(f"GET_LINKS failed with for: {address}: {extract_exc_args(exc=exc)}") from exc
+        except BaseHomematicException as bhexc:
+            raise ClientException(f"GET_LINKS failed with for: {address}: {extract_exc_args(exc=bhexc)}") from bhexc
 
     @inspector()
     async def get_metadata(self, address: str, data_id: str) -> dict[str, Any]:
         """Return the metadata for an object."""
         try:
             return cast(dict[str, Any], await self._proxy.getMetadata(address, data_id))
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_METADATA failed with for: {address}/{data_id}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"GET_METADATA failed with for: {address}/{data_id}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector()
     async def set_metadata(self, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
         try:
             return cast(dict[str, Any], await self._proxy.setMetadata(address, data_id, value))
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"SET_METADATA failed with for: {address}/{data_id}/{value}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"SET_METADATA failed with for: {address}/{data_id}/{value}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector(log_level=logging.NOTSET)
     async def get_value(
@@ -520,10 +522,10 @@ class Client(ABC):
                 return await self._proxy_read.getValue(channel_address, parameter)
             paramset = await self._proxy_read.getParamset(channel_address, ParamsetKey.MASTER) or {}
             return paramset.get(parameter)
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector(measure_performance=True)
     async def _set_value(
@@ -574,10 +576,10 @@ class Client(ABC):
                     dpk_values=dpk_values,
                     wait_for_callback=wait_for_callback,
                 )
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
         else:
             return dpk_values
 
@@ -667,10 +669,10 @@ class Client(ABC):
                 call_source,
             )
             return cast(dict[str, Any], await self._proxy_read.getParamset(address, paramset_key))
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_PARAMSET failed with for {address}/{paramset_key}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"GET_PARAMSET failed with for {address}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector(measure_performance=True)
     async def put_paramset(
@@ -768,10 +770,10 @@ class Client(ABC):
                     dpk_values=dpk_values,
                     wait_for_callback=wait_for_callback,
                 )
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"PUT_PARAMSET failed for {channel_address}/{paramset_key_or_link_address}/{values}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"PUT_PARAMSET failed for {channel_address}/{paramset_key_or_link_address}/{values}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
         else:
             return dpk_values
 
@@ -899,11 +901,11 @@ class Client(ABC):
                 dict[str, ParameterData],
                 await self._proxy_read.getParamsetDescription(address, paramset_key),
             )
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "GET_PARAMSET_DESCRIPTIONS failed with %s [%s] for %s address %s",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
                 paramset_key,
                 address,
             )
@@ -929,11 +931,11 @@ class Client(ABC):
         """List devices of homematic backend."""
         try:
             return tuple(await self._proxy_read.listDevices())
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "LIST_DEVICES failed: %s [%s]",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
             )
         return None
 
@@ -962,8 +964,8 @@ class Client(ABC):
                     device_address,
                     "success" if result else "failed",
                 )
-            except BaseHomematicException as exc:
-                raise ClientException(f"UPDATE_DEVICE_FIRMWARE failed]: {extract_exc_args(exc=exc)}") from exc
+            except BaseHomematicException as bhexc:
+                raise ClientException(f"UPDATE_DEVICE_FIRMWARE failed]: {extract_exc_args(exc=bhexc)}") from bhexc
             return result
         return False
 
@@ -1074,11 +1076,11 @@ class ClientCCU(Client):
             elif not self._is_initialized:
                 await self._proxy.ping(self.interface_id)
             self.modified_at = dt_now
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "CHECK_CONNECTION_AVAILABILITY failed: %s [%s]",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
             )
         else:
             return True
@@ -1105,10 +1107,10 @@ class ClientCCU(Client):
         """Report value usage."""
         try:
             return bool(await self._proxy.reportValueUsage(address, value_id, ref_counter))
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"REPORT_VALUE_USAGE failed with: {address}/{value_id}/{ref_counter}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"REPORT_VALUE_USAGE failed with: {address}/{value_id}/{ref_counter}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
@@ -1191,8 +1193,8 @@ class ClientJsonCCU(ClientCCU):
                 interface=self.interface, address=device_address
             ):
                 return device_description
-        except BaseHomematicException as exc:
-            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", exc.name, extract_exc_args(exc=exc))
+        except BaseHomematicException as bhexc:
+            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc))
         return None
 
     @inspector()
@@ -1221,10 +1223,10 @@ class ClientJsonCCU(ClientCCU):
                 )
                 or {}
             )
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_PARAMSET failed with for {address}/{paramset_key}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"GET_PARAMSET failed with for {address}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector(log_level=logging.NOTSET)
     async def get_value(
@@ -1259,21 +1261,21 @@ class ClientJsonCCU(ClientCCU):
                 or {}
             )
             return paramset.get(parameter)
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of homematic backend."""
         try:
             return await self._json_rpc_client.list_devices(interface=self.interface)
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "LIST_DEVICES failed with %s [%s]",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
             )
         return None
 
@@ -1288,11 +1290,11 @@ class ClientJsonCCU(ClientCCU):
                     interface=self.interface, address=address, paramset_key=paramset_key
                 ),
             )
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "GET_PARAMSET_DESCRIPTIONS failed with %s [%s] for %s address %s",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
                 paramset_key,
                 address,
             )
@@ -1400,11 +1402,11 @@ class ClientHomegear(Client):
                     address=address,
                     name=await self._proxy_read.getMetadata(address, _NAME),
                 )
-            except BaseHomematicException as exc:
+            except BaseHomematicException as bhexc:
                 _LOGGER.warning(
                     "%s [%s] Failed to fetch name for device %s",
-                    exc.name,
-                    extract_exc_args(exc=exc),
+                    bhexc.name,
+                    extract_exc_args(exc=bhexc),
                     address,
                 )
 
@@ -1414,11 +1416,11 @@ class ClientHomegear(Client):
         try:
             await self._proxy.clientServerInitialized(self.interface_id)
             self.modified_at = datetime.now()
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "CHECK_CONNECTION_AVAILABILITY failed: %s [%s]",
-                exc.name,
-                extract_exc_args(exc=exc),
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
             )
         else:
             return True

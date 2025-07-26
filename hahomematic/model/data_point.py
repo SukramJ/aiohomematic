@@ -923,12 +923,12 @@ def bind_collector(
                 kwargs[_COLLECTOR_ARGUMENT_NAME] = collector
                 return_value = await func(*args, **kwargs)
                 await collector.send_data(wait_for_callback=wait_for_callback)
-            except BaseHomematicException as bhe:
+            except BaseHomematicException as bhexc:
                 if token:
                     IN_SERVICE_VAR.reset(token)
                 in_service = IN_SERVICE_VAR.get()
                 if not in_service and log_level > logging.NOTSET:
-                    logging.getLogger(args[0].__module__).log(level=log_level, msg=extract_exc_args(exc=bhe))
+                    logging.getLogger(args[0].__module__).log(level=log_level, msg=extract_exc_args(exc=bhexc))
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)

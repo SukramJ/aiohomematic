@@ -1,3 +1,7 @@
+# Version 2025.7.7 (2025-07-26)
+
+- Align exception naming
+
 # Version 2025.7.6 (2025-07-25)
 
 - Refactor argument extraction from exceptions

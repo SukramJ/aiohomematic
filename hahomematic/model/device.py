@@ -843,8 +843,8 @@ class Channel(PayloadMixin):
                     and key == REPORT_VALUE_USAGE_VALUE_ID
                     and value > 0
                 )
-        except BaseHomematicException as bhe:
-            _LOGGER.debug("HAS_CENTRAL_LINK failed: %s", extract_exc_args(exc=bhe))
+        except BaseHomematicException as bhexc:
+            _LOGGER.debug("HAS_CENTRAL_LINK failed: %s", extract_exc_args(exc=bhexc))
         return False
 
     async def _has_program_ids(self) -> bool:
@@ -1023,12 +1023,12 @@ class _ValueCache:
         try:
             for data_point in self._get_base_data_points():
                 await data_point.load_data_point_value(call_source=CallSource.HM_INIT)
-        except BaseHomematicException as ex:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "init_base_data_points: Failed to init cache for channel0 %s, %s [%s]",
                 self._device.model,
                 self._device.address,
-                ex,
+                extract_exc_args(exc=bhexc),
             )
 
     def _get_base_data_points(self) -> set[GenericDataPoint]:
@@ -1049,12 +1049,12 @@ class _ValueCache:
         try:
             for event in self._get_readable_events():
                 await event.load_data_point_value(call_source=CallSource.HM_INIT)
-        except BaseHomematicException as ex:
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "init_base_events: Failed to init cache for channel0 %s, %s [%s]",
                 self._device.model,
                 self._device.address,
-                ex,
+                extract_exc_args(exc=bhexc),
             )
 
     def _get_readable_events(self) -> set[GenericEvent]:
@@ -1091,14 +1091,14 @@ class _ValueCache:
                     paramset_key=paramset_key,
                     parameter=parameter,
                 )
-            except BaseHomematicException as exc:
+            except BaseHomematicException as bhexc:
                 _LOGGER.debug(
                     "GET_OR_LOAD_VALUE: Failed to get data for %s, %s, %s, %s: %s",
                     self._device.model,
                     channel_address,
                     parameter,
                     call_source,
-                    extract_exc_args(exc=exc),
+                    extract_exc_args(exc=bhexc),
                 )
             for d_parameter, d_value in value_dict.items():
                 self._add_entry_to_device_cache(

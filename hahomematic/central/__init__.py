@@ -599,7 +599,7 @@ class CentralUnit(PayloadMixin):
                 )
                 self._clients[client.interface_id] = client
                 return True
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             self.fire_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,
@@ -609,7 +609,7 @@ class CentralUnit(PayloadMixin):
             _LOGGER.warning(
                 "CREATE_CLIENT failed: No connection to interface %s [%s]",
                 interface_config.interface_id,
-                extract_exc_args(exc=exc),
+                extract_exc_args(exc=bhexc),
             )
         return False
 
@@ -697,11 +697,11 @@ class CentralUnit(PayloadMixin):
         for interface_config in self._config.enabled_interface_configs:
             try:
                 client = await hmcl.create_client(central=self, interface_config=interface_config)
-            except BaseHomematicException as exc:
+            except BaseHomematicException as bhexc:
                 _LOGGER.error(
                     "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client %s: %s",
                     interface_config.interface,
-                    extract_exc_args(exc=exc),
+                    extract_exc_args(exc=bhexc),
                 )
                 raise
             if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and not system_information.serial:
@@ -1045,10 +1045,10 @@ class CentralUnit(PayloadMixin):
                 for callback_handler in self._data_point_key_event_subscriptions[dpk]:
                     if callable(callback_handler):
                         await callback_handler(value)
-            except RuntimeError as rte:  # pragma: no cover
+            except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
-                    extract_exc_args(exc=rte),
+                    extract_exc_args(exc=rterr),
                     interface_id,
                     channel_address,
                     parameter,
@@ -1094,10 +1094,10 @@ class CentralUnit(PayloadMixin):
                 callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
                 if callable(callback_handler):
                     self._looper.create_task(callback_handler(value), name=f"sysvar-data-point-event-{state_path}")
-            except RuntimeError as rte:  # pragma: no cover
+            except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
-                    extract_exc_args(exc=rte),
+                    extract_exc_args(exc=rterr),
                     state_path,
                 )
             except Exception as exc:  # pragma: no cover
@@ -1807,10 +1807,10 @@ class CentralConfig:
         try:
             self.check_config()
             return CentralUnit(self)
-        except BaseHomematicException as exc:
+        except BaseHomematicException as bhexc:
             raise HaHomematicException(
-                f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=exc)}"
-            ) from exc
+                f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=bhexc)}"
+            ) from bhexc
 
     def create_central_url(self) -> str:
         """Return the required url."""

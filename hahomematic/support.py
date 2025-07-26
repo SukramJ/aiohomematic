@@ -104,8 +104,8 @@ def check_config(
         config_failures.append("Password is not valid")
     try:
         check_or_create_directory(storage_folder)
-    except BaseHomematicException as haex:
-        config_failures.append(extract_exc_args(exc=haex)[0])
+    except BaseHomematicException as bhexc:
+        config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
         config_failures.append("Invalid callback hostname or ipv4 address")
     if callback_port and not is_port(port=callback_port):
@@ -144,10 +144,10 @@ def check_or_create_directory(directory: str) -> bool:
     if not os.path.exists(directory):
         try:
             os.makedirs(directory)
-        except OSError as ose:
+        except OSError as oserr:
             raise HaHomematicException(
-                f"CHECK_OR_CREATE_DIRECTORY failed: Unable to create directory {directory} ('{ose.strerror}')"
-            ) from ose
+                f"CHECK_OR_CREATE_DIRECTORY failed: Unable to create directory {directory} ('{oserr.strerror}')"
+            ) from oserr
     return True
 
 

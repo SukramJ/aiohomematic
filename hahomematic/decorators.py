@@ -71,14 +71,18 @@ def inspector(  # noqa: C901
             token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
             try:
                 return_value: R = func(*args, **kwargs)
-            except BaseHomematicException as bhe:
+            except BaseHomematicException as bhexc:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(exc=bhe, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True)
-            except Exception as ex:
+                return handle_exception(
+                    exc=bhexc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True
+                )
+            except Exception as exc:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(exc=ex, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False)
+                return handle_exception(
+                    exc=exc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False
+                )
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)
@@ -95,14 +99,18 @@ def inspector(  # noqa: C901
             token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
             try:
                 return_value = await func(*args, **kwargs)  # type: ignore[misc]  # Await the async call
-            except BaseHomematicException as bhe:
+            except BaseHomematicException as bhexc:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(exc=bhe, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True)
-            except Exception as ex:
+                return handle_exception(
+                    exc=bhexc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True
+                )
+            except Exception as exc:
                 if token:
                     IN_SERVICE_VAR.reset(token)
-                return handle_exception(exc=ex, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False)
+                return handle_exception(
+                    exc=exc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False
+                )
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)

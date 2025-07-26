@@ -102,12 +102,12 @@ def _reduce_args(args: tuple[Any, ...]) -> tuple[Any, ...] | Any:
 
 
 def log_exception[**P, R](
-    ex_type: type[BaseException],
+    exc_type: type[BaseException],
     logger: logging.Logger = _LOGGER,
     level: int = logging.ERROR,
     extra_msg: str = "",
     re_raise: bool = False,
-    ex_return: Any = None,
+    exc_return: Any = None,
 ) -> Callable:
     """Decorate methods for exception logging."""
 
@@ -123,14 +123,14 @@ def log_exception[**P, R](
             """Wrap async methods."""
             try:
                 return_value = cast(R, await func(*args, **kwargs))  # type: ignore[misc]
-            except ex_type as ex:
+            except exc_type as exc:
                 message = (
-                    f"{function_name.upper()} failed: {ex_type.__name__} [{_reduce_args(args=ex.args)}] {extra_msg}"
+                    f"{function_name.upper()} failed: {exc_type.__name__} [{_reduce_args(args=exc.args)}] {extra_msg}"
                 )
                 logger.log(level, message)
                 if re_raise:
                     raise
-                return cast(R, ex_return)
+                return cast(R, exc_return)
             return return_value
 
         @wraps(func)

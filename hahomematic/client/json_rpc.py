@@ -420,18 +420,18 @@ class JsonRpcAioHttpClient:
         except (ClientError, OSError) as err:
             self.clear_session()
             raise NoConnectionException(err) from err
-        except (TypeError, Exception) as ex:
+        except (TypeError, Exception) as exc:
             self.clear_session()
-            raise ClientException(ex) from ex
+            raise ClientException(exc) from exc
 
     async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:
         """Return the json object from response."""
         try:
             return await response.json(encoding=UTF_8)
-        except ValueError as ver:
+        except ValueError as verr:
             _LOGGER.debug(
                 "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
-                extract_exc_args(exc=ver),
+                extract_exc_args(exc=verr),
             )
             # Workaround for bug in CCU
             return orjson.loads((await response.read()).decode(encoding=UTF_8))
@@ -668,10 +668,10 @@ class JsonRpcAioHttpClient:
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
                         text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO_8859_1)
                     )
-        except JSONDecodeError as err:
+        except JSONDecodeError as jderr:
             _LOGGER.error(
                 "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s",
-                extract_exc_args(exc=err),
+                extract_exc_args(exc=jderr),
             )
         return descriptions
 
@@ -687,10 +687,10 @@ class JsonRpcAioHttpClient:
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
                         text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO_8859_1)
                     )
-        except JSONDecodeError as err:
+        except JSONDecodeError as jderr:
             _LOGGER.error(
                 "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s",
-                extract_exc_args(exc=err),
+                extract_exc_args(exc=jderr),
             )
         return descriptions
 
@@ -949,10 +949,10 @@ class JsonRpcAioHttpClient:
             if json_result := response[_JsonKey.RESULT]:
                 all_device_data = json_result
 
-        except JSONDecodeError as err:
+        except JSONDecodeError as jderr:
             raise ClientException(
                 f"GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface {interface}"
-            ) from err
+            ) from jderr
 
         return all_device_data
 

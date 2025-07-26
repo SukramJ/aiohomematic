@@ -1079,8 +1079,8 @@ def _convert_time_str_to_minutes(time_str: str) -> int:
     try:
         h, m = time_str.split(":")
         return (int(h) * 60) + int(m)
-    except Exception as ex:
-        raise ValidationException(f"Failed to convert time {time_str}. Format must be hh:mm.") from ex
+    except Exception as exc:
+        raise ValidationException(f"Failed to convert time {time_str}. Format must be hh:mm.") from exc
 
 
 def _sort_simple_weekday_list(simple_weekday_list: SIMPLE_WEEKDAY_LIST) -> SIMPLE_WEEKDAY_LIST:

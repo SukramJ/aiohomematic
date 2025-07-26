@@ -93,12 +93,12 @@ def calculate_vapor_concentration(temperature: float, humidity: int) -> float | 
         vapor_concentration /= abs_temperature
 
         return round(vapor_concentration, 2)
-    except ValueError as ve:
+    except ValueError as verr:
         _LOGGER.debug(
             "Unable to calculate 'vapor concentration' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            extract_exc_args(exc=ve),
+            extract_exc_args(exc=verr),
         )
     return None
 
@@ -116,14 +116,14 @@ def calculate_apparent_temperature(temperature: float, humidity: int, wind_speed
             apparent_temperature = temperature
 
         return round(apparent_temperature, 1)  # type: ignore[arg-type]
-    except ValueError as ve:
+    except ValueError as verr:
         if temperature == 0.0 and humidity == 0:
             return 0.0
         _LOGGER.debug(
             "Unable to calculate 'apparent temperature' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            extract_exc_args(exc=ve),
+            extract_exc_args(exc=verr),
         )
     return None
 
@@ -141,14 +141,14 @@ def calculate_dew_point(temperature: float, humidity: int) -> float | None:
         td = math.log(vp / 0.61078)
 
         return round((241.88 * td) / (17.558 - td), 1)
-    except ValueError as ve:
+    except ValueError as verr:
         if temperature == 0.0 and humidity == 0:
             return 0.0
         _LOGGER.debug(
             "Unable to calculate 'dew point' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            extract_exc_args(exc=ve),
+            extract_exc_args(exc=verr),
         )
     return None
 
@@ -162,13 +162,13 @@ def calculate_frost_point(temperature: float, humidity: int) -> float | None:
         td = dewpoint + 273.15
 
         return round((td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(t) - 13.3448)) - t) - 273.15, 1)
-    except ValueError as ve:
+    except ValueError as verr:
         if temperature == 0.0 and humidity == 0:
             return 0.0
         _LOGGER.debug(
             "Unable to calculate 'frost point' with temperature: %s, humidity: %s (%s)",
             temperature,
             humidity,
-            extract_exc_args(exc=ve),
+            extract_exc_args(exc=verr),
         )
     return None

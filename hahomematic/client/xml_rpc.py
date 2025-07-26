@@ -137,27 +137,27 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             else:
                 _LOGGER.error(message)
             raise NoConnectionException(message) from sslerr
-        except OSError as ose:
-            message = f"OSError on {self.interface_id}: {extract_exc_args(exc=ose)}"
-            if ose.args[0] in _OS_ERROR_CODES:
+        except OSError as oserr:
+            message = f"OSError on {self.interface_id}: {extract_exc_args(exc=oserr)}"
+            if oserr.args[0] in _OS_ERROR_CODES:
                 if self._connection_state.add_issue(issuer=self, iid=self.interface_id):
                     _LOGGER.error(message)
                 else:
                     _LOGGER.debug(message)
             else:
                 _LOGGER.error(message)
-            raise NoConnectionException(message) from ose
-        except xmlrpc.client.Fault as fex:
-            raise ClientException(f"XMLRPC Fault from backend: {fex.faultCode} {fex.faultString}") from fex
+            raise NoConnectionException(message) from oserr
+        except xmlrpc.client.Fault as flt:
+            raise ClientException(f"XMLRPC Fault from backend: {flt.faultCode} {flt.faultString}") from flt
         except TypeError as terr:
             raise ClientException(terr) from terr
-        except xmlrpc.client.ProtocolError as per:
+        except xmlrpc.client.ProtocolError as perr:
             if not self._connection_state.has_issue(issuer=self, iid=self.interface_id):
-                if per.errmsg == "Unauthorized":
-                    raise AuthFailure(per) from per
-                raise NoConnectionException(per.errmsg) from per
-        except Exception as ex:
-            raise ClientException(ex) from ex
+                if perr.errmsg == "Unauthorized":
+                    raise AuthFailure(perr) from perr
+                raise NoConnectionException(perr.errmsg) from perr
+        except Exception as exc:
+            raise ClientException(exc) from exc
 
     def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Magic method dispatcher."""

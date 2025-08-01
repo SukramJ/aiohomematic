@@ -2,7 +2,7 @@
 -r requirements_test_pre_commit.txt
 
 coverage==7.10.1
-freezegun==1.5.3
+freezegun==1.5.4
 mypy==1.17.0
 pip==25.2
 pre-commit==4.2.0

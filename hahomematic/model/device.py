@@ -1061,6 +1061,12 @@ class Channel(PayloadMixin):
 class _ValueCache:
     """A Cache to temporarily stored values."""
 
+    __slots__ = (
+        "_device",
+        "_device_cache",
+        "_sema_get_or_load_value",
+    )
+
     _NO_VALUE_CACHE_ENTRY: Final = "NO_VALUE_CACHE_ENTRY"
 
     def __init__(self, device: Device) -> None:
@@ -1236,6 +1242,15 @@ class _ValueCache:
 
 class _DefinitionExporter:
     """Export device definitions from cache."""
+
+    __slots__ = (
+        "_central",
+        "_client",
+        "_device_address",
+        "_interface_id",
+        "_random_id",
+        "_storage_folder",
+    )
 
     def __init__(self, device: Device) -> None:
         """Init the device exporter."""

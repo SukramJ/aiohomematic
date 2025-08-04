@@ -35,6 +35,15 @@ from hahomematic.support import parse_sys_var
 class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     """Class for a HomeMatic system variable."""
 
+    __slots__ = (
+        "_channel",
+        "_description",
+        "_enabled_default",
+        "_legacy_name",
+        "_name_data",
+        "_state_uncertain",
+    )
+
     def __init__(
         self,
         central: hmcu.CentralUnit,
@@ -101,6 +110,18 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
 
 class GenericSysvarDataPoint(GenericHubDataPoint):
     """Class for a HomeMatic system variable."""
+
+    __slots__ = (
+        "_current_value",
+        "_data_type",
+        "_max",
+        "_min",
+        "_previous_value",
+        "_temporary_value",
+        "_unit",
+        "_values",
+        "_vid",
+    )
 
     _is_extended = False
 
@@ -244,6 +265,14 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
 class GenericProgramDataPoint(GenericHubDataPoint):
     """Class for a generic HomeMatic progran data point."""
+
+    __slots__ = (
+        "_pid",
+        "_is_active",
+        "_is_internal",
+        "_last_execute_time",
+        "_state_uncertain",
+    )
 
     def __init__(
         self,

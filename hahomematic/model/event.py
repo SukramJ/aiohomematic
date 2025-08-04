@@ -40,6 +40,11 @@ _LOGGER: Final = logging.getLogger(__name__)
 class GenericEvent(BaseParameterDataPoint[Any, Any]):
     """Base class for events."""
 
+    __slots__ = (
+        "_event_type",
+        "_unique_id_prefix",
+    )
+
     _category = DataPointCategory.EVENT
     _event_type: EventType
 

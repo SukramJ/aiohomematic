@@ -165,6 +165,14 @@ _SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
 class BaseCustomDpClimate(CustomDataPoint):
     """Base HomeMatic climate data_point."""
 
+    __slots__ = (
+        "_dp_humidity",
+        "_dp_min_max_value_not_relevant_for_manu_mode",
+        "_dp_setpoint",
+        "_dp_temperature",
+        "_dp_temperature_maximum",
+        "_dp_temperature_minimum",
+    )
     _category = DataPointCategory.CLIMATE
     _supports_schedule = False
 
@@ -664,6 +672,17 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 class CustomDpRfThermostat(BaseCustomDpClimate):
     """Classic HomeMatic thermostat like HM-CC-RT-DN."""
 
+    __slots__ = (
+        "_dp_auto_mode",
+        "_dp_boost_mode",
+        "_dp_comfort_mode",
+        "_dp_control_mode",
+        "_dp_lowering_mode",
+        "_dp_manu_mode",
+        "_dp_temperature_offset",
+        "_dp_valve_state",
+        "_dp_week_program_pointer",
+    )
     _supports_schedule = True
 
     def _init_data_point_fields(self) -> None:

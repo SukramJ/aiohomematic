@@ -98,6 +98,12 @@ class BaseCustomDpLock(CustomDataPoint):
 class CustomDpIpLock(BaseCustomDpLock):
     """Class for HomematicIP lock data point."""
 
+    __slots__ = (
+        "_dp_direction",
+        "_dp_lock_state",
+        "_dp_lock_target_level",
+    )
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
@@ -153,6 +159,8 @@ class CustomDpIpLock(BaseCustomDpLock):
 
 class CustomDpButtonLock(BaseCustomDpLock):
     """Class for HomematicIP button lock data point."""
+
+    __slots__ = ("_dp_button_lock",)
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""

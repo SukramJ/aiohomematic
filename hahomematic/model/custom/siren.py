@@ -88,6 +88,15 @@ class BaseCustomDpSiren(CustomDataPoint):
 class CustomDpIpSiren(BaseCustomDpSiren):
     """Class for HomematicIP siren data point."""
 
+    __slots__ = (
+        "_dp_acoustic_alarm_active",
+        "_dp_acoustic_alarm_selection",
+        "_dp_duration",
+        "_dp_duration_unit",
+        "_dp_optical_alarm_active",
+        "_dp_optical_alarm_selection",
+    )
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
@@ -169,6 +178,11 @@ class CustomDpIpSiren(BaseCustomDpSiren):
 
 class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     """Class for HomematicIP siren smoke data point."""
+
+    __slots__ = (
+        "_dp_smoke_detector_alarm_status",
+        "_dp_smoke_detector_command",
+    )
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""

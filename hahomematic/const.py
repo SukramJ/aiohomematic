@@ -182,6 +182,7 @@ class DataPointCategory(StrEnum):
     SIREN = "siren"
     SWITCH = "switch"
     TEXT = "text"
+    UNDEFINED = "undefined"
     UPDATE = "update"
     VALVE = "valve"
 

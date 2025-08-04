@@ -146,6 +146,13 @@ class TimerMixin:
 class ChannelNameData:
     """Dataclass for channel name parts."""
 
+    __slots__ = (
+        "channel_name",
+        "device_name",
+        "full_name",
+        "sub_device_name",
+    )
+
     def __init__(self, device_name: str, channel_name: str) -> None:
         """Init the DataPointNameData class."""
         self.device_name: Final = device_name
@@ -171,6 +178,11 @@ class ChannelNameData:
 
 class DataPointNameData(ChannelNameData):
     """Dataclass for data_point name parts."""
+
+    __slots__ = (
+        "name",
+        "parameter_name",
+    )
 
     def __init__(self, device_name: str, channel_name: str, parameter_name: str | None = None) -> None:
         """Init the DataPointNameData class."""
@@ -206,6 +218,11 @@ class DataPointNameData(ChannelNameData):
 
 class HubNameData:
     """Class for hub data_point name parts."""
+
+    __slots__ = (
+        "full_name",
+        "name",
+    )
 
     def __init__(self, name: str, central_name: str | None = None, channel_name: str | None = None) -> None:
         """Init the DataPointNameData class."""
@@ -282,6 +299,11 @@ class PathData:
 class DataPointPathData(PathData):
     """The data point path data."""
 
+    __slots__ = (
+        "_set_path",
+        "_state_path",
+    )
+
     def __init__(
         self,
         interface: Interface | None,
@@ -313,6 +335,11 @@ class DataPointPathData(PathData):
 class ProgramPathData(PathData):
     """The program path data."""
 
+    __slots__ = (
+        "_set_path",
+        "_state_path",
+    )
+
     def __init__(self, pid: str):
         """Init the path data."""
         self._set_path: Final = f"{PROGRAM_SET_PATH_ROOT}/{pid}"
@@ -331,6 +358,11 @@ class ProgramPathData(PathData):
 
 class SysvarPathData(PathData):
     """The sysvar path data."""
+
+    __slots__ = (
+        "_set_path",
+        "_state_path",
+    )
 
     def __init__(self, vid: str):
         """Init the path data."""

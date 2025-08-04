@@ -138,6 +138,12 @@ class LightOffArgs(TypedDict, total=False):
 class CustomDpDimmer(CustomDataPoint, TimerMixin):
     """Base class for HomeMatic light data point."""
 
+    __slots__ = (
+        "_dp_group_level",
+        "_dp_level",
+        "_dp_on_time_value",
+        "_dp_ramp_time_value",
+    )
     _category = DataPointCategory.LIGHT
 
     def _init_data_point_fields(self) -> None:
@@ -295,6 +301,8 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
 class CustomDpColorDimmer(CustomDpDimmer):
     """Class for HomeMatic dimmer with color data point."""
 
+    __slots__ = ("_dp_color",)
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
@@ -330,6 +338,8 @@ class CustomDpColorDimmer(CustomDpDimmer):
 
 class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     """Class for HomeMatic dimmer with color data point."""
+
+    __slots__ = ("_dp_effect",)
 
     _effects: tuple[str, ...] = (
         _EFFECT_OFF,
@@ -380,6 +390,8 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
 class CustomDpColorTempDimmer(CustomDpDimmer):
     """Class for HomeMatic dimmer with color temperature."""
 
+    __slots__ = ("_dp_color_level",)
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
@@ -406,6 +418,19 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
 
 class CustomDpIpRGBWLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-RGBW light data point."""
+
+    __slots__ = (
+        "_dp_activity_state",
+        "_dp_color_temperature_kelvin",
+        "_dp_device_operation_mode",
+        "_dp_effect",
+        "_dp_hue",
+        "_dp_on_time_unit",
+        "_dp_ramp_time_to_off_unit",
+        "_dp_ramp_time_to_off_value",
+        "_dp_ramp_time_unit",
+        "_dp_saturation",
+    )
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -558,6 +583,17 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
 class CustomDpIpDrgDaliLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-DRG-DALI light data point."""
 
+    __slots__ = (
+        "_dp_color_temperature_kelvin",
+        "_dp_effect",
+        "_dp_hue",
+        "_dp_on_time_unit",
+        "_dp_ramp_time_to_off_unit",
+        "_dp_ramp_time_to_off_value",
+        "_dp_ramp_time_unit",
+        "_dp_saturation",
+    )
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
@@ -644,6 +680,15 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
 
 class CustomDpIpFixedColorLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-BSL light data point."""
+
+    __slots__ = (
+        "_dp_channel_color",
+        "_dp_color",
+        "_dp_effect",
+        "_dp_on_time_unit",
+        "_dp_ramp_time_unit",
+        "_effect_list",
+    )
 
     @state_property
     def color_name(self) -> str | None:

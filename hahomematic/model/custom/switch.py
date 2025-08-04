@@ -31,6 +31,12 @@ class _StateChangeArg(StrEnum):
 class CustomDpSwitch(CustomDataPoint, TimerMixin):
     """Class for HomeMatic switch data point."""
 
+    __slots__ = (
+        "_dp_group_state",
+        "_dp_on_time_value",
+        "_dp_state",
+    )
+
     _category = DataPointCategory.SWITCH
 
     def _init_data_point_fields(self) -> None:

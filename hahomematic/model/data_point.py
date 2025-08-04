@@ -115,7 +115,6 @@ class CallbackDataPoint(ABC):
     """Base class for callback data point."""
 
     __slots__ = (
-        "_category",
         "_central",
         "_custom_id",
         "_data_point_updated_callbacks",
@@ -128,7 +127,7 @@ class CallbackDataPoint(ABC):
         "_unique_id",
     )
 
-    _category: DataPointCategory
+    _category = DataPointCategory.UNDEFINED
 
     def __init__(self, central: hmcu.CentralUnit, unique_id: str) -> None:
         """Init the callback data_point."""
@@ -163,10 +162,10 @@ class CallbackDataPoint(ABC):
         """Return the custom id."""
         return self._custom_id
 
-    @property
-    def default_category(self) -> DataPointCategory:
+    @classmethod
+    def default_category(cls) -> DataPointCategory:
         """Return, the default category of the data_point."""
-        return self._category
+        return cls._category
 
     @property
     def central(self) -> hmcu.CentralUnit:
@@ -452,9 +451,27 @@ class BaseParameterDataPoint[
     """Base class for stateless data point."""
 
     __slots__ = (
+        "_current_value",
+        "_default",
         "_ignore_on_initial_load",
+        "_is_forced_sensor",
+        "_is_un_ignored",
+        "_max",
+        "_min",
+        "_multiplier",
+        "_operations",
         "_parameter",
         "_paramset_key",
+        "_previous_value",
+        "_raw_unit",
+        "_service",
+        "_special",
+        "_state_uncertain",
+        "_temporary_value",
+        "_type",
+        "_unit",
+        "_values",
+        "_visible",
     )
 
     _unique_id_prefix: str = ""

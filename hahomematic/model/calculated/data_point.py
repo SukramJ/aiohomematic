@@ -39,6 +39,21 @@ _LOGGER: Final = logging.getLogger(__name__)
 class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     """Base class for calculated data point."""
 
+    __slots__ = (
+        "_data_points",
+        "_default",
+        "_max",
+        "_min",
+        "_multiplier",
+        "_operations",
+        "_service",
+        "_type",
+        "_unit",
+        "_unregister_callbacks",
+        "_values",
+        "_visible",
+    )
+
     _calculated_parameter: CalulatedParameter = None  # type: ignore[assignment]
 
     def __init__(

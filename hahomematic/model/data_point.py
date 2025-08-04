@@ -114,6 +114,20 @@ EVENT_DATA_SCHEMA = vol.Schema(
 class CallbackDataPoint(ABC):
     """Base class for callback data point."""
 
+    __slots__ = (
+        "_category",
+        "_central",
+        "_custom_id",
+        "_data_point_updated_callbacks",
+        "_device_removed_callbacks",
+        "_modified_at",
+        "_path_data",
+        "_refreshed_at",
+        "_temporary_modified_at",
+        "_temporary_refreshed_at",
+        "_unique_id",
+    )
+
     _category: DataPointCategory
 
     def __init__(self, central: hmcu.CentralUnit, unique_id: str) -> None:
@@ -149,10 +163,10 @@ class CallbackDataPoint(ABC):
         """Return the custom id."""
         return self._custom_id
 
-    @classmethod
-    def default_category(cls) -> DataPointCategory:
+    @property
+    def default_category(self) -> DataPointCategory:
         """Return, the default category of the data_point."""
-        return cls._category
+        return self._category
 
     @property
     def central(self) -> hmcu.CentralUnit:
@@ -332,6 +346,15 @@ class CallbackDataPoint(ABC):
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     """Base class for regular data point."""
 
+    __slots__ = (
+        "_channel",
+        "_client",
+        "_data_point_name_data",
+        "_device",
+        "_forced_usage",
+        "_is_in_multiple_channels",
+    )
+
     _ignore_multiple_channels_for_name: bool = False
 
     def __init__(
@@ -427,6 +450,12 @@ class BaseParameterDataPoint[
     InputParameterT: GenericParameterType,
 ](BaseDataPoint):
     """Base class for stateless data point."""
+
+    __slots__ = (
+        "_ignore_on_initial_load",
+        "_parameter",
+        "_paramset_key",
+    )
 
     _unique_id_prefix: str = ""
 
@@ -828,6 +857,12 @@ class BaseParameterDataPoint[
 
 class CallParameterCollector:
     """Create a Paramset based on given generic data point."""
+
+    __slots__ = (
+        "_central",
+        "_client",
+        "_paramsets",
+    )
 
     def __init__(self, client: hmcl.Client) -> None:
         """Init the generator."""

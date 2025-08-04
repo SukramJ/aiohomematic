@@ -79,6 +79,35 @@ _LOGGER: Final = logging.getLogger(__name__)
 class Device(PayloadMixin):
     """Object to hold information about a device and associated data points."""
 
+    __slots__ = (
+        "_address",
+        "_central",
+        "_channel_groups",
+        "_channels",
+        "_client",
+        "_description",
+        "_device_updated_callbacks",
+        "_firmware_update_callbacks",
+        "_forced_availability",
+        "_has_custom_data_point_definition",
+        "_id",
+        "_ignore_for_custom_data_point",
+        "_ignore_on_initial_load",
+        "_interface",
+        "_interface_id",
+        "_is_updatable",
+        "_manufacturer",
+        "_model",
+        "_modified_at",
+        "_name",
+        "_product_group",
+        "_rooms",
+        "_rx_modes",
+        "_sub_model",
+        "_update_data_point",
+        "_value_cache",
+    )
+
     def __init__(self, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
         """Initialize the device object."""
         PayloadMixin.__init__(self)
@@ -631,6 +660,29 @@ class Device(PayloadMixin):
 
 class Channel(PayloadMixin):
     """Object to hold information about a channel and associated data points."""
+
+    __slots__ = (
+        "_address",
+        "_calculated_data_points",
+        "_central",
+        "_custom_data_point",
+        "_description",
+        "_device",
+        "_function",
+        "_generic_data_points",
+        "_generic_events",
+        "_group_master",
+        "_group_no",
+        "_id",
+        "_is_in_multi_group",
+        "_modified_at",
+        "_name_data",
+        "_no",
+        "_paramset_keys",
+        "_rooms",
+        "_type_name",
+        "_unique_id",
+    )
 
     def __init__(self, device: Device, channel_address: str) -> None:
         """Initialize the channel object."""

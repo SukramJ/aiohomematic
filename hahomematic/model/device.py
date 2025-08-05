@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from functools import cached_property, partial
+from functools import partial
 import logging
 import os
 import random
@@ -51,7 +51,7 @@ from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.model.calculated import CalculatedDataPoint
 from hahomematic.model.custom import data_point as hmce, definition as hmed
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from hahomematic.model.decorators import info_property, state_property
+from hahomematic.model.decorators import cached_slot_property, info_property, state_property
 from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
 from hahomematic.model.support import (
@@ -81,6 +81,7 @@ class Device(PayloadMixin):
 
     __slots__ = (
         "_address",
+        "_cached_relevant_for_central_link_management",
         "_central",
         "_channel_groups",
         "_channels",
@@ -406,18 +407,18 @@ class Device(PayloadMixin):
     @inspector()
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
-        if self.relevant_for_central_link_management:
+        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
             for channel in self._channels.values():
                 await channel.create_central_link()
 
     @inspector()
     async def remove_central_links(self) -> None:
         """Remove central links."""
-        if self.relevant_for_central_link_management:
+        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
             for channel in self._channels.values():
                 await channel.remove_central_link()
 
-    @cached_property
+    @cached_slot_property
     def relevant_for_central_link_management(self) -> bool:
         """Return if channel is relevant for central link management."""
         return (

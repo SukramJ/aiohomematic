@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime
-from functools import cached_property, partial, wraps
+from functools import partial, wraps
 from inspect import getfullargspec
 import logging
 from typing import Any, Final, cast
@@ -43,7 +43,7 @@ from hahomematic.context import IN_SERVICE_VAR
 from hahomematic.decorators import get_service_calls
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.model import device as hmd
-from hahomematic.model.decorators import config_property, state_property
+from hahomematic.model.decorators import cached_slot_property, config_property, state_property
 from hahomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -115,6 +115,9 @@ class CallbackDataPoint(ABC):
     """Base class for callback data point."""
 
     __slots__ = (
+        "_cached_enabled_default",
+        "_cached_service_methods",
+        "_cached_service_method_names",
         "_central",
         "_custom_id",
         "_data_point_updated_callbacks",
@@ -211,7 +214,7 @@ class CallbackDataPoint(ABC):
         """Return the data_point usage."""
         return DataPointUsage.DATA_POINT
 
-    @cached_property
+    @cached_slot_property
     def enabled_default(self) -> bool:
         """Return, if data_point should be enabled based on usage attribute."""
         return self.usage in (
@@ -237,12 +240,12 @@ class CallbackDataPoint(ABC):
         return self._path_data.state_path
 
     # @property
-    @cached_property
+    @cached_slot_property
     def service_methods(self) -> Mapping[str, Callable]:
         """Return all service methods."""
         return get_service_calls(obj=self)
 
-    @cached_property
+    @cached_slot_property
     def service_method_names(self) -> tuple[str, ...]:
         """Return all service methods."""
         return tuple(self.service_methods.keys())
@@ -346,6 +349,8 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     """Base class for regular data point."""
 
     __slots__ = (
+        "_cached_dpk",
+        "_cached_requires_polling",
         "_channel",
         "_client",
         "_data_point_name_data",
@@ -451,6 +456,7 @@ class BaseParameterDataPoint[
     """Base class for stateless data point."""
 
     __slots__ = (
+        "_cached__enabled_by_channel_operation_mode",
         "_current_value",
         "_default",
         "_ignore_on_initial_load",
@@ -556,7 +562,7 @@ class BaseParameterDataPoint[
         """Return if the parameter is un ignored."""
         return self._is_un_ignored
 
-    @cached_property
+    @cached_slot_property
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
         return DataPointKey(
@@ -596,7 +602,7 @@ class BaseParameterDataPoint[
         """Return raw unit value."""
         return self._raw_unit
 
-    @cached_property
+    @cached_slot_property
     def requires_polling(self) -> bool:
         """Return whether the data_point requires polling."""
         return not self._channel.device.client.supports_push_updates or (
@@ -682,7 +688,7 @@ class BaseParameterDataPoint[
         """Return the if data_point is visible in ccu."""
         return self._visible
 
-    @cached_property
+    @cached_slot_property
     def _enabled_by_channel_operation_mode(self) -> bool | None:
         """Return, if the data_point/event must be enabled."""
         if self._channel.type_name not in _CONFIGURABLE_CHANNEL:

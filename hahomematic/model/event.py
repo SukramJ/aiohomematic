@@ -68,7 +68,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         """Return the data_point usage."""
         if (forced_by_com := self._enabled_by_channel_operation_mode) is None:
             return self._get_data_point_usage()
-        return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE
+        return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
     @property
     def event_type(self) -> EventType:

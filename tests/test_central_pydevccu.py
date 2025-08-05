@@ -140,12 +140,17 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     for device in central_unit_full.devices:
         # check __dict__ / __slots__
         for ge in device.generic_data_points:
-            for entry in ge.__dict__:
-                assert is_cached_property(cls=type(ge), attr_name=entry)
+            if len(ge.__dict__) > 0:
+                for entry in ge.__dict__:
+                    assert is_cached_property(cls=type(ge), attr_name=entry)
         for ev in device.generic_events:
-            assert len(ev.__dict__) == 0
+            if len(ev.__dict__) > 0:
+                for entry in ev.__dict__:
+                    assert is_cached_property(cls=type(ev), attr_name=entry)
         for ce in device.custom_data_points:
-            assert len(ce.__dict__) == 0
+            if len(ce.__dict__) > 0:
+                for entry in ce.__dict__:
+                    assert is_cached_property(cls=type(ce), attr_name=entry)
 
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 271
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162

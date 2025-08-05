@@ -11,6 +11,8 @@ from hahomematic.model.hub.data_point import GenericProgramDataPoint
 class ProgramDpButton(GenericProgramDataPoint):
     """Class for a HomeMatic program button."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.HUB_BUTTON
 
     @state_property

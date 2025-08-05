@@ -16,6 +16,8 @@ class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[Number
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ()
+
     _category = DataPointCategory.NUMBER
 
     def _prepare_number_for_sending(
@@ -40,6 +42,8 @@ class DpFloat(BaseDpNumber[float | None]):
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ()
+
     def _prepare_value_for_sending(self, value: int | float | str, do_validate: bool = True) -> float | None:
         """Prepare value before sending."""
         return self._prepare_number_for_sending(value=value, type_converter=float, do_validate=do_validate)
@@ -56,6 +60,8 @@ class DpInteger(BaseDpNumber[int | None]):
 
     This is a default data point that gets automatically generated.
     """
+
+    __slots__ = ()
 
     def _prepare_value_for_sending(self, value: int | float | str, do_validate: bool = True) -> int | None:
         """Prepare value before sending."""

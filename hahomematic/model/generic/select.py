@@ -15,6 +15,8 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ()
+
     _category = DataPointCategory.SELECT
 
     @state_property

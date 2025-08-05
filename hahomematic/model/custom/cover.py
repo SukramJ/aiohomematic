@@ -213,6 +213,8 @@ class CustomDpCover(CustomDataPoint):
 class CustomDpWindowDrive(CustomDpCover):
     """Class for Homematic window drive."""
 
+    __slots__ = ()
+
     _closed_level: float = _WD_CLOSED_LEVEL
     _open_level: float = _OPEN_LEVEL
 

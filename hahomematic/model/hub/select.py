@@ -17,6 +17,8 @@ _LOGGER: Final = logging.getLogger(__name__)
 class SysvarDpSelect(GenericSysvarDataPoint):
     """Implementation of a sysvar select data_point."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.HUB_SELECT
     _is_extended = True
 

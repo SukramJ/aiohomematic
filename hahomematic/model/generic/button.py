@@ -14,6 +14,8 @@ class DpButton(GenericDataPoint[None, bool]):
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ()
+
     _category = DataPointCategory.BUTTON
     _validate_state_change = False
 

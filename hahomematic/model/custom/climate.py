@@ -668,6 +668,8 @@ class BaseCustomDpClimate(CustomDataPoint):
 class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
     """Simple classic HomeMatic thermostat HM-CC-TC."""
 
+    __slots__ = ()
+
 
 class CustomDpRfThermostat(BaseCustomDpClimate):
     """Classic HomeMatic thermostat like HM-CC-RT-DN."""

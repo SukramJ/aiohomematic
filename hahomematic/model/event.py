@@ -102,11 +102,15 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
 class ClickEvent(GenericEvent):
     """class for handling click events."""
 
+    __slots__ = ()
+
     _event_type = EventType.KEYPRESS
 
 
 class DeviceErrorEvent(GenericEvent):
     """class for handling device error events."""
+
+    __slots__ = ()
 
     _event_type = EventType.DEVICE_ERROR
 
@@ -127,6 +131,8 @@ class DeviceErrorEvent(GenericEvent):
 
 class ImpulseEvent(GenericEvent):
     """class for handling impulse events."""
+
+    __slots__ = ()
 
     _event_type = EventType.IMPULSE
 

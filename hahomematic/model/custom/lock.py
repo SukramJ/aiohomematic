@@ -51,6 +51,8 @@ class LockState(StrEnum):
 class BaseCustomDpLock(CustomDataPoint):
     """Class for HomematicIP lock data point."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.LOCK
     _ignore_multiple_channels_for_name = True
 

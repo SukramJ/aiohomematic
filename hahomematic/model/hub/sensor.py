@@ -16,6 +16,8 @@ _LOGGER: Final = logging.getLogger(__name__)
 class SysvarDpSensor(GenericSysvarDataPoint):
     """Implementation of a sysvar sensor."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.HUB_SENSOR
 
     @state_property

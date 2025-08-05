@@ -11,12 +11,16 @@ from hahomematic.model.hub.data_point import GenericProgramDataPoint, GenericSys
 class SysvarDpSwitch(GenericSysvarDataPoint):
     """Implementation of a sysvar switch data_point."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.HUB_SWITCH
     _is_extended = True
 
 
 class ProgramDpSwitch(GenericProgramDataPoint):
     """Implementation of a program switch data_point."""
+
+    __slots__ = ()
 
     _category = DataPointCategory.HUB_SWITCH
 

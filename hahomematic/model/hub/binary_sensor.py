@@ -10,6 +10,8 @@ from hahomematic.model.hub.data_point import GenericSysvarDataPoint
 class SysvarDpBinarySensor(GenericSysvarDataPoint):
     """Implementation of a sysvar binary_sensor."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.HUB_BINARY_SENSOR
 
     @state_property

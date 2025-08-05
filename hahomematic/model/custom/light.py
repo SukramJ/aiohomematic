@@ -143,6 +143,8 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
         "_dp_level",
         "_dp_on_time_value",
         "_dp_ramp_time_value",
+        "_timer_on_time",
+        "_timer_on_time_end",
     )
     _category = DataPointCategory.LIGHT
 

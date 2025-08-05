@@ -35,6 +35,8 @@ class CustomDpSwitch(CustomDataPoint, TimerMixin):
         "_dp_group_state",
         "_dp_on_time_value",
         "_dp_state",
+        "_timer_on_time",
+        "_timer_on_time_end",
     )
 
     _category = DataPointCategory.SWITCH

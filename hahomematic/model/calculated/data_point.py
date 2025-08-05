@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
-from functools import cached_property
 import logging
 from typing import Any, Final, cast
 
@@ -42,6 +41,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     __slots__ = (
         "_data_points",
         "_default",
+        "_dpk",
         "_max",
         "_min",
         "_multiplier",
@@ -69,6 +69,12 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             channel=channel,
             unique_id=unique_id,
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
+        )
+        self._dpk = DataPointKey(
+            interface_id=self._device.interface_id,
+            channel_address=self._channel.address,
+            paramset_key=ParamsetKey.CALCULATED,
+            parameter=self._calculated_parameter,
         )
         self._data_points: Final[list[hmge.GenericDataPoint]] = []
         self._type: ParameterType = None  # type: ignore[assignment]
@@ -146,15 +152,10 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Return default value."""
         return self._default
 
-    @cached_property
+    @property
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
-        return DataPointKey(
-            interface_id=self._device.interface_id,
-            channel_address=self._channel.address,
-            paramset_key=ParamsetKey.CALCULATED,
-            parameter=self._calculated_parameter,
-        )
+        return self._dpk
 
     @property
     def hmtype(self) -> ParameterType:

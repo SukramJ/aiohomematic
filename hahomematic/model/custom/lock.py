@@ -201,6 +201,13 @@ class CustomDpButtonLock(BaseCustomDpLock):
 class CustomDpRfLock(BaseCustomDpLock):
     """Class for classic HomeMatic lock data point."""
 
+    __slots__ = (
+        "_dp_direction",
+        "_dp_error",
+        "_dp_open",
+        "_dp_state",
+    )
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()

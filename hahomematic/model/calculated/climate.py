@@ -24,6 +24,8 @@ _LOGGER: Final = logging.getLogger(__name__)
 class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
     """Implementation of a calculated climate sensor."""
 
+    __slots__ = ("_type",)
+
     _category = DataPointCategory.SENSOR
 
     def __init__(self, channel: hmd.Channel) -> None:
@@ -57,6 +59,8 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
 
 class ApparentTemperature(BaseClimateSensor):
     """Implementation of a calculated sensor for apparent temperature."""
+
+    __slots__ = ("_unit",)
 
     _calculated_parameter = CalulatedParameter.APPARENT_TEMPERATURE
 
@@ -106,6 +110,8 @@ class ApparentTemperature(BaseClimateSensor):
 class DewPoint(BaseClimateSensor):
     """Implementation of a calculated sensor for dew point."""
 
+    __slots__ = ("_unit",)
+
     _calculated_parameter = CalulatedParameter.DEW_POINT
 
     def __init__(self, channel: hmd.Channel) -> None:
@@ -131,6 +137,8 @@ class DewPoint(BaseClimateSensor):
 
 class FrostPoint(BaseClimateSensor):
     """Implementation of a calculated sensor for frost point."""
+
+    __slots__ = ("_unit",)
 
     _calculated_parameter = CalulatedParameter.FROST_POINT
 
@@ -159,6 +167,8 @@ class FrostPoint(BaseClimateSensor):
 
 class VaporConcentration(BaseClimateSensor):
     """Implementation of a calculated sensor for vapor concentration."""
+
+    __slots__ = ("_unit",)
 
     _calculated_parameter = CalulatedParameter.VAPOR_CONCENTRATION
 

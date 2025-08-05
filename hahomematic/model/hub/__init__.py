@@ -62,6 +62,13 @@ class ProgramDpType(NamedTuple):
 class Hub:
     """The HomeMatic hub. (CCU/HomeGear)."""
 
+    __slots__ = (
+        "_sema_fetch_sysvars",
+        "_sema_fetch_programs",
+        "_central",
+        "_config",
+    )
+
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Initialize HomeMatic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()

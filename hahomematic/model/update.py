@@ -32,6 +32,8 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ("_device",)
+
     _category = DataPointCategory.UPDATE
 
     def __init__(self, device: hmd.Device) -> None:

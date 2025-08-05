@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
-from functools import cached_property
 import logging
 from typing import Any, Final, cast
 
@@ -22,7 +21,7 @@ from hahomematic.const import (
 from hahomematic.model import device as hmd
 from hahomematic.model.custom import definition as hmed
 from hahomematic.model.data_point import BaseDataPoint, NoneTypeDataPoint
-from hahomematic.model.decorators import config_property, state_property
+from hahomematic.model.decorators import cached_slot_property, config_property, state_property
 from hahomematic.model.generic import data_point as hmge
 from hahomematic.model.support import (
     DataPointNameData,
@@ -38,6 +37,22 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     """Base class for calculated data point."""
+
+    __slots__ = (
+        "_cached_dpk",
+        "_data_points",
+        "_default",
+        "_max",
+        "_min",
+        "_multiplier",
+        "_operations",
+        "_service",
+        "_type",
+        "_unit",
+        "_unregister_callbacks",
+        "_values",
+        "_visible",
+    )
 
     _calculated_parameter: CalulatedParameter = None  # type: ignore[assignment]
 
@@ -131,7 +146,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Return default value."""
         return self._default
 
-    @cached_property
+    @cached_slot_property
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
         return DataPointKey(

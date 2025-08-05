@@ -1,3 +1,7 @@
+# Version 2025.8.0 (2025-08-03)
+
+- Use **slots**
+
 # Version 2025.7.7 (2025-07-26)
 
 - Align exception naming

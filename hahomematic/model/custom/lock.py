@@ -51,6 +51,8 @@ class LockState(StrEnum):
 class BaseCustomDpLock(CustomDataPoint):
     """Class for HomematicIP lock data point."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.LOCK
     _ignore_multiple_channels_for_name = True
 
@@ -97,6 +99,12 @@ class BaseCustomDpLock(CustomDataPoint):
 
 class CustomDpIpLock(BaseCustomDpLock):
     """Class for HomematicIP lock data point."""
+
+    __slots__ = (
+        "_dp_direction",
+        "_dp_lock_state",
+        "_dp_lock_target_level",
+    )
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -154,6 +162,8 @@ class CustomDpIpLock(BaseCustomDpLock):
 class CustomDpButtonLock(BaseCustomDpLock):
     """Class for HomematicIP button lock data point."""
 
+    __slots__ = ("_dp_button_lock",)
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
@@ -192,6 +202,13 @@ class CustomDpButtonLock(BaseCustomDpLock):
 
 class CustomDpRfLock(BaseCustomDpLock):
     """Class for classic HomeMatic lock data point."""
+
+    __slots__ = (
+        "_dp_direction",
+        "_dp_error",
+        "_dp_open",
+        "_dp_state",
+    )
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""

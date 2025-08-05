@@ -40,6 +40,11 @@ _LOGGER: Final = logging.getLogger(__name__)
 class GenericEvent(BaseParameterDataPoint[Any, Any]):
     """Base class for events."""
 
+    __slots__ = (
+        "_event_type",
+        "_unique_id_prefix",
+    )
+
     _category = DataPointCategory.EVENT
     _event_type: EventType
 
@@ -63,7 +68,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         """Return the data_point usage."""
         if (forced_by_com := self._enabled_by_channel_operation_mode) is None:
             return self._get_data_point_usage()
-        return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE
+        return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
     @property
     def event_type(self) -> EventType:
@@ -97,11 +102,15 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
 class ClickEvent(GenericEvent):
     """class for handling click events."""
 
+    __slots__ = ()
+
     _event_type = EventType.KEYPRESS
 
 
 class DeviceErrorEvent(GenericEvent):
     """class for handling device error events."""
+
+    __slots__ = ()
 
     _event_type = EventType.DEVICE_ERROR
 
@@ -122,6 +131,8 @@ class DeviceErrorEvent(GenericEvent):
 
 class ImpulseEvent(GenericEvent):
     """class for handling impulse events."""
+
+    __slots__ = ()
 
     _event_type = EventType.IMPULSE
 

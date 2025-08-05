@@ -27,6 +27,11 @@ _LOGGER: Final = logging.getLogger(__name__)
 class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT]):
     """Implementation of a calculated sensor for operating voltage level."""
 
+    __slots__ = (
+        "_type",
+        "_unit",
+    )
+
     _calculated_parameter = CalulatedParameter.OPERATING_VOLTAGE_LEVEL
     _category = DataPointCategory.SENSOR
 

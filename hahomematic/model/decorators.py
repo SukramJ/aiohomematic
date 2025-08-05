@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 __all__ = [
     "config_property",
@@ -18,6 +18,7 @@ __all__ = [
 
 P = ParamSpec("P")
 T = TypeVar("T")
+R = TypeVar("R")
 
 
 # pylint: disable=invalid-name
@@ -123,3 +124,37 @@ def get_public_attributes_for_info_property(data_object: Any) -> Mapping[str, An
 def get_public_attributes_for_state_property(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator state_property."""
     return _get_public_attributes_by_class_decorator(data_object=data_object, class_decorator=state_property)
+
+
+# pylint: disable=invalid-name
+class cached_slot_property[T, R]:
+    """A property-like descriptor that caches the computed value in a slot attribute. Designed to work with classes that use __slots__ and do not define __dict__."""
+
+    def __init__(self, func: Callable[[T], R]) -> None:
+        """Init the cached property."""
+        self._func = func  # The function to compute the value
+        self._cache_attr = f"_cached_{func.__name__}"  # Default name of the cache attribute
+        self._name = func.__name__
+
+    def __get__(self, instance: T | None, owner: type | None = None) -> R:
+        """Return the cached value if it exists. Otherwise, compute it using the function and cache it."""
+        if instance is None:
+            # Accessed from class, return the descriptor itself
+            return cast(R, self)
+
+        # If the cached value is not set yet, compute and store it
+        if not hasattr(instance, self._cache_attr):
+            value = self._func(instance)
+            setattr(instance, self._cache_attr, value)
+
+        # Return the cached value
+        return cast(R, getattr(instance, self._cache_attr))
+
+    def __set__(self, instance: T, value: Any) -> None:
+        """Raise an error to prevent manual assignment to the property."""
+        raise AttributeError(f"Can't set read-only cached property '{self._name}'")
+
+    def __delete__(self, instance: T) -> None:
+        """Delete the cached value so it can be recomputed on next access."""
+        if hasattr(instance, self._cache_attr):
+            delattr(instance, self._cache_attr)

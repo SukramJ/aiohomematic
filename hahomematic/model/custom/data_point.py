@@ -30,6 +30,18 @@ _LOGGER: Final = logging.getLogger(__name__)
 class CustomDataPoint(BaseDataPoint):
     """Base class for custom data point."""
 
+    __slots__ = (
+        "_allow_undefined_generic_data_points",
+        "_custom_config",
+        "_custom_data_point_def",
+        "_data_points",
+        "_device_def",
+        "_device_profile",
+        "_extended",
+        "_group_no",
+        "_unregister_callbacks",
+    )
+
     def __init__(
         self,
         channel: hmd.Channel,

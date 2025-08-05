@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from functools import cached_property
 import logging
 from typing import Any, Final
 
 from hahomematic.const import DP_KEY_VALUE, CallSource, DataPointUsage, EventType, Parameter, ParameterData, ParamsetKey
 from hahomematic.decorators import inspector
 from hahomematic.model import data_point as hme, device as hmd
+from hahomematic.model.decorators import cached_slot_property
 from hahomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -19,6 +19,8 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
     hme.BaseParameterDataPoint
 ):
     """Base class for generic data point."""
+
+    __slots__ = ("_cached_usage",)
 
     _validate_state_change: bool = True
     is_hmtype: Final = True
@@ -38,14 +40,14 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             parameter_data=parameter_data,
         )
 
-    @cached_property
+    @cached_slot_property
     def usage(self) -> DataPointUsage:
         """Return the data_point usage."""
         if self._is_forced_sensor or self._is_un_ignored:
             return DataPointUsage.DATA_POINT
         if (force_enabled := self._enabled_by_channel_operation_mode) is None:
             return self._get_data_point_usage()
-        return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE
+        return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
     async def event(self, value: Any, received_at: datetime = datetime.now()) -> None:
         """Handle event for which this data_point has subscribed."""

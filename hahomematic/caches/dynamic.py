@@ -35,6 +35,11 @@ _LOGGER: Final = logging.getLogger(__name__)
 class CommandCache:
     """Cache for send commands."""
 
+    __slots__ = (
+        "_interface_id",
+        "_last_send_command",
+    )
+
     def __init__(self, interface_id: str) -> None:
         """Init command cache."""
         self._interface_id: Final = interface_id
@@ -119,6 +124,16 @@ class CommandCache:
 
 class DeviceDetailsCache:
     """Cache for device/channel details."""
+
+    __slots__ = (
+        "_central",
+        "_channel_rooms",
+        "_device_channel_ids",
+        "_functions",
+        "_interface_cache",
+        "_names_cache",
+        "_refreshed_at",
+    )
 
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Init the device details cache."""
@@ -226,6 +241,12 @@ class DeviceDetailsCache:
 class CentralDataCache:
     """Central cache for device/channel initial data."""
 
+    __slots__ = (
+        "_central",
+        "_refreshed_at",
+        "_value_cache",
+    )
+
     def __init__(self, central: hmcu.CentralUnit) -> None:
         """Init the central data cache."""
         self._central: Final = central
@@ -300,6 +321,17 @@ class CentralDataCache:
 
 class PingPongCache:
     """Cache to collect ping/pong events with ttl."""
+
+    __slots__ = (
+        "_allowed_delta",
+        "_central",
+        "_interface_id",
+        "_pending_pong_logged",
+        "_pending_pongs",
+        "_ttl",
+        "_unknown_pong_logged",
+        "_unknown_pongs",
+    )
 
     def __init__(
         self,

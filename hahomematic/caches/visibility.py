@@ -284,6 +284,18 @@ _ACCEPT_PARAMETER_ONLY_ON_CHANNEL: Final[Mapping[str, int]] = {Parameter.LOWBAT:
 class ParameterVisibilityCache:
     """Cache for parameter visibility."""
 
+    __slots__ = (
+        "_central",
+        "_custom_un_ignore_complex",
+        "_custom_un_ignore_values_parameters",
+        "_ignore_custom_device_definition_models",
+        "_raw_un_ignores",
+        "_relevant_master_paramsets_by_device",
+        "_required_parameters",
+        "_storage_folder",
+        "_un_ignore_parameters_by_device_paramset_key",
+    )
+
     def __init__(
         self,
         central: hmcu.CentralUnit,

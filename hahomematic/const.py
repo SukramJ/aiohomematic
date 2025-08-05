@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, StrEnum
 import re
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.7.7"
+VERSION: Final = "2025.8.0"
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -182,6 +182,7 @@ class DataPointCategory(StrEnum):
     SIREN = "siren"
     SWITCH = "switch"
     TEXT = "text"
+    UNDEFINED = "undefined"
     UPDATE = "update"
     VALVE = "valve"
 

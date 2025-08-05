@@ -44,6 +44,17 @@ _LOGGER: Final = logging.getLogger(__name__)
 class BasePersistentCache(ABC):
     """Cache for files."""
 
+    __slots__ = (
+        "_cache_dir",
+        "_central",
+        "_file_postfix",
+        "_filename",
+        "_persistent_cache",
+        "_save_load_semaphore",
+        "last_hash_saved",
+        "last_save_triggered",
+    )
+
     _file_postfix: str
 
     def __init__(
@@ -145,6 +156,12 @@ class BasePersistentCache(ABC):
 
 class DeviceDescriptionCache(BasePersistentCache):
     """Cache for device/channel names."""
+
+    __slots__ = (
+        "_addresses",
+        "_device_descriptions",
+        "_raw_device_descriptions",
+    )
 
     _file_postfix = FILE_DEVICES
 
@@ -263,6 +280,11 @@ class DeviceDescriptionCache(BasePersistentCache):
 
 class ParamsetDescriptionCache(BasePersistentCache):
     """Cache for paramset descriptions."""
+
+    __slots__ = (
+        "_address_parameter_cache",
+        "_raw_paramset_descriptions",
+    )
 
     _file_postfix = FILE_PARAMSETS
 

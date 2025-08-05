@@ -87,6 +87,13 @@ class _StateChangeArg(StrEnum):
 class CustomDpCover(CustomDataPoint):
     """Class for HomeMatic cover data point."""
 
+    __slots__ = (
+        "_command_processing_lock",
+        "_dp_direction",
+        "_dp_group_level",
+        "_dp_level",
+        "_dp_stop",
+    )
     _category = DataPointCategory.COVER
     _closed_level: float = _CLOSED_LEVEL
     _closed_position: int = int(_CLOSED_LEVEL * _LEVEL_TO_POSITION_MULTIPLIER)
@@ -206,6 +213,8 @@ class CustomDpCover(CustomDataPoint):
 class CustomDpWindowDrive(CustomDpCover):
     """Class for Homematic window drive."""
 
+    __slots__ = ()
+
     _closed_level: float = _WD_CLOSED_LEVEL
     _open_level: float = _OPEN_LEVEL
 
@@ -241,6 +250,11 @@ class CustomDpWindowDrive(CustomDpCover):
 class CustomDpBlind(CustomDpCover):
     """Class for HomeMatic blind data point."""
 
+    __slots__ = (
+        "_dp_combined",
+        "_dp_group_level_2",
+        "_dp_level_2",
+    )
     _open_tilt_level: float = _OPEN_TILT_LEVEL
 
     def _init_data_point_fields(self) -> None:
@@ -448,6 +462,11 @@ class CustomDpBlind(CustomDpCover):
 class CustomDpIpBlind(CustomDpBlind):
     """Class for HomematicIP blind data point."""
 
+    __slots__ = (
+        "_dp_combined",
+        "_dp_operation_mode",
+    )
+
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
@@ -477,6 +496,11 @@ class CustomDpIpBlind(CustomDpBlind):
 class CustomDpGarage(CustomDataPoint):
     """Class for HomeMatic garage data point."""
 
+    __slots__ = (
+        "_dp_door_command",
+        "_dp_door_state",
+        "_dp_section",
+    )
     _category = DataPointCategory.COVER
 
     def _init_data_point_fields(self) -> None:

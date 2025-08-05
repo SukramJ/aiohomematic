@@ -21,6 +21,8 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ()
+
     _category = DataPointCategory.SENSOR
 
     @state_property

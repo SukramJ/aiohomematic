@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import cached_property
 import os
 
 import orjson
@@ -48,7 +49,7 @@ async def test_central_mini(central_unit_mini) -> None:
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_full(central_unit_full) -> None:
+async def test_central_full(central_unit_full) -> None:  # noqa: C901
     """Test the central."""
     assert central_unit_full
     assert central_unit_full.name == const.CENTRAL_NAME
@@ -74,6 +75,7 @@ async def test_central_full(central_unit_full) -> None:
         custom_dps.extend(device.custom_data_points)
         for channel in device.channels.values():
             channel_type_names.add(channel.type_name)
+
     channel_type_names = sorted(channel_type_names)
     assert len(channel_type_names) == 555
     ce_channels = {}
@@ -130,6 +132,19 @@ async def test_central_full(central_unit_full) -> None:
         mode="wb",
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
+
+    def is_cached_property(cls: type, attr_name: str) -> bool:
+        attr = getattr(cls, attr_name, None)
+        return isinstance(attr, cached_property)
+
+    for device in central_unit_full.devices:
+        # check __dict__ / __slots__
+        for ge in device.generic_data_points:
+            assert len(ge.__dict__) == 0
+        for ev in device.generic_events:
+            assert len(ev.__dict__) == 0
+        for ce in device.custom_data_points:
+            assert len(ce.__dict__) == 0
 
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 271
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162

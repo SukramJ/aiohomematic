@@ -13,6 +13,8 @@ from hahomematic.model.support import check_length_and_log
 class SysvarDpText(GenericSysvarDataPoint):
     """Implementation of a sysvar text data_point."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.HUB_TEXT
     _is_extended = True
 

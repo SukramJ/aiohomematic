@@ -31,6 +31,14 @@ class _StateChangeArg(StrEnum):
 class CustomDpIpIrrigationValve(CustomDataPoint, TimerMixin):
     """Class for HomeMatic irrigation valve data point."""
 
+    __slots__ = (
+        "_dp_group_state",
+        "_dp_on_time_value",
+        "_dp_state",
+        "_timer_on_time",
+        "_timer_on_time_end",
+    )
+
     _category = DataPointCategory.VALVE
 
     def _init_data_point_fields(self) -> None:

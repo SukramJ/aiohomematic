@@ -16,6 +16,8 @@ class DpBinarySensor(GenericDataPoint[bool | None, bool]):
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ()
+
     _category = DataPointCategory.BINARY_SENSOR
 
     @state_property

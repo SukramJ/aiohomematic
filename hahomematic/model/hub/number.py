@@ -15,6 +15,8 @@ _LOGGER: Final = logging.getLogger(__name__)
 class SysvarDpNumber(GenericSysvarDataPoint):
     """Implementation of a sysvar number."""
 
+    __slots__ = ()
+
     _category = DataPointCategory.HUB_NUMBER
     _is_extended = True
 

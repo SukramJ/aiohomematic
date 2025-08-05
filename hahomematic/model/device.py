@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from functools import cached_property, partial
+from functools import partial
 import logging
 import os
 import random
@@ -51,7 +51,7 @@ from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.model.calculated import CalculatedDataPoint
 from hahomematic.model.custom import data_point as hmce, definition as hmed
 from hahomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from hahomematic.model.decorators import info_property, state_property
+from hahomematic.model.decorators import cached_slot_property, info_property, state_property
 from hahomematic.model.event import GenericEvent
 from hahomematic.model.generic import GenericDataPoint
 from hahomematic.model.support import (
@@ -78,6 +78,36 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 class Device(PayloadMixin):
     """Object to hold information about a device and associated data points."""
+
+    __slots__ = (
+        "_address",
+        "_cached_relevant_for_central_link_management",
+        "_central",
+        "_channel_groups",
+        "_channels",
+        "_client",
+        "_description",
+        "_device_updated_callbacks",
+        "_firmware_update_callbacks",
+        "_forced_availability",
+        "_has_custom_data_point_definition",
+        "_id",
+        "_ignore_for_custom_data_point",
+        "_ignore_on_initial_load",
+        "_interface",
+        "_interface_id",
+        "_is_updatable",
+        "_manufacturer",
+        "_model",
+        "_modified_at",
+        "_name",
+        "_product_group",
+        "_rooms",
+        "_rx_modes",
+        "_sub_model",
+        "_update_data_point",
+        "_value_cache",
+    )
 
     def __init__(self, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
         """Initialize the device object."""
@@ -377,18 +407,18 @@ class Device(PayloadMixin):
     @inspector()
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
-        if self.relevant_for_central_link_management:
+        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
             for channel in self._channels.values():
                 await channel.create_central_link()
 
     @inspector()
     async def remove_central_links(self) -> None:
         """Remove central links."""
-        if self.relevant_for_central_link_management:
+        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
             for channel in self._channels.values():
                 await channel.remove_central_link()
 
-    @cached_property
+    @cached_slot_property
     def relevant_for_central_link_management(self) -> bool:
         """Return if channel is relevant for central link management."""
         return (
@@ -631,6 +661,29 @@ class Device(PayloadMixin):
 
 class Channel(PayloadMixin):
     """Object to hold information about a channel and associated data points."""
+
+    __slots__ = (
+        "_address",
+        "_calculated_data_points",
+        "_central",
+        "_custom_data_point",
+        "_description",
+        "_device",
+        "_function",
+        "_generic_data_points",
+        "_generic_events",
+        "_group_master",
+        "_group_no",
+        "_id",
+        "_is_in_multi_group",
+        "_modified_at",
+        "_name_data",
+        "_no",
+        "_paramset_keys",
+        "_rooms",
+        "_type_name",
+        "_unique_id",
+    )
 
     def __init__(self, device: Device, channel_address: str) -> None:
         """Initialize the channel object."""
@@ -1009,6 +1062,12 @@ class Channel(PayloadMixin):
 class _ValueCache:
     """A Cache to temporarily stored values."""
 
+    __slots__ = (
+        "_device",
+        "_device_cache",
+        "_sema_get_or_load_value",
+    )
+
     _NO_VALUE_CACHE_ENTRY: Final = "NO_VALUE_CACHE_ENTRY"
 
     def __init__(self, device: Device) -> None:
@@ -1184,6 +1243,15 @@ class _ValueCache:
 
 class _DefinitionExporter:
     """Export device definitions from cache."""
+
+    __slots__ = (
+        "_central",
+        "_client",
+        "_device_address",
+        "_interface_id",
+        "_random_id",
+        "_storage_folder",
+    )
 
     def __init__(self, device: Device) -> None:
         """Init the device exporter."""

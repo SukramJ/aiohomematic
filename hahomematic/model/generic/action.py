@@ -20,6 +20,8 @@ class DpAction(GenericDataPoint[None, Any]):
     This is an internal default category that gets automatically generated.
     """
 
+    __slots__ = ()
+
     _category = DataPointCategory.ACTION
     _validate_state_change = False
 

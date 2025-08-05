@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime
-from functools import cached_property, partial, wraps
+from functools import partial, wraps
 from inspect import getfullargspec
 import logging
 from typing import Any, Final, cast
@@ -43,7 +43,7 @@ from hahomematic.context import IN_SERVICE_VAR
 from hahomematic.decorators import get_service_calls
 from hahomematic.exceptions import BaseHomematicException, HaHomematicException
 from hahomematic.model import device as hmd
-from hahomematic.model.decorators import config_property, state_property
+from hahomematic.model.decorators import cached_slot_property, config_property, state_property
 from hahomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -114,7 +114,23 @@ EVENT_DATA_SCHEMA = vol.Schema(
 class CallbackDataPoint(ABC):
     """Base class for callback data point."""
 
-    _category: DataPointCategory
+    __slots__ = (
+        "_cached_enabled_default",
+        "_cached_service_methods",
+        "_cached_service_method_names",
+        "_central",
+        "_custom_id",
+        "_data_point_updated_callbacks",
+        "_device_removed_callbacks",
+        "_modified_at",
+        "_path_data",
+        "_refreshed_at",
+        "_temporary_modified_at",
+        "_temporary_refreshed_at",
+        "_unique_id",
+    )
+
+    _category = DataPointCategory.UNDEFINED
 
     def __init__(self, central: hmcu.CentralUnit, unique_id: str) -> None:
         """Init the callback data_point."""
@@ -198,7 +214,7 @@ class CallbackDataPoint(ABC):
         """Return the data_point usage."""
         return DataPointUsage.DATA_POINT
 
-    @cached_property
+    @cached_slot_property
     def enabled_default(self) -> bool:
         """Return, if data_point should be enabled based on usage attribute."""
         return self.usage in (
@@ -224,12 +240,12 @@ class CallbackDataPoint(ABC):
         return self._path_data.state_path
 
     # @property
-    @cached_property
+    @cached_slot_property
     def service_methods(self) -> Mapping[str, Callable]:
         """Return all service methods."""
         return get_service_calls(obj=self)
 
-    @cached_property
+    @cached_slot_property
     def service_method_names(self) -> tuple[str, ...]:
         """Return all service methods."""
         return tuple(self.service_methods.keys())
@@ -332,6 +348,17 @@ class CallbackDataPoint(ABC):
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     """Base class for regular data point."""
 
+    __slots__ = (
+        "_cached_dpk",
+        "_cached_requires_polling",
+        "_channel",
+        "_client",
+        "_data_point_name_data",
+        "_device",
+        "_forced_usage",
+        "_is_in_multiple_channels",
+    )
+
     _ignore_multiple_channels_for_name: bool = False
 
     def __init__(
@@ -428,6 +455,31 @@ class BaseParameterDataPoint[
 ](BaseDataPoint):
     """Base class for stateless data point."""
 
+    __slots__ = (
+        "_cached__enabled_by_channel_operation_mode",
+        "_current_value",
+        "_default",
+        "_ignore_on_initial_load",
+        "_is_forced_sensor",
+        "_is_un_ignored",
+        "_max",
+        "_min",
+        "_multiplier",
+        "_operations",
+        "_parameter",
+        "_paramset_key",
+        "_previous_value",
+        "_raw_unit",
+        "_service",
+        "_special",
+        "_state_uncertain",
+        "_temporary_value",
+        "_type",
+        "_unit",
+        "_values",
+        "_visible",
+    )
+
     _unique_id_prefix: str = ""
 
     def __init__(
@@ -510,7 +562,7 @@ class BaseParameterDataPoint[
         """Return if the parameter is un ignored."""
         return self._is_un_ignored
 
-    @cached_property
+    @cached_slot_property
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
         return DataPointKey(
@@ -550,7 +602,7 @@ class BaseParameterDataPoint[
         """Return raw unit value."""
         return self._raw_unit
 
-    @cached_property
+    @cached_slot_property
     def requires_polling(self) -> bool:
         """Return whether the data_point requires polling."""
         return not self._channel.device.client.supports_push_updates or (
@@ -636,7 +688,7 @@ class BaseParameterDataPoint[
         """Return the if data_point is visible in ccu."""
         return self._visible
 
-    @cached_property
+    @cached_slot_property
     def _enabled_by_channel_operation_mode(self) -> bool | None:
         """Return, if the data_point/event must be enabled."""
         if self._channel.type_name not in _CONFIGURABLE_CHANNEL:
@@ -828,6 +880,12 @@ class BaseParameterDataPoint[
 
 class CallParameterCollector:
     """Create a Paramset based on given generic data point."""
+
+    __slots__ = (
+        "_central",
+        "_client",
+        "_paramsets",
+    )
 
     def __init__(self, client: hmcl.Client) -> None:
         """Init the generator."""

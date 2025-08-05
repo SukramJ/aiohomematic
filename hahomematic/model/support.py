@@ -73,6 +73,8 @@ _BINARY_SENSOR_TRUE_VALUE_DICT_FOR_VALUE_LIST: Final[Mapping[tuple[str, ...], st
 class PayloadMixin:
     """Mixin to add payload methods to class."""
 
+    __slots__ = ()
+
     @property
     def config_payload(self) -> Mapping[str, Any]:
         """Return the config payload."""

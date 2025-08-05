@@ -462,10 +462,7 @@ class CustomDpBlind(CustomDpCover):
 class CustomDpIpBlind(CustomDpBlind):
     """Class for HomematicIP blind data point."""
 
-    __slots__ = (
-        "_dp_combined",
-        "_dp_operation_mode",
-    )
+    __slots__ = ("_dp_operation_mode",)
 
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""

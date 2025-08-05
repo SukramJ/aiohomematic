@@ -869,6 +869,19 @@ def _party_mode_code(start: datetime, end: datetime, away_temperature: float) ->
 class CustomDpIpThermostat(BaseCustomDpClimate):
     """HomematicIP thermostat like HmIP-eTRV-B."""
 
+    __slots__ = (
+        "_dp_active_profile",
+        "_dp_boost_mode",
+        "_dp_control_mode",
+        "_dp_heating_mode",
+        "_dp_heating_valve_type",
+        "_dp_level",
+        "_dp_optimum_start_stop",
+        "_dp_party_mode",
+        "_dp_set_point_mode",
+        "_dp_state",
+        "_dp_temperature_offset",
+    )
     _supports_schedule = True
 
     def _init_data_point_fields(self) -> None:

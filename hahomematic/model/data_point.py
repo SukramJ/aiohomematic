@@ -453,7 +453,6 @@ class BaseParameterDataPoint[
     __slots__ = (
         "_current_value",
         "_default",
-        "_dpk",
         "_ignore_on_initial_load",
         "_is_forced_sensor",
         "_is_un_ignored",
@@ -501,12 +500,6 @@ class BaseParameterDataPoint[
             is_in_multiple_channels=channel.device.central.paramset_descriptions.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter
             ),
-        )
-        self._dpk = DataPointKey(
-            interface_id=self._device.interface_id,
-            channel_address=self._channel.address,
-            paramset_key=self._paramset_key,
-            parameter=self._parameter,
         )
         self._is_un_ignored: Final[bool] = self._central.parameter_visibility.parameter_is_un_ignored(
             channel=channel,
@@ -563,10 +556,15 @@ class BaseParameterDataPoint[
         """Return if the parameter is un ignored."""
         return self._is_un_ignored
 
-    @property
+    @cached_property
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
-        return self._dpk
+        return DataPointKey(
+            interface_id=self._device.interface_id,
+            channel_address=self._channel.address,
+            paramset_key=self._paramset_key,
+            parameter=self._parameter,
+        )
 
     @config_property
     def max(self) -> ParameterT:

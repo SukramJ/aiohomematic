@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Mapping
-from datetime import datetime, timedelta
 from enum import StrEnum
 import logging
 from typing import Any, Final
@@ -12,7 +11,6 @@ from typing import Any, Final
 from hahomematic import central as hmcu
 from hahomematic.const import (
     ADDRESS_SEPARATOR,
-    INIT_DATETIME,
     PROGRAM_ADDRESS,
     PROGRAM_SET_PATH_ROOT,
     PROGRAM_STATE_PATH_ROOT,
@@ -43,7 +41,6 @@ __all__ = [
     "ChannelNameData",
     "DataPointNameData",
     "GenericParameterType",
-    "TimerMixin",
     "PayloadMixin",
     "check_channel_is_the_only_primary_channel",
     "convert_value",
@@ -101,48 +98,6 @@ class PayloadMixin:
             for key, value in get_public_attributes_for_state_property(data_object=self).items()
             if value is not None
         }
-
-
-class TimerMixin:
-    """Mixin to add on_time support."""
-
-    def __init__(self) -> None:
-        """Init OnTimeMixin."""
-        self._timer_on_time: float | None = None
-        self._timer_on_time_end: datetime = INIT_DATETIME
-
-    def set_timer_on_time(self, on_time: float) -> None:
-        """Set the on_time."""
-        self._timer_on_time = on_time
-        self._timer_on_time_end = INIT_DATETIME
-
-    def reset_timer_on_time(self) -> None:
-        """Set the on_time."""
-        self._timer_on_time = None
-        self._timer_on_time_end = INIT_DATETIME
-
-    @property
-    def timer_on_time(self) -> float | None:
-        """Return the on_time."""
-        return self._timer_on_time
-
-    @property
-    def timer_on_time_running(self) -> bool:
-        """Return if on_time is running."""
-        return datetime.now() <= self._timer_on_time_end
-
-    def get_and_start_timer(self) -> float | None:
-        """Return the on_time and set the end time."""
-        if self.timer_on_time_running and self._timer_on_time is not None and self._timer_on_time <= 0:
-            self.reset_timer_on_time()
-            return -1
-        if self._timer_on_time is None:
-            self.reset_timer_on_time()
-            return None
-        on_time = self._timer_on_time
-        self._timer_on_time = None
-        self._timer_on_time_end = datetime.now() + timedelta(seconds=on_time)
-        return on_time
 
 
 class ChannelNameData:

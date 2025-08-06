@@ -1,6 +1,7 @@
 # Version 2025.8.1 (2025-08-05)
 
 - Cleanup slots
+- Move timer support to BaseDataPoint
 
 # Version 2025.8.0 (2025-08-03)
 

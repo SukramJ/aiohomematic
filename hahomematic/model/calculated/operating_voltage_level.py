@@ -193,7 +193,7 @@ _BatteryVoltage: Final[Mapping[_BatteryType, float]] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True, slots=True)
 class _BatteryData:
     model: str
     battery: _BatteryType

@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from contextvars import Token
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial, wraps
 from inspect import getfullargspec
 import logging
@@ -357,6 +357,8 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         "_device",
         "_forced_usage",
         "_is_in_multiple_channels",
+        "_timer_on_time",
+        "_timer_on_time_end",
     )
 
     _ignore_multiple_channels_for_name: bool = False
@@ -376,6 +378,8 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         self._client: Final[hmcl.Client] = channel.device.client
         self._forced_usage: DataPointUsage | None = None
         self._data_point_name_data: Final = self._get_data_point_name()
+        self._timer_on_time: float | None = None
+        self._timer_on_time_end: datetime = INIT_DATETIME
 
     @state_property
     def available(self) -> bool:
@@ -428,6 +432,16 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         return self._channel.rooms
 
     @property
+    def timer_on_time(self) -> float | None:
+        """Return the on_time."""
+        return self._timer_on_time
+
+    @property
+    def timer_on_time_running(self) -> bool:
+        """Return if on_time is running."""
+        return datetime.now() <= self._timer_on_time_end
+
+    @property
     def usage(self) -> DataPointUsage:
         """Return the data_point usage."""
         return self._get_data_point_usage()
@@ -435,6 +449,19 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     def force_usage(self, forced_usage: DataPointUsage) -> None:
         """Set the data_point usage."""
         self._forced_usage = forced_usage
+
+    def get_and_start_timer(self) -> float | None:
+        """Return the on_time and set the end time."""
+        if self.timer_on_time_running and self._timer_on_time is not None and self._timer_on_time <= 0:
+            self.reset_timer_on_time()
+            return -1
+        if self._timer_on_time is None:
+            self.reset_timer_on_time()
+            return None
+        on_time = self._timer_on_time
+        self._timer_on_time = None
+        self._timer_on_time_end = datetime.now() + timedelta(seconds=on_time)
+        return on_time
 
     @abstractmethod
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
@@ -447,6 +474,16 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     @abstractmethod
     def _get_data_point_usage(self) -> DataPointUsage:
         """Generate the usage for the data_point."""
+
+    def set_timer_on_time(self, on_time: float) -> None:
+        """Set the on_time."""
+        self._timer_on_time = on_time
+        self._timer_on_time_end = INIT_DATETIME
+
+    def reset_timer_on_time(self) -> None:
+        """Set the on_time."""
+        self._timer_on_time = None
+        self._timer_on_time_end = INIT_DATETIME
 
 
 class BaseParameterDataPoint[

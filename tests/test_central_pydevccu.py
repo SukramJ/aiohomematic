@@ -9,16 +9,12 @@ import orjson
 import pytest
 
 from hahomematic.const import ADDRESS_SEPARATOR, DataPointUsage
-from hahomematic.model.custom.light import CustomDpDimmer
-from hahomematic.model.custom.switch import CustomDpSwitch
-from hahomematic.model.custom.valve import CustomDpIpIrrigationValve
 from hahomematic.model.decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
     get_public_attributes_for_state_property,
 )
 from hahomematic.model.generic import GenericDataPoint
-from hahomematic.model.generic.switch import DpSwitch
 
 from tests import const
 
@@ -144,17 +140,11 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     for device in central_unit_full.devices:
         # check __dict__ / __slots__
         for ge in device.generic_data_points:
-            if isinstance(ge, DpSwitch):  # due to TimerMixin
-                assert hasattr(ge, "__dict__") is True
-            else:
-                assert hasattr(ge, "__dict__") is False
+            assert hasattr(ge, "__dict__") is False
         for ev in device.generic_events:
             assert hasattr(ev, "__dict__") is False
         for ce in device.custom_data_points:
-            if isinstance(ce, CustomDpSwitch | CustomDpDimmer | CustomDpIpIrrigationValve):  # due to TimerMixin
-                assert hasattr(ce, "__dict__") is True
-            else:
-                assert hasattr(ce, "__dict__") is False
+            assert hasattr(ce, "__dict__") is False
 
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 271
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162

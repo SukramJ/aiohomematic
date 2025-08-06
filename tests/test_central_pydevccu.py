@@ -137,14 +137,27 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
         attr = getattr(cls, attr_name, None)
         return isinstance(attr, cached_property)
 
+    # check __dict__ / __slots__
     for device in central_unit_full.devices:
-        # check __dict__ / __slots__
+        assert hasattr(device, "__dict__") is False
+        assert hasattr(device.value_cache, "__dict__") is False
+
+        for ch in device.channels.values():
+            assert hasattr(ch, "__dict__") is False
         for ge in device.generic_data_points:
             assert hasattr(ge, "__dict__") is False
         for ev in device.generic_events:
             assert hasattr(ev, "__dict__") is False
         for ce in device.custom_data_points:
             assert hasattr(ce, "__dict__") is False
+        for cc in device.calculated_data_points:
+            assert hasattr(cc, "__dict__") is False
+        if device.update_data_point:
+            assert hasattr(device.update_data_point, "__dict__") is False
+    for prg in central_unit_full.program_data_points:
+        assert hasattr(prg, "__dict__") is False
+    for sv in central_unit_full.sysvar_data_points:
+        assert hasattr(sv, "__dict__") is False
 
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 271
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162

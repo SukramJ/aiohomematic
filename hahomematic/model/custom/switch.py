@@ -16,7 +16,6 @@ from hahomematic.model.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.model.data_point import CallParameterCollector, bind_collector
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
-from hahomematic.model.support import TimerMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -28,22 +27,19 @@ class _StateChangeArg(StrEnum):
     ON = "on"
 
 
-class CustomDpSwitch(CustomDataPoint, TimerMixin):
+class CustomDpSwitch(CustomDataPoint):
     """Class for HomeMatic switch data point."""
 
     __slots__ = (
         "_dp_group_state",
         "_dp_on_time_value",
         "_dp_state",
-        "_timer_on_time",
-        "_timer_on_time_end",
     )
 
     _category = DataPointCategory.SWITCH
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
-        TimerMixin.__init__(self)
         super()._init_data_point_fields()
         self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
         self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)

@@ -28,8 +28,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     """Implementation of a calculated sensor for operating voltage level."""
 
     __slots__ = (
-        "_type",
-        "_unit",
+        "_battery_data",
+        "_dp_low_bat_limit",
+        "_dp_operating_voltage",
+        "_low_bat_limit_default",
+        "_voltage_max",
     )
 
     _calculated_parameter = CalulatedParameter.OPERATING_VOLTAGE_LEVEL
@@ -190,7 +193,7 @@ _BatteryVoltage: Final[Mapping[_BatteryType, float]] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True, slots=True)
 class _BatteryData:
     model: str
     battery: _BatteryType

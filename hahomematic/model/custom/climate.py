@@ -172,9 +172,31 @@ class BaseCustomDpClimate(CustomDataPoint):
         "_dp_temperature",
         "_dp_temperature_maximum",
         "_dp_temperature_minimum",
+        "_supports_schedule",
     )
     _category = DataPointCategory.CLIMATE
-    _supports_schedule = False
+
+    def __init__(
+        self,
+        channel: hmd.Channel,
+        unique_id: str,
+        device_profile: DeviceProfile,
+        device_def: Mapping[str, Any],
+        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
+        group_no: int,
+        custom_config: CustomConfig,
+    ) -> None:
+        """Initialize base climate data_point."""
+        super().__init__(
+            channel=channel,
+            unique_id=unique_id,
+            device_profile=device_profile,
+            device_def=device_def,
+            custom_data_point_def=custom_data_point_def,
+            group_no=group_no,
+            custom_config=custom_config,
+        )
+        self._supports_schedule = False
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -685,7 +707,28 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         "_dp_valve_state",
         "_dp_week_program_pointer",
     )
-    _supports_schedule = True
+
+    def __init__(
+        self,
+        channel: hmd.Channel,
+        unique_id: str,
+        device_profile: DeviceProfile,
+        device_def: Mapping[str, Any],
+        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
+        group_no: int,
+        custom_config: CustomConfig,
+    ) -> None:
+        """Initialize the climate rf thermostat."""
+        super().__init__(
+            channel=channel,
+            unique_id=unique_id,
+            device_profile=device_profile,
+            device_def=device_def,
+            custom_data_point_def=custom_data_point_def,
+            group_no=group_no,
+            custom_config=custom_config,
+        )
+        self._supports_schedule = True
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -884,7 +927,28 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         "_dp_state",
         "_dp_temperature_offset",
     )
-    _supports_schedule = True
+
+    def __init__(
+        self,
+        channel: hmd.Channel,
+        unique_id: str,
+        device_profile: DeviceProfile,
+        device_def: Mapping[str, Any],
+        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
+        group_no: int,
+        custom_config: CustomConfig,
+    ) -> None:
+        """Initialize the climate ip thermostat."""
+        super().__init__(
+            channel=channel,
+            unique_id=unique_id,
+            device_profile=device_profile,
+            device_def=device_def,
+            custom_data_point_def=custom_data_point_def,
+            group_no=group_no,
+            custom_config=custom_config,
+        )
+        self._supports_schedule = True
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""

@@ -16,7 +16,6 @@ from hahomematic.model.custom.support import CustomConfig, ExtendedConfig
 from hahomematic.model.data_point import CallParameterCollector, bind_collector
 from hahomematic.model.decorators import state_property
 from hahomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPoint
-from hahomematic.model.support import TimerMixin
 
 _DIMMER_OFF: Final = 0.0
 _EFFECT_OFF: Final = "Off"
@@ -135,7 +134,7 @@ class LightOffArgs(TypedDict, total=False):
     ramp_time: float
 
 
-class CustomDpDimmer(CustomDataPoint, TimerMixin):
+class CustomDpDimmer(CustomDataPoint):
     """Base class for HomeMatic light data point."""
 
     __slots__ = (
@@ -143,14 +142,11 @@ class CustomDpDimmer(CustomDataPoint, TimerMixin):
         "_dp_level",
         "_dp_on_time_value",
         "_dp_ramp_time_value",
-        "_timer_on_time",
-        "_timer_on_time_end",
     )
     _category = DataPointCategory.LIGHT
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
-        TimerMixin.__init__(self)
         super()._init_data_point_fields()
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
         self._dp_group_level: DpSensor[float | None] = self._get_data_point(

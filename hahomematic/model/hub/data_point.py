@@ -271,7 +271,6 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         "_is_active",
         "_is_internal",
         "_last_execute_time",
-        "_state_uncertain",
     )
 
     def __init__(

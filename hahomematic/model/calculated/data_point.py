@@ -39,7 +39,6 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     """Base class for calculated data point."""
 
     __slots__ = (
-        "_cached_dpk",
         "_data_points",
         "_default",
         "_max",

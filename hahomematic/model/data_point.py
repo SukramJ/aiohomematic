@@ -206,6 +206,13 @@ class CallbackDataPoint(ABC):
             return self._temporary_refreshed_at
         return self._refreshed_at
 
+    @state_property
+    def refreshed_shortly(self) -> bool:
+        """Return the data point refreshed within 500 milliseconds."""
+        if self._refreshed_at == INIT_DATETIME:
+            return False
+        return (datetime.now() - self._refreshed_at).total_seconds() > 0.5
+
     @config_property
     @abstractmethod
     def name(self) -> str:
@@ -302,6 +309,12 @@ class CallbackDataPoint(ABC):
         """Unregister the device removed callback."""
         if cb in self._device_removed_callbacks:
             self._device_removed_callbacks.remove(cb)
+
+    def data_point_updated_triggered_within_millis(self, millis: int = 500) -> bool:
+        """Return the data point updated triggered within milliseconds."""
+        if self._data_point_updated_triggered_at is None:
+            return False
+        return ((datetime.now() - self._data_point_updated_triggered_at).total_seconds() * 1000) > millis
 
     @loop_check
     def fire_data_point_updated_callback(self, *args: Any, **kwargs: Any) -> None:

@@ -228,11 +228,11 @@ class Hub:
         """Identify missing variables."""
         variable_ids: dict[str, bool] = {x.vid: x.extended_sysvar for x in variables}
         missing_variable_ids: list[str] = []
-        for sysvar_data_point in self._central.sysvar_data_points:
-            if sysvar_data_point.data_type == SysvarType.STRING:
+        for svdp in self._central.sysvar_data_points:
+            if svdp.data_type == SysvarType.STRING:
                 continue
-            if (vid := sysvar_data_point.vid) is not None and (
-                vid not in variable_ids or (sysvar_data_point.is_extended is not variable_ids.get(vid))
+            if (vid := svdp.vid) is not None and (
+                vid not in variable_ids or (svdp.is_extended is not variable_ids.get(vid))
             ):
                 missing_variable_ids.append(vid)
         return set(missing_variable_ids)
@@ -256,8 +256,8 @@ def _get_new_hub_data_points(
     for hub_category in HUB_CATEGORIES:
         hub_data_points[hub_category] = set()
 
-    for data_point in data_points:
-        if data_point.is_registered is False:
-            hub_data_points[data_point.category].add(data_point)
+    for dp in data_points:
+        if dp.is_registered is False:
+            hub_data_points[dp.category].add(dp)
 
     return hub_data_points

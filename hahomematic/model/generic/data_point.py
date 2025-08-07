@@ -63,8 +63,8 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
         if self._parameter == Parameter.CONFIG_PENDING and new_value is False and old_value is True:
             await self._device.reload_paramset_descriptions()
 
-            for data_point in self._device.get_readable_data_points(paramset_key=ParamsetKey.MASTER):
-                await data_point.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
+            for dp in self._device.get_readable_data_points(paramset_key=ParamsetKey.MASTER):
+                await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
         # send device availability events
         if self._parameter in (

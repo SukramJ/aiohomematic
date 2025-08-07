@@ -1,4 +1,8 @@
-# Version 2025.8.1 (2025-08-05)
+# Version 2025.8.2 (2025-08-07)
+
+- Simplify should_fire_data_point_updated_callback for calculated data points
+
+# Version 2025.8.1 (2025-08-06)
 
 - Cleanup slots
 - Move timer support to BaseDataPoint

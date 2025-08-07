@@ -122,7 +122,7 @@ class CallbackDataPoint(ABC):
         "_custom_id",
         "_data_point_updated_callbacks",
         "_device_removed_callbacks",
-        "_data_point_updated_triggered_at",
+        "_fired_at",
         "_modified_at",
         "_path_data",
         "_refreshed_at",
@@ -141,7 +141,7 @@ class CallbackDataPoint(ABC):
         self._device_removed_callbacks: list[Callable] = []
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
-        self._data_point_updated_triggered_at: datetime | None = None
+        self._fired_at: datetime = INIT_DATETIME
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
         self._temporary_modified_at: datetime = INIT_DATETIME
@@ -168,9 +168,16 @@ class CallbackDataPoint(ABC):
         return self._custom_id
 
     @property
-    def data_point_updated_triggered_at(self) -> datetime | None:
-        """Return the data point updated triggered at."""
-        return self._data_point_updated_triggered_at
+    def fired_at(self) -> datetime:
+        """Return the data point updated fired at."""
+        return self._fired_at
+
+    @state_property
+    def fired_recently(self) -> bool:
+        """Return the data point fired within 500 milliseconds."""
+        if self._fired_at == INIT_DATETIME:
+            return False
+        return (datetime.now() - self._fired_at).total_seconds() < 0.5
 
     @classmethod
     def default_category(cls) -> DataPointCategory:
@@ -200,6 +207,13 @@ class CallbackDataPoint(ABC):
         return self._modified_at
 
     @state_property
+    def modified_recently(self) -> bool:
+        """Return the data point modified within 500 milliseconds."""
+        if self._modified_at == INIT_DATETIME:
+            return False
+        return (datetime.now() - self._modified_at).total_seconds() < 0.5
+
+    @state_property
     def refreshed_at(self) -> datetime:
         """Return the last refresh datetime value."""
         if self._temporary_refreshed_at > self._refreshed_at:
@@ -207,11 +221,11 @@ class CallbackDataPoint(ABC):
         return self._refreshed_at
 
     @state_property
-    def refreshed_shortly(self) -> bool:
+    def refreshed_recently(self) -> bool:
         """Return the data point refreshed within 500 milliseconds."""
         if self._refreshed_at == INIT_DATETIME:
             return False
-        return (datetime.now() - self._refreshed_at).total_seconds() > 0.5
+        return (datetime.now() - self._refreshed_at).total_seconds() < 0.5
 
     @config_property
     @abstractmethod
@@ -310,18 +324,12 @@ class CallbackDataPoint(ABC):
         if cb in self._device_removed_callbacks:
             self._device_removed_callbacks.remove(cb)
 
-    def data_point_updated_triggered_within_millis(self, millis: int = 500) -> bool:
-        """Return the data point updated triggered within milliseconds."""
-        if self._data_point_updated_triggered_at is None:
-            return False
-        return ((datetime.now() - self._data_point_updated_triggered_at).total_seconds() * 1000) > millis
-
     @loop_check
     def fire_data_point_updated_callback(self, *args: Any, **kwargs: Any) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_fire_data_point_updated_callback:
             return
-        self._data_point_updated_triggered_at = datetime.now()
+        self._fired_at = datetime.now()
         for callback_handler in self._data_point_updated_callbacks:
             try:
                 kwargs[KWARGS_ARG_DATA_POINT] = self

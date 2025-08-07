@@ -1,3 +1,7 @@
+# Version 2025.8.3 (2025-08-07)
+
+- Fix refresh shortly
+
 # Version 2025.8.2 (2025-08-07)
 
 - Simplify should_fire_data_point_updated_callback for calculated data points

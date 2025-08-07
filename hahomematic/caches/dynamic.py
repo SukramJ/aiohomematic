@@ -274,10 +274,8 @@ class CentralDataCache:
         direct_call: bool = False,
     ) -> None:
         """Refresh data_point data."""
-        for data_point in self._central.get_readable_generic_data_points(
-            paramset_key=paramset_key, interface=interface
-        ):
-            await data_point.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
+        for dp in self._central.get_readable_generic_data_points(paramset_key=paramset_key, interface=interface):
+            await dp.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
 
     def add_data(self, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""

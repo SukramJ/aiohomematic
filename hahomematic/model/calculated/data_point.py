@@ -214,8 +214,8 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     def modified_at(self) -> datetime:
         """Return the latest last update timestamp."""
         modified_at: datetime = INIT_DATETIME
-        for data_point in self._readable_data_points:
-            if (data_point_modified_at := data_point.modified_at) and data_point_modified_at > modified_at:
+        for dp in self._readable_data_points:
+            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
                 modified_at = data_point_modified_at
         return modified_at
 
@@ -223,8 +223,8 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     def refreshed_at(self) -> datetime:
         """Return the latest last refresh timestamp."""
         refreshed_at: datetime = INIT_DATETIME
-        for data_point in self._readable_data_points:
-            if (data_point_refreshed_at := data_point.refreshed_at) and data_point_refreshed_at > refreshed_at:
+        for dp in self._readable_data_points:
+            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
@@ -282,8 +282,8 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
 
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
-        for data_point in self._readable_data_points:
-            await data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        for dp in self._readable_data_points:
+            await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.fire_data_point_updated_callback()
 
     def is_state_change(self, **kwargs: Any) -> bool:
@@ -300,25 +300,15 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     @property
     def _should_fire_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
-        min_received: datetime | None = None
-        max_received: datetime | None = None
+        if self.refreshed_shortly:  # pylint: disable=using-constant-test
+            return False
+
         if (relevant_values_data_point := self._relevant_values_data_points) is not None and len(
             relevant_values_data_point
         ) <= 1:
             return True
 
-        for data_point in relevant_values_data_point:
-            if not data_point.is_valid:
-                return False
-            if refreshed_at := data_point.refreshed_at:
-                if min_received is None or refreshed_at < min_received:
-                    min_received = refreshed_at
-                if max_received is None or refreshed_at > max_received:
-                    max_received = refreshed_at
-
-        if min_received and max_received:
-            return (max_received - min_received).total_seconds() < 1
-        return False
+        return all(dp.refreshed_shortly for dp in relevant_values_data_point)
 
     def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""

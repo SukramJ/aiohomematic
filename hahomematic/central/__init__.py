@@ -727,9 +727,9 @@ class CentralUnit(PayloadMixin):
 
     def get_data_point_by_custom_id(self, custom_id: str) -> CallbackDataPoint | None:
         """Return homematic data_point by custom_id."""
-        for data_point in self.get_data_points(registered=True):
-            if data_point.custom_id == custom_id:
-                return data_point
+        for dp in self.get_data_points(registered=True):
+            if dp.custom_id == custom_id:
+                return dp
         return None
 
     def get_data_points(

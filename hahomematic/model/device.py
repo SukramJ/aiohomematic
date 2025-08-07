@@ -558,8 +558,8 @@ class Device(PayloadMixin):
         """Set the availability of the device."""
         if self._forced_availability != forced_availability:
             self._forced_availability = forced_availability
-            for data_point in self.generic_data_points:
-                data_point.fire_data_point_updated_callback()
+            for dp in self.generic_data_points:
+                dp.fire_data_point_updated_callback()
 
     @inspector()
     async def export_device_definition(self) -> None:
@@ -633,8 +633,8 @@ class Device(PayloadMixin):
                     paramset_key=paramset_key,
                 )
         await self._central.save_caches(save_paramset_descriptions=True)
-        for data_point in self.generic_data_points:
-            data_point.update_parameter_data()
+        for dp in self.generic_data_points:
+            dp.update_parameter_data()
         self.fire_device_updated_callback()
 
     @loop_check
@@ -944,12 +944,12 @@ class Channel(PayloadMixin):
             self._remove_data_point(event)
         self._generic_events.clear()
 
-        for calculated_data_point in self.calculated_data_points:
-            self._remove_data_point(calculated_data_point)
+        for ccdp in self.calculated_data_points:
+            self._remove_data_point(ccdp)
         self._calculated_data_points.clear()
 
-        for generic_data_point in self.generic_data_points:
-            self._remove_data_point(generic_data_point)
+        for gdp in self.generic_data_points:
+            self._remove_data_point(gdp)
         self._generic_data_points.clear()
 
         if self._custom_data_point:
@@ -972,12 +972,12 @@ class Channel(PayloadMixin):
             all_data_points.append(self._custom_data_point)
 
         return tuple(
-            data_point
-            for data_point in all_data_points
-            if data_point is not None
-            and (category is None or data_point.category == category)
-            and ((exclude_no_create and data_point.usage != DataPointUsage.NO_CREATE) or exclude_no_create is False)
-            and (registered is None or data_point.is_registered == registered)
+            dp
+            for dp in all_data_points
+            if dp is not None
+            and (category is None or dp.category == category)
+            and ((exclude_no_create and dp.usage != DataPointUsage.NO_CREATE) or exclude_no_create is False)
+            and (registered is None or dp.is_registered == registered)
         )
 
     def get_events(self, event_type: EventType, registered: bool | None = None) -> tuple[GenericEvent, ...]:
@@ -1080,8 +1080,8 @@ class _ValueCache:
     async def init_base_data_points(self) -> None:
         """Load data by get_value."""
         try:
-            for data_point in self._get_base_data_points():
-                await data_point.load_data_point_value(call_source=CallSource.HM_INIT)
+            for dp in self._get_base_data_points():
+                await dp.load_data_point_value(call_source=CallSource.HM_INIT)
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "init_base_data_points: Failed to init cache for channel0 %s, %s [%s]",
@@ -1093,14 +1093,14 @@ class _ValueCache:
     def _get_base_data_points(self) -> set[GenericDataPoint]:
         """Get data points of channel 0 and master."""
         return {
-            data_point
-            for data_point in self._device.generic_data_points
+            dp
+            for dp in self._device.generic_data_points
             if (
-                data_point.channel.no == 0
-                and data_point.paramset_key == ParamsetKey.VALUES
-                and data_point.parameter in RELEVANT_INIT_PARAMETERS
+                dp.channel.no == 0
+                and dp.paramset_key == ParamsetKey.VALUES
+                and dp.parameter in RELEVANT_INIT_PARAMETERS
             )
-            or data_point.paramset_key == ParamsetKey.MASTER
+            or dp.paramset_key == ParamsetKey.MASTER
         }
 
     async def init_readable_events(self) -> None:

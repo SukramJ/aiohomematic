@@ -92,8 +92,8 @@ class CustomDataPoint(BaseDataPoint):
     def modified_at(self) -> datetime:
         """Return the latest last update timestamp."""
         modified_at: datetime = INIT_DATETIME
-        for data_point in self._readable_data_points:
-            if (data_point_modified_at := data_point.modified_at) and data_point_modified_at > modified_at:
+        for dp in self._readable_data_points:
+            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
                 modified_at = data_point_modified_at
         return modified_at
 
@@ -101,8 +101,8 @@ class CustomDataPoint(BaseDataPoint):
     def refreshed_at(self) -> datetime:
         """Return the latest last refresh timestamp."""
         refreshed_at: datetime = INIT_DATETIME
-        for data_point in self._readable_data_points:
-            if (data_point_refreshed_at := data_point.refreshed_at) and data_point_refreshed_at > refreshed_at:
+        for dp in self._readable_data_points:
+            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
@@ -179,8 +179,8 @@ class CustomDataPoint(BaseDataPoint):
 
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
-        for data_point in self._readable_data_points:
-            await data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        for dp in self._readable_data_points:
+            await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.fire_data_point_updated_callback()
 
     def is_state_change(self, **kwargs: Any) -> bool:
@@ -314,5 +314,5 @@ class CustomDataPoint(BaseDataPoint):
 
     def has_data_point_key(self, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
-        result = [data_point for data_point in self._data_points.values() if data_point.dpk in data_point_keys]
+        result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
         return len(result) > 0

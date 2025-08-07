@@ -34,12 +34,12 @@ async def test_central_mini(central_unit_mini) -> None:
     assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 68
 
     usage_types: dict[DataPointUsage, int] = {}
-    for data_point in central_unit_mini.get_data_points(exclude_no_create=False):
-        if hasattr(data_point, "usage"):
-            if data_point.usage not in usage_types:
-                usage_types[data_point.usage] = 0
-            counter = usage_types[data_point.usage]
-            usage_types[data_point.usage] = counter + 1
+    for dp in central_unit_mini.get_data_points(exclude_no_create=False):
+        if hasattr(dp, "usage"):
+            if dp.usage not in usage_types:
+                usage_types[dp.usage] = 0
+            counter = usage_types[dp.usage]
+            usage_types[dp.usage] = counter + 1
 
     assert usage_types[DataPointUsage.NO_CREATE] == 45
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
@@ -61,9 +61,9 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     for device in central_unit_full.devices:
         if device.model not in data:
             data[device.model] = {}
-        for data_point in device.generic_data_points:
-            if data_point.parameter not in data[device.model]:
-                data[device.model][data_point.parameter] = f"{data_point.hmtype}"
+        for dp in device.generic_data_points:
+            if dp.parameter not in data[device.model]:
+                data[device.model][dp.parameter] = f"{dp.hmtype}"
         pub_state_props = get_public_attributes_for_state_property(data_object=device)
         assert pub_state_props
         info_config_props = get_public_attributes_for_info_property(data_object=device)
@@ -89,39 +89,39 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
         assert pub_config_props
 
     data_point_types = {}
-    for data_point in central_unit_full.get_data_points(exclude_no_create=False):
-        if hasattr(data_point, "hmtype"):
-            if data_point.hmtype not in data_point_types:
-                data_point_types[data_point.hmtype] = {}
-            if type(data_point).__name__ not in data_point_types[data_point.hmtype]:
-                data_point_types[data_point.hmtype][type(data_point).__name__] = []
+    for dp in central_unit_full.get_data_points(exclude_no_create=False):
+        if hasattr(dp, "hmtype"):
+            if dp.hmtype not in data_point_types:
+                data_point_types[dp.hmtype] = {}
+            if type(dp).__name__ not in data_point_types[dp.hmtype]:
+                data_point_types[dp.hmtype][type(dp).__name__] = []
 
-            data_point_types[data_point.hmtype][type(data_point).__name__].append(data_point)
+            data_point_types[dp.hmtype][type(dp).__name__].append(dp)
 
-        if isinstance(data_point, GenericDataPoint):
-            pub_value_props = get_public_attributes_for_state_property(data_object=data_point)
+        if isinstance(dp, GenericDataPoint):
+            pub_value_props = get_public_attributes_for_state_property(data_object=dp)
             assert pub_value_props
-            pub_config_props = get_public_attributes_for_config_property(data_object=data_point)
+            pub_config_props = get_public_attributes_for_config_property(data_object=dp)
             assert pub_config_props
 
     parameters: list[tuple[str, int]] = []
-    for data_point in central_unit_full.get_data_points(exclude_no_create=False):
-        if hasattr(data_point, "parameter") and (data_point.parameter, data_point._operations) not in parameters:
-            parameters.append((data_point.parameter, data_point._operations))
+    for dp in central_unit_full.get_data_points(exclude_no_create=False):
+        if hasattr(dp, "parameter") and (dp.parameter, dp._operations) not in parameters:
+            parameters.append((dp.parameter, dp._operations))
     parameters = sorted(parameters)
 
     units = set()
-    for data_point in central_unit_full.get_data_points(exclude_no_create=False):
-        if hasattr(data_point, "unit"):
-            units.add(data_point.unit)
+    for dp in central_unit_full.get_data_points(exclude_no_create=False):
+        if hasattr(dp, "unit"):
+            units.add(dp.unit)
 
     usage_types: dict[DataPointUsage, int] = {}
-    for data_point in central_unit_full.get_data_points(exclude_no_create=False):
-        if hasattr(data_point, "usage"):
-            if data_point.usage not in usage_types:
-                usage_types[data_point.usage] = 0
-            counter = usage_types[data_point.usage]
-            usage_types[data_point.usage] = counter + 1
+    for dp in central_unit_full.get_data_points(exclude_no_create=False):
+        if hasattr(dp, "usage"):
+            if dp.usage not in usage_types:
+                usage_types[dp.usage] = 0
+            counter = usage_types[dp.usage]
+            usage_types[dp.usage] = counter + 1
 
     addresses: dict[str, str] = {}
     for address, device in central_unit_full._devices.items():

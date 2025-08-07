@@ -79,24 +79,24 @@ async def test_device_availability(
     central, _, _ = central_client_factory
     device = central.get_device(address="VCU6354483")
     assert device.available is True
-    for generic_data_point in device.generic_data_points:
-        assert generic_data_point.available is True
-    for custom_data_point in device.custom_data_points:
-        assert custom_data_point.available is True
+    for gdp in device.generic_data_points:
+        assert gdp.available is True
+    for cdp in device.custom_data_points:
+        assert cdp.available is True
 
     await central.data_point_event(const.INTERFACE_ID, "VCU6354483:0", "UNREACH", 1)
     assert device.available is False
-    for generic_data_point in device.generic_data_points:
-        assert generic_data_point.available is False
-    for custom_data_point in device.custom_data_points:
-        assert custom_data_point.available is False
+    for gdp in device.generic_data_points:
+        assert gdp.available is False
+    for cdp in device.custom_data_points:
+        assert cdp.available is False
 
     await central.data_point_event(const.INTERFACE_ID, "VCU6354483:0", "UNREACH", 0)
     assert device.available is True
-    for generic_data_point in device.generic_data_points:
-        assert generic_data_point.available is True
-    for custom_data_point in device.custom_data_points:
-        assert custom_data_point.available is True
+    for gdp in device.generic_data_points:
+        assert gdp.available is True
+    for cdp in device.custom_data_points:
+        assert cdp.available is True
 
 
 @pytest.mark.asyncio

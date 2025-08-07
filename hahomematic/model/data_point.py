@@ -122,6 +122,7 @@ class CallbackDataPoint(ABC):
         "_custom_id",
         "_data_point_updated_callbacks",
         "_device_removed_callbacks",
+        "_data_point_updated_triggered_at",
         "_modified_at",
         "_path_data",
         "_refreshed_at",
@@ -140,6 +141,7 @@ class CallbackDataPoint(ABC):
         self._device_removed_callbacks: list[Callable] = []
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
+        self._data_point_updated_triggered_at: datetime | None = None
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
         self._temporary_modified_at: datetime = INIT_DATETIME
@@ -164,6 +166,11 @@ class CallbackDataPoint(ABC):
     def custom_id(self) -> str | None:
         """Return the custom id."""
         return self._custom_id
+
+    @property
+    def data_point_updated_triggered_at(self) -> datetime | None:
+        """Return the data point updated triggered at."""
+        return self._data_point_updated_triggered_at
 
     @classmethod
     def default_category(cls) -> DataPointCategory:
@@ -301,6 +308,7 @@ class CallbackDataPoint(ABC):
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_fire_data_point_updated_callback:
             return
+        self._data_point_updated_triggered_at = datetime.now()
         for callback_handler in self._data_point_updated_callbacks:
             try:
                 kwargs[KWARGS_ARG_DATA_POINT] = self

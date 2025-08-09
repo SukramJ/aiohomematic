@@ -213,13 +213,8 @@ async def get_pydev_ccu_central_unit_full(
     device_event = asyncio.Event()
 
     def systemcallback(system_event, *args, **kwargs):
-        if (
-            system_event == BackendSystemEvent.DEVICES_CREATED
-            and kwargs
-            and kwargs.get("new_data_points")
-            and len(kwargs["new_data_points"]) > 0
-        ):
-            # Signal that devices have been created
+        # Signal that devices have been created as soon as the event fires
+        if system_event == BackendSystemEvent.DEVICES_CREATED:
             device_event.set()
 
     interface_configs = {
@@ -245,8 +240,24 @@ async def get_pydev_ccu_central_unit_full(
     ).create_central()
     central.register_backend_system_callback(systemcallback)
     await central.start()
-    # Wait up to 300 seconds as before, but react immediately when ready
+
+    # Fallback watcher: set the event as soon as any device appears to avoid long waits
+    async def _watch_devices():
+        try:
+            for _ in range(600):  # up to ~30s at 50ms intervals
+                if getattr(central, "_devices", None) and len(central._devices) > 0:
+                    device_event.set()
+                    return
+                await asyncio.sleep(0.05)
+        except Exception:
+            # Do not fail startup if watcher errors out
+            pass
+
+    # Launch the watcher without blocking; event will be set either by callback or watcher
+    asyncio.create_task(_watch_devices())  # noqa: RUF006
+
+    # Wait up to 60 seconds, react immediately when ready
     with contextlib.suppress(TimeoutError):
-        await asyncio.wait_for(device_event.wait(), timeout=300)
+        await asyncio.wait_for(device_event.wait(), timeout=60)
 
     return central

@@ -1230,7 +1230,11 @@ class CentralUnit(PayloadMixin):
     ) -> list[str]:
         """Return all parameters from VALUES paramset."""
         parameters: set[str] = set()
-        for channels in self._paramset_descriptions.raw_paramset_descriptions.values():
+        # Precompute operations mask to avoid repeated checks in the inner loop
+        op_mask: int = 0
+        for op in operations:
+            op_mask |= int(op)
+        for channels in self._paramset_descriptions.raw_paramset_descriptions.values():  # pylint: disable=too-many-nested-blocks
             for channel_address in channels:
                 model: str | None = None
                 if full_format:
@@ -1238,22 +1242,19 @@ class CentralUnit(PayloadMixin):
                         device_address=get_device_address(address=channel_address)
                     )
                 for parameter, parameter_data in channels[channel_address].get(paramset_key, {}).items():
-                    if all(parameter_data["OPERATIONS"] & operation for operation in operations):
-                        if un_ignore_candidates_only and (
-                            (
-                                (
-                                    dp := self.get_generic_data_point(
-                                        channel_address=channel_address,
-                                        parameter=parameter,
-                                        paramset_key=paramset_key,
-                                    )
-                                )
-                                and dp.enabled_default
-                                and not dp.is_un_ignored
+                    # Fast bitmask check: ensure all requested ops are present
+                    if (int(parameter_data["OPERATIONS"]) & op_mask) == op_mask:
+                        if un_ignore_candidates_only:
+                            # Cheap check first to avoid expensive dp lookup when possible
+                            if parameter in IGNORE_FOR_UN_IGNORE_PARAMETERS:
+                                continue
+                            dp = self.get_generic_data_point(
+                                channel_address=channel_address,
+                                parameter=parameter,
+                                paramset_key=paramset_key,
                             )
-                            or parameter in IGNORE_FOR_UN_IGNORE_PARAMETERS
-                        ):
-                            continue
+                            if dp and dp.enabled_default and not dp.is_un_ignored:
+                                continue
 
                         if not full_format:
                             parameters.add(parameter)

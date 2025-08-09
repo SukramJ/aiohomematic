@@ -459,6 +459,8 @@ class CentralUnit(PayloadMixin):
         if self.name in CENTRAL_INSTANCES:
             del CENTRAL_INSTANCES[self.name]
 
+        # cancel outstanding tasks to speed up teardown
+        self.looper.cancel_tasks()
         # wait until tasks are finished
         await self.looper.block_till_done()
 

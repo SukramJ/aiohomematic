@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import importlib.resources
 import logging
 import os
@@ -208,9 +209,8 @@ async def get_pydev_ccu_central_unit_full(
     client_session: ClientSession | None = None,
 ) -> CentralUnit:
     """Create and yield central."""
-    sleep_counter = 0
-    global GOT_DEVICES  # pylint: disable=global-statement
-    GOT_DEVICES = False
+    # Use an asyncio.Event for faster, non-polling wait on device creation
+    device_event = asyncio.Event()
 
     def systemcallback(system_event, *args, **kwargs):
         if (
@@ -219,8 +219,8 @@ async def get_pydev_ccu_central_unit_full(
             and kwargs.get("new_data_points")
             and len(kwargs["new_data_points"]) > 0
         ):
-            global GOT_DEVICES  # pylint: disable=global-statement
-            GOT_DEVICES = True
+            # Signal that devices have been created
+            device_event.set()
 
     interface_configs = {
         InterfaceConfig(
@@ -245,8 +245,8 @@ async def get_pydev_ccu_central_unit_full(
     ).create_central()
     central.register_backend_system_callback(systemcallback)
     await central.start()
-    while not GOT_DEVICES and sleep_counter < 300:
-        sleep_counter += 1
-        await asyncio.sleep(1)
+    # Wait up to 300 seconds as before, but react immediately when ready
+    with contextlib.suppress(TimeoutError):
+        await asyncio.wait_for(device_event.wait(), timeout=300)
 
     return central

@@ -129,6 +129,7 @@ class DeviceDetailsCache:
         "_central",
         "_channel_rooms",
         "_device_channel_ids",
+        "_device_rooms",
         "_functions",
         "_interface_cache",
         "_names_cache",
@@ -140,6 +141,7 @@ class DeviceDetailsCache:
         self._central: Final = central
         self._channel_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         self._device_channel_ids: Final[dict[str, str]] = {}
+        self._device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         self._functions: Final[dict[str, set[str]]] = {}
         self._interface_cache: Final[dict[str, Interface]] = {}
         self._names_cache: Final[dict[str, str]] = {}
@@ -158,6 +160,13 @@ class DeviceDetailsCache:
         _LOGGER.debug("LOAD: Loading rooms for %s", self._central.name)
         self._channel_rooms.clear()
         self._channel_rooms.update(await self._get_all_rooms())
+        # Build device-to-rooms index for fast lookup
+        self._device_rooms.clear()
+        for ch_addr, rooms in self._channel_rooms.items():
+            # device address is the part before the ':' separator
+            dev_addr = ch_addr[:sep_pos] if (sep_pos := ch_addr.find(":")) > 0 else ch_addr
+            if rooms:
+                self._device_rooms[dev_addr].update(rooms)
         _LOGGER.debug("LOAD: Loading functions for %s", self._central.name)
         self._functions.clear()
         self._functions.update(await self._get_all_functions())
@@ -200,11 +209,7 @@ class DeviceDetailsCache:
 
     def get_device_rooms(self, device_address: str) -> set[str]:
         """Return all rooms by device_address."""
-        rooms: set[str] = set()
-        for channel_address, channel_rooms in self._channel_rooms.items():
-            if channel_address.startswith(device_address):
-                rooms.update(channel_rooms)
-        return rooms
+        return set(self._device_rooms.get(device_address, ()))
 
     def get_channel_rooms(self, channel_address: str) -> set[str]:
         """Return rooms by channel_address."""
@@ -234,6 +239,7 @@ class DeviceDetailsCache:
         """Clear the cache."""
         self._names_cache.clear()
         self._channel_rooms.clear()
+        self._device_rooms.clear()
         self._functions.clear()
         self._refreshed_at = INIT_DATETIME
 
@@ -243,6 +249,7 @@ class CentralDataCache:
 
     __slots__ = (
         "_central",
+        "_escaped_channel_cache",
         "_refreshed_at",
         "_value_cache",
     )
@@ -253,6 +260,7 @@ class CentralDataCache:
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
+        self._escaped_channel_cache: Final[dict[str, str]] = {}
 
     async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from backend."""
@@ -290,7 +298,11 @@ class CentralDataCache:
     ) -> Any:
         """Get data from cache."""
         if not self._is_empty(interface=interface):
-            key = f"{interface}.{channel_address.replace(':', '%3A')}.{parameter}"
+            # Escape channel address only once per unique address
+            if (escaped := self._escaped_channel_cache.get(channel_address)) is None:
+                escaped = channel_address.replace(":", "%3A") if ":" in channel_address else channel_address
+                self._escaped_channel_cache[channel_address] = escaped
+            key = f"{interface}.{escaped}.{parameter}"
             return self._value_cache[interface].get(key, NO_CACHE_ENTRY)
         return NO_CACHE_ENTRY
 
@@ -299,6 +311,7 @@ class CentralDataCache:
         if interface:
             self._value_cache[interface] = {}
             self._refreshed_at[interface] = INIT_DATETIME
+            self._escaped_channel_cache.clear()
         else:
             for _interface in self._central.interfaces:
                 self.clear(interface=_interface)

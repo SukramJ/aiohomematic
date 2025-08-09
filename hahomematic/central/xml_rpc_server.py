@@ -7,6 +7,7 @@ with the CCU or Homegear.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import threading
 from typing import Any, Final
@@ -208,6 +209,9 @@ class XmlRpcServer(threading.Thread):
         self._simple_xml_rpc_server.shutdown()
         _LOGGER.debug("STOP: Stopping XmlRPC-Server")
         self._simple_xml_rpc_server.server_close()
+        # Ensure the server thread has actually terminated to avoid slow teardown
+        with contextlib.suppress(RuntimeError):
+            self.join(timeout=1.0)
         _LOGGER.debug("STOP: XmlRPC-Server stopped")
         if self._address in self._instances:
             del self._instances[self._address]

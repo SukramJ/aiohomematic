@@ -297,6 +297,7 @@ class ParameterVisibilityCache:
         "_storage_folder",
         "_un_ignore_parameters_by_device_paramset_key",
         "_un_ignore_prefix_cache",
+        "_relevant_prefix_cache",
     )
 
     def __init__(
@@ -330,6 +331,8 @@ class ParameterVisibilityCache:
         self._relevant_master_paramsets_by_device: Final[dict[str, set[int | None]]] = defaultdict(set)
         # Cache for resolving matching prefix key in _un_ignore_parameters_by_device_paramset_key
         self._un_ignore_prefix_cache: dict[str, str | None] = {}
+        # Cache for resolving matching prefix key in _relevant_master_paramsets_by_device
+        self._relevant_prefix_cache: dict[str, str | None] = {}
         self._init()
 
     def _init(self) -> None:
@@ -481,18 +484,20 @@ class ParameterVisibilityCache:
         from _RELEVANT_MASTER_PARAMSETS_BY_DEVICE are un ignored.
         """
         if not custom_only:
-            dt_short = tuple(
-                filter(
-                    channel.device.model.lower().startswith,
-                    self._un_ignore_parameters_by_device_paramset_key,
+            model_l = channel.device.model.lower()
+            # Resolve matching device type prefix once and cache per model
+            dt_short_key = self._un_ignore_prefix_cache.get(model_l)
+            if dt_short_key is None and model_l not in self._un_ignore_prefix_cache:
+                dt_short_key = next(
+                    (k for k in self._un_ignore_parameters_by_device_paramset_key if model_l.startswith(k)), None
                 )
-            )
+                self._un_ignore_prefix_cache[model_l] = dt_short_key
 
             # check if parameter is in _RELEVANT_MASTER_PARAMSETS_BY_DEVICE
             if (
-                dt_short
+                dt_short_key is not None
                 and parameter
-                in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel.no][paramset_key]
+                in self._un_ignore_parameters_by_device_paramset_key[dt_short_key][channel.no][paramset_key]
             ):
                 return True
 
@@ -682,15 +687,16 @@ class ParameterVisibilityCache:
         if paramset_key == ParamsetKey.MASTER:
             if channel.no in _RELEVANT_MASTER_PARAMSETS_BY_CHANNEL:
                 return True
-            for (
-                d_type,
-                channel_nos,
-            ) in self._relevant_master_paramsets_by_device.items():
-                if channel.no in channel_nos and hms.element_matches_key(
-                    search_elements=d_type,
-                    compare_with=channel.device.model,
-                ):
-                    return True
+            model_l = channel.device.model.lower()
+            # Resolve matching device type prefix once and cache per model
+            dt_short_key = self._relevant_prefix_cache.get(model_l)
+            if dt_short_key is None and model_l not in self._relevant_prefix_cache:
+                dt_short_key = next(
+                    (k for k in self._relevant_master_paramsets_by_device if model_l.startswith(k)), None
+                )
+                self._relevant_prefix_cache[model_l] = dt_short_key
+            if dt_short_key is not None and channel.no in self._relevant_master_paramsets_by_device[dt_short_key]:
+                return True
         return False
 
 

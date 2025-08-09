@@ -1670,11 +1670,11 @@ class _SchedulerJob:
         self,
         task: Callable,
         run_interval: int,
-        next_run: datetime = datetime.now(),
+        next_run: datetime | None = None,
     ):
         """Init the job."""
         self._task: Final = task
-        self._next_run = next_run
+        self._next_run = next_run or datetime.now()
         self._run_interval: Final = run_interval
 
     @property

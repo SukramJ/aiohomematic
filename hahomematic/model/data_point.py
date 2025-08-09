@@ -821,7 +821,7 @@ class BaseParameterDataPoint[
         return DEFAULT_MULTIPLIER
 
     @abstractmethod
-    async def event(self, value: Any, received_at: datetime = datetime.now()) -> None:
+    async def event(self, value: Any, received_at: datetime | None = None) -> None:
         """Handle event for which this handler has subscribed."""
 
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
@@ -981,9 +981,9 @@ class CallParameterCollector:
         """Send data to backend."""
         dpk_values: set[DP_KEY_VALUE] = set()
         for paramset_key, paramsets in self._paramsets.items():
-            for paramset_no in dict(sorted(paramsets.items())).values():
+            for _, paramset_no in sorted(paramsets.items()):
                 for channel_address, paramset in paramset_no.items():
-                    if len(paramset.values()) == 1:
+                    if len(paramset) == 1:
                         for parameter, value in paramset.items():
                             dpk_values.update(
                                 await self._client.set_value(

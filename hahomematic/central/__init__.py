@@ -528,6 +528,10 @@ class CentralUnit(PayloadMixin):
             await self._create_devices(new_device_addresses=new_device_addresses)
         await self._init_hub()
         await self._init_clients()
+        # Proactively fetch device descriptions if none were created yet to avoid slow startup
+        if not self._devices:
+            for client in self._clients.values():
+                await self._refresh_device_descriptions(client=client)
         return True
 
     async def _stop_clients(self) -> None:

@@ -330,9 +330,10 @@ class CallbackDataPoint(ABC):
         if not self._should_fire_data_point_updated_callback:
             return
         self._fired_at = datetime.now()
+        # Add the data_point reference once to kwargs to avoid per-callback writes.
+        kwargs[KWARGS_ARG_DATA_POINT] = self
         for callback_handler in self._data_point_updated_callbacks:
             try:
-                kwargs[KWARGS_ARG_DATA_POINT] = self
                 callback_handler(*args, **kwargs)
             except Exception as exc:
                 _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
@@ -1075,7 +1076,7 @@ class NoneTypeDataPoint:
     min: Any = None
     unit: Any = None
     value: Any = None
-    values: list[Any] = []
+    values: tuple[Any, ...] = ()
     visible: Any = None
     channel_operation_mode: str | None = None
     is_hmtype = False

@@ -464,9 +464,13 @@ class CentralUnit(PayloadMixin):
         # wait until tasks are finished
         await self.looper.block_till_done()
 
-        DONE = asyncio.Event()
-        while self._has_active_threads:
-            await DONE.wait()
+        # Wait briefly for any auxiliary threads to finish without blocking forever
+        max_wait_seconds = 5.0
+        interval = 0.05
+        waited = 0.0
+        while self._has_active_threads and waited < max_wait_seconds:
+            await asyncio.sleep(interval)
+            waited += interval
         self._started = False
 
     async def restart_clients(self) -> None:

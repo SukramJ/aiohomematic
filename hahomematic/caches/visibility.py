@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
+from functools import cache
 import logging
 import re
 from typing import Final
@@ -218,6 +219,7 @@ _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[str, tuple[str, ...]]] = {
 }
 
 
+@cache
 def _get_parameters_for_model_prefix(model_prefix: str | None) -> tuple[str, ...] | None:
     """Return the dict value by wildcard type."""
     if model_prefix is None:
@@ -294,6 +296,7 @@ class ParameterVisibilityCache:
         "_required_parameters",
         "_storage_folder",
         "_un_ignore_parameters_by_device_paramset_key",
+        "_un_ignore_prefix_cache",
     )
 
     def __init__(
@@ -325,6 +328,8 @@ class ParameterVisibilityCache:
 
         # model, channel_no
         self._relevant_master_paramsets_by_device: Final[dict[str, set[int | None]]] = defaultdict(set)
+        # Cache for resolving matching prefix key in _un_ignore_parameters_by_device_paramset_key
+        self._un_ignore_prefix_cache: dict[str, str | None] = {}
         self._init()
 
     def _init(self) -> None:
@@ -403,16 +408,18 @@ class ParameterVisibilityCache:
             if parameter in self._custom_un_ignore_complex[model_l][channel.no][ParamsetKey.MASTER]:
                 return False  # pragma: no cover
 
-            dt_short = tuple(
-                filter(
-                    model_l.startswith,
-                    self._un_ignore_parameters_by_device_paramset_key,
+            # Resolve matching device type prefix once and cache per model
+            dt_short_key = self._un_ignore_prefix_cache.get(model_l)
+            if dt_short_key is None and model_l not in self._un_ignore_prefix_cache:
+                # Find first key that is a prefix of model_l
+                dt_short_key = next(
+                    (k for k in self._un_ignore_parameters_by_device_paramset_key if model_l.startswith(k)), None
                 )
-            )
+                self._un_ignore_prefix_cache[model_l] = dt_short_key
             if (
-                dt_short
+                dt_short_key is not None
                 and parameter
-                not in self._un_ignore_parameters_by_device_paramset_key[dt_short[0]][channel.no][ParamsetKey.MASTER]
+                not in self._un_ignore_parameters_by_device_paramset_key[dt_short_key][channel.no][ParamsetKey.MASTER]
             ):
                 return True
 

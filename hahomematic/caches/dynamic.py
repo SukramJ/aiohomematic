@@ -303,7 +303,8 @@ class CentralDataCache:
                 escaped = channel_address.replace(":", "%3A") if ":" in channel_address else channel_address
                 self._escaped_channel_cache[channel_address] = escaped
             key = f"{interface}.{escaped}.{parameter}"
-            return self._value_cache[interface].get(key, NO_CACHE_ENTRY)
+            if (iface_cache := self._value_cache.get(interface)) is not None:
+                return iface_cache.get(key, NO_CACHE_ENTRY)
         return NO_CACHE_ENTRY
 
     def clear(self, interface: Interface | None = None) -> None:
@@ -321,9 +322,11 @@ class CentralDataCache:
         return self._refreshed_at.get(interface, INIT_DATETIME)
 
     def _is_empty(self, interface: Interface) -> bool:
-        """Return if cache is empty."""
-        if len(self._value_cache) == 0:
+        """Return if cache is empty for the given interface."""
+        # If there is no data stored for the requested interface, treat as empty.
+        if not self._value_cache.get(interface):
             return True
+        # Auto-expire stale cache by interface.
         if not changed_within_seconds(last_change=self._get_refreshed_at(interface=interface)):
             self.clear(interface=interface)
             return True

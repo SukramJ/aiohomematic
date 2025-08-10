@@ -330,9 +330,10 @@ class CallbackDataPoint(ABC):
         if not self._should_fire_data_point_updated_callback:
             return
         self._fired_at = datetime.now()
+        # Add the data_point reference once to kwargs to avoid per-callback writes.
+        kwargs[KWARGS_ARG_DATA_POINT] = self
         for callback_handler in self._data_point_updated_callbacks:
             try:
-                kwargs[KWARGS_ARG_DATA_POINT] = self
                 callback_handler(*args, **kwargs)
             except Exception as exc:
                 _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
@@ -821,7 +822,7 @@ class BaseParameterDataPoint[
         return DEFAULT_MULTIPLIER
 
     @abstractmethod
-    async def event(self, value: Any, received_at: datetime = datetime.now()) -> None:
+    async def event(self, value: Any, received_at: datetime | None = None) -> None:
         """Handle event for which this handler has subscribed."""
 
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
@@ -981,9 +982,9 @@ class CallParameterCollector:
         """Send data to backend."""
         dpk_values: set[DP_KEY_VALUE] = set()
         for paramset_key, paramsets in self._paramsets.items():
-            for paramset_no in dict(sorted(paramsets.items())).values():
+            for _, paramset_no in sorted(paramsets.items()):
                 for channel_address, paramset in paramset_no.items():
-                    if len(paramset.values()) == 1:
+                    if len(paramset) == 1:
                         for parameter, value in paramset.items():
                             dpk_values.update(
                                 await self._client.set_value(
@@ -1075,7 +1076,7 @@ class NoneTypeDataPoint:
     min: Any = None
     unit: Any = None
     value: Any = None
-    values: list[Any] = []
+    values: tuple[Any, ...] = ()
     visible: Any = None
     channel_operation_mode: str | None = None
     is_hmtype = False

@@ -27,7 +27,7 @@ from hahomematic.const import (
 )
 from hahomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
 from hahomematic.model.device import Device
-from hahomematic.support import changed_within_seconds
+from hahomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -129,6 +129,7 @@ class DeviceDetailsCache:
         "_central",
         "_channel_rooms",
         "_device_channel_ids",
+        "_device_rooms",
         "_functions",
         "_interface_cache",
         "_names_cache",
@@ -140,6 +141,7 @@ class DeviceDetailsCache:
         self._central: Final = central
         self._channel_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         self._device_channel_ids: Final[dict[str, str]] = {}
+        self._device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         self._functions: Final[dict[str, set[str]]] = {}
         self._interface_cache: Final[dict[str, Interface]] = {}
         self._names_cache: Final[dict[str, str]] = {}
@@ -158,6 +160,8 @@ class DeviceDetailsCache:
         _LOGGER.debug("LOAD: Loading rooms for %s", self._central.name)
         self._channel_rooms.clear()
         self._channel_rooms.update(await self._get_all_rooms())
+        self._device_rooms.clear()
+        self._device_rooms.update(self._prepare_device_rooms())
         _LOGGER.debug("LOAD: Loading functions for %s", self._central.name)
         self._functions.clear()
         self._functions.update(await self._get_all_functions())
@@ -198,13 +202,17 @@ class DeviceDetailsCache:
             return await client.get_all_rooms()
         return {}
 
+    def _prepare_device_rooms(self) -> dict[str, set[str]]:
+        """Return rooms by device_address."""
+        _device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
+        for channel_address, rooms in self._channel_rooms.items():
+            if rooms:
+                _device_rooms[get_device_address(address=channel_address)].update(rooms)
+        return _device_rooms
+
     def get_device_rooms(self, device_address: str) -> set[str]:
         """Return all rooms by device_address."""
-        rooms: set[str] = set()
-        for channel_address, channel_rooms in self._channel_rooms.items():
-            if channel_address.startswith(device_address):
-                rooms.update(channel_rooms)
-        return rooms
+        return set(self._device_rooms.get(device_address, ()))
 
     def get_channel_rooms(self, channel_address: str) -> set[str]:
         """Return rooms by channel_address."""
@@ -234,6 +242,7 @@ class DeviceDetailsCache:
         """Clear the cache."""
         self._names_cache.clear()
         self._channel_rooms.clear()
+        self._device_rooms.clear()
         self._functions.clear()
         self._refreshed_at = INIT_DATETIME
 
@@ -243,6 +252,7 @@ class CentralDataCache:
 
     __slots__ = (
         "_central",
+        "_escaped_channel_cache",
         "_refreshed_at",
         "_value_cache",
     )
@@ -253,6 +263,7 @@ class CentralDataCache:
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
+        self._escaped_channel_cache: Final[dict[str, str]] = {}
 
     async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from backend."""
@@ -290,8 +301,13 @@ class CentralDataCache:
     ) -> Any:
         """Get data from cache."""
         if not self._is_empty(interface=interface):
-            key = f"{interface}.{channel_address.replace(':', '%3A')}.{parameter}"
-            return self._value_cache[interface].get(key, NO_CACHE_ENTRY)
+            # Escape channel address only once per unique address
+            if (escaped := self._escaped_channel_cache.get(channel_address)) is None:
+                escaped = channel_address.replace(":", "%3A") if ":" in channel_address else channel_address
+                self._escaped_channel_cache[channel_address] = escaped
+            key = f"{interface}.{escaped}.{parameter}"
+            if (iface_cache := self._value_cache.get(interface)) is not None:
+                return iface_cache.get(key, NO_CACHE_ENTRY)
         return NO_CACHE_ENTRY
 
     def clear(self, interface: Interface | None = None) -> None:
@@ -299,6 +315,7 @@ class CentralDataCache:
         if interface:
             self._value_cache[interface] = {}
             self._refreshed_at[interface] = INIT_DATETIME
+            self._escaped_channel_cache.clear()
         else:
             for _interface in self._central.interfaces:
                 self.clear(interface=_interface)
@@ -308,9 +325,11 @@ class CentralDataCache:
         return self._refreshed_at.get(interface, INIT_DATETIME)
 
     def _is_empty(self, interface: Interface) -> bool:
-        """Return if cache is empty."""
-        if len(self._value_cache) == 0:
+        """Return if cache is empty for the given interface."""
+        # If there is no data stored for the requested interface, treat as empty.
+        if not self._value_cache.get(interface):
             return True
+        # Auto-expire stale cache by interface.
         if not changed_within_seconds(last_change=self._get_refreshed_at(interface=interface)):
             self.clear(interface=interface)
             return True

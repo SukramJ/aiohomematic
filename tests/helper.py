@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import importlib.resources
 import logging
 import os
@@ -208,19 +209,13 @@ async def get_pydev_ccu_central_unit_full(
     client_session: ClientSession | None = None,
 ) -> CentralUnit:
     """Create and yield central."""
-    sleep_counter = 0
-    global GOT_DEVICES  # pylint: disable=global-statement
-    GOT_DEVICES = False
+    # Use an asyncio.Event for faster, non-polling wait on device creation
+    device_event = asyncio.Event()
 
     def systemcallback(system_event, *args, **kwargs):
-        if (
-            system_event == BackendSystemEvent.DEVICES_CREATED
-            and kwargs
-            and kwargs.get("new_data_points")
-            and len(kwargs["new_data_points"]) > 0
-        ):
-            global GOT_DEVICES  # pylint: disable=global-statement
-            GOT_DEVICES = True
+        # Signal that devices have been created as soon as the event fires
+        if system_event == BackendSystemEvent.DEVICES_CREATED:
+            device_event.set()
 
     interface_configs = {
         InterfaceConfig(
@@ -245,8 +240,24 @@ async def get_pydev_ccu_central_unit_full(
     ).create_central()
     central.register_backend_system_callback(systemcallback)
     await central.start()
-    while not GOT_DEVICES and sleep_counter < 300:
-        sleep_counter += 1
-        await asyncio.sleep(1)
+
+    # Fallback watcher: set the event as soon as any device appears to avoid long waits
+    async def _watch_devices():
+        try:
+            for _ in range(600):  # up to ~30s at 50ms intervals
+                if getattr(central, "_devices", None) and len(central._devices) > 0:
+                    device_event.set()
+                    return
+                await asyncio.sleep(0.05)
+        except Exception:
+            # Do not fail startup if watcher errors out
+            pass
+
+    # Launch the watcher without blocking; event will be set either by callback or watcher
+    asyncio.create_task(_watch_devices())  # noqa: RUF006
+
+    # Wait up to 60 seconds, react immediately when ready
+    with contextlib.suppress(TimeoutError):
+        await asyncio.wait_for(device_event.wait(), timeout=60)
 
     return central

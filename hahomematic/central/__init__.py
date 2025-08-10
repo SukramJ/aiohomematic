@@ -459,12 +459,18 @@ class CentralUnit(PayloadMixin):
         if self.name in CENTRAL_INSTANCES:
             del CENTRAL_INSTANCES[self.name]
 
+        # cancel outstanding tasks to speed up teardown
+        self.looper.cancel_tasks()
         # wait until tasks are finished
         await self.looper.block_till_done()
 
-        DONE = asyncio.Event()
-        while self._has_active_threads:
-            await DONE.wait()
+        # Wait briefly for any auxiliary threads to finish without blocking forever
+        max_wait_seconds = 5.0
+        interval = 0.05
+        waited = 0.0
+        while self._has_active_threads and waited < max_wait_seconds:
+            await asyncio.sleep(interval)
+            waited += interval
         self._started = False
 
     async def restart_clients(self) -> None:
@@ -522,6 +528,10 @@ class CentralUnit(PayloadMixin):
             await self._create_devices(new_device_addresses=new_device_addresses)
         await self._init_hub()
         await self._init_clients()
+        # Proactively fetch device descriptions if none were created yet to avoid slow startup
+        if not self._devices:
+            for client in self._clients.values():
+                await self._refresh_device_descriptions(client=client)
         return True
 
     async def _stop_clients(self) -> None:
@@ -1228,45 +1238,74 @@ class CentralUnit(PayloadMixin):
         un_ignore_candidates_only: bool = False,
         use_channel_wildcard: bool = False,
     ) -> list[str]:
-        """Return all parameters from VALUES paramset."""
+        """
+        Return all parameters from VALUES paramset.
+
+        Performance optimized to minimize repeated lookups and computations
+        when iterating over all channels and parameters.
+        """
         parameters: set[str] = set()
-        for channels in self._paramset_descriptions.raw_paramset_descriptions.values():
-            for channel_address in channels:
+
+        # Precompute operations mask to avoid repeated checks in the inner loop
+        op_mask: int = 0
+        for op in operations:
+            op_mask |= int(op)
+
+        raw_psd = self._paramset_descriptions.raw_paramset_descriptions
+        ignore_set = IGNORE_FOR_UN_IGNORE_PARAMETERS
+
+        # Prepare optional helpers only if needed
+        get_model = self._device_descriptions.get_model if full_format else None
+        model_cache: dict[str, str | None] = {}
+        channel_no_cache: dict[str, int | None] = {}
+
+        for channels in raw_psd.values():  # pylint: disable=too-many-nested-blocks
+            for channel_address, channel_paramsets in channels.items():
+                # Resolve model lazily and cache per device address when full_format is requested
                 model: str | None = None
-                if full_format:
-                    model = self._device_descriptions.get_model(
-                        device_address=get_device_address(address=channel_address)
-                    )
-                for parameter, parameter_data in channels[channel_address].get(paramset_key, {}).items():
-                    if all(parameter_data["OPERATIONS"] & operation for operation in operations):
-                        if un_ignore_candidates_only and (
-                            (
-                                (
-                                    dp := self.get_generic_data_point(
-                                        channel_address=channel_address,
-                                        parameter=parameter,
-                                        paramset_key=paramset_key,
-                                    )
-                                )
-                                and dp.enabled_default
-                                and not dp.is_un_ignored
-                            )
-                            or parameter in IGNORE_FOR_UN_IGNORE_PARAMETERS
-                        ):
-                            continue
+                if get_model is not None:
+                    dev_addr = get_device_address(address=channel_address)
+                    if (model := model_cache.get(dev_addr)) is None:
+                        model = get_model(device_address=dev_addr)
+                        model_cache[dev_addr] = model
 
-                        if not full_format:
-                            parameters.add(parameter)
-                            continue
+                if (paramset := channel_paramsets.get(paramset_key)) is None:
+                    continue
 
-                        channel = (
-                            UN_IGNORE_WILDCARD if use_channel_wildcard else get_channel_no(address=channel_address)
+                for parameter, parameter_data in paramset.items():
+                    # Fast bitmask check: ensure all requested ops are present
+                    if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
+                        continue
+
+                    if un_ignore_candidates_only:
+                        # Cheap check first to avoid expensive dp lookup when possible
+                        if parameter in ignore_set:
+                            continue
+                        dp = self.get_generic_data_point(
+                            channel_address=channel_address,
+                            parameter=parameter,
+                            paramset_key=paramset_key,
                         )
+                        if dp and dp.enabled_default and not dp.is_un_ignored:
+                            continue
 
-                        full_parameter = f"{parameter}:{paramset_key}@{model}:"
-                        if channel is not None:
-                            full_parameter += str(channel)
-                        parameters.add(full_parameter)
+                    if not full_format:
+                        parameters.add(parameter)
+                        continue
+
+                    if use_channel_wildcard:
+                        channel_repr: int | str | None = UN_IGNORE_WILDCARD
+                    elif channel_address in channel_no_cache:
+                        channel_repr = channel_no_cache[channel_address]
+                    else:
+                        channel_repr = get_channel_no(address=channel_address)
+                        channel_no_cache[channel_address] = channel_repr
+
+                    # Build the full parameter string
+                    if channel_repr is None:
+                        parameters.add(f"{parameter}:{paramset_key}@{model}:")
+                    else:
+                        parameters.add(f"{parameter}:{paramset_key}@{model}:{channel_repr}")
 
         return list(parameters)
 
@@ -1670,11 +1709,11 @@ class _SchedulerJob:
         self,
         task: Callable,
         run_interval: int,
-        next_run: datetime = datetime.now(),
+        next_run: datetime | None = None,
     ):
         """Init the job."""
         self._task: Final = task
-        self._next_run = next_run
+        self._next_run = next_run or datetime.now()
         self._run_interval: Final = run_interval
 
     @property

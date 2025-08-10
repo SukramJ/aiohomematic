@@ -27,7 +27,7 @@ from hahomematic.const import (
 )
 from hahomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
 from hahomematic.model.device import Device
-from hahomematic.support import changed_within_seconds
+from hahomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -160,13 +160,8 @@ class DeviceDetailsCache:
         _LOGGER.debug("LOAD: Loading rooms for %s", self._central.name)
         self._channel_rooms.clear()
         self._channel_rooms.update(await self._get_all_rooms())
-        # Build device-to-rooms index for fast lookup
         self._device_rooms.clear()
-        for ch_addr, rooms in self._channel_rooms.items():
-            # device address is the part before the ':' separator
-            dev_addr = ch_addr[:sep_pos] if (sep_pos := ch_addr.find(":")) > 0 else ch_addr
-            if rooms:
-                self._device_rooms[dev_addr].update(rooms)
+        self._device_rooms.update(self._prepare_device_rooms())
         _LOGGER.debug("LOAD: Loading functions for %s", self._central.name)
         self._functions.clear()
         self._functions.update(await self._get_all_functions())
@@ -206,6 +201,14 @@ class DeviceDetailsCache:
         if client := self._central.primary_client:
             return await client.get_all_rooms()
         return {}
+
+    def _prepare_device_rooms(self) -> dict[str, set[str]]:
+        """Return rooms by device_address."""
+        _device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
+        for channel_address, rooms in self._channel_rooms.items():
+            if rooms:
+                _device_rooms[get_device_address(address=channel_address)].update(rooms)
+        return _device_rooms
 
     def get_device_rooms(self, device_address: str) -> set[str]:
         """Return all rooms by device_address."""

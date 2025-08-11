@@ -17,6 +17,8 @@ class DpText(GenericDataPoint[str, str]):
     This is a default data point that gets automatically generated.
     """
 
+    __slots__ = ()
+
     _category = DataPointCategory.TEXT
 
     @state_property

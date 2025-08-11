@@ -6,10 +6,17 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, IntEnum, StrEnum
+import os
 import re
+import sys
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.8.4"
+VERSION: Final = "2025.8.5"
+
+# Detect test speedup mode via environment
+_TEST_SPEEDUP: Final = (
+    bool(os.getenv("HAHOMEMATIC_TEST_SPEEDUP")) or ("PYTEST_CURRENT_TEST" in os.environ) or ("pytest" in sys.modules)
+)
 
 # default
 DEFAULT_CUSTOM_ID: Final = "custom_id"
@@ -64,7 +71,8 @@ BLOCK_LOG_TIMEOUT = 60
 CACHE_PATH: Final = "cache"
 CONF_PASSWORD: Final = "password"
 CONF_USERNAME: Final = "username"
-CONNECTION_CHECKER_INTERVAL: Final = 15  # check if connection is available via rpc ping
+
+CONNECTION_CHECKER_INTERVAL: Final = 1 if _TEST_SPEEDUP else 15  # check if connection is available via rpc ping
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
 DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
 DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
@@ -92,15 +100,18 @@ PING_PONG_MISMATCH_COUNT: Final = 15
 PING_PONG_MISMATCH_COUNT_TTL: Final = 300
 PORT_ANY: Final = 0
 PROGRAM_ADDRESS: Final = "program"
-RECONNECT_WAIT: Final = 120  # wait with reconnect after a first ping was successful
+RECONNECT_WAIT: Final = 1 if _TEST_SPEEDUP else 120  # wait with reconnect after a first ping was successful
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
 REPORT_VALUE_USAGE_DATA: Final = "reportValueUsageData"
 REPORT_VALUE_USAGE_VALUE_ID: Final = "PRESS_SHORT"
 SYSVAR_ADDRESS: Final = "sysvar"
-TIMEOUT: Final = 60  # default timeout for a connection
+TIMEOUT: Final = 5 if _TEST_SPEEDUP else 60  # default timeout for a connection
 UN_IGNORE_WILDCARD: Final = "all"
 WAIT_FOR_CALLBACK: Final[int | None] = None
 
+# Scheduler sleep durations (used by central scheduler loop)
+SCHEDULER_NOT_STARTED_SLEEP: Final = 0.05 if _TEST_SPEEDUP else 10
+SCHEDULER_LOOP_SLEEP: Final = 0.05 if _TEST_SPEEDUP else 5
 
 CALLBACK_WARN_INTERVAL = CONNECTION_CHECKER_INTERVAL * 40
 

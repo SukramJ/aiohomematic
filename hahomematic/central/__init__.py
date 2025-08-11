@@ -55,6 +55,8 @@ from hahomematic.const import (
     LOCAL_HOST,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
+    SCHEDULER_LOOP_SLEEP,
+    SCHEDULER_NOT_STARTED_SLEEP,
     TIMEOUT,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
@@ -1259,7 +1261,7 @@ class CentralUnit(PayloadMixin):
         model_cache: dict[str, str | None] = {}
         channel_no_cache: dict[str, int | None] = {}
 
-        for channels in raw_psd.values():  # pylint: disable=too-many-nested-blocks
+        for channels in raw_psd.values():
             for channel_address, channel_paramsets in channels.items():
                 # Resolve model lazily and cache per device address when full_format is requested
                 model: str | None = None
@@ -1567,7 +1569,7 @@ class _Scheduler(threading.Thread):
         while self._active:
             if not self._central.started:
                 _LOGGER.debug("SCHEDULER: Waiting till central %s is started", self._central.name)
-                await asyncio.sleep(10)
+                await asyncio.sleep(SCHEDULER_NOT_STARTED_SLEEP)
                 continue
             for job in self._scheduler_jobs:
                 if not self._active or not job.ready:
@@ -1575,7 +1577,7 @@ class _Scheduler(threading.Thread):
                 await job.run()
                 job.schedule_next_execution()
             if self._active:
-                await asyncio.sleep(5)
+                await asyncio.sleep(SCHEDULER_LOOP_SLEEP)
 
     async def _check_connection(self) -> None:
         """Check connection to backend."""

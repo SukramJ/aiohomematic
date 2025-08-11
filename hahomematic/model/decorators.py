@@ -90,14 +90,27 @@ class state_property[GETTER, SETTER](generic_property[GETTER, SETTER]):
     """Decorate to mark own value properties."""
 
 
+# Cache for per-class attribute names by decorator to avoid repeated dir() scans
+# Keyed by (class, decorator class); value is a tuple of attribute names
+_PUBLIC_ATTR_CACHE: dict[tuple[type, type], tuple[str, ...]] = {}
+
+
 def _get_public_attributes_by_class_decorator(data_object: Any, class_decorator: type) -> Mapping[str, Any]:
-    """Return the object attributes by decorator."""
-    pub_attributes = [
-        y
-        for y in dir(data_object.__class__)
-        if not y.startswith("_") and isinstance(getattr(data_object.__class__, y), class_decorator)
-    ]
-    return {x: _get_text_value(getattr(data_object, x)) for x in pub_attributes}
+    """
+    Return the object attributes by decorator.
+
+    This caches the attribute names per (class, decorator) to reduce overhead
+    from repeated dir()/getattr() scans. Values are not cached as they are
+    instance-dependent and may change over time.
+    """
+    cls = data_object.__class__
+    cache_key = (cls, class_decorator)
+
+    if (names := _PUBLIC_ATTR_CACHE.get(cache_key)) is None:
+        names = tuple(y for y in dir(cls) if not y.startswith("_") and isinstance(getattr(cls, y), class_decorator))
+        _PUBLIC_ATTR_CACHE[cache_key] = names
+
+    return {name: _get_text_value(getattr(data_object, name)) for name in names}
 
 
 def _get_text_value(value: Any) -> Any:

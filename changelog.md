@@ -1,3 +1,7 @@
+# Version 2025.8.5 (2025-08-11
+
+- Small performance improvements
+
 # Version 2025.8.4 (2025-08-10)
 
 - Small performance improvements

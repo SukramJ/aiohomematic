@@ -1,7 +1,24 @@
 """
-CentralUnit module.
+Central unit and core orchestration for HomeMatic CCU/compatible backends.
 
-This is the python representation of a CCU.
+This module implements the Python representation of a CCU (or compatible backend)
+that orchestrates interfaces, devices, data points, events, and background jobs.
+
+Key components:
+- CentralUnit: The primary coordination class. It manages client creation and
+  lifecycles, connection state, device and channel discovery, data point and
+  event handling, program/sysvar access, cache loading/saving, and callback
+  dispatching to consumers.
+- CentralConfig: Builder/config holder for CentralUnit instances, including
+  connection parameters, feature toggles, and cache behavior.
+- _Scheduler: Internal background thread that periodically checks connection
+  health, refreshes data, and fetches firmware status according to configured
+  intervals.
+
+The central unit ties together the various submodules: caches, client adapters
+(JSON-RPC/XML-RPC), data point and device models, and visibility/description caches.
+It exposes high-level APIs to query and manipulate the CCU state while
+encapsulating the details of communication and timing.
 """
 
 from __future__ import annotations

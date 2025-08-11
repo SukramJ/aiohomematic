@@ -1,10 +1,30 @@
 """
-Async JSON-RPC client for HomeMatic CCU-compatible backends.
+Asynchronous JSON-RPC client for HomeMatic CCU-compatible backends.
 
-Provides login/session management, script execution, paramset/value access,
-program and system variable APIs, and interface/device metadata retrieval.
-Requests are executed via aiohttp with robust error handling and optional TLS
-verification. This client is used by the CentralUnit through ClientJsonCCU.
+Overview
+--------
+JsonRpcAioHttpClient wraps CCU JSON-RPC endpoints to provide:
+- Login and session handling with automatic renewal
+- Execution of ReGa scripts and JSON-RPC methods
+- Access to system variables, programs, and device/channel metadata
+- Reading/writing paramsets and values where supported
+- Robust error handling, optional TLS, and rate-limiting via semaphores
+
+Usage
+-----
+This client is usually managed by CentralUnit through ClientJsonCCU, but can be
+used directly for advanced tasks. Typical flow:
+
+    client = JsonRpcAioHttpClient(username, password, device_url, connection_state, aiohttp_session, tls=True)
+    await client.get_system_information()
+    data = await client.get_all_device_data(interface)
+
+Notes
+-----
+- Some JSON-RPC methods are backend/firmware dependent. The client detects and
+  caches supported methods at runtime.
+- Binary/text encodings are handled carefully (UTF-8 / ISO-8859-1) for script IO.
+
 """
 
 from __future__ import annotations

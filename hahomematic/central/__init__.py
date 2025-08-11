@@ -1,24 +1,66 @@
 """
-Central unit and core orchestration for HomeMatic CCU/compatible backends.
+Central unit and core orchestration for HomeMatic CCU and compatible backends.
 
-This module implements the Python representation of a CCU (or compatible backend)
-that orchestrates interfaces, devices, data points, events, and background jobs.
-
-Key components:
-- CentralUnit: The primary coordination class. It manages client creation and
-  lifecycles, connection state, device and channel discovery, data point and
-  event handling, program/sysvar access, cache loading/saving, and callback
-  dispatching to consumers.
-- CentralConfig: Builder/config holder for CentralUnit instances, including
-  connection parameters, feature toggles, and cache behavior.
-- _Scheduler: Internal background thread that periodically checks connection
-  health, refreshes data, and fetches firmware status according to configured
-  intervals.
+Overview
+--------
+This package provides the central coordination layer for hahomematic. It models a
+HomeMatic CCU (or compatible backend such as Homegear) and orchestrates
+interfaces, devices, channels, data points, events, and background jobs.
 
 The central unit ties together the various submodules: caches, client adapters
-(JSON-RPC/XML-RPC), data point and device models, and visibility/description caches.
+(JSON-RPC/XML-RPC), device and data point models, and visibility/description caches.
 It exposes high-level APIs to query and manipulate the CCU state while
-encapsulating the details of communication and timing.
+encapsulating transport and scheduling details.
+
+Public API (selected)
+---------------------
+- CentralUnit: The main coordination class. Manages client creation/lifecycle,
+  connection state, device and channel discovery, data point and event handling,
+  sysvar/program access, cache loading/saving, and dispatching callbacks.
+- CentralConfig: Configuration builder/holder for CentralUnit instances, including
+  connection parameters, feature toggles, and cache behavior.
+- CentralConnectionState: Tracks connection issues per transport/client.
+
+Internal helpers
+----------------
+- _Scheduler: Background thread that periodically checks connection health,
+  refreshes data, and fetches firmware status according to configured intervals.
+
+Quick start
+-----------
+Typical usage is to create a CentralConfig, build a CentralUnit, then start it.
+
+Example (simplified):
+
+    from hahomematic.central import CentralConfig
+    from hahomematic import client as hmcl
+
+    iface_cfgs = {
+        hmcl.InterfaceConfig(interface=hmcl.Interface.HMIP, port=2010, enabled=True),
+        hmcl.InterfaceConfig(interface=hmcl.Interface.BIDCOS_RF, port=2001, enabled=True),
+    }
+
+    cfg = CentralConfig(
+        central_id="ccu-main",
+        default_callback_port=43439,
+        host="ccu.local",
+        interface_configs=iface_cfgs,
+        name="MyCCU",
+        password="secret",
+        storage_folder=".storage",
+        username="admin",
+    )
+
+    central = cfg.create_central()
+    central.start()           # start XML-RPC server, create/init clients, load caches
+    # ... interact with devices / data points via central ...
+    central.stop()
+
+Notes
+-----
+- The central module is thread-aware and uses an internal Looper to schedule async tasks.
+- For advanced scenarios, see xml_rpc_server and decorators modules in this package.
+
 """
 
 from __future__ import annotations

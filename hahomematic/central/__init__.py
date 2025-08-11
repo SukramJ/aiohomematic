@@ -1259,7 +1259,7 @@ class CentralUnit(PayloadMixin):
         model_cache: dict[str, str | None] = {}
         channel_no_cache: dict[str, int | None] = {}
 
-        for channels in raw_psd.values():  # pylint: disable=too-many-nested-blocks
+        for channels in raw_psd.values():
             for channel_address, channel_paramsets in channels.items():
                 # Resolve model lazily and cache per device address when full_format is requested
                 model: str | None = None

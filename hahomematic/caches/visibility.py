@@ -16,6 +16,7 @@ from hahomematic.model.custom import get_required_parameters
 from hahomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)
+_CACHE_KEY_TYPE = tuple[str, int, ParamsetKey, str]
 
 # Define which additional parameters from MASTER paramset should be created as data_point.
 # By default these are also on the _HIDDEN_PARAMETERS, which prevents these data points
@@ -302,6 +303,8 @@ class ParameterVisibilityCache:
         "_un_ignore_parameters_by_device_paramset_key",
         "_un_ignore_prefix_cache",
         "_relevant_prefix_cache",
+        "_param_ignored_cache",
+        "_param_un_ignored_cache",
     )
 
     def __init__(
@@ -337,6 +340,11 @@ class ParameterVisibilityCache:
         self._un_ignore_prefix_cache: dict[str, str | None] = {}
         # Cache for resolving matching prefix key in _relevant_master_paramsets_by_device
         self._relevant_prefix_cache: dict[str, str | None] = {}
+        # Per-instance memoization for repeated queries.
+        # Key: (model_l, channel_no, paramset_key, parameter)
+        self._param_ignored_cache: dict[tuple[str, int, ParamsetKey, str], bool] = {}
+        # Key: (model_l, channel_no, paramset_key, parameter, custom_only)
+        self._param_un_ignored_cache: dict[tuple[str, int, ParamsetKey, str, bool], bool] = {}
         self._init()
 
     def _init(self) -> None:
@@ -375,6 +383,10 @@ class ParameterVisibilityCache:
     ) -> bool:
         """Check if parameter can be ignored."""
         model_l = channel.device.model.lower()
+        # Fast path via per-instance memoization
+        ch_no_key = channel.no if isinstance(channel.no, int) else (-1 if channel.no is None else channel.no)
+        if (cache_key := (model_l, ch_no_key, paramset_key, parameter)) in self._param_ignored_cache:
+            return self._param_ignored_cache[cache_key]
 
         if paramset_key == ParamsetKey.VALUES:
             if self.parameter_is_un_ignored(
@@ -428,9 +440,13 @@ class ParameterVisibilityCache:
                 and parameter
                 not in self._un_ignore_parameters_by_device_paramset_key[dt_short_key][channel.no][ParamsetKey.MASTER]
             ):
-                return True
+                result = True
+                self._param_ignored_cache[cache_key] = result
+                return result
 
-        return False
+        result = False
+        self._param_ignored_cache[cache_key] = result
+        return result
 
     def _parameter_is_un_ignored(
         self,
@@ -452,6 +468,11 @@ class ParameterVisibilityCache:
 
         # check if parameter is in custom_un_ignore with paramset_key
         model_l = channel.device.model.lower()
+        # Fast path via per-instance memoization
+        ch_no_key = channel.no if isinstance(channel.no, int) else (-1 if channel.no is None else channel.no)
+        if (cache_key := (model_l, ch_no_key, paramset_key, parameter, custom_only)) in self._param_un_ignored_cache:
+            return self._param_un_ignored_cache[cache_key]
+
         search_matrix = (
             (
                 (model_l, channel.no),
@@ -465,14 +486,17 @@ class ParameterVisibilityCache:
 
         for ml, cno in search_matrix:
             if parameter in self._custom_un_ignore_complex[ml][cno][paramset_key]:
+                self._param_un_ignored_cache[cache_key] = True
                 return True  # pragma: no cover
 
         # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
-        return bool(
+        result = bool(
             not custom_only
             and (un_ignore_parameters := _get_parameters_for_model_prefix(model_prefix=model_l))
             and parameter in un_ignore_parameters
         )
+        self._param_un_ignored_cache[cache_key] = result
+        return result
 
     def parameter_is_un_ignored(
         self,

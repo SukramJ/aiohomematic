@@ -1,7 +1,17 @@
 """
-hahomematic is a Python 3 module.
+HaHomematic: a Python 3 library to interact with HomeMatic and HomematicIP backends.
 
-The lib interacts with HomeMatic and HomematicIP devices.
+This package provides a high-level API to discover devices and channels, read and write
+parameters (data points), receive events, and manage programs and system variables.
+
+Key layers and responsibilities:
+- hahomematic.central: Orchestrates clients, caches, device creation and events.
+- hahomematic.client: Interface-specific clients (JSON-RPC/XML-RPC, Homegear) handling IO.
+- hahomematic.model: Data point abstraction for generic, hub, and calculated entities.
+- hahomematic.caches: Persistent and runtime caches for descriptions, values, and metadata.
+
+Typical usage is to construct a CentralConfig, create a CentralUnit and start it, then
+consume data points and events or issue write commands via the exposed API.
 """
 
 from __future__ import annotations

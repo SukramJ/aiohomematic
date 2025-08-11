@@ -1,4 +1,14 @@
-"""The client-object and its methods."""
+"""
+Clients for communicating with HomeMatic backends.
+
+This module defines client implementations that communicate with the configured backend
+(e.g. CCU via JSON-RPC/XML-RPC or Homegear). Clients are responsible for:
+- initializing and managing transport proxies,
+- reading and writing parameter values,
+- fetching descriptions and metadata,
+- tracking connection health (including ping/pong where supported), and
+- providing a consistent API used by the CentralUnit.
+"""
 
 from __future__ import annotations
 

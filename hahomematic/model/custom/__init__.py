@@ -1,4 +1,22 @@
-"""Module for HaHomematic custom data point."""
+"""
+Custom data points for HaHomematic.
+
+This subpackage provides higher-level, device-specific data points that bundle
+multiple parameters into a single composite entity (e.g., thermostats, lights,
+locks, covers, sirens, valves). It also includes discovery and validation
+helpers for model-specific configurations.
+
+Highlights:
+- create_custom_data_points: Creates and attaches custom data points to a device
+  if a matching definition is present and not ignored.
+- Definition utilities: data_point_definition_exists, get_custom_configs,
+  get_required_parameters, validate_custom_data_point_definition.
+- Rich custom data point classes for climate, light, cover, lock, siren, switch,
+  and irrigation valve devices.
+
+Custom data points build on the generic layer to provide tailored behavior and
+simplified interaction for complex devices.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,21 @@
-"""Module for HaHomematic generic data points."""
+"""
+Generic data points for HaHomematic.
+
+This subpackage contains the default, device-agnostic data point types
+(switch, number, sensor, select, text, button, binary_sensor) and the factory
+that decides which type to instantiate for a given parameter description.
+
+Key aspects:
+- create_data_point_and_append_to_channel: Central factory that inspects
+  ParameterData (TYPE, OPERATIONS, FLAGS) and maps to a GenericDataPoint class.
+- Automatic mapping of WRITE/READ capabilities, ACTION vs SWITCH, ENUM to
+  select, and BOOL sensors to BinarySensor when appropriate.
+- Special handling for virtual remotes and click parameters, and optional
+  wrapping of specific parameters to a different category when needed.
+
+These generic data points provide a stable foundation and are extended by
+custom- and calculated-specific implementations elsewhere in the model package.
+"""
 
 from __future__ import annotations
 

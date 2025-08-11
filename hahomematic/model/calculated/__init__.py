@@ -1,4 +1,18 @@
-"""Module for HaHomematic calculated data points."""
+"""
+Calculated data points for HaHomematic.
+
+This subpackage provides derived data points computed from one or more base
+parameters (e.g., dew point, apparent temperature, frost point, operating
+voltage level, vapor concentration).
+
+Factory:
+- create_calculated_data_points: Iterates over the known calculated data point
+  implementations, checks their relevance against a channel, and attaches them
+  to the channel when applicable.
+
+Calculated data points complement generic and custom data points by adding
+useful metrics that are not directly provided by the device.
+"""
 
 from __future__ import annotations
 

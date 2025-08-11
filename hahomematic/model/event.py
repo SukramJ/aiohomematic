@@ -1,4 +1,28 @@
-"""Functions for event creation."""
+"""
+Event model for HaHomematic.
+
+This module defines the event data point hierarchy used to expose HomeMatic
+button presses, device errors, and impulse notifications to applications.
+
+Included classes:
+- GenericEvent: Base event that integrates with the common data point API
+  (category, usage, names/paths, callbacks) and provides fire_event handling.
+- ClickEvent: Represents key press events (EventType.KEYPRESS).
+- DeviceErrorEvent: Represents device error signaling with special value change
+  semantics before emitting an event (EventType.DEVICE_ERROR).
+- ImpulseEvent: Represents impulse events (EventType.IMPULSE).
+
+Factory helpers:
+- create_event_and_append_to_channel: Determines the appropriate event type for
+  a given parameter description and attaches an instance to the channel.
+
+Typical flow:
+1) During device initialization, model.create_data_points_and_events inspects
+   paramset descriptions.
+2) For parameters that support Operations.EVENT and match known event names
+   (CLICK_EVENTS, DEVICE_ERROR_EVENTS, IMPULSE_EVENTS), an event data point is
+   created and registered on the channel.
+"""
 
 from __future__ import annotations
 

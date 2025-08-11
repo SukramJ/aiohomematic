@@ -1,4 +1,22 @@
-"""Module for HaHomematic hub data points."""
+"""
+Hub (backend) data points for HaHomematic.
+
+This module manages program and system variable data points exposed by the
+backend (CCU/Homegear). It handles scanning/fetching, creation, updates, and
+cleanup of hub-level entities.
+
+Key components:
+- Hub: Orchestrates fetching of programs and system variables, maintains
+  synchronization, and creates proper data point classes by type.
+- GenericProgramDataPoint/ProgramDpButton/ProgramDpSwitch: Represent hub
+  programs as invocable or switchable data points.
+- GenericSysvarDataPoint and specializations: Represent system variables as
+  sensor, binary_sensor, select, number, switch, or text, depending on type and
+  whether the variable is extended.
+
+The hub model complements device/channel data points by reflecting the control
+center state and enabling automations at the backend level.
+"""
 
 from __future__ import annotations
 

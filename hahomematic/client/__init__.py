@@ -873,7 +873,7 @@ class Client(ABC):
                 self.central.paramset_descriptions.add(
                     interface_id=self.interface_id,
                     channel_address=address,
-                    paramset_key=ParamsetKey(paramset_key),
+                    paramset_key=paramset_key,
                     paramset_description=paramset_description,
                 )
 

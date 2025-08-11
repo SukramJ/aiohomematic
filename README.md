@@ -1,25 +1,41 @@
 # hahomematic
 
-`hahomematic` is a Python 3 module for [Home Assistant](https://www.home-assistant.io/) to interact with [HomeMatic](https://www.eq-3.com/products/homematic.html) and [HomematicIP](https://www.homematic-ip.com/en/start.html) devices. Some other devices (f.ex. Bosch, Intertechno) might be supported as well.
+A lightweight Python 3 library that powers Home Assistant integrations for controlling and monitoring [HomeMatic](https://www.eq-3.com/products/homematic.html) and [HomematicIP](https://www.homematic-ip.com/en/start.html) devices. Some third‑party devices/gateways (e.g., Bosch, Intertechno) may be supported as well.
 
-This is intended to become the successor of [pyhomematic](https://github.com/danielperna84/pyhomematic).
+This project is the modern successor to [pyhomematic](https://github.com/danielperna84/pyhomematic), focusing on automatic entity creation, fewer manual device definitions, and faster startups.
 
-It can be installed by using the [custom_component](https://github.com/sukramj/custom_homematic).
-Necessary installation instructions can be found [here](https://github.com/sukramj/custom_homematic/wiki/Installation).
+## How it works
 
-## Project goal and features
+Unlike pyhomematic, which required manual device mappings, hahomematic automatically creates entities for each relevant parameter on every device channel (unless blacklisted). To achieve this it:
 
-[pyhomematic](https://github.com/danielperna84/pyhomematic) has the requirement to manually add support for devices to make them usable in [Home Assistant](https://www.home-assistant.io/). `hahomematic` automatically create entities for each parameter on each channel on every device (if it not black listed). To achieve this, all paramsets (`VALUES`) are fetched (and cached for quick successive startups).
+- Fetches and caches device paramsets (VALUES) for fast successive startups.
+- Provides hooks for custom entity classes where complex behavior is needed (e.g., thermostats, lights, covers, climate, locks, sirens).
+- Includes helpers for robust operation, such as automatic reconnection after CCU restarts.
 
-On top of that it is possible to add custom entity-classes to implement more complex entities, if it makes sense for a device, much like the [devicetypes](https://github.com/danielperna84/pyhomematic/tree/master/pyhomematic/devicetypes) of [pyhomematic](https://github.com/danielperna84/pyhomematic). This will be needed for thermostats, lights, covers, climate, lock, siren etc..
+## Key features
 
-Helpers for automatic re-connecting after a restart of the CCU are provided as well.
+- Automatic entity discovery from device/channel parameters.
+- Extensible via custom entity classes for complex devices.
+- Caching of paramsets to speed up restarts.
+- Designed to integrate with Home Assistant.
+
+## Installation (with Home Assistant)
+
+Install via the custom component: [custom_homematic](https://github.com/sukramj/custom_homematic).
+
+Follow the installation guide: https://github.com/sukramj/custom_homematic/wiki/Installation
 
 ## Requirements
 
-Due to a bug in previous version of the CCU2 / CCU3, `hahomematic` requires at least the following version for usage with HomematicIP devices:
+Due to a bug in earlier CCU2/CCU3 firmware, hahomematic requires at least the following versions when used with HomematicIP devices:
 
 - CCU2: 2.53.27
 - CCU3: 3.53.26
 
-More information about this bug can be found here: https://github.com/jens-maus/RaspberryMatic/issues/843. Other CCU-like platforms that leverage the buggy version of the `HmIPServer` aren't supported as well.
+See details here: https://github.com/jens-maus/RaspberryMatic/issues/843. Other CCU‑like platforms using the buggy HmIPServer version are not supported.
+
+## Useful links
+
+- Examples: see example.py in this repository.
+- Changelog: see changelog.md.
+- Source code and documentation: this repository (docs/ directory may contain additional information).

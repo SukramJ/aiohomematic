@@ -1,4 +1,18 @@
-"""Module for the HaHomematic model."""
+"""
+Data point and event model for HaHomematic.
+
+This package wires together the model subpackages that turn device/channel
+parameter descriptions into concrete data points and events:
+- generic: Default data point types (switch, number, sensor, select, etc.).
+- custom: Higher-level composites and device-specific behaviors.
+- calculated: Derived metrics (e.g., dew point, apparent temperature).
+- hub: Program and system variable data points from the backend hub (CCU/Homegear).
+
+The create_data_points_and_events entrypoint inspects a device’s paramset
+information, applies visibility rules, creates events where appropriate, and
+instantiates the required data point objects. It is invoked during device
+initialization to populate the runtime model used by the central unit.
+"""
 
 from __future__ import annotations
 

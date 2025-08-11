@@ -1,4 +1,24 @@
-"""Functions for data_point creation."""
+"""
+Core data point model for HaHomematic.
+
+This module defines the abstract base classes and concrete building blocks for
+representing HomeMatic parameters as data points, handling their lifecycle,
+I/O, and event propagation.
+
+Highlights:
+- CallbackDataPoint: Base for objects that expose callbacks and timestamps
+  (modified/refreshed) and manage registration of update and removal listeners.
+- BaseDataPoint/ BaseParameterDataPoint: Concrete foundations for channel-bound
+  data points, including type/flag handling, unit and multiplier normalization,
+  value conversion, temporary write buffering, and path/name metadata.
+- CallParameterCollector: Helper to batch multiple set/put operations and wait
+  for callbacks, optimizing command dispatch.
+- bind_collector: Decorator to bind a collector to service methods conveniently.
+
+The classes here are used by generic, custom, calculated, and hub data point
+implementations to provide a uniform API for reading, writing, and observing
+parameter values across all supported devices.
+"""
 
 from __future__ import annotations
 

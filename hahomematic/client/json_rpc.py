@@ -1,4 +1,11 @@
-"""Implementation of an async json-rpc client."""
+"""
+Async JSON-RPC client for HomeMatic CCU-compatible backends.
+
+Provides login/session management, script execution, paramset/value access,
+program and system variable APIs, and interface/device metadata retrieval.
+Requests are executed via aiohttp with robust error handling and optional TLS
+verification. This client is used by the CentralUnit through ClientJsonCCU.
+"""
 
 from __future__ import annotations
 

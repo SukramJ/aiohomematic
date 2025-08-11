@@ -1,4 +1,43 @@
-"""Module for HaHomematic custom data point."""
+"""
+Custom data points for HaHomematic.
+
+This subpackage provides higher-level, device-specific data points that combine
+multiple backend parameters into single, meaningful entities (for example: a
+thermostat, a blind with tilt, a fixed-color light, a lock, a siren, a switch,
+or an irrigation valve). It also contains discovery helpers and a schema-based
+validation for model-specific configurations.
+
+What this package does
+- Discovery: create_custom_data_points() inspects a device model and, if a
+  matching custom definition exists and the device is not ignored for customs,
+  creates the appropriate custom data point(s) and attaches them to the device.
+- Definitions: The definition module holds the catalog of supported models and
+  the rules that describe which parameters form each custom entity. It exposes
+  helpers to query availability, enumerate required parameters, and validate the
+  definition schema.
+- Specializations: Rich custom data point classes for climate, light, cover,
+  lock, siren, switch, and irrigation valve provide tailored behavior and an API
+  focused on user intent (e.g., set_temperature, open_tilt, set_profile,
+  turn_on with effect, lock/open, vent, etc.).
+
+How it relates to the generic layer
+Custom data points build on top of generic data points. While the generic layer
+maps one backend parameter to one data point, this package groups multiple
+parameters across channels (where needed) into a single higher-level entity. The
+result is a simpler interface for automations and UIs, while still allowing the
+underlying generic data points to be created when desired.
+
+Public API entry points commonly used by integrators
+- create_custom_data_points(device): Run discovery and attach custom data points.
+- data_point_definition_exists(model): Check if a custom definition is available.
+- get_custom_configs(model, category=None): Retrieve the CustomConfig entries
+  used to create custom data points for a model (optionally filtered by
+  category).
+- get_required_parameters(): Return all parameters that must be fetched to allow
+  custom data points to function properly.
+- validate_custom_data_point_definition(): Validate the internal definition
+  schema; useful in tests and development.
+"""
 
 from __future__ import annotations
 
@@ -101,6 +140,8 @@ __all__ = [
     "SirenOnArgs",
     "WEEKDAY_DICT",
     "create_custom_data_points",
+    "data_point_definition_exists",
+    "get_custom_configs",
     "get_required_parameters",
     "validate_custom_data_point_definition",
 ]

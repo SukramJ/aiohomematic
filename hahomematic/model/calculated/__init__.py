@@ -1,4 +1,36 @@
-"""Module for HaHomematic calculated data points."""
+"""
+Calculated (derived) data points for HaHomematic.
+
+This subpackage provides data points whose values are computed from one or more
+underlying device data points. Typical examples include climate-related metrics
+(such as dew point, apparent temperature, frost point, vapor concentration) and
+battery/voltage related assessments (such as operating voltage level).
+
+How it works:
+- Each calculated data point is a lightweight model that subscribes to one or
+  more generic data points of a channel and recomputes its value when any of
+  the source data points change.
+- Relevance is determined per channel. A calculated data point class exposes an
+  "is_relevant_for_model" method that decides if the channel provides the
+  necessary inputs.
+- Creation is handled centrally via the factory function below.
+
+Factory:
+- create_calculated_data_points(channel): Iterates over the known calculated
+  implementations, checks their relevance against the given channel, and, if
+  applicable, creates and attaches instances to the channel so they behave like
+  normal read-only data points.
+
+Modules/classes:
+- ApparentTemperature, DewPoint, FrostPoint, VaporConcentration: Climate-related
+  sensors implemented in climate.py using well-known formulas (see
+  hahomematic.model.calculated.support for details and references).
+- OperatingVoltageLevel: Interprets battery/voltage values and exposes a human
+  readable operating level classification.
+
+These calculated data points complement generic and custom data points by
+exposing useful metrics not directly provided by the device/firmware.
+"""
 
 from __future__ import annotations
 

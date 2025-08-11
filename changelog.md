@@ -1,5 +1,6 @@
 # Version 2025.8.5 (2025-08-11
 
+- Improve module documentation
 - Small performance improvements
 
 # Version 2025.8.4 (2025-08-10)

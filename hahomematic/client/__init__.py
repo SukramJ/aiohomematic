@@ -1,4 +1,48 @@
-"""The client-object and its methods."""
+"""
+Client adapters for communicating with HomeMatic CCU and compatible backends.
+
+Overview
+--------
+This package provides client implementations that abstract the transport details of
+HomeMatic backends (e.g., CCU via JSON-RPC/XML-RPC or Homegear) and expose a
+consistent API used by the central module.
+
+Provided clients
+----------------
+- Client: Abstract base with common logic for parameter access, metadata retrieval,
+  connection checks, and firmware support detection.
+- ClientCCU: Concrete client for CCU-compatible backends using XML-RPC for write/reads
+  and optional JSON-RPC for rich metadata and sysvar/program access.
+- ClientJsonCCU: Specialization of ClientCCU that prefers JSON-RPC endpoints for
+  reads/writes and metadata.
+- ClientHomegear: Client for Homegear using XML-RPC.
+
+Key responsibilities
+--------------------
+- Initialize and manage transport proxies (XmlRpcProxy, JsonRpcAioHttpClient)
+- Read/write data point values and paramsets
+- Fetch device, channel, and parameter descriptions
+- Track connection health and implement ping/pong where supported
+- Provide program and system variable access (where supported)
+
+Quick start
+-----------
+Create a client via create_client using an InterfaceConfig and a CentralUnit:
+
+    from hahomematic import client as hmcl
+
+    iface_cfg = hmcl.InterfaceConfig(central_name="ccu-main", interface=hmcl.Interface.HMIP, port=2010)
+    client = hmcl.create_client(central, iface_cfg)
+    await client.init_client()
+    # ... use client.get_value(...), client.set_value(...), etc.
+
+Notes
+-----
+- Most users interact with clients via the CentralUnit. Direct usage is possible for
+  advanced scenarios.
+- XML-RPC support depends on the interface; JSON-RPC is only available on CCU backends.
+
+"""
 
 from __future__ import annotations
 

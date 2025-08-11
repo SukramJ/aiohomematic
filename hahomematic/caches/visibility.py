@@ -1,4 +1,31 @@
-"""Module about parameter visibility within hahomematic."""
+"""
+Parameter visibility rules and cache for HomeMatic data points.
+
+This module determines which parameters should be created, shown, hidden,
+ignored, or un‑ignored for channels and devices. It centralizes the rules
+that influence the visibility of data points exposed by the library.
+
+Overview
+- ParameterVisibilityCache: Computes and caches visibility decisions per model,
+  channel number, paramset and parameter. It consolidates rules from multiple
+  sources, such as model‑specific defaults, paramset relevance, hidden lists,
+  and explicit un‑ignore directives.
+- check_ignore_parameters_is_clean: Helper to verify that ignore/un‑ignore
+  configuration input is consistent.
+
+Key concepts
+- Relevant MASTER parameters: Certain MASTER paramset entries are promoted to
+  data points for selected models/channels (e.g. climate related settings), but
+  they may still be hidden by default for UI purposes.
+- Ignored vs un‑ignored: Parameters can be broadly ignored, with exceptions
+  defined via explicit un‑ignore rules that match model/channel/paramset keys.
+- Event suppression: For selected devices, button click events are suppressed to
+  avoid noise in event streams.
+
+The cache avoids recomputing rule lookups by storing decisions per combination
+of (model/channel/paramset/parameter). It is initialized on demand using data
+available on the CentralUnit and model descriptors.
+"""
 
 from __future__ import annotations
 

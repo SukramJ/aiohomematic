@@ -1,4 +1,22 @@
-"""Module for the Device class."""
+"""
+Device and channel model for HaHomematic.
+
+This module implements the runtime representation of a HomeMatic device and its
+channels, including creation and lookup of data points/events, firmware and
+availability handling, link management, value caching, and exporting of device
+definitions for diagnostics.
+
+Key classes:
+- Device: Encapsulates metadata, channels, and operations for a single device.
+- Channel: Represents a functional channel with its data points and events.
+
+Other components:
+- _ValueCache: Lazy loading and caching of parameter values to minimize RPCs.
+- _DefinitionExporter: Utility to export device and paramset descriptions.
+
+The Device/Channel classes are the anchor used by generic, custom, calculated,
+ and hub model code to attach data points and events.
+"""
 
 from __future__ import annotations
 

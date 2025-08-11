@@ -1,4 +1,21 @@
-"""Implementation of a locking ServerProxy for XML-RPC communication."""
+"""
+XML-RPC transport proxy with concurrency control and connection awareness.
+
+Overview
+--------
+XmlRpcProxy extends xmlrpc.client.ServerProxy to:
+- Execute RPC calls in a thread pool to avoid blocking the event loop
+- Integrate with CentralConnectionState to mark/report connection issues
+- Optionally use TLS with configurable certificate verification
+- Filter unsupported methods at runtime via system.listMethods
+
+Notes
+-----
+- The proxy cleans and normalizes argument encodings for XML-RPC.
+- Certain methods are allowed even when the connection is flagged down
+  (e.g., ping, init, getVersion) to support recovery.
+
+"""
 
 from __future__ import annotations
 

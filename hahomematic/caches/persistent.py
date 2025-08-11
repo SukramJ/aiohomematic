@@ -1,4 +1,32 @@
-"""Module for the persistent caches."""
+"""
+Persistent caches used to persist HomeMatic metadata between runs.
+
+This module provides on-disk caches that complement the short‑lived, in‑memory
+caches from hahomematic.caches.dynamic. The goal is to minimize expensive data
+retrieval from the backend by storing stable metadata such as device and
+paramset descriptions in JSON files inside a dedicated cache directory.
+
+Overview
+- BasePersistentCache: Abstract base for file‑backed caches. It encapsulates
+  file path resolution, change detection via hashing, and thread‑safe save/load
+  operations delegated to the CentralUnit looper.
+- DeviceDescriptionCache: Persists device descriptions per interface, including
+  the mapping of device/channels and model metadata.
+- ParamsetDescriptionCache: Persists paramset descriptions per interface and
+  channel, and offers helpers to query parameters, paramset keys and related
+  channel addresses.
+
+Key behaviors
+- Saves only if caches are enabled (CentralConfig.use_caches) and content has
+  changed (hash comparison), keeping I/O minimal and predictable.
+- Uses orjson for fast binary writes and json for reads with a custom
+  object_hook to rebuild nested defaultdict structures.
+- Save/load/clear operations are synchronized via a semaphore and executed via
+  the CentralUnit looper to avoid blocking the event loop.
+
+Helper functions are provided to build cache paths and filenames and to
+optionally clean up stale cache directories.
+"""
 
 from __future__ import annotations
 

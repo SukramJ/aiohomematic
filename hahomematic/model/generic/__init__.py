@@ -1,20 +1,47 @@
 """
 Generic data points for HaHomematic.
 
-This subpackage contains the default, device-agnostic data point types
-(switch, number, sensor, select, text, button, binary_sensor) and the factory
-that decides which type to instantiate for a given parameter description.
+Overview
+- This subpackage provides the default, device-agnostic data point classes
+  (switch, number, sensor, select, text, button, binary_sensor) used for most
+  parameters across Homematic devices.
+- It also exposes a central factory function that selects the appropriate data
+  point class for a parameter based on its description provided by the backend.
 
-Key aspects:
-- create_data_point_and_append_to_channel: Central factory that inspects
-  ParameterData (TYPE, OPERATIONS, FLAGS) and maps to a GenericDataPoint class.
-- Automatic mapping of WRITE/READ capabilities, ACTION vs SWITCH, ENUM to
-  select, and BOOL sensors to BinarySensor when appropriate.
-- Special handling for virtual remotes and click parameters, and optional
-  wrapping of specific parameters to a different category when needed.
+Factory
+- create_data_point_and_append_to_channel(channel, paramset_key, parameter, parameter_data)
+  inspects ParameterData (TYPE, OPERATIONS, FLAGS, etc.) to determine which
+  GenericDataPoint subclass to instantiate, creates it safely and appends it to
+  the given channel.
 
-These generic data points provide a stable foundation and are extended by
-custom- and calculated-specific implementations elsewhere in the model package.
+Mapping rules (simplified)
+- TYPE==ACTION:
+  - OPERATIONS==WRITE -> DpButton (for specific button-like actions or virtual
+    remotes) else DpAction; otherwise, when also readable, treat as DpSwitch.
+- TYPE in {BOOL, ENUM, FLOAT, INTEGER, STRING} with WRITE capabilities ->
+  DpSwitch, DpSelect, DpFloat, DpInteger, DpText respectively.
+- Read-only parameters (no WRITE) become sensors; BOOL-like sensors are mapped
+  to DpBinarySensor when heuristics indicate binary semantics.
+
+Special cases
+- Virtual remote models and click parameters are recognized and mapped to
+  button-style data points.
+- Certain device/parameter combinations may be wrapped into a different
+  category (e.g., switch shown as sensor) when the parameter is not meant to be
+  user-visible or is better represented as a sensor, depending on configuration
+  and device model.
+
+Exports
+- Generic data point base and concrete types: GenericDataPoint, DpSwitch,
+  DpAction, DpButton, DpBinarySensor, DpSelect, DpFloat, DpInteger, DpText,
+  DpSensor, BaseDpNumber.
+- Factory: create_data_point_and_append_to_channel.
+
+See Also
+- hahomematic.model.custom: Custom data points for specific devices/features.
+- hahomematic.model.calculated: Calculated/derived data points.
+- hahomematic.model.device: Device and channel abstractions used here.
+
 """
 
 from __future__ import annotations

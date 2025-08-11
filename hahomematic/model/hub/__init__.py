@@ -1,21 +1,74 @@
 """
 Hub (backend) data points for HaHomematic.
 
-This module manages program and system variable data points exposed by the
-backend (CCU/Homegear). It handles scanning/fetching, creation, updates, and
-cleanup of hub-level entities.
+Overview
+- This module reflects the state and capabilities of the backend (CCU/Homegear)
+  at the hub level. It exposes backend programs and system variables as data
+  points that can be observed and acted upon by higher layers (e.g.,
+  integrations).
 
-Key components:
-- Hub: Orchestrates fetching of programs and system variables, maintains
-  synchronization, and creates proper data point classes by type.
-- GenericProgramDataPoint/ProgramDpButton/ProgramDpSwitch: Represent hub
-  programs as invocable or switchable data points.
-- GenericSysvarDataPoint and specializations: Represent system variables as
-  sensor, binary_sensor, select, number, switch, or text, depending on type and
-  whether the variable is extended.
+Responsibilities
+- Fetch current lists of programs and system variables from the central unit.
+- Create and maintain concrete hub data point instances for those items.
+- Keep hub data points in sync with the backend (update values, add/remove).
+- Notify the system about newly created hub data points via backend events.
 
-The hub model complements device/channel data points by reflecting the control
-center state and enabling automations at the backend level.
+Public API (selected)
+- Hub: Orchestrates scanning and synchronization of hub-level data points.
+- ProgramDpButton / ProgramDpSwitch: Represent a backend program as an
+  invocable button or a switch-like control, respectively.
+- Sysvar data points: Map system variables to appropriate types:
+  - SysvarDpSensor, SysvarDpBinarySensor, SysvarDpSelect, SysvarDpNumber,
+    SysvarDpSwitch, SysvarDpText.
+- __all__: Exposes the classes and types intended for external consumption.
+
+Lifecycle and Flow
+1. fetch_program_data / fetch_sysvar_data (async) are scheduled or triggered
+   manually depending on configuration and availability of the central unit.
+2. On fetch:
+   - The module retrieves program/sysvar lists from the primary client.
+   - It identifies removed items and cleans up corresponding data points.
+   - It updates existing data points or creates new ones as needed.
+3. For newly created hub data points, a BackendSystemEvent.HUB_REFRESHED event
+   is emitted with a categorized mapping of the new points for consumers.
+
+Type Mapping for System Variables
+- Based on SysvarType and the extended_sysvar flag, system variables are
+  represented by the most suitable hub data point class. For example:
+  - ALARM/LOGIC → binary_sensor or switch (if extended)
+  - LIST (extended) → select
+  - FLOAT/INTEGER (extended) → number
+  - STRING (extended) → text
+  - Any other case → generic sensor
+
+Concurrency and Reliability
+- Fetch operations are protected by semaphores to avoid concurrent updates of
+  the same kind (programs or sysvars).
+- The inspector decorator helps ensure exceptions do not propagate unexpectedly
+  when fetching; errors are logged and the system continues operating.
+
+Backend Specifics and Cleanup
+- For CCU backends, certain internal variables (e.g., legacy "OldVal*",
+  "pcCCUID") are filtered out to avoid exposing irrelevant state.
+
+Categories and New Data Point Discovery
+- Newly created hub data points are grouped into HUB_CATEGORIES and returned as
+  a mapping, so subscribers can register and present them appropriately.
+
+Related Modules
+- hahomematic.model.hub.data_point: Base types for hub-level data points.
+- hahomematic.central: Central unit coordination and backend communication.
+- hahomematic.const: Shared constants, enums, and data structures.
+
+Example:
+- Typical usage occurs inside the central unit scheduling:
+    hub = Hub(central)
+    await hub.fetch_program_data(scheduled=True)
+    await hub.fetch_sysvar_data(scheduled=True)
+
+This module complements device/channel data points by reflecting control center
+state and enabling automations at the backend level.
+
 """
 
 from __future__ import annotations

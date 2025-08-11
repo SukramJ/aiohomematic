@@ -109,6 +109,8 @@ _HIDDEN_PARAMETERS: Final[tuple[Parameter, ...]] = (
     Parameter.UPDATE_PENDING,
     Parameter.WORKING,
 )
+# Fast membership for hidden parameters
+_HIDDEN_PARAMETERS_SET: Final[set[Parameter]] = set(_HIDDEN_PARAMETERS)
 
 # Parameters within the VALUES paramset for which we don't create data points.
 _IGNORED_PARAMETERS: Final[tuple[str, ...]] = (
@@ -185,6 +187,8 @@ _IGNORED_PARAMETERS: Final[tuple[str, ...]] = (
     "WIN_RELEASE",
     "WIN_RELEASE_ACT",
 )
+# Fast membership for ignored VALUE parameters
+_IGNORED_PARAMETERS_SET: Final[set[str]] = set(_IGNORED_PARAMETERS)
 
 
 # Precompile Regex patterns for wildcard checks
@@ -382,7 +386,7 @@ class ParameterVisibilityCache:
 
             if (
                 (
-                    (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
+                    (parameter in _IGNORED_PARAMETERS_SET or _parameter_is_wildcard_ignored(parameter=parameter))
                     and parameter not in self._required_parameters
                 )
                 or hms.element_matches_key(
@@ -666,7 +670,7 @@ class ParameterVisibilityCache:
         This is required to determine the data_point usage.
         Return only hidden parameters, that are no defined in the un_ignore file.
         """
-        return parameter in _HIDDEN_PARAMETERS and not self._parameter_is_un_ignored(
+        return parameter in _HIDDEN_PARAMETERS_SET and not self._parameter_is_un_ignored(
             channel=channel,
             paramset_key=paramset_key,
             parameter=parameter,
@@ -711,7 +715,7 @@ def check_ignore_parameters_is_clean() -> bool:
             [
                 parameter
                 for parameter in get_required_parameters()
-                if (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
+                if (parameter in _IGNORED_PARAMETERS_SET or _parameter_is_wildcard_ignored(parameter=parameter))
                 and parameter not in un_ignore_parameters_by_device
             ]
         )

@@ -813,8 +813,7 @@ class Client(ABC):
         value: Any,
         operation: Operations,
     ) -> Any:
-        # Rewrite check for LINK paramset
-        """Check a single parameter against paramset descriptions."""
+        """Check a single parameter against paramset descriptions and convert the value."""
         if parameter_data := self.central.paramset_descriptions.get_parameter_data(
             interface_id=self.interface_id,
             channel_address=channel_address,
@@ -822,12 +821,13 @@ class Client(ABC):
             parameter=parameter,
         ):
             pd_type = parameter_data["TYPE"]
-            pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
-            if not bool(pd_operation := int(parameter_data["OPERATIONS"]) & operation) and pd_operation:
+            op_mask = int(operation)
+            if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
                 raise ClientException(
                     f"Parameter {parameter} does not support the requested operation {operation.value}"
                 )
-
+            # Only build a tuple if a value list exists
+            pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
             return convert_value(value=value, target_type=pd_type, value_list=pd_value_list)
         raise ClientException(
             f"Parameter {parameter} could not be found: {self.interface_id}/{channel_address}/{paramset_key}"

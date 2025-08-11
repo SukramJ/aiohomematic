@@ -296,15 +296,15 @@ class ParameterVisibilityCache:
         "_custom_un_ignore_complex",
         "_custom_un_ignore_values_parameters",
         "_ignore_custom_device_definition_models",
+        "_param_ignored_cache",
+        "_param_un_ignored_cache",
         "_raw_un_ignores",
         "_relevant_master_paramsets_by_device",
+        "_relevant_prefix_cache",
         "_required_parameters",
         "_storage_folder",
         "_un_ignore_parameters_by_device_paramset_key",
         "_un_ignore_prefix_cache",
-        "_relevant_prefix_cache",
-        "_param_ignored_cache",
-        "_param_un_ignored_cache",
     )
 
     def __init__(

@@ -101,7 +101,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         if received_at is None:
             received_at = datetime.now()
         if self.event_type in DATA_POINT_EVENTS:
-            self.fire_data_point_updated_callback(parameter=self.parameter.lower())
+            self.fire_data_point_updated_callback()
         self._set_modified_at(modified_at=received_at)
         self.fire_event(value)
 

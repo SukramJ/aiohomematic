@@ -1,3 +1,7 @@
+# Version 2025.8.6 (2025-08-12)
+
+- Fix unique_id_prefix usage
+
 # Version 2025.8.5 (2025-08-11
 
 - Improve module documentation

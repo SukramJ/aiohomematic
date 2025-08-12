@@ -64,10 +64,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class GenericEvent(BaseParameterDataPoint[Any, Any]):
     """Base class for events."""
 
-    __slots__ = (
-        "_event_type",
-        "_unique_id_prefix",
-    )
+    __slots__ = ("_event_type",)
 
     _category = DataPointCategory.EVENT
     _event_type: EventType
@@ -79,12 +76,12 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         parameter_data: ParameterData,
     ) -> None:
         """Initialize the event handler."""
-        self._unique_id_prefix = f"event_{channel.central.name}"
         super().__init__(
             channel=channel,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
             parameter_data=parameter_data,
+            unique_id_prefix=f"event_{channel.central.name}",
         )
 
     @property

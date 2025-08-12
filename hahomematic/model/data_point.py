@@ -567,14 +567,13 @@ class BaseParameterDataPoint[
         "_visible",
     )
 
-    _unique_id_prefix: str = ""
-
     def __init__(
         self,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
         parameter_data: ParameterData,
+        unique_id_prefix: str = "",
     ) -> None:
         """Initialize the data_point."""
         self._paramset_key: Final = paramset_key
@@ -588,7 +587,7 @@ class BaseParameterDataPoint[
                 central=channel.central,
                 address=channel.address,
                 parameter=parameter,
-                prefix=self._unique_id_prefix,
+                prefix=unique_id_prefix,
             ),
             is_in_multiple_channels=channel.device.central.paramset_descriptions.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter

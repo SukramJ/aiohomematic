@@ -5,6 +5,7 @@ body:
     attributes:
       value: |
         This issue form is for reporting bugs only! Use the discussions for feature requests and support stuff.
+        Please avoid unnecessary effort by reading the points below, otherwise I reserve the right to close the issue without comment.
   - type: checkboxes
     attributes:
       label: I agree to the following

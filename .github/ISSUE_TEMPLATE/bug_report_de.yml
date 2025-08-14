@@ -5,6 +5,7 @@ body:
     attributes:
       value: |
         Dieses Formular dient ausschließlich zur Meldung von Fehlern! Nutze die Diskussionen für Funktions- und Support-Anfragen.
+        Bitte vermeide unnötigen Aufwand, indem die folgenden Punkte aufmerksam gelesen werden. Andernfalls behalte ich mir das Recht vor, das Issue kommentarlos zu schließen.
   - type: checkboxes
     attributes:
       label: Ich stimme dem Folgenden zu

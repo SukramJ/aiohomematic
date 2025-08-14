@@ -78,7 +78,7 @@ class Example:
             username=CCU_USERNAME,
             password=CCU_PASSWORD,
             central_id="1234",
-            storage_folder="homematicip_local",
+            storage_folder="aiohomematic_storage",
             interface_configs=interface_configs,
             default_callback_port=54321,
         ).create_central()

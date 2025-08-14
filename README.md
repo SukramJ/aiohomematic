@@ -1,4 +1,4 @@
-# aioHomematic (hahomematic)
+# AIO Homematic (hahomematic)
 
 A lightweight Python 3 library that powers Home Assistant integrations for controlling and monitoring [HomeMatic](https://www.eq-3.com/products/homematic.html) and [HomematicIP](https://www.homematic-ip.com/en/start.html) devices. Some third‑party devices/gateways (e.g., Bosch, Intertechno) may be supported as well.
 

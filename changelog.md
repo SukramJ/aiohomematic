@@ -422,7 +422,7 @@
 
 # Version 2024.10.14 (2024-10-26)
 
-- Use version from module aiohomematic
+- Use version from module
 
 # Version 2024.10.13 (2024-10-24)
 
@@ -1705,7 +1705,7 @@
 
 # Version 2022.7.0 (2022-07-07)
 
-- Switch to calendar versioning for aiohomematic
+- Switch to calendar versioning
 
 # Version 1.9.4 (2022-07-03)
 

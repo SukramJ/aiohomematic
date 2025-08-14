@@ -1,7 +1,8 @@
-# Version 2025.8.6 (2025-08-12)
+# Version 2025.8.6 (2025-08-14)
 
 - Do not send additional parameter in kwargs for events
 - Fix unique_id_prefix usage
+- Rename hahomematic to aiohomematic
 
 # Version 2025.8.5 (2025-08-11
 

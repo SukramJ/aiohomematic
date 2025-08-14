@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from hahomematic.model.calculated.support import (
+from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
     calculate_dew_point,
     calculate_frost_point,

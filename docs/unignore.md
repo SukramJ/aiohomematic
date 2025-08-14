@@ -1,11 +1,11 @@
 # unignore
 
-_Hahomematic_ maintains [multiple lists](https://github.com/sukramj/hahomematic/blob/devel/hahomematic/caches/visibility.py#L86) of parameters that should be ignored when entities are created for _Home-Assistant_.
+_AioHomematic_ maintains [multiple lists](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/caches/visibility.py#L86) of parameters that should be ignored when entities are created for _Home-Assistant_.
 These parameters are filtered out to provide a better user experience for the majority of the users.
 
 But there is also a group of users that wants to do more... _things_.
 
-These advanced users can use the _unignore mechanism_ provided by _hahomematic_.
+These advanced users can use the _unignore mechanism_ provided by _aiohomematic_.
 
 You must accept the following before using the _unignore mechanism_:
 

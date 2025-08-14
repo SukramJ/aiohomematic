@@ -1,4 +1,4 @@
-"""Tests for button data points of hahomematic."""
+"""Tests for button data points of aiohomematic."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from unittest.mock import Mock, call
 
 import pytest
 
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
-from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
-from hahomematic.model.custom import CustomDpIpLock, CustomDpRfLock
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
+from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
+from aiohomematic.model.custom import CustomDpIpLock, CustomDpRfLock
 
 from tests import const, helper
 

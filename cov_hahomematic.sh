@@ -1,1 +1,1 @@
-pytest --cov=hahomematic --cov-config=.coveragerc --cov-report html tests/
+pytest --cov=aiohomematic --cov-config=.coveragerc --cov-report html tests/

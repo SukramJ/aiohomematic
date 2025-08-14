@@ -6,7 +6,7 @@ repos:
         args:
           - --fix
       - id: ruff-format
-        files: ^((hahomematic|hahomematic_support|pylint|script|tests)/.+)?[^/]+\.py$
+        files: ^((aiohomematic|aiohomematic_support|pylint|script|tests)/.+)?[^/]+\.py$
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.0
     hooks:
@@ -16,7 +16,7 @@ repos:
           - --skip="./.*,*.csv,*.json"
           - --quiet-level=2
         exclude_types: [csv, json]
-        exclude: ^tests/fixtures/|hahomematic/rega_scripts|.github/ISSUE_TEMPLATE/bug_report_de.yml
+        exclude: ^tests/fixtures/|aiohomematic/rega_scripts|.github/ISSUE_TEMPLATE/bug_report_de.yml
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.6
     hooks:
@@ -25,7 +25,7 @@ repos:
           - --quiet
           - --format=custom
           - --configfile=tests/bandit.yaml
-        files: ^(hahomematic|hahomematic_support|script|tests)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_support|script|tests)/.+\.py$
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -58,7 +58,7 @@ repos:
           - --py313-plus
           - --force
           - --keep-updates
-        files: ^(hahomematic|hahomematic_support|tests|script)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_support|tests|script)/.+\.py$
   - repo: local
     hooks:
       # Run mypy through our wrapper script in order to get the possible
@@ -71,10 +71,10 @@ repos:
         language: script
         types_or: [python, pyi]
         require_serial: true
-        files: ^(hahomematic|hahomematic_support|pylint)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_support|pylint)/.+\.py$
       - id: pylint
         name: pylint
         entry: script/run-in-env.sh pylint -j 0
         language: script
         types_or: [python, pyi]
-        files: ^(hahomematic|hahomematic_support)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_support)/.+\.py$

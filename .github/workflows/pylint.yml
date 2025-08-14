@@ -23,4 +23,4 @@ jobs:
           pip install -r requirements_test.txt
       - name: Analysing the code with pylint
         run: |
-          pylint $(git ls-files 'hahomematic/**/*.py')
+          pylint $(git ls-files 'aiohomematic/**/*.py')

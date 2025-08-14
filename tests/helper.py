@@ -13,13 +13,13 @@ from unittest.mock import MagicMock, Mock, patch
 from aiohttp import ClientSession
 import orjson
 
-from hahomematic import const as hahomematic_const
-from hahomematic.central import CentralConfig, CentralUnit
-from hahomematic.client import Client, InterfaceConfig, _ClientConfig
-from hahomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
-from hahomematic.model.custom import CustomDataPoint
-from hahomematic.model.decorators import _get_public_attributes_by_class_decorator
-from hahomematic_support.client_local import ClientLocal, LocalRessources
+from aiohomematic import const as aiohomematic_const
+from aiohomematic.central import CentralConfig, CentralUnit
+from aiohomematic.client import Client, InterfaceConfig, _ClientConfig
+from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
+from aiohomematic.model.custom import CustomDataPoint
+from aiohomematic.model.decorators import _get_public_attributes_by_class_decorator
+from aiohomematic_support.client_local import ClientLocal, LocalRessources
 
 from tests import const
 
@@ -79,7 +79,7 @@ class Factory:
         """Return a central based on give address_device_translation."""
         interface_config = InterfaceConfig(
             central_name=const.CENTRAL_NAME,
-            interface=hahomematic_const.Interface.BIDCOS_RF,
+            interface=aiohomematic_const.Interface.BIDCOS_RF,
             port=2002,
         )
 
@@ -125,17 +125,17 @@ class Factory:
             ignore_custom_device_definition_models=ignore_custom_device_definition_models,
         )
 
-        patch("hahomematic.central.CentralUnit._get_primary_client", return_value=client).start()
-        patch("hahomematic.client._ClientConfig.create_client", return_value=client).start()
+        patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client).start()
+        patch("aiohomematic.client._ClientConfig.create_client", return_value=client).start()
         patch(
-            "hahomematic_support.client_local.ClientLocal.get_all_system_variables",
+            "aiohomematic_support.client_local.ClientLocal.get_all_system_variables",
             return_value=const.SYSVAR_DATA if add_sysvars else [],
         ).start()
         patch(
-            "hahomematic_support.client_local.ClientLocal.get_all_programs",
+            "aiohomematic_support.client_local.ClientLocal.get_all_programs",
             return_value=const.PROGRAM_DATA if add_programs else [],
         ).start()
-        patch("hahomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
+        patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
 
         await central.start()
         if new_device_addresses := central._check_for_new_device_addresses():
@@ -200,7 +200,7 @@ def _load_json_file(anchor: str, resource: str, filename: str) -> Any | None:
     package_path = str(importlib.resources.files(anchor))
     with open(
         file=os.path.join(package_path, resource, filename),
-        encoding=hahomematic_const.UTF_8,
+        encoding=aiohomematic_const.UTF_8,
     ) as fptr:
         return orjson.loads(fptr.read())
 

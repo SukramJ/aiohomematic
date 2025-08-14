@@ -1,4 +1,4 @@
-# hahomematic
+# aioHomematic (hahomematic)
 
 A lightweight Python 3 library that powers Home Assistant integrations for controlling and monitoring [HomeMatic](https://www.eq-3.com/products/homematic.html) and [HomematicIP](https://www.homematic-ip.com/en/start.html) devices. Some third‑party devices/gateways (e.g., Bosch, Intertechno) may be supported as well.
 
@@ -6,7 +6,7 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 
 ## How it works
 
-Unlike pyhomematic, which required manual device mappings, hahomematic automatically creates entities for each relevant parameter on every device channel (unless blacklisted). To achieve this it:
+Unlike pyhomematic, which required manual device mappings, aiohomematic automatically creates entities for each relevant parameter on every device channel (unless blacklisted). To achieve this it:
 
 - Fetches and caches device paramsets (VALUES) for fast successive startups.
 - Provides hooks for custom entity classes where complex behavior is needed (e.g., thermostats, lights, covers, climate, locks, sirens).
@@ -27,7 +27,7 @@ Follow the installation guide: https://github.com/sukramj/custom_homematic/wiki/
 
 ## Requirements
 
-Due to a bug in earlier CCU2/CCU3 firmware, hahomematic requires at least the following versions when used with HomematicIP devices:
+Due to a bug in earlier CCU2/CCU3 firmware, aiohomematic requires at least the following versions when used with HomematicIP devices:
 
 - CCU2: 2.53.27
 - CCU3: 3.53.26

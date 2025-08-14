@@ -1,4 +1,4 @@
-"""Example for hahomematic."""
+"""Example for aiohomematic."""
 
 # !/usr/bin/python3
 from __future__ import annotations
@@ -8,11 +8,11 @@ import logging
 import sys
 from unittest.mock import patch
 
-from hahomematic import const
-from hahomematic.central import CentralConfig
-from hahomematic.client import InterfaceConfig, _ClientConfig
-from hahomematic.model.custom import validate_custom_data_point_definition
-from hahomematic_support.client_local import ClientLocal, LocalRessources
+from aiohomematic import const
+from aiohomematic.central import CentralConfig
+from aiohomematic.client import InterfaceConfig, _ClientConfig
+from aiohomematic.model.custom import validate_custom_data_point_definition
+from aiohomematic_support.client_local import ClientLocal, LocalRessources
 
 logging.basicConfig(level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ CENTRAL_NAME = "ccu-dev"
 
 
 class Example:
-    """Example for hahomematic."""
+    """Example for aiohomematic."""
 
     # Create a server that listens on LOCAL_HOST:* and identifies itself as myserver.
     got_devices = False
@@ -469,8 +469,8 @@ class Example:
         const.INIT_TIMEOUT = 10
 
         with (
-            patch("hahomematic.central.CentralUnit._get_primary_client", return_value=client),
-            patch("hahomematic.client._ClientConfig.create_client", return_value=client),
+            patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client),
+            patch("aiohomematic.client._ClientConfig.create_client", return_value=client),
         ):
             await self.central.start()
             await self.central._refresh_device_descriptions(client=client)

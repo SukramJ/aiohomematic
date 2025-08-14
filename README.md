@@ -21,9 +21,9 @@ Unlike pyhomematic, which required manual device mappings, aiohomematic automati
 
 ## Installation (with Home Assistant)
 
-Install via the custom component: [custom_homematic](https://github.com/sukramj/custom_homematic).
+Install via the custom component: [Homematic(IP) Local](https://github.com/sukramj/homematicip_local).
 
-Follow the installation guide: https://github.com/sukramj/custom_homematic/wiki/Installation
+Follow the installation guide: https://github.com/sukramj/homematicip_local/wiki/Installation
 
 ## Requirements
 

@@ -9,11 +9,11 @@ body:
     attributes:
       label: Ich stimme dem Folgenden zu
       options:
-        - label: Ich habe die [Dokumentation](https://github.com/sukramj/custom_homematic#custom_homematic) gelesen
+        - label: Ich habe die [Dokumentation](https://github.com/sukramj/homematicip_local#homematicip_local) gelesen
           required: true
-        - label: Ich habe die [FAQs](https://github.com/sukramj/custom_homematic#frequently-asked-questions) gelesen
+        - label: Ich habe die [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions) gelesen
           required: true
-        - label: Ich kenne die neuesten [Versionshinweise](https://github.com/sukramj/custom_homematic/releases)
+        - label: Ich kenne die neuesten [Versionshinweise](https://github.com/sukramj/homematicip_local/releases)
           required: true
         - label: Mir ist klar, dass eine Integration, die über HACS installiert wurde, auch über HACS aktualisiert werden muss
           required: true
@@ -98,7 +98,7 @@ body:
       options:
         - label: TLS
           required: false
-        - label: Callback Daten ([siehe](https://github.com/sukramj/custom_homematic#callback_host-and-callback_port))
+        - label: Callback Daten ([siehe](https://github.com/sukramj/homematicip_local#callback_host-and-callback_port))
           required: false
   - type: checkboxes
     attributes:

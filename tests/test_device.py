@@ -1,4 +1,4 @@
-"""Tests for devices of hahomematic."""
+"""Tests for devices of aiohomematic."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
 
 from tests import const, helper
 

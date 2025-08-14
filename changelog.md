@@ -1,7 +1,8 @@
-# Version 2025.8.6 (2025-08-12)
+# Version 2025.8.6 (2025-08-14)
 
 - Do not send additional parameter in kwargs for events
 - Fix unique_id_prefix usage
+- Rename hahomematic to aiohomematic
 
 # Version 2025.8.5 (2025-08-11
 
@@ -421,7 +422,7 @@
 
 # Version 2024.10.14 (2024-10-26)
 
-- Use version from module hahomematic
+- Use version from module
 
 # Version 2024.10.13 (2024-10-24)
 
@@ -1704,7 +1705,7 @@
 
 # Version 2022.7.0 (2022-07-07)
 
-- Switch to calendar versioning for hahomematic
+- Switch to calendar versioning
 
 # Version 1.9.4 (2022-07-03)
 
@@ -2344,7 +2345,7 @@
 - Remove dedicated json tls option
 - Fix unique_id for heating_groups
 - Use domain name as base folder name
-- Remove domain const from hahomematic
+- Remove domain const from aiohomematic
 
 # Version 0.12.0 (2022-01-03)
 

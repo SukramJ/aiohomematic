@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hahomematic.const import LOCAL_HOST, Interface, ProgramData, SystemVariableData, SysvarType
+from aiohomematic.const import LOCAL_HOST, Interface, ProgramData, SystemVariableData, SysvarType
 
 CENTRAL_NAME = "CentralTest"
 CCU_HOST = LOCAL_HOST

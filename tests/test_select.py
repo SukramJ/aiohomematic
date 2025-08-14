@@ -1,4 +1,4 @@
-"""Tests for select data points of hahomematic."""
+"""Tests for select data points of aiohomematic."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ from unittest.mock import Mock, call
 
 import pytest
 
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
-from hahomematic.const import DataPointUsage, ParamsetKey
-from hahomematic.model.generic import DpSelect
-from hahomematic.model.hub import SysvarDpSelect
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
+from aiohomematic.const import DataPointUsage, ParamsetKey
+from aiohomematic.model.generic import DpSelect
+from aiohomematic.model.hub import SysvarDpSelect
 
 from tests import const, helper
 

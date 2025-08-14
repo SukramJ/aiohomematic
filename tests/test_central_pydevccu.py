@@ -1,4 +1,4 @@
-"""Test the HaHomematic central."""
+"""Test the AioHomematic central."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ import os
 import orjson
 import pytest
 
-from hahomematic.const import ADDRESS_SEPARATOR, DataPointUsage
-from hahomematic.model.decorators import (
+from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
+from aiohomematic.model.decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
     get_public_attributes_for_state_property,
 )
-from hahomematic.model.generic import GenericDataPoint
+from aiohomematic.model.generic import GenericDataPoint
 
 from tests import const
 

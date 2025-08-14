@@ -3,7 +3,7 @@ requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name        = "hahomematic"
+name        = "aiohomematic"
 dynamic = ["version"]
 license     = {text = "MIT License"}
 description = "Homematic interface for Home Assistant running on Python 3."
@@ -31,26 +31,26 @@ dependencies    = [
 ]
 
 [project.urls]
-"Source Code" = "https://github.com/sukramj/hahomematic"
-"Bug Reports" = "https://github.com/sukramj/hahomematic/issues"
-"Docs: Dev"   = "https://github.com/sukramj/hahomematic"
-"Forum"       = "https://github.com/sukramj/hahomematic/discussions"
+"Source Code" = "https://github.com/sukramj/aiohomematic"
+"Bug Reports" = "https://github.com/sukramj/aiohomematic/issues"
+"Docs: Dev"   = "https://github.com/sukramj/aiohomematic"
+"Forum"       = "https://github.com/sukramj/aiohomematic/discussions"
 
 [options.entry_points."console_scripts"]
-hahomematic = "hahomematic.hmcli:main"
+aiohomematic = "aiohomematic.hmcli:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.dynamic]
-version = {attr = "hahomematic.const.VERSION"}
+version = {attr = "aiohomematic.const.VERSION"}
 
 [tool.setuptools.packages.find]
-include = ["hahomematic*"]
+include = ["aiohomematic*"]
 exclude = ["tests", "tests.*", "dist", "build"]
 
 [tool.setuptools.package-data]
-hahomematic = ["py.typed", "rega_scripts/*.fn"]
+aiohomematic = ["py.typed", "rega_scripts/*.fn"]
 
 [tool.pylint.MAIN]
 py-version = "3.13"
@@ -389,8 +389,8 @@ max-line-length-suggestions = 120
 [tool.pytest.ini_options]
 pythonpath = [
     ".",
-    "hahomematic",
-    "hahomematic_support",
+    "aiohomematic",
+    "aiohomematic_support",
 ]
 testpaths = [
     "tests",
@@ -542,16 +542,16 @@ fixture-parentheses = false
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
 voluptuous = "vol"
-"hahomematic.central" = "hmcu"
-"hahomematic.central.xml_rpc_server" = "xmlrpc"
-"hahomematic.client" = "hmcl"
-"hahomematic.exporter" = "hmexp"
-"hahomematic.platforms.custom.definition" = "hmed"
-"hahomematic.platforms.custom.entity" = "hmce"
-"hahomematic.platforms.device" = "hmd"
-"hahomematic.platforms.entity" = "hme"
-"hahomematic.platforms.generic.entity" = "hmge"
-"hahomematic.support" = "hms"
+"aiohomematic.central" = "hmcu"
+"aiohomematic.central.xml_rpc_server" = "xmlrpc"
+"aiohomematic.client" = "hmcl"
+"aiohomematic.exporter" = "hmexp"
+"aiohomematic.platforms.custom.definition" = "hmed"
+"aiohomematic.platforms.custom.entity" = "hmce"
+"aiohomematic.platforms.device" = "hmd"
+"aiohomematic.platforms.entity" = "hme"
+"aiohomematic.platforms.generic.entity" = "hmge"
+"aiohomematic.support" = "hms"
 
 [tool.ruff.lint.per-file-ignores]
 "script/*" = ["T20"]
@@ -559,7 +559,7 @@ voluptuous = "vol"
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
 required-imports = ["from __future__ import annotations"]
-known-first-party = ["hahomematic",]
+known-first-party = ["aiohomematic",]
 known-third-party = ["orjson","voluptuous",]
 combine-as-imports = true
 split-on-trailing-comma = false
@@ -569,7 +569,7 @@ max-complexity = 25
 
 
 [tool.coverage.run]
-source = ["hahomematic",]
+source = ["aiohomematic",]
 
 [tool.coverage.report]
 exclude_lines = [

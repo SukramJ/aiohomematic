@@ -1,4 +1,4 @@
-"""Tests for climate data points of hahomematic."""
+"""Tests for climate data points of aiohomematic."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from unittest.mock import Mock, call
 from freezegun import freeze_time
 import pytest
 
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
-from hahomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
-from hahomematic.exceptions import ValidationException
-from hahomematic.model.custom import (
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
+from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
+from aiohomematic.exceptions import ValidationException
+from aiohomematic.model.custom import (
     BaseCustomDpClimate,
     ClimateActivity,
     ClimateMode,
@@ -23,7 +23,7 @@ from hahomematic.model.custom import (
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
 )
-from hahomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
+from aiohomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
 
 from tests import const, helper
 

@@ -1,4 +1,4 @@
-"""Example for hahomematic."""
+"""Example for aiohomematic."""
 
 # !/usr/bin/python3
 from __future__ import annotations
@@ -7,10 +7,10 @@ import asyncio
 import logging
 import sys
 
-from hahomematic import const
-from hahomematic.central import CentralConfig
-from hahomematic.client import InterfaceConfig
-from hahomematic.model.custom import validate_custom_data_point_definition
+from aiohomematic import const
+from aiohomematic.central import CentralConfig
+from aiohomematic.client import InterfaceConfig
+from aiohomematic.model.custom import validate_custom_data_point_definition
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ CCU_PASSWORD = ""
 
 
 class Example:
-    """Example for hahomematic."""
+    """Example for aiohomematic."""
 
     # Create a server that listens on LOCAL_HOST:* and identifies itself as myserver.
     got_devices = False
@@ -78,7 +78,7 @@ class Example:
             username=CCU_USERNAME,
             password=CCU_PASSWORD,
             central_id="1234",
-            storage_folder="homematicip_local",
+            storage_folder="aiohomematic_storage",
             interface_configs=interface_configs,
             default_callback_port=54321,
         ).create_central()

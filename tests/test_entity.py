@@ -1,4 +1,4 @@
-"""Tests for switch data points of hahomematic."""
+"""Tests for switch data points of aiohomematic."""
 
 from __future__ import annotations
 
@@ -7,12 +7,12 @@ from unittest.mock import MagicMock, Mock, call
 
 import pytest
 
-from hahomematic.caches.visibility import check_ignore_parameters_is_clean
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
-from hahomematic.const import CallSource, DataPointUsage, ParamsetKey
-from hahomematic.model.custom import CustomDpSwitch, get_required_parameters, validate_custom_data_point_definition
-from hahomematic.model.generic import DpSensor, DpSwitch
+from aiohomematic.caches.visibility import check_ignore_parameters_is_clean
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
+from aiohomematic.const import CallSource, DataPointUsage, ParamsetKey
+from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters, validate_custom_data_point_definition
+from aiohomematic.model.generic import DpSensor, DpSwitch
 
 from tests import const, helper
 

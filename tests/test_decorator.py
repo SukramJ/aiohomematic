@@ -1,8 +1,8 @@
-"""Tests for switch data points of hahomematic."""
+"""Tests for switch data points of aiohomematic."""
 
 from __future__ import annotations
 
-from hahomematic.model.decorators import (
+from aiohomematic.model.decorators import (
     config_property,
     get_public_attributes_for_config_property,
     get_public_attributes_for_state_property,

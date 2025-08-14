@@ -1,4 +1,4 @@
-"""Test support for hahomematic."""
+"""Test support for aiohomematic."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 import pydevccu
 import pytest
 
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
 
 from tests import const, helper
 

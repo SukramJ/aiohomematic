@@ -1,4 +1,4 @@
-"""Tests for switch data points of hahomematic."""
+"""Tests for switch data points of aiohomematic."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
-from hahomematic.const import (
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
+from aiohomematic.const import (
     INIT_DATETIME,
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
@@ -23,9 +23,9 @@ from hahomematic.const import (
     ParamsetKey,
     SysvarType,
 )
-from hahomematic.converter import _COMBINED_PARAMETER_TO_HM_CONVERTER, convert_hm_level_to_cpv
-from hahomematic.exceptions import HaHomematicException
-from hahomematic.model.support import (
+from aiohomematic.converter import _COMBINED_PARAMETER_TO_HM_CONVERTER, convert_hm_level_to_cpv
+from aiohomematic.exceptions import AioHomematicException
+from aiohomematic.model.support import (
     _check_channel_name_with_channel_no,
     convert_value,
     generate_unique_id,
@@ -34,7 +34,7 @@ from hahomematic.model.support import (
     get_device_name,
     get_event_name,
 )
-from hahomematic.support import (
+from aiohomematic.support import (
     build_xml_rpc_headers,
     build_xml_rpc_uri,
     changed_within_seconds,
@@ -131,7 +131,7 @@ def test_check_or_create_directory() -> None:
         ),
         patch("os.makedirs", side_effect=OSError("bla bla")),
     ):
-        with pytest.raises(HaHomematicException) as exc:
+        with pytest.raises(AioHomematicException) as exc:
             check_or_create_directory(directory="tmpdir_ex")
         assert exc
 
@@ -203,7 +203,7 @@ async def test_get_data_point_name(
     assert name_data.name == "Roof Level"
 
     with patch(
-        "hahomematic.model.support._get_base_name_from_channel_or_device",
+        "aiohomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
         name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
@@ -246,7 +246,7 @@ async def test_get_event_name(
     assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
 
     with patch(
-        "hahomematic.model.support._get_base_name_from_channel_or_device",
+        "aiohomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
@@ -315,7 +315,7 @@ async def test_custom_data_point_name(
     assert name_data.name == "Roof"
 
     with patch(
-        "hahomematic.model.support._get_base_name_from_channel_or_device",
+        "aiohomematic.model.support._get_base_name_from_channel_or_device",
         return_value=None,
     ):
         name_data = get_custom_data_point_name(

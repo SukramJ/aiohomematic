@@ -1,4 +1,4 @@
-"""Test the HaHomematic central."""
+"""Test the AioHomematic central."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
-from hahomematic.central import CentralUnit
-from hahomematic.client import Client
-from hahomematic.const import (
+from aiohomematic.central import CentralUnit
+from aiohomematic.client import Client
+from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
     LOCAL_HOST,
     PING_PONG_MISMATCH_COUNT,
@@ -24,7 +24,7 @@ from hahomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from hahomematic.exceptions import HaHomematicException, NoClientsException
+from aiohomematic.exceptions import AioHomematicException, NoClientsException
 
 from tests import const, helper
 
@@ -678,7 +678,7 @@ async def test_central_not_alive(factory: helper.Factory) -> None:
         assert central.is_alive is True
 
         mock_client.is_callback_alive.return_value = False
-        with patch("hahomematic.client.create_client", return_value=mock_client):
+        with patch("aiohomematic.client.create_client", return_value=mock_client):
             await central.start()
 
         assert central.available is False
@@ -777,7 +777,7 @@ async def test_central_services(
     )
     assert len(mock_client.method_calls) == 55
 
-    with pytest.raises(HaHomematicException):
+    with pytest.raises(AioHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
             channel_address="123",
             paramset_key=ParamsetKey.VALUES,
@@ -795,7 +795,7 @@ async def test_central_services(
         channel_address="123", paramset_key_or_link_address=ParamsetKey.VALUES, values={"LEVEL": 1.0}
     )
     assert len(mock_client.method_calls) == 56
-    with pytest.raises(HaHomematicException):
+    with pytest.raises(AioHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
             channel_address="123",
             paramset_key_or_link_address=ParamsetKey.VALUES,
@@ -819,7 +819,7 @@ async def test_central_direct(factory: helper.Factory) -> None:
         assert central.system_information.serial is None
         assert central.is_alive is True
 
-        with patch("hahomematic.client.create_client", return_value=mock_client):
+        with patch("aiohomematic.client.create_client", return_value=mock_client):
             await central.start()
         assert await central._create_clients() is False
 
@@ -841,7 +841,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
         with pytest.raises(NoClientsException):
             await central.validate_config_and_get_system_information()
 
-        with pytest.raises(HaHomematicException):
+        with pytest.raises(AioHomematicException):
             central.get_client("NOT_A_VALID_INTERFACE_ID")
 
         await central.start()

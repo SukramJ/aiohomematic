@@ -1,0 +1,1 @@
+pytest --cov=aiohomematic --cov-config=.coveragerc --cov-report html tests/

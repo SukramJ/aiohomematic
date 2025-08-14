@@ -1,1 +1,0 @@
-pytest --cov=hahomematic --cov-config=.coveragerc --cov-report html tests/

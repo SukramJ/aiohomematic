@@ -1,3 +1,7 @@
+# Version 2025.8.7 (2025-08-16)
+
+-
+
 # Version 2025.8.6 (2025-08-14)
 
 - Do not send additional parameter in kwargs for events

@@ -371,6 +371,8 @@ class Device(PayloadMixin):
         """Return the room of the device, if only one assigned in CCU."""
         if self._rooms and len(self._rooms) == 1:
             return list(self._rooms)[0]
+        if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
+            return maintenance_channel.room
         return None
 
     @property
@@ -857,6 +859,8 @@ class Channel(PayloadMixin):
         """Return the room of the device, if only one assigned in CCU."""
         if self._rooms and len(self._rooms) == 1:
             return list(self._rooms)[0]
+        if (master_channel := self.group_master) is not None:
+            return master_channel.room
         return None
 
     @property

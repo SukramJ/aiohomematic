@@ -1,3 +1,8 @@
+# Version 2025.8.7 (2025-08-17)
+
+- Use room from channel 0 for device, if multiple set on channels
+- Use room from master channel, if multiple set on channel group
+
 # Version 2025.8.6 (2025-08-14)
 
 - Do not send additional parameter in kwargs for events

@@ -859,6 +859,8 @@ class Channel(PayloadMixin):
         """Return the room of the device, if only one assigned in CCU."""
         if self._rooms and len(self._rooms) == 1:
             return list(self._rooms)[0]
+        if self.is_group_master:
+            return None
         if (master_channel := self.group_master) is not None:
             return master_channel.room
         return None

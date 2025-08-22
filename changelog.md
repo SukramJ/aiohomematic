@@ -1,3 +1,7 @@
+# Version 2025.8.8 (2025-08-22)
+
+- Improve fetch_all_device_data
+
 # Version 2025.8.7 (2025-08-17)
 
 - Use room from channel 0 for device, if multiple set on channels

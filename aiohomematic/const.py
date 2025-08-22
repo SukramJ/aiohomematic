@@ -11,7 +11,7 @@ import re
 import sys
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.8.7"
+VERSION: Final = "2025.8.8"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (

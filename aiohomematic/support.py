@@ -18,6 +18,8 @@ import ssl
 import sys
 from typing import Any, Final, cast
 
+import orjson
+
 from aiohomematic import client as hmcl
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
@@ -430,9 +432,20 @@ def debug_enabled() -> bool:
 
 
 def hash_sha256(value: Any) -> str:
-    """Hash a value with sha256."""
+    """
+    Hash a value with sha256.
+
+    Uses orjson to serialize the value with sorted keys for a fast and stable
+    representation. Falls back to the repr-based approach if
+    serialization fails (e.g., unsupported types).
+    """
     hasher = hashlib.sha256()
-    hasher.update(repr(_make_value_hashable(value)).encode())
+    try:
+        data = orjson.dumps(value, option=orjson.OPT_SORT_KEYS | orjson.OPT_NON_STR_KEYS)
+    except Exception:
+        # Fallback: convert to a hashable representation and use repr()
+        data = repr(_make_value_hashable(value)).encode()
+    hasher.update(data)
     return base64.b64encode(hasher.digest()).decode()
 
 

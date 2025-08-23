@@ -298,14 +298,14 @@ class CentralUnit(PayloadMixin):
         )
 
     @property
-    def interface_ids(self) -> tuple[str, ...]:
+    def interface_ids(self) -> frozenset[str]:
         """Return all associated interface ids."""
-        return tuple(self._clients)
+        return frozenset(self._clients)
 
     @property
-    def interfaces(self) -> tuple[Interface, ...]:
+    def interfaces(self) -> frozenset[Interface]:
         """Return all associated interfaces."""
-        return tuple(client.interface for client in self._clients.values())
+        return frozenset(client.interface for client in self._clients.values())
 
     @property
     def is_alive(self) -> bool:
@@ -1009,19 +1009,19 @@ class CentralUnit(PayloadMixin):
             return
 
         async with self._device_add_semaphore:
-            # We need this to avoid adding duplicates.
-            known_addresses = tuple(
-                dev_desc["ADDRESS"]
-                for dev_desc in self._device_descriptions.get_raw_device_descriptions(interface_id=interface_id)
-            )
+            # Use mapping membership to avoid rebuilding known addresses and allow O(1) checks.
+            existing_map = self._device_descriptions.get_device_descriptions(interface_id=interface_id)
             client = self._clients[interface_id]
             save_paramset_descriptions = False
             save_device_descriptions = False
             for dev_desc in device_descriptions:
                 try:
+                    address = dev_desc["ADDRESS"]
+                    # Check existence before mutating cache to ensure we detect truly new addresses.
+                    is_new_address = address not in existing_map
                     self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
                     save_device_descriptions = True
-                    if dev_desc["ADDRESS"] not in known_addresses:
+                    if is_new_address:
                         await client.fetch_paramset_descriptions(device_description=dev_desc)
                         save_paramset_descriptions = True
                 except Exception as exc:  # pragma: no cover
@@ -1043,7 +1043,7 @@ class CentralUnit(PayloadMixin):
                 await self._create_devices(new_device_addresses=new_device_addresses)
 
     def _check_for_new_device_addresses(self) -> Mapping[str, set[str]]:
-        """Check if there are new devices, that needs to be created."""
+        """Check if there are new devices that need to be created."""
         new_device_addresses: dict[str, set[str]] = {}
         for interface_id in self.interface_ids:
             if not self._paramset_descriptions.has_interface_id(interface_id=interface_id):
@@ -1053,21 +1053,16 @@ class CentralUnit(PayloadMixin):
                 )
                 continue
 
-            if interface_id not in new_device_addresses:
-                new_device_addresses[interface_id] = set()
-
+            # Build the set locally and assign only if non-empty to avoid add-then-delete pattern
+            new_set: set[str] = set()
             for device_address in self._device_descriptions.get_addresses(interface_id=interface_id):
                 if device_address not in self._devices:
-                    new_device_addresses[interface_id].add(device_address)
-
-            if not new_device_addresses[interface_id]:
-                del new_device_addresses[interface_id]
+                    new_set.add(device_address)
+            if new_set:
+                new_device_addresses[interface_id] = new_set
 
         if _LOGGER.isEnabledFor(level=DEBUG):
-            count: int = 0
-            for item in new_device_addresses.values():
-                count += len(item)
-
+            count = sum(len(item) for item in new_device_addresses.values())
             _LOGGER.debug(
                 "CHECK_FOR_NEW_DEVICE_ADDRESSES: %s: %i.",
                 "Found new device addresses" if new_device_addresses else "Did not find any new device addresses",
@@ -1298,7 +1293,7 @@ class CentralUnit(PayloadMixin):
         full_format: bool = False,
         un_ignore_candidates_only: bool = False,
         use_channel_wildcard: bool = False,
-    ) -> list[str]:
+    ) -> tuple[str, ...]:
         """
         Return all parameters from VALUES paramset.
 
@@ -1368,7 +1363,7 @@ class CentralUnit(PayloadMixin):
                     else:
                         parameters.add(f"{parameter}:{paramset_key}@{model}:{channel_repr}")
 
-        return list(parameters)
+        return tuple(parameters)
 
     def _get_virtual_remote(self, device_address: str) -> Device | None:
         """Get the virtual remote for the Client."""
@@ -1811,8 +1806,8 @@ class CentralConfig:
         enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
         enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
         hm_master_poll_after_send_intervals: tuple[int, ...] = DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
-        ignore_custom_device_definition_models: tuple[str, ...] = DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
-        interfaces_requiring_periodic_refresh: tuple[Interface, ...] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
+        ignore_custom_device_definition_models: frozenset[str] = DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
+        interfaces_requiring_periodic_refresh: frozenset[Interface] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
         json_port: int | None = None,
         listen_ip_addr: str | None = None,
         listen_port: int | None = None,
@@ -1823,7 +1818,7 @@ class CentralConfig:
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         tls: bool = DEFAULT_TLS,
-        un_ignore_list: tuple[str, ...] = DEFAULT_UN_IGNORES,
+        un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES,
         verify_tls: bool = DEFAULT_VERIFY_TLS,
     ) -> None:
         """Init the client config."""
@@ -1838,8 +1833,8 @@ class CentralConfig:
         self.enable_sysvar_scan: Final = enable_sysvar_scan
         self.hm_master_poll_after_send_intervals: Final = hm_master_poll_after_send_intervals
         self.host: Final = host
-        self.ignore_custom_device_definition_models: Final = ignore_custom_device_definition_models
-        self.interfaces_requiring_periodic_refresh: Final = interfaces_requiring_periodic_refresh
+        self.ignore_custom_device_definition_models: Final = frozenset(ignore_custom_device_definition_models or ())
+        self.interfaces_requiring_periodic_refresh: Final = frozenset(interfaces_requiring_periodic_refresh or ())
         self.json_port: Final = json_port
         self.listen_ip_addr: Final = listen_ip_addr
         self.listen_port: Final = listen_port
@@ -1877,9 +1872,9 @@ class CentralConfig:
         return 443 if self.tls else 80
 
     @property
-    def enabled_interface_configs(self) -> tuple[hmcl.InterfaceConfig, ...]:
+    def enabled_interface_configs(self) -> frozenset[hmcl.InterfaceConfig]:
         """Return the interface configs."""
-        return tuple(ic for ic in self._interface_configs if ic.enabled is True)
+        return frozenset(ic for ic in self._interface_configs if ic.enabled is True)
 
     @property
     def use_caches(self) -> bool:

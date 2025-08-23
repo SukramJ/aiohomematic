@@ -208,9 +208,15 @@ class DeviceDescriptionCache(BasePersistentCache):
 
     def add_device(self, interface_id: str, device_description: DeviceDescription) -> None:
         """Add a device to the cache."""
+        # Fast-path: If the address is not yet known, skip costly removal operations.
+        if (address := device_description["ADDRESS"]) not in self._device_descriptions[interface_id]:
+            self._raw_device_descriptions[interface_id].append(device_description)
+            self._process_device_description(interface_id=interface_id, device_description=device_description)
+            return
+        # Address exists: remove old entries before adding the new description.
         self._remove_device(
             interface_id=interface_id,
-            addresses_to_remove=[device_description["ADDRESS"]],
+            addresses_to_remove=[address],
         )
         self._raw_device_descriptions[interface_id].append(device_description)
         self._process_device_description(interface_id=interface_id, device_description=device_description)
@@ -228,23 +234,22 @@ class DeviceDescriptionCache(BasePersistentCache):
 
     def _remove_device(self, interface_id: str, addresses_to_remove: list[str]) -> None:
         """Remove a device from the cache."""
+        # Use a set for faster membership checks
+        addresses_set = set(addresses_to_remove)
         self._raw_device_descriptions[interface_id] = [
-            device
-            for device in self._raw_device_descriptions[interface_id]
-            if device["ADDRESS"] not in addresses_to_remove
+            device for device in self._raw_device_descriptions[interface_id] if device["ADDRESS"] not in addresses_set
         ]
-        for address in addresses_to_remove:
-            try:
-                if ADDRESS_SEPARATOR not in address and self._addresses[interface_id].get(address):
-                    del self._addresses[interface_id][address]
-                if self._device_descriptions[interface_id].get(address):
-                    del self._device_descriptions[interface_id][address]
-            except KeyError:
-                _LOGGER.warning("REMOVE_DEVICE failed: Unable to delete: %s", address)
+        addr_map = self._addresses[interface_id]
+        desc_map = self._device_descriptions[interface_id]
+        for address in addresses_set:
+            # Pop with default to avoid KeyError and try/except overhead
+            if ADDRESS_SEPARATOR not in address:
+                addr_map.pop(address, None)
+            desc_map.pop(address, None)
 
-    def get_addresses(self, interface_id: str) -> tuple[str, ...]:
-        """Return the addresses by interface."""
-        return tuple(self._addresses[interface_id].keys())
+    def get_addresses(self, interface_id: str) -> frozenset[str]:
+        """Return the addresses by interface as a set."""
+        return frozenset(self._addresses[interface_id])
 
     def get_device_descriptions(self, interface_id: str) -> Mapping[str, DeviceDescription]:
         """Return the devices by interface."""
@@ -288,9 +293,10 @@ class DeviceDescriptionCache(BasePersistentCache):
         device_address = get_device_address(address)
         self._device_descriptions[interface_id][address] = device_description
 
-        if device_address not in self._addresses[interface_id][device_address]:
-            self._addresses[interface_id][device_address].add(device_address)
-        self._addresses[interface_id][device_address].add(address)
+        # Avoid redundant membership checks; set.add is idempotent and cheaper than check+add
+        addr_set = self._addresses[interface_id][device_address]
+        addr_set.add(device_address)
+        addr_set.add(address)
 
     async def load(self) -> DataOperationResult:
         """Load device data from disk into _device_description_cache."""
@@ -420,13 +426,12 @@ class ParamsetDescriptionCache(BasePersistentCache):
     def _add_address_parameter(self, channel_address: str, paramsets: list[dict[str, Any]]) -> None:
         """Add address parameter to cache."""
         device_address, channel_no = get_split_channel_address(channel_address)
+        cache = self._address_parameter_cache
         for paramset in paramsets:
             if not paramset:
                 continue
             for parameter in paramset:
-                if (device_address, parameter) not in self._address_parameter_cache:
-                    self._address_parameter_cache[(device_address, parameter)] = set()
-                self._address_parameter_cache[(device_address, parameter)].add(channel_no)
+                cache.setdefault((device_address, parameter), set()).add(channel_no)
 
     async def load(self) -> DataOperationResult:
         """Load paramset descriptions from disk into paramset cache."""

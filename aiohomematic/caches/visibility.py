@@ -30,7 +30,7 @@ available on the CentralUnit and model descriptors.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from functools import cache
 import logging
 import re
@@ -51,172 +51,174 @@ _CACHE_KEY_TYPE = tuple[str, int, ParamsetKey, str]
 # and not for general display.
 # {model: (channel_no, parameter)}
 
-_RELEVANT_MASTER_PARAMSETS_BY_CHANNEL: Final[Mapping[int | str | None, tuple[Parameter, ...]]] = {
-    None: (Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT),
-    0: (Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT),
+_RELEVANT_MASTER_PARAMSETS_BY_CHANNEL: Final[Mapping[int | str | None, frozenset[Parameter]]] = {
+    None: frozenset({Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT}),
+    0: frozenset({Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT}),
 }
 
-_CLIMATE_MASTER_PARAMETERS: Final[tuple[Parameter, ...]] = (
-    Parameter.HEATING_VALVE_TYPE,
-    Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
-    Parameter.OPTIMUM_START_STOP,
-    Parameter.TEMPERATURE_MAXIMUM,
-    Parameter.TEMPERATURE_MINIMUM,
-    Parameter.TEMPERATURE_OFFSET,
-    Parameter.WEEK_PROGRAM_POINTER,
+_CLIMATE_MASTER_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
+    {
+        Parameter.HEATING_VALVE_TYPE,
+        Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
+        Parameter.OPTIMUM_START_STOP,
+        Parameter.TEMPERATURE_MAXIMUM,
+        Parameter.TEMPERATURE_MINIMUM,
+        Parameter.TEMPERATURE_OFFSET,
+        Parameter.WEEK_PROGRAM_POINTER,
+    }
 )
 
-_RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[tuple[int | None, ...], tuple[Parameter, ...]]]] = {
-    "ALPHA-IP-RBG": ((1,), _CLIMATE_MASTER_PARAMETERS),
-    "ELV-SH-TACO": ((2,), (Parameter.CHANNEL_OPERATION_MODE,)),
+_RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[frozenset[int | None], frozenset[Parameter]]]] = {
+    "ALPHA-IP-RBG": (frozenset({1}), _CLIMATE_MASTER_PARAMETERS),
+    "ELV-SH-TACO": (frozenset({2}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
     "HM-CC-RT-DN": (
-        (None,),
+        frozenset({None}),
         _CLIMATE_MASTER_PARAMETERS,
     ),
     "HM-CC-VG-1": (
-        (None,),
+        frozenset({None}),
         _CLIMATE_MASTER_PARAMETERS,
     ),
     "HM-TC-IT-WM-W-EU": (
-        (None,),
+        frozenset({None}),
         _CLIMATE_MASTER_PARAMETERS,
     ),
-    "HmIP-BWTH": ((1, 8), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-BWTH": (frozenset({1, 8}), _CLIMATE_MASTER_PARAMETERS),
     "HmIP-DRBLI4": (
-        (1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 17, 21),
-        (Parameter.CHANNEL_OPERATION_MODE,),
+        frozenset({1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 17, 21}),
+        frozenset({Parameter.CHANNEL_OPERATION_MODE}),
     ),
-    "HmIP-DRDI3": ((1, 2, 3), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-DRSI1": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-DRSI4": ((1, 2, 3, 4), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-DSD-PCB": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-FCI1": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-FCI6": (tuple(range(1, 7)), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-FSI16": ((1,), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-HEATING": ((1,), _CLIMATE_MASTER_PARAMETERS),
-    "HmIP-MIO16-PCB": ((13, 14, 15, 16), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-MOD-RC8": (tuple(range(1, 9)), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIP-RGBW": ((0,), (Parameter.DEVICE_OPERATION_MODE,)),
-    "HmIP-STH": ((1,), _CLIMATE_MASTER_PARAMETERS),
-    "HmIP-WGT": ((8, 14), _CLIMATE_MASTER_PARAMETERS),
-    "HmIP-WTH": ((1,), _CLIMATE_MASTER_PARAMETERS),
-    "HmIP-eTRV": ((1,), _CLIMATE_MASTER_PARAMETERS),
-    "HmIPW-DRBL4": ((1, 5, 9, 13), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIPW-DRI16": (tuple(range(1, 17)), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIPW-DRI32": (tuple(range(1, 33)), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIPW-FIO6": (tuple(range(1, 7)), (Parameter.CHANNEL_OPERATION_MODE,)),
-    "HmIPW-STH": ((1,), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-DRDI3": (frozenset({1, 2, 3}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-DRSI1": (frozenset({1}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-DRSI4": (frozenset({1, 2, 3, 4}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-DSD-PCB": (frozenset({1}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-FCI1": (frozenset({1}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-FCI6": (frozenset(range(1, 7)), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-FSI16": (frozenset({1}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-HEATING": (frozenset({1}), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-MIO16-PCB": (frozenset({13, 14, 15, 16}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-MOD-RC8": (frozenset(range(1, 9)), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIP-RGBW": (frozenset({0}), frozenset({Parameter.DEVICE_OPERATION_MODE})),
+    "HmIP-STH": (frozenset({1}), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-WGT": (frozenset({8, 14}), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-WTH": (frozenset({1}), _CLIMATE_MASTER_PARAMETERS),
+    "HmIP-eTRV": (frozenset({1}), _CLIMATE_MASTER_PARAMETERS),
+    "HmIPW-DRBL4": (frozenset({1, 5, 9, 13}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIPW-DRI16": (frozenset(range(1, 17)), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIPW-DRI32": (frozenset(range(1, 33)), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIPW-FIO6": (frozenset(range(1, 7)), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
+    "HmIPW-STH": (frozenset({1}), _CLIMATE_MASTER_PARAMETERS),
 }
 
 # Ignore events for some devices
-_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS: Final[Mapping[str, tuple[Parameter, ...]]] = {
+_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS: Final[Mapping[str, frozenset[Parameter]]] = {
     "HmIP-PS": CLICK_EVENTS,
 }
 
-_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER: Final[dict[str, tuple[str, ...]]] = {
-    model.lower(): tuple(event for event in events) for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
+_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER: Final[Mapping[str, frozenset[Parameter]]] = {
+    model.lower(): frozenset(events) for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
 }
 
 # data points that will be created, but should be hidden.
-_HIDDEN_PARAMETERS: Final[tuple[Parameter, ...]] = (
-    Parameter.ACTIVITY_STATE,
-    Parameter.CHANNEL_OPERATION_MODE,
-    Parameter.CONFIG_PENDING,
-    Parameter.DIRECTION,
-    Parameter.ERROR,
-    Parameter.HEATING_VALVE_TYPE,
-    Parameter.LOW_BAT_LIMIT,
-    Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
-    Parameter.OPTIMUM_START_STOP,
-    Parameter.SECTION,
-    Parameter.STICKY_UN_REACH,
-    Parameter.TEMPERATURE_MAXIMUM,
-    Parameter.TEMPERATURE_MINIMUM,
-    Parameter.TEMPERATURE_OFFSET,
-    Parameter.UN_REACH,
-    Parameter.UPDATE_PENDING,
-    Parameter.WORKING,
+_HIDDEN_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
+    {
+        Parameter.ACTIVITY_STATE,
+        Parameter.CHANNEL_OPERATION_MODE,
+        Parameter.CONFIG_PENDING,
+        Parameter.DIRECTION,
+        Parameter.ERROR,
+        Parameter.HEATING_VALVE_TYPE,
+        Parameter.LOW_BAT_LIMIT,
+        Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
+        Parameter.OPTIMUM_START_STOP,
+        Parameter.SECTION,
+        Parameter.STICKY_UN_REACH,
+        Parameter.TEMPERATURE_MAXIMUM,
+        Parameter.TEMPERATURE_MINIMUM,
+        Parameter.TEMPERATURE_OFFSET,
+        Parameter.UN_REACH,
+        Parameter.UPDATE_PENDING,
+        Parameter.WORKING,
+    }
 )
-# Fast membership for hidden parameters
-_HIDDEN_PARAMETERS_SET: Final[set[Parameter]] = set(_HIDDEN_PARAMETERS)
 
 # Parameters within the VALUES paramset for which we don't create data points.
-_IGNORED_PARAMETERS: Final[tuple[str, ...]] = (
-    "ACCESS_AUTHORIZATION",
-    "ACOUSTIC_NOTIFICATION_SELECTION",
-    "ADAPTION_DRIVE",
-    "AES_KEY",
-    "ALARM_COUNT",
-    "ALL_LEDS",
-    "ARROW_DOWN",
-    "ARROW_UP",
-    "BACKLIGHT",
-    "BEEP",
-    "BELL",
-    "BLIND",
-    "BOOST_STATE",
-    "BOOST_TIME",
-    "BOOT",
-    "BULB",
-    "CLEAR_ERROR",
-    "CLEAR_WINDOW_OPEN_SYMBOL",
-    "CLOCK",
-    "CONTROL_DIFFERENTIAL_TEMPERATURE",
-    "DATE_TIME_UNKNOWN",
-    "DECISION_VALUE",
-    "DEVICE_IN_BOOTLOADER",
-    "DISPLAY_DATA_ALIGNMENT",
-    "DISPLAY_DATA_BACKGROUND_COLOR",
-    "DISPLAY_DATA_COMMIT",
-    "DISPLAY_DATA_ICON",
-    "DISPLAY_DATA_ID",
-    "DISPLAY_DATA_STRING",
-    "DISPLAY_DATA_TEXT_COLOR",
-    "DOOR",
-    "EXTERNAL_CLOCK",
-    "FROST_PROTECTION",
-    "HUMIDITY_LIMITER",
-    "IDENTIFICATION_MODE_KEY_VISUAL",
-    "IDENTIFICATION_MODE_LCD_BACKLIGHT",
-    "INCLUSION_UNSUPPORTED_DEVICE",
-    "INHIBIT",
-    "INSTALL_MODE",
-    "INTERVAL",
-    "LEVEL_REAL",
-    "OLD_LEVEL",
-    "OVERFLOW",
-    "OVERRUN",
-    "PARTY_SET_POINT_TEMPERATURE",
-    "PARTY_TEMPERATURE",
-    "PARTY_TIME_END",
-    "PARTY_TIME_START",
-    "PHONE",
-    "PROCESS",
-    "QUICK_VETO_TIME",
-    "RAMP_STOP",
-    "RELOCK_DELAY",
-    "SCENE",
-    "SELF_CALIBRATION",
-    "SERVICE_COUNT",
-    "SET_SYMBOL_FOR_HEATING_PHASE",
-    "SHADING_SPEED",
-    "SHEV_POS",
-    "SPEED",
-    "STATE_UNCERTAIN",
-    "SUBMIT",
-    "SWITCH_POINT_OCCURED",
-    "TEMPERATURE_LIMITER",
-    "TEMPERATURE_OUT_OF_RANGE",
-    "TEXT",
-    "USER_COLOR",
-    "USER_PROGRAM",
-    "VALVE_ADAPTION",
-    "WINDOW",
-    "WIN_RELEASE",
-    "WIN_RELEASE_ACT",
+_IGNORED_PARAMETERS: Final[frozenset[str]] = frozenset(
+    {
+        "ACCESS_AUTHORIZATION",
+        "ACOUSTIC_NOTIFICATION_SELECTION",
+        "ADAPTION_DRIVE",
+        "AES_KEY",
+        "ALARM_COUNT",
+        "ALL_LEDS",
+        "ARROW_DOWN",
+        "ARROW_UP",
+        "BACKLIGHT",
+        "BEEP",
+        "BELL",
+        "BLIND",
+        "BOOST_STATE",
+        "BOOST_TIME",
+        "BOOT",
+        "BULB",
+        "CLEAR_ERROR",
+        "CLEAR_WINDOW_OPEN_SYMBOL",
+        "CLOCK",
+        "CONTROL_DIFFERENTIAL_TEMPERATURE",
+        "DATE_TIME_UNKNOWN",
+        "DECISION_VALUE",
+        "DEVICE_IN_BOOTLOADER",
+        "DISPLAY_DATA_ALIGNMENT",
+        "DISPLAY_DATA_BACKGROUND_COLOR",
+        "DISPLAY_DATA_COMMIT",
+        "DISPLAY_DATA_ICON",
+        "DISPLAY_DATA_ID",
+        "DISPLAY_DATA_STRING",
+        "DISPLAY_DATA_TEXT_COLOR",
+        "DOOR",
+        "EXTERNAL_CLOCK",
+        "FROST_PROTECTION",
+        "HUMIDITY_LIMITER",
+        "IDENTIFICATION_MODE_KEY_VISUAL",
+        "IDENTIFICATION_MODE_LCD_BACKLIGHT",
+        "INCLUSION_UNSUPPORTED_DEVICE",
+        "INHIBIT",
+        "INSTALL_MODE",
+        "INTERVAL",
+        "LEVEL_REAL",
+        "OLD_LEVEL",
+        "OVERFLOW",
+        "OVERRUN",
+        "PARTY_SET_POINT_TEMPERATURE",
+        "PARTY_TEMPERATURE",
+        "PARTY_TIME_END",
+        "PARTY_TIME_START",
+        "PHONE",
+        "PROCESS",
+        "QUICK_VETO_TIME",
+        "RAMP_STOP",
+        "RELOCK_DELAY",
+        "SCENE",
+        "SELF_CALIBRATION",
+        "SERVICE_COUNT",
+        "SET_SYMBOL_FOR_HEATING_PHASE",
+        "SHADING_SPEED",
+        "SHEV_POS",
+        "SPEED",
+        "STATE_UNCERTAIN",
+        "SUBMIT",
+        "SWITCH_POINT_OCCURED",
+        "TEMPERATURE_LIMITER",
+        "TEMPERATURE_OUT_OF_RANGE",
+        "TEXT",
+        "USER_COLOR",
+        "USER_PROGRAM",
+        "VALVE_ADAPTION",
+        "WINDOW",
+        "WIN_RELEASE",
+        "WIN_RELEASE_ACT",
+    }
 )
-# Fast membership for ignored VALUE parameters
-_IGNORED_PARAMETERS_SET: Final[set[str]] = set(_IGNORED_PARAMETERS)
 
 
 # Precompile Regex patterns for wildcard checks
@@ -234,25 +236,22 @@ def _parameter_is_wildcard_ignored(parameter: str) -> bool:
 
 
 # Parameters within the paramsets for which we create data points.
-_UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, tuple[Parameter, ...]]] = {
-    "HmIP-DLD": (Parameter.ERROR_JAMMED,),
-    "HmIP-SWSD": (Parameter.SMOKE_DETECTOR_ALARM_STATUS,),
-    "HM-OU-LED16": (Parameter.LED_STATUS,),
-    "HM-Sec-Win": (Parameter.DIRECTION, Parameter.WORKING, Parameter.ERROR, Parameter.STATUS),
-    "HM-Sec-Key": (Parameter.DIRECTION, Parameter.ERROR),
-    "HmIP-PCBS-BAT": (
-        Parameter.OPERATING_VOLTAGE,
-        Parameter.LOW_BAT,
-    ),  # To override ignore for HmIP-PCBS
+_UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, frozenset[Parameter]]] = {
+    "HmIP-DLD": frozenset({Parameter.ERROR_JAMMED}),
+    "HmIP-SWSD": frozenset({Parameter.SMOKE_DETECTOR_ALARM_STATUS}),
+    "HM-OU-LED16": frozenset({Parameter.LED_STATUS}),
+    "HM-Sec-Win": frozenset({Parameter.DIRECTION, Parameter.WORKING, Parameter.ERROR, Parameter.STATUS}),
+    "HM-Sec-Key": frozenset({Parameter.DIRECTION, Parameter.ERROR}),
+    "HmIP-PCBS-BAT": frozenset({Parameter.OPERATING_VOLTAGE, Parameter.LOW_BAT}),  # To override ignore for HmIP-PCBS
 }
 
-_UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[str, tuple[str, ...]]] = {
-    model.lower(): parameters for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
+_UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[str, frozenset[Parameter]]] = {
+    model.lower(): frozenset(parameters) for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
 }
 
 
 @cache
-def _get_parameters_for_model_prefix(model_prefix: str | None) -> tuple[str, ...] | None:
+def _get_parameters_for_model_prefix(model_prefix: str | None) -> frozenset[Parameter] | None:
     """Return the dict value by wildcard type."""
     if model_prefix is None:
         return None
@@ -264,50 +263,56 @@ def _get_parameters_for_model_prefix(model_prefix: str | None) -> tuple[str, ...
 
 
 # Parameters by device within the VALUES paramset for which we don't create data points.
-_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, tuple[str, ...]]] = {
-    Parameter.CURRENT_ILLUMINATION: (
-        "HmIP-SMI",
-        "HmIP-SMO",
-        "HmIP-SPI",
+_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, frozenset[str]]] = {
+    Parameter.CURRENT_ILLUMINATION: frozenset(
+        {
+            "HmIP-SMI",
+            "HmIP-SMO",
+            "HmIP-SPI",
+        }
     ),
-    Parameter.LOWBAT: (
-        "HM-LC-Sw1-DR",
-        "HM-LC-Sw1-FM",
-        "HM-LC-Sw1-PCB",
-        "HM-LC-Sw1-Pl",
-        "HM-LC-Sw1-Pl-DN-R1",
-        "HM-LC-Sw1PBU-FM",
-        "HM-LC-Sw2-FM",
-        "HM-LC-Sw4-DR",
-        "HM-SwI-3-FM",
+    Parameter.LOWBAT: frozenset(
+        {
+            "HM-LC-Sw1-DR",
+            "HM-LC-Sw1-FM",
+            "HM-LC-Sw1-PCB",
+            "HM-LC-Sw1-Pl",
+            "HM-LC-Sw1-Pl-DN-R1",
+            "HM-LC-Sw1PBU-FM",
+            "HM-LC-Sw2-FM",
+            "HM-LC-Sw4-DR",
+            "HM-SwI-3-FM",
+        }
     ),
-    Parameter.LOW_BAT: ("HmIP-BWTH", "HmIP-PCBS"),
-    Parameter.OPERATING_VOLTAGE: (
-        "ELV-SH-BS2",
-        "HmIP-BDT",
-        "HmIP-BROLL",
-        "HmIP-BS2",
-        "HmIP-BSL",
-        "HmIP-BSM",
-        "HmIP-BWTH",
-        "HmIP-DR",
-        "HmIP-FDT",
-        "HmIP-FROLL",
-        "HmIP-FSM",
-        "HmIP-MOD-OC8",
-        "HmIP-PCBS",
-        "HmIP-PDT",
-        "HmIP-PMFS",
-        "HmIP-PS",
-        "HmIP-SFD",
-        "HmIP-SMO230",
-        "HmIP-WGT",
+    Parameter.LOW_BAT: frozenset({"HmIP-BWTH", "HmIP-PCBS"}),
+    Parameter.OPERATING_VOLTAGE: frozenset(
+        {
+            "ELV-SH-BS2",
+            "HmIP-BDT",
+            "HmIP-BROLL",
+            "HmIP-BS2",
+            "HmIP-BSL",
+            "HmIP-BSM",
+            "HmIP-BWTH",
+            "HmIP-DR",
+            "HmIP-FDT",
+            "HmIP-FROLL",
+            "HmIP-FSM",
+            "HmIP-MOD-OC8",
+            "HmIP-PCBS",
+            "HmIP-PDT",
+            "HmIP-PMFS",
+            "HmIP-PS",
+            "HmIP-SFD",
+            "HmIP-SMO230",
+            "HmIP-WGT",
+        }
     ),
-    Parameter.VALVE_STATE: ("HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"),
+    Parameter.VALVE_STATE: frozenset({"HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"}),
 }
 
-_IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[str, tuple[str, ...]]] = {
-    parameter: tuple(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
+_IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[str, frozenset[str]]] = {
+    parameter: frozenset(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
 }
 
 # Some devices have parameters on multiple channels,
@@ -342,7 +347,7 @@ class ParameterVisibilityCache:
         self._central = central
         self._storage_folder: Final = central.config.storage_folder
         self._required_parameters: Final = get_required_parameters()
-        self._raw_un_ignores: Final[tuple[str, ...]] = central.config.un_ignore_list or ()
+        self._raw_un_ignores: Final[frozenset[str]] = central.config.un_ignore_list or frozenset()
 
         # un_ignore from custom un_ignore files
         # parameter
@@ -352,7 +357,7 @@ class ParameterVisibilityCache:
         self._custom_un_ignore_complex: Final[dict[str, dict[int | str | None, dict[str, set[str]]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(set))
         )
-        self._ignore_custom_device_definition_models: Final[tuple[str, ...]] = (
+        self._ignore_custom_device_definition_models: Final[frozenset[str]] = (
             central.config.ignore_custom_device_definition_models
         )
 
@@ -383,7 +388,7 @@ class ParameterVisibilityCache:
             model_l = model.lower()
             channel_nos, parameters = channels_parameter
 
-            def _add_channel(dt_l: str, params: tuple[Parameter, ...], ch_no: int | None) -> None:
+            def _add_channel(dt_l: str, params: frozenset[Parameter], ch_no: int | None) -> None:
                 self._relevant_master_paramsets_by_device[dt_l].add(ch_no)
                 self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][ParamsetKey.MASTER].update(params)
 
@@ -425,7 +430,7 @@ class ParameterVisibilityCache:
 
             if (
                 (
-                    (parameter in _IGNORED_PARAMETERS_SET or _parameter_is_wildcard_ignored(parameter=parameter))
+                    (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
                     and parameter not in self._required_parameters
                 )
                 or hms.element_matches_key(
@@ -587,7 +592,7 @@ class ParameterVisibilityCache:
 
         return paramset_key == ParamsetKey.MASTER and not parameter_is_un_ignored
 
-    def _process_un_ignore_entries(self, lines: tuple[str, ...]) -> None:
+    def _process_un_ignore_entries(self, lines: Iterable[str]) -> None:
         """Batch process un_ignore entries into cache."""
         for line in lines:
             # ignore empty line
@@ -721,7 +726,7 @@ class ParameterVisibilityCache:
         This is required to determine the data_point usage.
         Return only hidden parameters, that are no defined in the un_ignore file.
         """
-        return parameter in _HIDDEN_PARAMETERS_SET and not self._parameter_is_un_ignored(
+        return parameter in _HIDDEN_PARAMETERS and not self._parameter_is_un_ignored(
             channel=channel,
             paramset_key=paramset_key,
             parameter=parameter,
@@ -766,7 +771,7 @@ def check_ignore_parameters_is_clean() -> bool:
             [
                 parameter
                 for parameter in get_required_parameters()
-                if (parameter in _IGNORED_PARAMETERS_SET or _parameter_is_wildcard_ignored(parameter=parameter))
+                if (parameter in _IGNORED_PARAMETERS or _parameter_is_wildcard_ignored(parameter=parameter))
                 and parameter not in un_ignore_parameters_by_device
             ]
         )

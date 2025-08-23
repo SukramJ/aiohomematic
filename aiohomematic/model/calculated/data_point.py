@@ -300,7 +300,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     @property
     def _should_fire_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
-        if self.fired_recently:  # pylint: disable=using-constant-test
+        if self.fired_recently:
             return False
 
         if (relevant_values_data_point := self._relevant_values_data_points) is not None and len(

@@ -20,3 +20,8 @@ unignore
 venv
 
 .coverage
+.output.txt
+prof.out
+prof_after.out
+prof_after_opt.out
+prof_current.out

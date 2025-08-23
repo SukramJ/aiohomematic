@@ -9,7 +9,8 @@ from enum import Enum, IntEnum, StrEnum
 import os
 import re
 import sys
-from typing import Any, Final, NamedTuple, Required, TypedDict
+from types import MappingProxyType
+from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 VERSION: Final = "2025.8.8"
 
@@ -24,7 +25,7 @@ DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True
 DEFAULT_ENABLE_SYSVAR_SCAN: Final = True
 DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS: Final = (5,)
-DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS: Final[tuple[str, ...]] = ()
+DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS: Final[frozenset[str]] = frozenset()
 DEFAULT_INCLUDE_INTERNAL_PROGRAMS: Final = False
 DEFAULT_INCLUDE_INTERNAL_SYSVARS: Final = True
 DEFAULT_MAX_READ_WORKERS: Final = 1
@@ -35,7 +36,7 @@ DEFAULT_PROGRAM_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TLS: Final = False
-DEFAULT_UN_IGNORES: Final[tuple[str, ...]] = ()
+DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_VERIFY_TLS: Final = False
 
 # Default encoding for json service calls, persistent cache
@@ -52,22 +53,24 @@ CHANNEL_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{5,20}:[0-9]{1,3}$")
 DEVICE_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{5,20}$")
 ALLOWED_HOSTNAME_PATTERN: Final = re.compile(r"(?!-)[a-z0-9-]{1,63}(?<!-)$", re.IGNORECASE)
 HTMLTAG_PATTERN: Final = re.compile(r"<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
-SCHEDULER_PROFILE_PATTERN = re.compile(
+SCHEDULER_PROFILE_PATTERN: Final = re.compile(
     r"^P[1-6]_(ENDTIME|TEMPERATURE)_(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)_([1-9]|1[0-3])$"
 )
-SCHEDULER_TIME_PATTERN = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
+SCHEDULER_TIME_PATTERN: Final = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
 
-ALWAYS_ENABLE_SYSVARS_BY_ID: Final = "40", "41"
-RENAME_SYSVAR_BY_NAME: Final = {
-    "${sysVarAlarmMessages}": "ALARM_MESSAGES",
-    "${sysVarPresence}": "PRESENCE",
-    "${sysVarServiceMessages}": "SERVICE_MESSAGES",
-}
+ALWAYS_ENABLE_SYSVARS_BY_ID: Final[frozenset[str]] = frozenset({"40", "41"})
+RENAME_SYSVAR_BY_NAME: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "${sysVarAlarmMessages}": "ALARM_MESSAGES",
+        "${sysVarPresence}": "PRESENCE",
+        "${sysVarServiceMessages}": "SERVICE_MESSAGES",
+    }
+)
 
-SYSVAR_ENABLE_DEFAULT: Final = "40", "41"
+SYSVAR_ENABLE_DEFAULT: Final[frozenset[str]] = frozenset({"40", "41"})
 
 ADDRESS_SEPARATOR: Final = ":"
-BLOCK_LOG_TIMEOUT = 60
+BLOCK_LOG_TIMEOUT: Final = 60
 CACHE_PATH: Final = "cache"
 CONF_PASSWORD: Final = "password"
 CONF_USERNAME: Final = "username"
@@ -79,7 +82,7 @@ DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
 DEVICE_FIRMWARE_CHECK_INTERVAL: Final = 21600  # 6h
 DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL: Final = 3600  # 1h
 DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
-DUMMY_SERIAL = "SN0815"
+DUMMY_SERIAL: Final = "SN0815"
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
 HUB_PATH: Final = "hub"
@@ -87,7 +90,7 @@ IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
 IP_ANY_V4: Final = "0.0.0.0"
 JSON_SESSION_AGE: Final = 90
-KWARGS_ARG_DATA_POINT = "data_point"
+KWARGS_ARG_DATA_POINT: Final = "data_point"
 LAST_COMMAND_SEND_STORE_TIMEOUT: Final = 60
 LOCAL_HOST: Final = "127.0.0.1"
 MAX_CACHE_AGE: Final = 10
@@ -113,7 +116,7 @@ WAIT_FOR_CALLBACK: Final[int | None] = None
 SCHEDULER_NOT_STARTED_SLEEP: Final = 0.05 if _TEST_SPEEDUP else 10
 SCHEDULER_LOOP_SLEEP: Final = 0.05 if _TEST_SPEEDUP else 5
 
-CALLBACK_WARN_INTERVAL = CONNECTION_CHECKER_INTERVAL * 40
+CALLBACK_WARN_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 40
 
 # Path
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
@@ -125,7 +128,7 @@ SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
 VIRTDEV_SET_PATH_ROOT: Final = "virtdev/set"
 VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
 
-CALLBACK_TYPE = Callable[[], None] | None
+CALLBACK_TYPE: TypeAlias = Callable[[], None] | None
 
 
 class Backend(StrEnum):
@@ -536,22 +539,26 @@ class ParameterType(StrEnum):
     EMPTY = ""
 
 
-CLICK_EVENTS: Final[tuple[Parameter, ...]] = (
-    Parameter.PRESS,
-    Parameter.PRESS_CONT,
-    Parameter.PRESS_LOCK,
-    Parameter.PRESS_LONG,
-    Parameter.PRESS_LONG_RELEASE,
-    Parameter.PRESS_LONG_START,
-    Parameter.PRESS_SHORT,
-    Parameter.PRESS_UNLOCK,
+CLICK_EVENTS: Final[frozenset[Parameter]] = frozenset(
+    {
+        Parameter.PRESS,
+        Parameter.PRESS_CONT,
+        Parameter.PRESS_LOCK,
+        Parameter.PRESS_LONG,
+        Parameter.PRESS_LONG_RELEASE,
+        Parameter.PRESS_LONG_START,
+        Parameter.PRESS_SHORT,
+        Parameter.PRESS_UNLOCK,
+    }
 )
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-DATA_POINT_EVENTS: Final[tuple[EventType, ...]] = (
-    EventType.IMPULSE,
-    EventType.KEYPRESS,
+DATA_POINT_EVENTS: Final[frozenset[EventType]] = frozenset(
+    {
+        EventType.IMPULSE,
+        EventType.KEYPRESS,
+    }
 )
 
 
@@ -567,26 +574,32 @@ class DataPointKey(NamedTuple):
 type DP_KEY_VALUE = tuple[DataPointKey, Any]
 type SYSVAR_TYPE = bool | float | int | str | None
 
-HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
-    DeviceFirmwareState.DO_UPDATE_PENDING,
-    DeviceFirmwareState.PERFORMING_UPDATE,
+HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES: Final[frozenset[DeviceFirmwareState]] = frozenset(
+    {
+        DeviceFirmwareState.DO_UPDATE_PENDING,
+        DeviceFirmwareState.PERFORMING_UPDATE,
+    }
 )
 
-HMIP_FIRMWARE_UPDATE_READY_STATES: Final[tuple[DeviceFirmwareState, ...]] = (
-    DeviceFirmwareState.READY_FOR_UPDATE,
-    DeviceFirmwareState.DO_UPDATE_PENDING,
-    DeviceFirmwareState.PERFORMING_UPDATE,
+HMIP_FIRMWARE_UPDATE_READY_STATES: Final[frozenset[DeviceFirmwareState]] = frozenset(
+    {
+        DeviceFirmwareState.READY_FOR_UPDATE,
+        DeviceFirmwareState.DO_UPDATE_PENDING,
+        DeviceFirmwareState.PERFORMING_UPDATE,
+    }
 )
 
-IMPULSE_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.SEQUENCE_OK,)
+IMPULSE_EVENTS: Final[frozenset[Parameter]] = frozenset({Parameter.SEQUENCE_OK})
 
-KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, tuple[str, ...]]] = {
-    Parameter.STATE: ("BINARY_BEHAVIOR",),
-    Parameter.PRESS_LONG: ("KEY_BEHAVIOR", "SWITCH_BEHAVIOR"),
-    Parameter.PRESS_LONG_RELEASE: ("KEY_BEHAVIOR", "SWITCH_BEHAVIOR"),
-    Parameter.PRESS_LONG_START: ("KEY_BEHAVIOR", "SWITCH_BEHAVIOR"),
-    Parameter.PRESS_SHORT: ("KEY_BEHAVIOR", "SWITCH_BEHAVIOR"),
-}
+KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, frozenset[str]]] = MappingProxyType(
+    {
+        Parameter.STATE: frozenset({"BINARY_BEHAVIOR"}),
+        Parameter.PRESS_LONG: frozenset({"KEY_BEHAVIOR", "SWITCH_BEHAVIOR"}),
+        Parameter.PRESS_LONG_RELEASE: frozenset({"KEY_BEHAVIOR", "SWITCH_BEHAVIOR"}),
+        Parameter.PRESS_LONG_START: frozenset({"KEY_BEHAVIOR", "SWITCH_BEHAVIOR"}),
+        Parameter.PRESS_SHORT: frozenset({"KEY_BEHAVIOR", "SWITCH_BEHAVIOR"}),
+    }
+)
 
 HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.HUB_BINARY_SENSOR,
@@ -616,42 +629,54 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.VALVE,
 )
 
-PRIMARY_CLIENT_CANDIDATE_INTERFACES: Final = (
-    Interface.HMIP_RF,
-    Interface.BIDCOS_RF,
-    Interface.BIDCOS_WIRED,
+PRIMARY_CLIENT_CANDIDATE_INTERFACES: Final[frozenset[Interface]] = frozenset(
+    {
+        Interface.HMIP_RF,
+        Interface.BIDCOS_RF,
+        Interface.BIDCOS_WIRED,
+    }
 )
 
-RELEVANT_INIT_PARAMETERS: Final[tuple[Parameter, ...]] = (
-    Parameter.CONFIG_PENDING,
-    Parameter.STICKY_UN_REACH,
-    Parameter.UN_REACH,
+RELEVANT_INIT_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
+    {
+        Parameter.CONFIG_PENDING,
+        Parameter.STICKY_UN_REACH,
+        Parameter.UN_REACH,
+    }
 )
 
-INTERFACES_SUPPORTING_FIRMWARE_UPDATES: Final[tuple[Interface, ...]] = (
-    Interface.BIDCOS_RF,
-    Interface.BIDCOS_WIRED,
-    Interface.HMIP_RF,
+INTERFACES_SUPPORTING_FIRMWARE_UPDATES: Final[frozenset[Interface]] = frozenset(
+    {
+        Interface.BIDCOS_RF,
+        Interface.BIDCOS_WIRED,
+        Interface.HMIP_RF,
+    }
 )
 
-INTERFACES_SUPPORTING_XML_RPC: Final[tuple[Interface, ...]] = (
-    Interface.BIDCOS_RF,
-    Interface.BIDCOS_WIRED,
-    Interface.HMIP_RF,
-    Interface.VIRTUAL_DEVICES,
+INTERFACES_SUPPORTING_XML_RPC: Final[frozenset[Interface]] = frozenset(
+    {
+        Interface.BIDCOS_RF,
+        Interface.BIDCOS_WIRED,
+        Interface.HMIP_RF,
+        Interface.VIRTUAL_DEVICES,
+    }
 )
 
-INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[tuple[Interface, ...]] = (
-    Interface.CCU_JACK,
-    Interface.CUXD,
+INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[frozenset[Interface]] = frozenset(
+    {
+        Interface.CCU_JACK,
+        Interface.CUXD,
+    }
 )
 
 DEFAULT_USE_PERIODIC_SCAN_FOR_INTERFACES: Final = True
 
-IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (
-    Parameter.CONFIG_PENDING,
-    Parameter.STICKY_UN_REACH,
-    Parameter.UN_REACH,
+IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
+    {
+        Parameter.CONFIG_PENDING,
+        Parameter.STICKY_UN_REACH,
+        Parameter.UN_REACH,
+    }
 )
 
 
@@ -659,12 +684,14 @@ IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[tuple[Parameter, ...]] = (
 _IGNORE_ON_INITIAL_LOAD_PARAMETERS_END_RE: Final = re.compile(r".*(_ERROR)$")
 # Ignore Parameter on initial load that start with
 _IGNORE_ON_INITIAL_LOAD_PARAMETERS_START_RE: Final = re.compile(r"^(ERROR_|RSSI_)")
-_IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final = (
-    Parameter.DUTY_CYCLE,
-    Parameter.DUTYCYCLE,
-    Parameter.LOW_BAT,
-    Parameter.LOWBAT,
-    Parameter.OPERATING_VOLTAGE,
+_IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
+    {
+        Parameter.DUTY_CYCLE,
+        Parameter.DUTYCYCLE,
+        Parameter.LOW_BAT,
+        Parameter.LOWBAT,
+        Parameter.OPERATING_VOLTAGE,
+    }
 )
 
 

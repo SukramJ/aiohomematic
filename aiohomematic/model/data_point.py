@@ -283,6 +283,11 @@ class CallbackDataPoint(ABC):
         return self._path_data.set_path
 
     @property
+    @abstractmethod
+    def signature(self) -> str:
+        """Return the signature of the data_point."""
+
+    @property
     def state_path(self) -> str:
         """Return the base state path of the data_point."""
         return self._path_data.state_path
@@ -748,6 +753,11 @@ class BaseParameterDataPoint[
     def service(self) -> bool:
         """Return the if data_point is visible in ccu."""
         return self._service
+
+    @property
+    def signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._channel.device.model}/{self._parameter})"
 
     @property
     def supports_events(self) -> bool:

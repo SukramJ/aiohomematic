@@ -191,6 +191,11 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         return self._service
 
     @property
+    def signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._channel.device.model}/{self.parameter})"
+
+    @property
     def supports_events(self) -> bool:
         """Return, if data_point is supports events."""
         return bool(self._operations & Operations.EVENT)

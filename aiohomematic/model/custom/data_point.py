@@ -107,6 +107,11 @@ class CustomDataPoint(BaseDataPoint):
         return refreshed_at
 
     @property
+    def signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix})"
+
+    @property
     def unconfirmed_last_values_send(self) -> Mapping[Field, Any]:
         """Return the unconfirmed values send for the data point."""
         unconfirmed_values: dict[Field, Any] = {}

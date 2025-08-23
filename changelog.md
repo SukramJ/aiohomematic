@@ -1,5 +1,6 @@
 # Version 2025.8.9 (2025-08-23)
 
+- Add signature to model
 - Improve immutability
 
 # Version 2025.8.8 (2025-08-23)

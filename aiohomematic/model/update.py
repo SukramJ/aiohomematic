@@ -96,6 +96,11 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             return self._device.available_firmware
         return self._device.firmware
 
+    @property
+    def signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._device.model})"
+
     def _get_path_data(self) -> DataPointPathData:
         """Return the path data of the data_point."""
         return DataPointPathData(

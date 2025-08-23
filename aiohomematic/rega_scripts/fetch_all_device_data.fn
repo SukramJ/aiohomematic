@@ -18,7 +18,6 @@ string sUse_Interface = "##interface##";
 string sDevId;
 string sChnId;
 string sDPId;
-string sDPId;
 var vDPValue;
 boolean bDPFirst = true;
 object oInterface = interfaces.Get(sUse_Interface);
@@ -28,41 +27,59 @@ if (oInterface) {
     integer iInterface_ID = interfaces.Get(sUse_Interface).ID();
     string sAllDevices = dom.GetObject(ID_DEVICES).EnumUsedIDs();
     foreach (sDevId, sAllDevices) {
-       object oDevice = dom.GetObject(sDevId);
+        object oDevice = dom.GetObject(sDevId);
         if ((oDevice) && (oDevice.ReadyConfig()) && (oDevice.Interface() == iInterface_ID)) {
             foreach (sChnId, oDevice.Channels()) {
                 object oChannel = dom.GetObject(sChnId);
-                foreach(sDPId, oChannel.DPs().EnumUsedIDs()) {
-                    object oDP = dom.GetObject(sDPId);
-                    if (oDP && oDP.Timestamp()) {
-                        if (oDP.TypeName() != "VARDP") {
-                            if (bDPFirst) {
-                              bDPFirst = false;
-                            } else {
-                              WriteLine(',');
-                            }
-                            integer sValueType = oDP.ValueType();
-                            Write('"');
-                            WriteURL(oDP.Name());
-                            Write('":');
-                            if (sValueType == 20) {
-                                Write('"');
-                                WriteURL(oDP.Value());
-                                Write('"');
-                            } else {
-                                vDPValue = oDP.Value();
-                                if (sValueType == 2) {
-                                    if (vDPValue) {
-                                        Write("true");
+                if (oChannel) {
+                    var oDPs = oChannel.DPs();
+                    if (oDPs) {
+                        foreach(sDPId, oDPs.EnumUsedIDs()) {
+                            object oDP = dom.GetObject(sDPId);
+                            if (oDP && oDP.Timestamp()) {
+                                if (oDP.TypeName() != "VARDP") {
+                                    integer sValueType = oDP.ValueType();
+                                    boolean bHasValue = false;
+                                    string sValue;
+                                    string sID = oDP.Name().UriEncode();
+                                    if (sValueType == 20) {
+                                        sValue = oDP.Value().UriEncode();
+                                        bHasValue = true;
                                     } else {
-                                        Write("false");
+                                        vDPValue = oDP.Value();
+                                        if (sValueType == 2) {
+                                            if (vDPValue) {
+                                                sValue = "true";
+                                            } else {
+                                                sValue = "false";
+                                            }
+                                            bHasValue = true;
+                                        } else {
+                                            if (vDPValue == "") {
+                                                sValue = "0";
+                                            } else {
+                                                sValue = vDPValue;
+                                            }
+                                            bHasValue = true;
+                                        }
                                     }
-                                } else {
-                                   if (vDPValue == "") {
-                                        Write("0");
-                                   } else {
-                                        Write(vDPValue);
-                                   }
+                                    if (bHasValue) {
+                                        if (bDPFirst) {
+                                            bDPFirst = false;
+                                        } else {
+                                            WriteLine(',');
+                                        }
+                                        Write('"');
+                                        Write(sID);
+                                        Write('":');
+                                        if (sValueType == 20) {
+                                            Write('"');
+                                            Write(sValue);
+                                            Write('"');
+                                        } else {
+                                            Write(sValue);
+                                        }
+                                    }
                                 }
                             }
                         }

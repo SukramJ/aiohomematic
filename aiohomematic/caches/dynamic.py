@@ -25,11 +25,13 @@ from collections.abc import Mapping
 from datetime import datetime
 import logging
 from typing import Any, Final, cast
+from urllib.parse import unquote
 
 from aiohomematic import central as hmcu
 from aiohomematic.const import (
     DP_KEY_VALUE,
     INIT_DATETIME,
+    ISO_8859_1,
     LAST_COMMAND_SEND_STORE_TIMEOUT,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
@@ -272,7 +274,6 @@ class CentralDataCache:
 
     __slots__ = (
         "_central",
-        "_escaped_channel_cache",
         "_refreshed_at",
         "_value_cache",
     )
@@ -283,7 +284,6 @@ class CentralDataCache:
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
-        self._escaped_channel_cache: Final[dict[str, str]] = {}
 
     async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from backend."""
@@ -310,7 +310,10 @@ class CentralDataCache:
 
     def add_data(self, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""
-        self._value_cache[interface] = all_device_data
+        self._value_cache[interface] = {
+            unquote(string=k, encoding=ISO_8859_1): unquote(string=v, encoding=ISO_8859_1) if isinstance(v, str) else v
+            for k, v in all_device_data.items()
+        }
         self._refreshed_at[interface] = datetime.now()
 
     def get_data(
@@ -320,14 +323,8 @@ class CentralDataCache:
         parameter: str,
     ) -> Any:
         """Get data from cache."""
-        if not self._is_empty(interface=interface):
-            # Escape channel address only once per unique address
-            if (escaped := self._escaped_channel_cache.get(channel_address)) is None:
-                escaped = channel_address.replace(":", "%3A") if ":" in channel_address else channel_address
-                self._escaped_channel_cache[channel_address] = escaped
-            key = f"{interface}.{escaped}.{parameter}"
-            if (iface_cache := self._value_cache.get(interface)) is not None:
-                return iface_cache.get(key, NO_CACHE_ENTRY)
+        if not self._is_empty(interface=interface) and (iface_cache := self._value_cache.get(interface)) is not None:
+            return iface_cache.get(f"{interface}.{channel_address}.{parameter}", NO_CACHE_ENTRY)
         return NO_CACHE_ENTRY
 
     def clear(self, interface: Interface | None = None) -> None:
@@ -335,7 +332,6 @@ class CentralDataCache:
         if interface:
             self._value_cache[interface] = {}
             self._refreshed_at[interface] = INIT_DATETIME
-            self._escaped_channel_cache.clear()
         else:
             for _interface in self._central.interfaces:
                 self.clear(interface=_interface)

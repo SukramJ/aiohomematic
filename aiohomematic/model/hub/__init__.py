@@ -289,21 +289,17 @@ class Hub:
 
     def _identify_missing_program_ids(self, programs: tuple[ProgramData, ...]) -> set[str]:
         """Identify missing programs."""
-        return {
-            program_dp.pid
-            for program_dp in self._central.program_data_points
-            if program_dp.pid not in [x.pid for x in programs]
-        }
+        return {dp.pid for dp in self._central.program_data_points if dp.pid not in [x.pid for x in programs]}
 
     def _identify_missing_variable_ids(self, variables: tuple[SystemVariableData, ...]) -> set[str]:
         """Identify missing variables."""
         variable_ids: dict[str, bool] = {x.vid: x.extended_sysvar for x in variables}
         missing_variable_ids: list[str] = []
-        for svdp in self._central.sysvar_data_points:
-            if svdp.data_type == SysvarType.STRING:
+        for dp in self._central.sysvar_data_points:
+            if dp.data_type == SysvarType.STRING:
                 continue
-            if (vid := svdp.vid) is not None and (
-                vid not in variable_ids or (svdp.is_extended is not variable_ids.get(vid))
+            if (vid := dp.vid) is not None and (
+                vid not in variable_ids or (dp.is_extended is not variable_ids.get(vid))
             ):
                 missing_variable_ids.append(vid)
         return set(missing_variable_ids)

@@ -1146,121 +1146,90 @@ class _ValueCache:
 
     async def get_value(
         self,
-        channel_address: str,
-        paramset_key: ParamsetKey,
-        parameter: str,
+        dpk: DataPointKey,
         call_source: CallSource,
         direct_call: bool = False,
     ) -> Any:
         """Load data."""
+
         async with self._sema_get_or_load_value:
-            if (
-                direct_call is False
-                and (
-                    cached_value := self._get_value_from_cache(
-                        channel_address=channel_address,
-                        paramset_key=paramset_key,
-                        parameter=parameter,
-                    )
-                )
-                != NO_CACHE_ENTRY
-            ):
+            if direct_call is False and (cached_value := self._get_value_from_cache(dpk=dpk)) != NO_CACHE_ENTRY:
                 return NO_CACHE_ENTRY if cached_value == self._NO_VALUE_CACHE_ENTRY else cached_value
 
-            value_dict: dict[str, Any] = {parameter: self._NO_VALUE_CACHE_ENTRY}
+            value_dict: dict[str, Any] = {dpk.parameter: self._NO_VALUE_CACHE_ENTRY}
             try:
-                value_dict = await self._get_values_for_cache(
-                    channel_address=channel_address,
-                    paramset_key=paramset_key,
-                    parameter=parameter,
-                )
+                value_dict = await self._get_values_for_cache(dpk=dpk)
             except BaseHomematicException as bhexc:
                 _LOGGER.debug(
                     "GET_OR_LOAD_VALUE: Failed to get data for %s, %s, %s, %s: %s",
                     self._device.model,
-                    channel_address,
-                    parameter,
+                    dpk.channel_address,
+                    dpk.parameter,
                     call_source,
                     extract_exc_args(exc=bhexc),
                 )
             for d_parameter, d_value in value_dict.items():
                 self._add_entry_to_device_cache(
-                    channel_address=channel_address,
-                    paramset_key=paramset_key,
-                    parameter=d_parameter,
+                    dpk=DataPointKey(
+                        interface_id=dpk.interface_id,
+                        channel_address=dpk.channel_address,
+                        paramset_key=dpk.paramset_key,
+                        parameter=d_parameter,
+                    ),
                     value=d_value,
                 )
             return (
                 NO_CACHE_ENTRY
-                if (value := value_dict.get(parameter)) and value == self._NO_VALUE_CACHE_ENTRY
+                if (value := value_dict.get(dpk.parameter)) and value == self._NO_VALUE_CACHE_ENTRY
                 else value
             )
 
-    async def _get_values_for_cache(
-        self, channel_address: str, paramset_key: ParamsetKey, parameter: str
-    ) -> dict[str, Any]:
+    async def _get_values_for_cache(self, dpk: DataPointKey) -> dict[str, Any]:
         """Return a value from CCU to store in cache."""
         if not self._device.available:
             _LOGGER.debug(
                 "GET_VALUES_FOR_CACHE failed: device %s (%s) is not available", self._device.name, self._device.address
             )
             return {}
-        if paramset_key == ParamsetKey.VALUES:
+        if dpk.paramset_key == ParamsetKey.VALUES:
             return {
-                parameter: await self._device.client.get_value(
-                    channel_address=channel_address,
-                    paramset_key=paramset_key,
-                    parameter=parameter,
+                dpk.parameter: await self._device.client.get_value(
+                    channel_address=dpk.channel_address,
+                    paramset_key=dpk.paramset_key,
+                    parameter=dpk.parameter,
                     call_source=CallSource.HM_INIT,
                 )
             }
         return await self._device.client.get_paramset(
-            address=channel_address, paramset_key=paramset_key, call_source=CallSource.HM_INIT
+            address=dpk.channel_address, paramset_key=dpk.paramset_key, call_source=CallSource.HM_INIT
         )
 
-    def _add_entry_to_device_cache(
-        self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any
-    ) -> None:
+    def _add_entry_to_device_cache(self, dpk: DataPointKey, value: Any) -> None:
         """Add value to cache."""
-        key = DataPointKey(
-            interface_id=self._device.interface_id,
-            channel_address=channel_address,
-            paramset_key=paramset_key,
-            parameter=parameter,
-        )
         # write value to cache even if an exception has occurred
         # to avoid repetitive calls to CCU within max_age
-        self._device_cache[key] = CacheEntry(value=value, refresh_at=datetime.now())
+        self._device_cache[dpk] = CacheEntry(value=value, refresh_at=datetime.now())
 
     def _get_value_from_cache(
         self,
-        channel_address: str,
-        paramset_key: ParamsetKey,
-        parameter: str,
+        dpk: DataPointKey,
     ) -> Any:
         """Load data from caches."""
         # Try to get data from central cache
         if (
-            paramset_key == ParamsetKey.VALUES
+            dpk.paramset_key == ParamsetKey.VALUES
             and (
                 global_value := self._device.central.data_cache.get_data(
                     interface=self._device.interface,
-                    channel_address=channel_address,
-                    parameter=parameter,
+                    channel_address=dpk.channel_address,
+                    parameter=dpk.parameter,
                 )
             )
             != NO_CACHE_ENTRY
         ):
             return global_value
 
-        # Try to get data from device cache
-        key = DataPointKey(
-            interface_id=self._device.interface_id,
-            channel_address=channel_address,
-            paramset_key=paramset_key,
-            parameter=parameter,
-        )
-        if (cache_entry := self._device_cache.get(key, CacheEntry.empty())) and cache_entry.is_valid:
+        if (cache_entry := self._device_cache.get(dpk, CacheEntry.empty())) and cache_entry.is_valid:
             return cache_entry.value
         return NO_CACHE_ENTRY
 

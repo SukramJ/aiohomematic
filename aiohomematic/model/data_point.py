@@ -861,9 +861,7 @@ class BaseParameterDataPoint[
 
         self.write_value(
             value=await self._device.value_cache.get_value(
-                channel_address=self._channel.address,
-                paramset_key=self._paramset_key,
-                parameter=self._parameter,
+                dpk=self.dpk,
                 call_source=call_source,
                 direct_call=direct_call,
             ),

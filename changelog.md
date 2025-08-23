@@ -1,5 +1,6 @@
-# Version 2025.8.8 (2025-08-22)
+# Version 2025.8.8 (2025-08-23)
 
+- Extend DataPointKey usage
 - Improve fetch_all_device_data
 
 # Version 2025.8.7 (2025-08-17)

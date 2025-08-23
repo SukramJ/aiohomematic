@@ -31,6 +31,7 @@ from aiohomematic import central as hmcu
 from aiohomematic.const import (
     DP_KEY_VALUE,
     INIT_DATETIME,
+    ISO_8859_1,
     LAST_COMMAND_SEND_STORE_TIMEOUT,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
@@ -310,7 +311,8 @@ class CentralDataCache:
     def add_data(self, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""
         self._value_cache[interface] = {
-            unquote(k): unquote(v) if isinstance(v, str) else v for k, v in all_device_data.items()
+            unquote(string=k, encoding=ISO_8859_1): unquote(string=v, encoding=ISO_8859_1) if isinstance(v, str) else v
+            for k, v in all_device_data.items()
         }
         self._refreshed_at[interface] = datetime.now()
 

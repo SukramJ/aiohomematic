@@ -107,11 +107,6 @@ class CustomDataPoint(BaseDataPoint):
         return refreshed_at
 
     @property
-    def signature(self) -> str:
-        """Return the signature of the data_point."""
-        return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix})"
-
-    @property
     def unconfirmed_last_values_send(self) -> Mapping[Field, Any]:
         """Return the unconfirmed values send for the data point."""
         unconfirmed_values: dict[Field, Any] = {}
@@ -181,6 +176,10 @@ class CustomDataPoint(BaseDataPoint):
         if self._channel.no in self._custom_config.channels:
             return DataPointUsage.CDP_PRIMARY
         return DataPointUsage.CDP_SECONDARY
+
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix}"
 
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""

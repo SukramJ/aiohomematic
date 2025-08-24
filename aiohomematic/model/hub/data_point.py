@@ -103,14 +103,13 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         return self._name_data.name
 
     @property
-    def signature(self) -> str:
-        """Return the signature of the data_point."""
-        return f"{self._category}/{self.name})"
-
-    @property
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return self._state_uncertain
+
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self.name}"
 
 
 class GenericSysvarDataPoint(GenericHubDataPoint):

@@ -34,7 +34,7 @@ from collections.abc import Iterable, Mapping
 from functools import cache
 import logging
 import re
-from typing import Final
+from typing import Final, TypeAlias
 
 from aiohomematic import central as hmcu, support as hms
 from aiohomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
@@ -43,7 +43,12 @@ from aiohomematic.model.custom import get_required_parameters
 from aiohomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)
-_CACHE_KEY_TYPE = tuple[str, int, ParamsetKey, str]
+
+# Readability type aliases for internal cache structures
+TModelName: TypeAlias = str
+TChannelNo: TypeAlias = int | None
+TUnIgnoreChannelNo: TypeAlias = TChannelNo | str
+TParameterName: TypeAlias = str
 
 # Define which additional parameters from MASTER paramset should be created as data_point.
 # By default these are also on the _HIDDEN_PARAMETERS, which prevents these data points
@@ -51,7 +56,7 @@ _CACHE_KEY_TYPE = tuple[str, int, ParamsetKey, str]
 # and not for general display.
 # {model: (channel_no, parameter)}
 
-_RELEVANT_MASTER_PARAMSETS_BY_CHANNEL: Final[Mapping[int | str | None, frozenset[Parameter]]] = {
+_RELEVANT_MASTER_PARAMSETS_BY_CHANNEL: Final[Mapping[TChannelNo, frozenset[Parameter]]] = {
     None: frozenset({Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT}),
     0: frozenset({Parameter.GLOBAL_BUTTON_LOCK, Parameter.LOW_BAT_LIMIT}),
 }
@@ -68,7 +73,7 @@ _CLIMATE_MASTER_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
     }
 )
 
-_RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[frozenset[int | None], frozenset[Parameter]]]] = {
+_RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[TModelName, tuple[frozenset[TChannelNo], frozenset[Parameter]]]] = {
     "ALPHA-IP-RBG": (frozenset({1}), _CLIMATE_MASTER_PARAMETERS),
     "ELV-SH-TACO": (frozenset({2}), frozenset({Parameter.CHANNEL_OPERATION_MODE})),
     "HM-CC-RT-DN": (
@@ -111,11 +116,11 @@ _RELEVANT_MASTER_PARAMSETS_BY_DEVICE: Final[Mapping[str, tuple[frozenset[int | N
 }
 
 # Ignore events for some devices
-_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS: Final[Mapping[str, frozenset[Parameter]]] = {
+_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS: Final[Mapping[TModelName, frozenset[Parameter]]] = {
     "HmIP-PS": CLICK_EVENTS,
 }
 
-_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER: Final[Mapping[str, frozenset[Parameter]]] = {
+_IGNORE_DEVICES_FOR_DATA_POINT_EVENTS_LOWER: Final[Mapping[TModelName, frozenset[Parameter]]] = {
     model.lower(): frozenset(events) for model, events in _IGNORE_DEVICES_FOR_DATA_POINT_EVENTS.items()
 }
 
@@ -143,7 +148,7 @@ _HIDDEN_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
 )
 
 # Parameters within the VALUES paramset for which we don't create data points.
-_IGNORED_PARAMETERS: Final[frozenset[str]] = frozenset(
+_IGNORED_PARAMETERS: Final[frozenset[TParameterName]] = frozenset(
     {
         "ACCESS_AUTHORIZATION",
         "ACOUSTIC_NOTIFICATION_SELECTION",
@@ -230,13 +235,13 @@ _IGNORED_PARAMETERS_START_RE: Final = re.compile(
 )
 
 
-def _parameter_is_wildcard_ignored(parameter: str) -> bool:
+def _parameter_is_wildcard_ignored(parameter: TParameterName) -> bool:
     """Check if a parameter matches common wildcard patterns."""
     return bool(_IGNORED_PARAMETERS_END_RE.match(parameter) or _IGNORED_PARAMETERS_START_RE.match(parameter))
 
 
 # Parameters within the paramsets for which we create data points.
-_UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, frozenset[Parameter]]] = {
+_UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[TModelName, frozenset[Parameter]]] = {
     "HmIP-DLD": frozenset({Parameter.ERROR_JAMMED}),
     "HmIP-SWSD": frozenset({Parameter.SMOKE_DETECTOR_ALARM_STATUS}),
     "HM-OU-LED16": frozenset({Parameter.LED_STATUS}),
@@ -245,7 +250,7 @@ _UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[str, frozenset[Parameter]]] = {
     "HmIP-PCBS-BAT": frozenset({Parameter.OPERATING_VOLTAGE, Parameter.LOW_BAT}),  # To override ignore for HmIP-PCBS
 }
 
-_UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[str, frozenset[Parameter]]] = {
+_UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[TModelName, frozenset[Parameter]]] = {
     model.lower(): frozenset(parameters) for model, parameters in _UN_IGNORE_PARAMETERS_BY_DEVICE.items()
 }
 
@@ -263,7 +268,7 @@ def _get_parameters_for_model_prefix(model_prefix: str | None) -> frozenset[Para
 
 
 # Parameters by device within the VALUES paramset for which we don't create data points.
-_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, frozenset[str]]] = {
+_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, frozenset[TModelName]]] = {
     Parameter.CURRENT_ILLUMINATION: frozenset(
         {
             "HmIP-SMI",
@@ -311,17 +316,26 @@ _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, frozenset[str]]] = {
     Parameter.VALVE_STATE: frozenset({"HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"}),
 }
 
-_IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[str, frozenset[str]]] = {
+_IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[TParameterName, frozenset[TModelName]]] = {
     parameter: frozenset(model.lower() for model in s) for parameter, s in _IGNORE_PARAMETERS_BY_DEVICE.items()
 }
 
 # Some devices have parameters on multiple channels,
 # but we want to use it only from a certain channel.
-_ACCEPT_PARAMETER_ONLY_ON_CHANNEL: Final[Mapping[str, int]] = {Parameter.LOWBAT: 0}
+_ACCEPT_PARAMETER_ONLY_ON_CHANNEL: Final[Mapping[TParameterName, int]] = {Parameter.LOWBAT: 0}
 
 
 class ParameterVisibilityCache:
-    """Cache for parameter visibility."""
+    """
+    Cache for parameter visibility.
+
+    The cache centralizes rules that determine whether a data point parameter is
+    created, ignored, un-ignored, or merely hidden for UI purposes. It combines
+    static rules (per-model/per-channel) with dynamic user-provided overrides and
+    memoizes decisions per (model/channel/paramset/parameter) to avoid repeated
+    computations during runtime. Behavior is unchanged; this class only clarifies
+    intent and structure through documentation and small naming improvements.
+    """
 
     __slots__ = (
         "_central",
@@ -351,32 +365,32 @@ class ParameterVisibilityCache:
 
         # un_ignore from custom un_ignore files
         # parameter
-        self._custom_un_ignore_values_parameters: Final[set[str]] = set()
+        self._custom_un_ignore_values_parameters: Final[set[TParameterName]] = set()
 
-        # model, channel_no, paramset_key, parameter
-        self._custom_un_ignore_complex: Final[dict[str, dict[int | str | None, dict[str, set[str]]]]] = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(set))
-        )
-        self._ignore_custom_device_definition_models: Final[frozenset[str]] = (
+        # model -> channel_no -> paramset_key -> set(parameter)
+        self._custom_un_ignore_complex: Final[
+            dict[TModelName, dict[TUnIgnoreChannelNo, dict[ParamsetKey, set[TParameterName]]]]
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+        self._ignore_custom_device_definition_models: Final[frozenset[TModelName]] = (
             central.config.ignore_custom_device_definition_models
         )
 
         # model, channel_no, paramset_key, set[parameter]
         self._un_ignore_parameters_by_device_paramset_key: Final[
-            dict[str, dict[int | None, dict[ParamsetKey, set[str]]]]
+            dict[TModelName, dict[TChannelNo, dict[ParamsetKey, set[TParameterName]]]]
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
 
         # model, channel_no
-        self._relevant_master_paramsets_by_device: Final[dict[str, set[int | None]]] = defaultdict(set)
+        self._relevant_master_paramsets_by_device: Final[dict[TModelName, set[TChannelNo]]] = defaultdict(set)
         # Cache for resolving matching prefix key in _un_ignore_parameters_by_device_paramset_key
-        self._un_ignore_prefix_cache: dict[str, str | None] = {}
+        self._un_ignore_prefix_cache: dict[TModelName, str | None] = {}
         # Cache for resolving matching prefix key in _relevant_master_paramsets_by_device
-        self._relevant_prefix_cache: dict[str, str | None] = {}
+        self._relevant_prefix_cache: dict[TModelName, str | None] = {}
         # Per-instance memoization for repeated queries.
         # Key: (model_l, channel_no, paramset_key, parameter)
-        self._param_ignored_cache: dict[tuple[str, int, ParamsetKey, str], bool] = {}
+        self._param_ignored_cache: dict[tuple[TModelName, TChannelNo, ParamsetKey, TParameterName], bool] = {}
         # Key: (model_l, channel_no, paramset_key, parameter, custom_only)
-        self._param_un_ignored_cache: dict[tuple[str, int, ParamsetKey, str, bool], bool] = {}
+        self._param_un_ignored_cache: dict[tuple[TModelName, TChannelNo, ParamsetKey, TParameterName, bool], bool] = {}
         self._init()
 
     def _init(self) -> None:
@@ -388,7 +402,7 @@ class ParameterVisibilityCache:
             model_l = model.lower()
             channel_nos, parameters = channels_parameter
 
-            def _add_channel(dt_l: str, params: frozenset[Parameter], ch_no: int | None) -> None:
+            def _add_channel(dt_l: str, params: frozenset[Parameter], ch_no: TChannelNo) -> None:
                 self._relevant_master_paramsets_by_device[dt_l].add(ch_no)
                 self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][ParamsetKey.MASTER].update(params)
 
@@ -400,7 +414,17 @@ class ParameterVisibilityCache:
 
         self._process_un_ignore_entries(lines=self._raw_un_ignores)
 
-    def model_is_ignored(self, model: str) -> bool:
+    def _resolve_prefix_key(
+        self, model_l: TModelName, mapping: Mapping[str, object], cache_dict: dict[TModelName, str | None]
+    ) -> str | None:
+        """Resolve and memoize the first key in mapping that prefixes model_l."""
+        dt_short_key = cache_dict.get(model_l)
+        if dt_short_key is None and model_l not in cache_dict:
+            dt_short_key = next((k for k in mapping if model_l.startswith(k)), None)
+            cache_dict[model_l] = dt_short_key
+        return dt_short_key
+
+    def model_is_ignored(self, model: TModelName) -> bool:
         """Check if a model should be ignored for custom data points."""
         return element_matches_key(
             search_elements=self._ignore_custom_device_definition_models,
@@ -411,13 +435,12 @@ class ParameterVisibilityCache:
         self,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
-        parameter: str,
+        parameter: TParameterName,
     ) -> bool:
         """Check if parameter can be ignored."""
         model_l = channel.device.model.lower()
         # Fast path via per-instance memoization
-        ch_no_key = channel.no if isinstance(channel.no, int) else (-1 if channel.no is None else channel.no)
-        if (cache_key := (model_l, ch_no_key, paramset_key, parameter)) in self._param_ignored_cache:
+        if (cache_key := (model_l, channel.no, paramset_key, parameter)) in self._param_ignored_cache:
             return self._param_ignored_cache[cache_key]
 
         if paramset_key == ParamsetKey.VALUES:
@@ -459,14 +482,11 @@ class ParameterVisibilityCache:
             if parameter in self._custom_un_ignore_complex[model_l][channel.no][ParamsetKey.MASTER]:
                 return False  # pragma: no cover
 
-            # Resolve matching device type prefix once and cache per model
-            dt_short_key = self._un_ignore_prefix_cache.get(model_l)
-            if dt_short_key is None and model_l not in self._un_ignore_prefix_cache:
-                # Find first key that is a prefix of model_l
-                dt_short_key = next(
-                    (k for k in self._un_ignore_parameters_by_device_paramset_key if model_l.startswith(k)), None
-                )
-                self._un_ignore_prefix_cache[model_l] = dt_short_key
+            dt_short_key = self._resolve_prefix_key(
+                model_l=model_l,
+                mapping=self._un_ignore_parameters_by_device_paramset_key,
+                cache_dict=self._un_ignore_prefix_cache,
+            )
             if (
                 dt_short_key is not None
                 and parameter
@@ -484,7 +504,7 @@ class ParameterVisibilityCache:
         self,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
-        parameter: str,
+        parameter: TParameterName,
         custom_only: bool = False,
     ) -> bool:
         """
@@ -501,8 +521,7 @@ class ParameterVisibilityCache:
         # check if parameter is in custom_un_ignore with paramset_key
         model_l = channel.device.model.lower()
         # Fast path via per-instance memoization
-        ch_no_key = channel.no if isinstance(channel.no, int) else (-1 if channel.no is None else channel.no)
-        if (cache_key := (model_l, ch_no_key, paramset_key, parameter, custom_only)) in self._param_un_ignored_cache:
+        if (cache_key := (model_l, channel.no, paramset_key, parameter, custom_only)) in self._param_un_ignored_cache:
             return self._param_un_ignored_cache[cache_key]
 
         search_matrix = (
@@ -534,7 +553,7 @@ class ParameterVisibilityCache:
         self,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
-        parameter: str,
+        parameter: TParameterName,
         custom_only: bool = False,
     ) -> bool:
         """
@@ -545,13 +564,11 @@ class ParameterVisibilityCache:
         """
         if not custom_only:
             model_l = channel.device.model.lower()
-            # Resolve matching device type prefix once and cache per model
-            dt_short_key = self._un_ignore_prefix_cache.get(model_l)
-            if dt_short_key is None and model_l not in self._un_ignore_prefix_cache:
-                dt_short_key = next(
-                    (k for k in self._un_ignore_parameters_by_device_paramset_key if model_l.startswith(k)), None
-                )
-                self._un_ignore_prefix_cache[model_l] = dt_short_key
+            dt_short_key = self._resolve_prefix_key(
+                model_l=model_l,
+                mapping=self._un_ignore_parameters_by_device_paramset_key,
+                cache_dict=self._un_ignore_prefix_cache,
+            )
 
             # check if parameter is in _RELEVANT_MASTER_PARAMSETS_BY_DEVICE
             if (
@@ -569,7 +586,7 @@ class ParameterVisibilityCache:
         )
 
     def should_skip_parameter(
-        self, channel: hmd.Channel, paramset_key: ParamsetKey, parameter: str, parameter_is_un_ignored: bool
+        self, channel: hmd.Channel, paramset_key: ParamsetKey, parameter: TParameterName, parameter_is_un_ignored: bool
     ) -> bool:
         """Determine if a parameter should be skipped."""
         if self.parameter_is_ignored(
@@ -615,17 +632,19 @@ class ParameterVisibilityCache:
                     line,
                 )
 
-    def _get_un_ignore_line_details(self, line: str) -> tuple[str, int | str | None, str, ParamsetKey] | str | None:
+    def _get_un_ignore_line_details(
+        self, line: str
+    ) -> tuple[TModelName, TUnIgnoreChannelNo, TParameterName, ParamsetKey] | str | None:
         """
         Check the format of the line for un_ignore file.
 
         model, channel_no, paramset_key, parameter
         """
 
-        model: str | None = None
-        channel_no: int | str | None = None
+        model: TModelName | None = None
+        channel_no: TUnIgnoreChannelNo = None
         paramset_key: ParamsetKey | None = None
-        parameter: str | None = None
+        parameter: TParameterName | None = None
 
         if "@" in line:
             data = line.split("@")
@@ -692,10 +711,10 @@ class ParameterVisibilityCache:
 
     def _add_complex_un_ignore_entry(
         self,
-        model: str,
-        channel_no: int | str | None,
+        model: TModelName,
+        channel_no: TUnIgnoreChannelNo,
         paramset_key: ParamsetKey,
-        parameter: str,
+        parameter: TParameterName,
     ) -> None:
         """Add line to un ignore cache."""
         if paramset_key == ParamsetKey.MASTER:
@@ -718,7 +737,7 @@ class ParameterVisibilityCache:
         self,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
-        parameter: str,
+        parameter: TParameterName,
     ) -> bool:
         """
         Return if parameter should be hidden.
@@ -749,12 +768,11 @@ class ParameterVisibilityCache:
                 return True
             model_l = channel.device.model.lower()
             # Resolve matching device type prefix once and cache per model
-            dt_short_key = self._relevant_prefix_cache.get(model_l)
-            if dt_short_key is None and model_l not in self._relevant_prefix_cache:
-                dt_short_key = next(
-                    (k for k in self._relevant_master_paramsets_by_device if model_l.startswith(k)), None
-                )
-                self._relevant_prefix_cache[model_l] = dt_short_key
+            dt_short_key = self._resolve_prefix_key(
+                model_l=model_l,
+                mapping=self._relevant_master_paramsets_by_device,
+                cache_dict=self._relevant_prefix_cache,
+            )
             if dt_short_key is not None and channel.no in self._relevant_master_paramsets_by_device[dt_short_key]:
                 return True
         return False

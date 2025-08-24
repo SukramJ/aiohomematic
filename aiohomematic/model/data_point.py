@@ -146,6 +146,7 @@ class CallbackDataPoint(ABC):
         "_modified_at",
         "_path_data",
         "_refreshed_at",
+        "_signature",
         "_temporary_modified_at",
         "_temporary_refreshed_at",
         "_unique_id",
@@ -164,6 +165,7 @@ class CallbackDataPoint(ABC):
         self._fired_at: datetime = INIT_DATETIME
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
+        self._signature: Final = self._get_signature()
         self._temporary_modified_at: datetime = INIT_DATETIME
         self._temporary_refreshed_at: datetime = INIT_DATETIME
 
@@ -252,6 +254,11 @@ class CallbackDataPoint(ABC):
     def name(self) -> str:
         """Return the name of the data_point."""
 
+    @property
+    def signature(self) -> str:
+        """Return the data_point signature."""
+        return self._signature
+
     @config_property
     def unique_id(self) -> str:
         """Return the unique_id."""
@@ -324,6 +331,10 @@ class CallbackDataPoint(ABC):
     @abstractmethod
     def _get_path_data(self) -> PathData:
         """Return the path data."""
+
+    @abstractmethod
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
 
     def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
         """Unregister data_point updated callback."""
@@ -839,6 +850,10 @@ class BaseParameterDataPoint[
         if multiplier := _MULTIPLIER_UNIT.get(raw_unit):
             return multiplier
         return DEFAULT_MULTIPLIER
+
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._channel.device.model}/{self._parameter}"
 
     @abstractmethod
     async def event(self, value: Any, received_at: datetime | None = None) -> None:

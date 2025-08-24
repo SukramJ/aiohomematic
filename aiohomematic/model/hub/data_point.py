@@ -107,6 +107,10 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         """Return, if the state is uncertain."""
         return self._state_uncertain
 
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self.name}"
+
 
 class GenericSysvarDataPoint(GenericHubDataPoint):
     """Class for a HomeMatic system variable."""

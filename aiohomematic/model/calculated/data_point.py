@@ -280,6 +280,10 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Generate the usage for the data point."""
         return DataPointUsage.DATA_POINT
 
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._channel.device.model}/{self._calculated_parameter}"
+
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
         for dp in self._readable_data_points:

@@ -177,6 +177,10 @@ class CustomDataPoint(BaseDataPoint):
             return DataPointUsage.CDP_PRIMARY
         return DataPointUsage.CDP_SECONDARY
 
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix}"
+
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
         for dp in self._readable_data_points:

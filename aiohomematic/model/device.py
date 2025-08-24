@@ -671,10 +671,11 @@ class Device(PayloadMixin):
         """Provide some useful information."""
         return (
             f"address: {self._address}, "
-            f"model: {len(self._model)}, "
+            f"model: {self._model}, "
             f"name: {self._name}, "
-            f"generic_data_points: {len(self.generic_data_points)}, "
-            f"custom_data_points: {len(self.custom_data_points)}, "
+            f"generic dps: {len(self.generic_data_points)}, "
+            f"calculated dps: {len(self.calculated_data_points)}, "
+            f"custom dps: {len(self.custom_data_points)}, "
             f"events: {len(self.generic_events)}"
         )
 
@@ -1077,8 +1078,9 @@ class Channel(PayloadMixin):
         return (
             f"address: {self._address}, "
             f"type: {self._type_name}, "
-            f"generic_data_points: {len(self._generic_data_points)}, "
-            f"custom_data_point: {self._custom_data_point is not None}, "
+            f"generic dps: {len(self._generic_data_points)}, "
+            f"calculated dps: {len(self._calculated_data_points)}, "
+            f"custom dp: {self._custom_data_point is not None}, "
             f"events: {len(self._generic_events)}"
         )
 

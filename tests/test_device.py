@@ -44,10 +44,11 @@ async def test_device_general(
     assert device.name == "HmIP-BSM_VCU2128127"
     assert (
         str(device) == "address: VCU2128127, "
-        "model: 8, "
+        "model: HmIP-BSM, "
         "name: HmIP-BSM_VCU2128127, "
-        "generic_data_points: 27, "
-        "custom_data_points: 3, "
+        "generic dps: 27, "
+        "calculated dps: 0, "
+        "custom dps: 3, "
         "events: 6"
     )
     assert device.model == "HmIP-BSM"

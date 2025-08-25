@@ -1,7 +1,10 @@
+# Version 2025.8.10 (2025-08-25)
+
+- Improve decorators
+
 # Version 2025.8.9 (2025-08-23)
 
 - Add signature to model
-- Improve decorators
 - Improve immutability
 - Improve readability of visibility cache
 

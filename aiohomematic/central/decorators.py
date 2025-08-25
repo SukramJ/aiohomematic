@@ -17,6 +17,9 @@ from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 _INTERFACE_ID: Final = "interface_id"
+_CHANNEL_ADDRESS: Final = "channel_address"
+_PARAMETER: Final = "parameter"
+_VALUE: Final = "value"
 
 
 def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
@@ -83,28 +86,68 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
     return decorator_backend_system_callback
 
 
-def callback_event[**P, R](
-    func: Callable[P, R],
-) -> Callable:
+def callback_event[**P, R](func: Callable[P, R]) -> Callable:
     """Check if event_callback is set and call it AFTER original function."""
-
-    @wraps(func)
-    async def async_wrapper_event_callback(*args: P.args, **kwargs: P.kwargs) -> R:
-        """Wrap callback events."""
-        return_value = cast(R, await func(*args, **kwargs))  # type: ignore[misc]
-        _exec_event_callback(*args, **kwargs)
-        return return_value
 
     def _exec_event_callback(*args: Any, **kwargs: Any) -> None:
         """Execute the callback for a data_point event."""
         try:
-            args = args[1:]
-            interface_id: str = args[0] if len(args) > 1 else str(kwargs[_INTERFACE_ID])
+            # Expected signature: (self, interface_id, channel_address, parameter, value)
+            interface_id: str
+            if len(args) > 1:
+                interface_id = cast(str, args[1])
+                channel_address = cast(str, args[2])
+                parameter = cast(str, args[3])
+                value = args[4] if len(args) > 4 else kwargs.get(_VALUE)
+            else:
+                interface_id = cast(str, kwargs[_INTERFACE_ID])
+                channel_address = cast(str, kwargs[_CHANNEL_ADDRESS])
+                parameter = cast(str, kwargs[_PARAMETER])
+                value = kwargs[_VALUE]
+
             if client := hmcl.get_client(interface_id=interface_id):
                 client.modified_at = datetime.now()
-                client.central.fire_backend_parameter_callback(*args, **kwargs)
+                client.central.fire_backend_parameter_callback(
+                    interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
+                )
         except Exception as exc:  # pragma: no cover
-            _LOGGER.warning("EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to reduce kwargs for event_callback")
+            _LOGGER.warning("EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to process args/kwargs for event_callback")
             raise AioHomematicException(f"args-exception event_callback [{extract_exc_args(exc=exc)}]") from exc
 
-    return async_wrapper_event_callback
+    def _schedule_or_exec(*args: Any, **kwargs: Any) -> None:
+        """Schedule event callback on central looper when possible, else execute inline."""
+        try:
+            # Prefer scheduling on the CentralUnit looper when available to avoid blocking hot path
+            unit = args[0]
+            if isinstance(unit, hmcu.CentralUnit):
+                unit.looper.create_task(
+                    _async_wrap_sync(_exec_event_callback, *args, **kwargs),
+                    name="wrapper_event_callback",
+                )
+                return
+        except Exception:
+            # Fall through to inline execution on any error
+            pass
+        _exec_event_callback(*args, **kwargs)
+
+    @wraps(func)
+    async def async_wrapper_event_callback(*args: P.args, **kwargs: P.kwargs) -> R:
+        """Wrap async callback events."""
+        return_value = cast(R, await func(*args, **kwargs))  # type: ignore[misc]
+        _schedule_or_exec(*args, **kwargs)
+        return return_value
+
+    @wraps(func)
+    def wrapper_event_callback(*args: P.args, **kwargs: P.kwargs) -> R:
+        """Wrap sync callback events."""
+        return_value = func(*args, **kwargs)
+        _schedule_or_exec(*args, **kwargs)
+        return return_value
+
+    # Helper to create a trivial coroutine from a sync callable
+    async def _async_wrap_sync(cb: Callable[..., None], *a: Any, **kw: Any) -> None:
+        cb(*a, **kw)
+
+    if inspect.iscoroutinefunction(func):
+        return async_wrapper_event_callback
+    return wrapper_event_callback

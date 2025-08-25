@@ -8,6 +8,7 @@ import inspect
 import logging
 from time import monotonic
 from typing import Any, Final, ParamSpec, TypeVar, cast
+from weakref import WeakKeyDictionary
 
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
@@ -17,6 +18,10 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+# Cache for per-class service call method names to avoid repeated scans.
+# Structure: {cls: (method_name1, method_name2, ...)}
+_SERVICE_CALLS_CACHE: WeakKeyDictionary[type, tuple[str, ...]] = WeakKeyDictionary()
 
 
 def inspector(  # noqa: C901
@@ -147,15 +152,34 @@ def _log_performance_message(func: Callable, start: float, *args: P.args, **kwar
 
 
 def get_service_calls(obj: object) -> dict[str, Callable]:
-    """Get all methods decorated with the "bind_collector" or "service_call"  decorator."""
-    return {
-        name: getattr(obj, name)
-        for name in dir(obj)
-        if not name.startswith("_")
-        and name not in ("service_methods", "service_method_names")
-        and callable(getattr(obj, name))
-        and hasattr(getattr(obj, name), "ha_service")
-    }
+    """
+    Get all methods decorated with the service decorator (ha_service attribute).
+
+    To reduce overhead, we cache the discovered method names per class using a WeakKeyDictionary.
+    """
+    cls = obj.__class__
+
+    # Try cache first
+    if (names := _SERVICE_CALLS_CACHE.get(cls)) is None:
+        # Compute method names using class attributes to avoid creating bound methods during checks
+        exclusions = {"service_methods", "service_method_names"}
+        computed: list[str] = []
+        for name in dir(cls):
+            if name.startswith("_") or name in exclusions:
+                continue
+            try:
+                # Check the attribute on the class (function/descriptor)
+                attr = getattr(cls, name)
+            except Exception:
+                continue
+            # Only consider callables exposed on the instance and marked with ha_service on the function/wrapper
+            if callable(getattr(obj, name, None)) and hasattr(attr, "ha_service"):
+                computed.append(name)
+        names = tuple(computed)
+        _SERVICE_CALLS_CACHE[cls] = names
+
+    # Return a mapping of bound methods for this instance
+    return {name: getattr(obj, name) for name in names}
 
 
 def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> CallableT:

@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from datetime import datetime
 from enum import Enum
 from typing import Any, ParamSpec, TypeVar, cast
+from weakref import WeakKeyDictionary
 
 __all__ = [
     "config_property",
@@ -91,8 +92,9 @@ class state_property[GETTER, SETTER](generic_property[GETTER, SETTER]):
 
 
 # Cache for per-class attribute names by decorator to avoid repeated dir() scans
-# Keyed by (class, decorator class); value is a tuple of attribute names
-_PUBLIC_ATTR_CACHE: dict[tuple[type, type], tuple[str, ...]] = {}
+# Use WeakKeyDictionary to allow classes to be garbage-collected without leaking cache entries.
+# Structure: {cls: {decorator_class: (attr_name1, attr_name2, ...)}}
+_PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[type, tuple[str, ...]]] = WeakKeyDictionary()
 
 
 def _get_public_attributes_by_class_decorator(data_object: Any, class_decorator: type) -> Mapping[str, Any]:
@@ -104,11 +106,16 @@ def _get_public_attributes_by_class_decorator(data_object: Any, class_decorator:
     instance-dependent and may change over time.
     """
     cls = data_object.__class__
-    cache_key = (cls, class_decorator)
 
-    if (names := _PUBLIC_ATTR_CACHE.get(cache_key)) is None:
+    # Get or create the per-class cache dict
+    if (decorator_cache := _PUBLIC_ATTR_CACHE.get(cls)) is None:
+        decorator_cache = {}
+        _PUBLIC_ATTR_CACHE[cls] = decorator_cache
+
+    # Get or compute the attribute names for this decorator
+    if (names := decorator_cache.get(class_decorator)) is None:
         names = tuple(y for y in dir(cls) if not y.startswith("_") and isinstance(getattr(cls, y), class_decorator))
-        _PUBLIC_ATTR_CACHE[cache_key] = names
+        decorator_cache[class_decorator] = names
 
     return {name: _get_text_value(getattr(data_object, name)) for name in names}
 

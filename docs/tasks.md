@@ -53,7 +53,7 @@
 
    - [ ] Ensure Parameter, DataPointCategory, and Field mappings are exhaustive and validated at startup
    - [ ] Add validators for incoming values (range, enums) and conversions (e.g., convert_hm_level_to_cpv)
-   - [ ] Consolidate duplicate constants and normalization logic
+   - [x] Consolidate duplicate constants and normalization logic
 
 10. [ ] Performance and caching
 

@@ -74,7 +74,8 @@ RENAME_SYSVAR_BY_NAME: Final[Mapping[str, str]] = MappingProxyType(
     }
 )
 
-SYSVAR_ENABLE_DEFAULT: Final[frozenset[str]] = frozenset({"40", "41"})
+# Deprecated alias (use ALWAYS_ENABLE_SYSVARS_BY_ID). Kept for backward compatibility.
+SYSVAR_ENABLE_DEFAULT: Final[frozenset[str]] = ALWAYS_ENABLE_SYSVARS_BY_ID
 
 ADDRESS_SEPARATOR: Final = ":"
 BLOCK_LOG_TIMEOUT: Final = 60

@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
-"""Module for AioHomematicExceptions."""
+"""
+Module for AioHomematicExceptions.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -145,3 +149,15 @@ def log_exception[**P, R](
         return wrapper_log_exception
 
     return decorator_log_exception
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (name.isupper() or inspect.isclass(obj) or inspect.isfunction(obj))
+        and getattr(obj, "__module__", __name__) == __name__
+    )
+)

@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
-"""Helper functions used within aiohomematic."""
+"""
+Helper functions used within aiohomematic.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +15,7 @@ import contextlib
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
+import inspect
 from ipaddress import IPv4Address
 import logging
 import os
@@ -625,3 +630,15 @@ def log_boundary_error(
         logger.exception(_BOUNDARY_MSG, extra=extra)
     else:
         logger.log(chosen_level, _BOUNDARY_MSG, extra=extra)
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (inspect.isfunction(obj) or inspect.isclass(obj))
+        and getattr(obj, "__module__", __name__) == __name__
+    )
+)

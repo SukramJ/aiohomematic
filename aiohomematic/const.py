@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
-"""Constants used by aiohomematic."""
+"""
+Constants used by aiohomematic.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +12,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, IntEnum, StrEnum
+import inspect
 import os
 import re
 import sys
@@ -822,3 +827,23 @@ class DeviceDescription(TypedDict, total=False):
     INTERFACE: str | None
     # ROAMING: int | None
     RX_MODE: int
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (
+            name.isupper()  # constants like VERSION, patterns, defaults
+            or inspect.isclass(obj)  # Enums, dataclasses, TypedDicts, NamedTuple classes
+            or inspect.isfunction(obj)  # module functions
+        )
+        and (
+            getattr(obj, "__module__", __name__) == __name__
+            if not isinstance(obj, (int, float, str, bytes, tuple, frozenset, dict))
+            else True
+        )
+    )
+)

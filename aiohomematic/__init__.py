@@ -3,6 +3,8 @@
 """
 AioHomematic: a Python 3 library to interact with HomeMatic and HomematicIP backends.
 
+Public API at the top-level package is defined by __all__.
+
 This package provides a high-level API to discover devices and channels, read and write
 parameters (data points), receive events, and manage programs and system variables.
 
@@ -47,3 +49,6 @@ def signal_handler(sig, frame):  # type: ignore[no-untyped-def]
 
 if threading.current_thread() is threading.main_thread() and sys.stdout.isatty():
     signal.signal(signal.SIGINT, signal_handler)
+
+# Define public API for the top-level package
+__all__ = ["__version__"]

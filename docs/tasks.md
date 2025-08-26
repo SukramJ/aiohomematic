@@ -45,7 +45,7 @@
 
 8. [ ] Public API review and stability
 
-   - [ ] Identify and mark public vs private APIs using **all** and documentation
+   - [x] Identify and mark public vs private APIs using **all** and documentation
    - [-] Add deprecation policy and decorators for transitioning APIs
    - [ ] Provide changelog templates for breaking changes
 

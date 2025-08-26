@@ -1,10 +1,15 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
-"""Converters used by aiohomematic."""
+"""
+Converters used by aiohomematic.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
 import ast
+import inspect
 import logging
 from typing import Any, Final, cast
 
@@ -82,3 +87,15 @@ def convert_combined_parameter_to_paramset(parameter: str, cpv: str) -> dict[str
     except Exception as exc:
         _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: Convert failed %s", extract_exc_args(exc=exc))
     return {}
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (name.isupper() or inspect.isfunction(obj) or inspect.isclass(obj))
+        and getattr(obj, "__module__", __name__) == __name__
+    )
+)

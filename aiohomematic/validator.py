@@ -1,8 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
-"""Validator functions used within aiohomematic."""
+"""
+Validator functions used within aiohomematic.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
+
+import inspect
 
 import voluptuous as vol
 
@@ -65,3 +71,15 @@ def paramset_key(value: str) -> str:
 
 address = vol.All(vol.Coerce(str), vol.Any(device_address, channel_address))
 host = vol.All(vol.Coerce(str), vol.Any(hostname, ipv4_address))
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (inspect.isfunction(obj) or inspect.isclass(obj))
+        and getattr(obj, "__module__", __name__) == __name__
+    )
+)

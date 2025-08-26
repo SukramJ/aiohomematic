@@ -38,15 +38,15 @@
 
 7. [ ] Type hints and typing robustness
 
-   - [ ] Enable strict mypy options incrementally (e.g., disallow Any in core modules)
+   - [-] Enable strict mypy options incrementally (e.g., disallow Any in core modules)
    - [-] Fill missing type annotations, especially in decorators and generic data point classes
-   - [ ] Replace use of Union[...] with | where Python version permits; keep py.typed accurate
+   - [x] Replace use of Union[...] with | where Python version permits; keep py.typed accurate
    - [ ] Add Protocols/TypedDicts for RPC payloads and device metadata
 
 8. [ ] Public API review and stability
 
    - [ ] Identify and mark public vs private APIs using **all** and documentation
-   - [ ] Add deprecation policy and decorators for transitioning APIs
+   - [-] Add deprecation policy and decorators for transitioning APIs
    - [ ] Provide changelog templates for breaking changes
 
 9. [ ] Data model consistency and validation

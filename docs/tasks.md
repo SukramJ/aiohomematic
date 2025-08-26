@@ -22,7 +22,7 @@
    - [x] Centralize exception types in aiohomematic/exceptions.py and replace ad-hoc raises with domain-specific errors
    - [x] Ensure RPC errors are mapped to actionable exceptions with context
    - [ ] Implement graceful degradation paths when optional features fail (e.g., partial device data)
-   - [ ] Add error boundary logs with consistent structure and levels
+   - [x] Add error boundary logs with consistent structure and levels
 
 5. [ ] Configuration and environment management
 

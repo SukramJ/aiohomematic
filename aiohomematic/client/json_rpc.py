@@ -92,6 +92,7 @@ from aiohomematic.support import (
     element_matches_key,
     extract_exc_args,
     get_tls_context,
+    log_boundary_error,
     parse_sys_var,
 )
 
@@ -415,6 +416,15 @@ class JsonRpcAioHttpClient:
                     # Map JSON-RPC error to actionable exception with context
                     ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
                     exc = map_jsonrpc_error(error, ctx)
+                    # Structured boundary log at warning level (recoverable per-call failure)
+                    log_boundary_error(
+                        _LOGGER,
+                        boundary="json-rpc",
+                        action=str(method),
+                        err=exc,
+                        level=logging.WARNING,
+                        context={"url": self._url},
+                    )
                     _LOGGER.debug("POST: %s", exc)
                     raise exc
 
@@ -425,11 +435,28 @@ class JsonRpcAioHttpClient:
             if error := json_response[_JsonKey.ERROR]:
                 ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
                 exc = map_jsonrpc_error(error, ctx)
+                log_boundary_error(
+                    _LOGGER,
+                    boundary="json-rpc",
+                    action=str(method),
+                    err=exc,
+                    level=logging.WARNING,
+                    context={"url": self._url, "status": response.status},
+                )
                 raise exc
             raise ClientException(message)
-        except BaseHomematicException:
+        except BaseHomematicException as bhe:
             if method in (_JsonRpcMethod.SESSION_LOGIN, _JsonRpcMethod.SESSION_LOGOUT, _JsonRpcMethod.SESSION_RENEW):
                 self.clear_session()
+            # Domain error at boundary -> warning
+            log_boundary_error(
+                _LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=bhe,
+                level=logging.WARNING,
+                context={"url": self._url},
+            )
             raise
         except ClientConnectorCertificateError as cccerr:
             self.clear_session()
@@ -439,12 +466,36 @@ class JsonRpcAioHttpClient:
                     f"{message}. Possible reason: 'Automatic forwarding to HTTPS' is enabled in backend, "
                     f"but this integration is not configured to use TLS"
                 )
+            log_boundary_error(
+                _LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=cccerr,
+                level=logging.ERROR,
+                context={"url": self._url},
+            )
             raise ClientException(message) from cccerr
         except (ClientError, OSError) as err:
             self.clear_session()
+            log_boundary_error(
+                _LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=err,
+                level=logging.ERROR,
+                context={"url": self._url},
+            )
             raise NoConnectionException(err) from err
         except (TypeError, Exception) as exc:
             self.clear_session()
+            log_boundary_error(
+                _LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=exc,
+                level=logging.ERROR,
+                context={"url": self._url},
+            )
             raise ClientException(exc) from exc
 
     async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:

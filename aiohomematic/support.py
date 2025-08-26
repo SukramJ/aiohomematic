@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections import defaultdict
-from collections.abc import Callable, Collection, Set as AbstractSet
+from collections.abc import Callable, Collection, Mapping, Set as AbstractSet
 import contextlib
 from dataclasses import dataclass
 from datetime import datetime
@@ -493,3 +493,82 @@ def supports_rx_mode(command_rx_mode: CommandRxMode, rx_modes: tuple[RxMode, ...
 def cleanup_text_from_html_tags(text: str) -> str:
     """Cleanup text from html tags."""
     return re.sub(HTMLTAG_PATTERN, "", text)
+
+
+# --- Structured error boundary logging helpers ---
+
+_BOUNDARY_MSG = "error_boundary"
+
+
+def _safe_context(context: Mapping[str, Any] | None) -> dict[str, Any]:
+    ctx: dict[str, Any] = {}
+    if not context:
+        return ctx
+    # Avoid logging potentially sensitive values by redacting common keys
+    redact_keys = {"password", "passwd", "pwd", "token", "authorization", "auth"}
+    for k, v in context.items():
+        if k.lower() in redact_keys:
+            ctx[k] = "***"
+        else:
+            # Ensure value is serializable / printable
+            try:
+                str(v)
+                ctx[k] = v
+            except Exception:
+                ctx[k] = repr(v)
+    return ctx
+
+
+def log_boundary_error(
+    logger: logging.Logger,
+    *,
+    boundary: str,
+    action: str,
+    err: Exception,
+    level: int | None = None,
+    context: Mapping[str, Any] | None = None,
+) -> None:
+    """
+    Log a boundary error with the provided logger.
+
+    This function differentiates
+    between recoverable and non-recoverable domain errors to select an appropriate
+    logging level if not explicitly provided. Additionally, it enriches the log
+    record with extra context about the error and action boundaries.
+
+    :param logger: The logger instance used to log the error.
+    :type logger: logging.Logger
+    :param boundary: The name of the boundary at which the error occurred.
+    :type boundary: str
+    :param action: The action being performed when the error occurred.
+    :type action: str
+    :param err: The exception instance representing the error to log.
+    :type err: Exception
+    :param level: The optional logging level. Defaults to WARNING for recoverable
+        domain errors and ERROR for non-recoverable errors if not provided.
+    :type level: int | None
+    :param context: Optional mapping of additional information or context to
+        include in the log record.
+    :type context: Mapping[str, Any] | None
+    :return: None. This function logs the provided information but does not
+        return a value.
+    :rtype: None
+    """
+    extra = {
+        "boundary": boundary,
+        "action": action,
+        "err_type": err.__class__.__name__,
+        "err": extract_exc_args(exc=err),
+        **_safe_context(context),
+    }
+
+    # Choose level if not provided:
+    chosen_level = level
+    if chosen_level is None:
+        # Use WARNING for expected/recoverable domain errors, ERROR otherwise.
+        chosen_level = logging.WARNING if isinstance(err, BaseHomematicException) else logging.ERROR
+
+    if chosen_level >= logging.ERROR:
+        logger.exception(_BOUNDARY_MSG, extra=extra)
+    else:
+        logger.log(chosen_level, _BOUNDARY_MSG, extra=extra)

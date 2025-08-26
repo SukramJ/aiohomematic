@@ -89,6 +89,8 @@ Write
 
 5. Sequence diagrams (Mermaid)
 
+Additional sequence diagrams for connect, device discovery, and state change propagation are available in docs/sequence_diagrams.md.
+
 Read value via JSON-RPC
 
 ```mermaid

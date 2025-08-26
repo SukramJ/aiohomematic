@@ -1,8 +1,8 @@
-1. [ ] Establish architecture overview document
+1. [x] Establish architecture overview document
 
    - [x] Create docs/architecture.md describing high-level components (central, client, model, caches, support) and their interactions
    - [x] Document data flow for XML-RPC/JSON-RPC, event handling, and data point updates
-   - [ ] Add sequence diagrams for connect, device discovery, state change propagation
+   - [x] Add sequence diagrams for connect, device discovery, state change propagation
 
 2. [ ] Define clear module boundaries and responsibilities
 

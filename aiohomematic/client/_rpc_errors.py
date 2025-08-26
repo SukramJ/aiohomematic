@@ -1,5 +1,22 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
+"""
+Error mapping helpers for RPC transports.
+
+This module centralizes small, transport-agnostic utilities to turn backend
+errors into domain-specific exceptions with useful context. It is used by both
+JSON-RPC and XML-RPC clients.
+
+Key types and functions
+- RpcContext: Lightweight context container that formats protocol/method/host
+  for readable error messages and logs.
+- map_jsonrpc_error: Maps a JSON-RPC error object to an appropriate exception
+  (AuthFailure, InternalBackendException, ClientException).
+- map_transport_error: Maps generic transport-level exceptions like OSError to
+  domain exceptions (NoConnectionException/ClientException).
+- map_xmlrpc_fault: Maps XML-RPC faults to domain exceptions with context.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Mapping

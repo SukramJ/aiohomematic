@@ -117,9 +117,9 @@
 
 20. [ ] Code organization and naming
 
-    - [ ] Review module and class names for clarity and consistency (e.g., abbreviations like hmd, hmed)
-    - [ ] Replace ambiguous names with descriptive alternatives and update imports
-    - [ ] Add module-level docstrings summarizing purpose and key types
+    - [-] Review module and class names for clarity and consistency (e.g., abbreviations like hmd, hmed)
+    - [-] Replace ambiguous names with descriptive alternatives and update imports
+    - [x] Add module-level docstrings summarizing purpose and key types
 
 21. [ ] Improve decorators and metadata handling
 

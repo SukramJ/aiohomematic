@@ -27,7 +27,7 @@
 5. [ ] Configuration and environment management
 
    - [ ] Audit configuration options (pyproject, ruff, mypy) and expose runtime tunables (timeouts, logging levels) via env vars or config object
-   - [ ] Provide a single configuration entry point (e.g., Context/Settings) passed through central/client
+   - [-] Provide a single configuration entry point (e.g., Context/Settings) passed through central/client
    - [ ] Document configuration precedence and defaults in README.md
 
 6. [ ] Logging strategy standardization
@@ -39,7 +39,7 @@
 7. [ ] Type hints and typing robustness
 
    - [ ] Enable strict mypy options incrementally (e.g., disallow Any in core modules)
-   - [ ] Fill missing type annotations, especially in decorators and generic data point classes
+   - [-] Fill missing type annotations, especially in decorators and generic data point classes
    - [ ] Replace use of Union[...] with | where Python version permits; keep py.typed accurate
    - [ ] Add Protocols/TypedDicts for RPC payloads and device metadata
 

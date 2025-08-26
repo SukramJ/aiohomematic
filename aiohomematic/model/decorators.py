@@ -19,7 +19,6 @@ __all__ = [
 
 P = ParamSpec("P")
 T = TypeVar("T")
-R = TypeVar("R")
 
 
 # pylint: disable=invalid-name

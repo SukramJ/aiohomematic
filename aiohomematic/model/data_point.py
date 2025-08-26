@@ -80,7 +80,6 @@ __all__ = [
     "BaseParameterDataPoint",
     "CallParameterCollector",
     "CallbackDataPoint",
-    "EVENT_DATA_SCHEMA",
     "bind_collector",
 ]
 

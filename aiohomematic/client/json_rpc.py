@@ -417,10 +417,10 @@ class JsonRpcAioHttpClient:
                 if error := json_response[_JsonKey.ERROR]:
                     # Map JSON-RPC error to actionable exception with context
                     ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
-                    exc = map_jsonrpc_error(error, ctx)
+                    exc = map_jsonrpc_error(error=error, ctx=ctx)
                     # Structured boundary log at warning level (recoverable per-call failure)
                     log_boundary_error(
-                        _LOGGER,
+                        logger=_LOGGER,
                         boundary="json-rpc",
                         action=str(method),
                         err=exc,
@@ -436,9 +436,9 @@ class JsonRpcAioHttpClient:
             json_response = await asyncio.shield(self._get_json_reponse(response=response))
             if error := json_response[_JsonKey.ERROR]:
                 ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
-                exc = map_jsonrpc_error(error, ctx)
+                exc = map_jsonrpc_error(error=error, ctx=ctx)
                 log_boundary_error(
-                    _LOGGER,
+                    logger=_LOGGER,
                     boundary="json-rpc",
                     action=str(method),
                     err=exc,
@@ -452,7 +452,7 @@ class JsonRpcAioHttpClient:
                 self.clear_session()
             # Domain error at boundary -> warning
             log_boundary_error(
-                _LOGGER,
+                logger=_LOGGER,
                 boundary="json-rpc",
                 action=str(method),
                 err=bhe,
@@ -469,7 +469,7 @@ class JsonRpcAioHttpClient:
                     f"but this integration is not configured to use TLS"
                 )
             log_boundary_error(
-                _LOGGER,
+                logger=_LOGGER,
                 boundary="json-rpc",
                 action=str(method),
                 err=cccerr,
@@ -480,7 +480,7 @@ class JsonRpcAioHttpClient:
         except (ClientError, OSError) as err:
             self.clear_session()
             log_boundary_error(
-                _LOGGER,
+                logger=_LOGGER,
                 boundary="json-rpc",
                 action=str(method),
                 err=err,
@@ -491,7 +491,7 @@ class JsonRpcAioHttpClient:
         except (TypeError, Exception) as exc:
             self.clear_session()
             log_boundary_error(
-                _LOGGER,
+                logger=_LOGGER,
                 boundary="json-rpc",
                 action=str(method),
                 err=exc,

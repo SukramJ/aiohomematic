@@ -52,7 +52,7 @@ class RPCFunctions:
             raise RuntimeError(str(msg))
         except RuntimeError as err:
             log_boundary_error(
-                _LOGGER,
+                logger=_LOGGER,
                 boundary="xml-rpc-server",
                 action="error",
                 err=err,

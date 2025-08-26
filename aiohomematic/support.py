@@ -14,6 +14,7 @@ from collections.abc import Callable, Collection, Mapping, Set as AbstractSet
 import contextlib
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 import hashlib
 import inspect
 from ipaddress import IPv4Address
@@ -263,8 +264,14 @@ def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
     return isinstance(paramset_key, ParamsetKey) or (isinstance(paramset_key, str) and paramset_key in ParamsetKey)
 
 
+@lru_cache(maxsize=4096)
 def get_split_channel_address(channel_address: str) -> tuple[str, int | None]:
-    """Return the device part of an address."""
+    """
+    Return the device part of an address.
+
+    Cached to avoid redundant parsing across layers when repeatedly handling
+    the same channel addresses.
+    """
     if ADDRESS_SEPARATOR in channel_address:
         device_address, channel_no = channel_address.split(ADDRESS_SEPARATOR)
         if channel_no in (None, "None"):
@@ -508,6 +515,7 @@ _BOUNDARY_MSG = "error_boundary"
 
 
 def _safe_context(context: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Extract safe context from a mapping."""
     ctx: dict[str, Any] = {}
     if not context:
         return ctx

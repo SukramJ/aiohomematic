@@ -18,6 +18,7 @@ class RpcContext:
     params: Mapping[str, Any] | None = None
 
     def fmt(self) -> str:
+        """Format context for error messages."""
         parts: list[str] = [f"protocol={self.protocol}", f"method={self.method}"]
         if self.interface:
             parts.append(f"interface={self.interface}")
@@ -27,6 +28,7 @@ class RpcContext:
 
 
 def map_jsonrpc_error(error: Mapping[str, Any], ctx: RpcContext) -> Exception:
+    """Map JSON-RPC error to exception."""
     # JSON-RPC 2.0 like error: {code, message, data?}
     code = int(error.get("code", 0))
     message = str(error.get("message", ""))
@@ -43,6 +45,7 @@ def map_jsonrpc_error(error: Mapping[str, Any], ctx: RpcContext) -> Exception:
 
 
 def map_transport_error(exc: BaseException, ctx: RpcContext) -> Exception:
+    """Map transport error to exception."""
     msg = f"{exc} ({ctx.fmt()})"
     if isinstance(exc, OSError):
         return NoConnectionException(msg)
@@ -50,6 +53,7 @@ def map_transport_error(exc: BaseException, ctx: RpcContext) -> Exception:
 
 
 def map_xmlrpc_fault(code: int, fault_string: str, ctx: RpcContext) -> Exception:
+    """Map XML-RPC fault to exception."""
     # Enrich message with context
     fault_msg = f"XMLRPC Fault {code}: {fault_string} ({ctx.fmt()})"
     # Simple mappings

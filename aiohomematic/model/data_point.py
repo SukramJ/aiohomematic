@@ -1085,11 +1085,12 @@ def bind_collector(
                 in_service = IN_SERVICE_VAR.get()
                 if not in_service and log_level > logging.NOTSET:
                     logging.getLogger(args[0].__module__).log(level=log_level, msg=extract_exc_args(exc=bhexc))
+                # Re-raise domain-specific exceptions so callers and tests can handle them
+                raise
             else:
                 if token:
                     IN_SERVICE_VAR.reset(token)
                 return return_value
-            return None
 
         setattr(bind_wrapper, "ha_service", True)
         return bind_wrapper  # type: ignore[return-value]

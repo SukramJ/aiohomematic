@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from aiohomematic.const import DataPointCategory
+from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic.data_point import GenericDataPoint
 from aiohomematic.model.support import get_value_from_value_list
@@ -33,4 +34,4 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
             return int(value)
         if self._values and value in self._values:
             return self._values.index(value)
-        raise ValueError(f"Value not in value_list for {self.name}/{self.unique_id}")
+        raise ValidationException(f"Value not in value_list for {self.name}/{self.unique_id}")

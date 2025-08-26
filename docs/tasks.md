@@ -19,7 +19,7 @@
 
 4. [ ] Error handling and exceptions
 
-   - [ ] Centralize exception types in aiohomematic/exceptions.py and replace ad-hoc raises with domain-specific errors
+   - [x] Centralize exception types in aiohomematic/exceptions.py and replace ad-hoc raises with domain-specific errors
    - [ ] Ensure RPC errors are mapped to actionable exceptions with context
    - [ ] Implement graceful degradation paths when optional features fail (e.g., partial device data)
    - [ ] Add error boundary logs with consistent structure and levels

@@ -16,6 +16,7 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import data_point as hme, device as hmd
 from aiohomematic.model.decorators import cached_slot_property
 from aiohomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
@@ -101,7 +102,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             return set()
         try:
             prepared_value = self._prepare_value_for_sending(value=value, do_validate=do_validate)
-        except ValueError as verr:
+        except (ValueError, ValidationException) as verr:
             _LOGGER.warning(verr)
             return set()
 

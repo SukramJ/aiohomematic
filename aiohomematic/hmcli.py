@@ -1,7 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
 #!/usr/bin/python3
-"""Commandline tool to query HomeMatic hubs via XML-RPC."""
+"""
+Commandline tool to query HomeMatic hubs via XML-RPC.
+
+Public API of this module is defined by __all__.
+
+This module provides a command-line interface; as a library surface it only
+exposes the 'main' entrypoint for invocation. All other names are internal.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +20,9 @@ from xmlrpc.client import ServerProxy
 from aiohomematic import __version__
 from aiohomematic.const import ParamsetKey
 from aiohomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, get_tls_context
+
+# Define public API for this module (CLI only)
+__all__ = ["main"]
 
 
 def main() -> None:

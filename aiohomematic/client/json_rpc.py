@@ -55,6 +55,7 @@ import orjson
 
 from aiohomematic import central as hmcu
 from aiohomematic.async_support import Looper
+from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
@@ -79,7 +80,6 @@ from aiohomematic.const import (
     SysvarType,
 )
 from aiohomematic.exceptions import (
-    AuthFailure,
     BaseHomematicException,
     ClientException,
     InternalBackendException,
@@ -412,25 +412,20 @@ class JsonRpcAioHttpClient:
                 json_response = await asyncio.shield(self._get_json_reponse(response=response))
 
                 if error := json_response[_JsonKey.ERROR]:
-                    error_message = error[_JsonKey.MESSAGE]
-                    message = f"POST method '{method}' failed: {error_message}"
-                    if error_message.startswith("access denied"):
-                        _LOGGER.debug(message)
-                        raise AuthFailure(message)
-                    if "internal error" in error_message:
-                        message = f"An internal error happened within your backend (Fix or ignore it): {message}"
-                        _LOGGER.debug(message)
-                        raise InternalBackendException(message)
-                    _LOGGER.debug(message)
-                    raise ClientException(message)
+                    # Map JSON-RPC error to actionable exception with context
+                    ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
+                    exc = map_jsonrpc_error(error, ctx)
+                    _LOGGER.debug("POST: %s", exc)
+                    raise exc
 
                 return json_response
 
             message = f"Status: {response.status}"
             json_response = await asyncio.shield(self._get_json_reponse(response=response))
             if error := json_response[_JsonKey.ERROR]:
-                error_message = error[_JsonKey.MESSAGE]
-                message = f"{message}: {error_message}"
+                ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
+                exc = map_jsonrpc_error(error, ctx)
+                raise exc
             raise ClientException(message)
         except BaseHomematicException:
             if method in (_JsonRpcMethod.SESSION_LOGIN, _JsonRpcMethod.SESSION_LOGOUT, _JsonRpcMethod.SESSION_RENEW):

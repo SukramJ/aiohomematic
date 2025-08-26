@@ -31,6 +31,7 @@ import xmlrpc.client
 
 from aiohomematic import central as hmcu
 from aiohomematic.async_support import Looper
+from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
 from aiohomematic.const import ISO_8859_1
 from aiohomematic.exceptions import (
     AuthFailure,
@@ -168,7 +169,8 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 _LOGGER.error(message)
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:
-            raise ClientException(f"XMLRPC Fault from backend: {flt.faultCode} {flt.faultString}") from flt
+            ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self.interface_id)
+            raise map_xmlrpc_fault(flt.faultCode, flt.faultString, ctx) from flt
         except TypeError as terr:
             raise ClientException(terr) from terr
         except xmlrpc.client.ProtocolError as perr:

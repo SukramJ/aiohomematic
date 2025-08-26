@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
+
+from aiohomematic.exceptions import AuthFailure, ClientException, InternalBackendException, NoConnectionException
+
+
+@dataclass(slots=True)
+class RpcContext:
+    protocol: str
+    method: str
+    host: str | None = None
+    interface: str | None = None
+    params: Mapping[str, Any] | None = None
+
+    def fmt(self) -> str:
+        parts: list[str] = [f"protocol={self.protocol}", f"method={self.method}"]
+        if self.interface:
+            parts.append(f"interface={self.interface}")
+        if self.host:
+            parts.append(f"host={self.host}")
+        return ", ".join(parts)
+
+
+def map_jsonrpc_error(error: Mapping[str, Any], ctx: RpcContext) -> Exception:
+    # JSON-RPC 2.0 like error: {code, message, data?}
+    code = int(error.get("code", 0))
+    message = str(error.get("message", ""))
+    # Enrich message with context
+    base_msg = f"{message} ({ctx.fmt()})"
+
+    # Map common codes
+    if message.startswith("access denied") or code in (401, -32001):
+        return AuthFailure(base_msg)
+    if "internal error" in message.lower() or code in (-32603, 500):
+        return InternalBackendException(base_msg)
+    # Generic client exception for others
+    return ClientException(base_msg)
+
+
+def map_transport_error(exc: BaseException, ctx: RpcContext) -> Exception:
+    msg = f"{exc} ({ctx.fmt()})"
+    if isinstance(exc, OSError):
+        return NoConnectionException(msg)
+    return ClientException(msg)
+
+
+def map_xmlrpc_fault(code: int, fault_string: str, ctx: RpcContext) -> Exception:
+    # Enrich message with context
+    fault_msg = f"XMLRPC Fault {code}: {fault_string} ({ctx.fmt()})"
+    # Simple mappings
+    if "unauthorized" in fault_string.lower():
+        return AuthFailure(fault_msg)
+    if "internal" in fault_string.lower():
+        return InternalBackendException(fault_msg)
+    return ClientException(fault_msg)

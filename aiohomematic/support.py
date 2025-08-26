@@ -40,7 +40,7 @@ from aiohomematic.const import (
     RxMode,
     SysvarType,
 )
-from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ValidationException
+from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -172,7 +172,7 @@ def to_bool(value: Any) -> bool:
         return value
 
     if not isinstance(value, str):
-        raise ValidationException("invalid literal for boolean. Not a string.")
+        raise TypeError("invalid literal for boolean. Not a string.")
 
     return value.lower() in ["y", "yes", "t", "true", "on", "1"]
 

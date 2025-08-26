@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
 Central unit and core orchestration for HomeMatic CCU and compatible backends.
 

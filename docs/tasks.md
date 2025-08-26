@@ -169,5 +169,5 @@
 
 30. [ ] Housekeeping
     - [x] Remove dead code and unused exports
-    - [ ] Normalize file headers, license notices, and copyright
+    - [x] Normalize file headers, license notices, and copyright
     - [ ] Ensure all public modules are included in aiohomematic.egg-info/top_level.txt if needed

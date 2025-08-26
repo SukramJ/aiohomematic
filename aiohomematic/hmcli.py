@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 #!/usr/bin/python3
 """Commandline tool to query HomeMatic hubs via XML-RPC."""
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """Module for AioHomematicExceptions."""
 
 from __future__ import annotations

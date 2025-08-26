@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
 AioHomematic: a Python 3 library to interact with HomeMatic and HomematicIP backends.
 

@@ -105,6 +105,11 @@ def _get_public_attributes_by_class_decorator(data_object: Any, class_decorator:
     This caches the attribute names per (class, decorator) to reduce overhead
     from repeated dir()/getattr() scans. Values are not cached as they are
     instance-dependent and may change over time.
+
+    To minimize side effects, exceptions raised by property getters are caught
+    and the corresponding value is set to None. This ensures that payload
+    construction and attribute introspection do not fail due to individual
+    properties with transient errors or expensive side effects.
     """
     cls = data_object.__class__
 
@@ -118,7 +123,15 @@ def _get_public_attributes_by_class_decorator(data_object: Any, class_decorator:
         names = tuple(y for y in dir(cls) if not y.startswith("_") and isinstance(getattr(cls, y), class_decorator))
         decorator_cache[class_decorator] = names
 
-    return {name: _get_text_value(getattr(data_object, name)) for name in names}
+    result: dict[str, Any] = {}
+    for name in names:
+        try:
+            value = getattr(data_object, name)
+        except Exception:
+            # Avoid propagating side effects/errors from getters
+            value = None
+        result[name] = _get_text_value(value)
+    return result
 
 
 def _get_text_value(value: Any) -> Any:

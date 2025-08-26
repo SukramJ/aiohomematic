@@ -123,7 +123,7 @@
 
 21. [ ] Improve decorators and metadata handling
 
-    - [ ] Audit @state_property and other decorators for side effects and caching behavior
+    - [x] Audit @state_property and other decorators for side effects and caching behavior
     - [ ] Add documentation and examples for decorators usage
     - [ ] Ensure decorators preserve type information (functools.wraps, typing)
 

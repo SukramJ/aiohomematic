@@ -6,7 +6,7 @@
 
 2. [ ] Define clear module boundaries and responsibilities
 
-   - [ ] Audit cross-module imports to reduce coupling (e.g., model vs central vs client)
+   - [-] Audit cross-module imports to reduce coupling (e.g., model vs central vs client)
    - [ ] Introduce interfaces/protocols for device and data point abstractions to reduce concrete dependencies
    - [ ] Document extension points for new device profiles and calculated data points
 
@@ -15,13 +15,13 @@
    - [x] Review usage of asyncio Locks (e.g., CustomDpCover.\_command_processing_lock) for potential deadlocks or unnecessary serialization
    - [x] Ensure all network I/O is properly awaited and shielded against cancellation where necessary
    - [x] Standardize background task creation (asyncio.create_task) with proper lifecycle management and cancellation during shutdown
-   - [ ] Add timeouts and retries to RPC calls with jittered backoff
+   - [-] Add timeouts and retries to RPC calls with jittered backoff
 
 4. [ ] Error handling and exceptions
 
    - [x] Centralize exception types in aiohomematic/exceptions.py and replace ad-hoc raises with domain-specific errors
    - [x] Ensure RPC errors are mapped to actionable exceptions with context
-   - [ ] Implement graceful degradation paths when optional features fail (e.g., partial device data)
+   - [-] Implement graceful degradation paths when optional features fail (e.g., partial device data)
    - [x] Add error boundary logs with consistent structure and levels
 
 5. [ ] Configuration and environment management
@@ -32,8 +32,8 @@
 
 6. [ ] Logging strategy standardization
 
-   - [ ] Define logging categories per subsystem (central, client, model, caches)
-   - [ ] Replace print or inconsistent logging with structured logs including device_id/channel/parameter context
+   - [-] Define logging categories per subsystem (central, client, model, caches)
+   - [x] Replace print or inconsistent logging with structured logs including device_id/channel/parameter context
    - [ ] Ensure no sensitive data is logged; add redaction helpers
 
 7. [ ] Type hints and typing robustness

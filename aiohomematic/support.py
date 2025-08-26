@@ -519,6 +519,57 @@ def _safe_context(context: Mapping[str, Any] | None) -> dict[str, Any]:
     return ctx
 
 
+def build_log_context_from_obj(obj: Any | None) -> dict[str, Any]:
+    """
+    Extract structured context like device_id/channel/parameter from common objects.
+
+    Tries best-effort extraction without raising. Returns a dict suitable for logger.extra.
+    """
+    ctx: dict[str, Any] = {}
+    if obj is None:
+        return ctx
+    try:
+        # DataPoint-like: has channel and parameter
+        if hasattr(obj, "channel"):
+            ch = getattr(obj, "channel")
+            try:
+                # channel address/id
+                channel_address = ch.address if not callable(ch.address) else ch.address()
+                ctx["channel"] = channel_address
+            except Exception:
+                # Fallback to str
+                ctx["channel"] = str(ch)
+            try:
+                if (dev := ch.device if hasattr(ch, "device") else None) is not None:
+                    device_id = dev.id if not callable(dev.id) else dev.id()
+                    ctx["device_id"] = device_id
+            except Exception:
+                pass
+        # Parameter on DataPoint-like
+        if hasattr(obj, "parameter"):
+            with contextlib.suppress(Exception):
+                ctx["parameter"] = getattr(obj, "parameter")
+
+        # Also support objects exposing address directly
+        if "device_id" not in ctx and hasattr(obj, "device"):
+            dev = getattr(obj, "device")
+            try:
+                device_id = dev.id if not callable(dev.id) else dev.id()
+                ctx["device_id"] = device_id
+            except Exception:
+                pass
+        if "channel" not in ctx and hasattr(obj, "address"):
+            try:
+                addr = obj.address if not callable(obj.address) else obj.address()
+                ctx["channel"] = addr
+            except Exception:
+                pass
+    except Exception:
+        # Never allow context building to break the application
+        return {}
+    return ctx
+
+
 def log_boundary_error(
     logger: logging.Logger,
     *,

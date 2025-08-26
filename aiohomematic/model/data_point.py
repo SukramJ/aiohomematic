@@ -1084,7 +1084,17 @@ def bind_collector(
                     IN_SERVICE_VAR.reset(token)
                 in_service = IN_SERVICE_VAR.get()
                 if not in_service and log_level > logging.NOTSET:
-                    logging.getLogger(args[0].__module__).log(level=log_level, msg=extract_exc_args(exc=bhexc))
+                    logger = logging.getLogger(args[0].__module__)
+                    extra = {
+                        "err_type": bhexc.__class__.__name__,
+                        "err": extract_exc_args(exc=bhexc),
+                        "function": func.__name__,
+                        **hms.build_log_context_from_obj(args[0]),
+                    }
+                    if log_level >= logging.ERROR:
+                        logger.exception("service_error", extra=extra)
+                    else:
+                        logger.log(level=log_level, msg="service_error", extra=extra)
                 # Re-raise domain-specific exceptions so callers and tests can handle them
                 raise
             else:

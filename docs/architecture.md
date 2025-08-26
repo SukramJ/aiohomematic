@@ -99,6 +99,10 @@ Glossary (selected types)
 - Event: Push‑style notification mapped to selected parameters (e.g., button clicks, device errors).
 - Hub: Program and System Variable data points provided by the backend itself.
 
+Further reading
+
+- Data flow details (XML-RPC/JSON-RPC, events, updates): docs/data_flow.md
+
 Notes
 
 - This is a high‑level overview. For detailed API and exact behavior, consult the module docstrings and tests under tests/ which cover most features and edge cases.

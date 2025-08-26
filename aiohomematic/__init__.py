@@ -27,7 +27,7 @@ import sys
 import threading
 from typing import Final
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, validator as _ahm_validator
 from aiohomematic.const import VERSION
 
 if sys.stdout.isatty():
@@ -46,6 +46,13 @@ def signal_handler(sig, frame):  # type: ignore[no-untyped-def]
     for central in hmcu.CENTRAL_INSTANCES.values():
         asyncio.run_coroutine_threadsafe(central.stop(), asyncio.get_running_loop())
 
+
+# Perform lightweight startup validation once on import
+try:
+    _ahm_validator.validate_startup()
+except Exception as _exc:  # pragma: no cover
+    # Fail-fast with a clear message if validation fails during import
+    raise RuntimeError(f"AioHomematic startup validation failed: {_exc}") from _exc
 
 if threading.current_thread() is threading.main_thread() and sys.stdout.isatty():
     signal.signal(signal.SIGINT, signal_handler)

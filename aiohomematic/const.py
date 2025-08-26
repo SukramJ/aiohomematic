@@ -620,6 +620,7 @@ HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
 )
 
 CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.ACTION,
     DataPointCategory.BINARY_SENSOR,
     DataPointCategory.BUTTON,
     DataPointCategory.CLIMATE,

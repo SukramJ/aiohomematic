@@ -522,8 +522,8 @@ class CentralUnit(PayloadMixin):
 
         # cancel outstanding tasks to speed up teardown
         self.looper.cancel_tasks()
-        # wait until tasks are finished
-        await self.looper.block_till_done()
+        # wait until tasks are finished (with wait_time safeguard)
+        await self.looper.block_till_done(wait_time=5.0)
 
         # Wait briefly for any auxiliary threads to finish without blocking forever
         max_wait_seconds = 5.0

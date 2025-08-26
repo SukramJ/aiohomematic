@@ -14,7 +14,7 @@
 
    - [x] Review usage of asyncio Locks (e.g., CustomDpCover.\_command_processing_lock) for potential deadlocks or unnecessary serialization
    - [x] Ensure all network I/O is properly awaited and shielded against cancellation where necessary
-   - [ ] Standardize background task creation (asyncio.create_task) with proper lifecycle management and cancellation during shutdown
+   - [x] Standardize background task creation (asyncio.create_task) with proper lifecycle management and cancellation during shutdown
    - [ ] Add timeouts and retries to RPC calls with jittered backoff
 
 4. [ ] Error handling and exceptions

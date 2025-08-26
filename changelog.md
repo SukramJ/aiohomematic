@@ -1,5 +1,10 @@
 # Version 2025.8.10 (2025-08-25)
 
+- Improve documentation
+  - Added docs/architecture.md describing high-level components (central, client, model, caches, support) and their interactions
+  - Added data flow for XML-RPC/JSON-RPC, event handling, and data point updates
+  - Added sequence diagrams for connect, device discovery, state change propagation
+  -
 - Improve decorators
 
 # Version 2025.8.9 (2025-08-23)

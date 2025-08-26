@@ -19,6 +19,7 @@ Notes
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, IntEnum, StrEnum
@@ -134,13 +135,15 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             ):
                 args = _cleanup_args(*args)
                 _LOGGER.debug("__ASYNC_REQUEST: %s", args)
-                result = await self._looper.async_add_executor_job(
-                    # pylint: disable=protected-access
-                    parent._ServerProxy__request,  # type: ignore[attr-defined]
-                    self,
-                    *args,
-                    name="xmp_rpc_proxy",
-                    executor=self._proxy_executor,
+                result = await asyncio.shield(
+                    self._looper.async_add_executor_job(
+                        # pylint: disable=protected-access
+                        parent._ServerProxy__request,  # type: ignore[attr-defined]
+                        self,
+                        *args,
+                        name="xmp_rpc_proxy",
+                        executor=self._proxy_executor,
+                    )
                 )
                 self._connection_state.remove_issue(issuer=self, iid=self.interface_id)
                 return result

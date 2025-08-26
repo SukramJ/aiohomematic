@@ -29,6 +29,7 @@ Notes
 
 from __future__ import annotations
 
+import asyncio
 from asyncio import Semaphore
 from collections.abc import Mapping
 from datetime import datetime
@@ -402,13 +403,13 @@ class JsonRpcAioHttpClient:
             )
             if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
                 async with self._sema:
-                    if (response := await post_call()) is None:
+                    if (response := await asyncio.shield(post_call())) is None:
                         raise ClientException("POST method failed with no response")
-            elif (response := await post_call()) is None:
+            elif (response := await asyncio.shield(post_call())) is None:
                 raise ClientException("POST method failed with no response")
 
             if response.status == 200:
-                json_response = await self._get_json_reponse(response=response)
+                json_response = await asyncio.shield(self._get_json_reponse(response=response))
 
                 if error := json_response[_JsonKey.ERROR]:
                     error_message = error[_JsonKey.MESSAGE]
@@ -426,7 +427,7 @@ class JsonRpcAioHttpClient:
                 return json_response
 
             message = f"Status: {response.status}"
-            json_response = await self._get_json_reponse(response=response)
+            json_response = await asyncio.shield(self._get_json_reponse(response=response))
             if error := json_response[_JsonKey.ERROR]:
                 error_message = error[_JsonKey.MESSAGE]
                 message = f"{message}: {error_message}"

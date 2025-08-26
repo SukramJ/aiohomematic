@@ -13,7 +13,7 @@
 3. [ ] Concurrency and async model hardening
 
    - [x] Review usage of asyncio Locks (e.g., CustomDpCover.\_command_processing_lock) for potential deadlocks or unnecessary serialization
-   - [ ] Ensure all network I/O is properly awaited and shielded against cancellation where necessary
+   - [x] Ensure all network I/O is properly awaited and shielded against cancellation where necessary
    - [ ] Standardize background task creation (asyncio.create_task) with proper lifecycle management and cancellation during shutdown
    - [ ] Add timeouts and retries to RPC calls with jittered backoff
 

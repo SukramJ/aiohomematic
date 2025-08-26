@@ -58,8 +58,8 @@
 10. [ ] Performance and caching
 
     - [ ] Profile hot paths (device event processing, cache lookups) and add benchmarks
-    - [ ] Review caches/dynamic and caches/persistent for eviction policies and thread-safety
-    - [ ] Avoid redundant conversions and lookups across layers
+    - [x] Review caches/dynamic and caches/persistent for eviction policies and thread-safety
+    - [x] Avoid redundant conversions and lookups across layers
 
 11. [ ] I/O resiliency and retry policies
 

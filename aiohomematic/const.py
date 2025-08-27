@@ -609,6 +609,8 @@ KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, frozenset[str]]] = Map
     }
 )
 
+BLOCKED_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (DataPointCategory.ACTION,)
+
 HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.HUB_BINARY_SENSOR,
     DataPointCategory.HUB_BUTTON,
@@ -620,7 +622,6 @@ HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
 )
 
 CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
-    DataPointCategory.ACTION,
     DataPointCategory.BINARY_SENSOR,
     DataPointCategory.BUTTON,
     DataPointCategory.CLIMATE,

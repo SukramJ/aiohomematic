@@ -12,7 +12,7 @@ import inspect
 
 import voluptuous as vol
 
-from aiohomematic.const import CATEGORIES, HUB_CATEGORIES, MAX_WAIT_FOR_CALLBACK, DataPointCategory
+from aiohomematic.const import BLOCKED_CATEGORIES, CATEGORIES, HUB_CATEGORIES, MAX_WAIT_FOR_CALLBACK, DataPointCategory
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.support import (
     check_password,
@@ -81,14 +81,18 @@ def validate_startup() -> None:
     - Ensure DataPointCategory coverage: all categories except UNDEFINED must be present
       in either HUB_CATEGORIES or CATEGORIES. UNDEFINED must not appear in those lists.
     """
-    categories_in_lists = set(HUB_CATEGORIES) | set(CATEGORIES)
+    categories_in_lists = set(BLOCKED_CATEGORIES) | set(CATEGORIES) | set(HUB_CATEGORIES)
     all_categories = set(DataPointCategory)
     if DataPointCategory.UNDEFINED in categories_in_lists:
-        raise vol.Invalid("DataPointCategory.UNDEFINED must not be present in CATEGORIES/HUB_CATEGORIES")
+        raise vol.Invalid(
+            "DataPointCategory.UNDEFINED must not be present in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES"
+        )
 
     if missing := all_categories - {DataPointCategory.UNDEFINED} - categories_in_lists:
         missing_str = ", ".join(sorted(c.value for c in missing))
-        raise vol.Invalid(f"CATEGORIES/HUB_CATEGORIES are not exhaustive. Missing categories: {missing_str}")
+        raise vol.Invalid(
+            f"BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES are not exhaustive. Missing categories: {missing_str}"
+        )
 
     # Validate custom definition mapping schema (Field <-> Parameter mappings)
     # This ensures Field mappings are valid and consistent at startup.

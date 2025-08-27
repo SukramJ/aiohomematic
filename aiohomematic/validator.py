@@ -1,10 +1,19 @@
-"""Validator functions used within aiohomematic."""
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+"""
+Validator functions used within aiohomematic.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
+import inspect
+
 import voluptuous as vol
 
-from aiohomematic.const import MAX_WAIT_FOR_CALLBACK
+from aiohomematic.const import BLOCKED_CATEGORIES, CATEGORIES, HUB_CATEGORIES, MAX_WAIT_FOR_CALLBACK, DataPointCategory
+from aiohomematic.model.custom import definition as hmed
 from aiohomematic.support import (
     check_password,
     is_channel_address,
@@ -63,3 +72,41 @@ def paramset_key(value: str) -> str:
 
 address = vol.All(vol.Coerce(str), vol.Any(device_address, channel_address))
 host = vol.All(vol.Coerce(str), vol.Any(hostname, ipv4_address))
+
+
+def validate_startup() -> None:
+    """
+    Validate enum and mapping exhaustiveness at startup.
+
+    - Ensure DataPointCategory coverage: all categories except UNDEFINED must be present
+      in either HUB_CATEGORIES or CATEGORIES. UNDEFINED must not appear in those lists.
+    """
+    categories_in_lists = set(BLOCKED_CATEGORIES) | set(CATEGORIES) | set(HUB_CATEGORIES)
+    all_categories = set(DataPointCategory)
+    if DataPointCategory.UNDEFINED in categories_in_lists:
+        raise vol.Invalid(
+            "DataPointCategory.UNDEFINED must not be present in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES"
+        )
+
+    if missing := all_categories - {DataPointCategory.UNDEFINED} - categories_in_lists:
+        missing_str = ", ".join(sorted(c.value for c in missing))
+        raise vol.Invalid(
+            f"BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES are not exhaustive. Missing categories: {missing_str}"
+        )
+
+    # Validate custom definition mapping schema (Field <-> Parameter mappings)
+    # This ensures Field mappings are valid and consistent at startup.
+    if hmed.validate_custom_data_point_definition() is None:
+        raise vol.Invalid("Custom data point definition schema is invalid")
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (inspect.isfunction(obj) or inspect.isclass(obj))
+        and getattr(obj, "__module__", __name__) == __name__
+    )
+)

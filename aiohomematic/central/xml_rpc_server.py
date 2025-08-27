@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
 XML-RPC server module.
 
@@ -16,7 +18,7 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 from aiohomematic import central as hmcu
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
-from aiohomematic.support import find_free_port
+from aiohomematic.support import find_free_port, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -45,6 +47,18 @@ class RPCFunctions:
     @callback_backend_system(system_event=BackendSystemEvent.ERROR)
     def error(self, interface_id: str, error_code: str, msg: str) -> None:
         """When some error occurs the CCU / Homegear will send its error message here."""
+        # Structured boundary log (warning level). XML-RPC server received error notification.
+        try:
+            raise RuntimeError(str(msg))
+        except RuntimeError as err:
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="xml-rpc-server",
+                action="error",
+                err=err,
+                level=logging.WARNING,
+                context={"interface_id": interface_id, "error_code": int(error_code)},
+            )
         _LOGGER.warning(
             "ERROR failed: interface_id = %s, error_code = %i, message = %s",
             interface_id,

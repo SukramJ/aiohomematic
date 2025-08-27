@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """Module with base class for custom data points."""
 
 from __future__ import annotations

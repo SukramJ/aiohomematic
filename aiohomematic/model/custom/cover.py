@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """Module for data points implemented using the cover category."""
 
 from __future__ import annotations
@@ -20,6 +22,11 @@ from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+# Timeout for acquiring the per-instance command processing lock to avoid
+# potential deadlocks or indefinite serialization if an awaited call inside
+# the critical section stalls.
+_COMMAND_LOCK_TIMEOUT: Final[float] = 5.0
 
 _CLOSED_LEVEL: Final = 0.0
 _COVER_VENT_MAX_POSITION: Final = 50
@@ -336,7 +343,15 @@ class CustomDpBlind(CustomDpCover):
         """
         currently_moving = False
 
-        async with self._command_processing_lock:
+        try:
+            acquired: bool = await asyncio.wait_for(
+                self._command_processing_lock.acquire(), timeout=_COMMAND_LOCK_TIMEOUT
+            )
+        except TimeoutError:
+            acquired = False
+            _LOGGER.warning("%s: command lock acquisition timed out; proceeding without lock", self)
+
+        try:
             if level is not None:
                 _level = level
             elif self._target_level is not None:
@@ -360,6 +375,9 @@ class CustomDpBlind(CustomDpCover):
                 await self._stop()
 
             await self._send_level(level=_level, tilt_level=_tilt_level, collector=collector)
+        finally:
+            if acquired:
+                self._command_processing_lock.release()
 
     @bind_collector()
     async def _send_level(
@@ -404,8 +422,18 @@ class CustomDpBlind(CustomDpCover):
     @bind_collector(enabled=False)
     async def stop(self, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
-        async with self._command_processing_lock:
+        try:
+            acquired: bool = await asyncio.wait_for(
+                self._command_processing_lock.acquire(), timeout=_COMMAND_LOCK_TIMEOUT
+            )
+        except TimeoutError:
+            acquired = False
+            _LOGGER.warning("%s: command lock acquisition timed out; proceeding without lock", self)
+        try:
             await self._stop(collector=collector)
+        finally:
+            if acquired:
+                self._command_processing_lock.release()
 
     @bind_collector(enabled=False)
     async def _stop(self, collector: CallParameterCollector | None = None) -> None:

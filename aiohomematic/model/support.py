@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """Support for data points used within aiohomematic."""
 
 from __future__ import annotations
@@ -5,6 +7,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Mapping
 from enum import StrEnum
+from functools import lru_cache
 import logging
 from typing import Any, Final
 
@@ -533,7 +536,29 @@ def _check_channel_name_with_channel_no(name: str) -> bool:
 
 
 def convert_value(value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
-    """Convert a value to target_type."""
+    """
+    Convert a value to target_type with safe memoization.
+
+    To avoid redundant conversions across layers, we use an internal
+    LRU-cached helper for hashable inputs. For unhashable inputs, we
+    fall back to a direct conversion path.
+    """
+    # Normalize value_list to tuple to ensure hashability where possible
+    norm_value_list: tuple[str, ...] | None = tuple(value_list) if isinstance(value_list, list) else value_list
+    try:
+        # This will be cached if all arguments are hashable
+        return _convert_value_cached(value, target_type, norm_value_list)
+    except TypeError:
+        # Fallback non-cached path if any argument is unhashable
+        return _convert_value_noncached(value, target_type, norm_value_list)
+
+
+@lru_cache(maxsize=2048)
+def _convert_value_cached(value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
+    return _convert_value_noncached(value, target_type, value_list)
+
+
+def _convert_value_noncached(value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
     if value is None:
         return None
     if target_type == ParameterType.BOOL:

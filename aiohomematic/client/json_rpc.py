@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
 Asynchronous JSON-RPC client for HomeMatic CCU-compatible backends.
 
@@ -29,6 +31,7 @@ Notes
 
 from __future__ import annotations
 
+import asyncio
 from asyncio import Semaphore
 from collections.abc import Mapping
 from datetime import datetime
@@ -54,6 +57,7 @@ import orjson
 
 from aiohomematic import central as hmcu
 from aiohomematic.async_support import Looper
+from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
@@ -78,7 +82,6 @@ from aiohomematic.const import (
     SysvarType,
 )
 from aiohomematic.exceptions import (
-    AuthFailure,
     BaseHomematicException,
     ClientException,
     InternalBackendException,
@@ -91,6 +94,7 @@ from aiohomematic.support import (
     element_matches_key,
     extract_exc_args,
     get_tls_context,
+    log_boundary_error,
     parse_sys_var,
 )
 
@@ -402,38 +406,59 @@ class JsonRpcAioHttpClient:
             )
             if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
                 async with self._sema:
-                    if (response := await post_call()) is None:
+                    if (response := await asyncio.shield(post_call())) is None:
                         raise ClientException("POST method failed with no response")
-            elif (response := await post_call()) is None:
+            elif (response := await asyncio.shield(post_call())) is None:
                 raise ClientException("POST method failed with no response")
 
             if response.status == 200:
-                json_response = await self._get_json_reponse(response=response)
+                json_response = await asyncio.shield(self._get_json_reponse(response=response))
 
                 if error := json_response[_JsonKey.ERROR]:
-                    error_message = error[_JsonKey.MESSAGE]
-                    message = f"POST method '{method}' failed: {error_message}"
-                    if error_message.startswith("access denied"):
-                        _LOGGER.debug(message)
-                        raise AuthFailure(message)
-                    if "internal error" in error_message:
-                        message = f"An internal error happened within your backend (Fix or ignore it): {message}"
-                        _LOGGER.debug(message)
-                        raise InternalBackendException(message)
-                    _LOGGER.debug(message)
-                    raise ClientException(message)
+                    # Map JSON-RPC error to actionable exception with context
+                    ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
+                    exc = map_jsonrpc_error(error=error, ctx=ctx)
+                    # Structured boundary log at warning level (recoverable per-call failure)
+                    log_boundary_error(
+                        logger=_LOGGER,
+                        boundary="json-rpc",
+                        action=str(method),
+                        err=exc,
+                        level=logging.WARNING,
+                        context={"url": self._url},
+                    )
+                    _LOGGER.debug("POST: %s", exc)
+                    raise exc
 
                 return json_response
 
             message = f"Status: {response.status}"
-            json_response = await self._get_json_reponse(response=response)
+            json_response = await asyncio.shield(self._get_json_reponse(response=response))
             if error := json_response[_JsonKey.ERROR]:
-                error_message = error[_JsonKey.MESSAGE]
-                message = f"{message}: {error_message}"
+                ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
+                exc = map_jsonrpc_error(error=error, ctx=ctx)
+                log_boundary_error(
+                    logger=_LOGGER,
+                    boundary="json-rpc",
+                    action=str(method),
+                    err=exc,
+                    level=logging.WARNING,
+                    context={"url": self._url, "status": response.status},
+                )
+                raise exc
             raise ClientException(message)
-        except BaseHomematicException:
+        except BaseHomematicException as bhe:
             if method in (_JsonRpcMethod.SESSION_LOGIN, _JsonRpcMethod.SESSION_LOGOUT, _JsonRpcMethod.SESSION_RENEW):
                 self.clear_session()
+            # Domain error at boundary -> warning
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=bhe,
+                level=logging.WARNING,
+                context={"url": self._url},
+            )
             raise
         except ClientConnectorCertificateError as cccerr:
             self.clear_session()
@@ -443,12 +468,36 @@ class JsonRpcAioHttpClient:
                     f"{message}. Possible reason: 'Automatic forwarding to HTTPS' is enabled in backend, "
                     f"but this integration is not configured to use TLS"
                 )
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=cccerr,
+                level=logging.ERROR,
+                context={"url": self._url},
+            )
             raise ClientException(message) from cccerr
         except (ClientError, OSError) as err:
             self.clear_session()
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=err,
+                level=logging.ERROR,
+                context={"url": self._url},
+            )
             raise NoConnectionException(err) from err
         except (TypeError, Exception) as exc:
             self.clear_session()
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=exc,
+                level=logging.ERROR,
+                context={"url": self._url},
+            )
             raise ClientException(exc) from exc
 
     async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:

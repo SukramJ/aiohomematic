@@ -34,6 +34,32 @@ Due to a bug in earlier CCU2/CCU3 firmware, aiohomematic requires at least the f
 
 See details here: https://github.com/jens-maus/RaspberryMatic/issues/843. Other CCU‑like platforms using the buggy HmIPServer version are not supported.
 
+## Public API and imports
+
+- The public API of aiohomematic is explicitly defined via **all** in each module and subpackage.
+- Backwards‑compatible imports should target these modules:
+  - aiohomematic.central: CentralUnit, CentralConfig and related schemas
+  - aiohomematic.client: Client, InterfaceConfig, create_client, get_client
+  - aiohomematic.model: device/data point abstractions (see subpackages for details)
+  - aiohomematic.exceptions: library exception types intended for consumers
+  - aiohomematic.const: constants and enums (stable subset; see module **all**)
+- The top‑level package only exposes **version** to avoid import cycles and keep startup lean. Prefer importing from the specific submodules listed above.
+
+Example:
+
+    from aiohomematic.central import CentralConfig
+    from aiohomematic import client as hmcl
+
+    cfg = CentralConfig(
+        central_id="ccu-main",
+        host="ccu.local",
+        username="admin",
+        password="secret",
+        default_callback_port=43439,
+        interface_configs={hmcl.InterfaceConfig(interface=hmcl.Interface.HMIP, port=2010, enabled=True)},
+    )
+    central = cfg.create_central()
+
 ## Useful links
 
 - Examples: see example.py in this repository.

@@ -89,14 +89,16 @@ async def test_ceipsiren(
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
 
-    with pytest.raises(ValueError):
+    from aiohomematic.exceptions import ValidationException
+
+    with pytest.raises(ValidationException):
         await siren.turn_on(
             acoustic_alarm="not_in_list",
             optical_alarm="BLINKING_ALTERNATELY_REPEATING",
             duration=30,
         )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationException):
         await siren.turn_on(
             acoustic_alarm="FREQUENCY_RISING_AND_FALLING",
             optical_alarm="not_in_list",

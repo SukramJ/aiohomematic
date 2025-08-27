@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """Module for data points implemented using the climate category."""
 
 from __future__ import annotations
@@ -335,7 +337,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             do_validate = False
 
         if do_validate and not (self.min_temp <= temperature <= self.max_temp):
-            raise ValueError(
+            raise ValidationException(
                 f"SET_TEMPERATURE failed: Invalid temperature: {temperature} (min: {self.min_temp}, max: {self.max_temp})"
             )
 

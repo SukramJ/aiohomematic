@@ -1,4 +1,10 @@
-"""Common Decorators used within aiohomematic."""
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+"""
+Common Decorators used within aiohomematic.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +18,7 @@ from weakref import WeakKeyDictionary
 
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
-from aiohomematic.support import extract_exc_args
+from aiohomematic.support import build_log_context_from_obj, extract_exc_args
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -59,11 +65,22 @@ def inspector(  # noqa: C901
 
         """
 
-        def handle_exception(exc: Exception, func: Callable, is_sub_service_call: bool, is_homematic: bool) -> R:
-            """Handle exceptions for decorated functions."""
+        def handle_exception(
+            exc: Exception, func: Callable, is_sub_service_call: bool, is_homematic: bool, context_obj: Any | None
+        ) -> R:
+            """Handle exceptions for decorated functions with structured logging."""
             if not is_sub_service_call and log_level > logging.NOTSET:
-                message = f"{func.__name__.upper()} failed: {extract_exc_args(exc=exc)}"
-                logging.getLogger(func.__module__).log(level=log_level, msg=message)
+                logger = logging.getLogger(func.__module__)
+                extra = {
+                    "err_type": exc.__class__.__name__,
+                    "err": extract_exc_args(exc=exc),
+                    "function": func.__name__,
+                    **build_log_context_from_obj(context_obj),
+                }
+                if log_level >= logging.ERROR:
+                    logger.exception("service_error", extra=extra)
+                else:
+                    logger.log(level=log_level, msg="service_error", extra=extra)
             if re_raise or not is_homematic:
                 raise exc
             return cast(R, no_raise_return)
@@ -80,13 +97,21 @@ def inspector(  # noqa: C901
                 if token:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
-                    exc=bhexc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True
+                    exc=bhexc,
+                    func=func,
+                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_homematic=True,
+                    context_obj=(args[0] if args else None),
                 )
             except Exception as exc:
                 if token:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
-                    exc=exc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False
+                    exc=exc,
+                    func=func,
+                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_homematic=False,
+                    context_obj=(args[0] if args else None),
                 )
             else:
                 if token:
@@ -108,13 +133,21 @@ def inspector(  # noqa: C901
                 if token:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
-                    exc=bhexc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=True
+                    exc=bhexc,
+                    func=func,
+                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_homematic=True,
+                    context_obj=(args[0] if args else None),
                 )
             except Exception as exc:
                 if token:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
-                    exc=exc, func=func, is_sub_service_call=IN_SERVICE_VAR.get(), is_homematic=False
+                    exc=exc,
+                    func=func,
+                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_homematic=False,
+                    context_obj=(args[0] if args else None),
                 )
             else:
                 if token:
@@ -210,3 +243,15 @@ def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> Ca
     if inspect.iscoroutinefunction(func):
         return async_measure_wrapper  # type: ignore[return-value]
     return measure_wrapper  # type: ignore[return-value]
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (inspect.isfunction(obj) or inspect.isclass(obj))
+        and getattr(obj, "__module__", __name__) == __name__
+    )
+)

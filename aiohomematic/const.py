@@ -169,6 +169,17 @@ class CallSource(StrEnum):
     MANUAL_OR_SCHEDULED = "manual_or_scheduled"
 
 
+class CentralUnitState(StrEnum):
+    """Enum with central unit states."""
+
+    INITIALIZING = "initializing"
+    NEW = "new"
+    RUNNING = "running"
+    STOPPED = "stopped"
+    STOPPED_BY_ERROR = "stopped_by_error"
+    STOPPING = "stopping"
+
+
 class DataOperationResult(Enum):
     """Enum with data operation results."""
 

@@ -5,6 +5,7 @@
   - Added data flow for XML-RPC/JSON-RPC, event handling, and data point updates
   - Added sequence diagrams for connect, device discovery, state change propagation
 - Avoid deadlocks within locks (cover)
+- Detailing the central status
 - Improve boundary logging und exception handling
 - Improve decorators
 - Improve lock handling

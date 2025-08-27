@@ -121,6 +121,7 @@ from aiohomematic.const import (
     TIMEOUT,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
+    CentralUnitState,
     DataOperationResult,
     DataPointCategory,
     DataPointKey,
@@ -165,6 +166,7 @@ from aiohomematic.support import check_config, extract_exc_args, get_channel_no,
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
 
 _LOGGER: Final = logging.getLogger(__name__)
+_LOGGER_EVENT: Final = logging.getLogger(f"{__name__}_event")
 
 # {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
@@ -186,7 +188,7 @@ class CentralUnit(PayloadMixin):
 
     def __init__(self, central_config: CentralConfig) -> None:
         """Init the central unit."""
-        self._started: bool = False
+        self._state: CentralUnitState = CentralUnitState.NEW
         self._clients_started: bool = False
         self._device_add_semaphore: Final = asyncio.Semaphore()
         self._connection_state: Final = CentralConnectionState()
@@ -381,9 +383,9 @@ class CentralUnit(PayloadMixin):
         )
 
     @property
-    def started(self) -> bool:
-        """Return if the central is started."""
-        return self._started
+    def state(self) -> CentralUnitState:
+        """Return the central state."""
+        return self._state
 
     @property
     def supports_ping_pong(self) -> bool:
@@ -457,9 +459,17 @@ class CentralUnit(PayloadMixin):
     async def start(self) -> None:
         """Start processing of the central unit."""
 
-        if self._started:
+        _LOGGER.debug("START: Central %s is %s", self.name, self._state)
+        if self._state == CentralUnitState.INITIALIZING:
+            _LOGGER.debug("START: Central %s already starting", self.name)
+            return
+
+        if self._state == CentralUnitState.RUNNING:
             _LOGGER.debug("START: Central %s already started", self.name)
             return
+
+        self._state = CentralUnitState.INITIALIZING
+        _LOGGER.debug("START: Initializing Central %s", self.name)
         if self._config.enabled_interface_configs and (
             ip_addr := await self._identify_ip_addr(port=self._config.connection_check_port)
         ):
@@ -481,6 +491,7 @@ class CentralUnit(PayloadMixin):
                 self._listen_port = xml_rpc_server.listen_port
                 self._xml_rpc_server.add_central(self)
         except OSError as oserr:
+            self._state = CentralUnitState.STOPPED_BY_ERROR
             raise AioHomematicException(
                 f"START: Failed to start central unit {self.name}: {extract_exc_args(exc=oserr)}"
             ) from oserr
@@ -494,13 +505,24 @@ class CentralUnit(PayloadMixin):
             if self._config.enable_server:
                 self._start_scheduler()
 
-        self._started = True
+        self._state = CentralUnitState.RUNNING
+        _LOGGER.debug("START: Central %s is %s", self.name, self._state)
 
     async def stop(self) -> None:
         """Stop processing of the central unit."""
-        if not self._started:
+        _LOGGER.debug("STOP: Central %s is %s", self.name, self._state)
+        if self._state == CentralUnitState.STOPPING:
+            _LOGGER.debug("STOP: Central %s is already stopping", self.name)
+            return
+        if self._state == CentralUnitState.STOPPED:
+            _LOGGER.debug("STOP: Central %s is already stopped", self.name)
+            return
+        if self._state != CentralUnitState.RUNNING:
             _LOGGER.debug("STOP: Central %s not started", self.name)
             return
+        self._state = CentralUnitState.STOPPING
+        _LOGGER.debug("STOP: Stopping Central %s", self.name)
+
         await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
         self._stop_scheduler()
         await self._stop_clients()
@@ -534,7 +556,8 @@ class CentralUnit(PayloadMixin):
         while self._has_active_threads and waited < max_wait_seconds:
             await asyncio.sleep(interval)
             waited += interval
-        self._started = False
+        self._state = CentralUnitState.STOPPED
+        _LOGGER.debug("STOP: Central %s is %s", self.name, self._state)
 
     async def restart_clients(self) -> None:
         """Restart clients."""
@@ -1076,7 +1099,7 @@ class CentralUnit(PayloadMixin):
     @callback_event
     async def data_point_event(self, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """If a device emits some sort event, we will handle it here."""
-        _LOGGER.debug(
+        _LOGGER_EVENT.debug(
             "EVENT: interface_id = %s, channel_address = %s, parameter = %s, value = %s",
             interface_id,
             channel_address,
@@ -1114,7 +1137,7 @@ class CentralUnit(PayloadMixin):
                     if callable(callback_handler):
                         await callback_handler(value)
             except RuntimeError as rterr:  # pragma: no cover
-                _LOGGER.debug(
+                _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
                     extract_exc_args(exc=rterr),
                     interface_id,
@@ -1122,7 +1145,7 @@ class CentralUnit(PayloadMixin):
                     parameter,
                 )
             except Exception as exc:  # pragma: no cover
-                _LOGGER.warning(
+                _LOGGER_EVENT.warning(
                     "EVENT failed: Unable to call callback for: %s, %s, %s, %s",
                     interface_id,
                     channel_address,
@@ -1132,7 +1155,7 @@ class CentralUnit(PayloadMixin):
 
     def data_point_path_event(self, state_path: str, value: str) -> None:
         """If a device emits some sort event, we will handle it here."""
-        _LOGGER.debug(
+        _LOGGER_EVENT.debug(
             "DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
             state_path,
             value,
@@ -1151,7 +1174,7 @@ class CentralUnit(PayloadMixin):
 
     def sysvar_data_point_path_event(self, state_path: str, value: str) -> None:
         """If a device emits some sort event, we will handle it here."""
-        _LOGGER.debug(
+        _LOGGER_EVENT.debug(
             "SYSVAR_DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
             state_path,
             value,
@@ -1163,13 +1186,13 @@ class CentralUnit(PayloadMixin):
                 if callable(callback_handler):
                     self._looper.create_task(callback_handler(value), name=f"sysvar-data-point-event-{state_path}")
             except RuntimeError as rterr:  # pragma: no cover
-                _LOGGER.debug(
+                _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
                     extract_exc_args(exc=rterr),
                     state_path,
                 )
             except Exception as exc:  # pragma: no cover
-                _LOGGER.warning(
+                _LOGGER_EVENT.warning(
                     "EVENT failed: Unable to call callback for: %s, %s",
                     state_path,
                     extract_exc_args(exc=exc),
@@ -1623,7 +1646,7 @@ class _Scheduler(threading.Thread):
     async def _run_scheduler_tasks(self) -> None:
         """Run all tasks."""
         while self._active:
-            if not self._central.started:
+            if self._central.state != CentralUnitState.RUNNING:
                 _LOGGER.debug("SCHEDULER: Waiting till central %s is started", self._central.name)
                 await asyncio.sleep(SCHEDULER_NOT_STARTED_SLEEP)
                 continue

@@ -83,8 +83,8 @@ class BasePersistentCache(ABC):
         "_persistent_cache",
         "_save_load_semaphore",
         "_rlock",
-        "last_hash_saved",
-        "last_save_triggered",
+        "_last_hash_saved",
+        "_last_save_triggered",
     )
 
     _file_postfix: str
@@ -101,19 +101,19 @@ class BasePersistentCache(ABC):
         self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_postfix)
         self._persistent_cache: Final = persistent_cache
         self._rlock: Final = threading.RLock()
-        self.last_save_triggered: datetime = INIT_DATETIME
-        self.last_hash_saved = hash_sha256(value=persistent_cache)
+        self._last_save_triggered: datetime = INIT_DATETIME
+        self._last_hash_saved = hash_sha256(value=persistent_cache)
 
     @property
-    def cache_hash(self) -> str:
+    def _cache_hash(self) -> str:
         """Return the hash of the cache."""
         with self._rlock:
             return hash_sha256(value=self._persistent_cache)
 
     @property
-    def data_changed(self) -> bool:
+    def _data_changed(self) -> bool:
         """Return if the data has changed."""
-        return self.cache_hash != self.last_hash_saved
+        return self._cache_hash != self._last_hash_saved
 
     @property
     def _file_path(self) -> str:
@@ -136,7 +136,7 @@ class BasePersistentCache(ABC):
                             )
                         )
                     # Compute hash directly to avoid re-entrant lock overhead
-                    self.last_hash_saved = hash_sha256(value=self._persistent_cache)
+                    self._last_hash_saved = hash_sha256(value=self._persistent_cache)
             except json.JSONDecodeError:
                 return DataOperationResult.SAVE_FAIL
             return DataOperationResult.SAVE_SUCCESS
@@ -149,11 +149,11 @@ class BasePersistentCache(ABC):
     @property
     def _should_save(self) -> bool:
         """Determine if save operation should proceed."""
-        self.last_save_triggered = datetime.now()
+        self._last_save_triggered = datetime.now()
         return (
             check_or_create_directory(self._cache_dir)
             and self._central.config.use_caches
-            and self.cache_hash != self.last_hash_saved
+            and self._cache_hash != self._last_hash_saved
         )
 
     async def load(self) -> DataOperationResult:
@@ -166,11 +166,11 @@ class BasePersistentCache(ABC):
                 try:
                     data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
                     with self._rlock:
-                        if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
+                        if (converted_hash := hash_sha256(value=data)) == self._last_hash_saved:
                             return DataOperationResult.NO_LOAD
                         self._persistent_cache.clear()
                         self._persistent_cache.update(data)
-                        self.last_hash_saved = converted_hash
+                        self._last_hash_saved = converted_hash
                 except json.JSONDecodeError:
                     return DataOperationResult.LOAD_FAIL
             return DataOperationResult.LOAD_SUCCESS
@@ -188,7 +188,7 @@ class BasePersistentCache(ABC):
             with self._rlock:
                 self._persistent_cache.clear()
                 # Keep last_hash_saved in sync with the cleared cache
-                self.last_hash_saved = hash_sha256(value=self._persistent_cache)
+                self._last_hash_saved = hash_sha256(value=self._persistent_cache)
 
         async with self._save_load_semaphore:
             await self._central.looper.async_add_executor_job(_perform_clear, name="clear-persistent-cache")

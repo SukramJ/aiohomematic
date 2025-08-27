@@ -26,6 +26,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
 import logging
+import threading
 from typing import Any, Final, cast
 from urllib.parse import unquote
 
@@ -55,11 +56,19 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class CommandCache:
-    """Cache for send commands."""
+    """
+    Cache for send commands.
+
+    Eviction policy:
+    - Entries are automatically evicted when their age exceeds
+      LAST_COMMAND_SEND_STORE_TIMEOUT.
+    - Expired entries are removed opportunistically on add/get/remove calls.
+    """
 
     __slots__ = (
         "_interface_id",
         "_last_send_command",
+        "_rlock",
     )
 
     def __init__(self, interface_id: str) -> None:
@@ -67,6 +76,15 @@ class CommandCache:
         self._interface_id: Final = interface_id
         # (paramset_key, device_address, channel_no, parameter)
         self._last_send_command: Final[dict[DataPointKey, tuple[Any, datetime]]] = {}
+        self._rlock: Final = threading.RLock()
+
+    def _cleanup_expired(self, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> None:
+        """Remove expired entries from the send command cache."""
+        dt_now = datetime.now()
+        with self._rlock:
+            for dpk, (_value, ts) in list(self._last_send_command.items()):
+                if (dt_now - ts).total_seconds() > max_age:
+                    del self._last_send_command[dpk]
 
     def add_set_value(
         self,
@@ -75,6 +93,8 @@ class CommandCache:
         value: Any,
     ) -> set[DP_KEY_VALUE]:
         """Add data from set value command."""
+        # Opportunistic eviction of expired entries to avoid unbounded growth
+        self._cleanup_expired(max_age=LAST_COMMAND_SEND_STORE_TIMEOUT)
         if parameter in CONVERTABLE_PARAMETERS:
             return self.add_combined_parameter(
                 parameter=parameter, channel_address=channel_address, combined_parameter=value
@@ -87,13 +107,16 @@ class CommandCache:
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
         )
-        self._last_send_command[dpk] = (value, now_ts)
+        with self._rlock:
+            self._last_send_command[dpk] = (value, now_ts)
         return {(dpk, value)}
 
     def add_put_paramset(
         self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
+        # Opportunistic eviction of expired entries to avoid unbounded growth
+        self._cleanup_expired(max_age=LAST_COMMAND_SEND_STORE_TIMEOUT)
         dpk_values: set[DP_KEY_VALUE] = set()
         now_ts = datetime.now()
         for parameter, value in values.items():
@@ -103,7 +126,8 @@ class CommandCache:
                 paramset_key=paramset_key,
                 parameter=parameter,
             )
-            self._last_send_command[dpk] = (value, now_ts)
+            with self._rlock:
+                self._last_send_command[dpk] = (value, now_ts)
             dpk_values.add((dpk, value))
         return dpk_values
 
@@ -111,6 +135,8 @@ class CommandCache:
         self, parameter: str, channel_address: str, combined_parameter: str
     ) -> set[DP_KEY_VALUE]:
         """Add data from combined parameter."""
+        # Opportunistic eviction of expired entries to avoid unbounded growth
+        self._cleanup_expired(max_age=LAST_COMMAND_SEND_STORE_TIMEOUT)
         if values := convert_combined_parameter_to_paramset(parameter=parameter, cpv=combined_parameter):
             return self.add_put_paramset(
                 channel_address=channel_address,
@@ -121,7 +147,11 @@ class CommandCache:
 
     def get_last_value_send(self, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
         """Return the last send values."""
-        if result := self._last_send_command.get(dpk):
+        # Opportunistic eviction of expired entries
+        self._cleanup_expired(max_age=max_age)
+        with self._rlock:
+            result = self._last_send_command.get(dpk)
+        if result:
             value, last_send_dt = result
             if last_send_dt and changed_within_seconds(last_change=last_send_dt, max_age=max_age):
                 return value
@@ -138,12 +168,15 @@ class CommandCache:
         max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT,
     ) -> None:
         """Remove the last send value."""
-        if result := self._last_send_command.get(dpk):
-            stored_value, last_send_dt = result
-            if not changed_within_seconds(last_change=last_send_dt, max_age=max_age) or (
-                value is not None and stored_value == value
-            ):
-                del self._last_send_command[dpk]
+        # Opportunistic eviction of expired entries
+        self._cleanup_expired(max_age=max_age)
+        with self._rlock:
+            if result := self._last_send_command.get(dpk):
+                stored_value, last_send_dt = result
+                if not changed_within_seconds(last_change=last_send_dt, max_age=max_age) or (
+                    value is not None and stored_value == value
+                ):
+                    del self._last_send_command[dpk]
 
 
 class DeviceDetailsCache:
@@ -158,6 +191,7 @@ class DeviceDetailsCache:
         "_interface_cache",
         "_names_cache",
         "_refreshed_at",
+        "_rlock",
     )
 
     def __init__(self, central: hmcu.CentralUnit) -> None:
@@ -170,6 +204,7 @@ class DeviceDetailsCache:
         self._interface_cache: Final[dict[str, Interface]] = {}
         self._names_cache: Final[dict[str, str]] = {}
         self._refreshed_at = INIT_DATETIME
+        self._rlock: Final = threading.RLock()
 
     async def load(self, direct_call: bool = False) -> None:
         """Fetch names from backend."""
@@ -182,43 +217,53 @@ class DeviceDetailsCache:
         if client := self._central.primary_client:
             await client.fetch_device_details()
         _LOGGER.debug("LOAD: Loading rooms for %s", self._central.name)
-        self._channel_rooms.clear()
-        self._channel_rooms.update(await self._get_all_rooms())
-        self._device_rooms.clear()
-        self._device_rooms.update(self._prepare_device_rooms())
+        channel_rooms = await self._get_all_rooms()  # placeholder
         _LOGGER.debug("LOAD: Loading functions for %s", self._central.name)
-        self._functions.clear()
-        self._functions.update(await self._get_all_functions())
-        self._refreshed_at = datetime.now()
+        functions_map = await self._get_all_functions()
+        with self._rlock:
+            self._channel_rooms.clear()
+            self._channel_rooms.update(channel_rooms)
+            self._device_rooms.clear()
+            self._device_rooms.update(self._prepare_device_rooms())
+            self._functions.clear()
+            self._functions.update(functions_map)
+            self._refreshed_at = datetime.now()
 
     @property
     def device_channel_ids(self) -> Mapping[str, str]:
         """Return device channel ids."""
-        return self._device_channel_ids
+        with self._rlock:
+            return dict(self._device_channel_ids)
 
     def add_name(self, address: str, name: str) -> None:
         """Add name to cache."""
-        self._names_cache[address] = name
+        with self._rlock:
+            self._names_cache[address] = name
 
     def get_name(self, address: str) -> str | None:
         """Get name from cache."""
-        return self._names_cache.get(address)
+        with self._rlock:
+            return self._names_cache.get(address)
 
     def add_interface(self, address: str, interface: Interface) -> None:
         """Add interface to cache."""
-        self._interface_cache[address] = interface
+        with self._rlock:
+            self._interface_cache[address] = interface
 
     def get_interface(self, address: str) -> Interface:
         """Get interface from cache."""
-        return self._interface_cache.get(address) or Interface.BIDCOS_RF
+        with self._rlock:
+            return self._interface_cache.get(address) or Interface.BIDCOS_RF
 
     def add_address_id(self, address: str, hmid: str) -> None:
         """Add channel id for a channel."""
-        self._device_channel_ids[address] = hmid
+        with self._rlock:
+            self._device_channel_ids[address] = hmid
 
     def get_address_id(self, address: str) -> str:
         """Get id for address."""
-        return self._device_channel_ids.get(address) or "0"
+        with self._rlock:
+            return self._device_channel_ids.get(address) or "0"
 
     async def _get_all_rooms(self) -> Mapping[str, set[str]]:
         """Get all rooms, if available."""
@@ -229,18 +274,22 @@ class DeviceDetailsCache:
     def _prepare_device_rooms(self) -> dict[str, set[str]]:
         """Return rooms by device_address."""
         _device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
-        for channel_address, rooms in self._channel_rooms.items():
+        with self._rlock:
+            items = list(self._channel_rooms.items())
+        for channel_address, rooms in items:
             if rooms:
                 _device_rooms[get_device_address(address=channel_address)].update(rooms)
         return _device_rooms
 
     def get_device_rooms(self, device_address: str) -> set[str]:
         """Return all rooms by device_address."""
-        return set(self._device_rooms.get(device_address, ()))
+        with self._rlock:
+            return set(self._device_rooms.get(device_address, ()))
 
     def get_channel_rooms(self, channel_address: str) -> set[str]:
         """Return rooms by channel_address."""
-        return self._channel_rooms[channel_address]
+        with self._rlock:
+            return set(self._channel_rooms[channel_address])
 
     async def _get_all_functions(self) -> Mapping[str, set[str]]:
         """Get all functions, if available."""
@@ -250,25 +299,29 @@ class DeviceDetailsCache:
 
     def get_function_text(self, address: str) -> str | None:
         """Return function by address."""
-        if functions := self._functions.get(address):
+        with self._rlock:
+            functions = self._functions.get(address)
+        if functions:
             return ",".join(functions)
         return None
 
     def remove_device(self, device: Device) -> None:
         """Remove name from cache."""
-        if device.address in self._names_cache:
-            del self._names_cache[device.address]
-        for channel_address in device.channels:
-            if channel_address in self._names_cache:
-                del self._names_cache[channel_address]
+        with self._rlock:
+            if device.address in self._names_cache:
+                del self._names_cache[device.address]
+            for channel_address in device.channels:
+                if channel_address in self._names_cache:
+                    del self._names_cache[channel_address]
 
     def clear(self) -> None:
         """Clear the cache."""
-        self._names_cache.clear()
-        self._channel_rooms.clear()
-        self._device_rooms.clear()
-        self._functions.clear()
-        self._refreshed_at = INIT_DATETIME
+        with self._rlock:
+            self._names_cache.clear()
+            self._channel_rooms.clear()
+            self._device_rooms.clear()
+            self._functions.clear()
+            self._refreshed_at = INIT_DATETIME
 
 
 class CentralDataCache:
@@ -278,6 +331,7 @@ class CentralDataCache:
         "_central",
         "_refreshed_at",
         "_value_cache",
+        "_rlock",
     )
 
     def __init__(self, central: hmcu.CentralUnit) -> None:
@@ -286,6 +340,7 @@ class CentralDataCache:
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
+        self._rlock: Final = threading.RLock()
 
     async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from backend."""
@@ -312,11 +367,14 @@ class CentralDataCache:
 
     def add_data(self, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""
-        self._value_cache[interface] = {
-            unquote(string=k, encoding=ISO_8859_1): unquote(string=v, encoding=ISO_8859_1) if isinstance(v, str) else v
-            for k, v in all_device_data.items()
-        }
-        self._refreshed_at[interface] = datetime.now()
+        with self._rlock:
+            self._value_cache[interface] = {
+                unquote(string=k, encoding=ISO_8859_1): unquote(string=v, encoding=ISO_8859_1)
+                if isinstance(v, str)
+                else v
+                for k, v in all_device_data.items()
+            }
+            self._refreshed_at[interface] = datetime.now()
 
     def get_data(
         self,
@@ -325,22 +383,30 @@ class CentralDataCache:
         parameter: str,
     ) -> Any:
         """Get data from cache."""
-        if not self._is_empty(interface=interface) and (iface_cache := self._value_cache.get(interface)) is not None:
-            return iface_cache.get(f"{interface}.{channel_address}.{parameter}", NO_CACHE_ENTRY)
-        return NO_CACHE_ENTRY
+        key = f"{interface}.{channel_address}.{parameter}"
+        with self._rlock:
+            if self._is_empty(interface=interface):
+                return NO_CACHE_ENTRY
+            if (iface_cache := self._value_cache.get(interface)) is None:
+                return NO_CACHE_ENTRY
+            return iface_cache.get(key, NO_CACHE_ENTRY)
 
     def clear(self, interface: Interface | None = None) -> None:
         """Clear the cache."""
-        if interface:
-            self._value_cache[interface] = {}
-            self._refreshed_at[interface] = INIT_DATETIME
-        else:
-            for _interface in self._central.interfaces:
-                self.clear(interface=_interface)
+        with self._rlock:
+            if interface:
+                self._value_cache[interface] = {}
+                self._refreshed_at[interface] = INIT_DATETIME
+            else:
+                # Clear all interfaces
+                for _interface in self._central.interfaces:
+                    self._value_cache[_interface] = {}
+                    self._refreshed_at[_interface] = INIT_DATETIME
 
     def _get_refreshed_at(self, interface: Interface) -> datetime:
         """Return when cache has been refreshed."""
-        return self._refreshed_at.get(interface, INIT_DATETIME)
+        with self._rlock:
+            return self._refreshed_at.get(interface, INIT_DATETIME)
 
     def _is_empty(self, interface: Interface) -> bool:
         """Return if cache is empty for the given interface."""
@@ -355,7 +421,12 @@ class CentralDataCache:
 
 
 class PingPongCache:
-    """Cache to collect ping/pong events with ttl."""
+    """
+    Cache to collect ping/pong events with ttl.
+
+    Thread-safety: Access to internal sets and log flags is protected by an
+    RLock because cache methods may be called from different threads.
+    """
 
     __slots__ = (
         "_allowed_delta",
@@ -366,6 +437,7 @@ class PingPongCache:
         "_ttl",
         "_unknown_pong_logged",
         "_unknown_pongs",
+        "_rlock",
     )
 
     def __init__(
@@ -385,115 +457,143 @@ class PingPongCache:
         self._unknown_pongs: Final[set[datetime]] = set()
         self._pending_pong_logged: bool = False
         self._unknown_pong_logged: bool = False
+        self._rlock: Final = threading.RLock()
 
     @property
     def high_pending_pongs(self) -> bool:
         """Check, if store contains too many pending pongs."""
-        self._cleanup_pending_pongs()
-        return len(self._pending_pongs) > self._allowed_delta
+        with self._rlock:
+            self._cleanup_pending_pongs()
+            return len(self._pending_pongs) > self._allowed_delta
 
     @property
     def high_unknown_pongs(self) -> bool:
         """Check, if store contains too many unknown pongs."""
-        self._cleanup_unknown_pongs()
-        return len(self._unknown_pongs) > self._allowed_delta
+        with self._rlock:
+            self._cleanup_unknown_pongs()
+            return len(self._unknown_pongs) > self._allowed_delta
 
     @property
     def low_pending_pongs(self) -> bool:
         """Return the pending pong count is low."""
-        self._cleanup_pending_pongs()
-        return len(self._pending_pongs) < (self._allowed_delta / 2)
+        with self._rlock:
+            self._cleanup_pending_pongs()
+            return len(self._pending_pongs) < (self._allowed_delta / 2)
 
     @property
     def low_unknown_pongs(self) -> bool:
         """Return the unknown pong count is low."""
-        self._cleanup_unknown_pongs()
-        return len(self._unknown_pongs) < (self._allowed_delta / 2)
+        with self._rlock:
+            self._cleanup_unknown_pongs()
+            return len(self._unknown_pongs) < (self._allowed_delta / 2)
 
     @property
     def pending_pong_count(self) -> int:
         """Return the pending pong count."""
-        return len(self._pending_pongs)
+        with self._rlock:
+            return len(self._pending_pongs)
 
     @property
     def unknown_pong_count(self) -> int:
         """Return the unknown pong count."""
-        return len(self._unknown_pongs)
+        with self._rlock:
+            return len(self._unknown_pongs)
 
     def clear(self) -> None:
         """Clear the cache."""
-        self._pending_pongs.clear()
-        self._unknown_pongs.clear()
-        self._pending_pong_logged = False
-        self._unknown_pong_logged = False
+        with self._rlock:
+            self._pending_pongs.clear()
+            self._unknown_pongs.clear()
+            self._pending_pong_logged = False
+            self._unknown_pong_logged = False
 
     def handle_send_ping(self, ping_ts: datetime) -> None:
         """Handle send ping timestamp."""
-        self._pending_pongs.add(ping_ts)
+        with self._rlock:
+            self._pending_pongs.add(ping_ts)
+            pending_count = len(self._pending_pongs)
         self._check_and_fire_pong_event(
             event_type=InterfaceEventType.PENDING_PONG,
-            pong_mismatch_count=self.pending_pong_count,
+            pong_mismatch_count=pending_count,
         )
         _LOGGER.debug(
             "PING PONG CACHE: Increase pending PING count: %s - %i for ts: %s",
             self._interface_id,
-            self.pending_pong_count,
+            pending_count,
             ping_ts,
         )
 
     def handle_received_pong(self, pong_ts: datetime) -> None:
         """Handle received pong timestamp."""
-        if pong_ts in self._pending_pongs:
-            self._pending_pongs.remove(pong_ts)
+        with self._rlock:
+            if pong_ts in self._pending_pongs:
+                self._pending_pongs.remove(pong_ts)
+                was_pending = True
+                pending_count = len(self._pending_pongs)
+                unknown_count = 0
+            else:
+                self._unknown_pongs.add(pong_ts)
+                was_pending = False
+                unknown_count = len(self._unknown_pongs)
+                pending_count = 0
+        if not was_pending:
+            # Added to unknown set
             self._check_and_fire_pong_event(
-                event_type=InterfaceEventType.PENDING_PONG,
-                pong_mismatch_count=self.pending_pong_count,
+                event_type=InterfaceEventType.UNKNOWN_PONG,
+                pong_mismatch_count=unknown_count,
             )
             _LOGGER.debug(
-                "PING PONG CACHE: Reduce pending PING count: %s - %i for ts: %s",
+                "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
                 self._interface_id,
-                self.pending_pong_count,
+                unknown_count,
                 pong_ts,
             )
             return
-
-        self._unknown_pongs.add(pong_ts)
+        # Removed from pending set
         self._check_and_fire_pong_event(
-            event_type=InterfaceEventType.UNKNOWN_PONG,
-            pong_mismatch_count=self.unknown_pong_count,
+            event_type=InterfaceEventType.PENDING_PONG,
+            pong_mismatch_count=pending_count,
         )
         _LOGGER.debug(
-            "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
+            "PING PONG CACHE: Reduce pending PING count: %s - %i for ts: %s",
             self._interface_id,
-            self.unknown_pong_count,
+            pending_count,
             pong_ts,
         )
 
     def _cleanup_pending_pongs(self) -> None:
-        """Cleanup too old pending pongs."""
+        """
+        Cleanup too old pending pongs.
+
+        Note: Caller must hold self._rlock.
+        """
         dt_now = datetime.now()
         for pong_ts in list(self._pending_pongs):
             delta = dt_now - pong_ts
-            if delta.seconds > self._ttl:
+            if delta.total_seconds() > self._ttl:
                 self._pending_pongs.remove(pong_ts)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired pending PONG: %s - %i for ts: %s",
                     self._interface_id,
-                    self.pending_pong_count,
+                    len(self._pending_pongs),
                     pong_ts,
                 )
 
     def _cleanup_unknown_pongs(self) -> None:
-        """Cleanup too old unknown pongs."""
+        """
+        Cleanup too old unknown pongs.
+
+        Note: Caller must hold self._rlock.
+        """
         dt_now = datetime.now()
         for pong_ts in list(self._unknown_pongs):
             delta = dt_now - pong_ts
-            if delta.seconds > self._ttl:
+            if delta.total_seconds() > self._ttl:
                 self._unknown_pongs.remove(pong_ts)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired unknown PONG: %s - %i or ts: %s",
                     self._interface_id,
-                    self.unknown_pong_count,
+                    len(self._unknown_pongs),
                     pong_ts,
                 )
 
@@ -520,11 +620,13 @@ class PingPongCache:
 
         if self.low_pending_pongs and event_type == InterfaceEventType.PENDING_PONG:
             _fire_event(mismatch_count=0)
-            self._pending_pong_logged = False
+            with self._rlock:
+                self._pending_pong_logged = False
             return
 
         if self.low_unknown_pongs and event_type == InterfaceEventType.UNKNOWN_PONG:
-            self._unknown_pong_logged = False
+            with self._rlock:
+                self._unknown_pong_logged = False
             return
 
         if self.high_pending_pongs and event_type == InterfaceEventType.PENDING_PONG:
@@ -538,7 +640,8 @@ class PingPongCache:
                     "Possible reason 3: Your setup is misconfigured and this instance is not able to receive events from the CCU.",
                     self._interface_id,
                 )
-            self._pending_pong_logged = True
+            with self._rlock:
+                self._pending_pong_logged = True
 
         if self.high_unknown_pongs and event_type == InterfaceEventType.UNKNOWN_PONG:
             if self._unknown_pong_logged is False:
@@ -549,4 +652,5 @@ class PingPongCache:
                     "Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart.",
                     self._interface_id,
                 )
-            self._unknown_pong_logged = True
+            with self._rlock:
+                self._unknown_pong_logged = True

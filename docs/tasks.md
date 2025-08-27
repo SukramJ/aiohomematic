@@ -51,14 +51,14 @@
 
 9. [ ] Data model consistency and validation
 
-   - [x] Ensure Parameter, DataPointCategory, and Field mappings are exhaustive and validated at startup
+   - [ ] Ensure Parameter, DataPointCategory, and Field mappings are exhaustive and validated at startup
    - [ ] Add validators for incoming values (range, enums) and conversions (e.g., convert_hm_level_to_cpv)
    - [x] Consolidate duplicate constants and normalization logic
 
 10. [ ] Performance and caching
 
     - [ ] Profile hot paths (device event processing, cache lookups) and add benchmarks
-    - [ ] Review caches/dynamic and caches/persistent for eviction policies and thread-safety
+    - [x] Review caches/dynamic and caches/persistent for eviction policies and thread-safety
     - [x] Avoid redundant conversions and lookups across layers
 
 11. [ ] I/O resiliency and retry policies
@@ -117,13 +117,13 @@
 
 20. [ ] Code organization and naming
 
-    - [-] Review module and class names for clarity and consistency (e.g., abbreviations like hmd, hmed)
-    - [-] Replace ambiguous names with descriptive alternatives and update imports
-    - [x] Add module-level docstrings summarizing purpose and key types
+    - [ ] Review module and class names for clarity and consistency (e.g., abbreviations like hmd, hmed)
+    - [ ] Replace ambiguous names with descriptive alternatives and update imports
+    - [ ] Add module-level docstrings summarizing purpose and key types
 
 21. [ ] Improve decorators and metadata handling
 
-    - [x] Audit @state_property and other decorators for side effects and caching behavior
+    - [ ] Audit @state_property and other decorators for side effects and caching behavior
     - [ ] Add documentation and examples for decorators usage
     - [ ] Ensure decorators preserve type information (functools.wraps, typing)
 

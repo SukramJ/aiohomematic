@@ -40,6 +40,7 @@ from datetime import datetime
 import json
 import logging
 import os
+import threading
 from typing import Any, Final
 
 import orjson
@@ -81,6 +82,7 @@ class BasePersistentCache(ABC):
         "_filename",
         "_persistent_cache",
         "_save_load_semaphore",
+        "_rlock",
         "last_hash_saved",
         "last_save_triggered",
     )
@@ -98,13 +100,15 @@ class BasePersistentCache(ABC):
         self._cache_dir: Final = _get_cache_path(storage_folder=central.config.storage_folder)
         self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_postfix)
         self._persistent_cache: Final = persistent_cache
+        self._rlock: Final = threading.RLock()
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_cache)
 
     @property
     def cache_hash(self) -> str:
         """Return the hash of the cache."""
-        return hash_sha256(value=self._persistent_cache)
+        with self._rlock:
+            return hash_sha256(value=self._persistent_cache)
 
     @property
     def data_changed(self) -> bool:
@@ -123,14 +127,16 @@ class BasePersistentCache(ABC):
 
         def _perform_save() -> DataOperationResult:
             try:
-                with open(file=self._file_path, mode="wb") as file_pointer:
-                    file_pointer.write(
-                        orjson.dumps(
-                            self._persistent_cache,
-                            option=orjson.OPT_NON_STR_KEYS,
+                with self._rlock:
+                    with open(file=self._file_path, mode="wb") as file_pointer:
+                        file_pointer.write(
+                            orjson.dumps(
+                                self._persistent_cache,
+                                option=orjson.OPT_NON_STR_KEYS,
+                            )
                         )
-                    )
-                self.last_hash_saved = self.cache_hash
+                    # Compute hash directly to avoid re-entrant lock overhead
+                    self.last_hash_saved = hash_sha256(value=self._persistent_cache)
             except json.JSONDecodeError:
                 return DataOperationResult.SAVE_FAIL
             return DataOperationResult.SAVE_SUCCESS
@@ -159,11 +165,12 @@ class BasePersistentCache(ABC):
             with open(file=self._file_path, encoding=UTF_8) as file_pointer:
                 try:
                     data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
-                    if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
-                        return DataOperationResult.NO_LOAD
-                    self._persistent_cache.clear()
-                    self._persistent_cache.update(data)
-                    self.last_hash_saved = converted_hash
+                    with self._rlock:
+                        if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
+                            return DataOperationResult.NO_LOAD
+                        self._persistent_cache.clear()
+                        self._persistent_cache.update(data)
+                        self.last_hash_saved = converted_hash
                 except json.JSONDecodeError:
                     return DataOperationResult.LOAD_FAIL
             return DataOperationResult.LOAD_SUCCESS
@@ -178,7 +185,10 @@ class BasePersistentCache(ABC):
 
         def _perform_clear() -> None:
             delete_file(folder=self._cache_dir, file_name=self._filename)
-            self._persistent_cache.clear()
+            with self._rlock:
+                self._persistent_cache.clear()
+                # Keep last_hash_saved in sync with the cleared cache
+                self.last_hash_saved = hash_sha256(value=self._persistent_cache)
 
         async with self._save_load_semaphore:
             await self._central.looper.async_add_executor_job(_perform_clear, name="clear-persistent-cache")
@@ -210,29 +220,33 @@ class DeviceDescriptionCache(BasePersistentCache):
 
     def add_device(self, interface_id: str, device_description: DeviceDescription) -> None:
         """Add a device to the cache."""
-        # Fast-path: If the address is not yet known, skip costly removal operations.
-        if (address := device_description["ADDRESS"]) not in self._device_descriptions[interface_id]:
+        with self._rlock:
+            # Fast-path: If the address is not yet known, skip costly removal operations.
+            if (address := device_description["ADDRESS"]) not in self._device_descriptions[interface_id]:
+                self._raw_device_descriptions[interface_id].append(device_description)
+                self._process_device_description(interface_id=interface_id, device_description=device_description)
+                return
+            # Address exists: remove old entries before adding the new description.
+            self._remove_device(
+                interface_id=interface_id,
+                addresses_to_remove=[address],
+            )
             self._raw_device_descriptions[interface_id].append(device_description)
             self._process_device_description(interface_id=interface_id, device_description=device_description)
-            return
-        # Address exists: remove old entries before adding the new description.
-        self._remove_device(
-            interface_id=interface_id,
-            addresses_to_remove=[address],
-        )
-        self._raw_device_descriptions[interface_id].append(device_description)
-        self._process_device_description(interface_id=interface_id, device_description=device_description)
 
     def get_raw_device_descriptions(self, interface_id: str) -> list[DeviceDescription]:
         """Retrieve raw device descriptions from the cache."""
-        return self._raw_device_descriptions[interface_id]
+        with self._rlock:
+            # Return a shallow copy to prevent external mutation of internal state
+            return list(self._raw_device_descriptions[interface_id])
 
     def remove_device(self, device: Device) -> None:
         """Remove device from cache."""
-        self._remove_device(
-            interface_id=device.interface_id,
-            addresses_to_remove=[device.address, *device.channels.keys()],
-        )
+        with self._rlock:
+            self._remove_device(
+                interface_id=device.interface_id,
+                addresses_to_remove=[device.address, *device.channels.keys()],
+            )
 
     def _remove_device(self, interface_id: str, addresses_to_remove: list[str]) -> None:
         """Remove a device from the cache."""
@@ -251,19 +265,23 @@ class DeviceDescriptionCache(BasePersistentCache):
 
     def get_addresses(self, interface_id: str) -> frozenset[str]:
         """Return the addresses by interface as a set."""
-        return frozenset(self._addresses[interface_id])
+        with self._rlock:
+            return frozenset(self._addresses[interface_id])
 
     def get_device_descriptions(self, interface_id: str) -> Mapping[str, DeviceDescription]:
         """Return the devices by interface."""
-        return self._device_descriptions[interface_id]
+        with self._rlock:
+            return dict(self._device_descriptions[interface_id])
 
     def find_device_description(self, interface_id: str, device_address: str) -> DeviceDescription | None:
         """Return the device description by interface and device_address."""
-        return self._device_descriptions[interface_id].get(device_address)
+        with self._rlock:
+            return self._device_descriptions[interface_id].get(device_address)
 
     def get_device_description(self, interface_id: str, address: str) -> DeviceDescription:
         """Return the device description by interface and device_address."""
-        return self._device_descriptions[interface_id][address]
+        with self._rlock:
+            return self._device_descriptions[interface_id][address]
 
     def get_device_with_channels(self, interface_id: str, device_address: str) -> Mapping[str, DeviceDescription]:
         """Return the device dict by interface and device_address."""
@@ -279,20 +297,23 @@ class DeviceDescriptionCache(BasePersistentCache):
 
     def get_model(self, device_address: str) -> str | None:
         """Return the device type."""
-        for data in self._device_descriptions.values():
-            if items := data.get(device_address):
-                return items["TYPE"]
+        with self._rlock:
+            for data in self._device_descriptions.values():
+                if items := data.get(device_address):
+                    return items["TYPE"]
         return None
 
     def _convert_device_descriptions(self, interface_id: str, device_descriptions: list[DeviceDescription]) -> None:
         """Convert provided list of device descriptions."""
-        for device_description in device_descriptions:
-            self._process_device_description(interface_id=interface_id, device_description=device_description)
+        with self._rlock:
+            for device_description in device_descriptions:
+                self._process_device_description(interface_id=interface_id, device_description=device_description)
 
     def _process_device_description(self, interface_id: str, device_description: DeviceDescription) -> None:
         """Convert provided dict of device descriptions."""
         address = device_description["ADDRESS"]
         device_address = get_device_address(address)
+        # Caller is responsible for acquiring self._lock
         self._device_descriptions[interface_id][address] = device_description
 
         # Avoid redundant membership checks; set.add is idempotent and cheaper than check+add
@@ -353,67 +374,76 @@ class ParamsetDescriptionCache(BasePersistentCache):
         paramset_description: dict[str, ParameterData],
     ) -> None:
         """Add paramset description to cache."""
-        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
-        self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
+        with self._rlock:
+            self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
+            self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
 
     def remove_device(self, device: Device) -> None:
         """Remove device paramset descriptions from cache."""
-        if interface := self._raw_paramset_descriptions.get(device.interface_id):
-            for channel_address in device.channels:
-                if channel_address in interface:
-                    del self._raw_paramset_descriptions[device.interface_id][channel_address]
+        with self._rlock:
+            if interface := self._raw_paramset_descriptions.get(device.interface_id):
+                for channel_address in device.channels:
+                    if channel_address in interface:
+                        del self._raw_paramset_descriptions[device.interface_id][channel_address]
 
     def has_interface_id(self, interface_id: str) -> bool:
         """Return if interface is in paramset_descriptions cache."""
-        return interface_id in self._raw_paramset_descriptions
+        with self._rlock:
+            return interface_id in self._raw_paramset_descriptions
 
     def get_paramset_keys(self, interface_id: str, channel_address: str) -> tuple[ParamsetKey, ...]:
         """Get paramset_keys from paramset descriptions cache."""
-        return tuple(self._raw_paramset_descriptions[interface_id][channel_address])
+        with self._rlock:
+            return tuple(self._raw_paramset_descriptions[interface_id][channel_address])
 
     def get_channel_paramset_descriptions(
         self, interface_id: str, channel_address: str
     ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Get paramset descriptions for a channelfrom cache."""
-        return self._raw_paramset_descriptions[interface_id].get(channel_address, {})
+        with self._rlock:
+            return dict(self._raw_paramset_descriptions[interface_id].get(channel_address, {}))
 
     def get_paramset_descriptions(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey
     ) -> Mapping[str, ParameterData]:
         """Get paramset descriptions from cache."""
-        return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
+        with self._rlock:
+            return dict(self._raw_paramset_descriptions[interface_id][channel_address][paramset_key])
 
     def get_parameter_data(
         self, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
     ) -> ParameterData | None:
         """Get parameter_data  from cache."""
-        return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].get(parameter)
+        with self._rlock:
+            return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].get(parameter)
 
     def is_in_multiple_channels(self, channel_address: str, parameter: str) -> bool:
         """Check if parameter is in multiple channels per device."""
         if ADDRESS_SEPARATOR not in channel_address:
             return False
-        if channels := self._address_parameter_cache.get((get_device_address(channel_address), parameter)):
-            return len(channels) > 1
+        with self._rlock:
+            if channels := self._address_parameter_cache.get((get_device_address(channel_address), parameter)):
+                return len(channels) > 1
         return False
 
     def get_channel_addresses_by_paramset_key(
         self, interface_id: str, device_address: str
     ) -> Mapping[ParamsetKey, list[str]]:
         """Get device channel addresses."""
-        channel_addresses: dict[ParamsetKey, list[str]] = {}
-        interface_paramset_descriptions = self._raw_paramset_descriptions[interface_id]
-        for (
-            channel_address,
-            paramset_descriptions,
-        ) in interface_paramset_descriptions.items():
-            if channel_address.startswith(device_address):
-                for p_key in paramset_descriptions:
-                    if (paramset_key := ParamsetKey(p_key)) not in channel_addresses:
-                        channel_addresses[paramset_key] = []
-                    channel_addresses[paramset_key].append(channel_address)
+        with self._rlock:
+            channel_addresses: dict[ParamsetKey, list[str]] = {}
+            interface_paramset_descriptions = self._raw_paramset_descriptions[interface_id]
+            for (
+                channel_address,
+                paramset_descriptions,
+            ) in interface_paramset_descriptions.items():
+                if channel_address.startswith(device_address):
+                    for p_key in paramset_descriptions:
+                        if (paramset_key := ParamsetKey(p_key)) not in channel_addresses:
+                            channel_addresses[paramset_key] = []
+                        channel_addresses[paramset_key].append(channel_address)
 
-        return channel_addresses
+            return channel_addresses
 
     def _init_address_parameter_list(self) -> None:
         """
@@ -421,9 +451,10 @@ class ParamsetDescriptionCache(BasePersistentCache):
 
         Used to identify, if a parameter name exists is in multiple channels.
         """
-        for channel_paramsets in self._raw_paramset_descriptions.values():
-            for channel_address, paramsets in channel_paramsets.items():
-                self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
+        with self._rlock:
+            for channel_paramsets in self._raw_paramset_descriptions.values():
+                for channel_address, paramsets in channel_paramsets.items():
+                    self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
 
     def _add_address_parameter(self, channel_address: str, paramsets: list[dict[str, Any]]) -> None:
         """Add address parameter to cache."""

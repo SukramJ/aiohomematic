@@ -75,7 +75,7 @@ def inspector(  # noqa: C901
                     "err_type": exc.__class__.__name__,
                     "err": extract_exc_args(exc=exc),
                     "function": func.__name__,
-                    **build_log_context_from_obj(context_obj),
+                    **build_log_context_from_obj(obj=context_obj),
                 }
                 if log_level >= logging.ERROR:
                     logger.exception("service_error", extra=extra)

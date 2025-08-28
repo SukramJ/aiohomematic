@@ -1091,7 +1091,7 @@ def bind_collector(
                         "err_type": bhexc.__class__.__name__,
                         "err": extract_exc_args(exc=bhexc),
                         "function": func.__name__,
-                        **hms.build_log_context_from_obj(args[0]),
+                        **hms.build_log_context_from_obj(obj=args[0]),
                     }
                     if log_level >= logging.ERROR:
                         logger.exception("service_error", extra=extra)

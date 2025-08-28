@@ -65,3 +65,4 @@ Example:
 - Examples: see example.py in this repository.
 - Changelog: see changelog.md.
 - Source code and documentation: this repository (docs/ directory may contain additional information).
+- Extending the model: see docs/extension_points.md for adding custom device profiles and calculated data points.

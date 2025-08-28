@@ -8,9 +8,9 @@
 
    - [-] Audit cross-module imports to reduce coupling (e.g., model vs central vs client)
    - [ ] Introduce interfaces/protocols for device and data point abstractions to reduce concrete dependencies
-   - [ ] Document extension points for new device profiles and calculated data points
+   - [x] Document extension points for new device profiles and calculated data points
 
-3. [ ] Concurrency and async model hardening
+3. [o] Concurrency and async model hardening
 
    - [x] Review usage of asyncio Locks (e.g., CustomDpCover.\_command_processing_lock) for potential deadlocks or unnecessary serialization
    - [x] Ensure all network I/O is properly awaited and shielded against cancellation where necessary
@@ -41,7 +41,7 @@
    - [-] Enable strict mypy options incrementally (e.g., disallow Any in core modules)
    - [-] Fill missing type annotations, especially in decorators and generic data point classes
    - [x] Replace use of Union[...] with | where Python version permits; keep py.typed accurate
-   - [ ] Add Protocols/TypedDicts for RPC payloads and device metadata
+   - [-] Add Protocols/TypedDicts for RPC payloads and device metadata
 
 8. [ ] Public API review and stability
 
@@ -89,7 +89,7 @@
 15. [ ] Documentation improvements
 
     - [ ] Expand README.md with quickstart, architecture summary, and contribution guidelines
-    - [ ] Add docs for creating custom device profiles and calculated data points
+    - [x] Add docs for creating custom device profiles and calculated data points
     - [ ] Document error codes and common troubleshooting steps
 
 16. [ ] Developer ergonomics

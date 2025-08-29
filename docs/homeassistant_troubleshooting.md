@@ -18,7 +18,7 @@ Contents:
 - No devices/entities visible after setup
   - Check connection details (host/IP, ports, auth), CCU reachability, and callback reachability from the CCU’s perspective.
 - Entities present but without state changes
-  - Event callbacks not arriving (firewall/NAT/Docker port mapping), XML‑RPC/HmIP JSON‑RPC blocked, invalid session.
+  - Event callbacks not arriving (firewall/NAT/Docker port mapping), XML‑RPC blocked, invalid session.
 - Individual devices "unavailable" or stuck on old value
   - Device availability (UN_REACH/STICKY_UN_REACH), radio issues, battery-powered devices are sleeping, CONFIG_PENDING still active.
 - Writing values doesn’t work
@@ -37,7 +37,7 @@ Contents:
    - Can Home Assistant reach the CCU host/IP (ping)? Are ports open (see Ports section)?
 2. Check configuration (HA integration)
    - Correct host/IP (no mDNS/hostname problems)?
-   - Correct protocol selection (classic Homematic vs. HmIP JSON‑RPC is handled internally; the important part is the correct CCU details).
+   - Correct protocol selection (classic Homematic vs. HmIP vs Wired; the important part is the correct CCU details).
 3. Callback reachability
    - The CCU must be able to reach the callback port provided by Home Assistant (from the CCU’s point of view!).
    - Check container/firewall: port exposure, bridged vs. host networking.
@@ -105,10 +105,13 @@ Contents:
 
 ## 4) Network, ports, and containers
 
-- XML‑RPC (classic Homematic):
-  - Common: 2001 (BidCos‑RF), 2010 (BidCos‑Wired), 9292 (CUxD) – depends on setup.
-- HomematicIP JSON‑RPC:
-  - Standard endpoint via CCU HmIP service; typically port 2010/32010 internally – the integration connects via the CCU IP, details vary with firmware.
+- classic Homematic:
+  - Common: 2001/42001(TLS) (BidCos‑RF), 2000/42000(TLS) (BidCos‑Wired),
+- HomematicIP:
+  - Common 2010/42010(TLS)
+- Heating groups
+  - Common 9292/49292(TLS)
+- CuxD
 - Callback from Home Assistant:
   - Home Assistant opens an HTTP callback port that the CCU must actively contact. This port must be reachable from the CCU network.
 - Docker/container notes:
@@ -122,11 +125,13 @@ Contents:
 
 - Adjust Home Assistant logger (configuration.yaml):
 
+```
   logger:
-  default: info
-  logs:
-  aiohomematic: debug
-  hahomematic: debug
+    default: info
+    logs:
+      aiohomematic: debug
+      custom_components.homematicip_local: debug
+```
 
 - Typical log hints:
 
@@ -136,8 +141,13 @@ Contents:
   - Validation errors on send: verify parameter names/types.
 
 - Additional diagnostics:
-  - In the HA integration use "Download diagnostics" (if available) – contains connectivity data.
-  - In aiohomematic you can enable debug for specific modules: client.xml_rpc, client.json_rpc, model.\*
+  - In the HA integration use "Download diagnostics" – contains connectivity data.
+  - In aiohomematic you can enable debug for specific modules:
+    - aiohomematic.caches: debug
+    - aiohomematic.central: debug
+    - aiohomematic.central_events: debug
+    - aiohomematic.client: debug
+    - aiohomematic.model: debug
 
 ---
 

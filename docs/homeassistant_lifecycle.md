@@ -17,10 +17,10 @@ Sequence at startup or after re‑connecting to CCU/Homegear:
 
 1. Interface availability and methods: The client layers (`client.xml_rpc`, `client.json_rpc`) check supported methods and register the callback endpoint at the CCU.
 2. Load device list/details:
-   - For classic HM interfaces: XML‑RPC provides the device catalog and channel descriptions.
-   - For HmIP: JSON‑RPC provides `get_all_device_data`, `get_paramset_description`, `get_paramset`, etc.
+   - For most interfaces: XML‑RPC provides the device catalog and channel descriptions.
+   - For CCU: JSON‑RPC provides `get_all_device_data`, `get_system_variable`, `set_system_variable`, etc.
 3. Caching for fast restarts:
-   - Paramset descriptions (`VALUES`, optionally `MASTER`) and values are persisted in `aiohomematic_storage`. This often eliminates the need for a full fetch on subsequent starts.
+   - Paramset descriptions (`VALUES`, optionally `MASTER`) and values are persisted in `homematicip_local`. This often eliminates the need for a full fetch on subsequent starts.
 4. Create devices and DataPoints:
    - For each device configuration a `Device` object is created; with `Channel` instances below it.
    - For each channel parameter, a `GenericDataPoint` (or Custom/Calculated) is created depending on visibility/definition. The usage decision is made via `DataPointUsage` (see `GenericDataPoint.usage`). Hidden/suppressed parameters or those without definition may be set to `NO_CREATE`.
@@ -38,7 +38,7 @@ Home Assistant view: The HA integration (Homematic(IP) Local) registers for Cent
 Event and value processing during operation:
 
 - Value changes (events):
-  - The CCU sends XML‑RPC/HmIP JSON‑RPC events. They are routed to the matching DataPoints (`GenericDataPoint.event`).
+  - The CCU sends XML‑RPC events. They are routed to the matching DataPoints (`GenericDataPoint.event`).
   - The DataPoint writes the new value via `write_value` and checks for state change (`is_state_change`).
   - Special handling:
     - `CONFIG_PENDING`: Transition from True→False triggers reloading the paramset descriptions and a refresh of readable MASTER parameters (see `GenericDataPoint.event`).

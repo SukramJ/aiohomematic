@@ -1,9 +1,10 @@
-# Version 2025.8.10 (2025-08-25)
+# Version 2025.8.10 (2025-08-29)
 
 - Improve documentation
   - Added docs/architecture.md describing high-level components (central, client, model, caches, support) and their interactions
   - Added data flow for XML-RPC/JSON-RPC, event handling, and data point updates
   - Added sequence diagrams for connect, device discovery, state change propagation
+  - Add troubleshouting docs
 - Avoid deadlocks within locks (cover)
 - Detailing the central status
 - Improve boundary logging und exception handling

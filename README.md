@@ -85,3 +85,7 @@ Example:
 - Home Assistant lifecycle (discovery, updates, teardown): see docs/homeassistant_lifecycle.md.
 - Troubleshooting with Home Assistant: see docs/homeassistant_troubleshooting.md.
 - Extending the model: see docs/extension_points.md for adding custom device profiles and calculated data points.
+- Unignore mechanism: see docs/unignore.md.
+- RSSI fix: see docs/rssi_fix.md.
+- Definition of calculated data points: see docs/calculated_data_points.md.
+- Homematic(IP) Local integration: https://github.com/sukramj/homematicip_local

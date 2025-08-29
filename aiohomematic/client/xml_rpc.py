@@ -172,7 +172,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:
             ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self.interface_id)
-            raise map_xmlrpc_fault(flt.faultCode, flt.faultString, ctx) from flt
+            raise map_xmlrpc_fault(code=flt.faultCode, fault_string=flt.faultString, ctx=ctx) from flt
         except TypeError as terr:
             raise ClientException(terr) from terr
         except xmlrpc.client.ProtocolError as perr:

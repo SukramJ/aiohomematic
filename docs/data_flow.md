@@ -121,7 +121,7 @@ sequenceDiagram
   DP->>Dev: delegate
   Dev->>C: get_value(address, key, param)
   C->>CX: get_value(...)
-  CX->>X: _post(getValue)
+  CX->>X: getValue(getValue)
   X-->>CX: value
   CX-->>C: value
   C->>C: update dynamic cache

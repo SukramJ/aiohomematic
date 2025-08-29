@@ -12,7 +12,7 @@ body:
       options:
         - label: I have read the [documentation](https://github.com/sukramj/homematicip_local#homematicip_local)
           required: true
-        - label: I have read the [troubleshooting documentation](docs/homeassistant_troubleshooting.md), and tried to identify/solve the issue by myself.
+        - label: I have read the [troubleshooting documentation](https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md), and tried to identify/solve the issue by myself.
           required: true
         - label: I have read the [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions)
           required: true

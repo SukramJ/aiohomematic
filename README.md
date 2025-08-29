@@ -79,13 +79,18 @@ Example:
 
 ## Useful links
 
-- Examples: [see](example.py) for simple use of code.
-- Changelog: [see](changelog.md) for changes.
-- Source code and documentation: this repository (docs/ directory may contain additional information).
-- Home Assistant lifecycle (discovery, updates, teardown): [see](docs/homeassistant_lifecycle.md) for details on how the integration works and how to debug issues.
-- Troubleshooting with Home Assistant: [see](docs/homeassistant_troubleshooting.md) for common issues and how to debug them.
-- Extending the model: [see](docs/extension_points.md) for adding custom device profiles and calculated data points.
-- Unignore mechanism: [see](docs/unignore.md) for how to unignore devices that are ignored by default.
-- RSSI fix: [see](docs/rssi_fix.md) for how RSSI values are fixed for Home Assistant.
+- Changelog: [see](changelog.md) for release history and latest changes.
 - Definition of calculated data points: [see](docs/calculated_data_points.md)
 - Homematic(IP) Local integration: https://github.com/sukramj/homematicip_local
+- Input select helper: [see](docs/input_select_helper.md) for an overview of how to use the input select helper.
+- Troubleshooting with Home Assistant: [see](docs/homeassistant_troubleshooting.md) for common issues and how to debug them.
+- Unignore mechanism: [see](docs/unignore.md) for how to unignore devices that are ignored by default.
+
+## Useful developer links
+
+- Architecture overview: [see](docs/architecture.md) for an overview of the architecture of the library.
+- Data flow: [see](docs/data_flow.md) for an overview of how data flows through the library.
+- Extending the model: [see](docs/extension_points.md) for adding custom device profiles and calculated data points.
+- Home Assistant lifecycle (discovery, updates, teardown): [see](docs/homeassistant_lifecycle.md) for details on how the integration works and how to debug issues.
+- RSSI fix: [see](docs/rssi_fix.md) for how RSSI values are fixed for Home Assistant.
+- Sequence diagrams: [see](docs/sequence_diagrams.md) for a sequence diagram of how the library works.

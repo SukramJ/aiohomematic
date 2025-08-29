@@ -1,8 +1,8 @@
-Sequence diagrams: Connect, device discovery, state change propagation
+# Sequence diagrams: Connect, device discovery, state change propagation
 
 This document provides Mermaid sequence diagrams for key flows in aiohomematic: initial connect, device discovery, and state change propagation.
 
-1. Connect (startup, clients, XML-RPC callback registration)
+## 1. Connect (startup, clients, XML-RPC callback registration)
 
 ```mermaid
 sequenceDiagram
@@ -32,12 +32,14 @@ sequenceDiagram
   C-->>App: connected
 ```
 
-Notes
+### Notes
 
 - Central starts the local XML-RPC callback server before registering with the backend so the CCU can immediately deliver events.
 - When JSON-RPC is enabled, the JSON client is initialized as well; authentication occurs on first use.
 
-2. Device discovery (metadata fetch, model creation)
+---
+
+## 2. Device discovery (metadata fetch, model creation)
 
 ```mermaid
 sequenceDiagram
@@ -71,12 +73,14 @@ sequenceDiagram
   C-->>App: discovery complete
 ```
 
-Notes
+### Notes
 
 - Central prefers cached metadata when fresh; otherwise it fetches from the backend using JSON-RPC where available and XML-RPC for paramset details.
 - Model creation is pure: no network I/O, just transformations.
 
-3. State change propagation (event -> caches -> subscribers)
+---
+
+## 3. State change propagation (event -> caches -> subscribers)
 
 ```mermaid
 sequenceDiagram
@@ -96,7 +100,9 @@ sequenceDiagram
   Note over C,App: Pending writes may be reconciled
 ```
 
-See also
+---
+
+## See also
 
 - [Architecture](../docs/architecture.md) for high-level components and responsibilities
 - [Data flow](../docs/data_flow.md) for textual data flow and additional sequence diagrams (reads/writes)

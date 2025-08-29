@@ -1,33 +1,36 @@
-Data flow: XML-RPC, JSON-RPC, events, and data point updates
+# Data flow: XML-RPC, JSON-RPC, events, and data point updates
 
 This document describes the end-to-end flow of data through aiohomematic for the two main transport mechanisms (XML-RPC and JSON-RPC), how incoming events are handled, and how data point values are updated and propagated within the system.
 
 Audience: Contributors and integrators who need a precise understanding of message paths, responsibilities, and lifecycle of values and events.
 
-Overview
+## Overview
 
 - Outbound reads/writes use the client layer (XML-RPC or JSON-RPC) to talk to the backend (CCU/Homegear).
 - Inbound events are pushed by the backend to aiohomematic’s local XML-RPC callback server run by Central.
 - Central updates the model (Device/Channel/DataPoint) and dynamic caches and notifies subscribers.
 
-Key participants
+## Key participants
 
 - CentralUnit (aiohomematic/central): orchestrates clients, runs XML-RPC callback server, stores caches, and hosts the runtime model.
 - Clients (aiohomematic/client): protocol adapters for XML-RPC (XmlRpcProxy) and JSON-RPC (JsonRpcAioHttpClient).
 - Model (aiohomematic/model): Device, Channel, DataPoints, Events; strictly no network I/O.
 - Caches (aiohomematic/caches): persistent descriptions and dynamic value/state caches.
 
-1. XML-RPC data flow
-   Purpose: Event callbacks from backend; many CCU operations can also be done via XML-RPC.
+---
 
-Outbound calls (read/write)
+## 1. XML-RPC data flow
+
+Purpose: Event callbacks from backend; many CCU operations can also be done via XML-RPC.
+
+### Outbound calls (read/write)
 
 1. A consumer reads a value: Central/Device/Channel delegates to Client.get_value(interface, address, paramset_key, parameter).
 2. Client (XML-RPC) calls XmlRpcProxy.<method> towards the CCU/Homegear. Arguments are sanitized by \_cleanup_args.
 3. The result is decoded and (if needed) converted in the model/support layer and returned to the caller. Central may store the value in the dynamic cache for the DataPointKey.
 4. A consumer writes a value: DataPoint.set_value(...) delegates to Device/Channel/Client. Client uses XmlRpcProxy to invoke setValue (or paramset writes), and may record a pending command in CommandCache.
 
-Inbound events (push from backend)
+### Inbound events (push from backend)
 
 1. Backend calls the local callback server started by Central (xml_rpc_server.XmlRpcServer), method RPCFunctions.event(interface_id, channel_address, parameter, value).
 2. RPCFunctions looks up the Central for interface_id and forwards the event via decorators to CentralUnit.data_point_event(...).
@@ -35,12 +38,15 @@ Inbound events (push from backend)
 4. Central notifies subscribers (callbacks registered on the DataPoint/Device) and updates connection health metadata (e.g., PingPongCache, last-seen timestamps). Pending CommandCache entries may be reconciled if the event confirms a write.
 5. If the event indicates structural changes (newDevices, deleteDevices, updateDevice, replaceDevice, readdedDevice), the respective RPCFunctions handlers forward to Central which triggers model updates (reload descriptions, add/remove devices/channels).
 
-2) JSON-RPC data flow
-   Purpose: Alternative/optional transport for CCU JSON API and ReGa interactions (programs, system variables, metadata, values).
+---
 
-Outbound calls (read/write)
+## 2) JSON-RPC data flow
 
-1. Consumer requests go through ClientJsonCCU, which uses JsonRpcAioHttpClient.
+Purpose: Alternative/optional transport for CCU JSON API and ReGa interactions (programs, system variables, metadata, values).
+
+### Outbound calls (read/write)
+
+1. Consumer requests go through ClientCCU, which uses JsonRpcAioHttpClient.
 2. JsonRpcAioHttpClient ensures an authenticated session (login or renew). Requests are posted via \_post/\_do_post with method names defined in \_JsonRpcMethod.
 3. Responses are parsed safely (\_get_json_reponse) and converted to domain structures:
    - Device descriptions → DeviceDescription
@@ -49,18 +55,21 @@ Outbound calls (read/write)
    - Values (get/set) are converted via model.support.convert_value where needed.
 4. Dynamic caches in Central are updated. For writes, CommandCache may record the pending state until a confirming callback (if provided via XML-RPC) or a subsequent read reconciles the value.
 
-Inbound events
+### Inbound events
 
 - JSON-RPC interface typically does not deliver push events. Event callbacks still arrive via the XML-RPC callback server. Therefore, even when JSON-RPC is used for reads/writes/metadata, XML-RPC event handling remains the main push channel.
 
-3. Event handling inside Central
-   Trigger points
+---
+
+## 3. Event handling inside Central
+
+Trigger points
 
 - RPCFunctions.event: raw value event.
 - RPCFunctions.newDevices/deleteDevices/updateDevice/replaceDevice/readdedDevice: topology/config events.
 - Error callback RPCFunctions.error: error conditions from the backend, forwarded as BackendSystemEvent for diagnostics.
 
-Processing steps for a value event
+### Processing steps for a value event
 
 1. Identify DataPoint by channel_address and parameter.
 2. Convert incoming raw value to the DataPoint’s typed value when necessary (e.g., boolean normalization, levels).
@@ -68,30 +77,37 @@ Processing steps for a value event
 4. Update DataPoint internal state and fire callbacks to subscribers (device_updated, firmware_update callbacks, and per-DataPoint listeners).
 5. Reconcile pending commands (if the new value matches a recent write) and adjust connection health markers.
 
-Error and edge cases
+### Error and edge cases
 
 - Unknown channel/parameter: Central can log a warning and optionally trigger a metadata refresh to discover new parameters.
 - Out-of-range/invalid payloads: values are validated and normalized by model.support and validators; unexpected fields are ignored with warnings.
 - Lost connection: Clients raise NoConnectionException; Central may attempt reconnects. Writes can be queued or fail fast based on configuration.
 
-4. Data point update lifecycle (pull and push)
-   Pull (read)
+---
+
+---
+
+## 4. Data point update lifecycle (pull and push)
+
+### Pull (read)
 
 - A read through Client.get_value updates the dynamic cache and the DataPoint state on return. Consumers can read from the DataPoint without immediate I/O if cache is fresh.
 
-Push (event)
+### Push (event)
 
 - An event updates the cache and DataPoint first; a subsequent read will return the updated value without backend I/O.
 
-Write
+### Write
 
 - DataPoint.set_value delegates to Client.set_value or Client.put_paramset. Depending on the parameter, the update may be optimistic (cache updated immediately) or conservative (wait for confirmation via event). CommandCache tracks in-flight writes to prevent flapping.
 
-5. Sequence diagrams (Mermaid)
+---
+
+## 5. Sequence diagrams (Mermaid)
 
 Additional sequence diagrams for connect, device discovery, and state change propagation are available in docs/sequence_diagrams.md.
 
-Read value via JSON-RPC
+### Read value via XML-RPC
 
 ```mermaid
 sequenceDiagram
@@ -99,22 +115,22 @@ sequenceDiagram
   participant DP as DataPoint
   participant Dev as Device/Channel
   participant C as CentralUnit
-  participant CJ as ClientJsonCCU
-  participant J as JsonRpcAioHttpClient
+  participant CX as ClientCCU
+  participant X as XmlRpcProxy
   App->>DP: read()
   DP->>Dev: delegate
   Dev->>C: get_value(address, key, param)
-  C->>CJ: get_value(...)
-  CJ->>J: _post(getValue)
-  J-->>CJ: value
-  CJ-->>C: value
+  C->>CX: get_value(...)
+  CX->>X: _post(getValue)
+  X-->>CX: value
+  CX-->>C: value
   C->>C: update dynamic cache
   C-->>Dev: value
   Dev-->>DP: value
   DP-->>App: value
 ```
 
-Incoming event via XML-RPC
+### Incoming event via XML-RPC
 
 ```mermaid
 sequenceDiagram
@@ -130,7 +146,7 @@ sequenceDiagram
   C-->>App: notify subscribers
 ```
 
-Write value via XML-RPC
+### Write value via XML-RPC
 
 ```mermaid
 sequenceDiagram
@@ -151,7 +167,9 @@ sequenceDiagram
   note over C: Event expected to confirm
 ```
 
-6. Where to look in code
+---
+
+## 6. Where to look in code
 
 - XML-RPC server: aiohomematic/central/xml_rpc_server.py
   - RPCFunctions.event/newDevices/... and XmlRpcServer lifecycle
@@ -163,7 +181,9 @@ sequenceDiagram
   - Device/Channel, DataPoint types, value cache, update flow
 - Events: aiohomematic/model/event.py
 
-Notes
+---
+
+## Notes
 
 - Even when JSON-RPC is used for reads/writes, XML-RPC remains the primary path for push events.
 - Tests under tests/ verify many of these flows; see tests/test_central.py, tests/test_json_rpc.py, tests/test_event.py, and device/data point related tests.

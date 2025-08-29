@@ -13,6 +13,8 @@ You must accept the following before using the _unignore mechanism_:
 - Customization to entities must be done with HA customisations
 - Excessive writing of parameters from `MASTER` paramset can cause damage of the device
 
+---
+
 ### Using the UI
 
 The _unignore mechanism_ can be configured with the UI of the custom component starting with version 1.65.0.

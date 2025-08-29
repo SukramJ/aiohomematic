@@ -63,7 +63,7 @@ This document describes the high‑level architecture of aiohomematic, focusing 
 - XML‑RPC
   - Used primarily for event callbacks and many CCU operations. Client uses XmlRpcProxy to issue method calls to the backend. The local xml_rpc_server exposes endpoints for the backend’s event callbacks.
 - JSON‑RPC
-  - Optional, when the backend provides a JSON API. ClientCCU/ClientJsonCCU routes get/set and list operations through JsonRpcAioHttpClient. Choice of backend per interface is encapsulated by the concrete Client type.
+  - Optional, when the backend provides a JSON API. ClientCCU/ClientJsonCCU routes some operations through JsonRpcAioHttpClient. Choice of backend per interface is encapsulated by the concrete Client type.
 
 ## Caching strategy
 

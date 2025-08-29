@@ -45,7 +45,6 @@ sequenceDiagram
 sequenceDiagram
   participant C as CentralUnit
   participant CX as ClientCCU (XML-RPC)
-  participant CJ as JsonRpcAioHttpClient (JSON-RPC)
   participant PDC as ParamsetDescriptionCache (persistent)
   participant DDC as DeviceDescriptionCache (persistent)
   participant M as Model (Device/Channel/DataPoints)
@@ -56,10 +55,8 @@ sequenceDiagram
     DDC-->>C: device_descriptions
     PDC-->>C: paramset_descriptions
   else fetch from backend
-    opt via JSON-RPC when available
-      C->>CJ: list_devices()
-      CJ-->>C: device_descriptions
-    end
+    C->>CX: list_devices()
+    CX-->>C: device_descriptions
     C->>CX: get_paramset_descriptions(addresses)
     CX-->>C: paramset_descriptions
     C->>DDC: save(...)

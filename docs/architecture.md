@@ -101,8 +101,8 @@ Glossary (selected types)
 
 Further reading
 
-- Data flow details (XML-RPC/JSON-RPC, events, updates): docs/data_flow.md
-- Sequence diagrams (connect, discovery, propagation): docs/sequence_diagrams.md
+- [Data flow](../docs/data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
+- [Sequence diagrams](../docs/sequence_diagrams.md) (connect, discovery, propagation)
 
 Notes
 

@@ -93,10 +93,10 @@ sequenceDiagram
   C->>Cache: update(DataPointKey, value, ts)
   C->>DP: set_internal(value)
   C-->>App: notify subscribers (callbacks)
-  Note over C,App: Pending writes may be reconciled; health markers updated
+  Note over C,App: Pending writes may be reconciled
 ```
 
 See also
 
-- docs/architecture.md for high-level components and responsibilities
-- docs/data_flow.md for textual data flow and additional sequence diagrams (reads/writes)
+- [Architecture](../docs/architecture.md) for high-level components and responsibilities
+- [Data flow](../docs/data_flow.md) for textual data flow and additional sequence diagrams (reads/writes)

@@ -93,7 +93,7 @@ sequenceDiagram
   C->>Cache: update(DataPointKey, value, ts)
   C->>DP: set_internal(value)
   C-->>App: notify subscribers (callbacks)
-  Note over C,App: Pending writes may be reconciled; health markers updated
+  Note over C,App: Pending writes may be reconciled
 ```
 
 See also

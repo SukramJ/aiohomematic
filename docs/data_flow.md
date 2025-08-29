@@ -46,11 +46,12 @@ Purpose: Alternative/optional transport for CCU JSON API and ReGa interactions (
 
 ### Outbound calls (read/write)
 
-1. Consumer requests go through ClientCCU, which uses JsonRpcAioHttpClient.
+1. Consumer requests go through ClientCCU/ClienJsonCCU, which uses JsonRpcAioHttpClient.
 2. JsonRpcAioHttpClient ensures an authenticated session (login or renew). Requests are posted via \_post/\_do_post with method names defined in \_JsonRpcMethod.
 3. Responses are parsed safely (\_get_json_reponse) and converted to domain structures:
-   - Device descriptions → DeviceDescription
-   - Paramset descriptions → ParameterData
+   - Device details → Names, Rooms, Functions
+   - Device descriptions → DeviceDescription (ClienJsonCCU)
+   - Paramset descriptions → ParameterData (ClienJsonCCU)
    - Program/system variable data → ProgramData/SystemVariableData
    - Values (get/set) are converted via model.support.convert_value where needed.
 4. Dynamic caches in Central are updated. For writes, CommandCache may record the pending state until a confirming callback (if provided via XML-RPC) or a subsequent read reconciles the value.

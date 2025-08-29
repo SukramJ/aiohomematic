@@ -79,13 +79,14 @@ Example:
 
 ## Useful links
 
-- Examples: see example.py in this repository.
-- Changelog: see changelog.md.
+- Examples: [see](example.py) for simple use of code.
+- Changelog: [see](changelog.md) for changes.
 - Source code and documentation: this repository (docs/ directory may contain additional information).
-- Home Assistant lifecycle (discovery, updates, teardown): see docs/homeassistant_lifecycle.md.
-- Troubleshooting with Home Assistant: see docs/homeassistant_troubleshooting.md.
-- Extending the model: see docs/extension_points.md for adding custom device profiles and calculated data points.
-- Unignore mechanism: see docs/unignore.md.
-- RSSI fix: see docs/rssi_fix.md.
-- Definition of calculated data points: see docs/calculated_data_points.md.
+- Home Assistant lifecycle (discovery, updates, teardown): [see](docs/homeassistant_lifecycle.md) for details on how the integration works and how to debug issues.
+- Troubleshooting with Home Assistant: [see](docs/homeassistant_troubleshooting.md) for common issues and how to debug them.
+- Extending the model: [see](docs/extension_points.md) for adding custom device profiles and calculated data points.
+- Unignore mechanism: [see](docs/unignore.md) for how to unignore devices that are ignored by default.
+- Home Assistant integration: https://github.com/danielperna84/pyhomematic.
+- RSSI fix: [see](docs/rssi_fix.md) for how RSSI values are fixed for Home Assistant.
+- Definition of calculated data points: [see](docs/calculated_data_points.md) for the definition of calculated data points.
 - Homematic(IP) Local integration: https://github.com/sukramj/homematicip_local

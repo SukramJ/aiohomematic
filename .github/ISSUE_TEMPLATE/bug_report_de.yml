@@ -12,6 +12,8 @@ body:
       options:
         - label: Ich habe die [Dokumentation](https://github.com/sukramj/homematicip_local#homematicip_local) gelesen
           required: true
+        - label: Ich habe die [Fehlerbehebung-Dokumentation](docs/homeassistant_troubleshooting.md) gelesen, und versucht das Problem selbstständig zu identifizieren/beheben.
+          required: true
         - label: Ich habe die [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions) gelesen
           required: true
         - label: Ich kenne die neuesten [Versionshinweise](https://github.com/sukramj/homematicip_local/releases)

@@ -19,11 +19,28 @@ Unlike pyhomematic, which required manual device mappings, aiohomematic automati
 - Caching of paramsets to speed up restarts.
 - Designed to integrate with Home Assistant.
 
-## Installation (with Home Assistant)
+## Quickstart for Home Assistant
 
-Install via the custom component: [Homematic(IP) Local](https://github.com/sukramj/homematicip_local).
+Use the Home Assistant custom integration "Homematic(IP) Local", which is powered by aiohomematic.
 
-Follow the installation guide: https://github.com/sukramj/homematicip_local/wiki/Installation
+1. Prerequisites
+   - Home Assistant 2024.6 or newer recommended.
+   - A CCU3, RaspberryMatic, or Homegear instance reachable from Home Assistant.
+   - For HomematicIP devices, ensure CCU firmware meets the minimum versions listed below.
+2. Install the integration
+   - Add the custom repository and install: https://github.com/sukramj/homematicip_local
+   - Follow the installation guide: https://github.com/sukramj/homematicip_local/wiki/Installation
+3. Configure via Home Assistant UI
+   - In Home Assistant: Settings → Devices & Services → Add Integration → search for "Homematic(IP) Local".
+   - Enter the CCU/Homegear host (IP or hostname). If you use HTTPS on the CCU, enable SSL and accept the certificate if self‑signed.
+   - Provide credentials if your CCU requires them.
+   - Choose which interfaces to enable (HM, HmIP, Virtual). Default ports are typically 2001 (HM), 2010 (HmIP), 9292 (Virtual).
+4. Network callbacks
+   - The integration needs to receive XML‑RPC callbacks from the CCU. Make sure Home Assistant is reachable from the CCU (no NAT/firewall blocking). The default callback port is 43439; you can adjust it in advanced options.
+5. Verify
+   - After setup, devices should appear under Devices & Services → Homematic(IP) Local. Discovery may take a few seconds after the first connection while paramsets are fetched and cached for faster restarts.
+
+If you need to use aiohomematic directly in Python, see the Public API and example below.
 
 ## Requirements
 
@@ -65,4 +82,6 @@ Example:
 - Examples: see example.py in this repository.
 - Changelog: see changelog.md.
 - Source code and documentation: this repository (docs/ directory may contain additional information).
+- Home Assistant lifecycle (discovery, updates, teardown): see docs/homeassistant_lifecycle.md.
+- Troubleshooting with Home Assistant: see docs/homeassistant_troubleshooting.md.
 - Extending the model: see docs/extension_points.md for adding custom device profiles and calculated data points.

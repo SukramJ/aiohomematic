@@ -88,5 +88,5 @@ Example:
 - Unignore mechanism: [see](docs/unignore.md) for how to unignore devices that are ignored by default.
 - Home Assistant integration: https://github.com/danielperna84/pyhomematic.
 - RSSI fix: [see](docs/rssi_fix.md) for how RSSI values are fixed for Home Assistant.
-- Definition of calculated data points: [see](docs/calculated_data_points.md) for the definition of calculated data points.
+- Definition of calculated data points: [see](docs/calculated_data_points.md)
 - Homematic(IP) Local integration: https://github.com/sukramj/homematicip_local

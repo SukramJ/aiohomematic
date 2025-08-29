@@ -85,8 +85,6 @@ Trigger points
 
 ---
 
----
-
 ## 4. Data point update lifecycle (pull and push)
 
 ### Pull (read)

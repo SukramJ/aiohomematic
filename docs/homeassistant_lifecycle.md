@@ -17,8 +17,8 @@ Sequence at startup or after re‑connecting to CCU/Homegear:
 
 1. Interface availability and methods: The client layers (`client.xml_rpc`, `client.json_rpc`) check supported methods and register the callback endpoint at the CCU.
 2. Load device list/details:
-   - For classic HM interfaces: XML‑RPC provides the device catalog and channel descriptions.
-   - For HmIP: JSON‑RPC provides `get_all_device_data`, `get_paramset_description`, `get_paramset`, etc.
+   - For most interfaces: XML‑RPC provides the device catalog and channel descriptions.
+   - For CCU: JSON‑RPC provides `get_all_device_data`, `get_system_variable`, `set_system_variable`, etc.
 3. Caching for fast restarts:
    - Paramset descriptions (`VALUES`, optionally `MASTER`) and values are persisted in `aiohomematic_storage`. This often eliminates the need for a full fetch on subsequent starts.
 4. Create devices and DataPoints:

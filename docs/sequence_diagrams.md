@@ -12,12 +12,12 @@ sequenceDiagram
   participant XRS as XmlRpcServer (local)
   participant CCU as Backend (CCU/Homegear)
   participant CX as ClientCCU (XML-RPC)
-  participant CJ as ClientJsonCCU (JSON-RPC)
+  participant CJ as JsonRpcAioHttpClient (JSON-RPC)
   App->>Cfg: create(name, host, creds, interfaces)
   Cfg->>Cfg: validate
   Cfg->>C: create_central()
   C->>C: _create_clients()
-  alt JSON port configured
+  alt with JSON support
     C->>CJ: init(json_host, json_port)
     CJ-->>C: ready
   end
@@ -45,7 +45,7 @@ sequenceDiagram
 sequenceDiagram
   participant C as CentralUnit
   participant CX as ClientCCU (XML-RPC)
-  participant CJ as ClientJsonCCU (JSON-RPC)
+  participant CJ as JsonRpcAioHttpClient (JSON-RPC)
   participant PDC as ParamsetDescriptionCache (persistent)
   participant DDC as DeviceDescriptionCache (persistent)
   participant M as Model (Device/Channel/DataPoints)

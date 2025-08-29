@@ -115,13 +115,13 @@ sequenceDiagram
   participant DP as DataPoint
   participant Dev as Device/Channel
   participant C as CentralUnit
-  participant CX as ClientCCU
+  participant CX as ClientCCU (XML-RPC)
   participant X as XmlRpcProxy
   App->>DP: read()
   DP->>Dev: delegate
   Dev->>C: get_value(address, key, param)
   C->>CX: get_value(...)
-  CX->>X: getValue(getValue)
+  CX->>X: getValue(...)
   X-->>CX: value
   CX-->>C: value
   C->>C: update dynamic cache
@@ -177,6 +177,8 @@ sequenceDiagram
   - XmlRpcProxy, supported methods, async request handling
 - JSON-RPC client: aiohomematic/client/json_rpc.py
   - JsonRpcAioHttpClient, login/session, methods, conversions
+- Client: aiohomematic/client/**init**.py
+  - ClientCCU, ClientHomegear, ClientJsonCCU
 - Model and updates: aiohomematic/model/device.py and subpackages
   - Device/Channel, DataPoint types, value cache, update flow
 - Events: aiohomematic/model/event.py
@@ -185,5 +187,4 @@ sequenceDiagram
 
 ## Notes
 
-- Even when JSON-RPC is used for reads/writes, XML-RPC remains the primary path for push events.
 - Tests under tests/ verify many of these flows; see tests/test_central.py, tests/test_json_rpc.py, tests/test_event.py, and device/data point related tests.

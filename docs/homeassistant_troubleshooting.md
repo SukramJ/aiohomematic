@@ -153,5 +153,5 @@ Contents:
 
 ## 7) References
 
-- [Lifecycle of devices/datapoints](../docs/homeassistant_lifecycle.md)
-- README quickstart and configuration notes
+- [Lifecycle](../docs/homeassistant_lifecycle.md) of devices/datapoints
+- [README](../README.md) for quickstart and configuration notes

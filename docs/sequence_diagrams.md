@@ -98,5 +98,5 @@ sequenceDiagram
 
 See also
 
-- [for high-level components and responsibilities](../docs/architecture.md)
-- [for textual data flow and additional sequence diagrams (reads/writes)](../docs/data_flow.md)
+- [Architecture](../docs/architecture.md) for high-level components and responsibilities
+- [Data flow](../docs/data_flow.md) for textual data flow and additional sequence diagrams (reads/writes)

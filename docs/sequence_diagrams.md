@@ -1,8 +1,8 @@
-Sequence diagrams: Connect, device discovery, state change propagation
+# Sequence diagrams: Connect, device discovery, state change propagation
 
 This document provides Mermaid sequence diagrams for key flows in aiohomematic: initial connect, device discovery, and state change propagation.
 
-1. Connect (startup, clients, XML-RPC callback registration)
+## 1. Connect (startup, clients, XML-RPC callback registration)
 
 ```mermaid
 sequenceDiagram
@@ -12,12 +12,12 @@ sequenceDiagram
   participant XRS as XmlRpcServer (local)
   participant CCU as Backend (CCU/Homegear)
   participant CX as ClientCCU (XML-RPC)
-  participant CJ as ClientJsonCCU (JSON-RPC)
+  participant CJ as JsonRpcAioHttpClient (JSON-RPC)
   App->>Cfg: create(name, host, creds, interfaces)
   Cfg->>Cfg: validate
   Cfg->>C: create_central()
   C->>C: _create_clients()
-  alt JSON port configured
+  alt with JSON support
     C->>CJ: init(json_host, json_port)
     CJ-->>C: ready
   end
@@ -32,18 +32,19 @@ sequenceDiagram
   C-->>App: connected
 ```
 
-Notes
+### Notes
 
 - Central starts the local XML-RPC callback server before registering with the backend so the CCU can immediately deliver events.
 - When JSON-RPC is enabled, the JSON client is initialized as well; authentication occurs on first use.
 
-2. Device discovery (metadata fetch, model creation)
+---
+
+## 2. Device discovery (metadata fetch, model creation)
 
 ```mermaid
 sequenceDiagram
   participant C as CentralUnit
   participant CX as ClientCCU (XML-RPC)
-  participant CJ as ClientJsonCCU (JSON-RPC)
   participant PDC as ParamsetDescriptionCache (persistent)
   participant DDC as DeviceDescriptionCache (persistent)
   participant M as Model (Device/Channel/DataPoints)
@@ -54,10 +55,8 @@ sequenceDiagram
     DDC-->>C: device_descriptions
     PDC-->>C: paramset_descriptions
   else fetch from backend
-    opt via JSON-RPC when available
-      C->>CJ: list_devices()
-      CJ-->>C: device_descriptions
-    end
+    C->>CX: list_devices()
+    CX-->>C: device_descriptions
     C->>CX: get_paramset_descriptions(addresses)
     CX-->>C: paramset_descriptions
     C->>DDC: save(...)
@@ -71,12 +70,14 @@ sequenceDiagram
   C-->>App: discovery complete
 ```
 
-Notes
+### Notes
 
 - Central prefers cached metadata when fresh; otherwise it fetches from the backend using JSON-RPC where available and XML-RPC for paramset details.
 - Model creation is pure: no network I/O, just transformations.
 
-3. State change propagation (event -> caches -> subscribers)
+---
+
+## 3. State change propagation (event -> caches -> subscribers)
 
 ```mermaid
 sequenceDiagram
@@ -96,7 +97,9 @@ sequenceDiagram
   Note over C,App: Pending writes may be reconciled
 ```
 
-See also
+---
+
+## See also
 
 - [Architecture](../docs/architecture.md) for high-level components and responsibilities
 - [Data flow](../docs/data_flow.md) for textual data flow and additional sequence diagrams (reads/writes)

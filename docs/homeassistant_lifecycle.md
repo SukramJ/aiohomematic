@@ -9,6 +9,8 @@ This document explains how aiohomematic handles devices and DataPoints (paramete
 - DataPoint: Representation of a single parameter (e.g., LEVEL, STATE). Implemented generically by `aiohomematic.model.generic.data_point.GenericDataPoint` or specialized classes; firmware update exposed via `aiohomematic.model.update.DpUpdate`.
 - Central: Connects the RPC clients (XML‑RPC/HmIP JSON‑RPC) to the CCU/Homegear and manages devices, events, and caches.
 
+---
+
 ## 1. Discovery
 
 Sequence at startup or after re‑connecting to CCU/Homegear:
@@ -28,6 +30,8 @@ Sequence at startup or after re‑connecting to CCU/Homegear:
    - Per device a `DpUpdate` is created that reflects firmware status/versions and exposes firmware actions.
 
 Home Assistant view: The HA integration (Homematic(IP) Local) registers for Central callbacks and creates HA entities based on the created DataPoints once their `usage == DATA_POINT` and a unique ID is available.
+
+---
 
 ## 2. Ongoing updates
 
@@ -49,6 +53,8 @@ Reconnection/resubscribe:
 
 - On connection loss, the Central restores operation: RPC clients re‑register, events start flowing again, DataPoints remain intact. HA entities keep their IDs; states are updated once the first events/refresh arrive.
 
+---
+
 ## 3. Teardown
 
 Orderly teardown at different levels:
@@ -64,6 +70,8 @@ Orderly teardown at different levels:
 - Device mutations (delete/re‑pairing):
   - If the CCU permanently deletes a device or addresses change, the Central removes the associated Device/Channel/DataPoint objects. The HA integration receives corresponding signals so entities can be archived/removed.
 
+---
+
 ## 4. Lifecycle signals for Home Assistant
 
 Signals/callbacks relevant for integration developers:
@@ -71,6 +79,8 @@ Signals/callbacks relevant for integration developers:
 - Device availability: `EventType.DEVICE_AVAILABILITY` as well as `Device.register_device_updated_callback()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
 - DataPoint updates: DataPoints call registered callbacks after `write_value`; HA uses this to update entity state.
 - Firmware: `DpUpdate.register_data_point_updated_callback()` reflects firmware changes and progress.
+
+---
 
 ## 5. Best practices for HA integration logic
 
@@ -80,12 +90,16 @@ Signals/callbacks relevant for integration developers:
 - Only send write commands if target state differs from current (`send_value` already does this). Log errors/validation exceptions.
 - Account for reconnects: keep entities, update states on events. Do not register callbacks twice.
 
+---
+
 ## 6. References (code)
 
 - `aiohomematic/model/device.py`: Device/Channel, removal, cache init, callback mechanisms, firmware functions.
 - `aiohomematic/model/generic/data_point.py`: Event processing, usage decision, send/read logic, availability events, config‑pending handling.
 - `aiohomematic/model/update.py`: `DpUpdate` for firmware status and actions.
 - `aiohomematic/client/xml_rpc.py` and `aiohomematic/client/json_rpc.py`: Transport, login/session, method probing.
+
+---
 
 ## 7. FAQ
 

@@ -19,7 +19,7 @@ It targets contributors who want to add support for new device variants or expos
 
 Custom device profiles are used when a specific device (model) requires a bespoke grouping of its generic data points or additional behavior beyond the generic defaults.
 
-Key modules and types:
+### Key modules and types:
 
 - aiohomematic.model.custom.definition
   - make_custom_data_point(channel, data_point_class, device_profile, custom_config)
@@ -33,17 +33,17 @@ Key modules and types:
 - aiohomematic.model.custom.const: contains Field, DeviceProfile, and CDPD keys used in profile definitions
 - aiohomematic.model.custom.support.CustomConfig: carries profile configuration
 
-Concepts:
+### Concepts:
 
 - A CustomDataPoint instance sits on a Channel and aggregates underlying GenericDataPoints according to a device profile definition.
 - Device profiles are declared as data structures (see model/custom/ for examples), consumed by functions in ...custom.definition.
 
-When to create a custom device profile:
+### When to create a custom device profile:
 
 - Generic model would misrepresent or hide essential device semantics.
 - You need to group multiple parameters across one or more channels into a single coherent data point.
 
-Steps to add a custom device profile:
+### Steps to add a custom device profile:
 
 1. Choose or create a CustomDataPoint subclass (optional)
    - Most cases can use CustomDataPoint directly with a new profile definition.
@@ -62,7 +62,7 @@ Steps to add a custom device profile:
    - Use validate_custom_data_point_definition to ensure the definition is structurally sound.
    - Run the project tests and add specific tests for your device if possible.
 
-Minimal example snippet (illustrative):
+### Minimal example snippet (illustrative):
 
 ```python
 # in aiohomematic/model/custom/my_device_profile.py
@@ -92,7 +92,7 @@ Tips:
 
 Calculated data points compute values from one or more underlying GenericDataPoints and behave like read-only data points on a Channel.
 
-Key modules and types:
+### Key modules and types:
 
 - aiohomematic.model.calculated.data_point.CalculatedDataPoint: Base class to inherit from
   - \_add_data_point(...) / \_add_device_data_point(...) for attaching sources
@@ -105,12 +105,12 @@ Key modules and types:
   - climate.py: ApparentTemperature, DewPoint, FrostPoint, VaporConcentration
   - operating_voltage_level.py: OperatingVoltageLevel
 
-Lifecycle:
+### Lifecycle:
 
 - On channel initialization, create_calculated_data_points(channel) iterates all registered classes, calls Class.is_relevant_for_model(channel) and adds instances for those that apply by calling channel.add_data_point(...).
 - Each CalculatedDataPoint registers callbacks to its source GenericDataPoints in **init** via \_add_data_point/\_add_device_data_point and recomputes its value on updates.
 
-Steps to add a new calculated data point:
+### Steps to add a new calculated data point:
 
 1. Implement a subclass of CalculatedDataPoint
    - Set the \_calculated_parameter to a value from aiohomematic.const.CalulatedParameter (this becomes the parameter name exposed by the DP)
@@ -127,7 +127,7 @@ Steps to add a new calculated data point:
    - The base class manages subscriptions and updating. Call self.fire_data_point_updated_callback() if you maintain extra state.
    - Use helper conversions in aiohomematic.model.calculated.support if your formula needs them.
 
-Minimal template:
+### Minimal template:
 
 ```python
 # aiohomematic/model/calculated/my_metric.py
@@ -164,7 +164,7 @@ class MyMetric(CalculatedDataPoint[float]):
         return "unit"
 ```
 
-Notes:
+### Notes:
 
 - Use \_add_device_data_point(...) if you need to read from other channels of the same device.
 - The base class exposes helper attributes like self.\_unit, \_min/\_max, etc., which you can set in \_init_data_point_fields() if needed.
@@ -172,13 +172,13 @@ Notes:
 
 ---
 
-## Testing and validation
+### Testing and validation
 
 - Run the test suite (see README.md for instructions) and add targeted tests for your new profile or calculated DP.
 - For calculated DPs, add unit tests around your formula and a small channel/device stub if possible.
 - For custom profiles, test that required GenericDataPoints are attached and visible fields behave as expected.
 
-## Documentation and discoverability
+### Documentation and discoverability
 
 - After adding a new calculated data point, update aiohomematic.model.calculated.**init** \_CALCULATED_DATA_POINTS.
 - If you add a reusable helper or pattern, include a short docstring and cross-link from this page.

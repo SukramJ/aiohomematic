@@ -110,6 +110,91 @@ Rules for IDs:
 - For CCU‑internal addresses (`PROGRAM`, `SYSVAR`, `INT000...`, or virtual remote addresses), the central ID is prepended to ensure global uniqueness.
 - IDs are always returned in lowercase.
 
+## Worked examples
+
+Below are end-to-end examples showing inputs (model, addresses, CCU names, channel numbers, parameters) and the produced names.
+
+1. Device names
+
+- Input: model `HmIP-BROLL`, address `000A1B2C3D4E00`, CCU device name = none
+  - Output device_name: `HmIP-BROLL_000A1B2C3D4E00`
+- Input: model `HmIP-BROLL`, address `000A1B2C3D4E00`, CCU device name = "Livingroom Blind Controller"
+  - Output device_name: `Livingroom Blind Controller`
+
+2. Channel names
+
+- Input: device_name `Livingroom Blind Controller`, channel address `...:1`, CCU channel name = none
+  - Base: `Livingroom Blind Controller:1`
+  - ChannelNameData:
+    - device_name: `Livingroom Blind Controller`
+    - channel_name: `:1`
+    - full_name: `Livingroom Blind Controller :1`
+    - sub_device_name: `Livingroom Blind Controller:1`
+- Input: device_name `HmIP-SWDO_00112233445566`, channel address `...:0`, CCU channel name = default (`"HmIP-SWDO ...:0"`)
+  - Base: `HmIP-SWDO_00112233445566:0`
+  - ChannelNameData.full_name: `HmIP-SWDO_00112233445566 :0`
+- Input: CCU channel name explicitly set to `"Window Contact"` (no ":<no>")
+  - ChannelNameData:
+    - device_name: `<resolved device name>`
+    - channel_name: `Window Contact`
+    - full_name: `<device_name> Window Contact`
+
+3. Data point names (regular)
+
+- Input: channel base `Livingroom Blind Controller:1`, parameter `LEVEL`, parameter appears on multiple channels
+  - Parameter friendly: `Level`
+  - ch marker: ` ch1`
+  - DataPointNameData:
+    - name: `Livingroom Blind Controller Level ch1`
+    - full_name: `Livingroom Blind Controller Livingroom Blind Controller Level ch1` → effectively shown as `Livingroom Blind Controller Level ch1`
+- Input: channel base `Window Contact` (no ":<no>"), parameter `WINDOW_STATE`
+  - Parameter friendly: `Window State`
+  - DataPointNameData.name: `Window Contact Window State`
+  - full_name: `<device_name> Window Contact Window State`
+- Input: channel base `HmIP-WTH-2_ABCDEF01234567:0`, parameter present only on channel 0
+  - Because parameter is not in multiple channels, no `ch0` is appended; name will be based on base without suffix logic.
+
+4. Event names
+
+- Input: channel base `HmIP-WGC_99887766554433:2`, parameter `MOTION`
+  - Event friendly parameter: `Motion`
+  - Numeric suffix present → channel part becomes ` ch2`
+  - DataPointNameData.name: `ch2 Motion`
+  - full_name: `<device_name> ch2 Motion`
+- Input: channel base `Doorbell` (custom channel name), parameter `PRESS`
+  - DataPointNameData.name: `Doorbell Press`
+  - full_name: `<device_name> Doorbell Press`
+
+5. Custom data point names
+
+- Input: channel base `Kitchen Light:3`, usage = `CDP_PRIMARY`, only_primary_channel = false, ignore_multiple_channels_for_name = false
+  - Numeric suffix present → use base `Kitchen Light` and parameter marker `ch3`
+  - DataPointNameData.name: `Kitchen Light ch3`
+  - full_name: `<device_name> Kitchen Light ch3`
+- Input: channel base `Kitchen Light:3`, usage = `CDP_SECONDARY` (not primary), only_primary_channel = false
+  - Marker becomes `vch3`
+  - full_name: `<device_name> Kitchen Light vch3`
+- Input: channel base `Kitchen Light:3`, only_primary_channel = true, postfix = `Brightness`
+  - Name uses base and postfix: DataPointNameData.name: `Kitchen Light Brightness`
+
+6. Hub data point names
+
+- Input: no channel, central_name `CCU-Main`, legacy_name `program_trigger`
+  - HubNameData.full_name: `CCU-Main program_trigger`
+- Input: channel base `System:0`, legacy_name `INT0001_PROGRAM_STATE_ABC` (contains address/id fragments)
+  - Cleaned legacy name: `PROGRAM STATE ABC`
+  - Numeric suffix trimmed from channel → channel_name becomes `System`
+  - HubNameData.full_name: `System PROGRAM STATE ABC`
+
+7. Unique ID fallbacks
+
+- Input: address `ABCDEF12345678:4`, parameter `LEVEL`
+  - generate_unique_id → `abcdef12345678_4_level`
+- Input: address `PROGRAM`, parameter `STATE`, central_id `ccu-main`
+  - generate_unique_id → `ccu-main_program_state`
+- Input: virtual remote address `BidCos-RF:1`, central_id `ccu-main`
+  - generate_channel_unique_id → `ccu-main_bidcos_rf_1`
+
 ## Where to find the code
 
 - Main implementation: `aiohomematic/model/support.py`

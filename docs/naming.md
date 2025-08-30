@@ -110,10 +110,6 @@ Rules for IDs:
 - For CCU‑internal addresses (`PROGRAM`, `SYSVAR`, `INT000...`, or virtual remote addresses), the central ID is prepended to ensure global uniqueness.
 - IDs are always returned in lowercase.
 
-## Length limits
-
-- When writing values back, `check_length_and_log(name, value)` truncates string values longer than 255 characters and logs a debug message.
-
 ## Where to find the code
 
 - Main implementation: `aiohomematic/model/support.py`

@@ -1,3 +1,7 @@
+# Version 2025.8.11 (2025-08-30)
+
+- Document how device, channel and data point names are created (docs/naming.md)
+
 # Version 2025.8.10 (2025-08-29)
 
 - Improve documentation

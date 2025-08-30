@@ -473,29 +473,29 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     @property
     def _relevant_data_points(self) -> tuple[GenericDataPoint, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
-        if self._dp_device_operation_mode.value == _DeviceOperationMode.RGBW:
+        if self._device_operation_mode == _DeviceOperationMode.RGBW:
             return (
                 self._dp_hue,
                 self._dp_level,
                 self._dp_saturation,
                 self._dp_color_temperature_kelvin,
             )
-        if self._dp_device_operation_mode.value == _DeviceOperationMode.RGB:
+        if self._device_operation_mode == _DeviceOperationMode.RGB:
             return self._dp_hue, self._dp_level, self._dp_saturation
-        if self._dp_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE:
+        if self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE:
             return self._dp_level, self._dp_color_temperature_kelvin
         return (self._dp_level,)
 
     @property
     def supports_color_temperature(self) -> bool:
         """Flag if light supports color temperature."""
-        return self._dp_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE
+        return self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE
 
     @property
     def supports_effects(self) -> bool:
         """Flag if light supports effects."""
         return (
-            self._dp_device_operation_mode.value != _DeviceOperationMode.PWM
+            self._device_operation_mode != _DeviceOperationMode.PWM
             and self.effects is not None
             and len(self.effects) > 0
         )
@@ -503,7 +503,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     @property
     def supports_hs_color(self) -> bool:
         """Flag if light supports color."""
-        return self._dp_device_operation_mode.value in (
+        return self._device_operation_mode in (
             _DeviceOperationMode.RGBW,
             _DeviceOperationMode.RGB,
         )
@@ -516,11 +516,9 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         Avoid creating data points that are not usable in selected device operation mode.
         """
         if (
-            self._dp_device_operation_mode.value in (_DeviceOperationMode.RGB, _DeviceOperationMode.RGBW)
+            self._device_operation_mode in (_DeviceOperationMode.RGB, _DeviceOperationMode.RGBW)
             and self._channel.no in (2, 3, 4)
-        ) or (
-            self._dp_device_operation_mode.value == _DeviceOperationMode.TUNABLE_WHITE and self._channel.no in (3, 4)
-        ):
+        ) or (self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE and self._channel.no in (3, 4)):
             return DataPointUsage.NO_CREATE
         return self._get_data_point_usage()
 
@@ -556,6 +554,13 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
             await self._set_on_time_value(on_time=_NOT_USED, collector=collector)
         await super().turn_off(collector=collector, **kwargs)
+
+    @property
+    def _device_operation_mode(self) -> _DeviceOperationMode:
+        """Return the device operation mode."""
+        if (mode := self._dp_device_operation_mode.value) is None:
+            return _DeviceOperationMode.RGBW
+        return _DeviceOperationMode(mode)
 
     @bind_collector()
     async def _set_on_time_value(self, on_time: float, collector: CallParameterCollector | None = None) -> None:

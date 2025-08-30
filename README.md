@@ -81,6 +81,7 @@ Example:
 
 - Changelog: [see](changelog.md) for release history and latest changes.
 - Definition of calculated data points: [see](docs/calculated_data_points.md)
+- Naming: [see](docs/naming.md) for how device, channel and data point names are created.
 - Homematic(IP) Local integration: https://github.com/sukramj/homematicip_local
 - Input select helper: [see](docs/input_select_helper.md) for an overview of how to use the input select helper.
 - Troubleshooting with Home Assistant: [see](docs/homeassistant_troubleshooting.md) for common issues and how to debug them.

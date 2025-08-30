@@ -116,20 +116,14 @@ Below are end-to-end examples showing inputs (model, addresses, CCU names, chann
 
 1. Device names
 
-- Input: model `HmIP-BROLL`, address `000A1B2C3D4E00`, CCU device name = none
-  - Output device_name: `HmIP-BROLL_000A1B2C3D4E00`
 - Input: model `HmIP-BROLL`, address `000A1B2C3D4E00`, CCU device name = "Livingroom Blind Controller"
   - Output device_name: `Livingroom Blind Controller`
+- Fallback, if device name is not readable:
+  - Input: model `HmIP-BROLL`, address `000A1B2C3D4E00`, CCU device name = none
+    - Output device_name: `HmIP-BROLL_000A1B2C3D4E00`
 
 2. Channel names
 
-- Input: device_name `Livingroom Blind Controller`, channel address `...:1`, CCU channel name = none
-  - Base: `Livingroom Blind Controller:1`
-  - ChannelNameData:
-    - device_name: `Livingroom Blind Controller`
-    - channel_name: `:1`
-    - full_name: `Livingroom Blind Controller :1`
-    - sub_device_name: `Livingroom Blind Controller:1`
 - Input: device_name `HmIP-SWDO_00112233445566`, channel address `...:0`, CCU channel name = default (`"HmIP-SWDO ...:0"`)
   - Base: `HmIP-SWDO_00112233445566:0`
   - ChannelNameData.full_name: `HmIP-SWDO_00112233445566 :0`
@@ -138,21 +132,29 @@ Below are end-to-end examples showing inputs (model, addresses, CCU names, chann
     - device_name: `<resolved device name>`
     - channel_name: `Window Contact`
     - full_name: `<device_name> Window Contact`
+- Fallback, if channel name is not readable:
+  - Input: device_name `Livingroom Blind Controller`, channel address `...:1`, CCU channel name = none
+    - Base: `Livingroom Blind Controller:1`
+    - ChannelNameData:
+      - device_name: `Livingroom Blind Controller`
+      - channel_name: `:1`
+      - full_name: `Livingroom Blind Controller :1`
+      - sub_device_name: `Livingroom Blind Controller:1`
 
 3. Data point names (regular)
 
-- Input: channel base `Livingroom Blind Controller:1`, parameter `LEVEL`, parameter appears on multiple channels
-  - Parameter friendly: `Level`
-  - ch marker: ` ch1`
-  - DataPointNameData:
-    - name: `Livingroom Blind Controller Level ch1`
-    - full_name: `Livingroom Blind Controller Livingroom Blind Controller Level ch1` → effectively shown as `Livingroom Blind Controller Level ch1`
 - Input: channel base `Window Contact` (no ":<no>"), parameter `WINDOW_STATE`
   - Parameter friendly: `Window State`
   - DataPointNameData.name: `Window Contact Window State`
   - full_name: `<device_name> Window Contact Window State`
 - Input: channel base `HmIP-WTH-2_ABCDEF01234567:0`, parameter present only on channel 0
   - Because parameter is not in multiple channels, no `ch0` is appended; name will be based on base without suffix logic.
+- Input: channel base `Livingroom Blind Controller:1`, parameter `LEVEL`, parameter appears on multiple channels
+  - Parameter friendly: `Level`
+  - ch marker: ` ch1`
+  - DataPointNameData:
+    - name: `Livingroom Blind Controller Level ch1`
+    - full_name: `Livingroom Blind Controller Livingroom Blind Controller Level ch1` → effectively shown as `Livingroom Blind Controller Level ch1`
 
 4. Event names
 

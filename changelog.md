@@ -5,6 +5,7 @@
   - Added data flow for XML-RPC/JSON-RPC, event handling, and data point updates
   - Added sequence diagrams for connect, device discovery, state change propagation
   - Add troubleshouting docs
+- Add customization for HmIP-LSC
 - Avoid deadlocks within locks (cover)
 - Detailing the central status
 - Improve boundary logging und exception handling

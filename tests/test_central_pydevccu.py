@@ -77,7 +77,7 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
             channel_type_names.add(channel.type_name)
 
     channel_type_names = sorted(channel_type_names)
-    assert len(channel_type_names) == 555
+    assert len(channel_type_names) == 556
     ce_channels = {}
     for cdp in custom_dps:
         if cdp.device.model not in ce_channels:
@@ -159,20 +159,20 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     for sv in central_unit_full.sysvar_data_points:
         assert hasattr(sv, "__dict__") is False
 
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 271
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 272
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 141
-    assert usage_types[DataPointUsage.DATA_POINT] == 3933
-    assert usage_types[DataPointUsage.NO_CREATE] == 4271
+    assert usage_types[DataPointUsage.DATA_POINT] == 3937
+    assert usage_types[DataPointUsage.NO_CREATE] == 4291
 
-    assert len(ce_channels) == 129
+    assert len(ce_channels) == 130
     assert len(data_point_types) == 6
     assert len(parameters) == 232
 
-    assert len(central_unit_full._devices) == 393
+    assert len(central_unit_full._devices) == 394
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-    assert len(central_unit_full._devices) == 390
+    assert len(central_unit_full._devices) == 391
     del_addresses = list(central_unit_full.device_descriptions.get_device_descriptions(const.INTERFACE_ID))
     del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
     await central_unit_full.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)

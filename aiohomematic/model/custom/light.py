@@ -1070,6 +1070,7 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-FDT": CustomConfig(make_ce_func=make_ip_dimmer, channels=(2,)),
     "HmIP-PDT": CustomConfig(make_ce_func=make_ip_dimmer, channels=(3,)),
     "HmIP-RGBW": CustomConfig(make_ce_func=make_ip_rgbw_light),
+    "HmIP-LSC": CustomConfig(make_ce_func=make_ip_rgbw_light),
     "HmIP-SCTH230": CustomConfig(
         make_ce_func=make_ip_dimmer,
         channels=(12,),

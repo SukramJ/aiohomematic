@@ -23,7 +23,7 @@ from aiohomematic.support import build_log_context_from_obj, extract_exc_args
 P = ParamSpec("P")
 R = TypeVar("R")
 
-_LOGGER: Final = logging.getLogger(__name__)
+_LOGGER_PERFORMANCE: Final = logging.getLogger(f"{__package__}.performance")
 
 # Cache for per-class service call method names to avoid repeated scans.
 # Structure: {cls: (method_name1, method_name2, ...)}
@@ -89,7 +89,9 @@ def inspector(  # noqa: C901
         def wrap_sync_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap sync functions."""
 
-            start = monotonic() if measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG) else None
+            start = (
+                monotonic() if measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
+            )
             token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
             try:
                 return_value: R = func(*args, **kwargs)
@@ -125,7 +127,9 @@ def inspector(  # noqa: C901
         async def wrap_async_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap async functions."""
 
-            start = monotonic() if measure_performance and _LOGGER.isEnabledFor(level=logging.DEBUG) else None
+            start = (
+                monotonic() if measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
+            )
             token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
             try:
                 return_value = await func(*args, **kwargs)  # type: ignore[misc]  # Await the async call
@@ -181,7 +185,7 @@ def _log_performance_message(func: Callable, start: float, *args: P.args, **kwar
     if iface:
         message += f"/{iface}"
 
-    _LOGGER.info(message)
+    _LOGGER_PERFORMANCE.info(message)
 
 
 def get_service_calls(obj: object) -> dict[str, Callable]:
@@ -222,7 +226,7 @@ def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> Ca
     async def async_measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
 
-        start = monotonic() if _LOGGER.isEnabledFor(level=logging.DEBUG) else None
+        start = monotonic() if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
         try:
             return await func(*args, **kwargs)
         finally:
@@ -233,7 +237,7 @@ def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> Ca
     def measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
 
-        start = monotonic() if _LOGGER.isEnabledFor(level=logging.DEBUG) else None
+        start = monotonic() if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
         try:
             return func(*args, **kwargs)
         finally:

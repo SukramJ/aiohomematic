@@ -166,7 +166,7 @@ from aiohomematic.support import check_config, extract_exc_args, get_channel_no,
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
 
 _LOGGER: Final = logging.getLogger(__name__)
-_LOGGER_EVENT: Final = logging.getLogger(f"{__name__}_event")
+_LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 
 # {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}

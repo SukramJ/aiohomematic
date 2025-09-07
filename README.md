@@ -56,7 +56,7 @@ See details here: https://github.com/jens-maus/RaspberryMatic/issues/843. Other 
 - The public API of aiohomematic is explicitly defined via **all** in each module and subpackage.
 - Backwards‑compatible imports should target these modules:
   - aiohomematic.central: CentralUnit, CentralConfig and related schemas
-  - aiohomematic.event: display received events from the backend
+  - aiohomematic.central.event: display received events from the backend
   - aiohomematic.client: Client, InterfaceConfig, create_client, get_client
   - aiohomematic.model: device/data point abstractions (see subpackages for details)
   - aiohomematic.exceptions: library exception types intended for consumers

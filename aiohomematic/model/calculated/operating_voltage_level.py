@@ -13,6 +13,7 @@ from typing import Any, Final
 from aiohomematic.const import CalulatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
 from aiohomematic.model import device as hmd
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
+from aiohomematic.model.calculated.support import calculate_operating_voltage_level
 from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import DpFloat, DpSensor
 from aiohomematic.support import element_matches_key, extract_exc_args
@@ -139,32 +140,17 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     def value(self) -> float | None:
         """Return the value."""
         try:
-            if (low_bat_limit := self._low_bat_limit) is None or self._voltage_max is None:
-                return None
-            if self._dp_operating_voltage and self._dp_operating_voltage.value is not None:
-                return max(
-                    0,
-                    min(
-                        100,
-                        float(
-                            round(
-                                (
-                                    (float(self._dp_operating_voltage.value) - low_bat_limit)
-                                    / (self._voltage_max - low_bat_limit)
-                                    * 100
-                                ),
-                                1,
-                            )
-                        ),
-                    ),
-                )
+            return calculate_operating_voltage_level(
+                operating_voltage=self._dp_operating_voltage.value,
+                low_bat_limit=self._low_bat_limit_default,
+                voltage_max=self._voltage_max,
+            )
         except Exception as exc:
             _LOGGER.debug(
                 "OperatingVoltageLevel: Failed to calculate sensor for %s: %s",
                 self._channel.name,
                 extract_exc_args(exc=exc),
             )
-            return None
         return None
 
     @property

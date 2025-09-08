@@ -10,6 +10,7 @@ from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
     calculate_dew_point,
     calculate_frost_point,
+    calculate_operating_voltage_level,
     calculate_vapor_concentration,
 )
 
@@ -127,3 +128,36 @@ def test_dew_point_mid_range_precision() -> None:
     assert isinstance(dp, float)
     assert math.isfinite(dp)
     assert 8.0 <= dp <= 16.0
+
+
+@pytest.mark.parametrize(
+    ("operating_voltage", "low_bat_limit", "voltage_max"),
+    [
+        (None, 2.0, 3.0),
+        (2.5, None, 3.0),
+        (2.5, 2.0, None),
+    ],
+)
+def test_calculate_operating_voltage_level_none_inputs(operating_voltage, low_bat_limit, voltage_max) -> None:
+    """If any input is None, the result should be None."""
+    assert calculate_operating_voltage_level(operating_voltage, low_bat_limit, voltage_max) is None
+
+
+def test_calculate_operating_voltage_level_normal() -> None:
+    """Typical calculation with rounding to one decimal."""
+    # ((2.5 - 2.0) / (3.0 - 2.0)) * 100 = 50.0
+    assert calculate_operating_voltage_level(2.5, 2.0, 3.0) == 50.0
+
+    """Validate rounding to one decimal place."""
+    # ((2.26 - 2.0) / 1.0) * 100 = 26.0 -> 26.0
+    assert calculate_operating_voltage_level(2.26, 2.0, 3.0) == 26.0
+    # ((2.255 - 2.0) / 1.0) * 100 = 25.5 -> 25.5 exact boundary
+    assert calculate_operating_voltage_level(2.255, 2.0, 3.0) == 25.5
+
+    """Values below or equal to low_bat_limit clamp to 0."""
+    assert calculate_operating_voltage_level(1.9, 2.0, 3.0) == 0.0
+    assert calculate_operating_voltage_level(2.0, 2.0, 3.0) == 0.0
+
+    """Values above or equal to voltage_max clamp to 100."""
+    assert calculate_operating_voltage_level(3.5, 2.0, 3.0) == 100.0
+    assert calculate_operating_voltage_level(3.0, 2.0, 3.0) == 100.0

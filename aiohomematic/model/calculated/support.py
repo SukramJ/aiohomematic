@@ -174,3 +174,23 @@ def calculate_frost_point(temperature: float, humidity: int) -> float | None:
             extract_exc_args(exc=verr),
         )
     return None
+
+
+def calculate_operating_voltage_level(
+    operating_voltage: float | None, low_bat_limit: float | None, voltage_max: float | None
+) -> float | None:
+    """Return the operating voltage level."""
+    if operating_voltage is None or low_bat_limit is None or voltage_max is None:
+        return None
+    return max(
+        0,
+        min(
+            100,
+            float(
+                round(
+                    ((float(operating_voltage) - low_bat_limit) / (voltage_max - low_bat_limit) * 100),
+                    1,
+                )
+            ),
+        ),
+    )

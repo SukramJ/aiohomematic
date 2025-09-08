@@ -1,3 +1,7 @@
+# Version 2025.9.2 (2025-09-08)
+
+- Refactor CDP OperatingVoltageLevel
+
 # Version 2025.9.1 (2025-09-06)
 
 - Document how device, channel and data point names are created (docs/naming.md)

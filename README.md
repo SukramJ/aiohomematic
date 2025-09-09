@@ -24,7 +24,7 @@ Unlike pyhomematic, which required manual device mappings, aiohomematic automati
 Use the Home Assistant custom integration "Homematic(IP) Local", which is powered by aiohomematic.
 
 1. Prerequisites
-   - Home Assistant 2024.6 or newer recommended.
+   - Use latest version of Home Assistant.
    - A CCU3, RaspberryMatic, or Homegear instance reachable from Home Assistant.
    - For HomematicIP devices, ensure CCU firmware meets the minimum versions listed below.
 2. Install the integration
@@ -32,11 +32,11 @@ Use the Home Assistant custom integration "Homematic(IP) Local", which is powere
    - Follow the installation guide: https://github.com/sukramj/homematicip_local/wiki/Installation
 3. Configure via Home Assistant UI
    - In Home Assistant: Settings → Devices & Services → Add Integration → search for "Homematic(IP) Local".
-   - Enter the CCU/Homegear host (IP or hostname). If you use HTTPS on the CCU, enable SSL and accept the certificate if self‑signed.
-   - Provide credentials if your CCU requires them.
+   - Enter the CCU/Homegear host (IP or hostname). If you use HTTPS on the CCU, enable TLS and don't use verify if self‑signed.
+   - Always enter credentials.
    - Choose which interfaces to enable (HM, HmIP, Virtual). Default ports are typically 2001 (HM), 2010 (HmIP), 9292 (Virtual).
 4. Network callbacks
-   - The integration needs to receive XML‑RPC callbacks from the CCU. Make sure Home Assistant is reachable from the CCU (no NAT/firewall blocking).
+   - The integration needs to receive XML‑RPC callbacks from the CCU. Make sure Home Assistant is reachable from the CCU (no NAT/firewall blocking). Callbacks ar only required for special network setups.
 5. Verify
    - After setup, devices should appear under Devices & Services → Homematic(IP) Local. Discovery may take a few seconds after the first connection while paramsets are fetched and cached for faster restarts.
 

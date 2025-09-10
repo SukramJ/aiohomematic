@@ -1,6 +1,7 @@
 # Version 2025.9.2 (2025-09-08)
 
 - Refactor CDP OperatingVoltageLevel
+- Refactor event method handling
 
 # Version 2025.9.1 (2025-09-06)
 

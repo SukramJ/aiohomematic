@@ -60,10 +60,8 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             return self._get_data_point_usage()
         return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
-    async def event(self, value: Any, received_at: datetime | None = None) -> None:
+    async def event(self, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
-        if received_at is None:
-            received_at = datetime.now()
         self._device.client.last_value_send_cache.remove_last_value_send(
             dpk=self.dpk,
             value=value,

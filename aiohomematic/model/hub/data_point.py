@@ -207,10 +207,8 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the path data of the data_point."""
         return SysvarPathData(vid=self._vid)
 
-    async def event(self, value: Any, received_at: datetime | None = None) -> None:
+    async def event(self, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
-        if received_at is None:
-            received_at = datetime.now()
         self.write_value(value=value, write_at=received_at)
 
     def _reset_temporary_value(self) -> None:

@@ -857,7 +857,7 @@ class BaseParameterDataPoint[
         return f"{self._category}/{self._channel.device.model}/{self._parameter}"
 
     @abstractmethod
-    async def event(self, value: Any, received_at: datetime | None = None) -> None:
+    async def event(self, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
 
     async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:

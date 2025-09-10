@@ -1184,10 +1184,10 @@ class CentralUnit(PayloadMixin):
         if state_path in self._sysvar_data_point_event_subscriptions:
             try:
                 callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
-                received_at = datetime.now()
                 if callable(callback_handler):
+                    received_at = datetime.now()
                     self._looper.create_task(
-                        callback_handler(value, received_at, False), name=f"sysvar-data-point-event-{state_path}"
+                        callback_handler(value, received_at), name=f"sysvar-data-point-event-{state_path}"
                     )
             except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER_EVENT.debug(

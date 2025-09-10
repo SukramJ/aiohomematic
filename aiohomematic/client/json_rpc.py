@@ -51,6 +51,7 @@ from aiohttp import (
     ClientResponse,
     ClientSession,
     ClientTimeout,
+    ContentTypeError,
     TCPConnector,
 )
 import orjson
@@ -1014,7 +1015,7 @@ class JsonRpcAioHttpClient:
 
     async def get_all_device_data(self, interface: Interface) -> Mapping[str, Any]:
         """Get the all device data of the backend."""
-        all_device_data: dict[str, dict[str, dict[str, Any]]] = {}
+        all_device_data: dict[str, Any] = {}
         params = {
             _JsonKey.INTERFACE: interface,
         }
@@ -1023,12 +1024,17 @@ class JsonRpcAioHttpClient:
 
             _LOGGER.debug("GET_ALL_DEVICE_DATA: Getting all device data for interface %s", interface)
             if json_result := response[_JsonKey.RESULT]:
-                all_device_data = json_result
+                all_device_data = {
+                    unquote(string=k, encoding=ISO_8859_1): unquote(string=v, encoding=ISO_8859_1)
+                    if isinstance(v, str)
+                    else v
+                    for k, v in json_result.items()
+                }
 
-        except JSONDecodeError as jderr:
+        except (ContentTypeError, JSONDecodeError) as cerr:
             raise ClientException(
                 f"GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface {interface}"
-            ) from jderr
+            ) from cerr
 
         return all_device_data
 

@@ -51,6 +51,7 @@ from aiohttp import (
     ClientResponse,
     ClientSession,
     ClientTimeout,
+    ContentTypeError,
     TCPConnector,
 )
 import orjson
@@ -1030,10 +1031,10 @@ class JsonRpcAioHttpClient:
                     for k, v in json_result.items()
                 }
 
-        except JSONDecodeError as jderr:
+        except (ContentTypeError, JSONDecodeError) as cerr:
             raise ClientException(
                 f"GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface {interface}"
-            ) from jderr
+            ) from cerr
 
         return all_device_data
 

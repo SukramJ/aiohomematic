@@ -212,7 +212,7 @@ class CentralUnit(PayloadMixin):
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
         self._data_point_key_event_subscriptions: Final[
-            dict[DataPointKey, list[Callable[[Any], Coroutine[Any, Any, None]]]]
+            dict[DataPointKey, list[Callable[[Any, datetime], Coroutine[Any, Any, None]]]]
         ] = {}
         self._data_point_path_event_subscriptions: Final[dict[str, DataPointKey]] = {}
         self._sysvar_data_point_event_subscriptions: Final[dict[str, Callable]] = {}
@@ -237,7 +237,7 @@ class CentralUnit(PayloadMixin):
         self._hub: Hub = Hub(central=self)
         self._version: str | None = None
         # store last event received datetime by interface_id
-        self._last_events: Final[dict[str, datetime]] = {}
+        self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
         self._xml_rpc_callback_ip: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
         self._listen_port: int = PORT_ANY
@@ -1109,7 +1109,7 @@ class CentralUnit(PayloadMixin):
         if not self.has_client(interface_id=interface_id):
             return
 
-        self.set_last_event_dt(interface_id=interface_id)
+        self.set_last_event_seen_for_interface(interface_id=interface_id)
         # No need to check the response of a XmlRPC-PING
         if parameter == Parameter.PONG:
             if "#" in value:
@@ -1133,9 +1133,10 @@ class CentralUnit(PayloadMixin):
 
         if dpk in self._data_point_key_event_subscriptions:
             try:
+                received_at = datetime.now()
                 for callback_handler in self._data_point_key_event_subscriptions[dpk]:
                     if callable(callback_handler):
-                        await callback_handler(value)
+                        await callback_handler(value, received_at)
             except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
@@ -1183,8 +1184,11 @@ class CentralUnit(PayloadMixin):
         if state_path in self._sysvar_data_point_event_subscriptions:
             try:
                 callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
+                received_at = datetime.now()
                 if callable(callback_handler):
-                    self._looper.create_task(callback_handler(value), name=f"sysvar-data-point-event-{state_path}")
+                    self._looper.create_task(
+                        callback_handler(value, received_at, False), name=f"sysvar-data-point-event-{state_path}"
+                    )
             except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
@@ -1254,13 +1258,13 @@ class CentralUnit(PayloadMixin):
             if data_point.state_path in self._data_point_path_event_subscriptions:
                 del self._data_point_path_event_subscriptions[data_point.state_path]
 
-    def get_last_event_dt(self, interface_id: str) -> datetime | None:
-        """Return the last event dt."""
-        return self._last_events.get(interface_id)
+    def get_last_event_seen_for_interface(self, interface_id: str) -> datetime | None:
+        """Return the last event seen for an interface."""
+        return self._last_event_seen_for_interface.get(interface_id)
 
-    def set_last_event_dt(self, interface_id: str) -> None:
-        """Set the last event dt."""
-        self._last_events[interface_id] = datetime.now()
+    def set_last_event_seen_for_interface(self, interface_id: str) -> None:
+        """Set the last event seen for an interface."""
+        self._last_event_seen_for_interface[interface_id] = datetime.now()
 
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
@@ -1703,7 +1707,7 @@ class _Scheduler(threading.Thread):
             _LOGGER.debug("REFRESH_CLIENT_DATA: Loading data for %s", self._central.name)
             for client in poll_clients:
                 await self._central.load_and_refresh_data_point_data(interface=client.interface)
-                self._central.set_last_event_dt(interface_id=client.interface_id)
+                self._central.set_last_event_seen_for_interface(interface_id=client.interface_id)
 
     @inspector(re_raise=False)
     async def _refresh_sysvar_data(self) -> None:

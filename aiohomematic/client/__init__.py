@@ -144,6 +144,7 @@ class Client(ABC):
         self._system_information: SystemInformation
         self.modified_at: datetime = INIT_DATETIME
 
+    @inspector()
     async def init_client(self) -> None:
         """Init the client."""
         self._system_information = await self._get_system_information()
@@ -384,7 +385,9 @@ class Client(ABC):
         """Return if XmlRPC-Server is alive based on received events for this client."""
         if not self.supports_ping_pong:
             return True
-        if (last_events_dt := self.central.get_last_event_dt(interface_id=self.interface_id)) is not None:
+        if (
+            last_events_dt := self.central.get_last_event_seen_for_interface(interface_id=self.interface_id)
+        ) is not None:
             if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > CALLBACK_WARN_INTERVAL:
                 if self._is_callback_alive:
                     self.central.fire_interface_event(
@@ -1217,6 +1220,7 @@ class ClientCCU(Client):
 class ClientJsonCCU(ClientCCU):
     """Client implementation for CCU backend."""
 
+    @inspector()
     async def init_client(self) -> None:
         """Init the client."""
         self._system_information = await self._get_system_information()

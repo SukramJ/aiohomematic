@@ -21,8 +21,9 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.model import device as hmd
 from aiohomematic.model.data_point import CallbackDataPoint
-from aiohomematic.model.support import DataPointPathData, PayloadMixin, generate_unique_id
+from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.support import PayloadMixin
 
 __all__ = ["DpUpdate"]
 

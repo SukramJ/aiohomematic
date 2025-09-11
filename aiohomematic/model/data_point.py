@@ -70,12 +70,11 @@ from aiohomematic.model.support import (
     DataPointPathData,
     GenericParameterType,
     PathData,
-    PayloadMixin,
     convert_value,
     generate_unique_id,
 )
-from aiohomematic.property_decorators import cached_slot_property, config_property, state_property
-from aiohomematic.support import extract_exc_args, log_boundary_error
+from aiohomematic.property_decorators import cached_slot_property, config_property, info_property, state_property
+from aiohomematic.support import PayloadMixin, extract_exc_args, log_boundary_error
 
 __all__ = [
     "BaseDataPoint",
@@ -685,7 +684,7 @@ class BaseParameterDataPoint[
         """Return multiplier value."""
         return self._multiplier
 
-    @property
+    @info_property(context=True)
     def parameter(self) -> str:
         """Return parameter name."""
         return self._parameter

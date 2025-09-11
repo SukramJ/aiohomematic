@@ -92,9 +92,10 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from aiohomematic.model.device import Device
-from aiohomematic.model.support import ContextMixin, convert_value
+from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import info_property
 from aiohomematic.support import (
+    ContextMixin,
     build_xml_rpc_headers,
     build_xml_rpc_uri,
     extract_exc_args,

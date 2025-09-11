@@ -33,19 +33,12 @@ from aiohomematic.const import (
 )
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.property_decorators import (
-    get_public_attributes_for_config_property,
-    get_public_attributes_for_info_property,
-    get_public_attributes_for_info_property_with_context,
-    get_public_attributes_for_state_property,
-)
 from aiohomematic.support import to_bool
 
 __all__ = [
     "ChannelNameData",
     "DataPointNameData",
     "GenericParameterType",
-    "PayloadMixin",
     "check_channel_is_the_only_primary_channel",
     "convert_value",
     "generate_channel_unique_id",
@@ -69,54 +62,6 @@ _BINARY_SENSOR_TRUE_VALUE_DICT_FOR_VALUE_LIST: Final[Mapping[tuple[str, ...], st
     ("DRY", "RAIN"): "RAIN",
     ("STABLE", "NOT_STABLE"): "NOT_STABLE",
 }
-
-
-class ContextMixin:
-    """Mixin to add context methods to class."""
-
-    __slots__ = ()
-
-    @property
-    def context(self) -> Mapping[str, Any]:
-        """Return the context for this object."""
-        return {
-            key: value
-            for key, value in get_public_attributes_for_info_property_with_context(data_object=self).items()
-            if value is not None
-        }
-
-
-class PayloadMixin:
-    """Mixin to add payload methods to class."""
-
-    __slots__ = ()
-
-    @property
-    def config_payload(self) -> Mapping[str, Any]:
-        """Return the config payload."""
-        return {
-            key: value
-            for key, value in get_public_attributes_for_config_property(data_object=self).items()
-            if value is not None
-        }
-
-    @property
-    def info_payload(self) -> Mapping[str, Any]:
-        """Return the info payload."""
-        return {
-            key: value
-            for key, value in get_public_attributes_for_info_property(data_object=self).items()
-            if value is not None
-        }
-
-    @property
-    def state_payload(self) -> Mapping[str, Any]:
-        """Return the state payload."""
-        return {
-            key: value
-            for key, value in get_public_attributes_for_state_property(data_object=self).items()
-            if value is not None
-        }
 
 
 class ChannelNameData:

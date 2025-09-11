@@ -24,14 +24,13 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.device import Channel
 from aiohomematic.model.support import (
     PathData,
-    PayloadMixin,
     ProgramPathData,
     SysvarPathData,
     generate_unique_id,
     get_hub_data_point_name_data,
 )
 from aiohomematic.property_decorators import config_property, state_property
-from aiohomematic.support import parse_sys_var
+from aiohomematic.support import PayloadMixin, parse_sys_var
 
 
 class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):

@@ -42,7 +42,8 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
-from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
+from aiohomematic.property_decorators import info_property
+from aiohomematic.support import ContextMixin, extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ _OS_ERROR_CODES: Final[dict[int, str]] = {
 
 
 # noinspection PyProtectedMember,PyUnresolvedReferences
-class XmlRpcProxy(xmlrpc.client.ServerProxy):
+class XmlRpcProxy(xmlrpc.client.ServerProxy, ContextMixin):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
 
     def __init__(
@@ -95,7 +96,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         **kwargs: Any,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
-        self.interface_id: Final = interface_id
+        self._interface_id: Final = interface_id
         self._connection_state: Final = connection_state
         self._looper: Final = Looper()
         self._proxy_executor: Final = (
@@ -120,10 +121,20 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             supported_methods.append(_XmlRpcMethod.PING)
             self._supported_methods = tuple(supported_methods)
 
+    @info_property(context=True)
+    def interface_id(self) -> str:
+        """Return the interface_id."""
+        return self._interface_id
+
     @property
     def supported_methods(self) -> tuple[str, ...]:
         """Return the supported methods."""
         return self._supported_methods
+
+    @info_property(context=True)
+    def tls(self) -> bool:
+        """Return tls."""
+        return self._tls
 
     async def __async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Call method on server side."""
@@ -134,7 +145,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 raise UnsupportedException(f"__ASYNC_REQUEST: method '{method} not supported by backend.")
 
             if method in _VALID_XMLRPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
-                issuer=self, iid=self.interface_id
+                issuer=self, iid=self._interface_id
             ):
                 args = _cleanup_args(*args)
                 _LOGGER.debug("__ASYNC_REQUEST: %s", args)
@@ -148,21 +159,21 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                         executor=self._proxy_executor,
                     )
                 )
-                self._connection_state.remove_issue(issuer=self, iid=self.interface_id)
+                self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
                 return result
-            raise NoConnectionException(f"No connection to {self.interface_id}")
+            raise NoConnectionException(f"No connection to {self._interface_id}")
         except BaseHomematicException:
             raise
         except SSLError as sslerr:
-            message = f"SSLError on {self.interface_id}: {extract_exc_args(exc=sslerr)}"
-            context = {"interface_id": self.interface_id}
+            message = f"SSLError on {self._interface_id}: {extract_exc_args(exc=sslerr)}"
+            context = {"interface_id": self._interface_id}
             level = logging.ERROR
             if sslerr.args[0] in _SSL_ERROR_CODES:
                 message = (
                     f"{message} - {sslerr.args[0]}: {sslerr.args[1]}. "
-                    f"Please check your configuration for {self.interface_id}."
+                    f"Please check your configuration for {self._interface_id}."
                 )
-                if not self._connection_state.add_issue(issuer=self, iid=self.interface_id):
+                if not self._connection_state.add_issue(issuer=self, iid=self._interface_id):
                     level = logging.DEBUG
 
             log_boundary_error(
@@ -170,12 +181,12 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             )
             raise NoConnectionException(message) from sslerr
         except OSError as oserr:
-            message = f"OSError on {self.interface_id}: {extract_exc_args(exc=oserr)}"
-            context = {"interface_id": self.interface_id}
+            message = f"OSError on {self._interface_id}: {extract_exc_args(exc=oserr)}"
+            context = {"interface_id": self._interface_id}
             level = (
                 logging.ERROR
                 if oserr.args[0] in _OS_ERROR_CODES
-                and not self._connection_state.add_issue(issuer=self, iid=self.interface_id)
+                and not self._connection_state.add_issue(issuer=self, iid=self._interface_id)
                 else logging.DEBUG
             )
 
@@ -184,12 +195,12 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             )
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:
-            ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self.interface_id)
+            ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self._interface_id)
             raise map_xmlrpc_fault(code=flt.faultCode, fault_string=flt.faultString, ctx=ctx) from flt
         except TypeError as terr:
             raise ClientException(terr) from terr
         except xmlrpc.client.ProtocolError as perr:
-            if not self._connection_state.has_issue(issuer=self, iid=self.interface_id):
+            if not self._connection_state.has_issue(issuer=self, iid=self._interface_id):
                 if perr.errmsg == "Unauthorized":
                     raise AuthFailure(perr) from perr
                 raise NoConnectionException(perr.errmsg) from perr

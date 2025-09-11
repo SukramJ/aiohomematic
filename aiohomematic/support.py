@@ -49,6 +49,12 @@ from aiohomematic.const import (
     SysvarType,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.property_decorators import (
+    get_public_attributes_for_config_property,
+    get_public_attributes_for_info_property,
+    get_public_attributes_for_info_property_with_context,
+    get_public_attributes_for_state_property,
+)
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -623,6 +629,54 @@ def log_boundary_error(
         chosen_level = logging.WARNING if isinstance(err, BaseHomematicException) else logging.ERROR
 
     logger.log(chosen_level, log_message)
+
+
+class ContextMixin:
+    """Mixin to add context methods to class."""
+
+    __slots__ = ()
+
+    @property
+    def context(self) -> Mapping[str, Any]:
+        """Return the context for this object."""
+        return {
+            key: value
+            for key, value in get_public_attributes_for_info_property_with_context(data_object=self).items()
+            if value is not None
+        }
+
+
+class PayloadMixin:
+    """Mixin to add payload methods to class."""
+
+    __slots__ = ()
+
+    @property
+    def config_payload(self) -> Mapping[str, Any]:
+        """Return the config payload."""
+        return {
+            key: value
+            for key, value in get_public_attributes_for_config_property(data_object=self).items()
+            if value is not None
+        }
+
+    @property
+    def info_payload(self) -> Mapping[str, Any]:
+        """Return the info payload."""
+        return {
+            key: value
+            for key, value in get_public_attributes_for_info_property(data_object=self).items()
+            if value is not None
+        }
+
+    @property
+    def state_payload(self) -> Mapping[str, Any]:
+        """Return the state payload."""
+        return {
+            key: value
+            for key, value in get_public_attributes_for_state_property(data_object=self).items()
+            if value is not None
+        }
 
 
 # Define public API for this module

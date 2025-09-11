@@ -47,6 +47,7 @@ from urllib.parse import unquote
 
 from aiohttp import (
     ClientConnectorCertificateError,
+    ClientConnectorError,
     ClientError,
     ClientResponse,
     ClientSession,
@@ -461,6 +462,19 @@ class JsonRpcAioHttpClient:
                 context={"url": self._url},
             )
             raise
+
+        except ClientConnectorError as cceerr:
+            self.clear_session()
+            message = f"ClientConnectorError[{cceerr}]"
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=cceerr,
+                level=logging.ERROR,
+                context={"url": self._url},
+            )
+            raise ClientException(message) from cceerr
         except ClientConnectorCertificateError as cccerr:
             self.clear_session()
             message = f"ClientConnectorCertificateError[{cccerr}]"

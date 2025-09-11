@@ -18,7 +18,7 @@ from weakref import WeakKeyDictionary
 
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
-from aiohomematic.support import build_log_context_from_obj, extract_exc_args
+from aiohomematic.support import build_log_context_from_obj, log_boundary_error
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -71,16 +71,15 @@ def inspector(  # noqa: C901
             """Handle exceptions for decorated functions with structured logging."""
             if not is_sub_service_call and log_level > logging.NOTSET:
                 logger = logging.getLogger(func.__module__)
-                extra = {
-                    "err_type": exc.__class__.__name__,
-                    "err": extract_exc_args(exc=exc),
-                    "function": func.__name__,
-                    **build_log_context_from_obj(obj=context_obj),
-                }
-                if log_level >= logging.ERROR:
-                    logger.exception("service_error", extra=extra)
-                else:
-                    logger.log(level=log_level, msg="service_error", extra=extra)
+                # Reuse centralized boundary logging to ensure consistent 'extra' structure
+                log_boundary_error(
+                    logger=logger,
+                    boundary="service",
+                    action=func.__name__,
+                    err=exc,
+                    level=log_level,
+                    context=build_log_context_from_obj(obj=context_obj),
+                )
             if re_raise or not is_homematic:
                 raise exc
             return cast(R, no_raise_return)

@@ -76,6 +76,7 @@ from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
 from aiohomematic.model.support import (
     ChannelNameData,
+    ContextMixin,
     PayloadMixin,
     generate_channel_unique_id,
     get_channel_name_data,
@@ -96,7 +97,7 @@ __all__ = ["Channel", "Device"]
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class Device(PayloadMixin):
+class Device(ContextMixin, PayloadMixin):
     """Object to hold information about a device and associated data points."""
 
     __slots__ = (
@@ -196,7 +197,7 @@ class Device(PayloadMixin):
             return Manufacturer.MOEHLENHOFF
         return Manufacturer.EQ3
 
-    @info_property
+    @info_property(context=True)
     def address(self) -> str:
         """Return the address of the device."""
         return self._address
@@ -353,7 +354,7 @@ class Device(PayloadMixin):
         """Return the manufacturer of the device."""
         return self._manufacturer
 
-    @info_property
+    @info_property(context=True)
     def model(self) -> str:
         """Return the model of the device."""
         return self._model
@@ -682,7 +683,7 @@ class Device(PayloadMixin):
         )
 
 
-class Channel(PayloadMixin):
+class Channel(ContextMixin, PayloadMixin):
     """Object to hold information about a channel and associated data points."""
 
     __slots__ = (
@@ -736,7 +737,7 @@ class Channel(PayloadMixin):
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
 
-    @property
+    @info_property(context=True)
     def address(self) -> str:
         """Return the address of the channel."""
         return self._address

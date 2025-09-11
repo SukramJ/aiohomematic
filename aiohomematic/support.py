@@ -465,13 +465,13 @@ def hash_sha256(value: Any) -> str:
 
 def _make_value_hashable(value: Any) -> Any:
     """Make a hashable object."""
-    if isinstance(value, (tuple, list)):
+    if isinstance(value, tuple | list):
         return tuple(_make_value_hashable(e) for e in value)
 
     if isinstance(value, dict):
         return tuple(sorted((k, _make_value_hashable(v)) for k, v in value.items()))
 
-    if isinstance(value, (set, frozenset)):
+    if isinstance(value, set | frozenset):
         return tuple(sorted(_make_value_hashable(e) for e in value))
 
     return value
@@ -593,6 +593,7 @@ def log_boundary_error(
     err: Exception,
     level: int | None = None,
     context: Mapping[str, Any] | None = None,
+    message: str | None = None,
 ) -> None:
     """
     Log a boundary error with the provided logger.
@@ -602,42 +603,26 @@ def log_boundary_error(
     logging level if not explicitly provided. Additionally, it enriches the log
     record with extra context about the error and action boundaries.
 
-    :param logger: The logger instance used to log the error.
-    :type logger: logging.Logger
-    :param boundary: The name of the boundary at which the error occurred.
-    :type boundary: str
-    :param action: The action being performed when the error occurred.
-    :type action: str
-    :param err: The exception instance representing the error to log.
-    :type err: Exception
-    :param level: The optional logging level. Defaults to WARNING for recoverable
-        domain errors and ERROR for non-recoverable errors if not provided.
-    :type level: int | None
-    :param context: Optional mapping of additional information or context to
-        include in the log record.
-    :type context: Mapping[str, Any] | None
-    :return: None. This function logs the provided information but does not
-        return a value.
-    :rtype: None
     """
-    extra = {
-        "boundary": boundary,
-        "action": action,
-        "err_type": err.__class__.__name__,
-        "err": extract_exc_args(exc=err),
-        **_safe_context(context),
-    }
+    err_name = err.__class__.__name__
+    log_message = f"[boundary={boundary} action={action} err={err_name}"
+
+    if (err_args := extract_exc_args(exc=err)) and err_args != err_name:
+        log_message += f": {err_args}"
+    log_message += "]"
+
+    if message:
+        log_message += f" {message}"
+
+    if context:
+        log_message += f" ctx={orjson.dumps(_safe_context(context), option=orjson.OPT_SORT_KEYS).decode()}"
 
     # Choose level if not provided:
-    chosen_level = level
-    if chosen_level is None:
+    if (chosen_level := level) is None:
         # Use WARNING for expected/recoverable domain errors, ERROR otherwise.
         chosen_level = logging.WARNING if isinstance(err, BaseHomematicException) else logging.ERROR
 
-    if chosen_level >= logging.ERROR:
-        logger.exception(_BOUNDARY_MSG, extra=extra)
-    else:
-        logger.log(chosen_level, _BOUNDARY_MSG, extra=extra)
+    logger.log(chosen_level, log_message)
 
 
 # Define public API for this module

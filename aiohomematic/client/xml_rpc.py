@@ -42,7 +42,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
-from aiohomematic.support import extract_exc_args, get_tls_context
+from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -155,20 +155,33 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
             raise
         except SSLError as sslerr:
             message = f"SSLError on {self.interface_id}: {extract_exc_args(exc=sslerr)}"
+            context = {"interface_id": self.interface_id}
+            level = logging.ERROR
             if sslerr.args[0] in _SSL_ERROR_CODES:
-                _LOGGER.debug(message)
-            else:
-                _LOGGER.error(message)
+                message = (
+                    f"{message} - {sslerr.args[0]}: {sslerr.args[1]}. "
+                    f"Please check your configuration for {self.interface_id}."
+                )
+                if not self._connection_state.add_issue(issuer=self, iid=self.interface_id):
+                    level = logging.DEBUG
+
+            log_boundary_error(
+                logger=_LOGGER, boundary="xml-rpc", action=str(args[0]), err=sslerr, level=level, message=message
+            )
             raise NoConnectionException(message) from sslerr
         except OSError as oserr:
             message = f"OSError on {self.interface_id}: {extract_exc_args(exc=oserr)}"
-            if oserr.args[0] in _OS_ERROR_CODES:
-                if self._connection_state.add_issue(issuer=self, iid=self.interface_id):
-                    _LOGGER.error(message)
-                else:
-                    _LOGGER.debug(message)
-            else:
-                _LOGGER.error(message)
+            context = {"interface_id": self.interface_id}
+            level = (
+                logging.ERROR
+                if oserr.args[0] in _OS_ERROR_CODES
+                and not self._connection_state.add_issue(issuer=self, iid=self.interface_id)
+                else logging.DEBUG
+            )
+
+            log_boundary_error(
+                logger=_LOGGER, boundary="xml-rpc", action=str(args[0]), err=oserr, level=level, context=context
+            )
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:
             ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self.interface_id)

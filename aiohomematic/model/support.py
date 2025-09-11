@@ -36,6 +36,7 @@ from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
+    get_public_attributes_for_info_property_with_context,
     get_public_attributes_for_state_property,
 )
 from aiohomematic.support import to_bool
@@ -68,6 +69,21 @@ _BINARY_SENSOR_TRUE_VALUE_DICT_FOR_VALUE_LIST: Final[Mapping[tuple[str, ...], st
     ("DRY", "RAIN"): "RAIN",
     ("STABLE", "NOT_STABLE"): "NOT_STABLE",
 }
+
+
+class ContextMixin:
+    """Mixin to add context methods to class."""
+
+    __slots__ = ()
+
+    @property
+    def context(self) -> Mapping[str, Any]:
+        """Return the context for this object."""
+        return {
+            key: value
+            for key, value in get_public_attributes_for_info_property_with_context(data_object=self).items()
+            if value is not None
+        }
 
 
 class PayloadMixin:
@@ -618,7 +634,7 @@ def get_index_of_value_from_value_list(
     value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None
 ) -> int | None:
     """Check if value is in value list."""
-    if value is not None and isinstance(value, (str, StrEnum)) and value_list is not None and value in value_list:
+    if value is not None and isinstance(value, str | StrEnum) and value_list is not None and value in value_list:
         return value_list.index(value)
 
     return None

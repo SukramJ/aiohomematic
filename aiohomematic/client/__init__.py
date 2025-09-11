@@ -92,7 +92,7 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from aiohomematic.model.device import Device
-from aiohomematic.model.support import convert_value
+from aiohomematic.model.support import ContextMixin, convert_value
 from aiohomematic.support import (
     build_xml_rpc_headers,
     build_xml_rpc_uri,
@@ -124,7 +124,7 @@ _CCU_JSON_VALUE_TYPE: Final = {
 }
 
 
-class Client(ABC):
+class Client(ABC, ContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
     def __init__(self, client_config: _ClientConfig) -> None:

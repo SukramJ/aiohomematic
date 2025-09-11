@@ -65,7 +65,6 @@ from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.model import device as hmd
-from aiohomematic.model.decorators import cached_slot_property, config_property, state_property
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -75,6 +74,7 @@ from aiohomematic.model.support import (
     convert_value,
     generate_unique_id,
 )
+from aiohomematic.property_decorators import cached_slot_property, config_property, state_property
 from aiohomematic.support import extract_exc_args, log_boundary_error
 
 __all__ = [

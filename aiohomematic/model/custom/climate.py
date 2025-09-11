@@ -26,8 +26,8 @@ from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.decorators import config_property, state_property
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
+from aiohomematic.property_decorators import config_property, state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 

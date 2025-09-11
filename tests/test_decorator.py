@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aiohomematic.model.decorators import (
+from aiohomematic.property_decorators import (
     config_property,
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,

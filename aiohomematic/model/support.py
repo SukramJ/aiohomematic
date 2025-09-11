@@ -33,7 +33,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.decorators import (
+from aiohomematic.property_decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
     get_public_attributes_for_info_property_with_context,

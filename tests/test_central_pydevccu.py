@@ -9,12 +9,12 @@ import orjson
 import pytest
 
 from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
-from aiohomematic.model.decorators import (
+from aiohomematic.model.generic import GenericDataPoint
+from aiohomematic.property_decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
     get_public_attributes_for_state_property,
 )
-from aiohomematic.model.generic import GenericDataPoint
 
 from tests import const
 

@@ -9,9 +9,9 @@ from typing import Final
 
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
 from aiohomematic.model.support import get_value_from_value_list
+from aiohomematic.property_decorators import state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 

@@ -133,8 +133,9 @@ Calculated data points compute values from one or more underlying GenericDataPoi
 # aiohomematic/model/calculated/my_metric.py
 from __future__ import annotations
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
-from aiohomematic.model.decorators import state_property, config_property
+from aiohomematic.property_decorators import state_property, config_property
 from aiohomematic.const import CalulatedParameter, ParamsetKey
+
 
 class MyMetric(CalculatedDataPoint[float]):
     _calculated_parameter = CalulatedParameter.MY_METRIC

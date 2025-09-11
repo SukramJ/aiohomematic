@@ -8,8 +8,8 @@ from typing import cast
 
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic.data_point import GenericDataPoint
+from aiohomematic.property_decorators import state_property
 
 
 class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[NumberParameterT, int | float | str]):

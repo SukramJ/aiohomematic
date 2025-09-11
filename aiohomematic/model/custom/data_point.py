@@ -15,7 +15,6 @@ from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.const import CDPD, DeviceProfile, Field
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import BaseDataPoint, NoneTypeDataPoint
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import data_point as hmge
 from aiohomematic.model.support import (
     DataPointNameData,
@@ -24,6 +23,7 @@ from aiohomematic.model.support import (
     check_channel_is_the_only_primary_channel,
     get_custom_data_point_name,
 )
+from aiohomematic.property_decorators import state_property
 from aiohomematic.support import get_channel_address
 
 _LOGGER: Final = logging.getLogger(__name__)

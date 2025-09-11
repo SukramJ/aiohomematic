@@ -16,8 +16,8 @@ from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPoint
+from aiohomematic.property_decorators import state_property
 
 _DIMMER_OFF: Final = 0.0
 _EFFECT_OFF: Final = "Off"

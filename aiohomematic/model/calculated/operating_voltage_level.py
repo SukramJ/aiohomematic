@@ -14,8 +14,8 @@ from aiohomematic.const import CalulatedParameter, DataPointCategory, Parameter,
 from aiohomematic.model import device as hmd
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.support import calculate_operating_voltage_level
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import DpFloat, DpSensor
+from aiohomematic.property_decorators import state_property
 from aiohomematic.support import element_matches_key, extract_exc_args
 
 _BATTERY_QTY: Final = "Battery Qty"

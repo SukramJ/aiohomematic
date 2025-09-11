@@ -7,8 +7,8 @@ from __future__ import annotations
 from typing import cast
 
 from aiohomematic.const import DataPointCategory
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic.data_point import GenericDataPoint
+from aiohomematic.property_decorators import state_property
 
 
 class DpBinarySensor(GenericDataPoint[bool | None, bool]):

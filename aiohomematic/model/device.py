@@ -71,7 +71,6 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from aiohomematic.model.decorators import cached_slot_property, info_property, state_property
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
 from aiohomematic.model.support import (
@@ -83,6 +82,7 @@ from aiohomematic.model.support import (
     get_device_name,
 )
 from aiohomematic.model.update import DpUpdate
+from aiohomematic.property_decorators import cached_slot_property, info_property, state_property
 from aiohomematic.support import (
     CacheEntry,
     check_or_create_directory,

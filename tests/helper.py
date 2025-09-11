@@ -18,7 +18,7 @@ from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.client import Client, InterfaceConfig, _ClientConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
 from aiohomematic.model.custom import CustomDataPoint
-from aiohomematic.model.decorators import _get_public_attributes_by_class_decorator
+from aiohomematic.property_decorators import _get_public_attributes_by_class_decorator
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
 
 from tests import const

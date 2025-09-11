@@ -20,8 +20,8 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import data_point as hme, device as hmd
-from aiohomematic.model.decorators import cached_slot_property
 from aiohomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
+from aiohomematic.property_decorators import cached_slot_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 

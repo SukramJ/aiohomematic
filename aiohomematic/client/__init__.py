@@ -93,6 +93,7 @@ from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from aiohomematic.model.device import Device
 from aiohomematic.model.support import ContextMixin, convert_value
+from aiohomematic.property_decorators import info_property
 from aiohomematic.support import (
     build_xml_rpc_headers,
     build_xml_rpc_uri,
@@ -169,7 +170,7 @@ class Client(ABC, ContextMixin):
         """Return the interface of the client."""
         return self._config.interface
 
-    @property
+    @info_property(context=True)
     def interface_id(self) -> str:
         """Return the interface id of the client."""
         return self._config.interface_id

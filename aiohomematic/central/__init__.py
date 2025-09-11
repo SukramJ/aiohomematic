@@ -149,7 +149,6 @@ from aiohomematic.exceptions import (
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import CustomDataPoint, create_custom_data_points
 from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from aiohomematic.model.decorators import info_property
 from aiohomematic.model.device import Channel, Device
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
@@ -161,6 +160,7 @@ from aiohomematic.model.hub import (
     ProgramDpType,
 )
 from aiohomematic.model.support import ContextMixin, PayloadMixin
+from aiohomematic.property_decorators import info_property
 from aiohomematic.support import check_config, extract_exc_args, get_channel_no, get_device_address, get_ip_addr
 
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]

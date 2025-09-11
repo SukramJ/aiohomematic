@@ -18,8 +18,8 @@ from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
+from aiohomematic.property_decorators import state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 

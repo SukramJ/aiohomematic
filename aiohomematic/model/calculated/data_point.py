@@ -23,7 +23,6 @@ from aiohomematic.const import (
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.data_point import BaseDataPoint, NoneTypeDataPoint
-from aiohomematic.model.decorators import cached_slot_property, config_property, state_property
 from aiohomematic.model.generic import data_point as hmge
 from aiohomematic.model.support import (
     DataPointNameData,
@@ -33,6 +32,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_data_point_name_data,
 )
+from aiohomematic.property_decorators import cached_slot_property, config_property, state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 

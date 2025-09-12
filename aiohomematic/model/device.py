@@ -327,7 +327,7 @@ class Device(LogContextMixin, PayloadMixin):
         """Return the interface of the device."""
         return self._interface
 
-    @property
+    @info_property(log_context=True)
     def interface_id(self) -> str:
         """Return the interface_id of the device."""
         return self._interface_id
@@ -762,7 +762,7 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the device description for the channel."""
         return self._description
 
-    @property
+    @info_property(log_context=True)
     def device(self) -> Device:
         """Return the device of the channel."""
         return self._device

@@ -10,6 +10,8 @@ from enum import Enum
 from typing import Any, ParamSpec, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
+from aiohomematic import support as hms
+
 __all__ = [
     "config_property",
     "get_attributes_for_config_property",
@@ -206,7 +208,9 @@ setattr(state_property, "__property_class__", _StateProperty)
 _PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[type, tuple[str, ...]]] = WeakKeyDictionary()
 
 
-def _get_attributes_by_decorator(data_object: Any, decorator: Callable, context: bool = False) -> Mapping[str, Any]:
+def _get_attributes_by_decorator(
+    data_object: Any, decorator: Callable, context: bool = False, only_names: bool = False
+) -> Mapping[str, Any]:
     """
     Return the object attributes by decorator.
 
@@ -237,15 +241,20 @@ def _get_attributes_by_decorator(data_object: Any, decorator: Callable, context:
         decorator_cache[resolved_decorator] = names
 
     result: dict[str, Any] = {}
+    if only_names:
+        return dict.fromkeys(names)
     for name in names:
         if context and getattr(cls, name).log_context is False:
             continue
         try:
             value = getattr(data_object, name)
+            if isinstance(value, hms.LogContextMixin):
+                result.update({f"{name}.{k}": v for k, v in value.log_context.items()})
+            else:
+                result[name] = _get_text_value(value)
         except Exception:
             # Avoid propagating side effects/errors from getters
-            value = None
-        result[name] = _get_text_value(value)
+            result[name] = None
     return result
 
 

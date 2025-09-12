@@ -187,7 +187,7 @@ def get_mock(instance: Any, **kwargs):
 
 def _get_not_mockable_method_names(instance: Any) -> set[str]:
     """Return all relevant method names for mocking."""
-    methods: set[str] = set(_get_attributes_by_decorator(instance, property))
+    methods: set[str] = set(_get_attributes_by_decorator(data_object=instance, decorator=property, only_names=True))
 
     for method in dir(instance):
         if method in EXCLUDE_METHODS_FROM_MOCKS:

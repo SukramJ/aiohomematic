@@ -6,7 +6,7 @@ from aiohomematic.property_decorators import (
     config_property,
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
-    get_public_attributes_for_info_property_with_context,
+    get_public_attributes_for_property_with_context,
     get_public_attributes_for_state_property,
     info_property,
     state_property,
@@ -39,7 +39,7 @@ def test_generic_property_read() -> None:
     assert value_attributes == {"value": "test_value"}
     info_attributes = get_public_attributes_for_info_property(data_object=test_class)
     assert info_attributes == {"info": "test_info", "info_context": "test_info"}
-    info_context_attributes = get_public_attributes_for_info_property_with_context(data_object=test_class)
+    info_context_attributes = get_public_attributes_for_property_with_context(data_object=test_class)
     assert info_context_attributes == {"info_context": "test_info"}
 
 

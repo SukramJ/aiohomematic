@@ -24,7 +24,6 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
-# pylint: disable=invalid-name
 class _GenericProperty[GETTER, SETTER](property):
     """Generic property implementation."""
 
@@ -80,29 +79,66 @@ class _GenericProperty[GETTER, SETTER](property):
         self.fdel(obj)
 
 
-# pylint: disable=invalid-name
-class config_property[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
+# ----- config_property -----
+
+
+class _ConfigProperty[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
     """Decorate to mark own config properties."""
 
 
-# pylint: disable=invalid-name
+@overload
+def config_property[PR](func: Callable[[Any], PR], /) -> _ConfigProperty[PR, Any]: ...
+
+
+@overload
+def config_property(*, context: bool = ...) -> Callable[[Callable[[Any], R]], _ConfigProperty[R, Any]]: ...
+
+
+def config_property[PR](
+    func: Callable[[Any], PR] | None = None,
+    *,
+    context: bool = False,
+) -> _ConfigProperty[PR, Any] | Callable[[Callable[[Any], PR]], _ConfigProperty[PR, Any]]:
+    """
+    Return an instance of _ConfigProperty wrapping the given function.
+
+    Decorator for info properties supporting both usages:
+    - @config_property
+    - @config_property(context=True)
+    """
+    if func is None:
+
+        def wrapper(f: Callable[[Any], PR]) -> _ConfigProperty[PR, Any]:
+            return _ConfigProperty(f, context=context)
+
+        return wrapper
+    return _ConfigProperty(func, context=context)
+
+
+# Expose the underlying property class for discovery
+setattr(config_property, "__property_class__", _ConfigProperty)
+
+
+# ----- info_property -----
+
+
 class _InfoProperty[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
     """Decorate to mark own info properties."""
 
 
 @overload
-def info_property[IR](func: Callable[[Any], IR], /) -> _InfoProperty[IR, Any]: ...
+def info_property[PR](func: Callable[[Any], PR], /) -> _InfoProperty[PR, Any]: ...
 
 
 @overload
 def info_property(*, context: bool = ...) -> Callable[[Callable[[Any], R]], _InfoProperty[R, Any]]: ...
 
 
-def info_property[IR](
-    func: Callable[[Any], IR] | None = None,
+def info_property[PR](
+    func: Callable[[Any], PR] | None = None,
     *,
     context: bool = False,
-) -> _InfoProperty[IR, Any] | Callable[[Callable[[Any], IR]], _InfoProperty[IR, Any]]:
+) -> _InfoProperty[PR, Any] | Callable[[Callable[[Any], PR]], _InfoProperty[PR, Any]]:
     """
     Return an instance of _InfoProperty wrapping the given function.
 
@@ -112,7 +148,7 @@ def info_property[IR](
     """
     if func is None:
 
-        def wrapper(f: Callable[[Any], IR]) -> _InfoProperty[IR, Any]:
+        def wrapper(f: Callable[[Any], PR]) -> _InfoProperty[PR, Any]:
             return _InfoProperty(f, context=context)
 
         return wrapper
@@ -123,10 +159,15 @@ def info_property[IR](
 setattr(info_property, "__property_class__", _InfoProperty)
 
 
+# ----- state_property -----
+
+
 # pylint: disable=invalid-name
 class state_property[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
-    """Decorate to mark own value properties."""
+    """Decorate to mark own state properties."""
 
+
+# ----------
 
 # Cache for per-class attribute names by decorator to avoid repeated dir() scans
 # Use WeakKeyDictionary to allow classes to be garbage-collected without leaking cache entries.
@@ -134,9 +175,7 @@ class state_property[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
 _PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[type, tuple[str, ...]]] = WeakKeyDictionary()
 
 
-def _get_public_attributes_by_class_decorator(
-    data_object: Any, decorator: Any, context: bool = False
-) -> Mapping[str, Any]:
+def _get_attributes_by_decorator(data_object: Any, decorator: Any, context: bool = False) -> Mapping[str, Any]:
     """
     Return the object attributes by decorator.
 
@@ -192,22 +231,24 @@ def _get_text_value(value: Any) -> Any:
 
 def get_public_attributes_for_config_property(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator config_property."""
-    return _get_public_attributes_by_class_decorator(data_object=data_object, decorator=config_property)
+    return _get_attributes_by_decorator(data_object=data_object, decorator=config_property)
 
 
 def get_public_attributes_for_info_property(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator info_property."""
-    return _get_public_attributes_by_class_decorator(data_object=data_object, decorator=info_property)
+    return _get_attributes_by_decorator(data_object=data_object, decorator=info_property)
 
 
-def get_public_attributes_for_info_property_with_context(data_object: Any) -> Mapping[str, Any]:
+def get_public_attributes_for_property_with_context(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator info_property."""
-    return _get_public_attributes_by_class_decorator(data_object=data_object, decorator=info_property, context=True)
+    return dict(_get_attributes_by_decorator(data_object=data_object, decorator=config_property, context=True)) | dict(
+        _get_attributes_by_decorator(data_object=data_object, decorator=info_property, context=True)
+    )
 
 
 def get_public_attributes_for_state_property(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator state_property."""
-    return _get_public_attributes_by_class_decorator(data_object=data_object, decorator=state_property)
+    return _get_attributes_by_decorator(data_object=data_object, decorator=state_property)
 
 
 # pylint: disable=invalid-name

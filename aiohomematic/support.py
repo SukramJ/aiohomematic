@@ -52,7 +52,7 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.property_decorators import (
     get_public_attributes_for_config_property,
     get_public_attributes_for_info_property,
-    get_public_attributes_for_info_property_with_context,
+    get_public_attributes_for_property_with_context,
     get_public_attributes_for_state_property,
 )
 
@@ -641,7 +641,7 @@ class ContextMixin:
         """Return the context for this object."""
         return {
             key: value
-            for key, value in get_public_attributes_for_info_property_with_context(data_object=self).items()
+            for key, value in get_public_attributes_for_property_with_context(data_object=self).items()
             if value is not None
         }
 

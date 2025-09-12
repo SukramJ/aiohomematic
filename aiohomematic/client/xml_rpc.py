@@ -166,7 +166,6 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, ContextMixin):
             raise
         except SSLError as sslerr:
             message = f"SSLError on {self._interface_id}: {extract_exc_args(exc=sslerr)}"
-            context = {"interface_id": self._interface_id}
             level = logging.ERROR
             if sslerr.args[0] in _SSL_ERROR_CODES:
                 message = (
@@ -177,12 +176,17 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, ContextMixin):
                     level = logging.DEBUG
 
             log_boundary_error(
-                logger=_LOGGER, boundary="xml-rpc", action=str(args[0]), err=sslerr, level=level, message=message
+                logger=_LOGGER,
+                boundary="xml-rpc",
+                action=str(args[0]),
+                err=sslerr,
+                level=level,
+                message=message,
+                context=self.context,
             )
             raise NoConnectionException(message) from sslerr
         except OSError as oserr:
             message = f"OSError on {self._interface_id}: {extract_exc_args(exc=oserr)}"
-            context = {"interface_id": self._interface_id}
             level = (
                 logging.ERROR
                 if oserr.args[0] in _OS_ERROR_CODES
@@ -191,7 +195,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, ContextMixin):
             )
 
             log_boundary_error(
-                logger=_LOGGER, boundary="xml-rpc", action=str(args[0]), err=oserr, level=level, context=context
+                logger=_LOGGER, boundary="xml-rpc", action=str(args[0]), err=oserr, level=level, context=self.context
             )
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:

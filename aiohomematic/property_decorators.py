@@ -272,8 +272,10 @@ def get_attributes_for_info_property(data_object: Any) -> Mapping[str, Any]:
 
 def get_attributes_for_log_context(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator info_property."""
-    return dict(_get_attributes_by_decorator(data_object=data_object, decorator=config_property, context=True)) | dict(
-        _get_attributes_by_decorator(data_object=data_object, decorator=info_property, context=True)
+    return (
+        dict(_get_attributes_by_decorator(data_object=data_object, decorator=config_property, context=True))
+        | dict(_get_attributes_by_decorator(data_object=data_object, decorator=info_property, context=True))
+        | dict(_get_attributes_by_decorator(data_object=data_object, decorator=state_property, context=True))
     )
 
 

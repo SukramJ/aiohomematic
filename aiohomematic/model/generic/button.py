@@ -21,7 +21,7 @@ class DpButton(GenericDataPoint[None, bool]):
     _category = DataPointCategory.BUTTON
     _validate_state_change = False
 
-    @inspector()
+    @inspector
     async def press(self) -> None:
         """Handle the button press."""
         await self.send_value(value=True)

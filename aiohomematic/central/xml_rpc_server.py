@@ -57,7 +57,7 @@ class RPCFunctions:
                 action="error",
                 err=err,
                 level=logging.WARNING,
-                context={"interface_id": interface_id, "error_code": int(error_code)},
+                log_context={"interface_id": interface_id, "error_code": int(error_code)},
             )
         _LOGGER.warning(
             "ERROR failed: interface_id = %s, error_code = %i, message = %s",

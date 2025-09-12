@@ -59,7 +59,7 @@ _CALCULATED_DATA_POINTS: Final = (ApparentTemperature, DewPoint, FrostPoint, Ope
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-@inspector()
+@inspector
 def create_calculated_data_points(channel: hmd.Channel) -> None:
     """Decides which data point category should be used, and creates the required data points."""
     for dp in _CALCULATED_DATA_POINTS:

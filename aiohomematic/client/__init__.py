@@ -93,7 +93,9 @@ from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from aiohomematic.model.device import Device
 from aiohomematic.model.support import convert_value
+from aiohomematic.property_decorators import info_property
 from aiohomematic.support import (
+    LogContextMixin,
     build_xml_rpc_headers,
     build_xml_rpc_uri,
     extract_exc_args,
@@ -124,7 +126,7 @@ _CCU_JSON_VALUE_TYPE: Final = {
 }
 
 
-class Client(ABC):
+class Client(ABC, LogContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
     def __init__(self, client_config: _ClientConfig) -> None:
@@ -144,7 +146,7 @@ class Client(ABC):
         self._system_information: SystemInformation
         self.modified_at: datetime = INIT_DATETIME
 
-    @inspector()
+    @inspector
     async def init_client(self) -> None:
         """Init the client."""
         self._system_information = await self._get_system_information()
@@ -169,7 +171,7 @@ class Client(ABC):
         """Return the interface of the client."""
         return self._config.interface
 
-    @property
+    @info_property(log_context=True)
     def interface_id(self) -> str:
         """Return the interface id of the client."""
         return self._config.interface_id
@@ -421,12 +423,12 @@ class Client(ABC):
         """Send ping to CCU to generate PONG event."""
 
     @abstractmethod
-    @inspector()
+    @inspector
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
 
     @abstractmethod
-    @inspector()
+    @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on CCU / Homegear."""
 
@@ -436,12 +438,12 @@ class Client(ABC):
         """Set a system variable on CCU / Homegear."""
 
     @abstractmethod
-    @inspector()
+    @inspector
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
 
     @abstractmethod
-    @inspector()
+    @inspector
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
 
@@ -492,7 +494,7 @@ class Client(ABC):
             _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc))
         return None
 
-    @inspector()
+    @inspector
     async def add_link(self, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""
         try:
@@ -502,7 +504,7 @@ class Client(ABC):
                 f"ADD_LINK failed with for: {sender_address}/{receiver_address}/{name}/{description}: {extract_exc_args(exc=bhexc)}"
             ) from bhexc
 
-    @inspector()
+    @inspector
     async def remove_link(self, sender_address: str, receiver_address: str) -> None:
         """Return a list of links."""
         try:
@@ -512,7 +514,7 @@ class Client(ABC):
                 f"REMOVE_LINK failed with for: {sender_address}/{receiver_address}: {extract_exc_args(exc=bhexc)}"
             ) from bhexc
 
-    @inspector()
+    @inspector
     async def get_link_peers(self, address: str) -> tuple[str, ...] | None:
         """Return a list of link pers."""
         try:
@@ -522,7 +524,7 @@ class Client(ABC):
                 f"GET_LINK_PEERS failed with for: {address}: {extract_exc_args(exc=bhexc)}"
             ) from bhexc
 
-    @inspector()
+    @inspector
     async def get_links(self, address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
         try:
@@ -530,7 +532,7 @@ class Client(ABC):
         except BaseHomematicException as bhexc:
             raise ClientException(f"GET_LINKS failed with for: {address}: {extract_exc_args(exc=bhexc)}") from bhexc
 
-    @inspector()
+    @inspector
     async def get_metadata(self, address: str, data_id: str) -> dict[str, Any]:
         """Return the metadata for an object."""
         try:
@@ -540,7 +542,7 @@ class Client(ABC):
                 f"GET_METADATA failed with for: {address}/{data_id}: {extract_exc_args(exc=bhexc)}"
             ) from bhexc
 
-    @inspector()
+    @inspector
     async def set_metadata(self, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
         try:
@@ -697,7 +699,7 @@ class Client(ABC):
             check_against_pd=check_against_pd,
         )
 
-    @inspector()
+    @inspector
     async def get_paramset(
         self,
         address: str,
@@ -960,7 +962,7 @@ class Client(ABC):
             )
         return None
 
-    @inspector()
+    @inspector
     async def get_all_paramset_descriptions(
         self, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
@@ -970,7 +972,7 @@ class Client(ABC):
             all_paramsets.update(await self.get_paramset_descriptions(device_description=device_description))
         return all_paramsets
 
-    @inspector()
+    @inspector
     async def has_program_ids(self, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         return False
@@ -988,12 +990,12 @@ class Client(ABC):
             )
         return None
 
-    @inspector()
+    @inspector
     async def report_value_usage(self, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         return False
 
-    @inspector()
+    @inspector
     async def update_device_firmware(self, device_address: str) -> bool:
         """Update the firmware of a homematic device."""
         if device := self.central.get_device(address=device_address):
@@ -1136,22 +1138,22 @@ class ClientCCU(Client):
         self.modified_at = INIT_DATETIME
         return False
 
-    @inspector()
+    @inspector
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU."""
         return await self._json_rpc_client.execute_program(pid=pid)
 
-    @inspector()
+    @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on CCU."""
         return await self._json_rpc_client.set_program_state(pid=pid, state=state)
 
-    @inspector()
+    @inspector
     async def has_program_ids(self, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         return await self._json_rpc_client.has_program_ids(channel_hmid=channel_hmid)
 
-    @inspector()
+    @inspector
     async def report_value_usage(self, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         try:
@@ -1166,12 +1168,12 @@ class ClientCCU(Client):
         """Set a system variable on CCU / Homegear."""
         return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
 
-    @inspector()
+    @inspector
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
         return await self._json_rpc_client.delete_system_variable(name=name)
 
-    @inspector()
+    @inspector
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
         return await self._json_rpc_client.get_system_variable(name=name)
@@ -1220,7 +1222,7 @@ class ClientCCU(Client):
 class ClientJsonCCU(ClientCCU):
     """Client implementation for CCU backend."""
 
-    @inspector()
+    @inspector
     async def init_client(self) -> None:
         """Init the client."""
         self._system_information = await self._get_system_information()
@@ -1247,7 +1249,7 @@ class ClientJsonCCU(ClientCCU):
             _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc))
         return None
 
-    @inspector()
+    @inspector
     async def get_paramset(
         self,
         address: str,
@@ -1477,12 +1479,12 @@ class ClientHomegear(Client):
         self.modified_at = INIT_DATETIME
         return False
 
-    @inspector()
+    @inspector
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on Homegear."""
         return True
 
-    @inspector()
+    @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on Homegear."""
         return True
@@ -1493,13 +1495,13 @@ class ClientHomegear(Client):
         await self._proxy.setSystemVariable(legacy_name, value)
         return True
 
-    @inspector()
+    @inspector
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
         await self._proxy.deleteSystemVariable(name)
         return True
 
-    @inspector()
+    @inspector
     async def get_system_variable(self, name: str) -> Any:
         """Get single system variable from CCU / Homegear."""
         return await self._proxy.getSystemVariable(name)

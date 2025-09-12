@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.hub.data_point import GenericProgramDataPoint
+from aiohomematic.property_decorators import state_property
 
 
 class ProgramDpButton(GenericProgramDataPoint):
@@ -22,7 +22,7 @@ class ProgramDpButton(GenericProgramDataPoint):
         """Return the availability of the device."""
         return self._is_active and self._central.available
 
-    @inspector()
+    @inspector
     async def press(self) -> None:
         """Handle the button press."""
         await self.central.execute_program(pid=self.pid)

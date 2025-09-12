@@ -21,8 +21,9 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.model import device as hmd
 from aiohomematic.model.data_point import CallbackDataPoint
-from aiohomematic.model.decorators import config_property, state_property
-from aiohomematic.model.support import DataPointPathData, PayloadMixin, generate_unique_id
+from aiohomematic.model.support import DataPointPathData, generate_unique_id
+from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.support import PayloadMixin
 
 __all__ = ["DpUpdate"]
 
@@ -130,12 +131,12 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             self._custom_id = None
         self._device.unregister_firmware_update_callback(cb)
 
-    @inspector()
+    @inspector
     async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Turn the update on."""
         return await self._device.update_firmware(refresh_after_update_intervals=refresh_after_update_intervals)
 
-    @inspector()
+    @inspector
     async def refresh_firmware_data(self) -> None:
         """Refresh device firmware data."""
         await self._device.central.refresh_firmware_data(device_address=self._device.address)

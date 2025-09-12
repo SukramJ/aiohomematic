@@ -16,8 +16,8 @@ from aiohomematic.model.calculated.support import (
     calculate_frost_point,
     calculate_vapor_concentration,
 )
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import DpSensor
+from aiohomematic.property_decorators import state_property
 from aiohomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)

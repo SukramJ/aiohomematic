@@ -2,6 +2,10 @@
 
 - Refactor CDP OperatingVoltageLevel
 - Refactor event method handling
+- Refactor decorators
+  - Add log_context to @\*\_property
+  - Add overloads to @\*\_property
+  - Add overloads to @inspector
 
 # Version 2025.9.1 (2025-09-06)
 

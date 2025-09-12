@@ -65,17 +65,16 @@ from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.model import device as hmd
-from aiohomematic.model.decorators import cached_slot_property, config_property, state_property
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
     GenericParameterType,
     PathData,
-    PayloadMixin,
     convert_value,
     generate_unique_id,
 )
-from aiohomematic.support import extract_exc_args
+from aiohomematic.property_decorators import cached_slot_property, config_property, info_property, state_property
+from aiohomematic.support import PayloadMixin, extract_exc_args, log_boundary_error
 
 __all__ = [
     "BaseDataPoint",
@@ -685,7 +684,7 @@ class BaseParameterDataPoint[
         """Return multiplier value."""
         return self._multiplier
 
-    @property
+    @info_property(log_context=True)
     def parameter(self) -> str:
         """Return parameter name."""
         return self._parameter
@@ -1087,16 +1086,15 @@ def bind_collector(
                 in_service = IN_SERVICE_VAR.get()
                 if not in_service and log_level > logging.NOTSET:
                     logger = logging.getLogger(args[0].__module__)
-                    extra = {
-                        "err_type": bhexc.__class__.__name__,
-                        "err": extract_exc_args(exc=bhexc),
-                        "function": func.__name__,
-                        **hms.build_log_context_from_obj(obj=args[0]),
-                    }
-                    if log_level >= logging.ERROR:
-                        logger.exception("service_error", extra=extra)
-                    else:
-                        logger.log(level=log_level, msg="service_error", extra=extra)
+                    # Reuse centralized boundary logging to ensure consistent 'extra' structure
+                    log_boundary_error(
+                        logger=logger,
+                        boundary="service",
+                        action=func.__name__,
+                        err=bhexc,
+                        level=log_level,
+                        log_context=hms.build_log_context_from_obj(obj=args[0]),
+                    )
                 # Re-raise domain-specific exceptions so callers and tests can handle them
                 raise
             else:

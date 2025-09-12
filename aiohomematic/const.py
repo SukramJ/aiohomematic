@@ -856,7 +856,7 @@ __all__ = tuple(
         )
         and (
             getattr(obj, "__module__", __name__) == __name__
-            if not isinstance(obj, (int, float, str, bytes, tuple, frozenset, dict))
+            if not isinstance(obj, int | float | str | bytes | tuple | frozenset | dict)
             else True
         )
     )

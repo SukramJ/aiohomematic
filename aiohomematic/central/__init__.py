@@ -149,7 +149,6 @@ from aiohomematic.exceptions import (
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import CustomDataPoint, create_custom_data_points
 from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from aiohomematic.model.decorators import info_property
 from aiohomematic.model.device import Channel, Device
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
@@ -160,8 +159,16 @@ from aiohomematic.model.hub import (
     Hub,
     ProgramDpType,
 )
-from aiohomematic.model.support import PayloadMixin
-from aiohomematic.support import check_config, extract_exc_args, get_channel_no, get_device_address, get_ip_addr
+from aiohomematic.property_decorators import info_property
+from aiohomematic.support import (
+    LogContextMixin,
+    PayloadMixin,
+    check_config,
+    extract_exc_args,
+    get_channel_no,
+    get_device_address,
+    get_ip_addr,
+)
 
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
 
@@ -183,7 +190,7 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 )
 
 
-class CentralUnit(PayloadMixin):
+class CentralUnit(LogContextMixin, PayloadMixin):
     """Central unit that collects everything to handle communication from/to CCU/Homegear."""
 
     def __init__(self, central_config: CentralConfig) -> None:
@@ -252,7 +259,7 @@ class CentralUnit(PayloadMixin):
         """Return the xml rpc server callback ip address."""
         return self._xml_rpc_callback_ip
 
-    @info_property
+    @info_property(log_context=True)
     def url(self) -> str:
         """Return the central url."""
         return self._url
@@ -362,14 +369,14 @@ class CentralUnit(PayloadMixin):
         """Return the loop support."""
         return self._looper
 
-    @info_property
+    @info_property(log_context=True)
     def model(self) -> str | None:
         """Return the model of the backend."""
         if not self._model and (client := self.primary_client):
             self._model = client.model
         return self._model
 
-    @info_property
+    @info_property(log_context=True)
     def name(self) -> str:
         """Return the name of the backend."""
         return self._config.name
@@ -1211,7 +1218,7 @@ class CentralUnit(PayloadMixin):
 
     def add_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Add data_point to central event subscription."""
-        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and (
+        if isinstance(data_point, GenericDataPoint | GenericEvent) and (
             data_point.is_readable or data_point.supports_events
         ):
             if data_point.dpk not in self._data_point_key_event_subscriptions:
@@ -1223,13 +1230,13 @@ class CentralUnit(PayloadMixin):
             ):
                 self._data_point_path_event_subscriptions[data_point.state_path] = data_point.dpk
 
-    @inspector()
+    @inspector
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
         for device in self.devices:
             await device.create_central_links()
 
-    @inspector()
+    @inspector
     async def remove_central_links(self) -> None:
         """Remove central links."""
         for device in self.devices:
@@ -1252,7 +1259,7 @@ class CentralUnit(PayloadMixin):
 
     def remove_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
         """Remove event subscription from central collections."""
-        if isinstance(data_point, (GenericDataPoint, GenericEvent)) and data_point.supports_events:
+        if isinstance(data_point, GenericDataPoint | GenericEvent) and data_point.supports_events:
             if data_point.dpk in self._data_point_key_event_subscriptions:
                 del self._data_point_key_event_subscriptions[data_point.dpk]
             if data_point.state_path in self._data_point_path_event_subscriptions:

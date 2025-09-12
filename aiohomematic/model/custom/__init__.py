@@ -151,7 +151,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-@inspector()
+@inspector
 def create_custom_data_points(device: hmd.Device) -> None:
     """Decides which data point category should be used, and creates the required data points."""
 

@@ -5,8 +5,8 @@
 from __future__ import annotations
 
 from aiohomematic.const import DataPointCategory
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
+from aiohomematic.property_decorators import state_property
 
 
 class SysvarDpBinarySensor(GenericSysvarDataPoint):

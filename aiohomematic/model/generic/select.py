@@ -6,9 +6,9 @@ from __future__ import annotations
 
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic.data_point import GenericDataPoint
 from aiohomematic.model.support import get_value_from_value_list
+from aiohomematic.property_decorators import state_property
 
 
 class DpSelect(GenericDataPoint[int | str, int | float | str]):

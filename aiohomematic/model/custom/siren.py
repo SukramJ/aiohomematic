@@ -17,8 +17,8 @@ from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSensor
+from aiohomematic.property_decorators import state_property
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
 

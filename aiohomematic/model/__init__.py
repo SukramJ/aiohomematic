@@ -45,7 +45,7 @@ _ALLOWED_INTERNAL_PARAMETERS: Final[tuple[Parameter, ...]] = (Parameter.DIRECTIO
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-@inspector()
+@inspector
 def create_data_points_and_events(device: hmd.Device) -> None:
     """Create the data points associated to this device."""
     for channel in device.channels.values():

@@ -8,9 +8,9 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, SysvarType
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
 from aiohomematic.model.support import check_length_and_log, get_value_from_value_list
+from aiohomematic.property_decorators import state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 

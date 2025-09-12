@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
-from aiohomematic.model.decorators import state_property
 from aiohomematic.model.hub.data_point import GenericProgramDataPoint, GenericSysvarDataPoint
+from aiohomematic.property_decorators import state_property
 
 
 class SysvarDpSwitch(GenericSysvarDataPoint):
@@ -31,13 +31,13 @@ class ProgramDpSwitch(GenericProgramDataPoint):
         """Get the value of the data_point."""
         return self._is_active
 
-    @inspector()
+    @inspector
     async def turn_on(self) -> None:
         """Turn the program on."""
         await self.central.set_program_state(pid=self._pid, state=True)
         await self._central.fetch_program_data(scheduled=False)
 
-    @inspector()
+    @inspector
     async def turn_off(self) -> None:
         """Turn the program off."""
         await self.central.set_program_state(pid=self._pid, state=False)

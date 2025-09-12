@@ -18,7 +18,7 @@ from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.client import Client, InterfaceConfig, _ClientConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
 from aiohomematic.model.custom import CustomDataPoint
-from aiohomematic.model.decorators import _get_public_attributes_by_class_decorator
+from aiohomematic.property_decorators import _get_attributes_by_decorator
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
 
 from tests import const
@@ -187,7 +187,7 @@ def get_mock(instance: Any, **kwargs):
 
 def _get_not_mockable_method_names(instance: Any) -> set[str]:
     """Return all relevant method names for mocking."""
-    methods: set[str] = set(_get_public_attributes_by_class_decorator(instance, property))
+    methods: set[str] = set(_get_attributes_by_decorator(instance, property))
 
     for method in dir(instance):
         if method in EXCLUDE_METHODS_FROM_MOCKS:

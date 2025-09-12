@@ -249,7 +249,7 @@ def _get_attributes_by_decorator(
         try:
             value = getattr(data_object, name)
             if isinstance(value, hms.LogContextMixin):
-                result.update({f"{name}.{k}": v for k, v in value.log_context.items()})
+                result.update({f"{name[:1]}.{k}": v for k, v in value.log_context.items()})
             else:
                 result[name] = _get_text_value(value)
         except Exception:

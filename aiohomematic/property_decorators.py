@@ -12,9 +12,9 @@ from weakref import WeakKeyDictionary
 
 __all__ = [
     "config_property",
-    "get_public_attributes_for_config_property",
-    "get_public_attributes_for_info_property",
-    "get_public_attributes_for_state_property",
+    "get_attributes_for_config_property",
+    "get_attributes_for_info_property",
+    "get_attributes_for_state_property",
     "info_property",
     "state_property",
 ]
@@ -37,14 +37,14 @@ class _GenericProperty[GETTER, SETTER](property):
         fset: Callable[[Any, SETTER], None] | None = None,
         fdel: Callable[[Any], None] | None = None,
         doc: str | None = None,
-        context: bool = False,
+        log_context: bool = False,
     ) -> None:
         """Init the generic property."""
         super().__init__(fget, fset, fdel, doc)
         if doc is None and fget is not None:
             doc = fget.__doc__
         self.__doc__ = doc
-        self.context = context
+        self.log_context = log_context
 
     def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty:
         """Return generic getter."""
@@ -102,17 +102,17 @@ def config_property[PR](
     """
     Return an instance of _ConfigProperty wrapping the given function.
 
-    Decorator for info properties supporting both usages:
+    Decorator for config properties supporting both usages:
     - @config_property
     - @config_property(context=True)
     """
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _ConfigProperty[PR, Any]:
-            return _ConfigProperty(f, context=context)
+            return _ConfigProperty(f, log_context=context)
 
         return wrapper
-    return _ConfigProperty(func, context=context)
+    return _ConfigProperty(func, log_context=context)
 
 
 # Expose the underlying property class for discovery
@@ -149,10 +149,10 @@ def info_property[PR](
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _InfoProperty[PR, Any]:
-            return _InfoProperty(f, context=context)
+            return _InfoProperty(f, log_context=context)
 
         return wrapper
-    return _InfoProperty(func, context=context)
+    return _InfoProperty(func, log_context=context)
 
 
 # Expose the underlying property class for discovery
@@ -202,12 +202,12 @@ def _get_attributes_by_decorator(data_object: Any, decorator: Any, context: bool
 
     # Get or compute the attribute names for this decorator
     if (names := decorator_cache.get(resolved_decorator)) is None:
-        names = tuple(y for y in dir(cls) if not y.startswith("_") and isinstance(getattr(cls, y), resolved_decorator))
+        names = tuple(y for y in dir(cls) if isinstance(getattr(cls, y), resolved_decorator))
         decorator_cache[resolved_decorator] = names
 
     result: dict[str, Any] = {}
     for name in names:
-        if context and getattr(cls, name).context is False:
+        if context and getattr(cls, name).log_context is False:
             continue
         try:
             value = getattr(data_object, name)
@@ -229,24 +229,24 @@ def _get_text_value(value: Any) -> Any:
     return value
 
 
-def get_public_attributes_for_config_property(data_object: Any) -> Mapping[str, Any]:
+def get_attributes_for_config_property(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator config_property."""
     return _get_attributes_by_decorator(data_object=data_object, decorator=config_property)
 
 
-def get_public_attributes_for_info_property(data_object: Any) -> Mapping[str, Any]:
+def get_attributes_for_info_property(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator info_property."""
     return _get_attributes_by_decorator(data_object=data_object, decorator=info_property)
 
 
-def get_public_attributes_for_property_with_context(data_object: Any) -> Mapping[str, Any]:
+def get_attributes_for_log_context(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator info_property."""
     return dict(_get_attributes_by_decorator(data_object=data_object, decorator=config_property, context=True)) | dict(
         _get_attributes_by_decorator(data_object=data_object, decorator=info_property, context=True)
     )
 
 
-def get_public_attributes_for_state_property(data_object: Any) -> Mapping[str, Any]:
+def get_attributes_for_state_property(data_object: Any) -> Mapping[str, Any]:
     """Return the object attributes by decorator state_property."""
     return _get_attributes_by_decorator(data_object=data_object, decorator=state_property)
 

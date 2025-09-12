@@ -108,7 +108,7 @@ def inspector[**P, R](  # noqa: C901
                     action=func.__name__,
                     err=exc,
                     level=log_level,
-                    context=build_log_context_from_obj(obj=context_obj),
+                    log_context=build_log_context_from_obj(obj=context_obj),
                 )
             if re_raise or not is_homematic:
                 raise exc

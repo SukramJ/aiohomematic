@@ -161,7 +161,7 @@ from aiohomematic.model.hub import (
 )
 from aiohomematic.property_decorators import info_property
 from aiohomematic.support import (
-    ContextMixin,
+    LogContextMixin,
     PayloadMixin,
     check_config,
     extract_exc_args,
@@ -190,7 +190,7 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 )
 
 
-class CentralUnit(ContextMixin, PayloadMixin):
+class CentralUnit(LogContextMixin, PayloadMixin):
     """Central unit that collects everything to handle communication from/to CCU/Homegear."""
 
     def __init__(self, central_config: CentralConfig) -> None:

@@ -11,9 +11,9 @@ import pytest
 from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
 from aiohomematic.model.generic import GenericDataPoint
 from aiohomematic.property_decorators import (
-    get_public_attributes_for_config_property,
-    get_public_attributes_for_info_property,
-    get_public_attributes_for_state_property,
+    get_attributes_for_config_property,
+    get_attributes_for_info_property,
+    get_attributes_for_state_property,
 )
 
 from tests import const
@@ -64,9 +64,9 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
         for dp in device.generic_data_points:
             if dp.parameter not in data[device.model]:
                 data[device.model][dp.parameter] = f"{dp.hmtype}"
-        pub_state_props = get_public_attributes_for_state_property(data_object=device)
+        pub_state_props = get_attributes_for_state_property(data_object=device)
         assert pub_state_props
-        info_config_props = get_public_attributes_for_info_property(data_object=device)
+        info_config_props = get_attributes_for_info_property(data_object=device)
         assert info_config_props
 
     custom_dps = []
@@ -83,9 +83,9 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
         if cdp.device.model not in ce_channels:
             ce_channels[cdp.device.model] = []
         ce_channels[cdp.device.model].append(cdp.channel.no)
-        pub_value_props = get_public_attributes_for_state_property(data_object=cdp)
+        pub_value_props = get_attributes_for_state_property(data_object=cdp)
         assert pub_value_props
-        pub_config_props = get_public_attributes_for_config_property(data_object=cdp)
+        pub_config_props = get_attributes_for_config_property(data_object=cdp)
         assert pub_config_props
 
     data_point_types = {}
@@ -99,9 +99,9 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
             data_point_types[dp.hmtype][type(dp).__name__].append(dp)
 
         if isinstance(dp, GenericDataPoint):
-            pub_value_props = get_public_attributes_for_state_property(data_object=dp)
+            pub_value_props = get_attributes_for_state_property(data_object=dp)
             assert pub_value_props
-            pub_config_props = get_public_attributes_for_config_property(data_object=dp)
+            pub_config_props = get_attributes_for_config_property(data_object=dp)
             assert pub_config_props
 
     parameters: list[tuple[str, int]] = []

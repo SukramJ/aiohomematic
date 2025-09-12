@@ -50,10 +50,10 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.property_decorators import (
-    get_public_attributes_for_config_property,
-    get_public_attributes_for_info_property,
-    get_public_attributes_for_property_with_context,
-    get_public_attributes_for_state_property,
+    get_attributes_for_config_property,
+    get_attributes_for_info_property,
+    get_attributes_for_log_context,
+    get_attributes_for_state_property,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -520,7 +520,7 @@ def cleanup_text_from_html_tags(text: str) -> str:
 _BOUNDARY_MSG = "error_boundary"
 
 
-def _safe_context(context: Mapping[str, Any] | None) -> dict[str, Any]:
+def _safe_log_context(context: Mapping[str, Any] | None) -> dict[str, Any]:
     """Extract safe context from a mapping."""
     ctx: dict[str, Any] = {}
     if not context:
@@ -598,7 +598,7 @@ def log_boundary_error(
     action: str,
     err: Exception,
     level: int | None = None,
-    context: Mapping[str, Any] | None = None,
+    log_context: Mapping[str, Any] | None = None,
     message: str | None = None,
 ) -> None:
     """
@@ -620,8 +620,8 @@ def log_boundary_error(
     if message:
         log_message += f" {message}"
 
-    if context:
-        log_message += f" ctx={orjson.dumps(_safe_context(context), option=orjson.OPT_SORT_KEYS).decode()}"
+    if log_context:
+        log_message += f" ctx={orjson.dumps(_safe_log_context(log_context), option=orjson.OPT_SORT_KEYS).decode()}"
 
     # Choose level if not provided:
     if (chosen_level := level) is None:
@@ -631,18 +631,16 @@ def log_boundary_error(
     logger.log(chosen_level, log_message)
 
 
-class ContextMixin:
-    """Mixin to add context methods to class."""
+class LogContextMixin:
+    """Mixin to add log context methods to class."""
 
     __slots__ = ()
 
     @property
-    def context(self) -> Mapping[str, Any]:
-        """Return the context for this object."""
+    def log_context(self) -> Mapping[str, Any]:
+        """Return the log context for this object."""
         return {
-            key: value
-            for key, value in get_public_attributes_for_property_with_context(data_object=self).items()
-            if value is not None
+            key: value for key, value in get_attributes_for_log_context(data_object=self).items() if value is not None
         }
 
 
@@ -656,7 +654,7 @@ class PayloadMixin:
         """Return the config payload."""
         return {
             key: value
-            for key, value in get_public_attributes_for_config_property(data_object=self).items()
+            for key, value in get_attributes_for_config_property(data_object=self).items()
             if value is not None
         }
 
@@ -664,9 +662,7 @@ class PayloadMixin:
     def info_payload(self) -> Mapping[str, Any]:
         """Return the info payload."""
         return {
-            key: value
-            for key, value in get_public_attributes_for_info_property(data_object=self).items()
-            if value is not None
+            key: value for key, value in get_attributes_for_info_property(data_object=self).items() if value is not None
         }
 
     @property
@@ -674,7 +670,7 @@ class PayloadMixin:
         """Return the state payload."""
         return {
             key: value
-            for key, value in get_public_attributes_for_state_property(data_object=self).items()
+            for key, value in get_attributes_for_state_property(data_object=self).items()
             if value is not None
         }
 

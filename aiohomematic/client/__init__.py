@@ -95,7 +95,7 @@ from aiohomematic.model.device import Device
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import info_property
 from aiohomematic.support import (
-    ContextMixin,
+    LogContextMixin,
     build_xml_rpc_headers,
     build_xml_rpc_uri,
     extract_exc_args,
@@ -126,7 +126,7 @@ _CCU_JSON_VALUE_TYPE: Final = {
 }
 
 
-class Client(ABC, ContextMixin):
+class Client(ABC, LogContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
     def __init__(self, client_config: _ClientConfig) -> None:

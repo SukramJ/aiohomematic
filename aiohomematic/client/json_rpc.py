@@ -93,7 +93,7 @@ from aiohomematic.exceptions import (
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import info_property
 from aiohomematic.support import (
-    ContextMixin,
+    LogContextMixin,
     cleanup_text_from_html_tags,
     element_matches_key,
     extract_exc_args,
@@ -179,7 +179,7 @@ _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
 )
 
 
-class JsonRpcAioHttpClient(ContextMixin):
+class JsonRpcAioHttpClient(LogContextMixin):
     """Connection to CCU JSON-RPC Server."""
 
     def __init__(
@@ -439,7 +439,7 @@ class JsonRpcAioHttpClient(ContextMixin):
                         action=str(method),
                         err=exc,
                         level=logging.WARNING,
-                        context=self.context,
+                        log_context=self.log_context,
                     )
                     _LOGGER.debug("POST: %s", exc)
                     raise exc
@@ -457,7 +457,7 @@ class JsonRpcAioHttpClient(ContextMixin):
                     action=str(method),
                     err=exc,
                     level=logging.WARNING,
-                    context=dict(self.context) | {"status": response.status},
+                    log_context=dict(self.log_context) | {"status": response.status},
                 )
                 raise exc
             raise ClientException(message)
@@ -471,7 +471,7 @@ class JsonRpcAioHttpClient(ContextMixin):
                 action=str(method),
                 err=bhe,
                 level=logging.WARNING,
-                context=self.context,
+                log_context=self.log_context,
             )
             raise
 
@@ -484,7 +484,7 @@ class JsonRpcAioHttpClient(ContextMixin):
                 action=str(method),
                 err=cceerr,
                 level=logging.ERROR,
-                context=self.context,
+                log_context=self.log_context,
             )
             raise ClientException(message) from cceerr
         except ClientConnectorCertificateError as cccerr:
@@ -501,7 +501,7 @@ class JsonRpcAioHttpClient(ContextMixin):
                 action=str(method),
                 err=cccerr,
                 level=logging.ERROR,
-                context=self.context,
+                log_context=self.log_context,
             )
             raise ClientException(message) from cccerr
         except (ClientError, OSError) as err:
@@ -512,7 +512,7 @@ class JsonRpcAioHttpClient(ContextMixin):
                 action=str(method),
                 err=err,
                 level=logging.ERROR,
-                context=self.context,
+                log_context=self.log_context,
             )
             raise NoConnectionException(err) from err
         except (TypeError, Exception) as exc:
@@ -523,7 +523,7 @@ class JsonRpcAioHttpClient(ContextMixin):
                 action=str(method),
                 err=exc,
                 level=logging.ERROR,
-                context=self.context,
+                log_context=self.log_context,
             )
             raise ClientException(exc) from exc
 

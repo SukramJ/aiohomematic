@@ -43,7 +43,7 @@ from aiohomematic.exceptions import (
     UnsupportedException,
 )
 from aiohomematic.property_decorators import info_property
-from aiohomematic.support import ContextMixin, extract_exc_args, get_tls_context, log_boundary_error
+from aiohomematic.support import LogContextMixin, extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ _OS_ERROR_CODES: Final[dict[int, str]] = {
 
 
 # noinspection PyProtectedMember,PyUnresolvedReferences
-class XmlRpcProxy(xmlrpc.client.ServerProxy, ContextMixin):
+class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
 
     def __init__(
@@ -182,7 +182,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, ContextMixin):
                 err=sslerr,
                 level=level,
                 message=message,
-                context=self.context,
+                log_context=self.log_context,
             )
             raise NoConnectionException(message) from sslerr
         except OSError as oserr:
@@ -195,7 +195,12 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, ContextMixin):
             )
 
             log_boundary_error(
-                logger=_LOGGER, boundary="xml-rpc", action=str(args[0]), err=oserr, level=level, context=self.context
+                logger=_LOGGER,
+                boundary="xml-rpc",
+                action=str(args[0]),
+                err=oserr,
+                level=level,
+                log_context=self.log_context,
             )
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:

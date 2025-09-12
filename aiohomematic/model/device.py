@@ -83,7 +83,7 @@ from aiohomematic.model.update import DpUpdate
 from aiohomematic.property_decorators import cached_slot_property, info_property, state_property
 from aiohomematic.support import (
     CacheEntry,
-    ContextMixin,
+    LogContextMixin,
     PayloadMixin,
     check_or_create_directory,
     extract_exc_args,
@@ -97,7 +97,7 @@ __all__ = ["Channel", "Device"]
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class Device(ContextMixin, PayloadMixin):
+class Device(LogContextMixin, PayloadMixin):
     """Object to hold information about a device and associated data points."""
 
     __slots__ = (
@@ -683,7 +683,7 @@ class Device(ContextMixin, PayloadMixin):
         )
 
 
-class Channel(ContextMixin, PayloadMixin):
+class Channel(LogContextMixin, PayloadMixin):
     """Object to hold information about a channel and associated data points."""
 
     __slots__ = (

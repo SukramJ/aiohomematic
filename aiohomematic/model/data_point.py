@@ -1093,7 +1093,7 @@ def bind_collector(
                         action=func.__name__,
                         err=bhexc,
                         level=log_level,
-                        context=hms.build_log_context_from_obj(obj=args[0]),
+                        log_context=hms.build_log_context_from_obj(obj=args[0]),
                     )
                 # Re-raise domain-specific exceptions so callers and tests can handle them
                 raise

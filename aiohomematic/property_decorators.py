@@ -162,10 +162,41 @@ setattr(info_property, "__property_class__", _InfoProperty)
 # ----- state_property -----
 
 
-# pylint: disable=invalid-name
-class state_property[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
-    """Decorate to mark own state properties."""
+class _StateProperty[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
+    """Decorate to mark own config properties."""
 
+
+@overload
+def state_property[PR](func: Callable[[Any], PR], /) -> _StateProperty[PR, Any]: ...
+
+
+@overload
+def state_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _StateProperty[R, Any]]: ...
+
+
+def state_property[PR](
+    func: Callable[[Any], PR] | None = None,
+    *,
+    log_context: bool = False,
+) -> _StateProperty[PR, Any] | Callable[[Callable[[Any], PR]], _StateProperty[PR, Any]]:
+    """
+    Return an instance of _StateProperty wrapping the given function.
+
+    Decorator for state properties supporting both usages:
+    - @state_property
+    - @state_property(log_context=True)
+    """
+    if func is None:
+
+        def wrapper(f: Callable[[Any], PR]) -> _StateProperty[PR, Any]:
+            return _StateProperty(f, log_context=log_context)
+
+        return wrapper
+    return _StateProperty(func, log_context=log_context)
+
+
+# Expose the underlying property class for discovery
+setattr(state_property, "__property_class__", _StateProperty)
 
 # ----------
 
@@ -175,7 +206,7 @@ class state_property[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
 _PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[type, tuple[str, ...]]] = WeakKeyDictionary()
 
 
-def _get_attributes_by_decorator(data_object: Any, decorator: Any, context: bool = False) -> Mapping[str, Any]:
+def _get_attributes_by_decorator(data_object: Any, decorator: Callable, context: bool = False) -> Mapping[str, Any]:
     """
     Return the object attributes by decorator.
 

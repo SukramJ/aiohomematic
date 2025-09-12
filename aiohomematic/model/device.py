@@ -327,7 +327,7 @@ class Device(LogContextMixin, PayloadMixin):
         """Return the interface of the device."""
         return self._interface
 
-    @property
+    @info_property(log_context=True)
     def interface_id(self) -> str:
         """Return the interface_id of the device."""
         return self._interface_id
@@ -737,7 +737,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
 
-    @info_property(log_context=True)
+    @info_property
     def address(self) -> str:
         """Return the address of the channel."""
         return self._address
@@ -762,7 +762,7 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the device description for the channel."""
         return self._description
 
-    @property
+    @info_property(log_context=True)
     def device(self) -> Device:
         """Return the device of the channel."""
         return self._device
@@ -832,7 +832,7 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the name data of the channel."""
         return self._name_data
 
-    @property
+    @info_property(log_context=True)
     def no(self) -> int | None:
         """Return the channel_no of the channel."""
         return self._no

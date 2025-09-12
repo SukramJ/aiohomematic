@@ -74,7 +74,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
 )
 from aiohomematic.property_decorators import cached_slot_property, config_property, info_property, state_property
-from aiohomematic.support import PayloadMixin, extract_exc_args, log_boundary_error
+from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args, log_boundary_error
 
 __all__ = [
     "BaseDataPoint",
@@ -131,7 +131,7 @@ EVENT_DATA_SCHEMA = vol.Schema(
 )
 
 
-class CallbackDataPoint(ABC):
+class CallbackDataPoint(ABC, LogContextMixin):
     """Base class for callback data point."""
 
     __slots__ = (
@@ -447,7 +447,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         """Return the availability of the device."""
         return self._device.available
 
-    @property
+    @info_property(log_context=True)
     def channel(self) -> hmd.Channel:
         """Return the channel the data_point."""
         return self._channel
@@ -1085,7 +1085,9 @@ def bind_collector(
                     IN_SERVICE_VAR.reset(token)
                 in_service = IN_SERVICE_VAR.get()
                 if not in_service and log_level > logging.NOTSET:
-                    logger = logging.getLogger(args[0].__module__)
+                    context_obj = args[0]
+                    logger = logging.getLogger(context_obj.__module__)
+                    log_context = context_obj.log_context if isinstance(context_obj, LogContextMixin) else None
                     # Reuse centralized boundary logging to ensure consistent 'extra' structure
                     log_boundary_error(
                         logger=logger,
@@ -1093,7 +1095,7 @@ def bind_collector(
                         action=func.__name__,
                         err=bhexc,
                         level=log_level,
-                        log_context=hms.build_log_context_from_obj(obj=args[0]),
+                        log_context=log_context,
                     )
                 # Re-raise domain-specific exceptions so callers and tests can handle them
                 raise

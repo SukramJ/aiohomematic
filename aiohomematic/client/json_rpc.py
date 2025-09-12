@@ -218,14 +218,14 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return self._session_id is not None
 
     @info_property(log_context=True)
-    def tls(self) -> bool:
-        """Return tls."""
-        return self._tls
-
-    @info_property(log_context=True)
     def url(self) -> str | None:
         """Return url."""
         return self._url
+
+    @info_property(log_context=True)
+    def tls(self) -> bool:
+        """Return tls."""
+        return self._tls
 
     async def _login_or_renew(self) -> bool:
         """Renew JSON-RPC session or perform login."""

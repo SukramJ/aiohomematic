@@ -87,7 +87,7 @@ class PropertyTestClazz:
         """Return info."""
         return self._info
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def info_context(self) -> str:
         """Return info context."""
         return self._info

@@ -91,28 +91,28 @@ def config_property[PR](func: Callable[[Any], PR], /) -> _ConfigProperty[PR, Any
 
 
 @overload
-def config_property(*, context: bool = ...) -> Callable[[Callable[[Any], R]], _ConfigProperty[R, Any]]: ...
+def config_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _ConfigProperty[R, Any]]: ...
 
 
 def config_property[PR](
     func: Callable[[Any], PR] | None = None,
     *,
-    context: bool = False,
+    log_context: bool = False,
 ) -> _ConfigProperty[PR, Any] | Callable[[Callable[[Any], PR]], _ConfigProperty[PR, Any]]:
     """
     Return an instance of _ConfigProperty wrapping the given function.
 
     Decorator for config properties supporting both usages:
     - @config_property
-    - @config_property(context=True)
+    - @config_property(log_context=True)
     """
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _ConfigProperty[PR, Any]:
-            return _ConfigProperty(f, log_context=context)
+            return _ConfigProperty(f, log_context=log_context)
 
         return wrapper
-    return _ConfigProperty(func, log_context=context)
+    return _ConfigProperty(func, log_context=log_context)
 
 
 # Expose the underlying property class for discovery
@@ -131,28 +131,28 @@ def info_property[PR](func: Callable[[Any], PR], /) -> _InfoProperty[PR, Any]: .
 
 
 @overload
-def info_property(*, context: bool = ...) -> Callable[[Callable[[Any], R]], _InfoProperty[R, Any]]: ...
+def info_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _InfoProperty[R, Any]]: ...
 
 
 def info_property[PR](
     func: Callable[[Any], PR] | None = None,
     *,
-    context: bool = False,
+    log_context: bool = False,
 ) -> _InfoProperty[PR, Any] | Callable[[Callable[[Any], PR]], _InfoProperty[PR, Any]]:
     """
     Return an instance of _InfoProperty wrapping the given function.
 
     Decorator for info properties supporting both usages:
     - @info_property
-    - @info_property(context=True)
+    - @info_property(log_context=True)
     """
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _InfoProperty[PR, Any]:
-            return _InfoProperty(f, log_context=context)
+            return _InfoProperty(f, log_context=log_context)
 
         return wrapper
-    return _InfoProperty(func, log_context=context)
+    return _InfoProperty(func, log_context=log_context)
 
 
 # Expose the underlying property class for discovery

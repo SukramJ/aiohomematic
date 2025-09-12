@@ -197,7 +197,7 @@ class Device(LogContextMixin, PayloadMixin):
             return Manufacturer.MOEHLENHOFF
         return Manufacturer.EQ3
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def address(self) -> str:
         """Return the address of the device."""
         return self._address
@@ -354,7 +354,7 @@ class Device(LogContextMixin, PayloadMixin):
         """Return the manufacturer of the device."""
         return self._manufacturer
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def model(self) -> str:
         """Return the model of the device."""
         return self._model
@@ -737,7 +737,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def address(self) -> str:
         """Return the address of the channel."""
         return self._address

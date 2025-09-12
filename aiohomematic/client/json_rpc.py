@@ -217,12 +217,12 @@ class JsonRpcAioHttpClient(LogContextMixin):
         """If session exists, then it is activated."""
         return self._session_id is not None
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def tls(self) -> bool:
         """Return tls."""
         return self._tls
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def url(self) -> str | None:
         """Return url."""
         return self._url

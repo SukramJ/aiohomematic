@@ -684,7 +684,7 @@ class BaseParameterDataPoint[
         """Return multiplier value."""
         return self._multiplier
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def parameter(self) -> str:
         """Return parameter name."""
         return self._parameter

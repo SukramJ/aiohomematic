@@ -259,7 +259,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Return the xml rpc server callback ip address."""
         return self._xml_rpc_callback_ip
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def url(self) -> str:
         """Return the central url."""
         return self._url
@@ -369,14 +369,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Return the loop support."""
         return self._looper
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def model(self) -> str | None:
         """Return the model of the backend."""
         if not self._model and (client := self.primary_client):
             self._model = client.model
         return self._model
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def name(self) -> str:
         """Return the name of the backend."""
         return self._config.name

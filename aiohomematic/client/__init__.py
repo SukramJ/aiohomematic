@@ -171,7 +171,7 @@ class Client(ABC, LogContextMixin):
         """Return the interface of the client."""
         return self._config.interface
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def interface_id(self) -> str:
         """Return the interface id of the client."""
         return self._config.interface_id

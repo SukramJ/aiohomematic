@@ -121,7 +121,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
             supported_methods.append(_XmlRpcMethod.PING)
             self._supported_methods = tuple(supported_methods)
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def interface_id(self) -> str:
         """Return the interface_id."""
         return self._interface_id
@@ -131,7 +131,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
         """Return the supported methods."""
         return self._supported_methods
 
-    @info_property(context=True)
+    @info_property(log_context=True)
     def tls(self) -> bool:
         """Return tls."""
         return self._tls

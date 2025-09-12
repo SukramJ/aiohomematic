@@ -1230,13 +1230,13 @@ class CentralUnit(ContextMixin, PayloadMixin):
             ):
                 self._data_point_path_event_subscriptions[data_point.state_path] = data_point.dpk
 
-    @inspector()
+    @inspector
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
         for device in self.devices:
             await device.create_central_links()
 
-    @inspector()
+    @inspector
     async def remove_central_links(self) -> None:
         """Remove central links."""
         for device in self.devices:

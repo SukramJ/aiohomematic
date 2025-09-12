@@ -88,7 +88,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
                 event_data=self.get_event_data(new_value),
             )
 
-    @inspector()
+    @inspector
     async def send_value(
         self,
         value: InputParameterT,

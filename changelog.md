@@ -2,6 +2,7 @@
 
 - Refactor CDP OperatingVoltageLevel
 - Refactor event method handling
+- Refactor decorators
 
 # Version 2025.9.1 (2025-09-06)
 

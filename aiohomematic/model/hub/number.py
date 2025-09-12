@@ -22,7 +22,7 @@ class SysvarDpNumber(GenericSysvarDataPoint):
     _category = DataPointCategory.HUB_NUMBER
     _is_extended = True
 
-    @inspector()
+    @inspector
     async def send_variable(self, value: float) -> None:
         """Set the value of the data_point."""
         if value is not None and self.max is not None and self.min is not None:

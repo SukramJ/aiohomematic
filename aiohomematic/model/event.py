@@ -159,7 +159,7 @@ class ImpulseEvent(GenericEvent):
     _event_type = EventType.IMPULSE
 
 
-@inspector()
+@inspector
 def create_event_and_append_to_channel(channel: hmd.Channel, parameter: str, parameter_data: ParameterData) -> None:
     """Create action event data_point."""
     _LOGGER.debug(

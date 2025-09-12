@@ -131,12 +131,12 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             self._custom_id = None
         self._device.unregister_firmware_update_callback(cb)
 
-    @inspector()
+    @inspector
     async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Turn the update on."""
         return await self._device.update_firmware(refresh_after_update_intervals=refresh_after_update_intervals)
 
-    @inspector()
+    @inspector
     async def refresh_firmware_data(self) -> None:
         """Refresh device firmware data."""
         await self._device.central.refresh_firmware_data(device_address=self._device.address)

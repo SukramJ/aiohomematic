@@ -260,7 +260,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             value = float(new_value)
         return value
 
-    @inspector()
+    @inspector
     async def send_variable(self, value: Any) -> None:
         """Set variable value on CCU/Homegear."""
         if client := self.central.primary_client:

@@ -126,12 +126,12 @@ class ClientLocal(Client):  # pragma: no cover
             self._ping_pong_cache.handle_send_ping(ping_ts=datetime.now())
         return True
 
-    @inspector()
+    @inspector
     async def execute_program(self, pid: str) -> bool:
         """Execute a program on CCU / Homegear."""
         return True
 
-    @inspector()
+    @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
         """Set the program state on CCU / Homegear."""
         return True
@@ -141,12 +141,12 @@ class ClientLocal(Client):  # pragma: no cover
         """Set a system variable on CCU / Homegear."""
         return True
 
-    @inspector()
+    @inspector
     async def delete_system_variable(self, name: str) -> bool:
         """Delete a system variable from CCU / Homegear."""
         return True
 
-    @inspector()
+    @inspector
     async def get_system_variable(self, name: str) -> str:
         """Get single system variable from CCU / Homegear."""
         return "Empty"
@@ -231,7 +231,7 @@ class ClientLocal(Client):  # pragma: no cover
         await self.central.data_point_event(self.interface_id, channel_address, parameter, value)
         return result
 
-    @inspector()
+    @inspector
     async def get_paramset(
         self,
         address: str,

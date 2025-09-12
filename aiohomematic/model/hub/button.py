@@ -22,7 +22,7 @@ class ProgramDpButton(GenericProgramDataPoint):
         """Return the availability of the device."""
         return self._is_active and self._central.available
 
-    @inspector()
+    @inspector
     async def press(self) -> None:
         """Handle the button press."""
         await self.central.execute_program(pid=self.pid)

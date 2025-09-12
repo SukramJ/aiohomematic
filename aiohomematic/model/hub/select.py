@@ -31,7 +31,7 @@ class SysvarDpSelect(GenericSysvarDataPoint):
             return value
         return None
 
-    @inspector()
+    @inspector
     async def send_variable(self, value: int | str) -> None:
         """Set the value of the data_point."""
         # We allow setting the value via index as well, just in case.

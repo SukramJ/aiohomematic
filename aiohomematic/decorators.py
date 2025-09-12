@@ -13,15 +13,12 @@ from functools import wraps
 import inspect
 import logging
 from time import monotonic
-from typing import Any, Final, ParamSpec, TypeVar, cast
+from typing import Any, Final, cast, overload
 from weakref import WeakKeyDictionary
 
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.support import build_log_context_from_obj, log_boundary_error
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 _LOGGER_PERFORMANCE: Final = logging.getLogger(f"{__package__}.performance")
 
@@ -30,26 +27,59 @@ _LOGGER_PERFORMANCE: Final = logging.getLogger(f"{__package__}.performance")
 _SERVICE_CALLS_CACHE: WeakKeyDictionary[type, tuple[str, ...]] = WeakKeyDictionary()
 
 
-def inspector(  # noqa: C901
+@overload
+def inspector[**P, R](
+    func: Callable[P, R],
+    /,
+    *,
+    log_level: int = ...,
+    re_raise: bool = ...,
+    no_raise_return: Any = ...,
+    measure_performance: bool = ...,
+) -> Callable[P, R]: ...
+
+
+@overload
+def inspector[**P, R](
+    func: None = ...,
+    /,
+    *,
+    log_level: int = ...,
+    re_raise: bool = ...,
+    no_raise_return: Any = ...,
+    measure_performance: bool = ...,
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+def inspector[**P, R](  # noqa: C901
+    func: Callable[P, R] | None = None,
+    /,
+    *,
     log_level: int = logging.ERROR,
     re_raise: bool = True,
     no_raise_return: Any = None,
     measure_performance: bool = False,
-) -> Callable[[Callable[P, R]], Callable[P, R]]:
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """
     Support with exception handling and performance measurement.
 
     A decorator that works for both synchronous and asynchronous functions,
     providing common functionality such as exception handling and performance measurement.
 
+    Can be used both with and without parameters:
+      - @inspector
+      - @inspector(log_level=logging.ERROR, re_raise=True, ...)
+
     Args:
+        func: The function to decorate when used without parameters.
         log_level: Logging level for exceptions.
         re_raise: Whether to re-raise exceptions.
         no_raise_return: Value to return when an exception is caught and not re-raised.
         measure_performance: Whether to measure function execution time.
 
     Returns:
-        A decorator that wraps sync or async functions.
+        Either the decorated function (when used without parameters) or
+        a decorator that wraps sync or async functions (when used with parameters).
 
     """
 
@@ -167,10 +197,15 @@ def inspector(  # noqa: C901
         setattr(wrap_sync_function, "ha_service", True)
         return wrap_sync_function
 
+    # If used without parameters: @inspector
+    if func is not None:
+        return create_wrapped_decorator(func)
+
+    # If used with parameters: @inspector(...)
     return create_wrapped_decorator
 
 
-def _log_performance_message(func: Callable, start: float, *args: P.args, **kwargs: P.kwargs) -> None:  # type: ignore[valid-type]
+def _log_performance_message[**P](func: Callable[P, Any], start: float, *args: P.args, **kwargs: P.kwargs) -> None:
     delta = monotonic() - start
     caller = str(args[0]) if len(args) > 0 else ""
 
@@ -244,8 +279,8 @@ def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> Ca
                 _log_performance_message(func, start, *args, **kwargs)
 
     if inspect.iscoroutinefunction(func):
-        return async_measure_wrapper  # type: ignore[return-value]
-    return measure_wrapper  # type: ignore[return-value]
+        return cast(CallableT, async_measure_wrapper)
+    return cast(CallableT, measure_wrapper)
 
 
 # Define public API for this module

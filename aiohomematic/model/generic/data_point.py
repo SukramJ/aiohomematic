@@ -21,7 +21,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import data_point as hme, device as hmd
 from aiohomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
-from aiohomematic.property_decorators import cached_slot_property
+from aiohomematic.property_decorators import cached_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             parameter_data=parameter_data,
         )
 
-    @cached_slot_property
+    @cached_property
     def usage(self) -> DataPointUsage:
         """Return the data_point usage."""
         if self._is_forced_sensor or self._is_un_ignored:

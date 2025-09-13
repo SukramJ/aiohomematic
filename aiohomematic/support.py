@@ -50,7 +50,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.property_decorators import (
-    cached_slot_property,
+    cached_property,
     get_attributes_for_config_property,
     get_attributes_for_info_property,
     get_attributes_for_log_context,
@@ -586,7 +586,7 @@ class LogContextMixin:
 
     __slots__ = ("_cached_log_context",)
 
-    @cached_slot_property
+    @cached_property
     def log_context(self) -> Mapping[str, Any]:
         """Return the log context for this object."""
         return {

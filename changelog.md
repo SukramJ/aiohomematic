@@ -1,4 +1,8 @@
-# Version 2025.9.2 (2025-09-08)
+# Version 2025.9.3 (2025-09-13)
+
+- Remove test-only-relevant code from \_get_attributes_by_decorator
+
+# Version 2025.9.2 (2025-09-12)
 
 - Refactor CDP OperatingVoltageLevel
 - Refactor event method handling

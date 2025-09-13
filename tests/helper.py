@@ -18,7 +18,6 @@ from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.client import Client, InterfaceConfig, _ClientConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
 from aiohomematic.model.custom import CustomDataPoint
-from aiohomematic.property_decorators import _get_attributes_by_decorator
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
 
 from tests import const
@@ -187,12 +186,24 @@ def get_mock(instance: Any, **kwargs):
 
 def _get_not_mockable_method_names(instance: Any) -> set[str]:
     """Return all relevant method names for mocking."""
-    methods: set[str] = set(_get_attributes_by_decorator(data_object=instance, decorator=property, only_names=True))
+    methods: set[str] = set(_get_properties(data_object=instance, decorator=property))
 
     for method in dir(instance):
         if method in EXCLUDE_METHODS_FROM_MOCKS:
             methods.add(method)
     return methods
+
+
+def _get_properties(data_object: Any, decorator: Any) -> set[str]:
+    """Return the object attributes by decorator."""
+    cls = data_object.__class__
+
+    # Resolve function-based decorators to their underlying property class, if provided
+    resolved_decorator: Any = decorator
+    if not isinstance(decorator, type):
+        resolved_decorator = getattr(decorator, "__property_class__", decorator)
+
+    return {y for y in dir(cls) if isinstance(getattr(cls, y), resolved_decorator)}
 
 
 def _load_json_file(anchor: str, resource: str, filename: str) -> Any | None:

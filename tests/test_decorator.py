@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from aiohomematic.property_decorators import (
+    Kind,
     config_property,
-    get_attributes_for_config_property,
-    get_attributes_for_info_property,
-    get_attributes_for_log_context,
-    get_attributes_for_state_property,
+    get_hm_property_by_kind,
+    get_hm_property_by_log_context,
     info_property,
     state_property,
 )
@@ -33,13 +32,13 @@ def test_generic_property() -> None:
 def test_generic_property_read() -> None:
     """Test CustomDpSwitch."""
     test_class = PropertyTestClazz()
-    config_attributes = get_attributes_for_config_property(data_object=test_class)
+    config_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.CONFIG)
     assert config_attributes == {"config": "test_config"}
-    value_attributes = get_attributes_for_state_property(data_object=test_class)
+    value_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.STATE)
     assert value_attributes == {"value": "test_value"}
-    info_attributes = get_attributes_for_info_property(data_object=test_class)
+    info_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.INFO)
     assert info_attributes == {"info": "test_info", "info_context": "test_info"}
-    info_context_attributes = get_attributes_for_log_context(data_object=test_class)
+    info_context_attributes = get_hm_property_by_log_context(data_object=test_class)
     assert info_context_attributes == {"info_context": "test_info"}
 
 

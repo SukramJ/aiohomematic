@@ -73,7 +73,7 @@ from aiohomematic.model.support import (
     convert_value,
     generate_unique_id,
 )
-from aiohomematic.property_decorators import cached_property, config_property, hm_property, state_property
+from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args, log_boundary_error
 
 __all__ = [
@@ -269,7 +269,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Return the data_point usage."""
         return DataPointUsage.DATA_POINT
 
-    @cached_property
+    @hm_property(cached=True)
     def enabled_default(self) -> bool:
         """Return, if data_point should be enabled based on usage attribute."""
         return self.usage in (
@@ -295,12 +295,12 @@ class CallbackDataPoint(ABC, LogContextMixin):
         return self._path_data.state_path
 
     # @property
-    @cached_property
+    @hm_property(cached=True)
     def service_methods(self) -> Mapping[str, Callable]:
         """Return all service methods."""
         return get_service_calls(obj=self)
 
-    @cached_property
+    @hm_property(cached=True)
     def service_method_names(self) -> tuple[str, ...]:
         """Return all service methods."""
         return tuple(self.service_methods.keys())
@@ -659,7 +659,7 @@ class BaseParameterDataPoint[
         """Return if the parameter is un ignored."""
         return self._is_un_ignored
 
-    @cached_property
+    @hm_property(cached=True)
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
         return DataPointKey(
@@ -699,7 +699,7 @@ class BaseParameterDataPoint[
         """Return raw unit value."""
         return self._raw_unit
 
-    @cached_property
+    @hm_property(cached=True)
     def requires_polling(self) -> bool:
         """Return whether the data_point requires polling."""
         return not self._channel.device.client.supports_push_updates or (
@@ -785,7 +785,7 @@ class BaseParameterDataPoint[
         """Return the if data_point is visible in ccu."""
         return self._visible
 
-    @cached_property
+    @hm_property(cached=True)
     def _enabled_by_channel_operation_mode(self) -> bool | None:
         """Return, if the data_point/event must be enabled."""
         if self._channel.type_name not in _CONFIGURABLE_CHANNEL:

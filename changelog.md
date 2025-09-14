@@ -1,4 +1,8 @@
-# Version 2025.9.3 (2025-09-13)
+# Version 2025.9.4 (2025-09-14)
+
+- Remove dedicated @cached_property property -> use @hm_property(cached=True) instead
+
+# Version 2025.9.3 (2025-09-14)
 
 - Remove test-only-relevant code from \_get_attributes_by_decorator
 - Further decorator refactoring

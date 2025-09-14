@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from functools import cached_property
+from functools import hm_property
 import os
 
 import orjson
@@ -129,9 +129,9 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-    def is_cached_property(cls: type, attr_name: str) -> bool:
+    def is_cached(cls: type, attr_name: str) -> bool:
         attr = getattr(cls, attr_name, None)
-        return isinstance(attr, cached_property)
+        return isinstance(attr, hm_property) and attr.cached
 
     # check __dict__ / __slots__
     for device in central_unit_full.devices:

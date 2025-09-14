@@ -80,7 +80,7 @@ from aiohomematic.model.support import (
     get_device_name,
 )
 from aiohomematic.model.update import DpUpdate
-from aiohomematic.property_decorators import cached_property, hm_property, info_property, state_property
+from aiohomematic.property_decorators import hm_property, info_property, state_property
 from aiohomematic.support import (
     CacheEntry,
     LogContextMixin,
@@ -441,7 +441,7 @@ class Device(LogContextMixin, PayloadMixin):
             for channel in self._channels.values():
                 await channel.remove_central_link()
 
-    @cached_property
+    @hm_property(cached=True)
     def relevant_for_central_link_management(self) -> bool:
         """Return if channel is relevant for central link management."""
         return (

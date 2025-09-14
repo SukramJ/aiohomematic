@@ -6,19 +6,16 @@ Decorators and helpers for declaring public attributes on data point classes.
 This module provides four decorator factories that behave like the built-in
 @property, but additionally annotate properties with a semantic category so they
 can be automatically collected to build payloads and log contexts:
-- cached_property: computed once per instance and cached until the value is
-  invalidated by a setter/deleter on the same descriptor.
 - config_property: configuration-related properties.
 - info_property: informational/metadata properties.
 - state_property: dynamic state properties.
+- hm_property: can be used to mark log_context or cached, where the other properties don't match
 
 All decorators accept an optional keyword-only argument log_context. If set to
 True, the property will be included in the LogContextMixin.log_context mapping.
 
 Notes on caching
-- cached_property always caches on first access and invalidates on set/delete.
-- The other decorators can be created with cached=True to enable the same
-  behavior when desired.
+- Marked with cached=True always caches on first access and invalidates on set/delete.
 """
 
 from __future__ import annotations
@@ -233,45 +230,6 @@ def hm_property[PR](
 
         return wrapper
     return _GenericProperty(func, kind=kind, cached=cached, log_context=log_context)
-
-
-# ----- cached_property -----
-
-
-@overload
-def cached_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
-
-
-@overload
-def cached_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
-
-
-def cached_property[PR](
-    func: Callable[[Any], PR] | None = None,
-    *,
-    log_context: bool = False,
-) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
-    """
-    Decorate a method as a computed attribute with per-instance caching.
-
-    Supports both usages:
-    - @cached_property
-    - @cached_property(log_context=True)
-
-    Args:
-        func: The function being decorated when used as @cached_property without
-            parentheses. When used as a factory (i.e., @cached_property(...)), this
-            is None and the returned callable expects the function to decorate.
-        log_context: Include this property in structured log context if True.
-
-    """
-    if func is None:
-
-        def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
-            return _GenericProperty(f, kind=Kind.SIMPLE, cached=True, log_context=log_context)
-
-        return wrapper
-    return _GenericProperty(func, kind=Kind.SIMPLE, cached=True, log_context=log_context)
 
 
 # ----- config_property -----

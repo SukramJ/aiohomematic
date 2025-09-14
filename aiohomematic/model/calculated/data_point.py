@@ -32,7 +32,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_data_point_name_data,
 )
-from aiohomematic.property_decorators import cached_property, config_property, state_property
+from aiohomematic.property_decorators import config_property, hm_property, state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Return default value."""
         return self._default
 
-    @cached_property
+    @hm_property(cached=True)
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
         return DataPointKey(

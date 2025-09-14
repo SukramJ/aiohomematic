@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Final, ParamSpec, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
@@ -43,6 +43,15 @@ __all__ = [
 P = ParamSpec("P")
 T = TypeVar("T")
 R = TypeVar("R")
+
+
+class Kind(StrEnum):
+    """Enum for property feature flags."""
+
+    CONFIG = "config"
+    INFO = "info"
+    SIMPLE = "simple"
+    STATE = "state"
 
 
 class _GenericProperty[GETTER, SETTER](property):
@@ -71,6 +80,7 @@ class _GenericProperty[GETTER, SETTER](property):
         fset: Callable[[Any, SETTER], None] | None = None,
         fdel: Callable[[Any], None] | None = None,
         doc: str | None = None,
+        kind: Kind = Kind.SIMPLE,
         cached: bool = False,
         log_context: bool = False,
     ) -> None:
@@ -78,6 +88,7 @@ class _GenericProperty[GETTER, SETTER](property):
         Initialize the descriptor.
 
         Mirrors the standard property signature and adds two options:
+        - kind: specify the kind of property (e.g. simple, cached, config, info, state).
         - cached: enable per-instance caching of the computed value.
         - log_context: mark this property as relevant for structured logging.
         """
@@ -85,6 +96,7 @@ class _GenericProperty[GETTER, SETTER](property):
         if doc is None and fget is not None:
             doc = fget.__doc__
         self.__doc__ = doc
+        self._kind: Final = kind
         self._cached: Final = cached
         self.log_context = log_context
         if cached:
@@ -156,6 +168,52 @@ class _GenericProperty[GETTER, SETTER](property):
         self.fdel(instance)
 
 
+# ----- hm_property -----
+
+
+@overload
+def hm_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
+
+
+@overload
+def hm_property(*, kind: Kind = ...) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
+
+
+def hm_property[PR](
+    func: Callable[[Any], PR] | None = None,
+    *,
+    kind: Kind = Kind.SIMPLE,
+    cached: bool = False,
+    log_context: bool = False,
+) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
+    """
+    Decorate a method as a computed attribute with per-instance caching.
+
+    Supports both usages:
+    - @hm_property
+    - @hm_property(log_context=True)
+
+    Args:
+        func: The function being decorated when used as @hm_property without
+            parentheses. When used as a factory (i.e., @hm_property(...)), this
+            is None and the returned callable expects the function to decorate.
+        kind: Specify the kind of property (e.g. simple, cached, config, info, state).
+        cached: Enable per-instance caching for this property when True.
+        log_context: Include this property in structured log context if True.
+
+    """
+    if func is None:
+
+        def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
+            return _GenericProperty(f, kind=kind, cached=cached, log_context=log_context)
+
+        return wrapper
+    return _GenericProperty(func, kind=kind, cached=cached, log_context=log_context)
+
+
+# Expose the underlying property class for discovery
+setattr(hm_property, "__property_class__", _GenericProperty)
+
 # ----- cached_property -----
 
 
@@ -214,7 +272,9 @@ def config_property[PR](func: Callable[[Any], PR], /) -> _ConfigProperty[PR, Any
 
 
 @overload
-def config_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _ConfigProperty[R, Any]]: ...
+def config_property(
+    *, cached: bool = ..., log_context: bool = ...
+) -> Callable[[Callable[[Any], R]], _ConfigProperty[R, Any]]: ...
 
 
 def config_property[PR](
@@ -241,10 +301,10 @@ def config_property[PR](
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _ConfigProperty[PR, Any]:
-            return _ConfigProperty(f, cached=cached, log_context=log_context)
+            return _ConfigProperty(f, kind=Kind.CONFIG, cached=cached, log_context=log_context)
 
         return wrapper
-    return _ConfigProperty(func, cached=cached, log_context=log_context)
+    return _ConfigProperty(func, kind=Kind.CONFIG, cached=cached, log_context=log_context)
 
 
 # Expose the underlying property class for discovery
@@ -263,7 +323,9 @@ def info_property[PR](func: Callable[[Any], PR], /) -> _InfoProperty[PR, Any]: .
 
 
 @overload
-def info_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _InfoProperty[R, Any]]: ...
+def info_property(
+    *, cached: bool = ..., log_context: bool = ...
+) -> Callable[[Callable[[Any], R]], _InfoProperty[R, Any]]: ...
 
 
 def info_property[PR](
@@ -290,10 +352,10 @@ def info_property[PR](
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _InfoProperty[PR, Any]:
-            return _InfoProperty(f, cached=cached, log_context=log_context)
+            return _InfoProperty(f, kind=Kind.INFO, cached=cached, log_context=log_context)
 
         return wrapper
-    return _InfoProperty(func, cached=cached, log_context=log_context)
+    return _InfoProperty(func, kind=Kind.INFO, cached=cached, log_context=log_context)
 
 
 # Expose the underlying property class for discovery
@@ -312,7 +374,9 @@ def state_property[PR](func: Callable[[Any], PR], /) -> _StateProperty[PR, Any]:
 
 
 @overload
-def state_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _StateProperty[R, Any]]: ...
+def state_property(
+    *, cached: bool = ..., log_context: bool = ...
+) -> Callable[[Callable[[Any], R]], _StateProperty[R, Any]]: ...
 
 
 def state_property[PR](
@@ -339,10 +403,10 @@ def state_property[PR](
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _StateProperty[PR, Any]:
-            return _StateProperty(f, cached=cached, log_context=log_context)
+            return _StateProperty(f, kind=Kind.STATE, cached=cached, log_context=log_context)
 
         return wrapper
-    return _StateProperty(func, cached=cached, log_context=log_context)
+    return _StateProperty(func, kind=Kind.STATE, cached=cached, log_context=log_context)
 
 
 # Expose the underlying property class for discovery

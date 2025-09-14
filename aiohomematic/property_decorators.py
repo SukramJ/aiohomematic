@@ -112,15 +112,39 @@ class _GenericProperty[GETTER, SETTER](property):
 
     def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty:
         """Return generic getter."""
-        return type(self)(fget, self.fset, self.fdel, self.__doc__)  # pragma: no cover
+        return type(self)(
+            fget=fget,
+            fset=self.fset,
+            fdel=self.fdel,
+            doc=self.__doc__,
+            kind=self._kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )  # pragma: no cover
 
     def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty:
         """Return generic setter."""
-        return type(self)(self.fget, fset, self.fdel, self.__doc__)
+        return type(self)(
+            fget=self.fget,
+            fset=fset,
+            fdel=self.fdel,
+            doc=self.__doc__,
+            kind=self._kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )
 
     def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty:
         """Return generic deleter."""
-        return type(self)(self.fget, self.fset, fdel, self.__doc__)
+        return type(self)(
+            fget=self.fget,
+            fset=self.fset,
+            fdel=fdel,
+            doc=self.__doc__,
+            kind=self._kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )
 
     def __get__(self, instance: Any, gtype: type | None = None, /) -> GETTER:  # type: ignore[override]
         """

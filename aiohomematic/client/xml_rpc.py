@@ -42,7 +42,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
-from aiohomematic.property_decorators import info_property
+from aiohomematic.property_decorators import hm_property
 from aiohomematic.support import LogContextMixin, extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
             supported_methods.append(_XmlRpcMethod.PING)
             self._supported_methods = tuple(supported_methods)
 
-    @info_property(log_context=True)
+    @hm_property(log_context=True)
     def interface_id(self) -> str:
         """Return the interface_id."""
         return self._interface_id
@@ -131,7 +131,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
         """Return the supported methods."""
         return self._supported_methods
 
-    @info_property(log_context=True)
+    @hm_property(log_context=True)
     def tls(self) -> bool:
         """Return tls."""
         return self._tls

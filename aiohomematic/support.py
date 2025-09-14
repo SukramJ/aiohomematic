@@ -50,11 +50,10 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.property_decorators import (
+    Kind,
     cached_property,
-    get_attributes_for_config_property,
-    get_attributes_for_info_property,
-    get_attributes_for_log_context,
-    get_attributes_for_state_property,
+    get_hm_property_by_kind,
+    get_hm_property_by_log_context,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -590,7 +589,7 @@ class LogContextMixin:
     def log_context(self) -> Mapping[str, Any]:
         """Return the log context for this object."""
         return {
-            key: value for key, value in get_attributes_for_log_context(data_object=self).items() if value is not None
+            key: value for key, value in get_hm_property_by_log_context(data_object=self).items() if value is not None
         }
 
 
@@ -604,7 +603,7 @@ class PayloadMixin:
         """Return the config payload."""
         return {
             key: value
-            for key, value in get_attributes_for_config_property(data_object=self).items()
+            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.CONFIG).items()
             if value is not None
         }
 
@@ -612,7 +611,9 @@ class PayloadMixin:
     def info_payload(self) -> Mapping[str, Any]:
         """Return the info payload."""
         return {
-            key: value for key, value in get_attributes_for_info_property(data_object=self).items() if value is not None
+            key: value
+            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.INFO).items()
+            if value is not None
         }
 
     @property
@@ -620,7 +621,7 @@ class PayloadMixin:
         """Return the state payload."""
         return {
             key: value
-            for key, value in get_attributes_for_state_property(data_object=self).items()
+            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.STATE).items()
             if value is not None
         }
 

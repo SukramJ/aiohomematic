@@ -73,7 +73,7 @@ from aiohomematic.model.support import (
     convert_value,
     generate_unique_id,
 )
-from aiohomematic.property_decorators import cached_property, config_property, info_property, state_property
+from aiohomematic.property_decorators import cached_property, config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args, log_boundary_error
 
 __all__ = [
@@ -447,7 +447,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         """Return the availability of the device."""
         return self._device.available
 
-    @info_property(log_context=True)
+    @hm_property(log_context=True)
     def channel(self) -> hmd.Channel:
         """Return the channel the data_point."""
         return self._channel
@@ -684,7 +684,7 @@ class BaseParameterDataPoint[
         """Return multiplier value."""
         return self._multiplier
 
-    @info_property(log_context=True)
+    @hm_property(log_context=True)
     def parameter(self) -> str:
         """Return parameter name."""
         return self._parameter

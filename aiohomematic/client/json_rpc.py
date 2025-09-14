@@ -91,7 +91,7 @@ from aiohomematic.exceptions import (
     UnsupportedException,
 )
 from aiohomematic.model.support import convert_value
-from aiohomematic.property_decorators import info_property
+from aiohomematic.property_decorators import hm_property
 from aiohomematic.support import (
     LogContextMixin,
     cleanup_text_from_html_tags,
@@ -217,12 +217,12 @@ class JsonRpcAioHttpClient(LogContextMixin):
         """If session exists, then it is activated."""
         return self._session_id is not None
 
-    @info_property(log_context=True)
+    @hm_property(log_context=True)
     def url(self) -> str | None:
         """Return url."""
         return self._url
 
-    @info_property(log_context=True)
+    @hm_property(log_context=True)
     def tls(self) -> bool:
         """Return tls."""
         return self._tls

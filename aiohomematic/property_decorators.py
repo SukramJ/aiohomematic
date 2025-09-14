@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Final, ParamSpec, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
@@ -33,9 +33,7 @@ from aiohomematic import support as hms
 
 __all__ = [
     "config_property",
-    "get_attributes_for_config_property",
-    "get_attributes_for_info_property",
-    "get_attributes_for_state_property",
+    "get_hm_property_by_kind",
     "info_property",
     "state_property",
 ]
@@ -43,6 +41,15 @@ __all__ = [
 P = ParamSpec("P")
 T = TypeVar("T")
 R = TypeVar("R")
+
+
+class Kind(StrEnum):
+    """Enum for property feature flags."""
+
+    CONFIG = "config"
+    INFO = "info"
+    SIMPLE = "simple"
+    STATE = "state"
 
 
 class _GenericProperty[GETTER, SETTER](property):
@@ -71,6 +78,7 @@ class _GenericProperty[GETTER, SETTER](property):
         fset: Callable[[Any, SETTER], None] | None = None,
         fdel: Callable[[Any], None] | None = None,
         doc: str | None = None,
+        kind: Kind = Kind.SIMPLE,
         cached: bool = False,
         log_context: bool = False,
     ) -> None:
@@ -78,6 +86,7 @@ class _GenericProperty[GETTER, SETTER](property):
         Initialize the descriptor.
 
         Mirrors the standard property signature and adds two options:
+        - kind: specify the kind of property (e.g. simple, cached, config, info, state).
         - cached: enable per-instance caching of the computed value.
         - log_context: mark this property as relevant for structured logging.
         """
@@ -85,6 +94,7 @@ class _GenericProperty[GETTER, SETTER](property):
         if doc is None and fget is not None:
             doc = fget.__doc__
         self.__doc__ = doc
+        self.kind: Final = kind
         self._cached: Final = cached
         self.log_context = log_context
         if cached:
@@ -100,15 +110,39 @@ class _GenericProperty[GETTER, SETTER](property):
 
     def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty:
         """Return generic getter."""
-        return type(self)(fget, self.fset, self.fdel, self.__doc__)  # pragma: no cover
+        return type(self)(
+            fget=fget,
+            fset=self.fset,
+            fdel=self.fdel,
+            doc=self.__doc__,
+            kind=self.kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )  # pragma: no cover
 
     def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty:
         """Return generic setter."""
-        return type(self)(self.fget, fset, self.fdel, self.__doc__)
+        return type(self)(
+            fget=self.fget,
+            fset=fset,
+            fdel=self.fdel,
+            doc=self.__doc__,
+            kind=self.kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )
 
     def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty:
         """Return generic deleter."""
-        return type(self)(self.fget, self.fset, fdel, self.__doc__)
+        return type(self)(
+            fget=self.fget,
+            fset=self.fset,
+            fdel=fdel,
+            doc=self.__doc__,
+            kind=self.kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )
 
     def __get__(self, instance: Any, gtype: type | None = None, /) -> GETTER:  # type: ignore[override]
         """
@@ -156,26 +190,67 @@ class _GenericProperty[GETTER, SETTER](property):
         self.fdel(instance)
 
 
+# ----- hm_property -----
+
+
+@overload
+def hm_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
+
+
+@overload
+def hm_property(
+    *, kind: Kind = ..., cached: bool = ..., log_context: bool = ...
+) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
+
+
+def hm_property[PR](
+    func: Callable[[Any], PR] | None = None,
+    *,
+    kind: Kind = Kind.SIMPLE,
+    cached: bool = False,
+    log_context: bool = False,
+) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
+    """
+    Decorate a method as a computed attribute.
+
+    Supports both usages:
+    - @hm_property
+    - @hm_property(kind=..., cached=True, log_context=True)
+
+    Args:
+        func: The function being decorated when used as @hm_property without
+            parentheses. When used as a factory (i.e., @hm_property(...)), this
+            is None and the returned callable expects the function to decorate.
+        kind: Specify the kind of property (e.g. simple, config, info, state).
+        cached: Optionally enable per-instance caching for this property.
+        log_context: Include this property in structured log context if True.
+
+    """
+    if func is None:
+
+        def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
+            return _GenericProperty(f, kind=kind, cached=cached, log_context=log_context)
+
+        return wrapper
+    return _GenericProperty(func, kind=kind, cached=cached, log_context=log_context)
+
+
 # ----- cached_property -----
 
 
-class _CachedProperty[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
-    """Descriptor for cached properties (computed once per instance)."""
+@overload
+def cached_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
 
 
 @overload
-def cached_property[PR](func: Callable[[Any], PR], /) -> _CachedProperty[PR, Any]: ...
-
-
-@overload
-def cached_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _CachedProperty[R, Any]]: ...
+def cached_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
 def cached_property[PR](
     func: Callable[[Any], PR] | None = None,
     *,
     log_context: bool = False,
-) -> _CachedProperty[PR, Any] | Callable[[Callable[[Any], PR]], _CachedProperty[PR, Any]]:
+) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as a computed attribute with per-instance caching.
 
@@ -192,29 +267,24 @@ def cached_property[PR](
     """
     if func is None:
 
-        def wrapper(f: Callable[[Any], PR]) -> _CachedProperty[PR, Any]:
-            return _CachedProperty(f, cached=True, log_context=log_context)
+        def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
+            return _GenericProperty(f, kind=Kind.SIMPLE, cached=True, log_context=log_context)
 
         return wrapper
-    return _CachedProperty(func, cached=True, log_context=log_context)
+    return _GenericProperty(func, kind=Kind.SIMPLE, cached=True, log_context=log_context)
 
-
-# Expose the underlying property class for discovery
-setattr(cached_property, "__property_class__", _CachedProperty)
 
 # ----- config_property -----
 
 
-class _ConfigProperty[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
-    """Descriptor for configuration properties."""
+@overload
+def config_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
 
 
 @overload
-def config_property[PR](func: Callable[[Any], PR], /) -> _ConfigProperty[PR, Any]: ...
-
-
-@overload
-def config_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _ConfigProperty[R, Any]]: ...
+def config_property(
+    *, cached: bool = ..., log_context: bool = ...
+) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
 def config_property[PR](
@@ -222,7 +292,7 @@ def config_property[PR](
     *,
     cached: bool = False,
     log_context: bool = False,
-) -> _ConfigProperty[PR, Any] | Callable[[Callable[[Any], PR]], _ConfigProperty[PR, Any]]:
+) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as a configuration property.
 
@@ -232,38 +302,32 @@ def config_property[PR](
 
     Args:
         func: The function being decorated when used as @config_property without
-            parentheses. When used as a factory (i.e., @config_property(...)), this
-            is None and the returned callable expects the function to decorate.
+            parentheses. When used as a factory (i.e., @config_property(...)), this is
+            None and the returned callable expects the function to decorate.
         cached: Enable per-instance caching for this property when True.
         log_context: Include this property in structured log context if True.
 
     """
     if func is None:
 
-        def wrapper(f: Callable[[Any], PR]) -> _ConfigProperty[PR, Any]:
-            return _ConfigProperty(f, cached=cached, log_context=log_context)
+        def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
+            return _GenericProperty(f, kind=Kind.CONFIG, cached=cached, log_context=log_context)
 
         return wrapper
-    return _ConfigProperty(func, cached=cached, log_context=log_context)
-
-
-# Expose the underlying property class for discovery
-setattr(config_property, "__property_class__", _ConfigProperty)
+    return _GenericProperty(func, kind=Kind.CONFIG, cached=cached, log_context=log_context)
 
 
 # ----- info_property -----
 
 
-class _InfoProperty[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
-    """Descriptor for informational properties (metadata)."""
+@overload
+def info_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
 
 
 @overload
-def info_property[PR](func: Callable[[Any], PR], /) -> _InfoProperty[PR, Any]: ...
-
-
-@overload
-def info_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _InfoProperty[R, Any]]: ...
+def info_property(
+    *, cached: bool = ..., log_context: bool = ...
+) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
 def info_property[PR](
@@ -271,7 +335,7 @@ def info_property[PR](
     *,
     cached: bool = False,
     log_context: bool = False,
-) -> _InfoProperty[PR, Any] | Callable[[Callable[[Any], PR]], _InfoProperty[PR, Any]]:
+) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as an informational/metadata property.
 
@@ -289,30 +353,24 @@ def info_property[PR](
     """
     if func is None:
 
-        def wrapper(f: Callable[[Any], PR]) -> _InfoProperty[PR, Any]:
-            return _InfoProperty(f, cached=cached, log_context=log_context)
+        def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
+            return _GenericProperty(f, kind=Kind.INFO, cached=cached, log_context=log_context)
 
         return wrapper
-    return _InfoProperty(func, cached=cached, log_context=log_context)
-
-
-# Expose the underlying property class for discovery
-setattr(info_property, "__property_class__", _InfoProperty)
+    return _GenericProperty(func, kind=Kind.INFO, cached=cached, log_context=log_context)
 
 
 # ----- state_property -----
 
 
-class _StateProperty[GETTER, SETTER](_GenericProperty[GETTER, SETTER]):
-    """Descriptor for dynamic state properties."""
+@overload
+def state_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
 
 
 @overload
-def state_property[PR](func: Callable[[Any], PR], /) -> _StateProperty[PR, Any]: ...
-
-
-@overload
-def state_property(*, log_context: bool = ...) -> Callable[[Callable[[Any], R]], _StateProperty[R, Any]]: ...
+def state_property(
+    *, cached: bool = ..., log_context: bool = ...
+) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
 def state_property[PR](
@@ -320,7 +378,7 @@ def state_property[PR](
     *,
     cached: bool = False,
     log_context: bool = False,
-) -> _StateProperty[PR, Any] | Callable[[Callable[[Any], PR]], _StateProperty[PR, Any]]:
+) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as a dynamic state property.
 
@@ -338,15 +396,11 @@ def state_property[PR](
     """
     if func is None:
 
-        def wrapper(f: Callable[[Any], PR]) -> _StateProperty[PR, Any]:
-            return _StateProperty(f, cached=cached, log_context=log_context)
+        def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
+            return _GenericProperty(f, kind=Kind.STATE, cached=cached, log_context=log_context)
 
         return wrapper
-    return _StateProperty(func, cached=cached, log_context=log_context)
-
-
-# Expose the underlying property class for discovery
-setattr(state_property, "__property_class__", _StateProperty)
+    return _GenericProperty(func, kind=Kind.STATE, cached=cached, log_context=log_context)
 
 
 # ----------
@@ -355,18 +409,16 @@ setattr(state_property, "__property_class__", _StateProperty)
 # Cache for per-class attribute names by decorator to avoid repeated dir() scans
 # Use WeakKeyDictionary to allow classes to be garbage-collected without leaking cache entries.
 # Structure: {cls: {decorator_class: (attr_name1, attr_name2, ...)}}
-_PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[type, tuple[str, ...]]] = WeakKeyDictionary()
+_PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[Kind, tuple[str, ...]]] = WeakKeyDictionary()
 
 
-def _get_attributes_by_decorator(data_object: Any, decorator: Callable, context: bool = False) -> Mapping[str, Any]:
+def get_hm_property_by_kind(data_object: Any, kind: Kind, context: bool = False) -> Mapping[str, Any]:
     """
-    Collect attributes from an object that are defined using a specific decorator.
+    Collect properties from an object that are defined using a specific decorator.
 
     Args:
         data_object: The instance to inspect.
-        decorator: Either the decorator function (e.g. state_property) or the
-            descriptor class (e.g. _StateProperty). The function form is resolved to
-            its underlying descriptor via the __property_class__ attribute.
+        kind: The decorator class to use for filtering.
         context: If True, only include properties where the descriptor has
             log_context=True. When such a property's value is a LogContextMixin, its
             items are flattened into the result using a short prefix of the property
@@ -385,20 +437,16 @@ def _get_attributes_by_decorator(data_object: Any, decorator: Callable, context:
     """
     cls = data_object.__class__
 
-    # Resolve function-based decorators to their underlying property class, if provided
-    resolved_decorator: Any = decorator
-    if not isinstance(decorator, type):
-        resolved_decorator = getattr(decorator, "__property_class__", decorator)
-
     # Get or create the per-class cache dict
     if (decorator_cache := _PUBLIC_ATTR_CACHE.get(cls)) is None:
         decorator_cache = {}
         _PUBLIC_ATTR_CACHE[cls] = decorator_cache
 
-    # Get or compute the attribute names for this decorator
-    if (names := decorator_cache.get(resolved_decorator)) is None:
-        names = tuple(y for y in dir(cls) if isinstance(getattr(cls, y), resolved_decorator))
-        decorator_cache[resolved_decorator] = names
+    if (names := decorator_cache.get(kind)) is None:
+        names = tuple(
+            y for y in dir(cls) if (gp := getattr(cls, y)) and isinstance(gp, _GenericProperty) and gp.kind == kind
+        )
+        decorator_cache[kind] = names
 
     result: dict[str, Any] = {}
     for name in names:
@@ -432,7 +480,7 @@ def _get_text_value(value: Any) -> Any:
         Any: The normalized value, potentially converted as described above.
 
     """
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, list | tuple | set):
         return tuple(_get_text_value(v) for v in value)
     if isinstance(value, Enum):
         return str(value)
@@ -441,49 +489,7 @@ def _get_text_value(value: Any) -> Any:
     return value
 
 
-def get_attributes_for_cached_property(data_object: Any) -> Mapping[str, Any]:
-    """
-    Return the object attributes by decorator cached_property.
-
-    Args:
-        data_object: The instance from which to collect cached_property attributes.
-
-    Returns:
-        Mapping[str, Any]: A mapping of attribute name to normalized value.
-
-    """
-    return _get_attributes_by_decorator(data_object=data_object, decorator=cached_property)
-
-
-def get_attributes_for_config_property(data_object: Any) -> Mapping[str, Any]:
-    """
-    Return the object attributes by decorator config_property.
-
-    Args:
-        data_object: The instance from which to collect config_property attributes.
-
-    Returns:
-        Mapping[str, Any]: A mapping of attribute name to normalized value.
-
-    """
-    return _get_attributes_by_decorator(data_object=data_object, decorator=config_property)
-
-
-def get_attributes_for_info_property(data_object: Any) -> Mapping[str, Any]:
-    """
-    Return the object attributes by decorator info_property.
-
-    Args:
-        data_object: The instance from which to collect info_property attributes.
-
-    Returns:
-        Mapping[str, Any]: A mapping of attribute name to normalized value.
-
-    """
-    return _get_attributes_by_decorator(data_object=data_object, decorator=info_property)
-
-
-def get_attributes_for_log_context(data_object: Any) -> Mapping[str, Any]:
+def get_hm_property_by_log_context(data_object: Any) -> Mapping[str, Any]:
     """
     Return combined log context attributes across all property categories.
 
@@ -498,23 +504,8 @@ def get_attributes_for_log_context(data_object: Any) -> Mapping[str, Any]:
         Mapping[str, Any]: A mapping of attribute name to normalized value for logging.
 
     """
-    return (
-        dict(_get_attributes_by_decorator(data_object=data_object, decorator=cached_property, context=True))
-        | dict(_get_attributes_by_decorator(data_object=data_object, decorator=config_property, context=True))
-        | dict(_get_attributes_by_decorator(data_object=data_object, decorator=info_property, context=True))
-        | dict(_get_attributes_by_decorator(data_object=data_object, decorator=state_property, context=True))
-    )
+    result: dict[str, Any] = {}
+    for kind in Kind:
+        result.update(get_hm_property_by_kind(data_object=data_object, kind=kind, context=True))
 
-
-def get_attributes_for_state_property(data_object: Any) -> Mapping[str, Any]:
-    """
-    Return the object attributes by decorator state_property.
-
-    Args:
-        data_object: The instance from which to collect state_property attributes.
-
-    Returns:
-        Mapping[str, Any]: A mapping of attribute name to normalized value.
-
-    """
-    return _get_attributes_by_decorator(data_object=data_object, decorator=state_property)
+    return result

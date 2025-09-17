@@ -1,6 +1,6 @@
 # Common Issues and Troubleshooting (Home Assistant)
 
-This document helps you quickly analyze and resolve typical problems when using aiohomematic with Home Assistant (integration: Homematic(IP) Local). The notes apply to CCU (CCU3, RaspberryMatic, piVCCU) and Homegear unless stated otherwise.
+This document helps you quickly analyze and resolve typical problems when using aiohomematic with Home Assistant (integration: Homematic(IP) Local). The notes apply to CCU (CCU2/3, OpenCCU/RaspberryMatic, piVCCU) and Homegear unless stated otherwise.
 
 Contents:
 

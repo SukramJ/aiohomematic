@@ -74,8 +74,8 @@ body:
     attributes:
       label: What type of installation are you running for your homematic backend?
       options:
-        - RaspberryMatic Standalone
-        - RaspberryMatic HA-Addon
+        - OpenCCU/RaspberryMatic Standalone
+        - OpenCCU/RaspberryMatic HA-Addon
         - Debmatic
         - CCU3
         - CCU2

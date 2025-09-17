@@ -73,8 +73,8 @@ body:
     attributes:
       label: Welche Art von Installation verwendest Du als Homematic-Backend?
       options:
-        - RaspberryMatic Einzeln
-        - RaspberryMatic HA-Addon
+        - OpenCCU/RaspberryMatic Einzeln
+        - OpenCCU/RaspberryMatic HA-Addon
         - Debmatic
         - CCU3
         - CCU2

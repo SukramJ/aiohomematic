@@ -1481,12 +1481,12 @@ class ClientHomegear(Client):
 
     @inspector
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on Homegear."""
+        """Execute a program on the backend."""
         return True
 
     @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on Homegear."""
+        """Set the program state on the backend."""
         return True
 
     @inspector(measure_performance=True)
@@ -1510,7 +1510,7 @@ class ClientHomegear(Client):
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from Homegear."""
+        """Get all system variables from the backend."""
         variables: list[SystemVariableData] = []
         if hg_variables := await self._proxy.getAllSystemVariables():
             for name, value in hg_variables.items():
@@ -1524,12 +1524,12 @@ class ClientHomegear(Client):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from Homegear."""
+        """Get all rooms from the backend."""
         return {}
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from Homegear."""
+        """Get all functions from the backend."""
         return {}
 
     async def _get_system_information(self) -> SystemInformation:

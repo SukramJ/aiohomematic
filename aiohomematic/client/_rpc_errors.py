@@ -3,7 +3,7 @@
 """
 Error mapping helpers for RPC transports.
 
-This module centralizes small, transport-agnostic utilities to turn backend
+This module centralizes small, transport-agnostic utilities to turn the backend
 errors into domain-specific exceptions with useful context. It is used by both
 JSON-RPC and XML-RPC clients.
 

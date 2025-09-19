@@ -8,7 +8,7 @@ parameter descriptions into concrete data points and events:
 - generic: Default data point types (switch, number, sensor, select, etc.).
 - custom: Higher-level composites and device-specific behaviors.
 - calculated: Derived metrics (e.g., dew point, apparent temperature).
-- hub: Program and system variable data points from the backend hub (CCU/Homegear).
+- hub: Program and system variable data points from the backend hub.
 
 The create_data_points_and_events entrypoint inspects a device’s paramset
 information, applies visibility rules, creates events where appropriate, and

@@ -142,7 +142,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
         try:
             method = args[0]
             if self._supported_methods and method not in self._supported_methods:
-                raise UnsupportedException(f"__ASYNC_REQUEST: method '{method} not supported by backend.")
+                raise UnsupportedException(f"__ASYNC_REQUEST: method '{method} not supported by the backend.")
 
             if method in _VALID_XMLRPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
                 issuer=self, iid=self._interface_id

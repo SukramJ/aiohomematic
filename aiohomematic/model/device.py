@@ -371,7 +371,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     @info_property
     def room(self) -> str | None:
-        """Return the room of the device, if only one assigned in CCU."""
+        """Return the room of the device, if only one assigned in the backend."""
         if self._rooms and len(self._rooms) == 1:
             return list(self._rooms)[0]
         if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
@@ -860,7 +860,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     @info_property
     def room(self) -> str | None:
-        """Return the room of the device, if only one assigned in CCU."""
+        """Return the room of the device, if only one assigned in the backend."""
         if self._rooms and len(self._rooms) == 1:
             return list(self._rooms)[0]
         if self.is_group_master:
@@ -1190,7 +1190,7 @@ class _ValueCache:
             )
 
     async def _get_values_for_cache(self, dpk: DataPointKey) -> dict[str, Any]:
-        """Return a value from CCU to store in cache."""
+        """Return a value from the backend to store in cache."""
         if not self._device.available:
             _LOGGER.debug(
                 "GET_VALUES_FOR_CACHE failed: device %s (%s) is not available", self._device.name, self._device.address
@@ -1212,7 +1212,7 @@ class _ValueCache:
     def _add_entry_to_device_cache(self, dpk: DataPointKey, value: Any) -> None:
         """Add value to cache."""
         # write value to cache even if an exception has occurred
-        # to avoid repetitive calls to CCU within max_age
+        # to avoid repetitive calls to the backend within max_age
         self._device_cache[dpk] = CacheEntry(value=value, refresh_at=datetime.now())
 
     def _get_value_from_cache(

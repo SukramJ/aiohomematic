@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
-"""Generic python representation of a CCU parameter."""
+"""Generic python representation of a backend parameter."""
 
 from __future__ import annotations
 

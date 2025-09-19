@@ -398,7 +398,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         if not self._has_credentials:
             raise ClientException("No credentials set")
         if self._supported_methods and method not in self._supported_methods:
-            raise UnsupportedException(f"POST: method '{method} not supported by backend.")
+            raise UnsupportedException(f"POST: method '{method} not supported by the backend.")
 
         params = _get_params(session_id=session_id, extra_params=extra_params, use_default_params=use_default_params)
 
@@ -492,7 +492,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
             message = f"ClientConnectorCertificateError[{cccerr}]"
             if self._tls is False and cccerr.ssl is True:
                 message = (
-                    f"{message}. Possible reason: 'Automatic forwarding to HTTPS' is enabled in backend, "
+                    f"{message}. Possible reason: 'Automatic forwarding to HTTPS' is enabled in the backend, "
                     f"but this integration is not configured to use TLS"
                 )
             log_boundary_error(
@@ -540,7 +540,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
             return orjson.loads((await response.read()).decode(encoding=UTF_8))
 
     async def logout(self) -> None:
-        """Logout of CCU."""
+        """Logout of the backend."""
         try:
             await self._looper.block_till_done()
             await self._do_logout(self._session_id)
@@ -553,7 +553,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
             await self._client_session.close()
 
     async def _do_logout(self, session_id: str | None) -> None:
-        """Logout of CCU."""
+        """Logout of the backend."""
         if not session_id:
             _LOGGER.debug("DO_LOGOUT: Not logged in. Not logging out.")
             return
@@ -580,7 +580,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         self._session_id = None
 
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU / Homegear."""
+        """Execute a program on the backend."""
         params = {
             _JsonKey.ID: pid,
         }
@@ -597,7 +597,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return True
 
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on CCU / Homegear."""
+        """Set the program state on the backend."""
         params = {
             _JsonKey.ID: pid,
             _JsonKey.STATE: "1" if state else "0",
@@ -614,7 +614,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return True
 
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
         params = {_JsonKey.NAME: legacy_name, _JsonKey.VALUE: value}
         if isinstance(value, bool):
             params[_JsonKey.VALUE] = int(value)
@@ -640,7 +640,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return True
 
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
         params = {_JsonKey.NAME: name}
         response = await self._post(
             method=_JsonRpcMethod.SYSVAR_DELETE_SYSVAR_BY_NAME,
@@ -655,7 +655,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return True
 
     async def get_system_variable(self, name: str) -> Any:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
         params = {_JsonKey.NAME: name}
         response = await self._post(
             method=_JsonRpcMethod.SYSVAR_GET_VALUE_BY_NAME,
@@ -668,7 +668,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
-        """Get all system variables from CCU / Homegear."""
+        """Get all system variables from the backend."""
         variables: list[SystemVariableData] = []
 
         response = await self._post(
@@ -760,7 +760,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return tuple(variables)
 
     async def _get_program_descriptions(self) -> Mapping[str, str]:
-        """Get all program descriptions from CCU via script."""
+        """Get all program descriptions from the backend via script."""
         descriptions: dict[str, str] = {}
         try:
             response = await self._post_script(script_name=RegaScript.GET_PROGRAM_DESCRIPTIONS)
@@ -779,7 +779,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return descriptions
 
     async def _get_system_variable_descriptions(self) -> Mapping[str, str]:
-        """Get all system variable descriptions from CCU via script."""
+        """Get all system variable descriptions from the backend via script."""
         descriptions: dict[str, str] = {}
         try:
             response = await self._post_script(script_name=RegaScript.GET_SYSTEM_VARIABLE_DESCRIPTIONS)
@@ -798,7 +798,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return descriptions
 
     async def get_all_channel_ids_room(self) -> Mapping[str, set[str]]:
-        """Get all channel_ids per room from CCU / Homegear."""
+        """Get all channel_ids per room from the backend."""
         channel_ids_room: dict[str, set[str]] = {}
 
         response = await self._post(
@@ -821,7 +821,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return channel_ids_room
 
     async def get_all_channel_ids_function(self) -> Mapping[str, set[str]]:
-        """Get all channel_ids per function from CCU / Homegear."""
+        """Get all channel_ids per function from the backend."""
         channel_ids_function: dict[str, set[str]] = {}
 
         response = await self._post(
@@ -844,7 +844,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return channel_ids_function
 
     async def get_device_description(self, interface: Interface, address: str) -> DeviceDescription | None:
-        """Get device descriptions from CCU."""
+        """Get device descriptions from the backend."""
         device_description: DeviceDescription | None = None
         params = {
             _JsonKey.INTERFACE: interface,
@@ -1168,19 +1168,19 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return supported_methods
 
     async def _check_supported_methods(self) -> bool:
-        """Check, if all required api methods are supported by backend."""
+        """Check, if all required api methods are supported by the backend."""
         if self._supported_methods is None:
             self._supported_methods = await self._get_supported_methods()
         if unsupport_methods := tuple(method for method in _JsonRpcMethod if method not in self._supported_methods):
             _LOGGER.warning(
-                "CHECK_SUPPORTED_METHODS: methods not supported by backend: %s",
+                "CHECK_SUPPORTED_METHODS: methods not supported by the backend: %s",
                 ", ".join(unsupport_methods),
             )
             return False
         return True
 
     async def get_system_information(self) -> SystemInformation:
-        """Get system information of the backend."""
+        """Get system information of the the backend."""
 
         if (auth_enabled := await self._get_auth_enabled()) is not None and (
             system_information := SystemInformation(
@@ -1207,7 +1207,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return True
 
     async def list_devices(self, interface: Interface) -> tuple[DeviceDescription, ...]:
-        """List devices from CCU / Homegear."""
+        """List devices from the backend."""
         devices: tuple[DeviceDescription, ...] = ()
         _LOGGER.debug("LIST_DEVICES: Getting all available interfaces")
         params = {
@@ -1225,7 +1225,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return devices
 
     async def _list_interfaces(self) -> tuple[str, ...]:
-        """List all available interfaces from CCU / Homegear."""
+        """List all available interfaces from the backend."""
         _LOGGER.debug("LIST_INTERFACES: Getting all available interfaces")
 
         response = await self._post(

@@ -4,7 +4,7 @@
 XML-RPC server module.
 
 Provides the XML-RPC server which handles communication
-with the CCU or Homegear.
+with the backend.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 class RPCFunctions:
-    """The XML-RPC functions the CCU or Homegear will expect."""
+    """The XML-RPC functions the backend will expect."""
 
     def __init__(self, xml_rpc_server: XmlRpcServer) -> None:
         """Init RPCFunctions."""
@@ -46,7 +46,7 @@ class RPCFunctions:
 
     @callback_backend_system(system_event=BackendSystemEvent.ERROR)
     def error(self, interface_id: str, error_code: str, msg: str) -> None:
-        """When some error occurs the CCU / Homegear will send its error message here."""
+        """When some error occurs the backend will send its error message here."""
         # Structured boundary log (warning level). XML-RPC server received error notification.
         try:
             raise RuntimeError(str(msg))
@@ -67,13 +67,13 @@ class RPCFunctions:
         )
 
     def listDevices(self, interface_id: str) -> list[dict[str, Any]]:
-        """Return already existing devices to CCU / Homegear."""
+        """Return already existing devices to the backend."""
         if central := self.get_central(interface_id):
             return [dict(device_description) for device_description in central.list_devices(interface_id=interface_id)]
         return []
 
     def newDevices(self, interface_id: str, device_descriptions: list[dict[str, Any]]) -> None:
-        """Add new devices send from backend."""
+        """Add new devices send from the backend."""
         central: hmcu.CentralUnit | None
         if central := self.get_central(interface_id):
             central.looper.create_task(
@@ -82,7 +82,7 @@ class RPCFunctions:
             )
 
     def deleteDevices(self, interface_id: str, addresses: list[str]) -> None:
-        """Delete devices send from backend."""
+        """Delete devices send from the backend."""
         central: hmcu.CentralUnit | None
         if central := self.get_central(interface_id):
             central.looper.create_task(
@@ -118,7 +118,7 @@ class RPCFunctions:
     @callback_backend_system(system_event=BackendSystemEvent.RE_ADDED_DEVICE)
     def readdedDevice(self, interface_id: str, addresses: list[str]) -> None:
         """
-        Re-Add device from backend.
+        Re-Add device from the backend.
 
         Probably irrelevant for us.
         Gets called when a known devices is put into learn-mode
@@ -170,7 +170,7 @@ class AioHomematicXMLRPCServer(SimpleXMLRPCServer):
 
 
 class XmlRpcServer(threading.Thread):
-    """XML-RPC server thread to handle messages from CCU / Homegear."""
+    """XML-RPC server thread to handle messages from the backend."""
 
     _initialized: bool = False
     _instances: Final[dict[tuple[str, int], XmlRpcServer]] = {}

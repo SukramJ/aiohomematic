@@ -248,7 +248,7 @@ class Client(ABC, LogContextMixin):
         return self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
 
     async def initialize_proxy(self) -> ProxyInitState:
-        """Init the proxy has to tell the CCU / Homegear where to send the events."""
+        """Init the proxy has to tell the backend where to send the events."""
 
         if not self.supports_xml_rpc:
             if device_descriptions := await self.list_devices():
@@ -277,7 +277,7 @@ class Client(ABC, LogContextMixin):
         return ProxyInitState.INIT_SUCCESS
 
     async def deinitialize_proxy(self) -> ProxyInitState:
-        """De-init to stop CCU from sending events for this remote."""
+        """De-init to stop the backend from sending events for this remote."""
         if not self.supports_xml_rpc:
             return ProxyInitState.DE_INIT_SUCCESS
 
@@ -356,12 +356,12 @@ class Client(ABC, LogContextMixin):
     @abstractmethod
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
-        """Fetch names from backend."""
+        """Fetch names from the backend."""
 
     @inspector(re_raise=False, no_raise_return=False)
     async def is_connected(self) -> bool:
@@ -425,34 +425,34 @@ class Client(ABC, LogContextMixin):
     @abstractmethod
     @inspector
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU / Homegear."""
+        """Execute a program on the backend."""
 
     @abstractmethod
     @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on CCU / Homegear."""
+        """Set the program state on the backend."""
 
     @abstractmethod
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
 
     @abstractmethod
     @inspector
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
 
     @abstractmethod
     @inspector
     async def get_system_variable(self, name: str) -> Any:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from CCU / Homegear."""
+        """Get all system variables from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False)
@@ -483,7 +483,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
-        """Get device descriptions from CCU / Homegear."""
+        """Get device descriptions from the backend."""
         try:
             if device_description := cast(
                 DeviceDescription | None,
@@ -979,7 +979,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """List devices of homematic backend."""
+        """List devices of the backend."""
         try:
             return tuple(await self._proxy_read.listDevices())
         except BaseHomematicException as bhexc:
@@ -1165,17 +1165,17 @@ class ClientCCU(Client):
 
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
         return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
 
     @inspector
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
         return await self._json_rpc_client.delete_system_variable(name=name)
 
     @inspector
     async def get_system_variable(self, name: str) -> Any:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
     @inspector(re_raise=False)
@@ -1239,7 +1239,7 @@ class ClientJsonCCU(ClientCCU):
 
     @inspector(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
-        """Get device descriptions from CCU / Homegear."""
+        """Get device descriptions from the backend."""
         try:
             if device_description := await self._json_rpc_client.get_device_description(
                 interface=self.interface, address=device_address
@@ -1441,7 +1441,7 @@ class ClientHomegear(Client):
 
     @inspector(re_raise=False)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
         return
 
     @inspector(re_raise=False, measure_performance=True)
@@ -1491,19 +1491,19 @@ class ClientHomegear(Client):
 
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
         await self._proxy.setSystemVariable(legacy_name, value)
         return True
 
     @inspector
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
         await self._proxy.deleteSystemVariable(name)
         return True
 
     @inspector
     async def get_system_variable(self, name: str) -> Any:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
         return await self._proxy.getSystemVariable(name)
 
     @inspector(re_raise=False)
@@ -1586,7 +1586,7 @@ class _ClientConfig:
             raise NoConnectionException(f"Unable to connect {extract_exc_args(exc=exc)}.") from exc
 
     async def _get_version(self) -> str:
-        """Return the version of the backend."""
+        """Return the version of the the backend."""
         if self.interface in (Interface.CCU_JACK, Interface.CUXD):
             return "0"
         check_proxy = await self._create_simple_xml_rpc_proxy()
@@ -1601,7 +1601,7 @@ class _ClientConfig:
     async def create_xml_rpc_proxy(
         self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
     ) -> XmlRpcProxy:
-        """Return a XmlRPC proxy for backend communication."""
+        """Return a XmlRPC proxy for the backend communication."""
         config = self.central.config
         xml_rpc_headers = (
             build_xml_rpc_headers(
@@ -1624,7 +1624,7 @@ class _ClientConfig:
         return xml_proxy
 
     async def _create_simple_xml_rpc_proxy(self) -> XmlRpcProxy:
-        """Return a XmlRPC proxy for backend communication."""
+        """Return a XmlRPC proxy for the backend communication."""
         return await self.create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
 
 

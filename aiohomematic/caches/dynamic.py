@@ -170,7 +170,7 @@ class DeviceDetailsCache:
         self._refreshed_at = INIT_DATETIME
 
     async def load(self, direct_call: bool = False) -> None:
-        """Fetch names from backend."""
+        """Fetch names from the backend."""
         if direct_call is False and changed_within_seconds(
             last_change=self._refreshed_at, max_age=int(MAX_CACHE_AGE / 3)
         ):
@@ -286,7 +286,7 @@ class CentralDataCache:
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
 
     async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
-        """Fetch data from backend."""
+        """Fetch data from the backend."""
         _LOGGER.debug("load: Loading device data for %s", self._central.name)
         for client in self._central.clients:
             if interface and interface != client.interface:

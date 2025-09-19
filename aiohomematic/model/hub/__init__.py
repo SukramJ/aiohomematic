@@ -4,7 +4,7 @@
 Hub (backend) data points for AioHomematic.
 
 Overview
-- This module reflects the state and capabilities of the backend (CCU/Homegear)
+- This module reflects the state and capabilities of the backend
   at the hub level. It exposes backend programs and system variables as data
   points that can be observed and acted upon by higher layers (e.g.,
   integrations).
@@ -133,7 +133,7 @@ class ProgramDpType(NamedTuple):
 
 
 class Hub:
-    """The HomeMatic hub. (CCU/HomeGear)."""
+    """The HomeMatic hub."""
 
     __slots__ = (
         "_sema_fetch_sysvars",
@@ -223,7 +223,7 @@ class Hub:
             self._central.name,
         )
 
-        # remove some variables in case of CCU Backend
+        # remove some variables in case of CCU backend
         # - OldValue(s) are for internal calculations
         if self._central.model is Backend.CCU:
             variables = _clean_variables(variables)

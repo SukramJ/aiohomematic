@@ -216,7 +216,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._reset_temporary_timestamps()
 
     def write_value(self, value: Any, write_at: datetime) -> None:
-        """Set variable value on CCU/Homegear."""
+        """Set variable value on the backend."""
         self._reset_temporary_value()
 
         old_value = self._current_value
@@ -262,7 +262,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
     @inspector
     async def send_variable(self, value: Any) -> None:
-        """Set variable value on CCU/Homegear."""
+        """Set variable value on the backend."""
         if client := self.central.primary_client:
             await client.set_system_variable(legacy_name=self._legacy_name, value=parse_sys_var(self._data_type, value))
         self._write_temporary_value(value=value, write_at=datetime.now())
@@ -316,7 +316,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         return self._pid
 
     def update_data(self, data: ProgramData) -> None:
-        """Set variable value on CCU/Homegear."""
+        """Set variable value on the backend."""
         do_update: bool = False
         if self._is_active != data.is_active:
             self._is_active = data.is_active

@@ -87,11 +87,11 @@ class ClientLocal(Client):  # pragma: no cover
         return True
 
     async def initialize_proxy(self) -> ProxyInitState:
-        """Init the proxy has to tell the CCU / Homegear where to send the events."""
+        """Init the proxy has to tell the backend where to send the events."""
         return ProxyInitState.INIT_SUCCESS
 
     async def deinitialize_proxy(self) -> ProxyInitState:
-        """De-init to stop CCU from sending events for this remote."""
+        """De-init to stop the backend from sending events for this remote."""
         return ProxyInitState.DE_INIT_SUCCESS
 
     async def stop(self) -> None:
@@ -99,11 +99,11 @@ class ClientLocal(Client):  # pragma: no cover
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
-        """Fetch names from backend."""
+        """Fetch names from the backend."""
 
     @inspector(re_raise=False, no_raise_return=False)
     async def is_connected(self) -> bool:
@@ -121,41 +121,41 @@ class ClientLocal(Client):  # pragma: no cover
 
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
-        """Send ping to CCU to generate PONG event."""
+        """Send ping to the backend to generate PONG event."""
         if handle_ping_pong and self.supports_ping_pong:
             self._ping_pong_cache.handle_send_ping(ping_ts=datetime.now())
         return True
 
     @inspector
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU / Homegear."""
+        """Execute a program on the backend."""
         return True
 
     @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on CCU / Homegear."""
+        """Set the program state on the backend."""
         return True
 
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
         return True
 
     @inspector
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
         return True
 
     @inspector
     async def get_system_variable(self, name: str) -> str:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
         return "Empty"
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
-        """Get all system variables from CCU / Homegear."""
+        """Get all system variables from the backend."""
         return ()
 
     @inspector(re_raise=False)
@@ -179,7 +179,7 @@ class ClientLocal(Client):  # pragma: no cover
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """Get device descriptions from CCU / Homegear."""
+        """Get device descriptions from the backend."""
         if not self._local_resources:
             _LOGGER.warning(
                 "LIST_DEVICES: missing local_resources in config for %s",
@@ -208,7 +208,7 @@ class ClientLocal(Client):  # pragma: no cover
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
-        """Return a value from CCU."""
+        """Return a value from the backend."""
         return
 
     @inspector(re_raise=False, no_raise_return=set())
@@ -239,7 +239,7 @@ class ClientLocal(Client):  # pragma: no cover
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
         """
-        Return a paramset from CCU.
+        Return a paramset from the backend.
 
         Address is usually the channel_address,
         but for bidcos devices there is a master paramset at the device.
@@ -249,7 +249,7 @@ class ClientLocal(Client):  # pragma: no cover
     async def _get_paramset_description(
         self, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Get paramset description from CCU."""
+        """Get paramset description from the backend."""
         if not self._local_resources:
             _LOGGER.warning(
                 "GET_PARAMSET_DESCRIPTION: missing local_resources in config for %s",

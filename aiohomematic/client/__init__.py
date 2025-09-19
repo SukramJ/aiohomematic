@@ -248,7 +248,7 @@ class Client(ABC, LogContextMixin):
         return self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
 
     async def initialize_proxy(self) -> ProxyInitState:
-        """Init the proxy has to tell the CCU / Homegear where to send the events."""
+        """Init the proxy has to tell the backend where to send the events."""
 
         if not self.supports_xml_rpc:
             if device_descriptions := await self.list_devices():
@@ -277,7 +277,7 @@ class Client(ABC, LogContextMixin):
         return ProxyInitState.INIT_SUCCESS
 
     async def deinitialize_proxy(self) -> ProxyInitState:
-        """De-init to stop CCU from sending events for this remote."""
+        """De-init to stop the backend from sending events for this remote."""
         if not self.supports_xml_rpc:
             return ProxyInitState.DE_INIT_SUCCESS
 
@@ -356,12 +356,12 @@ class Client(ABC, LogContextMixin):
     @abstractmethod
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
-        """Fetch names from backend."""
+        """Fetch names from the backend."""
 
     @inspector(re_raise=False, no_raise_return=False)
     async def is_connected(self) -> bool:
@@ -420,39 +420,39 @@ class Client(ABC, LogContextMixin):
     @abstractmethod
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
-        """Send ping to CCU to generate PONG event."""
+        """Send ping to the backend to generate PONG event."""
 
     @abstractmethod
     @inspector
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU / Homegear."""
+        """Execute a program on the backend."""
 
     @abstractmethod
     @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on CCU / Homegear."""
+        """Set the program state on the backend."""
 
     @abstractmethod
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
 
     @abstractmethod
     @inspector
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
 
     @abstractmethod
     @inspector
     async def get_system_variable(self, name: str) -> Any:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from CCU / Homegear."""
+        """Get all system variables from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False)
@@ -483,7 +483,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
-        """Get device descriptions from CCU / Homegear."""
+        """Get device descriptions from the backend."""
         try:
             if device_description := cast(
                 DeviceDescription | None,
@@ -560,7 +560,7 @@ class Client(ABC, LogContextMixin):
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
-        """Return a value from CCU."""
+        """Return a value from the backend."""
         try:
             _LOGGER.debug(
                 "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
@@ -707,7 +707,7 @@ class Client(ABC, LogContextMixin):
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> dict[str, Any]:
         """
-        Return a paramset from CCU.
+        Return a paramset from the backend.
 
         Address is usually the channel_address,
         but for bidcos devices there is a master paramset at the device.
@@ -835,7 +835,7 @@ class Client(ABC, LogContextMixin):
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
     ) -> None:
-        """Put paramset into CCU."""
+        """Put paramset into the backend."""
         if rx_mode:
             await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
         else:
@@ -946,7 +946,7 @@ class Client(ABC, LogContextMixin):
     async def _get_paramset_description(
         self, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Get paramset description from CCU."""
+        """Get paramset description from the backend."""
         try:
             return cast(
                 dict[str, ParameterData],
@@ -979,7 +979,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """List devices of homematic backend."""
+        """List devices of the backend."""
         try:
             return tuple(await self._proxy_read.listDevices())
         except BaseHomematicException as bhexc:
@@ -1089,7 +1089,7 @@ class ClientCCU(Client):
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
         try:
             if all_device_data := await self._json_rpc_client.get_all_device_data(interface=self.interface):
                 _LOGGER.debug(
@@ -1140,12 +1140,12 @@ class ClientCCU(Client):
 
     @inspector
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU."""
+        """Execute a program on the backend."""
         return await self._json_rpc_client.execute_program(pid=pid)
 
     @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on CCU."""
+        """Set the program state on the backend."""
         return await self._json_rpc_client.set_program_state(pid=pid, state=state)
 
     @inspector
@@ -1165,24 +1165,24 @@ class ClientCCU(Client):
 
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
         return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
 
     @inspector
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
         return await self._json_rpc_client.delete_system_variable(name=name)
 
     @inspector
     async def get_system_variable(self, name: str) -> Any:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from CCU."""
+        """Get all system variables from the backend."""
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @inspector(re_raise=False)
@@ -1192,7 +1192,7 @@ class ClientCCU(Client):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from CCU."""
+        """Get all rooms from the backend."""
         rooms: dict[str, set[str]] = {}
         channel_ids_room = await self._json_rpc_client.get_all_channel_ids_room()
         for address, channel_id in self.central.device_details.device_channel_ids.items():
@@ -1204,7 +1204,7 @@ class ClientCCU(Client):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from CCU."""
+        """Get all functions from the backend."""
         functions: dict[str, set[str]] = {}
         channel_ids_function = await self._json_rpc_client.get_all_channel_ids_function()
         for address, channel_id in self.central.device_details.device_channel_ids.items():
@@ -1220,7 +1220,7 @@ class ClientCCU(Client):
 
 
 class ClientJsonCCU(ClientCCU):
-    """Client implementation for CCU backend."""
+    """Client implementation for CCU-like backend (CCU-Jack, CuXD)."""
 
     @inspector
     async def init_client(self) -> None:
@@ -1239,7 +1239,7 @@ class ClientJsonCCU(ClientCCU):
 
     @inspector(re_raise=False)
     async def get_device_description(self, device_address: str) -> DeviceDescription | None:
-        """Get device descriptions from CCU / Homegear."""
+        """Get device descriptions from the backend."""
         try:
             if device_description := await self._json_rpc_client.get_device_description(
                 interface=self.interface, address=device_address
@@ -1257,7 +1257,7 @@ class ClientJsonCCU(ClientCCU):
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> dict[str, Any]:
         """
-        Return a paramset from CCU.
+        Return a paramset from the backend.
 
         Address is usually the channel_address,
         but for bidcos devices there is a master paramset at the device.
@@ -1288,7 +1288,7 @@ class ClientJsonCCU(ClientCCU):
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
-        """Return a value from CCU."""
+        """Return a value from the backend."""
         try:
             _LOGGER.debug(
                 "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
@@ -1334,7 +1334,7 @@ class ClientJsonCCU(ClientCCU):
     async def _get_paramset_description(
         self, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Get paramset description from CCU."""
+        """Get paramset description from the backend."""
         try:
             return cast(
                 dict[str, ParameterData],
@@ -1359,7 +1359,7 @@ class ClientJsonCCU(ClientCCU):
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
     ) -> None:
-        """Put paramset into CCU."""
+        """Put paramset into the backend."""
         # _values: list[dict[str, Any]] = []
         for parameter, value in values.items():
             await self._exec_set_value(
@@ -1441,7 +1441,7 @@ class ClientHomegear(Client):
 
     @inspector(re_raise=False)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
         return
 
     @inspector(re_raise=False, measure_performance=True)
@@ -1481,36 +1481,36 @@ class ClientHomegear(Client):
 
     @inspector
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on Homegear."""
+        """Execute a program on the backend."""
         return True
 
     @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on Homegear."""
+        """Set the program state on the backend."""
         return True
 
     @inspector(measure_performance=True)
     async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on CCU / Homegear."""
+        """Set a system variable on the backend."""
         await self._proxy.setSystemVariable(legacy_name, value)
         return True
 
     @inspector
     async def delete_system_variable(self, name: str) -> bool:
-        """Delete a system variable from CCU / Homegear."""
+        """Delete a system variable from the backend."""
         await self._proxy.deleteSystemVariable(name)
         return True
 
     @inspector
     async def get_system_variable(self, name: str) -> Any:
-        """Get single system variable from CCU / Homegear."""
+        """Get single system variable from the backend."""
         return await self._proxy.getSystemVariable(name)
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from Homegear."""
+        """Get all system variables from the backend."""
         variables: list[SystemVariableData] = []
         if hg_variables := await self._proxy.getAllSystemVariables():
             for name, value in hg_variables.items():
@@ -1524,12 +1524,12 @@ class ClientHomegear(Client):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from Homegear."""
+        """Get all rooms from the backend."""
         return {}
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from Homegear."""
+        """Get all functions from the backend."""
         return {}
 
     async def _get_system_information(self) -> SystemInformation:
@@ -1586,7 +1586,7 @@ class _ClientConfig:
             raise NoConnectionException(f"Unable to connect {extract_exc_args(exc=exc)}.") from exc
 
     async def _get_version(self) -> str:
-        """Return the version of the backend."""
+        """Return the version of the the backend."""
         if self.interface in (Interface.CCU_JACK, Interface.CUXD):
             return "0"
         check_proxy = await self._create_simple_xml_rpc_proxy()
@@ -1601,7 +1601,7 @@ class _ClientConfig:
     async def create_xml_rpc_proxy(
         self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
     ) -> XmlRpcProxy:
-        """Return a XmlRPC proxy for backend communication."""
+        """Return a XmlRPC proxy for the backend communication."""
         config = self.central.config
         xml_rpc_headers = (
             build_xml_rpc_headers(
@@ -1624,7 +1624,7 @@ class _ClientConfig:
         return xml_proxy
 
     async def _create_simple_xml_rpc_proxy(self) -> XmlRpcProxy:
-        """Return a XmlRPC proxy for backend communication."""
+        """Return a XmlRPC proxy for the backend communication."""
         return await self.create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
 
 

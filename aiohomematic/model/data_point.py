@@ -757,7 +757,7 @@ class BaseParameterDataPoint[
 
     @property
     def service(self) -> bool:
-        """Return the if data_point is visible in ccu."""
+        """Return the if data_point is visible in the backend."""
         return self._service
 
     @property
@@ -782,7 +782,7 @@ class BaseParameterDataPoint[
 
     @property
     def visible(self) -> bool:
-        """Return the if data_point is visible in ccu."""
+        """Return the if data_point is visible in the backend."""
         return self._visible
 
     @hm_property(cached=True)
@@ -1011,7 +1011,7 @@ class CallParameterCollector:
         )
 
     async def send_data(self, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
-        """Send data to backend."""
+        """Send data to the backend."""
         dpk_values: set[DP_KEY_VALUE] = set()
         for paramset_key, paramsets in self._paramsets.items():
             for _, paramset_no in sorted(paramsets.items()):

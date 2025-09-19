@@ -11,7 +11,7 @@ interfaces, devices, channels, data points, events, and background jobs.
 
 The central unit ties together the various submodules: caches, client adapters
 (JSON-RPC/XML-RPC), device and data point models, and visibility/description caches.
-It exposes high-level APIs to query and manipulate the CCU state while
+It exposes high-level APIs to query and manipulate the backend state while
 encapsulating transport and scheduling details.
 
 Public API (selected)
@@ -191,7 +191,7 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 
 
 class CentralUnit(LogContextMixin, PayloadMixin):
-    """Central unit that collects everything to handle communication from/to CCU/Homegear."""
+    """Central unit that collects everything to handle communication from/to the backend."""
 
     def __init__(self, central_config: CentralConfig) -> None:
         """Init the central unit."""
@@ -208,7 +208,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._xml_rpc_server: xmlrpc.XmlRpcServer | None = None
         self._json_rpc_client: JsonRpcAioHttpClient | None = None
 
-        # Caches for CCU data
+        # Caches for the backend data
         self._data_cache: Final = CentralDataCache(central=self)
         self._device_details: Final = DeviceDetailsCache(central=self)
         self._device_descriptions: Final = DeviceDescriptionCache(central=self)
@@ -233,7 +233,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         # e.g. DEVICES_CREATED, HUB_REFRESHED
         self._backend_system_callbacks: Final[set[Callable]] = set()
         # Signature: (interface_id, channel_address, parameter, value)
-        # Re-Fired events from CCU for parameter updates
+        # Re-Fired events from the backend for parameter updates
         self._backend_parameter_callbacks: Final[set[Callable]] = set()
         # Signature: (event_type, event_data)
         # Events like INTERFACE, KEYPRESS, ...
@@ -665,7 +665,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     and interface_config.interface not in self.primary_client.system_information.available_interfaces
                 ):
                     _LOGGER.warning(
-                        "CREATE_CLIENTS failed: Interface: %s is not available for backend %s",
+                        "CREATE_CLIENTS failed: Interface: %s is not available for the backend %s",
                         interface_config.interface,
                         self.name,
                     )
@@ -721,7 +721,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for client in self._clients.copy().values():
             if client.interface not in self.system_information.available_interfaces:
                 _LOGGER.debug(
-                    "INIT_CLIENTS failed: Interface: %s is not available for backend %s",
+                    "INIT_CLIENTS failed: Interface: %s is not available for the backend %s",
                     client.interface,
                     self.name,
                 )
@@ -1211,7 +1211,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, interface_id: str) -> list[DeviceDescription]:
-        """Return already existing devices to CCU / Homegear."""
+        """Return already existing devices to the backend."""
         result = self._device_descriptions.get_raw_device_descriptions(interface_id=interface_id)
         _LOGGER.debug("LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result))
         return result
@@ -1274,13 +1274,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._last_event_seen_for_interface[interface_id] = datetime.now()
 
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU / Homegear."""
+        """Execute a program on the backend."""
         if client := self.primary_client:
             return await client.execute_program(pid=pid)
         return False
 
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Execute a program on CCU / Homegear."""
+        """Execute a program on the backend."""
         if client := self.primary_client:
             return await client.set_program_state(pid=pid, state=state)
         return False
@@ -1310,13 +1310,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         )
 
     async def get_system_variable(self, legacy_name: str) -> Any | None:
-        """Get system variable from CCU / Homegear."""
+        """Get system variable from the backend."""
         if client := self.primary_client:
             return await client.get_system_variable(legacy_name)
         return None
 
     async def set_system_variable(self, legacy_name: str, value: Any) -> None:
-        """Set variable value on CCU/Homegear."""
+        """Set variable value on the backend."""
         if dp := self.get_sysvar_data_point(legacy_name=legacy_name):
             await dp.send_variable(value=value)
         else:
@@ -1552,7 +1552,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """
         Fire backend_parameter callback in central.
 
-        Re-Fired events from CCU for parameter updates.
+        Re-Fired events from the backend for parameter updates.
         """
         for callback_handler in self._backend_parameter_callbacks:
             try:
@@ -1597,7 +1597,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
 
 class _Scheduler(threading.Thread):
-    """Periodically check connection to CCU / Homegear, and load data when required."""
+    """Periodically check connection to the backend, and load data when required."""
 
     def __init__(self, central: CentralUnit) -> None:
         """Init the connection checker."""

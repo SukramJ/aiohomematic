@@ -420,7 +420,7 @@ class Client(ABC, LogContextMixin):
     @abstractmethod
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
-        """Send ping to CCU to generate PONG event."""
+        """Send ping to the backend to generate PONG event."""
 
     @abstractmethod
     @inspector
@@ -560,7 +560,7 @@ class Client(ABC, LogContextMixin):
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
-        """Return a value from CCU."""
+        """Return a value from the backend."""
         try:
             _LOGGER.debug(
                 "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
@@ -707,7 +707,7 @@ class Client(ABC, LogContextMixin):
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> dict[str, Any]:
         """
-        Return a paramset from CCU.
+        Return a paramset from the backend.
 
         Address is usually the channel_address,
         but for bidcos devices there is a master paramset at the device.
@@ -835,7 +835,7 @@ class Client(ABC, LogContextMixin):
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
     ) -> None:
-        """Put paramset into CCU."""
+        """Put paramset into the backend."""
         if rx_mode:
             await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
         else:
@@ -946,7 +946,7 @@ class Client(ABC, LogContextMixin):
     async def _get_paramset_description(
         self, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Get paramset description from CCU."""
+        """Get paramset description from the backend."""
         try:
             return cast(
                 dict[str, ParameterData],
@@ -1089,7 +1089,7 @@ class ClientCCU(Client):
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
         try:
             if all_device_data := await self._json_rpc_client.get_all_device_data(interface=self.interface):
                 _LOGGER.debug(
@@ -1140,12 +1140,12 @@ class ClientCCU(Client):
 
     @inspector
     async def execute_program(self, pid: str) -> bool:
-        """Execute a program on CCU."""
+        """Execute a program on the backend."""
         return await self._json_rpc_client.execute_program(pid=pid)
 
     @inspector
     async def set_program_state(self, pid: str, state: bool) -> bool:
-        """Set the program state on CCU."""
+        """Set the program state on the backend."""
         return await self._json_rpc_client.set_program_state(pid=pid, state=state)
 
     @inspector
@@ -1182,7 +1182,7 @@ class ClientCCU(Client):
     async def get_all_system_variables(
         self, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from CCU."""
+        """Get all system variables from the backend."""
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @inspector(re_raise=False)
@@ -1192,7 +1192,7 @@ class ClientCCU(Client):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from CCU."""
+        """Get all rooms from the backend."""
         rooms: dict[str, set[str]] = {}
         channel_ids_room = await self._json_rpc_client.get_all_channel_ids_room()
         for address, channel_id in self.central.device_details.device_channel_ids.items():
@@ -1204,7 +1204,7 @@ class ClientCCU(Client):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from CCU."""
+        """Get all functions from the backend."""
         functions: dict[str, set[str]] = {}
         channel_ids_function = await self._json_rpc_client.get_all_channel_ids_function()
         for address, channel_id in self.central.device_details.device_channel_ids.items():
@@ -1220,7 +1220,7 @@ class ClientCCU(Client):
 
 
 class ClientJsonCCU(ClientCCU):
-    """Client implementation for CCU backend."""
+    """Client implementation for CCU-like backend (CCU-Jack, CuXD)."""
 
     @inspector
     async def init_client(self) -> None:
@@ -1257,7 +1257,7 @@ class ClientJsonCCU(ClientCCU):
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> dict[str, Any]:
         """
-        Return a paramset from CCU.
+        Return a paramset from the backend.
 
         Address is usually the channel_address,
         but for bidcos devices there is a master paramset at the device.
@@ -1288,7 +1288,7 @@ class ClientJsonCCU(ClientCCU):
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
-        """Return a value from CCU."""
+        """Return a value from the backend."""
         try:
             _LOGGER.debug(
                 "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
@@ -1334,7 +1334,7 @@ class ClientJsonCCU(ClientCCU):
     async def _get_paramset_description(
         self, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Get paramset description from CCU."""
+        """Get paramset description from the backend."""
         try:
             return cast(
                 dict[str, ParameterData],
@@ -1359,7 +1359,7 @@ class ClientJsonCCU(ClientCCU):
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
     ) -> None:
-        """Put paramset into CCU."""
+        """Put paramset into the backend."""
         # _values: list[dict[str, Any]] = []
         for parameter, value in values.items():
             await self._exec_set_value(

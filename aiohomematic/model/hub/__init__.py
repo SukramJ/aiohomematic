@@ -223,7 +223,7 @@ class Hub:
             self._central.name,
         )
 
-        # remove some variables in case of CCU Backend
+        # remove some variables in case of CCU backend
         # - OldValue(s) are for internal calculations
         if self._central.model is Backend.CCU:
             variables = _clean_variables(variables)

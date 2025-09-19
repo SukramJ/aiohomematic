@@ -160,12 +160,7 @@ class AioHomematicXMLRPCServer(SimpleXMLRPCServer):
     """
 
     def system_listMethods(self, interface_id: str | None = None) -> list[str]:
-        """
-        Return a list of the methods supported by the server.
-
-        system.listMethods() => ['add', 'subtract', 'multiple']
-        Required for HomeMatic CCU usage.
-        """
+        """Return a list of the methods supported by the server."""
         return SimpleXMLRPCServer.system_listMethods(self)
 
 

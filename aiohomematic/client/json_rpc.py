@@ -263,7 +263,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return delta.seconds < JSON_SESSION_AGE
 
     async def _do_login(self) -> str | None:
-        """Login to CCU and return session."""
+        """Login to the backend and return session."""
         if not self._has_credentials:
             _LOGGER.warning("DO_LOGIN failed: No credentials set")
             return None
@@ -906,7 +906,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
     async def get_paramset(
         self, interface: Interface, address: str, paramset_key: ParamsetKey | str
     ) -> dict[str, Any] | None:
-        """Get paramset from CCU."""
+        """Get paramset from the backend."""
         paramset: dict[str, Any] = {}
         params = {
             _JsonKey.INTERFACE: interface,
@@ -932,7 +932,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         paramset_key: ParamsetKey | str,
         values: list[dict[str, Any]],
     ) -> None:
-        """Set paramset to CCU."""
+        """Set paramset to the backend."""
         params = {
             _JsonKey.INTERFACE: interface,
             _JsonKey.ADDRESS: address,
@@ -953,7 +953,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
             )
 
     async def get_value(self, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str) -> Any:
-        """Get value from CCU."""
+        """Get value from the backend."""
         value: Any = None
         params = {
             _JsonKey.INTERFACE: interface,
@@ -974,7 +974,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return value
 
     async def set_value(self, interface: Interface, address: str, parameter: str, value_type: str, value: Any) -> None:
-        """Set value to CCU."""
+        """Set value to the backend."""
         params = {
             _JsonKey.INTERFACE: interface,
             _JsonKey.ADDRESS: address,
@@ -998,7 +998,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
     async def get_paramset_description(
         self, interface: Interface, address: str, paramset_key: ParamsetKey
     ) -> Mapping[str, ParameterData] | None:
-        """Get paramset description from CCU."""
+        """Get paramset description from the backend."""
         paramset_description: dict[str, ParameterData] = {}
         params = {
             _JsonKey.INTERFACE: interface,
@@ -1119,7 +1119,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return tuple(all_programs)
 
     async def is_present(self, interface: Interface) -> bool:
-        """Get value from CCU."""
+        """Get value from the backend."""
         value: bool = False
         params = {_JsonKey.INTERFACE: interface}
 

@@ -91,7 +91,7 @@ class ClientLocal(Client):  # pragma: no cover
         return ProxyInitState.INIT_SUCCESS
 
     async def deinitialize_proxy(self) -> ProxyInitState:
-        """De-init to stop CCU from sending events for this remote."""
+        """De-init to stop the backend from sending events for this remote."""
         return ProxyInitState.DE_INIT_SUCCESS
 
     async def stop(self) -> None:
@@ -99,7 +99,7 @@ class ClientLocal(Client):  # pragma: no cover
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from CCU."""
+        """Fetch all device data from the backend."""
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
@@ -121,7 +121,7 @@ class ClientLocal(Client):  # pragma: no cover
 
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
-        """Send ping to CCU to generate PONG event."""
+        """Send ping to the backend to generate PONG event."""
         if handle_ping_pong and self.supports_ping_pong:
             self._ping_pong_cache.handle_send_ping(ping_ts=datetime.now())
         return True
@@ -208,7 +208,7 @@ class ClientLocal(Client):  # pragma: no cover
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
-        """Return a value from CCU."""
+        """Return a value from the backend."""
         return
 
     @inspector(re_raise=False, no_raise_return=set())
@@ -239,7 +239,7 @@ class ClientLocal(Client):  # pragma: no cover
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
         """
-        Return a paramset from CCU.
+        Return a paramset from the backend.
 
         Address is usually the channel_address,
         but for bidcos devices there is a master paramset at the device.
@@ -249,7 +249,7 @@ class ClientLocal(Client):  # pragma: no cover
     async def _get_paramset_description(
         self, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Get paramset description from CCU."""
+        """Get paramset description from the backend."""
         if not self._local_resources:
             _LOGGER.warning(
                 "GET_PARAMSET_DESCRIPTION: missing local_resources in config for %s",

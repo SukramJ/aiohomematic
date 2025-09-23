@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import collections
 import os
 
 import orjson
@@ -63,6 +64,35 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
         assert pub_state_props
         info_config_props = get_hm_property_by_kind(data_object=device, kind=Kind.INFO)
         assert info_config_props
+
+    # channel.type_name, device.model
+    channel_type_device = {}
+    for device in central_unit_full.devices:
+        for channel in device.channels.values():
+            if channel.no is None:
+                continue
+            if channel.type_name not in channel_type_device:
+                channel_type_device[channel.type_name] = set()
+            channel_type_device[channel.type_name].add(device.model)
+
+    assert len(channel_type_device) == 162
+
+    # channel.type_name, parameter, device.model
+    channel_parameter_devices = {}
+    for device in central_unit_full.devices:
+        for channel in device.channels.values():
+            if channel.no is None:
+                continue
+            if channel.type_name not in channel_parameter_devices:
+                channel_parameter_devices[channel.type_name] = {}
+            for ge in channel.generic_data_points:
+                if ge.parameter not in channel_parameter_devices[channel.type_name]:
+                    channel_parameter_devices[channel.type_name][ge.parameter] = set()
+                channel_parameter_devices[channel.type_name][ge.parameter].add(device.model)
+
+    assert len(channel_parameter_devices) == 162
+
+    _channel_parameter_devices = collections.OrderedDict(sorted(channel_parameter_devices.items()))
 
     custom_dps = []
     channel_type_names = set()

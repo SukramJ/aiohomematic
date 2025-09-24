@@ -1,6 +1,6 @@
-# Version 2025.9.4 (2025-09-14)
+# Version 2025.9.4 (2025-09-24)
 
-- Remove dedicated @cached_property property -> uses @hm_property(cached=True) instead
+- Remove dedicated @cached_property -> use @hm_property(cached=True) instead
 
 # Version 2025.9.3 (2025-09-14)
 

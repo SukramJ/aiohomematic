@@ -36,7 +36,7 @@ Use the Home Assistant custom integration "Homematic(IP) Local", which is powere
    - Always enter credentials.
    - Choose which interfaces to enable (HM, HmIP, Virtual). Default ports are typically 2001 (HM), 2010 (HmIP), 9292 (Virtual).
 4. Network callbacks
-   - The integration needs to receive XML‑RPC callbacks from the CCU. Make sure Home Assistant is reachable from the CCU (no NAT/firewall blocking). Callbacks ar only required for special network setups.
+   - The integration needs to receive XML‑RPC callbacks from the CCU. Make sure Home Assistant is reachable from the CCU (no NAT/firewall blocking). Callbacks are only required for special network setups.
 5. Verify
    - After setup, devices should appear under Devices & Services → Homematic(IP) Local. Discovery may take a few seconds after the first connection while paramsets are fetched and cached for faster restarts.
 

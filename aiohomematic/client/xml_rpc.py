@@ -106,6 +106,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         self._supported_methods: tuple[str, ...] = ()
         if self._tls:
             kwargs[_CONTEXT] = get_tls_context(self._verify_tls)
+        # Due to magic method the log_context must be defined manually.
         self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": self._tls}
         xmlrpc.client.ServerProxy.__init__(  # type: ignore[misc]
             self,

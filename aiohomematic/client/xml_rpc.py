@@ -106,7 +106,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         self._supported_methods: tuple[str, ...] = ()
         if self._tls:
             kwargs[_CONTEXT] = get_tls_context(self._verify_tls)
-        self._log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": self._tls}
+        self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": self._tls}
         xmlrpc.client.ServerProxy.__init__(  # type: ignore[misc]
             self,
             encoding=ISO_8859_1,
@@ -172,7 +172,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 err=sslerr,
                 level=level,
                 message=message,
-                log_context=self._log_context,
+                log_context=self.log_context,
             )
             raise NoConnectionException(message) from sslerr
         except OSError as oserr:
@@ -190,7 +190,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 action=str(args[0]),
                 err=oserr,
                 level=level,
-                log_context=self._log_context,
+                log_context=self.log_context,
             )
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:

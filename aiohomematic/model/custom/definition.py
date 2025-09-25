@@ -714,7 +714,7 @@ def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter,
 def get_include_default_data_points(device_profile: DeviceProfile) -> bool:
     """Return if default data points should be included."""
     device = _get_device_definition(device_profile)
-    return device.get(CDPD.INCLUDE_DEFAULT_DPS, DEFAULT_INCLUDE_DEFAULT_DPS)
+    return bool(device.get(CDPD.INCLUDE_DEFAULT_DPS, DEFAULT_INCLUDE_DEFAULT_DPS))
 
 
 def _get_device_definition(device_profile: DeviceProfile) -> Mapping[CDPD, Any]:

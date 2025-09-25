@@ -189,7 +189,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
                 action=str(args[0]),
                 err=oserr,
                 level=level,
-                log_context=self.log_context,
+                log_context={"interface_id": self._interface_id, "tls": self._tls},
             )
             raise NoConnectionException(message) from oserr
         except xmlrpc.client.Fault as flt:

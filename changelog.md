@@ -1,3 +1,7 @@
+# Version 2025.9.5 (2025-09-25)
+
+- Fix magic method issue with log_context in xml_rpc client
+
 # Version 2025.9.4 (2025-09-24)
 
 - Remove dedicated @cached_property -> use @hm_property(cached=True) instead

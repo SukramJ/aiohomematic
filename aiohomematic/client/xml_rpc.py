@@ -42,8 +42,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
-from aiohomematic.property_decorators import hm_property
-from aiohomematic.support import LogContextMixin, extract_exc_args, get_tls_context, log_boundary_error
+from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -84,7 +83,7 @@ _OS_ERROR_CODES: Final[dict[int, str]] = {
 
 
 # noinspection PyProtectedMember,PyUnresolvedReferences
-class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
+class XmlRpcProxy(xmlrpc.client.ServerProxy):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
 
     def __init__(
@@ -107,6 +106,8 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
         self._supported_methods: tuple[str, ...] = ()
         if self._tls:
             kwargs[_CONTEXT] = get_tls_context(self._verify_tls)
+        # Due to magic method the log_context must be defined manually.
+        self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": self._tls}
         xmlrpc.client.ServerProxy.__init__(  # type: ignore[misc]
             self,
             encoding=ISO_8859_1,
@@ -121,20 +122,10 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy, LogContextMixin):
             supported_methods.append(_XmlRpcMethod.PING)
             self._supported_methods = tuple(supported_methods)
 
-    @hm_property(log_context=True)
-    def interface_id(self) -> str:
-        """Return the interface_id."""
-        return self._interface_id
-
     @property
     def supported_methods(self) -> tuple[str, ...]:
         """Return the supported methods."""
         return self._supported_methods
-
-    @hm_property(log_context=True)
-    def tls(self) -> bool:
-        """Return tls."""
-        return self._tls
 
     async def __async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Call method on server side."""

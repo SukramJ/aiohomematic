@@ -104,13 +104,14 @@ class Device(LogContextMixin, PayloadMixin):
         "_address",
         "_cached_relevant_for_central_link_management",
         "_central",
-        "_channel_groups",
+        "_channel_group",
         "_channels",
         "_client",
         "_description",
         "_device_updated_callbacks",
         "_firmware_update_callbacks",
         "_forced_availability",
+        "_group_channels",
         "_has_custom_data_point_definition",
         "_id",
         "_ignore_for_custom_data_point",
@@ -136,7 +137,8 @@ class Device(LogContextMixin, PayloadMixin):
         self._central: Final = central
         self._interface_id: Final = interface_id
         self._address: Final = device_address
-        self._channel_groups: Final[dict[int | None, int]] = {}
+        self._channel_group: Final[dict[int | None, int]] = {}
+        self._group_channels: Final[dict[int, set[int | None]]] = {}
         self._id: Final = self._central.device_details.get_address_id(address=device_address)
         self._interface: Final = central.device_details.get_interface(address=device_address)
         self._client: Final = central.get_client(interface_id=interface_id)
@@ -305,7 +307,7 @@ class Device(LogContextMixin, PayloadMixin):
     @property
     def has_sub_devices(self) -> bool:
         """Return if device has multiple sub device channels."""
-        return len(set(self._channel_groups.values())) > 1
+        return any(len(gcs) > 1 for gcs in self._group_channels.values())
 
     @property
     def id(self) -> str:
@@ -418,14 +420,16 @@ class Device(LogContextMixin, PayloadMixin):
         """Return th CONFIG_PENDING data_point."""
         return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING)
 
-    def add_channel_to_group(self, channel_no: int | None, group_no: int) -> None:
-        """Add channel no group."""
-        if group_no not in self._channel_groups:
-            self._channel_groups[group_no] = group_no
-        if channel_no not in self._channel_groups:
-            self._channel_groups[channel_no] = group_no
-        elif self._channel_groups[channel_no] != group_no:
-            return
+    def add_channel_to_group(self, group_no: int, channel_no: int | None) -> None:
+        """Add channel to group."""
+        if group_no not in self._group_channels:
+            self._group_channels[group_no] = set()
+        self._group_channels[group_no].add(channel_no)
+
+        if group_no not in self._channel_group:
+            self._channel_group[group_no] = group_no
+        if channel_no not in self._channel_group:
+            self._channel_group[channel_no] = group_no
 
     @inspector
     async def create_central_links(self) -> None:
@@ -451,14 +455,14 @@ class Device(LogContextMixin, PayloadMixin):
 
     def get_channel_group_no(self, channel_no: int | None) -> int | None:
         """Return the group no of the channel."""
-        return self._channel_groups.get(channel_no)
+        return self._channel_group.get(channel_no)
 
     def is_in_multi_channel_group(self, channel_no: int | None) -> bool:
         """Return if multiple channels are in the group."""
         if channel_no is None:
             return False
 
-        return len([s for s, m in self._channel_groups.items() if m == self._channel_groups.get(channel_no)]) > 1
+        return len([s for s, m in self._channel_group.items() if m == self._channel_group.get(channel_no)]) > 1
 
     def get_channel(self, channel_address: str) -> Channel | None:
         """Get channel of device."""

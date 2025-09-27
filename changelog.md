@@ -1,3 +1,7 @@
+# Version 2025.9.6 (2025-09-28)
+
+- Fix device has_sub_devices
+
 # Version 2025.9.5 (2025-09-25)
 
 - Fix magic method issue with log_context in xml_rpc client

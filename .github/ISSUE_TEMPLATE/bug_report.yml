@@ -1,5 +1,5 @@
-name: Report an issue with HomematicIP (local)
-description: Report an issue with HomematicIP (local)
+name: Report an issue with Homematic(IP) Local for OpenCCU
+description: Report an issue with Homematic(IP) Local for OpenCCU
 body:
   - type: markdown
     attributes:
@@ -44,13 +44,13 @@ body:
     validations:
       required: true
     attributes:
-      label: What version of HomematicIP (local) has the issue?
+      label: What version of Homematic(IP) Local for OpenCCU has the issue?
       placeholder: 1.8x.x
       description: >
         Can be found in: HACS -> Integrations
   - type: input
     attributes:
-      label: What was the last working version of HomematicIP (local)?
+      label: What was the last working version of Homematic(IP) Local for OpenCCU?
       placeholder: 1.8x.x
       description: >
         If known, otherwise leave blank.
@@ -134,7 +134,7 @@ body:
         It generally allows pinpointing defects and thus resolving issues faster.
   - type: textarea
     attributes:
-      label: Protocol file extract (very helpful). Anything in the protocols that might be useful for us? The log (Setting/System/Protocols -> load unchanged protocol) is the best source to support trouble shooting!
+      label: The complete Protocol file (very helpful). Anything in the protocols that might be useful for us? The log (Setting/System/Protocols -> load unchanged protocol) is the best source to support trouble shooting!
       description: For example, error message, or stack traces. Don't switch to DEBUG level if not requested.
       render: txt
   - type: textarea

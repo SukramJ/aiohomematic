@@ -1,5 +1,5 @@
-name: Melde ein Problem mit HomematicIP (local)
-description: Melde ein Problem mit HomematicIP (local)
+name: Melde ein Problem mit Homematic(IP) Local for OpenCCU
+description: Melde ein Problem mit Homematic(IP) Local for OpenCCU
 body:
   - type: markdown
     attributes:
@@ -49,7 +49,7 @@ body:
         Zu finden unter: HACS -> Integrationen
   - type: input
     attributes:
-      label: Welche war die letzte funktionierende Version von HomematicIP (local)?
+      label: Welche war die letzte funktionierende Version von Homematic(IP) Local for OpenCCU?
       placeholder: 1.8x.x
       description: >
         Falls bekannt, andernfalls leer lassen.
@@ -132,7 +132,7 @@ body:
         Dadurch können im Allgemeinen Fehler genauer lokalisiert und Probleme schneller gelöst werden.
   - type: textarea
     attributes:
-      label: Auszug aus der Protokolldatei (sehr hilfreich). Gibt es in den Protokollen etwas, das nützlich sein könnte? Das Protokoll (Einstellungen/System/Protokolle -> Unveränderte Protokolle laden) ist die beste Quelle zur Fehlerbehebung!
+      label: Die vollständige Protokolldatei (sehr hilfreich). Gibt es in den Protokollen etwas, das nützlich sein könnte? Das Protokoll (Einstellungen/System/Protokolle -> Unveränderte Protokolle laden) ist die beste Quelle zur Fehlerbehebung!
       description: Beispielsweise Fehlermeldungen. Wechsele nicht zum DEBUG, wenn das nicht angefordert wurde.
       render: txt
   - type: textarea

@@ -25,7 +25,7 @@ Use the Home Assistant custom integration "Homematic(IP) Local", which is powere
 
 1. Prerequisites
    - Use latest version of Home Assistant.
-   - A CCU3, OpenCCU/RaspberryMatic, or Homegear instance reachable from Home Assistant.
+   - A CCU3, OpenCCU, or Homegear instance reachable from Home Assistant.
    - For HomematicIP devices, ensure CCU firmware meets the minimum versions listed below.
 2. Install the integration
    - Add the custom repository and install: https://github.com/sukramj/homematicip_local

@@ -1,3 +1,7 @@
+[![releasebadge]][release]
+[![License][license-shield]](LICENSE.md)
+[![GitHub Sponsors][sponsorsbadge]][sponsors]
+
 # AIO Homematic (hahomematic)
 
 A lightweight Python 3 library that powers Home Assistant integrations for controlling and monitoring [HomeMatic](https://www.eq-3.com/products/homematic.html) and [HomematicIP](https://www.homematic-ip.com/en/start.html) devices. Some third‑party devices/gateways (e.g., Bosch, Intertechno) may be supported as well.
@@ -97,3 +101,9 @@ Example:
 - Home Assistant lifecycle (discovery, updates, teardown): [see](docs/homeassistant_lifecycle.md) for details on how the integration works and how to debug issues.
 - RSSI fix: [see](docs/rssi_fix.md) for how RSSI values are fixed for Home Assistant.
 - Sequence diagrams: [see](docs/sequence_diagrams.md) for a sequence diagram of how the library works.
+
+[license-shield]: https://img.shields.io/github/license/SukramJ/aiohomematic.svg?style=for-the-badge
+[release]: https://github.com/SukramJ/aiohomematic/releases
+[releasebadge]: https://img.shields.io/github/v/release/SukramJ/aiohomematic?style=for-the-badge
+[sponsorsbadge]: https://img.shields.io/github/sponsors/SukramJ?style=for-the-badge&label=GitHub%20Sponsors&color=green
+[sponsors]: https://github.com/sponsors/SukramJ

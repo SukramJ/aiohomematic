@@ -1,6 +1,6 @@
 # Naming of devices, channels, and data points
 
-This is a description how naming is handled in AIO homematic, there are additional rules applied for HA entities and devices.
+This is a description how naming is handled in AIO Homematic, there are additional rules applied for HA entities and devices.
 
 This document explains how human‑readable names are constructed for devices, channels, data points (including events and custom data points), and when unique IDs are used as a fallback.
 

@@ -39,7 +39,7 @@ class SirenOnArgs(TypedDict, total=False):
 
 
 class BaseCustomDpSiren(CustomDataPoint):
-    """Class for HomeMatic siren data point."""
+    """Class for Homematic siren data point."""
 
     __slots__ = ()
 

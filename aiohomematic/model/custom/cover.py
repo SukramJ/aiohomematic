@@ -92,7 +92,7 @@ class _StateChangeArg(StrEnum):
 
 
 class CustomDpCover(CustomDataPoint):
-    """Class for HomeMatic cover data point."""
+    """Class for Homematic cover data point."""
 
     __slots__ = (
         "_command_processing_lock",
@@ -255,7 +255,7 @@ class CustomDpWindowDrive(CustomDpCover):
 
 
 class CustomDpBlind(CustomDpCover):
-    """Class for HomeMatic blind data point."""
+    """Class for Homematic blind data point."""
 
     __slots__ = (
         "_dp_combined",
@@ -519,7 +519,7 @@ class CustomDpIpBlind(CustomDpBlind):
 
 
 class CustomDpGarage(CustomDataPoint):
-    """Class for HomeMatic garage data point."""
+    """Class for Homematic garage data point."""
 
     __slots__ = (
         "_dp_door_command",
@@ -642,7 +642,7 @@ def make_rf_cover(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic cover data point."""
+    """Create Homematic classic cover data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpCover,
@@ -694,7 +694,7 @@ def make_rf_blind(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic cover data point."""
+    """Create Homematic classic cover data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpBlind,
@@ -707,7 +707,7 @@ def make_rf_window_drive(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic classic window drive data point."""
+    """Create Homematic classic window drive data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpWindowDrive,

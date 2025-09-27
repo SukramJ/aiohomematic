@@ -133,7 +133,7 @@ class ProgramDpType(NamedTuple):
 
 
 class Hub:
-    """The HomeMatic hub."""
+    """The Homematic hub."""
 
     __slots__ = (
         "_sema_fetch_sysvars",
@@ -143,7 +143,7 @@ class Hub:
     )
 
     def __init__(self, central: hmcu.CentralUnit) -> None:
-        """Initialize HomeMatic hub."""
+        """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
         self._sema_fetch_programs: Final = asyncio.Semaphore()
         self._central: Final = central

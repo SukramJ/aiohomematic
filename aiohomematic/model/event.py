@@ -3,7 +3,7 @@
 """
 Event model for AioHomematic.
 
-This module defines the event data point hierarchy used to expose HomeMatic
+This module defines the event data point hierarchy used to expose Homematic
 button presses, device errors, and impulse notifications to applications.
 
 Included classes:

@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
-Central unit and core orchestration for HomeMatic CCU and compatible backends.
+Central unit and core orchestration for Homematic CCU and compatible backends.
 
 Overview
 --------
 This package provides the central coordination layer for aiohomematic. It models a
-HomeMatic CCU (or compatible backend such as Homegear) and orchestrates
+Homematic CCU (or compatible backend such as Homegear) and orchestrates
 interfaces, devices, channels, data points, events, and background jobs.
 
 The central unit ties together the various submodules: caches, client adapters
@@ -818,18 +818,18 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return self._clients[interface_id]
 
     def get_channel(self, channel_address: str) -> Channel | None:
-        """Return homematic channel."""
+        """Return Homematic channel."""
         if device := self.get_device(address=channel_address):
             return device.get_channel(channel_address=channel_address)
         return None
 
     def get_device(self, address: str) -> Device | None:
-        """Return homematic device."""
+        """Return Homematic device."""
         d_address = get_device_address(address=address)
         return self._devices.get(d_address)
 
     def get_data_point_by_custom_id(self, custom_id: str) -> CallbackDataPoint | None:
-        """Return homematic data_point by custom_id."""
+        """Return Homematic data_point by custom_id."""
         for dp in self.get_data_points(registered=True):
             if dp.custom_id == custom_id:
                 return dp

@@ -72,7 +72,7 @@ body:
     validations:
       required: true
     attributes:
-      label: What type of installation are you running for your homematic backend?
+      label: What type of installation are you running for your Homematic backend?
       options:
         - OpenCCU/RaspberryMatic Standalone
         - OpenCCU/RaspberryMatic HA-Addon
@@ -82,7 +82,7 @@ body:
         - Homegear
   - type: input
     attributes:
-      label: Which version of your homematic backend are you running?
+      label: Which version of your Homematic backend are you running?
       placeholder: 3.67.x
       description: >
         If known, otherwise leave blank.

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
-Asynchronous JSON-RPC client for HomeMatic CCU-compatible backends.
+Asynchronous JSON-RPC client for Homematic CCU-compatible backends.
 
 Overview
 --------
@@ -106,7 +106,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class _JsonKey(StrEnum):
-    """Enum for homematic json keys."""
+    """Enum for Homematic json keys."""
 
     ADDRESS = "address"
     CHANNEL_IDS = "channelIds"
@@ -138,7 +138,7 @@ class _JsonKey(StrEnum):
 
 
 class _JsonRpcMethod(StrEnum):
-    """Enum for homematic json rpc methods types."""
+    """Enum for Homematic json rpc methods types."""
 
     CCU_GET_AUTH_ENABLED = "CCU.getAuthEnabled"
     CCU_GET_HTTPS_REDIRECT_ENABLED = "CCU.getHttpsRedirectEnabled"

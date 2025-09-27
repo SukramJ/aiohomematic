@@ -203,7 +203,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
 
 
 class CustomDpRfLock(BaseCustomDpLock):
-    """Class for classic HomeMatic lock data point."""
+    """Class for classic Homematic lock data point."""
 
     __slots__ = (
         "_dp_direction",
@@ -299,7 +299,7 @@ def make_rf_button_lock(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomematicIP rf button lock data point."""
+    """Create Homematic button lock data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpButtonLock,
@@ -312,7 +312,7 @@ def make_rf_lock(
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
-    """Create HomeMatic rf lock data point."""
+    """Create Homematic lock data point."""
     hmed.make_custom_data_point(
         channel=channel,
         data_point_class=CustomDpRfLock,

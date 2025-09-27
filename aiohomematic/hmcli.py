@@ -2,7 +2,7 @@
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
 #!/usr/bin/python3
 """
-Commandline tool to query HomeMatic hubs via XML-RPC.
+Commandline tool to query Homematic hubs via XML-RPC.
 
 Public API of this module is defined by __all__.
 
@@ -28,7 +28,7 @@ __all__ = ["main"]
 def main() -> None:
     """Start the cli."""
     parser = argparse.ArgumentParser(
-        description="Commandline tool to query HomeMatic hubs via XML-RPC",
+        description="Commandline tool to query Homematic hubs via XML-RPC",
     )
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument(
@@ -85,18 +85,18 @@ def main() -> None:
         "-a",
         required=True,
         type=str,
-        help="Address of HomeMatic device, including channel",
+        help="Address of Homematic device, including channel",
     )
     parser.add_argument(
         "--paramset_key",
         default=ParamsetKey.VALUES,
         choices=[ParamsetKey.VALUES, ParamsetKey.MASTER],
-        help="Paramset of HomeMatic device. Default: VALUES",
+        help="Paramset of Homematic device. Default: VALUES",
     )
     parser.add_argument(
         "--parameter",
         required=True,
-        help="Parameter of HomeMatic device",
+        help="Parameter of Homematic device",
     )
     parser.add_argument(
         "--value",

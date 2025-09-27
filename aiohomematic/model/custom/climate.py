@@ -165,7 +165,7 @@ _SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
 
 
 class BaseCustomDpClimate(CustomDataPoint):
-    """Base HomeMatic climate data_point."""
+    """Base Homematic climate data_point."""
 
     __slots__ = (
         "_dp_humidity",
@@ -690,13 +690,13 @@ class BaseCustomDpClimate(CustomDataPoint):
 
 
 class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
-    """Simple classic HomeMatic thermostat HM-CC-TC."""
+    """Simple classic Homematic thermostat HM-CC-TC."""
 
     __slots__ = ()
 
 
 class CustomDpRfThermostat(BaseCustomDpClimate):
-    """Classic HomeMatic thermostat like HM-CC-RT-DN."""
+    """Classic Homematic thermostat like HM-CC-RT-DN."""
 
     __slots__ = (
         "_dp_auto_mode",
@@ -720,7 +720,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         group_no: int,
         custom_config: CustomConfig,
     ) -> None:
-        """Initialize the climate rf thermostat."""
+        """Initialize the Homematic thermostat."""
         super().__init__(
             channel=channel,
             unique_id=unique_id,

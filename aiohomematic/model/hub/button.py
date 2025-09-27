@@ -11,7 +11,7 @@ from aiohomematic.property_decorators import state_property
 
 
 class ProgramDpButton(GenericProgramDataPoint):
-    """Class for a HomeMatic program button."""
+    """Class for a Homematic program button."""
 
     __slots__ = ()
 

@@ -3,7 +3,7 @@
 """
 Device and channel model for AioHomematic.
 
-This module implements the runtime representation of a HomeMatic device and its
+This module implements the runtime representation of a Homematic device and its
 channels, including creation and lookup of data points/events, firmware and
 availability handling, link management, value caching, and exporting of device
 definitions for diagnostics.
@@ -615,7 +615,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     @inspector
     async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
-        """Update the firmware of the homematic device."""
+        """Update the firmware of the Homematic device."""
         update_result = await self._client.update_device_firmware(device_address=self._address)
 
         async def refresh_data() -> None:

@@ -4,7 +4,7 @@
 Dynamic caches used at runtime by the central unit and clients.
 
 This module provides short-lived, in-memory caches that support robust and efficient
-communication with HomeMatic interfaces:
+communication with Homematic interfaces:
 
 - CommandCache: Tracks recently sent commands and their values per data point,
   allowing suppression of immediate echo updates or reconciliation with incoming

@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
-Client adapters for communicating with HomeMatic CCU and compatible backends.
+Client adapters for communicating with Homematic CCU and compatible backends.
 
 Overview
 --------
 This package provides client implementations that abstract the transport details of
-HomeMatic backends (e.g., CCU via JSON-RPC/XML-RPC or Homegear) and expose a
+Homematic backends (e.g., CCU via JSON-RPC/XML-RPC or Homegear) and expose a
 consistent API used by the central module.
 
 Provided clients
@@ -997,7 +997,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector
     async def update_device_firmware(self, device_address: str) -> bool:
-        """Update the firmware of a homematic device."""
+        """Update the firmware of a Homematic device."""
         if device := self.central.get_device(address=device_address):
             _LOGGER.info(
                 "UPDATE_DEVICE_FIRMWARE: Trying firmware update for %s",
@@ -1320,7 +1320,7 @@ class ClientJsonCCU(ClientCCU):
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """List devices of homematic backend."""
+        """List devices of Homematic backend."""
         try:
             return await self._json_rpc_client.list_devices(interface=self.interface)
         except BaseHomematicException as bhexc:

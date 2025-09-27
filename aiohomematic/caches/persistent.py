@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
-Persistent caches used to persist HomeMatic metadata between runs.
+Persistent caches used to persist Homematic metadata between runs.
 
 This module provides on-disk caches that complement the short‑lived, in‑memory
 caches from aiohomematic.caches.dynamic. The goal is to minimize expensive data

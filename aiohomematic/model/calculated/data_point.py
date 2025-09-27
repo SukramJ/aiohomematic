@@ -159,7 +159,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
 
     @property
     def hmtype(self) -> ParameterType:
-        """Return the HomeMatic type."""
+        """Return the Homematic type."""
         return self._type
 
     @config_property

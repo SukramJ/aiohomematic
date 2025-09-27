@@ -34,7 +34,7 @@ from aiohomematic.support import PayloadMixin, parse_sys_var
 
 
 class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
-    """Class for a HomeMatic system variable."""
+    """Class for a Homematic system variable."""
 
     __slots__ = (
         "_channel",
@@ -114,7 +114,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
 
 
 class GenericSysvarDataPoint(GenericHubDataPoint):
-    """Class for a HomeMatic system variable."""
+    """Class for a Homematic system variable."""
 
     __slots__ = (
         "_current_value",
@@ -269,7 +269,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
 
 class GenericProgramDataPoint(GenericHubDataPoint):
-    """Class for a generic HomeMatic progran data point."""
+    """Class for a generic Homematic progran data point."""
 
     __slots__ = (
         "_pid",

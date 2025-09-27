@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025 Daniel Perna, SukramJ
 """
-Parameter visibility rules and cache for HomeMatic data points.
+Parameter visibility rules and cache for Homematic data points.
 
 This module determines which parameters should be created, shown, hidden,
 ignored, or un‑ignored for channels and devices. It centralizes the rules

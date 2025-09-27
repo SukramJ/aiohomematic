@@ -4,7 +4,7 @@
 Core data point model for AioHomematic.
 
 This module defines the abstract base classes and concrete building blocks for
-representing HomeMatic parameters as data points, handling their lifecycle,
+representing Homematic parameters as data points, handling their lifecycle,
 I/O, and event propagation.
 
 Highlights:
@@ -641,7 +641,7 @@ class BaseParameterDataPoint[
 
     @property
     def hmtype(self) -> ParameterType:
-        """Return the HomeMatic type."""
+        """Return the Homematic type."""
         return self._type
 
     @property

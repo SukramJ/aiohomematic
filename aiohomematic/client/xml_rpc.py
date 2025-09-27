@@ -52,7 +52,7 @@ _VERIFY_TLS: Final = "verify_tls"
 
 
 class _XmlRpcMethod(StrEnum):
-    """Enum for homematic json rpc methods types."""
+    """Enum for Homematic json rpc methods types."""
 
     GET_VERSION = "getVersion"
     HOMEGEAR_INIT = "clientServerInitialized"

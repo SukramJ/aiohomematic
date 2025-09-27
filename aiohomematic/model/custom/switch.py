@@ -30,7 +30,7 @@ class _StateChangeArg(StrEnum):
 
 
 class CustomDpSwitch(CustomDataPoint):
-    """Class for HomeMatic switch data point."""
+    """Class for Homematic switch data point."""
 
     __slots__ = (
         "_dp_group_state",

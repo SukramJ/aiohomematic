@@ -30,7 +30,7 @@ class _StateChangeArg(StrEnum):
 
 
 class CustomDpIpIrrigationValve(CustomDataPoint):
-    """Class for HomeMatic irrigation valve data point."""
+    """Class for Homematic irrigation valve data point."""
 
     __slots__ = (
         "_dp_group_state",

@@ -241,7 +241,7 @@ class DescriptionMarker(StrEnum):
 
 
 class DeviceFirmwareState(StrEnum):
-    """Enum with homematic device firmware states."""
+    """Enum with Homematic device firmware states."""
 
     UNKNOWN = "UNKNOWN"
     UP_TO_DATE = "UP_TO_DATE"
@@ -284,7 +284,7 @@ class EventType(StrEnum):
 
 
 class Flag(IntEnum):
-    """Enum with homematic flags."""
+    """Enum with Homematic flags."""
 
     VISIBLE = 1
     INTERNAL = 2
@@ -310,7 +310,7 @@ class Manufacturer(StrEnum):
 
 
 class Operations(IntEnum):
-    """Enum with homematic operations."""
+    """Enum with Homematic operations."""
 
     NONE = 0  # not used
     READ = 1
@@ -319,7 +319,7 @@ class Operations(IntEnum):
 
 
 class CalulatedParameter(StrEnum):
-    """Enum with calculated homematic parameters."""
+    """Enum with calculated Homematic parameters."""
 
     APPARENT_TEMPERATURE = "APPARENT_TEMPERATURE"
     DEW_POINT = "DEW_POINT"
@@ -329,7 +329,7 @@ class CalulatedParameter(StrEnum):
 
 
 class Parameter(StrEnum):
-    """Enum with homematic parameters."""
+    """Enum with Homematic parameters."""
 
     ACOUSTIC_ALARM_ACTIVE = "ACOUSTIC_ALARM_ACTIVE"
     ACOUSTIC_ALARM_SELECTION = "ACOUSTIC_ALARM_SELECTION"
@@ -464,7 +464,7 @@ class ParamsetKey(StrEnum):
 
 
 class ProductGroup(StrEnum):
-    """Enum with homematic product groups."""
+    """Enum with Homematic product groups."""
 
     HM = "BidCos-RF"
     HMIP = "HmIP-RF"
@@ -475,7 +475,7 @@ class ProductGroup(StrEnum):
 
 
 class RegaScript(StrEnum):
-    """Enum with homematic rega scripts."""
+    """Enum with Homematic rega scripts."""
 
     FETCH_ALL_DEVICE_DATA: Final = "fetch_all_device_data.fn"
     GET_PROGRAM_DESCRIPTIONS: Final = "get_program_descriptions.fn"
@@ -486,7 +486,7 @@ class RegaScript(StrEnum):
 
 
 class Interface(StrEnum):
-    """Enum with homematic interfaces."""
+    """Enum with Homematic interfaces."""
 
     BIDCOS_RF = "BidCos-RF"
     BIDCOS_WIRED = "BidCos-Wired"
@@ -517,7 +517,7 @@ class ProxyInitState(Enum):
 
 
 class RxMode(IntEnum):
-    """Enum for homematic rx modes."""
+    """Enum for Homematic rx modes."""
 
     UNDEFINED = 0
     ALWAYS = 1
@@ -528,14 +528,14 @@ class RxMode(IntEnum):
 
 
 class CommandRxMode(StrEnum):
-    """Enum for homematic rx modes for commands."""
+    """Enum for Homematic rx modes for commands."""
 
     BURST = "BURST"
     WAKEUP = "WAKEUP"
 
 
 class SysvarType(StrEnum):
-    """Enum for homematic sysvar types."""
+    """Enum for Homematic sysvar types."""
 
     ALARM = "ALARM"
     FLOAT = "FLOAT"
@@ -547,7 +547,7 @@ class SysvarType(StrEnum):
 
 
 class ParameterType(StrEnum):
-    """Enum for homematic parameter types."""
+    """Enum for Homematic parameter types."""
 
     ACTION = "ACTION"  # Usually buttons, send Boolean to trigger
     BOOL = "BOOL"

@@ -639,6 +639,7 @@ async def test_ceipfixedcolorlightwired(
     light: CustomDpIpFixedColorLight = cast(
         CustomDpIpFixedColorLight, helper.get_prepared_custom_data_point(central, "VCU4704397", 8)
     )
+    assert light.channel.device.has_sub_devices is False
     assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp_kelvin is None
     assert light.hs_color == (0.0, 0.0)
@@ -927,6 +928,7 @@ async def test_ceiprgbwlight(
     light: CustomDpIpRGBWLight = cast(
         CustomDpIpRGBWLight, helper.get_prepared_custom_data_point(central, "VCU5629873", 1)
     )
+    assert light.channel.device.has_sub_devices is False
     assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp_kelvin is None
     assert light.hs_color is None

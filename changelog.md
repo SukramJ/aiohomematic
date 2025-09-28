@@ -1,4 +1,8 @@
-# Version 2025.9.6 (2025-09-28)
+# Version 2025.9.7 (2025-09-28)
+
+- Fix device has_sub_devices pt2
+
+- # Version 2025.9.6 (2025-09-28)
 
 - Fix device has_sub_devices
 

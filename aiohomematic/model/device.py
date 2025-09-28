@@ -307,7 +307,18 @@ class Device(LogContextMixin, PayloadMixin):
     @property
     def has_sub_devices(self) -> bool:
         """Return if device has multiple sub device channels."""
-        return any(len(gcs) > 1 for gcs in self._group_channels.values())
+        # If there is only one channel group, no sub devices are needed
+        if len(self._group_channels) <= 1:
+            return False
+        count = 0
+        # If there are multiple channel groups with more than one channel, there are sub devices
+        for gcs in self._group_channels.values():
+            if len(gcs) > 1:
+                count += 1
+            if count > 1:
+                return True
+
+        return False
 
     @property
     def id(self) -> str:

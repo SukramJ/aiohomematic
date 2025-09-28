@@ -45,6 +45,7 @@ async def test_ceswitch(
     switch: CustomDpSwitch = cast(CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
+    assert switch.channel.device.has_sub_devices is False
 
     await switch.turn_off()
     assert switch.value is False

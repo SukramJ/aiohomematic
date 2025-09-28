@@ -55,6 +55,11 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
 
     data = {}
     for device in central_unit_full.devices:
+        if device.model in ("HmIP-BSM", "HmIP-BDT", "HmIP-PSM", "HmIP-FSM", "HmIP-WSM", "HmIP-SMO230-A"):
+            assert device.has_sub_devices is False
+        if device.model in ("HmIP-DRSI4", "HmIP-DRDI3", "HmIP-BSL"):
+            assert device.has_sub_devices is True
+
         if device.model not in data:
             data[device.model] = {}
         for dp in device.generic_data_points:

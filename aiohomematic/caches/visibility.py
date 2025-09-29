@@ -171,6 +171,8 @@ _IGNORED_PARAMETERS: Final[frozenset[TParameterName]] = frozenset(
         "CLEAR_ERROR",
         "CLEAR_WINDOW_OPEN_SYMBOL",
         "CLOCK",
+        "CMD_RETL",  # CuXD
+        "CMD_RETS",  # CuXD
         "CONTROL_DIFFERENTIAL_TEMPERATURE",
         "DATE_TIME_UNKNOWN",
         "DECISION_VALUE",

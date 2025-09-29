@@ -1,3 +1,7 @@
+# Version 2025.9.9 (2025-09-29)
+
+- Set temperature to min_temp or off_temp+0.5, if switch from OFF to HEAT for climate entities
+
 # Version 2025.9.8 (2025-09-29)
 
 - Add CuXD parameters CMD_RETL and CMD_RETS to ignore list, to avoid warnings when reading the value without an appropriate configuration.

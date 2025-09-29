@@ -716,7 +716,7 @@ async def test_ceipthermostat(
     await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_TEMPERATURE", 12.0)
     call_count = len(mock_client.method_calls)
     await climate.set_temperature(12.0)
-    assert call_count == len(mock_client.method_calls)
+    assert call_count + 1 == len(mock_client.method_calls)
 
     await climate.set_mode(ClimateMode.AUTO)
     call_count = len(mock_client.method_calls)

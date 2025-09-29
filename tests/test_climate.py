@@ -606,7 +606,7 @@ async def test_ceipthermostat(
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
         paramset_key_or_link_address=ParamsetKey.VALUES,
-        values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 30.5},
+        values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 5.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.MANU.value)

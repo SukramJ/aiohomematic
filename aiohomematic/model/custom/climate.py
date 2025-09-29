@@ -321,11 +321,8 @@ class BaseCustomDpClimate(CustomDataPoint):
         """
         temp = self.target_temperature
         # Treat None or OFF sentinel as invalid/unsafe to restore.
-        if temp is None or temp <= _OFF_TEMPERATURE:
-            return self.max_temp
-        # Clip to device range to be safe.
-        if temp < self.min_temp:
-            return self.min_temp
+        if temp is None or temp <= _OFF_TEMPERATURE or temp < self.min_temp:
+            return self.min_temp if self.min_temp > _OFF_TEMPERATURE else _OFF_TEMPERATURE + 0.5
         if temp > self.max_temp:
             return self.max_temp
         return temp

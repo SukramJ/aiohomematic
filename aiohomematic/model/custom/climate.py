@@ -1073,6 +1073,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         """Set new target mode."""
         if not self.is_state_change(mode=mode):
             return
+        old_mode = self.mode
         # if switching mode then disable boost_mode
         if self._dp_boost_mode.value:
             await self.set_profile(profile=ClimateProfile.NONE, collector=collector)
@@ -1081,7 +1082,8 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             await self._dp_control_mode.send_value(value=_ModeHmIP.AUTO, collector=collector)
         elif mode in (ClimateMode.HEAT, ClimateMode.COOL):
             await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
-            await self.set_temperature(temperature=self._temperature_for_heat_mode, collector=collector)
+            if old_mode != ClimateMode.AUTO:
+                await self.set_temperature(temperature=self._temperature_for_heat_mode, collector=collector)
         elif mode == ClimateMode.OFF:
             await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
             await self.set_temperature(temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False)

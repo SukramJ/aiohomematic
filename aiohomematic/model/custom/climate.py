@@ -311,11 +311,24 @@ class BaseCustomDpClimate(CustomDataPoint):
         return _TEMP_CELSIUS
 
     @property
-    def _min_or_target_temperature(self) -> float:
-        """Return the min or target temperature."""
-        if (temperature := self.target_temperature or self.min_temp) < self.min_temp:
+    def _temperature_after_off(self) -> float:
+        """
+        Return a safe temperature to use when leaving OFF.
+
+        If the current target temperature is None or represents the special OFF value,
+        fall back to the device's maximum valid temperature. Otherwise, return the
+        current target temperature clipped to the valid [min, max] range.
+        """
+        temp = self.target_temperature
+        # Treat None or OFF sentinel as invalid/unsafe to restore.
+        if temp is None or temp <= _OFF_TEMPERATURE:
+            return self.max_temp
+        # Clip to device range to be safe.
+        if temp < self.min_temp:
             return self.min_temp
-        return temperature
+        if temp > self.max_temp:
+            return self.max_temp
+        return temp
 
     @property
     def schedule_profile_nos(self) -> int:
@@ -329,10 +342,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         collector: CallParameterCollector | None = None,
         do_validate: bool = True,
     ) -> None:
-        """Set new target temperature."""
-        if not self.is_state_change(temperature=temperature):
-            return
-
+        """Set new target temperature. The temperature must be set in all cases, even if the values are identical."""
         if do_validate and self.mode == ClimateMode.HEAT and self.min_max_value_not_relevant_for_manu_mode:
             do_validate = False
 
@@ -817,7 +827,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         if mode == ClimateMode.AUTO:
             await self._dp_auto_mode.send_value(value=True, collector=collector)
         elif mode == ClimateMode.HEAT:
-            await self._dp_manu_mode.send_value(value=self._min_or_target_temperature, collector=collector)
+            await self._dp_manu_mode.send_value(value=self._temperature_after_off, collector=collector)
         elif mode == ClimateMode.OFF:
             await self._dp_manu_mode.send_value(value=self.target_temperature, collector=collector)
             # Disable validation here to allow setting a value,
@@ -1074,7 +1084,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             await self._dp_control_mode.send_value(value=_ModeHmIP.AUTO, collector=collector)
         elif mode in (ClimateMode.HEAT, ClimateMode.COOL):
             await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
-            await self.set_temperature(temperature=self._min_or_target_temperature, collector=collector)
+            await self.set_temperature(temperature=self._temperature_after_off, collector=collector)
         elif mode == ClimateMode.OFF:
             await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
             await self.set_temperature(temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False)

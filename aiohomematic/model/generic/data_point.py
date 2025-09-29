@@ -107,10 +107,12 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             return set()
 
         converted_value = self._convert_value(value=prepared_value)
+        # if collector is set, then add value to collector
         if collector:
             collector.add_data_point(self, value=converted_value, collector_order=collector_order)
             return set()
 
+        # if collector is not set, then send value directly
         if self._validate_state_change and not self.is_state_change(value=converted_value):
             return set()
 

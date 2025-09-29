@@ -316,7 +316,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         Return a safe temperature to use when setting mode to HEAT.
 
         If the current target temperature is None or represents the special OFF value,
-        fall back to the device's maximum valid temperature. Otherwise, return the
+        fall back to the device's minimum valid temperature. Otherwise, return the
         current target temperature clipped to the valid [min, max] range.
         """
         temp = self.target_temperature

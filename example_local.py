@@ -450,7 +450,6 @@ class Example:
             central_id="1234",
             storage_folder="aiohomematic_storage",
             interface_configs={interface_config},
-            default_callback_port=48888,
         ).create_central()
 
         # Add callbacks to handle the events and see what happens on the system.

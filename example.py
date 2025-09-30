@@ -80,7 +80,6 @@ class Example:
             central_id="1234",
             storage_folder="aiohomematic_storage",
             interface_configs=interface_configs,
-            default_callback_port=54321,
         ).create_central()
 
         # For testing we set a short INIT_TIMEOUT

@@ -757,7 +757,7 @@ class BaseParameterDataPoint[
 
     @property
     def service(self) -> bool:
-        """Return the if data_point is visible in the backend."""
+        """Return the if data_point is relevant for service messages in the backend."""
         return self._service
 
     @property

@@ -1,4 +1,4 @@
-# Version 2025.9.9 (2025-09-30)
+# Version 2025.10.0 (2025-10-01)
 
 - Improve error message if service is not available
 - Make default_callback_port, storage_folder optional

@@ -379,15 +379,26 @@ async def test_cerfthermostat_with_profiles(
     await central.data_point_event(const.INTERFACE_ID, "VCU0000341:2", "CONTROL_MODE", _ModeHmIP.MANU.value)
     assert climate.mode == ClimateMode.HEAT
 
+    await climate.set_temperature(13.0)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341:2",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="SET_TEMPERATURE",
+        value=13.0,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    assert climate._old_manu_setpoint == 13.0
+
     await climate.set_mode(ClimateMode.OFF)
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU0000341:2",
         paramset_key_or_link_address=ParamsetKey.VALUES,
-        values={"MANU_MODE": 12.0, "SET_TEMPERATURE": 4.5},
+        values={"MANU_MODE": 13.0, "SET_TEMPERATURE": 4.5},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
 
     assert climate.mode == ClimateMode.OFF
+    assert climate._old_manu_setpoint == 13.0
 
     await climate.set_mode(ClimateMode.AUTO)
     assert mock_client.method_calls[-1] == call.set_value(
@@ -397,10 +408,35 @@ async def test_cerfthermostat_with_profiles(
         value=True,
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
-    await central.data_point_event(const.INTERFACE_ID, "VCU0000341:2", "CONTROL_MODE", 0)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000341:2", "CONTROL_MODE", _ModeHmIP.AUTO.value)
     await central.data_point_event(const.INTERFACE_ID, "VCU0000341:2", "SET_TEMPERATURE", 24.0)
     assert climate.mode == ClimateMode.AUTO
+    assert climate._old_manu_setpoint == 13.0
+    assert climate.target_temperature == 24.0
+    await climate.set_mode(ClimateMode.HEAT)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341:2",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="MANU_MODE",
+        value=climate._temperature_for_heat_mode,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000341:2", "CONTROL_MODE", _ModeHmIP.MANU.value)
+    await central.data_point_event(
+        const.INTERFACE_ID, "VCU0000341:2", "SET_TEMPERATURE", climate._temperature_for_heat_mode
+    )
+    assert climate.mode == ClimateMode.HEAT
 
+    await climate.set_mode(ClimateMode.AUTO)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU0000341:2",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="AUTO_MODE",
+        value=True,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000341:2", "CONTROL_MODE", _ModeHmIP.AUTO.value)
+    await central.data_point_event(const.INTERFACE_ID, "VCU0000341:2", "SET_TEMPERATURE", 24.0)
     assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
     assert climate.profiles == (
         ClimateProfile.BOOST,
@@ -568,7 +604,7 @@ async def test_ceipthermostat(
     assert climate.activity == ClimateActivity.HEAT
     await central.data_point_event(const.INTERFACE_ID, "VCU1769958:9", "STATE", 0)
     assert climate.activity == ClimateActivity.IDLE
-
+    assert climate._old_manu_setpoint is None
     assert climate.current_humidity is None
     await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "HUMIDITY", 75)
     assert climate.current_humidity == 75
@@ -609,8 +645,18 @@ async def test_ceipthermostat(
         values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 5.0},
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
+    await climate.set_temperature(19.5)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU1769958:1",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="SET_POINT_TEMPERATURE",
+        value=19.5,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_TEMPERATURE", 19.5)
     await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.MANU.value)
     assert climate.mode == ClimateMode.HEAT
+    assert climate._old_manu_setpoint == 19.5
 
     assert climate.profile == ClimateProfile.NONE
     assert climate.profiles == (
@@ -648,13 +694,26 @@ async def test_ceipthermostat(
         "week_program_5",
         "week_program_6",
     )
-    await climate.set_profile(ClimateProfile.NONE)
-    assert mock_client.method_calls[-1] == call.set_value(
+
+    await climate.set_mode(ClimateMode.HEAT)
+    assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1769958:1",
-        paramset_key=ParamsetKey.VALUES,
-        parameter="BOOST_MODE",
-        value=False,
-        wait_for_callback=WAIT_FOR_CALLBACK,
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": climate._temperature_for_heat_mode},
+        wait_for_callback=None,
+    )
+
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_TEMPERATURE", 19.5)
+    await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.MANU.value)
+    assert climate.mode == ClimateMode.HEAT
+    assert climate.target_temperature == 19.5
+
+    await climate.set_profile(ClimateProfile.NONE)
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU1769958:1",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 19.5},
+        wait_for_callback=None,
     )
     await central.data_point_event(const.INTERFACE_ID, "VCU1769958:1", "SET_POINT_MODE", _ModeHmIP.AWAY.value)
     assert climate.profile == ClimateProfile.AWAY

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import IntEnum, StrEnum
@@ -26,7 +27,16 @@ from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
+from aiohomematic.model.generic import (
+    DpAction,
+    DpBinarySensor,
+    DpFloat,
+    DpInteger,
+    DpSelect,
+    DpSensor,
+    DpSwitch,
+    GenericDataPoint,
+)
 from aiohomematic.property_decorators import config_property, state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -174,6 +184,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         "_dp_temperature",
         "_dp_temperature_maximum",
         "_dp_temperature_minimum",
+        "_old_manu_setpoint",
         "_supports_schedule",
     )
     _category = DataPointCategory.CLIMATE
@@ -199,6 +210,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             custom_config=custom_config,
         )
         self._supports_schedule = False
+        self._old_manu_setpoint: float | None = None
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -219,6 +231,13 @@ class BaseCustomDpClimate(CustomDataPoint):
         self._dp_temperature_minimum: DpFloat = self._get_data_point(
             field=Field.TEMPERATURE_MINIMUM, data_point_type=DpFloat
         )
+        self._unregister_callbacks.append(
+            self._dp_setpoint.register_data_point_updated_callback(cb=self._manu_temp_changed, custom_id="manu_temp")
+        )
+
+    @abstractmethod
+    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+        """Handle device state changes."""
 
     @state_property
     def current_humidity(self) -> int | None:
@@ -319,7 +338,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         fall back to the device's minimum valid temperature. Otherwise, return the
         current target temperature clipped to the valid [min, max] range.
         """
-        temp = self.target_temperature
+        temp = self._old_manu_setpoint or self.target_temperature
         # Treat None or OFF sentinel as invalid/unsafe to restore.
         if temp is None or temp <= _OFF_TEMPERATURE or temp < self.min_temp:
             return self.min_temp if self.min_temp > _OFF_TEMPERATURE else _OFF_TEMPERATURE + 0.5
@@ -701,6 +720,9 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
+    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+        """Handle device state changes."""
+
 
 class CustomDpRfThermostat(BaseCustomDpClimate):
     """Classic Homematic thermostat like HM-CC-RT-DN."""
@@ -759,6 +781,28 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         self._dp_week_program_pointer: DpSelect = self._get_data_point(
             field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
         )
+
+        self._unregister_callbacks.append(
+            self._dp_control_mode.register_data_point_updated_callback(
+                cb=self._manu_temp_changed, custom_id="manu_temp"
+            )
+        )
+
+    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+        """Handle device state changes."""
+        if (
+            data_point == self._dp_control_mode
+            and self.mode == ClimateMode.HEAT
+            and self._dp_setpoint.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
+
+        if (
+            data_point == self._dp_setpoint
+            and self.mode == ClimateMode.HEAT
+            and self._dp_control_mode.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
 
     @state_property
     def activity(self) -> ClimateActivity | None:
@@ -981,6 +1025,28 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         self._dp_temperature_offset: DpFloat = self._get_data_point(
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
+
+        self._unregister_callbacks.append(
+            self._dp_set_point_mode.register_data_point_updated_callback(
+                cb=self._manu_temp_changed, custom_id="manu_temp"
+            )
+        )
+
+    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+        """Handle device state changes."""
+        if (
+            data_point == self._dp_set_point_mode
+            and self.mode == ClimateMode.HEAT
+            and self._dp_setpoint.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
+
+        if (
+            data_point == self._dp_setpoint
+            and self.mode == ClimateMode.HEAT
+            and self._dp_set_point_mode.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
 
     @property
     def _is_heating_mode(self) -> bool:

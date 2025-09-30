@@ -44,12 +44,10 @@ Example (simplified):
 
     cfg = CentralConfig(
         central_id="ccu-main",
-        default_callback_port=43439,
         host="ccu.local",
         interface_configs=iface_cfgs,
         name="MyCCU",
         password="secret",
-        storage_folder=".storage",
         username="admin",
     )
 
@@ -102,6 +100,7 @@ from aiohomematic.const import (
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
+    DEFAULT_STORAGE_FOLDER,
     DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
     DEFAULT_TLS,
@@ -1828,16 +1827,15 @@ class CentralConfig:
     def __init__(
         self,
         central_id: str,
-        default_callback_port: int,
         host: str,
         interface_configs: AbstractSet[hmcl.InterfaceConfig],
         name: str,
         password: str,
-        storage_folder: str,
         username: str,
         client_session: ClientSession | None = None,
         callback_host: str | None = None,
         callback_port: int | None = None,
+        default_callback_port: int = PORT_ANY,
         enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
         enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
         enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
@@ -1851,6 +1849,7 @@ class CentralConfig:
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
+        storage_folder: str = DEFAULT_STORAGE_FOLDER,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         tls: bool = DEFAULT_TLS,

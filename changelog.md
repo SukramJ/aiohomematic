@@ -1,7 +1,7 @@
 # Version 2025.9.9 (2025-09-30)
 
 - Improve error message if service is not available
-- Make default_callback_port optional
+- Make default_callback_port, storage_folder optional
 - Set temperature to min_temp or off_temp+0.5, if switch from OFF to HEAT for climate entities
 
 # Version 2025.9.8 (2025-09-29)

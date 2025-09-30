@@ -448,7 +448,6 @@ class Example:
             username=CCU_USERNAME,
             password=CCU_PASSWORD,
             central_id="1234",
-            storage_folder="aiohomematic_storage",
             interface_configs={interface_config},
         ).create_central()
 

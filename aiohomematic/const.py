@@ -27,6 +27,7 @@ _TEST_SPEEDUP: Final = (
 )
 
 # default
+DEFAULT_STORAGE_FOLDER: Final = "aiohomematic_storage"
 DEFAULT_CUSTOM_ID: Final = "custom_id"
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True

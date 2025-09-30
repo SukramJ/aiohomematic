@@ -48,7 +48,6 @@ Example (simplified):
         interface_configs=iface_cfgs,
         name="MyCCU",
         password="secret",
-        storage_folder=".storage",
         username="admin",
     )
 
@@ -101,6 +100,7 @@ from aiohomematic.const import (
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
+    DEFAULT_STORAGE_FOLDER,
     DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
     DEFAULT_TLS,
@@ -1831,7 +1831,6 @@ class CentralConfig:
         interface_configs: AbstractSet[hmcl.InterfaceConfig],
         name: str,
         password: str,
-        storage_folder: str,
         username: str,
         client_session: ClientSession | None = None,
         callback_host: str | None = None,
@@ -1850,6 +1849,7 @@ class CentralConfig:
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
+        storage_folder: str = DEFAULT_STORAGE_FOLDER,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         tls: bool = DEFAULT_TLS,

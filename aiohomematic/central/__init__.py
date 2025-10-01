@@ -105,6 +105,7 @@ from aiohomematic.const import (
     DEFAULT_SYSVAR_MARKERS,
     DEFAULT_TLS,
     DEFAULT_UN_IGNORES,
+    DEFAULT_USE_RAW_DEVICES,
     DEFAULT_VERIFY_TLS,
     DEVICE_FIRMWARE_CHECK_INTERVAL,
     DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
@@ -1854,6 +1855,7 @@ class CentralConfig:
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         tls: bool = DEFAULT_TLS,
         un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES,
+        use_raw_devices: bool = DEFAULT_USE_RAW_DEVICES,
         verify_tls: bool = DEFAULT_VERIFY_TLS,
     ) -> None:
         """Init the client config."""
@@ -1884,6 +1886,7 @@ class CentralConfig:
         self.sysvar_markers: Final = sysvar_markers
         self.tls: Final = tls
         self.un_ignore_list: Final = un_ignore_list
+        self.use_raw_devices: Final = use_raw_devices
         self.username: Final = username
         self.verify_tls: Final = verify_tls
 

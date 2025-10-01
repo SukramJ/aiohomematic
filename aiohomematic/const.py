@@ -45,6 +45,7 @@ DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
+DEFAULT_USE_RAW_DEVICES: Final = False
 DEFAULT_VERIFY_TLS: Final = False
 
 # Default encoding for json service calls, persistent cache

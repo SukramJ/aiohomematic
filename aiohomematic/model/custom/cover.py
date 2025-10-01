@@ -100,6 +100,7 @@ class CustomDpCover(CustomDataPoint):
         "_dp_group_level",
         "_dp_level",
         "_dp_stop",
+        "_use_group_channel_for_cover_state",
     )
     _category = DataPointCategory.COVER
     _closed_level: float = _CLOSED_LEVEL
@@ -118,11 +119,16 @@ class CustomDpCover(CustomDataPoint):
         self._dp_group_level: DpSensor[float | None] = self._get_data_point(
             field=Field.GROUP_LEVEL, data_point_type=DpSensor[float | None]
         )
+        self._use_group_channel_for_cover_state = self.central.config.use_group_channel_for_cover_state
 
     @property
     def _group_level(self) -> float:
         """Return the channel level of the cover."""
-        if self._dp_group_level.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
+        if (
+            self._use_group_channel_for_cover_state
+            and self._dp_group_level.value is not None
+            and self.usage == DataPointUsage.CDP_PRIMARY
+        ):
             return float(self._dp_group_level.value)
         return self._dp_level.value if self._dp_level.value is not None else self._closed_level
 
@@ -276,7 +282,11 @@ class CustomDpBlind(CustomDpCover):
     @property
     def _group_tilt_level(self) -> float:
         """Return the group level of the tilt."""
-        if self._dp_group_level_2.value is not None and self.usage == DataPointUsage.CDP_PRIMARY:
+        if (
+            self._use_group_channel_for_cover_state
+            and self._dp_group_level_2.value is not None
+            and self.usage == DataPointUsage.CDP_PRIMARY
+        ):
             return float(self._dp_group_level_2.value)
         return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level
 

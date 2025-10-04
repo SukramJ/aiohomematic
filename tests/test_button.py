@@ -83,7 +83,7 @@ async def test_hmprogrambutton(
 ) -> None:
     """Test HmProgramButton."""
     central, mock_client, _ = central_client_factory
-    button: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point("pid1").button)
+    button: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point(pid="pid1").button)
     assert button.usage == DataPointUsage.DATA_POINT
     assert button.available is True
     assert button.is_active is True
@@ -99,11 +99,11 @@ async def test_hmprogrambutton(
         is_internal=True,
         last_execute_time="1900-1-1",
     )
-    button.update_data(updated_program)
+    button.update_data(data=updated_program)
     assert button.is_active is False
     assert button.is_internal is True
 
-    button2: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point("pid2").button)
+    button2: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point(pid="pid2").button)
     assert button2.usage == DataPointUsage.DATA_POINT
     assert button2.is_active is False
     assert button2.is_internal is False

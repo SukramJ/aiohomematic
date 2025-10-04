@@ -63,7 +63,7 @@ class ClientLocal(Client):  # pragma: no cover
         """Return the model of the backend."""
         return BACKEND_LOCAL
 
-    def get_product_group(self, model: str) -> ProductGroup:
+    def get_product_group(self, *, model: str) -> ProductGroup:
         """Return the product group."""
         l_model = model.lower()
         if l_model.startswith("hmipw"):
@@ -120,34 +120,34 @@ class ClientLocal(Client):  # pragma: no cover
         return True
 
     @inspector(re_raise=False, no_raise_return=False)
-    async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
+    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Send ping to the backend to generate PONG event."""
         if handle_ping_pong and self.supports_ping_pong:
             self._ping_pong_cache.handle_send_ping(ping_ts=datetime.now())
         return True
 
     @inspector
-    async def execute_program(self, pid: str) -> bool:
+    async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
         return True
 
     @inspector
-    async def set_program_state(self, pid: str, state: bool) -> bool:
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
         return True
 
     @inspector(measure_performance=True)
-    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
         return True
 
     @inspector
-    async def delete_system_variable(self, name: str) -> bool:
+    async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
         return True
 
     @inspector
-    async def get_system_variable(self, name: str) -> str:
+    async def get_system_variable(self, *, name: str) -> str:
         """Get single system variable from the backend."""
         return "Empty"
 
@@ -159,7 +159,7 @@ class ClientLocal(Client):  # pragma: no cover
         return ()
 
     @inspector(re_raise=False)
-    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return ()
 
@@ -228,7 +228,9 @@ class ClientLocal(Client):  # pragma: no cover
             channel_address=channel_address, parameter=parameter, value=value
         )
         # fire an event to fake the state change for a simple parameter
-        await self.central.data_point_event(self.interface_id, channel_address, parameter, value)
+        await self.central.data_point_event(
+            interface_id=self.interface_id, channel_address=channel_address, parameter=parameter, value=value
+        )
         return result
 
     @inspector
@@ -300,7 +302,12 @@ class ClientLocal(Client):  # pragma: no cover
 
         # fire an event to fake the state change for the content of a paramset
         for parameter in values:
-            await self.central.data_point_event(self.interface_id, channel_address, parameter, values[parameter])
+            await self.central.data_point_event(
+                interface_id=self.interface_id,
+                channel_address=channel_address,
+                parameter=parameter,
+                value=values[parameter],
+            )
         return result
 
     async def _load_all_json_files(
@@ -324,7 +331,7 @@ class ClientLocal(Client):  # pragma: no cover
                 result.append(file_content)
         return result
 
-    async def _load_json_file(self, anchor: str, resource: str, filename: str) -> Any | None:
+    async def _load_json_file(self, *, anchor: str, resource: str, filename: str) -> Any | None:
         """Load json file from disk into dict."""
         package_path = str(importlib.resources.files(anchor))
 

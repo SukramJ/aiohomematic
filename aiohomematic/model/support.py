@@ -127,7 +127,7 @@ class DataPointNameData(ChannelNameData):
             return f"{channel_name} {parameter_name}".strip()
         return channel_name.strip()
 
-    def _get_data_point_name(self, device_name: str, channel_name: str, parameter_name: str | None) -> str:
+    def _get_data_point_name(self, *, device_name: str, channel_name: str, parameter_name: str | None) -> str:
         """Return the name of the data_point only name."""
         channel_parameter_name = self._get_channel_parameter_name(
             channel_name=channel_name, parameter_name=parameter_name

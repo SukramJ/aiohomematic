@@ -66,6 +66,6 @@ async def test_sysvardptext(
     assert text.unit is None
     assert text.values is None
     assert text.value == "test1"
-    await text.send_variable("test23")
+    await text.send_variable(value="test23")
     assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="string_ext", value="test23")
     assert text.value == "test23"

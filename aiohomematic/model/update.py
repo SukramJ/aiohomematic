@@ -112,7 +112,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             kind=DataPointCategory.UPDATE,
         )
 
-    def register_data_point_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
+    def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register update callback."""
         if custom_id != DEFAULT_CUSTOM_ID:
             if self._custom_id is not None:
@@ -121,18 +121,18 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
                 )
             self._custom_id = custom_id
 
-        if self._device.register_firmware_update_callback(cb) is not None:
+        if self._device.register_firmware_update_callback(cb=cb) is not None:
             return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
         return None
 
-    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""
         if custom_id is not None:
             self._custom_id = None
-        self._device.unregister_firmware_update_callback(cb)
+        self._device.unregister_firmware_update_callback(cb=cb)
 
     @inspector
-    async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
+    async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Turn the update on."""
         return await self._device.update_firmware(refresh_after_update_intervals=refresh_after_update_intervals)
 

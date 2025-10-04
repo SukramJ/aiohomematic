@@ -286,7 +286,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self._calculated_parameter}"
 
-    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
@@ -316,7 +316,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
 
         return all(dp.fired_event_recently for dp in relevant_values_data_point)
 
-    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:

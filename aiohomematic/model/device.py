@@ -164,7 +164,7 @@ class Device(LogContextMixin, PayloadMixin):
             model=self._model
         )
         self._manufacturer = self._identify_manufacturer()
-        self._product_group: Final = self._client.get_product_group(self._model)
+        self._product_group: Final = self._client.get_product_group(model=self._model)
         # marker if device will be created as custom data_point
         self._has_custom_data_point_definition: Final = (
             hmed.data_point_definition_exists(model=self._model) and not self._ignore_for_custom_data_point
@@ -431,7 +431,7 @@ class Device(LogContextMixin, PayloadMixin):
         """Return th CONFIG_PENDING data_point."""
         return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING)
 
-    def add_channel_to_group(self, group_no: int, channel_no: int | None) -> None:
+    def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:
         """Add channel to group."""
         if group_no not in self._group_channels:
             self._group_channels[group_no] = set()
@@ -464,22 +464,22 @@ class Device(LogContextMixin, PayloadMixin):
             and self._model not in VIRTUAL_REMOTE_MODELS
         )
 
-    def get_channel_group_no(self, channel_no: int | None) -> int | None:
+    def get_channel_group_no(self, *, channel_no: int | None) -> int | None:
         """Return the group no of the channel."""
         return self._channel_group.get(channel_no)
 
-    def is_in_multi_channel_group(self, channel_no: int | None) -> bool:
+    def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:
         """Return if multiple channels are in the group."""
         if channel_no is None:
             return False
 
         return len([s for s, m in self._channel_group.items() if m == self._channel_group.get(channel_no)]) > 1
 
-    def get_channel(self, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> Channel | None:
         """Get channel of device."""
         return self._channels.get(channel_address)
 
-    def identify_channel(self, text: str) -> Channel | None:
+    def identify_channel(self, *, text: str) -> Channel | None:
         """Identify channel within a text."""
         for channel_address, channel in self._channels.items():
             if text.endswith(channel_address):
@@ -496,26 +496,26 @@ class Device(LogContextMixin, PayloadMixin):
         for channel in self._channels.values():
             channel.remove()
 
-    def register_device_updated_callback(self, cb: Callable) -> CALLBACK_TYPE:
+    def register_device_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register update callback."""
         if callable(cb) and cb not in self._device_updated_callbacks:
             self._device_updated_callbacks.append(cb)
             return partial(self.unregister_device_updated_callback, cb=cb)
         return None
 
-    def unregister_device_updated_callback(self, cb: Callable) -> None:
+    def unregister_device_updated_callback(self, *, cb: Callable) -> None:
         """Remove update callback."""
         if cb in self._device_updated_callbacks:
             self._device_updated_callbacks.remove(cb)
 
-    def register_firmware_update_callback(self, cb: Callable) -> CALLBACK_TYPE:
+    def register_firmware_update_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register firmware update callback."""
         if callable(cb) and cb not in self._firmware_update_callbacks:
             self._firmware_update_callbacks.append(cb)
             return partial(self.unregister_firmware_update_callback, cb=cb)
         return None
 
-    def unregister_firmware_update_callback(self, cb: Callable) -> None:
+    def unregister_firmware_update_callback(self, *, cb: Callable) -> None:
         """Remove firmware update callback."""
         if cb in self._firmware_update_callbacks:
             self._firmware_update_callbacks.remove(cb)
@@ -557,13 +557,13 @@ class Device(LogContextMixin, PayloadMixin):
                 events[channel.no] = values
         return events
 
-    def get_calculated_data_point(self, channel_address: str, parameter: str) -> CalculatedDataPoint | None:
+    def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPoint | None:
         """Return a calculated data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
             return channel.get_calculated_data_point(parameter=parameter)
         return None
 
-    def get_custom_data_point(self, channel_no: int) -> hmce.CustomDataPoint | None:
+    def get_custom_data_point(self, *, channel_no: int) -> hmce.CustomDataPoint | None:
         """Return a custom data_point from device."""
         if channel := self.get_channel(
             channel_address=get_channel_address(device_address=self._address, channel_no=channel_no)
@@ -579,20 +579,20 @@ class Device(LogContextMixin, PayloadMixin):
             return channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key)
         return None
 
-    def get_generic_event(self, channel_address: str, parameter: str) -> GenericEvent | None:
+    def get_generic_event(self, *, channel_address: str, parameter: str) -> GenericEvent | None:
         """Return a generic event from device."""
         if channel := self.get_channel(channel_address=channel_address):
             return channel.get_generic_event(parameter=parameter)
         return None
 
-    def get_readable_data_points(self, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
         """Return the list of readable master data points."""
         data_points: list[GenericDataPoint] = []
         for channel in self._channels.values():
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
 
-    def set_forced_availability(self, forced_availability: ForcedDeviceAvailability) -> None:
+    def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Set the availability of the device."""
         if self._forced_availability != forced_availability:
             self._forced_availability = forced_availability
@@ -629,7 +629,7 @@ class Device(LogContextMixin, PayloadMixin):
                 callback_handler()
 
     @inspector
-    async def update_firmware(self, refresh_after_update_intervals: tuple[int, ...]) -> bool:
+    async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Update the firmware of the Homematic device."""
         update_result = await self._client.update_device_firmware(device_address=self._address)
 
@@ -809,7 +809,9 @@ class Channel(LogContextMixin, PayloadMixin):
             return None
         if self._group_master is None:
             self._group_master = (
-                self if self.is_group_master else self._device.get_channel(f"{self._device.address}:{self.group_no}")
+                self
+                if self.is_group_master
+                else self._device.get_channel(channel_address=f"{self._device.address}:{self.group_no}")
             )
         return self._group_master
 
@@ -966,7 +968,7 @@ class Channel(LogContextMixin, PayloadMixin):
         if isinstance(data_point, GenericEvent):
             self._generic_events[data_point.dpk] = data_point
 
-    def _remove_data_point(self, data_point: CallbackDataPoint) -> None:
+    def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
             self._central.remove_event_subscription(data_point=data_point)
@@ -984,19 +986,19 @@ class Channel(LogContextMixin, PayloadMixin):
     def remove(self) -> None:
         """Remove data points from collections and central."""
         for event in self.generic_events:
-            self._remove_data_point(event)
+            self._remove_data_point(data_point=event)
         self._generic_events.clear()
 
         for ccdp in self.calculated_data_points:
-            self._remove_data_point(ccdp)
+            self._remove_data_point(data_point=ccdp)
         self._calculated_data_points.clear()
 
         for gdp in self.generic_data_points:
-            self._remove_data_point(gdp)
+            self._remove_data_point(data_point=gdp)
         self._generic_data_points.clear()
 
         if self._custom_data_point:
-            self._remove_data_point(self._custom_data_point)
+            self._remove_data_point(data_point=self._custom_data_point)
 
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
@@ -1023,7 +1025,7 @@ class Channel(LogContextMixin, PayloadMixin):
             and (registered is None or dp.is_registered == registered)
         )
 
-    def get_events(self, event_type: EventType, registered: bool | None = None) -> tuple[GenericEvent, ...]:
+    def get_events(self, *, event_type: EventType, registered: bool | None = None) -> tuple[GenericEvent, ...]:
         """Return a list of specific events of a channel."""
         return tuple(
             event
@@ -1031,7 +1033,7 @@ class Channel(LogContextMixin, PayloadMixin):
             if (event.event_type == event_type and (registered is None or event.is_registered == registered))
         )
 
-    def get_calculated_data_point(self, parameter: str) -> CalculatedDataPoint | None:
+    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPoint | None:
         """Return a calculated data_point from device."""
         return self._calculated_data_points.get(
             DataPointKey(
@@ -1074,7 +1076,7 @@ class Channel(LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_generic_event(self, parameter: str) -> GenericEvent | None:
+    def get_generic_event(self, *, parameter: str) -> GenericEvent | None:
         """Return a generic event from device."""
         return self._generic_events.get(
             DataPointKey(
@@ -1085,7 +1087,7 @@ class Channel(LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_readable_data_points(self, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
         """Return the list of readable master data points."""
         return tuple(
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
@@ -1204,7 +1206,7 @@ class _ValueCache:
                 else value
             )
 
-    async def _get_values_for_cache(self, dpk: DataPointKey) -> dict[str, Any]:
+    async def _get_values_for_cache(self, *, dpk: DataPointKey) -> dict[str, Any]:
         """Return a value from the backend to store in cache."""
         if not self._device.available:
             _LOGGER.debug(
@@ -1224,7 +1226,7 @@ class _ValueCache:
             address=dpk.channel_address, paramset_key=dpk.paramset_key, call_source=CallSource.HM_INIT
         )
 
-    def _add_entry_to_device_cache(self, dpk: DataPointKey, value: Any) -> None:
+    def _add_entry_to_device_cache(self, *, dpk: DataPointKey, value: Any) -> None:
         """Add value to cache."""
         # write value to cache even if an exception has occurred
         # to avoid repetitive calls to the backend within max_age
@@ -1298,7 +1300,7 @@ class _DefinitionExporter:
                 new_device_description["PARENT"] = new_device_description["ADDRESS"].split(ADDRESS_SEPARATOR)[0]
             elif new_device_description.get("CHILDREN"):
                 new_device_description["CHILDREN"] = [
-                    self._anonymize_address(a) for a in new_device_description["CHILDREN"]
+                    self._anonymize_address(address=a) for a in new_device_description["CHILDREN"]
                 ]
             anonymize_device_descriptions.append(new_device_description)
 
@@ -1321,12 +1323,12 @@ class _DefinitionExporter:
             data=anonymize_paramset_descriptions,
         )
 
-    def _anonymize_address(self, address: str) -> str:
+    def _anonymize_address(self, *, address: str) -> str:
         address_parts = address.split(ADDRESS_SEPARATOR)
         address_parts[0] = self._random_id
         return ADDRESS_SEPARATOR.join(address_parts)
 
-    async def _save(self, file_dir: str, filename: str, data: Any) -> DataOperationResult:
+    async def _save(self, *, file_dir: str, filename: str, data: Any) -> DataOperationResult:
         """Save file to disk."""
 
         def perform_save() -> DataOperationResult:

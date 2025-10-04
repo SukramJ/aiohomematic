@@ -85,7 +85,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             self._device.fire_device_updated_callback(self._unique_id)
             self._central.fire_homematic_callback(
                 event_type=EventType.DEVICE_AVAILABILITY,
-                event_data=self.get_event_data(new_value),
+                event_data=self.get_event_data(value=new_value),
             )
 
     @inspector
@@ -123,7 +123,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             value=converted_value,
         )
 
-    def _prepare_value_for_sending(self, value: InputParameterT, do_validate: bool = True) -> ParameterT:
+    def _prepare_value_for_sending(self, *, value: InputParameterT, do_validate: bool = True) -> ParameterT:
         """Prepare value, if required, before send."""
         return value  # type: ignore[return-value]
 
@@ -151,7 +151,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             else DataPointUsage.DATA_POINT
         )
 
-    def is_state_change(self, value: ParameterT) -> bool:
+    def is_state_change(self, *, value: ParameterT) -> bool:
         """
         Check if the state/value changes.
 

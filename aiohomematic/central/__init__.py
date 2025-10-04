@@ -219,7 +219,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
         self._data_point_key_event_subscriptions: Final[
-            dict[DataPointKey, list[Callable[[Any, datetime], Coroutine[Any, Any, None]]]]
+            dict[DataPointKey, list[Callable[..., Coroutine[Any, Any, None]]]]
         ] = {}
         self._data_point_path_event_subscriptions: Final[dict[str, DataPointKey]] = {}
         self._sysvar_data_point_event_subscriptions: Final[dict[str, Callable]] = {}
@@ -421,14 +421,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._version = max(versions) if versions else None
         return self._version
 
-    def add_sysvar_data_point(self, sysvar_data_point: GenericSysvarDataPoint) -> None:
+    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPoint) -> None:
         """Add new program button."""
         if (vid := sysvar_data_point.vid) is not None:
             self._sysvar_data_points[vid] = sysvar_data_point
         if sysvar_data_point.state_path not in self._sysvar_data_point_event_subscriptions:
             self._sysvar_data_point_event_subscriptions[sysvar_data_point.state_path] = sysvar_data_point.event
 
-    def remove_sysvar_data_point(self, vid: str) -> None:
+    def remove_sysvar_data_point(self, *, vid: str) -> None:
         """Remove a sysvar data_point."""
         if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
             sysvar_dp.fire_device_removed_callback()
@@ -436,18 +436,18 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if sysvar_dp.state_path in self._sysvar_data_point_event_subscriptions:
                 del self._sysvar_data_point_event_subscriptions[sysvar_dp.state_path]
 
-    def add_program_data_point(self, program_dp: ProgramDpType) -> None:
+    def add_program_data_point(self, *, program_dp: ProgramDpType) -> None:
         """Add new program button."""
         self._program_data_points[program_dp.pid] = program_dp
 
-    def remove_program_button(self, pid: str) -> None:
+    def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
         if (program_dp := self.get_program_data_point(pid=pid)) is not None:
             program_dp.button.fire_device_removed_callback()
             program_dp.switch.fire_device_removed_callback()
             del self._program_data_points[pid]
 
-    def identify_channel(self, text: str) -> Channel | None:
+    def identify_channel(self, *, text: str) -> Channel | None:
         """Identify channel within a text."""
         for device in self._devices.values():
             if channel := device.identify_channel(text=text):
@@ -496,7 +496,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             ):
                 self._xml_rpc_server = xml_rpc_server
                 self._listen_port = xml_rpc_server.listen_port
-                self._xml_rpc_server.add_central(self)
+                self._xml_rpc_server.add_central(central=self)
         except OSError as oserr:
             self._state = CentralUnitState.STOPPED_BY_ERROR
             raise AioHomematicException(
@@ -573,7 +573,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             _LOGGER.info("RESTART_CLIENTS: Central %s restarted clients", self.name)
 
     @inspector(re_raise=False)
-    async def refresh_firmware_data(self, device_address: str | None = None) -> None:
+    async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
         """Refresh device firmware data."""
         if device_address and (device := self.get_device(address=device_address)) is not None and device.is_updatable:
             await self._refresh_device_descriptions(client=device.client, device_address=device_address)
@@ -586,7 +586,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     device.refresh_firmware_data()
 
     @inspector(re_raise=False)
-    async def refresh_firmware_data_by_state(self, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
+    async def refresh_firmware_data_by_state(self, *, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
         """Refresh device firmware data for processing devices."""
         for device in [
             device_in_state
@@ -595,7 +595,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         ]:
             await self.refresh_firmware_data(device_address=device.address)
 
-    async def _refresh_device_descriptions(self, client: hmcl.Client, device_address: str | None = None) -> None:
+    async def _refresh_device_descriptions(self, *, client: hmcl.Client, device_address: str | None = None) -> None:
         """Refresh device descriptions."""
         device_descriptions: tuple[DeviceDescription, ...] | None = None
         if (
@@ -688,7 +688,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         _LOGGER.debug("CREATE_CLIENTS successful for %s", self.name)
         return True
 
-    async def _create_client(self, interface_config: hmcl.InterfaceConfig) -> bool:
+    async def _create_client(self, *, interface_config: hmcl.InterfaceConfig) -> bool:
         """Create a client."""
         try:
             if client := await hmcl.create_client(
@@ -761,7 +761,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
-    async def _identify_ip_addr(self, port: int) -> str:
+    async def _identify_ip_addr(self, *, port: int) -> str:
         ip_addr: str | None = None
         while ip_addr is None:
             try:
@@ -811,24 +811,24 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 system_information = client.system_information
         return system_information
 
-    def get_client(self, interface_id: str) -> hmcl.Client:
+    def get_client(self, *, interface_id: str) -> hmcl.Client:
         """Return a client by interface_id."""
         if not self.has_client(interface_id=interface_id):
             raise AioHomematicException(f"get_client: interface_id {interface_id} does not exist on {self.name}")
         return self._clients[interface_id]
 
-    def get_channel(self, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> Channel | None:
         """Return Homematic channel."""
         if device := self.get_device(address=channel_address):
             return device.get_channel(channel_address=channel_address)
         return None
 
-    def get_device(self, address: str) -> Device | None:
+    def get_device(self, *, address: str) -> Device | None:
         """Return Homematic device."""
         d_address = get_device_address(address=address)
         return self._devices.get(d_address)
 
-    def get_data_point_by_custom_id(self, custom_id: str) -> CallbackDataPoint | None:
+    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPoint | None:
         """Return Homematic data_point by custom_id."""
         for dp in self.get_data_points(registered=True):
             if dp.custom_id == custom_id:
@@ -884,7 +884,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if (category is None or he.category == category) and (registered is None or he.is_registered == registered)
         )
 
-    def get_events(self, event_type: EventType, registered: bool | None = None) -> tuple[tuple[GenericEvent, ...], ...]:
+    def get_events(
+        self, *, event_type: EventType, registered: bool | None = None
+    ) -> tuple[tuple[GenericEvent, ...], ...]:
         """Return all channel event data points."""
         hm_channel_events: list[tuple[GenericEvent, ...]] = []
         for device in self.devices:
@@ -902,7 +904,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if cl.get_virtual_remote() is not None
         )
 
-    def has_client(self, interface_id: str) -> bool:
+    def has_client(self, *, interface_id: str) -> bool:
         """Check if client exists in central."""
         return interface_id in self._clients
 
@@ -930,7 +932,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         await self._data_cache.load()
         return True
 
-    async def _create_devices(self, new_device_addresses: Mapping[str, set[str]]) -> None:
+    async def _create_devices(self, *, new_device_addresses: Mapping[str, set[str]]) -> None:
         """Trigger creation of the objects that expose the functionality."""
         if not self._clients:
             raise AioHomematicException(
@@ -986,7 +988,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 new_channel_events=new_channel_events,
             )
 
-    async def delete_device(self, interface_id: str, device_address: str) -> None:
+    async def delete_device(self, *, interface_id: str, device_address: str) -> None:
         """Delete devices from central."""
         _LOGGER.debug(
             "DELETE_DEVICE: interface_id = %s, device_address = %s",
@@ -1000,7 +1002,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         await self.delete_devices(interface_id=interface_id, addresses=[device_address, *list(device.channels.keys())])
 
     @callback_backend_system(system_event=BackendSystemEvent.DELETE_DEVICES)
-    async def delete_devices(self, interface_id: str, addresses: tuple[str, ...]) -> None:
+    async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
         """Delete devices from central."""
         _LOGGER.debug(
             "DELETE_DEVICES: interface_id = %s, addresses = %s",
@@ -1013,12 +1015,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         await self.save_caches()
 
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
-    async def add_new_devices(self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
+    async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
         await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions)
 
     @inspector(measure_performance=True)
-    async def _add_new_devices(self, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
+    async def _add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
         if not device_descriptions:
             _LOGGER.debug(
@@ -1104,7 +1106,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return new_device_addresses
 
     @callback_event
-    async def data_point_event(self, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
+    async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """If a device emits some sort event, we will handle it here."""
         _LOGGER_EVENT.debug(
             "EVENT: interface_id = %s, channel_address = %s, parameter = %s, value = %s",
@@ -1161,7 +1163,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     extract_exc_args(exc=exc),
                 )
 
-    def data_point_path_event(self, state_path: str, value: str) -> None:
+    def data_point_path_event(self, *, state_path: str, value: str) -> None:
         """If a device emits some sort event, we will handle it here."""
         _LOGGER_EVENT.debug(
             "DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
@@ -1171,7 +1173,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         if (dpk := self._data_point_path_event_subscriptions.get(state_path)) is not None:
             self._looper.create_task(
-                self.data_point_event(
+                target=self.data_point_event(
                     interface_id=dpk.interface_id,
                     channel_address=dpk.channel_address,
                     parameter=dpk.parameter,
@@ -1180,7 +1182,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 name=f"device-data-point-event-{dpk.interface_id}-{dpk.channel_address}-{dpk.parameter}",
             )
 
-    def sysvar_data_point_path_event(self, state_path: str, value: str) -> None:
+    def sysvar_data_point_path_event(self, *, state_path: str, value: str) -> None:
         """If a device emits some sort event, we will handle it here."""
         _LOGGER_EVENT.debug(
             "SYSVAR_DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
@@ -1194,7 +1196,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 if callable(callback_handler):
                     received_at = datetime.now()
                     self._looper.create_task(
-                        callback_handler(value, received_at), name=f"sysvar-data-point-event-{state_path}"
+                        target=callback_handler(value, received_at), name=f"sysvar-data-point-event-{state_path}"
                     )
             except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER_EVENT.debug(
@@ -1210,13 +1212,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
 
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
-    def list_devices(self, interface_id: str) -> list[DeviceDescription]:
+    def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
         """Return already existing devices to the backend."""
         result = self._device_descriptions.get_raw_device_descriptions(interface_id=interface_id)
         _LOGGER.debug("LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result))
         return result
 
-    def add_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
+    def add_event_subscription(self, *, data_point: BaseParameterDataPoint) -> None:
         """Add data_point to central event subscription."""
         if isinstance(data_point, GenericDataPoint | GenericEvent) and (
             data_point.is_readable or data_point.supports_events
@@ -1242,7 +1244,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for device in self.devices:
             await device.remove_central_links()
 
-    def remove_device(self, device: Device) -> None:
+    def remove_device(self, *, device: Device) -> None:
         """Remove device to central collections."""
         if device.address not in self._devices:
             _LOGGER.debug(
@@ -1257,7 +1259,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_details.remove_device(device=device)
         del self._devices[device.address]
 
-    def remove_event_subscription(self, data_point: BaseParameterDataPoint) -> None:
+    def remove_event_subscription(self, *, data_point: BaseParameterDataPoint) -> None:
         """Remove event subscription from central collections."""
         if isinstance(data_point, GenericDataPoint | GenericEvent) and data_point.supports_events:
             if data_point.dpk in self._data_point_key_event_subscriptions:
@@ -1265,33 +1267,33 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if data_point.state_path in self._data_point_path_event_subscriptions:
                 del self._data_point_path_event_subscriptions[data_point.state_path]
 
-    def get_last_event_seen_for_interface(self, interface_id: str) -> datetime | None:
+    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Return the last event seen for an interface."""
         return self._last_event_seen_for_interface.get(interface_id)
 
-    def set_last_event_seen_for_interface(self, interface_id: str) -> None:
+    def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """Set the last event seen for an interface."""
         self._last_event_seen_for_interface[interface_id] = datetime.now()
 
-    async def execute_program(self, pid: str) -> bool:
+    async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
         if client := self.primary_client:
             return await client.execute_program(pid=pid)
         return False
 
-    async def set_program_state(self, pid: str, state: bool) -> bool:
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Execute a program on the backend."""
         if client := self.primary_client:
             return await client.set_program_state(pid=pid, state=state)
         return False
 
     @inspector(re_raise=False)
-    async def fetch_sysvar_data(self, scheduled: bool) -> None:
+    async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
         await self._hub.fetch_sysvar_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
-    async def fetch_program_data(self, scheduled: bool) -> None:
+    async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         await self._hub.fetch_program_data(scheduled=scheduled)
 
@@ -1309,13 +1311,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
-    async def get_system_variable(self, legacy_name: str) -> Any | None:
+    async def get_system_variable(self, *, legacy_name: str) -> Any | None:
         """Get system variable from the backend."""
         if client := self.primary_client:
-            return await client.get_system_variable(legacy_name)
+            return await client.get_system_variable(name=legacy_name)
         return None
 
-    async def set_system_variable(self, legacy_name: str, value: Any) -> None:
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> None:
         """Set variable value on the backend."""
         if dp := self.get_sysvar_data_point(legacy_name=legacy_name):
             await dp.send_variable(value=value)
@@ -1401,7 +1403,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         return tuple(parameters)
 
-    def _get_virtual_remote(self, device_address: str) -> Device | None:
+    def _get_virtual_remote(self, *, device_address: str) -> Device | None:
         """Get the virtual remote for the Client."""
         for client in self._clients.values():
             virtual_remote = client.get_virtual_remote()
@@ -1419,13 +1421,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
         return None
 
-    def get_event(self, channel_address: str, parameter: str) -> GenericEvent | None:
+    def get_event(self, *, channel_address: str, parameter: str) -> GenericEvent | None:
         """Return the hm event."""
         if device := self.get_device(address=channel_address):
             return device.get_generic_event(channel_address=channel_address, parameter=parameter)
         return None
 
-    def get_custom_data_point(self, address: str, channel_no: int) -> CustomDataPoint | None:
+    def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPoint | None:
         """Return the hm custom_data_point."""
         if device := self.get_device(address=address):
             return device.get_custom_data_point(channel_no=channel_no)
@@ -1443,7 +1445,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     return sysvar
         return None
 
-    def get_program_data_point(self, pid: str | None = None, legacy_name: str | None = None) -> ProgramDpType | None:
+    def get_program_data_point(self, *, pid: str | None = None, legacy_name: str | None = None) -> ProgramDpType | None:
         """Return the program data points."""
         if pid and (program := self._program_data_points.get(pid)):
             return program
@@ -1461,7 +1463,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Return the registered sysvar state path."""
         return tuple(self._sysvar_data_point_event_subscriptions)
 
-    def get_un_ignore_candidates(self, include_master: bool = False) -> list[str]:
+    def get_un_ignore_candidates(self, *, include_master: bool = False) -> list[str]:
         """Return the candidates for un_ignore."""
         candidates = sorted(
             # 1. request simple parameter list for values parameters
@@ -1505,14 +1507,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_details.clear()
         self._data_cache.clear()
 
-    def register_homematic_callback(self, cb: Callable) -> CALLBACK_TYPE:
+    def register_homematic_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register ha_event callback in central."""
         if callable(cb) and cb not in self._homematic_callbacks:
             self._homematic_callbacks.add(cb)
             return partial(self._unregister_homematic_callback, cb=cb)
         return None
 
-    def _unregister_homematic_callback(self, cb: Callable) -> None:
+    def _unregister_homematic_callback(self, *, cb: Callable) -> None:
         """RUn register ha_event callback in central."""
         if cb in self._homematic_callbacks:
             self._homematic_callbacks.remove(cb)
@@ -1533,14 +1535,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     extract_exc_args(exc=exc),
                 )
 
-    def register_backend_parameter_callback(self, cb: Callable) -> CALLBACK_TYPE:
+    def register_backend_parameter_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register backend_parameter callback in central."""
         if callable(cb) and cb not in self._backend_parameter_callbacks:
             self._backend_parameter_callbacks.add(cb)
             return partial(self._unregister_backend_parameter_callback, cb=cb)
         return None
 
-    def _unregister_backend_parameter_callback(self, cb: Callable) -> None:
+    def _unregister_backend_parameter_callback(self, *, cb: Callable) -> None:
         """Un register backend_parameter callback in central."""
         if cb in self._backend_parameter_callbacks:
             self._backend_parameter_callbacks.remove(cb)
@@ -1563,14 +1565,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     extract_exc_args(exc=exc),
                 )
 
-    def register_backend_system_callback(self, cb: Callable) -> CALLBACK_TYPE:
+    def register_backend_system_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register system_event callback in central."""
         if callable(cb) and cb not in self._backend_parameter_callbacks:
             self._backend_system_callbacks.add(cb)
             return partial(self._unregister_backend_system_callback, cb=cb)
         return None
 
-    def _unregister_backend_system_callback(self, cb: Callable) -> None:
+    def _unregister_backend_system_callback(self, *, cb: Callable) -> None:
         """Un register system_event callback in central."""
         if cb in self._backend_system_callbacks:
             self._backend_system_callbacks.remove(cb)
@@ -1644,7 +1646,7 @@ class _Scheduler(threading.Thread):
         )
 
         self._central.looper.create_task(
-            self._run_scheduler_tasks(),
+            target=self._run_scheduler_tasks(),
             name="run_scheduler_tasks",
         )
 
@@ -1953,7 +1955,7 @@ class CentralConfig:
             url = f"{url}:{self.json_port}"
         return f"{url}"
 
-    def create_json_rpc_client(self, central: CentralUnit) -> JsonRpcAioHttpClient:
+    def create_json_rpc_client(self, *, central: CentralUnit) -> JsonRpcAioHttpClient:
         """Create a json rpc client."""
         return JsonRpcAioHttpClient(
             username=self.username,
@@ -1974,7 +1976,7 @@ class CentralConnectionState:
         self._json_issues: Final[list[str]] = []
         self._xml_proxy_issues: Final[list[str]] = []
 
-    def add_issue(self, issuer: ConnectionProblemIssuer, iid: str) -> bool:
+    def add_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
         """Add issue to collection."""
         if isinstance(issuer, JsonRpcAioHttpClient) and iid not in self._json_issues:
             self._json_issues.append(iid)
@@ -1986,7 +1988,7 @@ class CentralConnectionState:
             return True
         return False
 
-    def remove_issue(self, issuer: ConnectionProblemIssuer, iid: str) -> bool:
+    def remove_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
         """Add issue to collection."""
         if isinstance(issuer, JsonRpcAioHttpClient) and iid in self._json_issues:
             self._json_issues.remove(iid)
@@ -1998,7 +2000,7 @@ class CentralConnectionState:
             return True
         return False
 
-    def has_issue(self, issuer: ConnectionProblemIssuer, iid: str) -> bool:
+    def has_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
         """Add issue to collection."""
         if isinstance(issuer, JsonRpcAioHttpClient):
             return iid in self._json_issues

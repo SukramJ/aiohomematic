@@ -183,7 +183,7 @@ class CustomDataPoint(BaseDataPoint):
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix}"
 
-    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
@@ -242,7 +242,7 @@ class CustomDataPoint(BaseDataPoint):
         if hmed.get_include_default_data_points(device_profile=self._device_profile):
             self._mark_data_points(custom_data_point_def=hmed.get_default_data_points())
 
-    def _add_data_points(self, field_dict_name: hmed.CDPD, is_visible: bool | None = None) -> None:
+    def _add_data_points(self, *, field_dict_name: hmed.CDPD, is_visible: bool | None = None) -> None:
         """Add data points to custom data point."""
         fields = self._device_def.get(field_dict_name, {})
         for channel_no, channel in fields.items():
@@ -270,7 +270,7 @@ class CustomDataPoint(BaseDataPoint):
         )
         self._data_points[field] = data_point
 
-    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:
@@ -278,7 +278,7 @@ class CustomDataPoint(BaseDataPoint):
 
         super()._unregister_data_point_updated_callback(cb=cb, custom_id=custom_id)
 
-    def _mark_data_points(self, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]) -> None:
+    def _mark_data_points(self, *, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]) -> None:
         """Mark data points to be created, even though a custom data point is present."""
         if not custom_data_point_def:
             return
@@ -289,7 +289,7 @@ class CustomDataPoint(BaseDataPoint):
                 for channel_no in channel_nos:
                     self._mark_data_point(channel_no=channel_no, parameters=parameters)
 
-    def _mark_data_point(self, channel_no: int | None, parameters: tuple[str, ...]) -> None:
+    def _mark_data_point(self, *, channel_no: int | None, parameters: tuple[str, ...]) -> None:
         """Mark data point to be created, even though a custom data point is present."""
         channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
 
@@ -318,7 +318,7 @@ class CustomDataPoint(BaseDataPoint):
             NoneTypeDataPoint(),
         )
 
-    def has_data_point_key(self, data_point_keys: set[DataPointKey]) -> bool:
+    def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
         result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
         return len(result) > 0

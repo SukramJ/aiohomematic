@@ -428,7 +428,7 @@ class ParameterVisibilityCache:
             cache_dict[model_l] = dt_short_key
         return dt_short_key
 
-    def model_is_ignored(self, model: TModelName) -> bool:
+    def model_is_ignored(self, *, model: TModelName) -> bool:
         """Check if a model should be ignored for custom data points."""
         return element_matches_key(
             search_elements=self._ignore_custom_device_definition_models,
@@ -613,7 +613,7 @@ class ParameterVisibilityCache:
 
         return paramset_key == ParamsetKey.MASTER and not parameter_is_un_ignored
 
-    def _process_un_ignore_entries(self, lines: Iterable[str]) -> None:
+    def _process_un_ignore_entries(self, *, lines: Iterable[str]) -> None:
         """Batch process un_ignore entries into cache."""
         for line in lines:
             # ignore empty line

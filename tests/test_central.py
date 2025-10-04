@@ -75,7 +75,7 @@ async def test_central_basics(
     assert central.version == "0"
     system_information = await central.validate_config_and_get_system_information()
     assert system_information.serial == "0815_4711"
-    device = central.get_device("VCU2128127")
+    device = central.get_device(address="VCU2128127")
     assert device
     dps = central.get_readable_generic_data_points()
     assert dps
@@ -650,7 +650,7 @@ async def test_virtual_remote_delete(
     central, _, _ = central_client_factory
     assert len(central.get_virtual_remotes()) == 1
 
-    assert central._get_virtual_remote("VCU0000057")
+    assert central._get_virtual_remote(device_address="VCU0000057")
 
     await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
 
@@ -754,7 +754,7 @@ async def test_central_services(
     assert len(mock_client.method_calls) == 52
 
     await central.get_system_variable(legacy_name="SysVar_Name")
-    assert mock_client.method_calls[-1] == call.get_system_variable("SysVar_Name")
+    assert mock_client.method_calls[-1] == call.get_system_variable(name="SysVar_Name")
 
     assert len(mock_client.method_calls) == 53
     await central.set_system_variable(legacy_name="alarm", value=True)
@@ -842,7 +842,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
             await central.validate_config_and_get_system_information()
 
         with pytest.raises(AioHomematicException):
-            central.get_client("NOT_A_VALID_INTERFACE_ID")
+            central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID")
 
         await central.start()
         assert central.all_clients_active is False
@@ -853,7 +853,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
         assert len(central.get_data_points()) == 0
 
         assert await central.get_system_variable(legacy_name="SysVar_Name") is None
-        assert central._get_virtual_remote("VCU4264293") is None
+        assert central._get_virtual_remote(device_address="VCU4264293") is None
     finally:
         await central.stop()
 
@@ -882,10 +882,10 @@ async def test_ping_pong(
     assert client.ping_pong_cache.pending_pong_count == 1
     for ts_stored in list(client.ping_pong_cache._pending_pongs):
         await central.data_point_event(
-            interface_id,
-            "",
-            Parameter.PONG,
-            f"{interface_id}#{ts_stored.strftime(DATETIME_FORMAT_MILLIS)}",
+            interface_id=interface_id,
+            channel_address="",
+            parameter=Parameter.PONG,
+            value=f"{interface_id}#{ts_stored.strftime(DATETIME_FORMAT_MILLIS)}",
         )
     assert client.ping_pong_cache.pending_pong_count == 0
 
@@ -953,10 +953,10 @@ async def test_unknown_pong_failure(
     max_count = PING_PONG_MISMATCH_COUNT + 1
     while count < max_count:
         await central.data_point_event(
-            interface_id,
-            "",
-            Parameter.PONG,
-            f"{interface_id}#{datetime.now().strftime(DATETIME_FORMAT_MILLIS)}",
+            interface_id=interface_id,
+            channel_address="",
+            parameter=Parameter.PONG,
+            value=f"{interface_id}#{datetime.now().strftime(DATETIME_FORMAT_MILLIS)}",
         )
         count += 1
 
@@ -1008,9 +1008,9 @@ async def test_central_getter(
 ) -> None:
     """Test central getter."""
     central, _, _ = central_client_factory
-    assert central.get_device("123") is None
-    assert central.get_custom_data_point("123", 1) is None
-    assert central.get_generic_data_point("123", 1) is None
-    assert central.get_event("123", 1) is None
-    assert central.get_program_data_point("123") is None
+    assert central.get_device(address="123") is None
+    assert central.get_custom_data_point(address="123", channel_no=1) is None
+    assert central.get_generic_data_point(channel_address="123", parameter=1) is None
+    assert central.get_event(channel_address="123", parameter=1) is None
+    assert central.get_program_data_point(pid="123") is None
     assert central.get_sysvar_data_point(legacy_name="123") is None

@@ -354,6 +354,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @bind_collector()
     async def set_temperature(
         self,
+        *,
         temperature: float,
         collector: CallParameterCollector | None = None,
         do_validate: bool = True,
@@ -370,19 +371,19 @@ class BaseCustomDpClimate(CustomDataPoint):
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
 
     @bind_collector()
-    async def set_mode(self, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
+    async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
 
     @bind_collector()
-    async def set_profile(self, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
+    async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new profile."""
 
     @inspector
-    async def enable_away_mode_by_calendar(self, start: datetime, end: datetime, away_temperature: float) -> None:
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
         """Enable the away mode by calendar on thermostat."""
 
     @inspector
-    async def enable_away_mode_by_duration(self, hours: int, away_temperature: float) -> None:
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
 
     @inspector
@@ -402,7 +403,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         return super().is_state_change(**kwargs)
 
     @inspector
-    async def copy_schedule(self, target_climate_data_point: BaseCustomDpClimate) -> None:
+    async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device."""
 
         if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
@@ -445,7 +446,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
 
     @inspector
-    async def get_schedule_profile(self, profile: ScheduleProfile) -> PROFILE_DICT:
+    async def get_schedule_profile(self, *, profile: ScheduleProfile) -> PROFILE_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
             raise ValidationException(f"Schedule is not supported by device {self._device.name}")
@@ -453,7 +454,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         return schedule_data.get(profile, {})
 
     @inspector
-    async def get_schedule_profile_weekday(self, profile: ScheduleProfile, weekday: ScheduleWeekday) -> WEEKDAY_DICT:
+    async def get_schedule_profile_weekday(self, *, profile: ScheduleProfile, weekday: ScheduleWeekday) -> WEEKDAY_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
             raise ValidationException(f"Schedule is not supported by device {self._device.name}")
@@ -664,7 +665,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
         return _fillup_weekday_data(base_temperature=base_temperature, weekday_data=weekday_data)
 
-    def _validate_schedule_profile(self, profile: ScheduleProfile, profile_data: PROFILE_DICT) -> None:
+    def _validate_schedule_profile(self, *, profile: ScheduleProfile, profile_data: PROFILE_DICT) -> None:
         """Validate the profile."""
         for weekday, weekday_data in profile_data.items():
             self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
@@ -861,7 +862,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         return self._dp_temperature_offset.value
 
     @bind_collector()
-    async def set_mode(self, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
+    async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new mode."""
         if not self.is_state_change(mode=mode):
             return
@@ -876,7 +877,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             await self.set_temperature(temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False)
 
     @bind_collector()
-    async def set_profile(self, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
+    async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new profile."""
         if not self.is_state_change(profile=profile):
             return
@@ -896,7 +897,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                 )
 
     @inspector
-    async def enable_away_mode_by_calendar(self, start: datetime, end: datetime, away_temperature: float) -> None:
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
         """Enable the away mode by calendar on thermostat."""
         await self._client.set_value(
             channel_address=self._channel.address,
@@ -906,7 +907,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         )
 
     @inspector
-    async def enable_away_mode_by_duration(self, hours: int, away_temperature: float) -> None:
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
         start = datetime.now() - timedelta(minutes=10)
         end = datetime.now() + timedelta(hours=hours)
@@ -1135,7 +1136,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         return self._dp_temperature_offset.value
 
     @bind_collector()
-    async def set_mode(self, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
+    async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
         if not self.is_state_change(mode=mode):
             return
@@ -1153,7 +1154,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             await self.set_temperature(temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False)
 
     @bind_collector()
-    async def set_profile(self, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
+    async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new control mode."""
         if not self.is_state_change(profile=profile):
             return
@@ -1169,7 +1170,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
 
     @inspector
-    async def enable_away_mode_by_calendar(self, start: datetime, end: datetime, away_temperature: float) -> None:
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
         """Enable the away mode by calendar on thermostat."""
         await self._client.put_paramset(
             channel_address=self._channel.address,
@@ -1183,7 +1184,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         )
 
     @inspector
-    async def enable_away_mode_by_duration(self, hours: int, away_temperature: float) -> None:
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
         start = datetime.now() - timedelta(minutes=10)
         end = datetime.now() + timedelta(hours=hours)

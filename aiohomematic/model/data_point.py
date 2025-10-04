@@ -306,11 +306,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Return all service methods."""
         return tuple(self.service_methods.keys())
 
-    def register_internal_data_point_updated_callback(self, cb: Callable) -> CALLBACK_TYPE:
+    def register_internal_data_point_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register internal data_point updated callback."""
         return self.register_data_point_updated_callback(cb=cb, custom_id=DEFAULT_CUSTOM_ID)
 
-    def register_data_point_updated_callback(self, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
+    def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register data_point updated callback."""
         if custom_id != DEFAULT_CUSTOM_ID:
             if self._custom_id is not None and self._custom_id != custom_id:
@@ -337,21 +337,21 @@ class CallbackDataPoint(ABC, LogContextMixin):
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
 
-    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
         """Unregister data_point updated callback."""
         if cb in self._data_point_updated_callbacks:
             del self._data_point_updated_callbacks[cb]
         if self.custom_id == custom_id:
             self._custom_id = None
 
-    def register_device_removed_callback(self, cb: Callable) -> CALLBACK_TYPE:
+    def register_device_removed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register the device removed callback."""
         if callable(cb) and cb not in self._device_removed_callbacks:
             self._device_removed_callbacks.append(cb)
             return partial(self._unregister_device_removed_callback, cb=cb)
         return None
 
-    def _unregister_device_removed_callback(self, cb: Callable) -> None:
+    def _unregister_device_removed_callback(self, *, cb: Callable) -> None:
         """Unregister the device removed callback."""
         if cb in self._device_removed_callbacks:
             self._device_removed_callbacks.remove(cb)
@@ -385,21 +385,21 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Check if a data point has been updated or refreshed."""
         return True
 
-    def _set_modified_at(self, modified_at: datetime) -> None:
+    def _set_modified_at(self, *, modified_at: datetime) -> None:
         """Set modified_at to current datetime."""
         self._modified_at = modified_at
         self._set_refreshed_at(refreshed_at=modified_at)
 
-    def _set_refreshed_at(self, refreshed_at: datetime) -> None:
+    def _set_refreshed_at(self, *, refreshed_at: datetime) -> None:
         """Set refreshed_at to current datetime."""
         self._refreshed_at = refreshed_at
 
-    def _set_temporary_modified_at(self, modified_at: datetime) -> None:
+    def _set_temporary_modified_at(self, *, modified_at: datetime) -> None:
         """Set temporary_modified_at to current datetime."""
         self._temporary_modified_at = modified_at
         self._set_temporary_refreshed_at(refreshed_at=modified_at)
 
-    def _set_temporary_refreshed_at(self, refreshed_at: datetime) -> None:
+    def _set_temporary_refreshed_at(self, *, refreshed_at: datetime) -> None:
         """Set temporary_refreshed_at to current datetime."""
         self._temporary_refreshed_at = refreshed_at
 
@@ -509,7 +509,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         """Return the data_point usage."""
         return self._get_data_point_usage()
 
-    def force_usage(self, forced_usage: DataPointUsage) -> None:
+    def force_usage(self, *, forced_usage: DataPointUsage) -> None:
         """Set the data_point usage."""
         self._forced_usage = forced_usage
 
@@ -527,7 +527,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         return on_time
 
     @abstractmethod
-    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data_point data."""
 
     @abstractmethod
@@ -538,7 +538,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     def _get_data_point_usage(self) -> DataPointUsage:
         """Generate the usage for the data_point."""
 
-    def set_timer_on_time(self, on_time: float) -> None:
+    def set_timer_on_time(self, *, on_time: float) -> None:
         """Set the on_time."""
         self._timer_on_time = on_time
         self._timer_on_time_end = INIT_DATETIME
@@ -620,13 +620,13 @@ class BaseParameterDataPoint[
         self._is_forced_sensor: bool = False
         self._assign_parameter_data(parameter_data=parameter_data)
 
-    def _assign_parameter_data(self, parameter_data: ParameterData) -> None:
+    def _assign_parameter_data(self, *, parameter_data: ParameterData) -> None:
         """Assign parameter data to instance variables."""
         self._type: ParameterType = ParameterType(parameter_data["TYPE"])
         self._values = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
-        self._max: ParameterT = self._convert_value(parameter_data["MAX"])
-        self._min: ParameterT = self._convert_value(parameter_data["MIN"])
-        self._default: ParameterT = self._convert_value(parameter_data.get("DEFAULT")) or self._min
+        self._max: ParameterT = self._convert_value(value=parameter_data["MAX"])
+        self._min: ParameterT = self._convert_value(value=parameter_data["MIN"])
+        self._default: ParameterT = self._convert_value(value=parameter_data.get("DEFAULT")) or self._min
         flags: int = parameter_data["FLAGS"]
         self._visible: bool = flags & Flag.VISIBLE == Flag.VISIBLE
         self._service: bool = flags & Flag.SERVICE == Flag.SERVICE
@@ -834,7 +834,7 @@ class BaseParameterDataPoint[
         )
         self._is_forced_sensor = True
 
-    def _cleanup_unit(self, raw_unit: str | None) -> str | None:
+    def _cleanup_unit(self, *, raw_unit: str | None) -> str | None:
         """Replace given unit."""
         if new_unit := _FIX_UNIT_BY_PARAM.get(self._parameter):
             return new_unit
@@ -845,7 +845,7 @@ class BaseParameterDataPoint[
                 return fix
         return raw_unit
 
-    def _get_multiplier(self, raw_unit: str | None) -> float:
+    def _get_multiplier(self, *, raw_unit: str | None) -> float:
         """Replace given unit."""
         if not raw_unit:
             return DEFAULT_MULTIPLIER
@@ -861,7 +861,7 @@ class BaseParameterDataPoint[
     async def event(self, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
 
-    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data_point data."""
         if (self._ignore_on_initial_load or self._channel.device.ignore_on_initial_load) and call_source in (
             CallSource.HM_INIT,
@@ -885,7 +885,7 @@ class BaseParameterDataPoint[
             write_at=datetime.now(),
         )
 
-    def write_value(self, value: Any, write_at: datetime) -> tuple[ParameterT, ParameterT]:
+    def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT, ParameterT]:
         """Update value of the data_point."""
         self._reset_temporary_value()
 
@@ -896,7 +896,7 @@ class BaseParameterDataPoint[
                 self.fire_data_point_updated_callback()
             return (old_value, None)  # type: ignore[return-value]
 
-        new_value = self._convert_value(value)
+        new_value = self._convert_value(value=value)
         if old_value == new_value:
             self._set_refreshed_at(refreshed_at=write_at)
         else:
@@ -907,11 +907,11 @@ class BaseParameterDataPoint[
         self.fire_data_point_updated_callback()
         return (old_value, new_value)
 
-    def write_temporary_value(self, value: Any, write_at: datetime) -> None:
+    def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
         """Update the temporary value of the data_point."""
         self._reset_temporary_value()
 
-        temp_value = self._convert_value(value)
+        temp_value = self._convert_value(value=value)
         if self._value == temp_value:
             self._set_temporary_refreshed_at(refreshed_at=write_at)
         else:
@@ -930,7 +930,7 @@ class BaseParameterDataPoint[
         ):
             self._assign_parameter_data(parameter_data=parameter_data)
 
-    def _convert_value(self, value: Any) -> ParameterT:
+    def _convert_value(self, *, value: Any) -> ParameterT:
         """Convert to value to ParameterT."""
         if value is None:
             return None  # type: ignore[return-value]
@@ -965,7 +965,7 @@ class BaseParameterDataPoint[
         self._temporary_value = None  # type: ignore[assignment]
         self._reset_temporary_timestamps()
 
-    def get_event_data(self, value: Any = None) -> dict[EventKey, Any]:
+    def get_event_data(self, *, value: Any = None) -> dict[EventKey, Any]:
         """Get the event_data."""
         event_data = {
             EventKey.ADDRESS: self._device.address,
@@ -1012,7 +1012,7 @@ class CallParameterCollector:
             value
         )
 
-    async def send_data(self, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
+    async def send_data(self, *, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
         """Send data to the backend."""
         dpk_values: set[DP_KEY_VALUE] = set()
         for paramset_key, paramsets in self._paramsets.items():
@@ -1054,7 +1054,12 @@ def bind_collector(
 
     def bind_decorator[CallableT: Callable[..., Any]](func: CallableT) -> CallableT:
         """Decorate function to automatically add collector if not set."""
-        argument_index = getfullargspec(func).args.index(_COLLECTOR_ARGUMENT_NAME)
+        spec = getfullargspec(func)
+        # Support both positional and keyword-only 'collector' parameters
+        if _COLLECTOR_ARGUMENT_NAME in spec.args:
+            argument_index: int | None = spec.args.index(_COLLECTOR_ARGUMENT_NAME)
+        else:
+            argument_index = None
 
         @wraps(func)
         async def bind_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -1069,8 +1074,10 @@ def bind_collector(
                         IN_SERVICE_VAR.reset(token)
                     return return_value
                 try:
-                    collector_exists = args[argument_index] is not None
-                except IndexError:
+                    collector_exists = (
+                        argument_index is not None and len(args) > argument_index and args[argument_index] is not None
+                    ) or kwargs.get(_COLLECTOR_ARGUMENT_NAME) is not None
+                except Exception:
                     collector_exists = kwargs.get(_COLLECTOR_ARGUMENT_NAME) is not None
 
                 if collector_exists:

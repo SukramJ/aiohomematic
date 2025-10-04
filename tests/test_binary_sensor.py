@@ -50,11 +50,17 @@ async def test_hmbinarysensor(
     assert binary_sensor.value is False
     assert binary_sensor.is_writeable is False
     assert binary_sensor.visible is True
-    await central.data_point_event(const.INTERFACE_ID, "VCU5864966:1", "STATE", 1)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU5864966:1", parameter="STATE", value=1
+    )
     assert binary_sensor.value is True
-    await central.data_point_event(const.INTERFACE_ID, "VCU5864966:1", "STATE", 0)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU5864966:1", parameter="STATE", value=0
+    )
     assert binary_sensor.value is False
-    await central.data_point_event(const.INTERFACE_ID, "VCU5864966:1", "STATE", None)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU5864966:1", parameter="STATE", value=None
+    )
     assert binary_sensor.value is False
 
     call_count = len(mock_client.method_calls)
@@ -91,5 +97,5 @@ async def test_hmsysvarbinarysensor(
     assert binary_sensor.is_extended is False
     assert binary_sensor._data_type == "LOGIC"
     assert binary_sensor.value is False
-    binary_sensor.write_value(True, datetime.now())
+    binary_sensor.write_value(value=True, write_at=datetime.now())
     assert binary_sensor.value is True

@@ -150,7 +150,7 @@ class Hub:
         self._config: Final = central.config
 
     @inspector(re_raise=False)
-    async def fetch_sysvar_data(self, scheduled: bool) -> None:
+    async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
         if self._config.enable_sysvar_scan:
             _LOGGER.debug(
@@ -163,7 +163,7 @@ class Hub:
                     await self._update_sysvar_data_points()
 
     @inspector(re_raise=False)
-    async def fetch_program_data(self, scheduled: bool) -> None:
+    async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         if self._config.enable_program_scan:
             _LOGGER.debug(
@@ -245,7 +245,7 @@ class Hub:
                 new_hub_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )
 
-    def _create_program_dp(self, data: ProgramData) -> ProgramDpType:
+    def _create_program_dp(self, *, data: ProgramData) -> ProgramDpType:
         """Create program as data_point."""
         program_dp = ProgramDpType(
             pid=data.pid,
@@ -255,13 +255,13 @@ class Hub:
         self._central.add_program_data_point(program_dp=program_dp)
         return program_dp
 
-    def _create_system_variable(self, data: SystemVariableData) -> GenericSysvarDataPoint:
+    def _create_system_variable(self, *, data: SystemVariableData) -> GenericSysvarDataPoint:
         """Create system variable as data_point."""
         sysvar_dp = self._create_sysvar_data_point(data=data)
         self._central.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
         return sysvar_dp
 
-    def _create_sysvar_data_point(self, data: SystemVariableData) -> GenericSysvarDataPoint:
+    def _create_sysvar_data_point(self, *, data: SystemVariableData) -> GenericSysvarDataPoint:
         """Create sysvar data_point."""
         data_type = data.data_type
         extended_sysvar = data.extended_sysvar
@@ -279,21 +279,21 @@ class Hub:
 
         return SysvarDpSensor(central=self._central, data=data)
 
-    def _remove_program_data_point(self, ids: set[str]) -> None:
+    def _remove_program_data_point(self, *, ids: set[str]) -> None:
         """Remove sysvar data_point from hub."""
         for pid in ids:
             self._central.remove_program_button(pid=pid)
 
-    def _remove_sysvar_data_point(self, del_data_point_ids: set[str]) -> None:
+    def _remove_sysvar_data_point(self, *, del_data_point_ids: set[str]) -> None:
         """Remove sysvar data_point from hub."""
         for vid in del_data_point_ids:
             self._central.remove_sysvar_data_point(vid=vid)
 
-    def _identify_missing_program_ids(self, programs: tuple[ProgramData, ...]) -> set[str]:
+    def _identify_missing_program_ids(self, *, programs: tuple[ProgramData, ...]) -> set[str]:
         """Identify missing programs."""
         return {dp.pid for dp in self._central.program_data_points if dp.pid not in [x.pid for x in programs]}
 
-    def _identify_missing_variable_ids(self, variables: tuple[SystemVariableData, ...]) -> set[str]:
+    def _identify_missing_variable_ids(self, *, variables: tuple[SystemVariableData, ...]) -> set[str]:
         """Identify missing variables."""
         variable_ids: dict[str, bool] = {x.vid: x.extended_sysvar for x in variables}
         missing_variable_ids: list[str] = []

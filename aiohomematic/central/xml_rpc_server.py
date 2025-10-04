@@ -35,7 +35,7 @@ class RPCFunctions:
         """If a device emits some sort event, we will handle it here."""
         if central := self.get_central(interface_id):
             central.looper.create_task(
-                central.data_point_event(
+                target=central.data_point_event(
                     interface_id=interface_id,
                     channel_address=channel_address,
                     parameter=parameter,
@@ -77,7 +77,9 @@ class RPCFunctions:
         central: hmcu.CentralUnit | None
         if central := self.get_central(interface_id):
             central.looper.create_task(
-                central.add_new_devices(interface_id=interface_id, device_descriptions=tuple(device_descriptions)),
+                target=central.add_new_devices(
+                    interface_id=interface_id, device_descriptions=tuple(device_descriptions)
+                ),
                 name=f"newDevices-{interface_id}",
             )
 
@@ -86,7 +88,7 @@ class RPCFunctions:
         central: hmcu.CentralUnit | None
         if central := self.get_central(interface_id):
             central.looper.create_task(
-                central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
+                target=central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
                 name=f"deleteDevices-{interface_id}",
             )
 

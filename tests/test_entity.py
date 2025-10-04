@@ -60,9 +60,13 @@ async def test_custom_data_point_callback(
     unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
     assert switch.value is None
     assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
-    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
+    )
     assert switch.value is True
-    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
+    )
     assert switch.value is False
     await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
     assert factory.system_event_mock.call_args_list[-1] == call(
@@ -71,7 +75,7 @@ async def test_custom_data_point_callback(
     unregister_data_point_updated_callback()
     unregister_device_removed_callback()
 
-    device_updated_mock.assert_called_with(data_point=switch)
+    device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
     device_removed_mock.assert_called_with()
 
 
@@ -104,9 +108,13 @@ async def test_generic_data_point_callback(
     switch.register_device_removed_callback(cb=device_removed_mock)
     assert switch.value is None
     assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
-    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 1)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
+    )
     assert switch.value is True
-    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:4", "STATE", 0)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
+    )
     assert switch.value is False
     await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
     assert factory.system_event_mock.call_args_list[-1] == call(
@@ -115,7 +123,7 @@ async def test_generic_data_point_callback(
     switch._unregister_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
     switch._unregister_device_removed_callback(cb=device_removed_mock)
 
-    device_updated_mock.assert_called_with(data_point=switch)
+    device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
     device_removed_mock.assert_called_with()
 
 

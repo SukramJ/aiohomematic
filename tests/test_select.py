@@ -59,7 +59,9 @@ async def test_hmselect(
         value=1,
     )
     assert select.value == "OPEN"
-    await central.data_point_event(const.INTERFACE_ID, "VCU6354483:1", "WINDOW_STATE", 0)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU6354483:1", parameter="WINDOW_STATE", value=0
+    )
     assert select.value == "CLOSED"
 
     await select.send_value(3)
@@ -107,9 +109,9 @@ async def test_hmsysvarselect(
     assert select.max is None
     assert select.values == ("v1", "v2", "v3")
     assert select.value == "v1"
-    await select.send_variable("v2")
+    await select.send_variable(value="v2")
     assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="list_ext", value=1)
     assert select.value == "v2"
-    await select.send_variable(3)
+    await select.send_variable(value=3)
     # do not write. value above max
     assert select.value == "v2"

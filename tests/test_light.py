@@ -94,7 +94,9 @@ async def test_cedimmer(
     assert light.is_on
 
     assert light.group_brightness is None
-    await central.data_point_event(const.INTERFACE_ID, "VCU1399816:3", "LEVEL", 0.4)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.4
+    )
     assert light.group_brightness == 102
 
     await light.turn_on(on_time=5.0, ramp_time=6.0)
@@ -132,7 +134,7 @@ async def test_cedimmer(
     )
 
     await light.turn_off()
-    light.set_timer_on_time(0.5)
+    light.set_timer_on_time(on_time=0.5)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
@@ -141,7 +143,7 @@ async def test_cedimmer(
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
 
-    light.set_timer_on_time(1.6)
+    light.set_timer_on_time(on_time=1.6)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU1399816:4",
@@ -285,9 +287,13 @@ async def test_cecolordimmereffect(
 
     assert light.effect == "Slow color change"
 
-    await central.data_point_event(const.INTERFACE_ID, "VCU3747418:2", "COLOR", 201)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU3747418:2", parameter="COLOR", value=201
+    )
     assert light.hs_color == (0.0, 0.0)
-    await central.data_point_event(const.INTERFACE_ID, "VCU3747418:2", "COLOR", None)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU3747418:2", parameter="COLOR", value=None
+    )
     assert light.hs_color == (0.0, 0.0)
 
     await light.turn_on()
@@ -546,15 +552,19 @@ async def test_ceipfixedcolorlight(
     )
     assert light.color_name == _FixedColor.PURPLE
 
-    await central.data_point_event(const.INTERFACE_ID, "VCU6985973:7", "LEVEL", 0.5)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU6985973:7", parameter="LEVEL", value=0.5
+    )
     assert light.group_brightness == 127
 
-    await central.data_point_event(const.INTERFACE_ID, "VCU6985973:7", "COLOR", 1)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU6985973:7", parameter="COLOR", value=1
+    )
     assert light.channel_hs_color == (240.0, 100.0)
     assert light.channel_color_name == _FixedColor.BLUE
 
     await light.turn_off()
-    light.set_timer_on_time(18)
+    light.set_timer_on_time(on_time=18)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
@@ -564,7 +574,7 @@ async def test_ceipfixedcolorlight(
     )
 
     await light.turn_off()
-    light.set_timer_on_time(17000)
+    light.set_timer_on_time(on_time=17000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
@@ -574,7 +584,7 @@ async def test_ceipfixedcolorlight(
     )
 
     await light.turn_off()
-    light.set_timer_on_time(1000000)
+    light.set_timer_on_time(on_time=1000000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU6985973:8",
@@ -825,7 +835,7 @@ async def test_ceipfixedcolorlightwired(
 
     await light.turn_off()
 
-    light.set_timer_on_time(18)
+    light.set_timer_on_time(on_time=18)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
@@ -835,7 +845,7 @@ async def test_ceipfixedcolorlightwired(
     )
 
     await light.turn_off()
-    light.set_timer_on_time(17000)
+    light.set_timer_on_time(on_time=17000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
@@ -845,7 +855,7 @@ async def test_ceipfixedcolorlightwired(
     )
 
     await light.turn_off()
-    light.set_timer_on_time(1000000)
+    light.set_timer_on_time(on_time=1000000)
     await light.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU4704397:8",
@@ -1196,9 +1206,13 @@ async def test_cecolordimmer(
         wait_for_callback=WAIT_FOR_CALLBACK,
     )
     assert light.hs_color == (0.0, 0.0)
-    await central.data_point_event(const.INTERFACE_ID, "VCU9973336:15", "COLOR", 201)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU9973336:15", parameter="COLOR", value=201
+    )
     assert light.hs_color == (0.0, 0.0)
-    await central.data_point_event(const.INTERFACE_ID, "VCU9973336:15", "COLOR", None)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU9973336:15", parameter="COLOR", value=None
+    )
     assert light.hs_color == (0.0, 0.0)
 
     await light.turn_on()

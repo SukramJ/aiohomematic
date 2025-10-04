@@ -41,10 +41,12 @@ async def test_clickevent(
 ) -> None:
     """Test ClickEvent."""
     central, _, factory = central_client_factory
-    event: ClickEvent = cast(ClickEvent, central.get_event("VCU2128127:1", "PRESS_SHORT"))
+    event: ClickEvent = cast(ClickEvent, central.get_event(channel_address="VCU2128127:1", parameter="PRESS_SHORT"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.KEYPRESS
-    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:1", "PRESS_SHORT", True)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:1", parameter="PRESS_SHORT", value=True
+    )
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.keypress",
         {
@@ -77,10 +79,12 @@ async def test_impulseevent(
 ) -> None:
     """Test ImpulseEvent."""
     central, _, factory = central_client_factory
-    event: ImpulseEvent = cast(ImpulseEvent, central.get_event("VCU0000263:1", "SEQUENCE_OK"))
+    event: ImpulseEvent = cast(ImpulseEvent, central.get_event(channel_address="VCU0000263:1", parameter="SEQUENCE_OK"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.IMPULSE
-    await central.data_point_event(const.INTERFACE_ID, "VCU0000263:1", "SEQUENCE_OK", True)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU0000263:1", parameter="SEQUENCE_OK", value=True
+    )
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.impulse",
         {
@@ -115,11 +119,13 @@ async def test_deviceerrorevent(
     central, _, factory = central_client_factory
     event: DeviceErrorEvent = cast(
         DeviceErrorEvent,
-        central.get_event("VCU2128127:0", "ERROR_OVERHEAT"),
+        central.get_event(channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT"),
     )
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.DEVICE_ERROR
-    await central.data_point_event(const.INTERFACE_ID, "VCU2128127:0", "ERROR_OVERHEAT", True)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT", value=True
+    )
     assert factory.ha_event_mock.call_args_list[-1] == call(
         "homematic.device_error",
         {

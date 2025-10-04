@@ -77,7 +77,7 @@ async def test_ceipirrigationvalve(
     assert valve.value is True
 
     await valve.close()
-    valve.set_timer_on_time(35.4)
+    valve.set_timer_on_time(on_time=35.4)
     await valve.open()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU8976407:4",

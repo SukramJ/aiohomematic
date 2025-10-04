@@ -142,7 +142,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         "_custom_id",
         "_data_point_updated_callbacks",
         "_device_removed_callbacks",
-        "_fired_at",
+        "_fired_event_at",
         "_modified_at",
         "_path_data",
         "_refreshed_at",
@@ -162,7 +162,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._device_removed_callbacks: list[Callable] = []
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
-        self._fired_at: datetime = INIT_DATETIME
+        self._fired_event_at: datetime = INIT_DATETIME
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
         self._signature: Final = self._get_signature()
@@ -190,16 +190,16 @@ class CallbackDataPoint(ABC, LogContextMixin):
         return self._custom_id
 
     @property
-    def fired_at(self) -> datetime:
-        """Return the data point updated fired at."""
-        return self._fired_at
+    def fired_event_at(self) -> datetime:
+        """Return the data point updated fired an event at."""
+        return self._fired_event_at
 
     @state_property
-    def fired_recently(self) -> bool:
-        """Return the data point fired within 500 milliseconds."""
-        if self._fired_at == INIT_DATETIME:
+    def fired_event_recently(self) -> bool:
+        """Return the data point fired an event within 500 milliseconds."""
+        if self._fired_event_at == INIT_DATETIME:
             return False
-        return (datetime.now() - self._fired_at).total_seconds() < 0.5
+        return (datetime.now() - self._fired_event_at).total_seconds() < 0.5
 
     @classmethod
     def default_category(cls) -> DataPointCategory:
@@ -360,7 +360,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_fire_data_point_updated_callback:
             return
-        self._fired_at = datetime.now()
+        self._fired_event_at = datetime.now()
         # Add the data_point reference once to kwargs to avoid per-callback writes.
         kwargs[KWARGS_ARG_DATA_POINT] = self
         for callback_handler in self._data_point_updated_callbacks:

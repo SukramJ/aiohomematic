@@ -236,7 +236,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
 
     @abstractmethod
-    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
     @state_property
@@ -720,7 +720,7 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
-    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
 
@@ -788,7 +788,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             )
         )
 
-    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_control_mode
@@ -1032,7 +1032,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             )
         )
 
-    def _manu_temp_changed(self, data_point: GenericDataPoint) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_set_point_mode

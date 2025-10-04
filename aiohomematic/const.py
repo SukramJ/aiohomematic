@@ -100,6 +100,7 @@ IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
 IP_ANY_V4: Final = "0.0.0.0"
 JSON_SESSION_AGE: Final = 90
+KWARGS_ARG_CUSTOM_ID: Final = "custom_id"
 KWARGS_ARG_DATA_POINT: Final = "data_point"
 LAST_COMMAND_SEND_STORE_TIMEOUT: Final = 60
 LOCAL_HOST: Final = "127.0.0.1"

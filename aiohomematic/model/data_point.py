@@ -44,6 +44,7 @@ from aiohomematic.const import (
     DP_KEY_VALUE,
     INIT_DATETIME,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
+    KWARGS_ARG_CUSTOM_ID,
     KWARGS_ARG_DATA_POINT,
     NO_CACHE_ENTRY,
     WAIT_FOR_CALLBACK,
@@ -361,10 +362,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
         if not self._should_fire_data_point_updated_callback:
             return
         self._fired_event_at = datetime.now()
-        # Add the data_point reference once to kwargs to avoid per-callback writes.
-        kwargs[KWARGS_ARG_DATA_POINT] = self
-        for callback_handler in self._data_point_updated_callbacks:
+        for callback_handler, custom_id in self._data_point_updated_callbacks.items():
             try:
+                # Add the data_point reference once to kwargs to avoid per-callback writes.
+                kwargs[KWARGS_ARG_DATA_POINT] = self
+                kwargs[KWARGS_ARG_CUSTOM_ID] = custom_id
                 callback_handler(*args, **kwargs)
             except Exception as exc:
                 _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))

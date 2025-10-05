@@ -41,7 +41,7 @@ BACKEND_LOCAL: Final = "Local CCU"
 class ClientLocal(Client):  # pragma: no cover
     """Local client object to provide access to locally stored files."""
 
-    def __init__(self, client_config: _ClientConfig, local_resources: LocalRessources) -> None:
+    def __init__(self, *, client_config: _ClientConfig, local_resources: LocalRessources) -> None:
         """Initialize the Client."""
         super().__init__(client_config=client_config)
         self._local_resources = local_resources

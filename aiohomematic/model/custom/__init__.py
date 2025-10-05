@@ -174,4 +174,4 @@ def create_custom_data_points(device: hmd.Device) -> None:
         # Call the custom creation function.
         for custom_config in get_custom_configs(model=device.model):
             for channel in device.channels.values():
-                custom_config.make_ce_func(channel, custom_config)
+                custom_config.make_ce_func(channel=channel, custom_config=custom_config)

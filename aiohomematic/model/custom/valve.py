@@ -60,7 +60,7 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
         return self._dp_state.value
 
     @bind_collector()
-    async def open(self, *, collector: CallParameterCollector | None = None, on_time: float | None = None) -> None:
+    async def open(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
         """Turn the valve on."""
         if on_time is not None:
             self.set_timer_on_time(on_time=on_time)
@@ -93,6 +93,7 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
 
 
 def make_ip_irrigation_valve(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

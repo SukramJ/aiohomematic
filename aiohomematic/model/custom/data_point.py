@@ -46,6 +46,7 @@ class CustomDataPoint(BaseDataPoint):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         unique_id: str,
         device_profile: DeviceProfile,

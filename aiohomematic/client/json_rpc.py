@@ -184,6 +184,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     def __init__(
         self,
+        *,
         username: str,
         password: str,
         device_url: str,
@@ -291,6 +292,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def _post(
         self,
+        *,
         method: _JsonRpcMethod,
         extra_params: dict[_JsonKey, Any] | None = None,
         use_default_params: bool = True,
@@ -328,6 +330,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def _post_script(
         self,
+        *,
         script_name: str,
         extra_params: dict[_JsonKey, Any] | None = None,
         keep_session: bool = True,
@@ -387,6 +390,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def _do_post(
         self,
+        *,
         session_id: bool | str,
         method: _JsonRpcMethod,
         extra_params: dict[_JsonKey, Any] | None = None,

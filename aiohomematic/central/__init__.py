@@ -193,7 +193,7 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 class CentralUnit(LogContextMixin, PayloadMixin):
     """Central unit that collects everything to handle communication from/to the backend."""
 
-    def __init__(self, central_config: CentralConfig) -> None:
+    def __init__(self, *, central_config: CentralConfig) -> None:
         """Init the central unit."""
         self._state: CentralUnitState = CentralUnitState.NEW
         self._clients_started: bool = False
@@ -1601,7 +1601,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 class _Scheduler(threading.Thread):
     """Periodically check connection to the backend, and load data when required."""
 
-    def __init__(self, central: CentralUnit) -> None:
+    def __init__(self, *, central: CentralUnit) -> None:
         """Init the connection checker."""
         threading.Thread.__init__(self, name=f"ConnectionChecker for {central.name}")
         self._central: Final = central
@@ -1801,6 +1801,7 @@ class _SchedulerJob:
 
     def __init__(
         self,
+        *,
         task: Callable,
         run_interval: int,
         next_run: datetime | None = None,
@@ -1829,6 +1830,7 @@ class CentralConfig:
 
     def __init__(
         self,
+        *,
         central_id: str,
         host: str,
         interface_configs: AbstractSet[hmcl.InterfaceConfig],
@@ -1941,7 +1943,7 @@ class CentralConfig:
         """Create the central. Throws BaseHomematicException on validation failure."""
         try:
             self.check_config()
-            return CentralUnit(self)
+            return CentralUnit(central_config=self)
         except BaseHomematicException as bhexc:
             raise AioHomematicException(
                 f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=bhexc)}"

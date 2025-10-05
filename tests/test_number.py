@@ -51,7 +51,7 @@ async def test_hmfloat(
     assert efloat.unit == "%"
     assert efloat.values is None
     assert efloat.value is None
-    await efloat.send_value(0.3)
+    await efloat.send_value(value=0.3)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000011:3",
         paramset_key=ParamsetKey.VALUES,
@@ -64,11 +64,11 @@ async def test_hmfloat(
     )
     assert efloat.value == 0.5
     # do not write. value above max
-    await efloat.send_value(45.0)
+    await efloat.send_value(value=45.0)
     assert efloat.value == 0.5
 
     call_count = len(mock_client.method_calls)
-    await efloat.send_value(45.0)
+    await efloat.send_value(value=45.0)
     assert call_count == len(mock_client.method_calls)
 
 
@@ -99,7 +99,7 @@ async def test_hmfloat_special(
     assert efloat.unit == "°C"
     assert efloat.values is None
     assert efloat.value is None
-    await efloat.send_value(8.0)
+    await efloat.send_value(value=8.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000054:2",
         paramset_key=ParamsetKey.VALUES,
@@ -108,7 +108,7 @@ async def test_hmfloat_special(
     )
     assert efloat.value == 8.0
 
-    await efloat.send_value("VENT_OPEN")
+    await efloat.send_value(value="VENT_OPEN")
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000054:2",
         paramset_key=ParamsetKey.VALUES,
@@ -147,7 +147,7 @@ async def test_hminteger(
     assert einteger.max == 3
     assert einteger.values is None
     assert einteger.value is None
-    await einteger.send_value(3)
+    await einteger.send_value(value=3)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU4984404:1",
         paramset_key=ParamsetKey.VALUES,
@@ -156,7 +156,7 @@ async def test_hminteger(
     )
     assert einteger.value == 3
 
-    await einteger.send_value(1.0)
+    await einteger.send_value(value=1.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU4984404:1",
         paramset_key=ParamsetKey.VALUES,
@@ -169,7 +169,7 @@ async def test_hminteger(
         interface_id=const.INTERFACE_ID, channel_address="VCU4984404:1", parameter="SET_POINT_MODE", value=2
     )
     assert einteger.value == 2
-    await einteger.send_value(6)
+    await einteger.send_value(value=6)
     assert mock_client.method_calls[-1] != call.set_value(
         channel_address="VCU4984404:1",
         paramset_key=ParamsetKey.VALUES,
@@ -180,7 +180,7 @@ async def test_hminteger(
     assert einteger.value == 2
 
     call_count = len(mock_client.method_calls)
-    await einteger.send_value(6)
+    await einteger.send_value(value=6)
     assert call_count == len(mock_client.method_calls)
 
 

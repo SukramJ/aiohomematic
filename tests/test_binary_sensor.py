@@ -64,7 +64,7 @@ async def test_hmbinarysensor(
     assert binary_sensor.value is False
 
     call_count = len(mock_client.method_calls)
-    await binary_sensor.send_value(True)
+    await binary_sensor.send_value(value=True)
     assert call_count == len(mock_client.method_calls)
 
 

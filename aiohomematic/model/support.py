@@ -74,7 +74,7 @@ class ChannelNameData:
         "sub_device_name",
     )
 
-    def __init__(self, device_name: str, channel_name: str) -> None:
+    def __init__(self, *, device_name: str, channel_name: str) -> None:
         """Init the DataPointNameData class."""
         self.device_name: Final = device_name
         self.channel_name: Final = self._get_channel_name(device_name=device_name, channel_name=channel_name)
@@ -105,7 +105,7 @@ class DataPointNameData(ChannelNameData):
         "parameter_name",
     )
 
-    def __init__(self, device_name: str, channel_name: str, parameter_name: str | None = None) -> None:
+    def __init__(self, *, device_name: str, channel_name: str, parameter_name: str | None = None) -> None:
         """Init the DataPointNameData class."""
         super().__init__(device_name=device_name, channel_name=channel_name)
 
@@ -145,7 +145,7 @@ class HubNameData:
         "name",
     )
 
-    def __init__(self, name: str, central_name: str | None = None, channel_name: str | None = None) -> None:
+    def __init__(self, *, name: str, central_name: str | None = None, channel_name: str | None = None) -> None:
         """Init the DataPointNameData class."""
         self.name: Final = name
         self.full_name = (
@@ -227,6 +227,7 @@ class DataPointPathData(PathData):
 
     def __init__(
         self,
+        *,
         interface: Interface | None,
         address: str,
         channel_no: int | None,
@@ -261,7 +262,7 @@ class ProgramPathData(PathData):
         "_state_path",
     )
 
-    def __init__(self, pid: str):
+    def __init__(self, *, pid: str):
         """Init the path data."""
         self._set_path: Final = f"{PROGRAM_SET_PATH_ROOT}/{pid}"
         self._state_path: Final = f"{PROGRAM_STATE_PATH_ROOT}/{pid}"
@@ -285,7 +286,7 @@ class SysvarPathData(PathData):
         "_state_path",
     )
 
-    def __init__(self, vid: str):
+    def __init__(self, *, vid: str):
         """Init the path data."""
         self._set_path: Final = f"{SYSVAR_SET_PATH_ROOT}/{vid}"
         self._state_path: Final = f"{SYSVAR_STATE_PATH_ROOT}/{vid}"

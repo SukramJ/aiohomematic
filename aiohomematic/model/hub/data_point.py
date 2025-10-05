@@ -47,6 +47,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         address: str,
         data: HubData,
@@ -132,6 +133,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         data: SystemVariableData,
     ) -> None:
@@ -206,7 +208,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the path data of the data_point."""
         return SysvarPathData(vid=self._vid)
 
-    async def event(self, value: Any, received_at: datetime) -> None:
+    async def event(self, value: Any, received_at: datetime, /) -> None:
         """Handle event for which this data_point has subscribed."""
         self.write_value(value=value, write_at=received_at)
 
@@ -280,6 +282,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         data: ProgramData,
     ) -> None:

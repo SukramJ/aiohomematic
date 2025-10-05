@@ -237,6 +237,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
 
 
 def make_ip_siren(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -250,6 +251,7 @@ def make_ip_siren(
 
 
 def make_ip_siren_smoke(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

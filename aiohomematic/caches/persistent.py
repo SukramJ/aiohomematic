@@ -89,6 +89,7 @@ class BasePersistentCache(ABC):
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         persistent_cache: dict[str, Any],
     ) -> None:
@@ -195,7 +196,7 @@ class DeviceDescriptionCache(BasePersistentCache):
 
     _file_postfix = FILE_DEVICES
 
-    def __init__(self, central: hmcu.CentralUnit) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Initialize the device description cache."""
         # {interface_id, [device_descriptions]}
         self._raw_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
@@ -324,7 +325,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
 
     _file_postfix = FILE_PARAMSETS
 
-    def __init__(self, central: hmcu.CentralUnit) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Init the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
         self._raw_paramset_descriptions: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = (

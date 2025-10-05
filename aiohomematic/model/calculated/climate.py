@@ -34,7 +34,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
 
     _category = DataPointCategory.SENSOR
 
-    def __init__(self, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: hmd.Channel) -> None:
         """Initialize the data point."""
 
         super().__init__(channel=channel)
@@ -70,7 +70,7 @@ class ApparentTemperature(BaseClimateSensor):
 
     _calculated_parameter = CalulatedParameter.APPARENT_TEMPERATURE
 
-    def __init__(self, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: hmd.Channel) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "°C"
@@ -120,7 +120,7 @@ class DewPoint(BaseClimateSensor):
 
     _calculated_parameter = CalulatedParameter.DEW_POINT
 
-    def __init__(self, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: hmd.Channel) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "°C"
@@ -148,7 +148,7 @@ class FrostPoint(BaseClimateSensor):
 
     _calculated_parameter = CalulatedParameter.FROST_POINT
 
-    def __init__(self, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: hmd.Channel) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "°C"
@@ -178,7 +178,7 @@ class VaporConcentration(BaseClimateSensor):
 
     _calculated_parameter = CalulatedParameter.VAPOR_CONCENTRATION
 
-    def __init__(self, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: hmd.Channel) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "g/m³"

@@ -191,6 +191,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         unique_id: str,
         device_profile: DeviceProfile,
@@ -742,6 +743,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         unique_id: str,
         device_profile: DeviceProfile,
@@ -984,6 +986,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         unique_id: str,
         device_profile: DeviceProfile,
@@ -1318,6 +1321,7 @@ def _add_to_schedule_data(
 
 
 def make_simple_thermostat(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -1331,6 +1335,7 @@ def make_simple_thermostat(
 
 
 def make_thermostat(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -1344,6 +1349,7 @@ def make_thermostat(
 
 
 def make_thermostat_group(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -1357,6 +1363,7 @@ def make_thermostat_group(
 
 
 def make_ip_thermostat(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -1370,6 +1377,7 @@ def make_ip_thermostat(
 
 
 def make_ip_thermostat_group(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

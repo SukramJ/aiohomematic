@@ -129,7 +129,7 @@ _CCU_JSON_VALUE_TYPE: Final = {
 class Client(ABC, LogContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
-    def __init__(self, client_config: _ClientConfig) -> None:
+    def __init__(self, *, client_config: _ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
         self._supports_xml_rpc = self.interface in INTERFACES_SUPPORTING_XML_RPC
@@ -450,7 +450,7 @@ class Client(ABC, LogContextMixin):
     @abstractmethod
     @inspector(re_raise=False)
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
 
@@ -555,6 +555,7 @@ class Client(ABC, LogContextMixin):
     @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -581,6 +582,7 @@ class Client(ABC, LogContextMixin):
     @inspector(measure_performance=True)
     async def _set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -636,6 +638,7 @@ class Client(ABC, LogContextMixin):
 
     async def _exec_set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -672,6 +675,7 @@ class Client(ABC, LogContextMixin):
     @inspector(re_raise=False, no_raise_return=set())
     async def set_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -702,6 +706,7 @@ class Client(ABC, LogContextMixin):
     @inspector
     async def get_paramset(
         self,
+        *,
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
@@ -728,6 +733,7 @@ class Client(ABC, LogContextMixin):
     @inspector(measure_performance=True)
     async def put_paramset(
         self,
+        *,
         channel_address: str,
         paramset_key_or_link_address: ParamsetKey | str,
         values: dict[str, Any],
@@ -830,6 +836,7 @@ class Client(ABC, LogContextMixin):
 
     async def _exec_put_paramset(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
@@ -842,7 +849,7 @@ class Client(ABC, LogContextMixin):
             await self._proxy.putParamset(channel_address, paramset_key, values)
 
     def _check_put_paramset(
-        self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> dict[str, Any]:
         """Check put_paramset."""
         checked_values: dict[str, Any] = {}
@@ -858,6 +865,7 @@ class Client(ABC, LogContextMixin):
 
     def _convert_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -886,6 +894,7 @@ class Client(ABC, LogContextMixin):
 
     def _get_parameter_type(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -930,7 +939,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_paramset_descriptions(
-        self, device_description: DeviceDescription
+        self, *, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
         """Get paramsets for provided device description."""
         paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
@@ -944,7 +953,7 @@ class Client(ABC, LogContextMixin):
         return paramsets
 
     async def _get_paramset_description(
-        self, address: str, paramset_key: ParamsetKey
+        self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Get paramset description from the backend."""
         try:
@@ -964,7 +973,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector
     async def get_all_paramset_descriptions(
-        self, device_descriptions: tuple[DeviceDescription, ...]
+        self, *, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
         """Get all paramset descriptions for provided device descriptions."""
         all_paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
@@ -1052,7 +1061,7 @@ class Client(ABC, LogContextMixin):
 class ClientCCU(Client):
     """Client implementation for CCU backend."""
 
-    def __init__(self, client_config: _ClientConfig) -> None:
+    def __init__(self, *, client_config: _ClientConfig) -> None:
         """Initialize the Client."""
         self._json_rpc_client: Final = client_config.central.json_rpc_client
         super().__init__(client_config=client_config)
@@ -1180,7 +1189,7 @@ class ClientCCU(Client):
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
@@ -1252,6 +1261,7 @@ class ClientJsonCCU(ClientCCU):
     @inspector
     async def get_paramset(
         self,
+        *,
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
@@ -1283,6 +1293,7 @@ class ClientJsonCCU(ClientCCU):
     @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -1332,7 +1343,7 @@ class ClientJsonCCU(ClientCCU):
         return None
 
     async def _get_paramset_description(
-        self, address: str, paramset_key: ParamsetKey
+        self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Get paramset description from the backend."""
         try:
@@ -1354,6 +1365,7 @@ class ClientJsonCCU(ClientCCU):
 
     async def _exec_put_paramset(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
@@ -1390,6 +1402,7 @@ class ClientJsonCCU(ClientCCU):
 
     async def _exec_set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -1508,7 +1521,7 @@ class ClientHomegear(Client):
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
         variables: list[SystemVariableData] = []
@@ -1542,6 +1555,7 @@ class _ClientConfig:
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         interface_config: InterfaceConfig,
     ) -> None:
@@ -1599,7 +1613,7 @@ class _ClientConfig:
         return "0"
 
     async def create_xml_rpc_proxy(
-        self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
+        self, *, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
     ) -> XmlRpcProxy:
         """Return a XmlRPC proxy for the backend communication."""
         config = self.central.config
@@ -1633,6 +1647,7 @@ class InterfaceConfig:
 
     def __init__(
         self,
+        *,
         central_name: str,
         interface: Interface,
         port: int | None = None,

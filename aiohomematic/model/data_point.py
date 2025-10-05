@@ -155,7 +155,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     _category = DataPointCategory.UNDEFINED
 
-    def __init__(self, central: hmcu.CentralUnit, unique_id: str) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit, unique_id: str) -> None:
         """Init the callback data_point."""
         self._central: Final = central
         self._unique_id: Final = unique_id
@@ -428,6 +428,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         unique_id: str,
         is_in_multiple_channels: bool,
@@ -582,6 +583,7 @@ class BaseParameterDataPoint[
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -858,7 +860,7 @@ class BaseParameterDataPoint[
         return f"{self._category}/{self._channel.device.model}/{self._parameter}"
 
     @abstractmethod
-    async def event(self, value: Any, received_at: datetime) -> None:
+    async def event(self, value: Any, received_at: datetime, /) -> None:
         """Handle event for which this handler has subscribed."""
 
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
@@ -988,7 +990,7 @@ class CallParameterCollector:
         "_paramsets",
     )
 
-    def __init__(self, client: hmcl.Client) -> None:
+    def __init__(self, *, client: hmcl.Client) -> None:
         """Init the generator."""
         self._client: Final = client
         self._central: Final = client.central
@@ -1042,6 +1044,7 @@ class CallParameterCollector:
 
 
 def bind_collector(
+    *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
     log_level: int = logging.ERROR,
@@ -1136,6 +1139,7 @@ class NoneTypeDataPoint:
 
     async def send_value(
         self,
+        *,
         value: Any,
         collector: CallParameterCollector | None = None,
         do_validate: bool = True,

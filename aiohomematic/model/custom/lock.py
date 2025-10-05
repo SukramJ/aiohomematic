@@ -270,6 +270,7 @@ class CustomDpRfLock(BaseCustomDpLock):
 
 
 def make_ip_lock(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -283,6 +284,7 @@ def make_ip_lock(
 
 
 def make_ip_button_lock(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -296,6 +298,7 @@ def make_ip_button_lock(
 
 
 def make_rf_button_lock(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -309,6 +312,7 @@ def make_rf_button_lock(
 
 
 def make_rf_lock(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

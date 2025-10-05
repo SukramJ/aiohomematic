@@ -142,7 +142,7 @@ class Hub:
         "_config",
     )
 
-    def __init__(self, central: hmcu.CentralUnit) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
         self._sema_fetch_programs: Final = asyncio.Semaphore()

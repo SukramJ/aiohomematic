@@ -594,6 +594,7 @@ def validate_custom_data_point_definition() -> Any:
 
 
 def make_custom_data_point(
+    *,
     channel: hmd.Channel,
     data_point_class: type,
     device_profile: DeviceProfile,

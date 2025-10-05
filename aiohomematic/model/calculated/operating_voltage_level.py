@@ -41,7 +41,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     _calculated_parameter = CalulatedParameter.OPERATING_VOLTAGE_LEVEL
     _category = DataPointCategory.SENSOR
 
-    def __init__(self, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: hmd.Channel) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT

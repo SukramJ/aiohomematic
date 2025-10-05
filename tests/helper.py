@@ -33,7 +33,7 @@ GOT_DEVICES = False
 class Factory:
     """Factory for a central with one local client."""
 
-    def __init__(self, client_session: ClientSession | None = None):
+    def __init__(self, *, client_session: ClientSession | None = None):
         """Init the central factory."""
         self._client_session = client_session
         self.system_event_mock = MagicMock()

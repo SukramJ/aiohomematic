@@ -59,6 +59,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
     ) -> None:
         """Initialize the data point."""

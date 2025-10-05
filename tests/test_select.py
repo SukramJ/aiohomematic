@@ -51,7 +51,7 @@ async def test_hmselect(
     assert select.max == "OPEN"
     assert select.values == ("CLOSED", "OPEN")
     assert select.value == "CLOSED"
-    await select.send_value("OPEN")
+    await select.send_value(value="OPEN")
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU6354483:1",
         paramset_key=ParamsetKey.VALUES,
@@ -64,11 +64,11 @@ async def test_hmselect(
     )
     assert select.value == "CLOSED"
 
-    await select.send_value(3)
+    await select.send_value(value=3)
     # do not write. value above max
     assert select.value == "CLOSED"
 
-    await select.send_value(1)
+    await select.send_value(value=1)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU6354483:1",
         paramset_key=ParamsetKey.VALUES,
@@ -79,7 +79,7 @@ async def test_hmselect(
     assert select.value == "OPEN"
 
     call_count = len(mock_client.method_calls)
-    await select.send_value(1)
+    await select.send_value(value=1)
     assert call_count == len(mock_client.method_calls)
 
 

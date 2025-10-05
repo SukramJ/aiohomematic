@@ -522,9 +522,9 @@ def test_converter(
     """Test device un ignore."""
 
     assert input_value is not None
-    assert converter(input_value) == result_value
+    assert converter(value=input_value) == result_value
     if re_converter := _COMBINED_PARAMETER_TO_HM_CONVERTER.get(parameter):
-        assert re_converter(result_value) == input_value
+        assert re_converter(value=result_value) == input_value
 
 
 def test_is_valid_hostname() -> None:

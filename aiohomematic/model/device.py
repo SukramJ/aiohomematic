@@ -131,7 +131,7 @@ class Device(LogContextMixin, PayloadMixin):
         "_value_cache",
     )
 
-    def __init__(self, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
         """Initialize the device object."""
         PayloadMixin.__init__(self)
         self._central: Final = central
@@ -724,7 +724,7 @@ class Channel(LogContextMixin, PayloadMixin):
         "_unique_id",
     )
 
-    def __init__(self, device: Device, channel_address: str) -> None:
+    def __init__(self, *, device: Device, channel_address: str) -> None:
         """Initialize the channel object."""
         PayloadMixin.__init__(self)
 
@@ -1116,7 +1116,7 @@ class _ValueCache:
 
     _NO_VALUE_CACHE_ENTRY: Final = "NO_VALUE_CACHE_ENTRY"
 
-    def __init__(self, device: Device) -> None:
+    def __init__(self, *, device: Device) -> None:
         """Init the value cache."""
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
@@ -1268,7 +1268,7 @@ class _DefinitionExporter:
         "_storage_folder",
     )
 
-    def __init__(self, device: Device) -> None:
+    def __init__(self, *, device: Device) -> None:
         """Init the device exporter."""
         self._client: Final = device.client
         self._central: Final = device.client.central

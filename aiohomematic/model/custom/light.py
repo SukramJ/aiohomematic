@@ -841,6 +841,7 @@ def _convert_color(color: tuple[float, float]) -> str:
 
 
 def make_ip_dimmer(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -854,6 +855,7 @@ def make_ip_dimmer(
 
 
 def make_rf_dimmer(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -867,6 +869,7 @@ def make_rf_dimmer(
 
 
 def make_rf_dimmer_color(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -880,6 +883,7 @@ def make_rf_dimmer_color(
 
 
 def make_rf_dimmer_color_fixed(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -893,6 +897,7 @@ def make_rf_dimmer_color_fixed(
 
 
 def make_rf_dimmer_color_effect(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -906,6 +911,7 @@ def make_rf_dimmer_color_effect(
 
 
 def make_rf_dimmer_color_temp(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -919,6 +925,7 @@ def make_rf_dimmer_color_temp(
 
 
 def make_rf_dimmer_with_virt_channel(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -932,6 +939,7 @@ def make_rf_dimmer_with_virt_channel(
 
 
 def make_ip_fixed_color_light(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -945,6 +953,7 @@ def make_ip_fixed_color_light(
 
 
 def make_ip_simple_fixed_color_light_wired(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -958,6 +967,7 @@ def make_ip_simple_fixed_color_light_wired(
 
 
 def make_ip_rgbw_light(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -971,6 +981,7 @@ def make_ip_rgbw_light(
 
 
 def make_ip_drg_dali_light(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

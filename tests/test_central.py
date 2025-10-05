@@ -35,13 +35,13 @@ TEST_DEVICES: dict[str, str] = {
 
 
 class _FakeDevice:
-    def __init__(self, model: str) -> None:
+    def __init__(self, *, model: str) -> None:
         """Initialize a FakeDevice."""
         self.model = model
 
 
 class _FakeChannel:
-    def __init__(self, model: str, no: int | None) -> None:
+    def __init__(self, *, model: str, no: int | None) -> None:
         """Initialize a FakeChannel."""
         self.no = no
         self.device = _FakeDevice(model=model)

@@ -27,13 +27,13 @@ _LOGGER: Final = logging.getLogger(__name__)
 class RPCFunctions:
     """The XML-RPC functions the backend will expect."""
 
-    def __init__(self, xml_rpc_server: XmlRpcServer) -> None:
+    def __init__(self, *, xml_rpc_server: XmlRpcServer) -> None:
         """Init RPCFunctions."""
         self._xml_rpc_server: Final = xml_rpc_server
 
-    def event(self, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
+    def event(self, interface_id: str, channel_address: str, parameter: str, value: Any, /) -> None:
         """If a device emits some sort event, we will handle it here."""
-        if central := self.get_central(interface_id):
+        if central := self.get_central(interface_id=interface_id):
             central.looper.create_task(
                 target=central.data_point_event(
                     interface_id=interface_id,
@@ -45,7 +45,7 @@ class RPCFunctions:
             )
 
     @callback_backend_system(system_event=BackendSystemEvent.ERROR)
-    def error(self, interface_id: str, error_code: str, msg: str) -> None:
+    def error(self, interface_id: str, error_code: str, msg: str, /) -> None:
         """When some error occurs the backend will send its error message here."""
         # Structured boundary log (warning level). XML-RPC server received error notification.
         try:
@@ -66,16 +66,16 @@ class RPCFunctions:
             str(msg),
         )
 
-    def listDevices(self, interface_id: str) -> list[dict[str, Any]]:
+    def listDevices(self, interface_id: str, /) -> list[dict[str, Any]]:
         """Return already existing devices to the backend."""
-        if central := self.get_central(interface_id):
+        if central := self.get_central(interface_id=interface_id):
             return [dict(device_description) for device_description in central.list_devices(interface_id=interface_id)]
         return []
 
-    def newDevices(self, interface_id: str, device_descriptions: list[dict[str, Any]]) -> None:
+    def newDevices(self, interface_id: str, device_descriptions: list[dict[str, Any]], /) -> None:
         """Add new devices send from the backend."""
         central: hmcu.CentralUnit | None
-        if central := self.get_central(interface_id):
+        if central := self.get_central(interface_id=interface_id):
             central.looper.create_task(
                 target=central.add_new_devices(
                     interface_id=interface_id, device_descriptions=tuple(device_descriptions)
@@ -83,17 +83,17 @@ class RPCFunctions:
                 name=f"newDevices-{interface_id}",
             )
 
-    def deleteDevices(self, interface_id: str, addresses: list[str]) -> None:
+    def deleteDevices(self, interface_id: str, addresses: list[str], /) -> None:
         """Delete devices send from the backend."""
         central: hmcu.CentralUnit | None
-        if central := self.get_central(interface_id):
+        if central := self.get_central(interface_id=interface_id):
             central.looper.create_task(
                 target=central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
                 name=f"deleteDevices-{interface_id}",
             )
 
     @callback_backend_system(system_event=BackendSystemEvent.UPDATE_DEVICE)
-    def updateDevice(self, interface_id: str, address: str, hint: int) -> None:
+    def updateDevice(self, interface_id: str, address: str, hint: int, /) -> None:
         """
         Update a device.
 
@@ -108,7 +108,7 @@ class RPCFunctions:
         )
 
     @callback_backend_system(system_event=BackendSystemEvent.REPLACE_DEVICE)
-    def replaceDevice(self, interface_id: str, old_device_address: str, new_device_address: str) -> None:
+    def replaceDevice(self, interface_id: str, old_device_address: str, new_device_address: str, /) -> None:
         """Replace a device. Probably irrelevant for us."""
         _LOGGER.debug(
             "REPLACEDEVICE: interface_id = %s, oldDeviceAddress = %s, newDeviceAddress = %s",
@@ -118,7 +118,7 @@ class RPCFunctions:
         )
 
     @callback_backend_system(system_event=BackendSystemEvent.RE_ADDED_DEVICE)
-    def readdedDevice(self, interface_id: str, addresses: list[str]) -> None:
+    def readdedDevice(self, interface_id: str, addresses: list[str], /) -> None:
         """
         Re-Add device from the backend.
 
@@ -132,7 +132,7 @@ class RPCFunctions:
             str(addresses),
         )
 
-    def get_central(self, interface_id: str) -> hmcu.CentralUnit | None:
+    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
         """Return the central by interface_id."""
         return self._xml_rpc_server.get_central(interface_id)
 
@@ -161,7 +161,7 @@ class AioHomematicXMLRPCServer(SimpleXMLRPCServer):
     system_listMethods(self, interface_id: str.
     """
 
-    def system_listMethods(self, interface_id: str | None = None) -> list[str]:
+    def system_listMethods(self, interface_id: str | None = None, /) -> list[str]:
         """Return a list of the methods supported by the server."""
         return SimpleXMLRPCServer.system_listMethods(self)
 
@@ -174,6 +174,7 @@ class XmlRpcServer(threading.Thread):
 
     def __init__(
         self,
+        *,
         ip_addr: str,
         port: int,
     ) -> None:
@@ -194,7 +195,7 @@ class XmlRpcServer(threading.Thread):
         )
         self._simple_xml_rpc_server.register_introspection_functions()
         self._simple_xml_rpc_server.register_multicall_functions()
-        self._simple_xml_rpc_server.register_instance(RPCFunctions(self), allow_dotted_names=True)
+        self._simple_xml_rpc_server.register_instance(RPCFunctions(xml_rpc_server=self), allow_dotted_names=True)
         self._centrals: Final[dict[str, hmcu.CentralUnit]] = {}
 
     def __new__(cls, ip_addr: str, port: int) -> XmlRpcServer:  # noqa: PYI034

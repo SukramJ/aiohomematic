@@ -60,7 +60,7 @@ class CommandCache:
         "_last_send_command",
     )
 
-    def __init__(self, interface_id: str) -> None:
+    def __init__(self, *, interface_id: str) -> None:
         """Init command cache."""
         self._interface_id: Final = interface_id
         # (paramset_key, device_address, channel_no, parameter)
@@ -109,7 +109,7 @@ class CommandCache:
         self, parameter: str, channel_address: str, combined_parameter: str
     ) -> set[DP_KEY_VALUE]:
         """Add data from combined parameter."""
-        if values := convert_combined_parameter_to_paramset(parameter=parameter, cpv=combined_parameter):
+        if values := convert_combined_parameter_to_paramset(parameter=parameter, value=combined_parameter):
             return self.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey.VALUES,
@@ -158,7 +158,7 @@ class DeviceDetailsCache:
         "_refreshed_at",
     )
 
-    def __init__(self, central: hmcu.CentralUnit) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Init the device details cache."""
         self._central: Final = central
         self._channel_rooms: Final[dict[str, set[str]]] = defaultdict(set)
@@ -278,7 +278,7 @@ class CentralDataCache:
         "_value_cache",
     )
 
-    def __init__(self, central: hmcu.CentralUnit) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Init the central data cache."""
         self._central: Final = central
         # { key, value}
@@ -365,6 +365,7 @@ class PingPongCache:
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         interface_id: str,
         allowed_delta: int = PING_PONG_MISMATCH_COUNT,

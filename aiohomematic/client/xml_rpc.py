@@ -91,8 +91,10 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         max_workers: int,
         interface_id: str,
         connection_state: hmcu.CentralConnectionState,
-        *args: Any,
-        **kwargs: Any,
+        uri: str,
+        headers: list[tuple[str, str]],
+        tls: bool = False,
+        verify_tls: bool = False,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         self._interface_id: Final = interface_id
@@ -101,17 +103,19 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         self._proxy_executor: Final = (
             ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix=interface_id) if max_workers > 0 else None
         )
-        self._tls: Final[bool] = kwargs.pop(_TLS, False)
-        self._verify_tls: Final[bool] = kwargs.pop(_VERIFY_TLS, True)
+        self._tls: Final[bool] = tls
+        self._verify_tls: Final[bool] = verify_tls
         self._supported_methods: tuple[str, ...] = ()
+        kwargs: dict[str, Any] = {}
         if self._tls:
             kwargs[_CONTEXT] = get_tls_context(self._verify_tls)
         # Due to magic method the log_context must be defined manually.
         self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": self._tls}
-        xmlrpc.client.ServerProxy.__init__(  # type: ignore[misc]
+        xmlrpc.client.ServerProxy.__init__(
             self,
+            uri=uri,
             encoding=ISO_8859_1,
-            *args,  # noqa: B026
+            headers=headers,
             **kwargs,
         )
 

@@ -149,6 +149,7 @@ class CustomDpCover(CustomDataPoint):
     @bind_collector()
     async def set_position(
         self,
+        *,
         position: int | None = None,
         tilt_position: int | None = None,
         collector: CallParameterCollector | None = None,
@@ -165,6 +166,7 @@ class CustomDpCover(CustomDataPoint):
 
     async def _set_level(
         self,
+        *,
         level: float | None = None,
         tilt_level: float | None = None,
         collector: CallParameterCollector | None = None,
@@ -243,6 +245,7 @@ class CustomDpWindowDrive(CustomDpCover):
 
     async def _set_level(
         self,
+        *,
         level: float | None = None,
         tilt_level: float | None = None,
         collector: CallParameterCollector | None = None,
@@ -321,6 +324,7 @@ class CustomDpBlind(CustomDpCover):
     @bind_collector(enabled=False)
     async def set_position(
         self,
+        *,
         position: int | None = None,
         tilt_position: int | None = None,
         collector: CallParameterCollector | None = None,
@@ -342,6 +346,7 @@ class CustomDpBlind(CustomDpCover):
 
     async def _set_level(
         self,
+        *,
         level: float | None = None,
         tilt_level: float | None = None,
         collector: CallParameterCollector | None = None,
@@ -392,6 +397,7 @@ class CustomDpBlind(CustomDpCover):
     @bind_collector()
     async def _send_level(
         self,
+        *,
         level: float,
         tilt_level: float,
         collector: CallParameterCollector | None = None,
@@ -488,9 +494,9 @@ class CustomDpBlind(CustomDpCover):
         levels: list[str] = []
         # the resulting hex value is based on the doubled position
         if level is not None:
-            levels.append(convert_hm_level_to_cpv(hm_level=level))
+            levels.append(convert_hm_level_to_cpv(value=level))
         if tilt_level is not None:
-            levels.append(convert_hm_level_to_cpv(hm_level=tilt_level))
+            levels.append(convert_hm_level_to_cpv(value=tilt_level))
 
         if levels:
             return ",".join(levels)
@@ -636,6 +642,7 @@ class CustomDpGarage(CustomDataPoint):
 
 
 def make_ip_cover(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -649,6 +656,7 @@ def make_ip_cover(
 
 
 def make_rf_cover(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -662,6 +670,7 @@ def make_rf_cover(
 
 
 def make_ip_blind(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -675,6 +684,7 @@ def make_ip_blind(
 
 
 def make_ip_garage(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -688,6 +698,7 @@ def make_ip_garage(
 
 
 def make_ip_hdm(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -701,6 +712,7 @@ def make_ip_hdm(
 
 
 def make_rf_blind(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -714,6 +726,7 @@ def make_rf_blind(
 
 
 def make_rf_window_drive(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

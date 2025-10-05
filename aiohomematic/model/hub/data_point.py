@@ -208,7 +208,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the path data of the data_point."""
         return SysvarPathData(vid=self._vid)
 
-    async def event(self, value: Any, received_at: datetime, /) -> None:
+    async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
         self.write_value(value=value, write_at=received_at)
 
@@ -266,7 +266,9 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     async def send_variable(self, *, value: Any) -> None:
         """Set variable value on the backend."""
         if client := self.central.primary_client:
-            await client.set_system_variable(legacy_name=self._legacy_name, value=parse_sys_var(self._data_type, value))
+            await client.set_system_variable(
+                legacy_name=self._legacy_name, value=parse_sys_var(data_type=self._data_type, raw_value=value)
+            )
         self._write_temporary_value(value=value, write_at=datetime.now())
 
 

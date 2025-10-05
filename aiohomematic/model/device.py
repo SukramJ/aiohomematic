@@ -525,6 +525,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     def get_data_points(
         self,
+        *,
         category: DataPointCategory | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
@@ -548,7 +549,7 @@ class Device(LogContextMixin, PayloadMixin):
         return tuple(all_data_points)
 
     def get_events(
-        self, event_type: EventType, registered: bool | None = None
+        self, *, event_type: EventType, registered: bool | None = None
     ) -> Mapping[int | None, tuple[GenericEvent, ...]]:
         """Return a list of specific events of a channel."""
         events: dict[int | None, tuple[GenericEvent, ...]] = {}
@@ -572,7 +573,7 @@ class Device(LogContextMixin, PayloadMixin):
         return None
 
     def get_generic_data_point(
-        self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
+        self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
         """Return a generic data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
@@ -676,12 +677,12 @@ class Device(LogContextMixin, PayloadMixin):
         self.fire_device_updated_callback()
 
     @loop_check
-    def fire_device_updated_callback(self, *args: Any) -> None:
+    def fire_device_updated_callback(self) -> None:
         """Do what is needed when the state of the device has been updated."""
         self._set_modified_at()
         for callback_handler in self._device_updated_callbacks:
             try:
-                callback_handler(*args)
+                callback_handler()
             except Exception as exc:
                 _LOGGER.warning("FIRE_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))
 
@@ -954,7 +955,7 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return if channel has KEYPRESS events."""
         return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
 
-    def add_data_point(self, data_point: CallbackDataPoint) -> None:
+    def add_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
             self._central.add_event_subscription(data_point=data_point)
@@ -1005,6 +1006,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def get_data_points(
         self,
+        *,
         category: DataPointCategory | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
@@ -1045,7 +1047,7 @@ class Channel(LogContextMixin, PayloadMixin):
         )
 
     def get_generic_data_point(
-        self, parameter: str, paramset_key: ParamsetKey | None = None
+        self, *, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
         """Return a generic data_point from device."""
         if paramset_key:
@@ -1168,6 +1170,7 @@ class _ValueCache:
 
     async def get_value(
         self,
+        *,
         dpk: DataPointKey,
         call_source: CallSource,
         direct_call: bool = False,
@@ -1234,6 +1237,7 @@ class _ValueCache:
 
     def _get_value_from_cache(
         self,
+        *,
         dpk: DataPointKey,
     ) -> Any:
         """Load data from caches."""
@@ -1332,7 +1336,7 @@ class _DefinitionExporter:
         """Save file to disk."""
 
         def perform_save() -> DataOperationResult:
-            if not check_or_create_directory(file_dir):
+            if not check_or_create_directory(directory=file_dir):
                 return DataOperationResult.NO_SAVE  # pragma: no cover
             with open(
                 file=os.path.join(file_dir, filename),

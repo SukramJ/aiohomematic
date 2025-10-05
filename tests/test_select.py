@@ -43,7 +43,7 @@ async def test_hmselect(
     central, mock_client, _ = central_client_factory
     select: DpSelect = cast(
         DpSelect,
-        central.get_generic_data_point("VCU6354483:1", "WINDOW_STATE"),
+        central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
     )
     assert select.usage == DataPointUsage.NO_CREATE
     assert select.unit is None

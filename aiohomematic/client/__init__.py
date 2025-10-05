@@ -1694,6 +1694,7 @@ def get_client(interface_id: str) -> Client | None:
 
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
+    *,
     device: Device,
     dpk_values: set[DP_KEY_VALUE],
     wait_for_callback: int,
@@ -1712,7 +1713,7 @@ async def _wait_for_state_change_or_timeout(
 
 @measure_execution_time
 async def _track_single_data_point_state_change_or_timeout(
-    device: Device, dpk_value: DP_KEY_VALUE, wait_for_callback: int
+    *, device: Device, dpk_value: DP_KEY_VALUE, wait_for_callback: int
 ) -> None:
     """Wait for a data_point to change state."""
     ev = asyncio.Event()
@@ -1725,7 +1726,7 @@ async def _track_single_data_point_state_change_or_timeout(
                 dpk,
                 dp.value,
             )
-            if _isclose(value, dp.value):
+            if _isclose(value1=value, value2=dp.value):
                 _LOGGER.debug(
                     "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Finished event %s with value %s",
                     dpk,
@@ -1762,7 +1763,7 @@ async def _track_single_data_point_state_change_or_timeout(
             unsub()
 
 
-def _isclose(value1: Any, value2: Any) -> bool:
+def _isclose(*, value1: Any, value2: Any) -> bool:
     """Check if the both values are close to each other."""
     if isinstance(value1, float):
         return bool(round(value1, 2) == round(value2, 2))

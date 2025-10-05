@@ -473,15 +473,15 @@ def test_password() -> None:
         - 0-9
         - ., !, $, (, ), :, ;, #, -
     """
-    assert check_password(None) is False
-    assert check_password("") is True
-    assert check_password("t") is True
-    assert check_password("test") is True
-    assert check_password("TEST") is True
-    assert check_password("1234") is True
-    assert check_password("test123TEST") is True
-    assert check_password("test.!$():;#-") is True
-    assert check_password("test%") is False
+    assert check_password(password=None) is False
+    assert check_password(password="") is True
+    assert check_password(password="t") is True
+    assert check_password(password="test") is True
+    assert check_password(password="TEST") is True
+    assert check_password(password="1234") is True
+    assert check_password(password="test123TEST") is True
+    assert check_password(password="test.!$():;#-") is True
+    assert check_password(password="test%") is False
 
 
 @pytest.mark.parametrize(
@@ -529,55 +529,55 @@ def test_converter(
 
 def test_is_valid_hostname() -> None:
     """Test is_valid_hostname."""
-    assert is_hostname(None) is False
-    assert is_hostname("") is False
-    assert is_hostname(" ") is False
-    assert is_hostname("123") is False
-    assert is_hostname("ccu") is True
-    assert is_hostname("ccu.test.de") is True
-    assert is_hostname("ccu.de") is True
-    assert is_hostname("ccu.123") is False
-    assert is_hostname("192.168.178.2") is False
-    assert is_hostname("5422eb72-raspberrymatic") is True
+    assert is_hostname(hostname=None) is False
+    assert is_hostname(hostname="") is False
+    assert is_hostname(hostname=" ") is False
+    assert is_hostname(hostname="123") is False
+    assert is_hostname(hostname="ccu") is True
+    assert is_hostname(hostname="ccu.test.de") is True
+    assert is_hostname(hostname="ccu.de") is True
+    assert is_hostname(hostname="ccu.123") is False
+    assert is_hostname(hostname="192.168.178.2") is False
+    assert is_hostname(hostname="5422eb72-raspberrymatic") is True
 
 
 def test_is_valid_ipv4_address() -> None:
     """Test is_valid_ipv4_address."""
-    assert is_ipv4_address(None) is False
-    assert is_ipv4_address("") is False
-    assert is_ipv4_address(" ") is False
-    assert is_ipv4_address("192.168.1782") is False
-    assert is_ipv4_address("192.168.178.2") is True
-    assert is_ipv4_address("ccu") is False
+    assert is_ipv4_address(address=None) is False
+    assert is_ipv4_address(address="") is False
+    assert is_ipv4_address(address=" ") is False
+    assert is_ipv4_address(address="192.168.1782") is False
+    assert is_ipv4_address(address="192.168.178.2") is True
+    assert is_ipv4_address(address="ccu") is False
 
 
 def test_is_device_address() -> None:
     """Test is_device_address."""
     for address in VIRTUAL_REMOTE_ADDRESSES:
-        assert is_device_address(address) is True
-    assert is_device_address("123456789:2") is False
-    assert is_device_address("KEQ1234567") is True
-    assert is_device_address("001858A123B912") is True
-    assert is_device_address("1234567890#") is False
-    assert is_device_address("123456789_:123") is False
-    assert is_device_address("ABcdEFghIJ1234567890") is True
-    assert is_device_address("12345678901234567890") is True
-    assert is_device_address("123456789012345678901") is False
+        assert is_device_address(address=address) is True
+    assert is_device_address(address="123456789:2") is False
+    assert is_device_address(address="KEQ1234567") is True
+    assert is_device_address(address="001858A123B912") is True
+    assert is_device_address(address="1234567890#") is False
+    assert is_device_address(address="123456789_:123") is False
+    assert is_device_address(address="ABcdEFghIJ1234567890") is True
+    assert is_device_address(address="12345678901234567890") is True
+    assert is_device_address(address="123456789012345678901") is False
 
 
 def test_is_channel_address() -> None:
     """Test is_channel_address."""
     for address in VIRTUAL_REMOTE_ADDRESSES:
-        assert is_channel_address(f"{address}:13") is True
-    assert is_channel_address("1234") is False
-    assert is_channel_address("1234:2") is False
-    assert is_channel_address("KEQ1234567:13") is True
-    assert is_channel_address("001858A123B912:1") is True
-    assert is_channel_address("1234567890:123") is True
-    assert is_channel_address("123456789_:123") is False
-    assert is_channel_address("ABcdEFghIJ1234567890:123") is True
-    assert is_channel_address("12345678901234567890:123") is True
-    assert is_channel_address("123456789012345678901:123") is False
+        assert is_channel_address(address=f"{address}:13") is True
+    assert is_channel_address(address="1234") is False
+    assert is_channel_address(address="1234:2") is False
+    assert is_channel_address(address="KEQ1234567:13") is True
+    assert is_channel_address(address="001858A123B912:1") is True
+    assert is_channel_address(address="1234567890:123") is True
+    assert is_channel_address(address="123456789_:123") is False
+    assert is_channel_address(address="ABcdEFghIJ1234567890:123") is True
+    assert is_channel_address(address="12345678901234567890:123") is True
+    assert is_channel_address(address="123456789012345678901:123") is False
 
 
 def test_scheduler_profile_pattern() -> None:

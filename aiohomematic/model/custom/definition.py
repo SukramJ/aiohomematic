@@ -621,6 +621,7 @@ def make_custom_data_point(
 
 
 def _create_custom_data_point(
+    *,
     channel: hmd.Channel,
     custom_data_point_class: type,
     device_profile: DeviceProfile,
@@ -651,9 +652,9 @@ def _create_custom_data_point(
         ) from exc
 
 
-def _rebase_pri_channels(device_profile: DeviceProfile, custom_config: CustomConfig) -> CustomConfig:
+def _rebase_pri_channels(*, device_profile: DeviceProfile, custom_config: CustomConfig) -> CustomConfig:
     """Re base primary channel of custom config."""
-    device_def = _get_device_group(device_profile, 0)
+    device_def = _get_device_group(device_profile=device_profile, group_no=0)
     if (pri_def := device_def[CDPD.PRIMARY_CHANNEL]) is None:
         return custom_config
     pri_channels = [cu + pri_def for cu in custom_config.channels]
@@ -664,9 +665,9 @@ def _rebase_pri_channels(device_profile: DeviceProfile, custom_config: CustomCon
     )
 
 
-def _relevant_channels(device_profile: DeviceProfile, custom_config: CustomConfig) -> tuple[int | None, ...]:
+def _relevant_channels(*, device_profile: DeviceProfile, custom_config: CustomConfig) -> tuple[int | None, ...]:
     """Return the relevant channels."""
-    device_def = _get_device_group(device_profile, 0)
+    device_def = _get_device_group(device_profile=device_profile, group_no=0)
     def_channels = [device_def[CDPD.PRIMARY_CHANNEL]]
     if sec_channels := device_def.get(CDPD.SECONDARY_CHANNELS):
         def_channels.extend(sec_channels)
@@ -682,10 +683,10 @@ def _relevant_channels(device_profile: DeviceProfile, custom_config: CustomConfi
 
 
 def add_channel_groups_to_device(
-    device: hmd.Device, device_profile: DeviceProfile, custom_config: CustomConfig
+    *, device: hmd.Device, device_profile: DeviceProfile, custom_config: CustomConfig
 ) -> None:
     """Return the relevant channels."""
-    device_def = _get_device_group(device_profile, 0)
+    device_def = _get_device_group(device_profile=device_profile, group_no=0)
     if (pri_channel := device_def[CDPD.PRIMARY_CHANNEL]) is None:
         return
     for conf_channel in custom_config.channels:
@@ -700,7 +701,7 @@ def add_channel_groups_to_device(
                 device.add_channel_to_group(channel_no=conf_channel + sec_channel, group_no=group_no)
 
 
-def get_channel_group_no(device: hmd.Device, channel_no: int | None) -> int | None:
+def get_channel_group_no(*, device: hmd.Device, channel_no: int | None) -> int | None:
     """Get channel group of sub_device."""
     return device.get_channel_group_no(channel_no=channel_no)
 
@@ -712,13 +713,13 @@ def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter,
     )
 
 
-def get_include_default_data_points(device_profile: DeviceProfile) -> bool:
+def get_include_default_data_points(*, device_profile: DeviceProfile) -> bool:
     """Return if default data points should be included."""
-    device = _get_device_definition(device_profile)
+    device = _get_device_definition(device_profile=device_profile)
     return bool(device.get(CDPD.INCLUDE_DEFAULT_DPS, DEFAULT_INCLUDE_DEFAULT_DPS))
 
 
-def _get_device_definition(device_profile: DeviceProfile) -> Mapping[CDPD, Any]:
+def _get_device_definition(*, device_profile: DeviceProfile) -> Mapping[CDPD, Any]:
     """Return device from data_point definitions."""
     return cast(
         Mapping[CDPD, Any],
@@ -726,9 +727,9 @@ def _get_device_definition(device_profile: DeviceProfile) -> Mapping[CDPD, Any]:
     )
 
 
-def _get_device_group(device_profile: DeviceProfile, group_no: int | None) -> Mapping[CDPD, Any]:
+def _get_device_group(*, device_profile: DeviceProfile, group_no: int | None) -> Mapping[CDPD, Any]:
     """Return the device group."""
-    device = _get_device_definition(device_profile)
+    device = _get_device_definition(device_profile=device_profile)
     group = cast(dict[CDPD, Any], device[CDPD.DEVICE_GROUP])
     # Create a deep copy of the group due to channel rebase
     group = deepcopy(group)
@@ -751,7 +752,7 @@ def _get_device_group(device_profile: DeviceProfile, group_no: int | None) -> Ma
 
 
 def _rebase_data_point_dict(
-    data_point_dict: CDPD, group: Mapping[CDPD, Any], group_no: int
+    *, data_point_dict: CDPD, group: Mapping[CDPD, Any], group_no: int
 ) -> Mapping[int | None, Any]:
     """Rebase data_point_dict with group_no."""
     new_fields: dict[int | None, Any] = {}
@@ -764,7 +765,9 @@ def _rebase_data_point_dict(
     return new_fields
 
 
-def _get_device_data_points(device_profile: DeviceProfile, group_no: int | None) -> Mapping[int, tuple[Parameter, ...]]:
+def _get_device_data_points(
+    *, device_profile: DeviceProfile, group_no: int | None
+) -> Mapping[int, tuple[Parameter, ...]]:
     """Return the device data points."""
     if (
         additional_dps := VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]
@@ -780,6 +783,7 @@ def _get_device_data_points(device_profile: DeviceProfile, group_no: int | None)
 
 
 def get_custom_configs(
+    *,
     model: str,
     category: DataPointCategory | None = None,
 ) -> tuple[CustomConfig, ...]:
@@ -808,6 +812,7 @@ def get_custom_configs(
 
 
 def _get_data_point_config_by_category(
+    *,
     category_devices: Mapping[str, CustomConfig | tuple[CustomConfig, ...]],
     model: str,
 ) -> CustomConfig | tuple[CustomConfig, ...] | None:
@@ -823,7 +828,7 @@ def _get_data_point_config_by_category(
     return None
 
 
-def is_multi_channel_device(model: str, category: DataPointCategory) -> bool:
+def is_multi_channel_device(*, model: str, category: DataPointCategory) -> bool:
     """Return true, if device has multiple channels."""
     channels: list[int | None] = []
     for custom_config in get_custom_configs(model=model, category=category):
@@ -831,9 +836,9 @@ def is_multi_channel_device(model: str, category: DataPointCategory) -> bool:
     return len(channels) > 1
 
 
-def data_point_definition_exists(model: str) -> bool:
+def data_point_definition_exists(*, model: str) -> bool:
     """Check if device desc exits."""
-    return len(get_custom_configs(model)) > 0
+    return len(get_custom_configs(model=model)) > 0
 
 
 def get_required_parameters() -> tuple[Parameter, ...]:

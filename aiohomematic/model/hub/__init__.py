@@ -206,7 +206,7 @@ class Hub:
         if new_programs:
             self._central.fire_backend_system_callback(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
-                new_hub_data_points=_get_new_hub_data_points(data_points=new_programs),
+                new_data_points=_get_new_hub_data_points(data_points=new_programs),
             )
 
     async def _update_sysvar_data_points(self) -> None:
@@ -226,7 +226,7 @@ class Hub:
         # remove some variables in case of CCU backend
         # - OldValue(s) are for internal calculations
         if self._central.model is Backend.CCU:
-            variables = _clean_variables(variables)
+            variables = _clean_variables(variables=variables)
 
         if missing_variable_ids := self._identify_missing_variable_ids(variables=variables):
             self._remove_sysvar_data_point(del_data_point_ids=missing_variable_ids)
@@ -242,7 +242,7 @@ class Hub:
         if new_sysvars:
             self._central.fire_backend_system_callback(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
-                new_hub_data_points=_get_new_hub_data_points(data_points=new_sysvars),
+                new_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )
 
     def _create_program_dp(self, *, data: ProgramData) -> ProgramDpType:
@@ -307,17 +307,18 @@ class Hub:
         return set(missing_variable_ids)
 
 
-def _is_excluded(variable: str, excludes: list[str]) -> bool:
+def _is_excluded(*, variable: str, excludes: list[str]) -> bool:
     """Check if variable is excluded by exclude_list."""
     return any(marker in variable for marker in excludes)
 
 
-def _clean_variables(variables: tuple[SystemVariableData, ...]) -> tuple[SystemVariableData, ...]:
+def _clean_variables(*, variables: tuple[SystemVariableData, ...]) -> tuple[SystemVariableData, ...]:
     """Clean variables by removing excluded."""
-    return tuple(sv for sv in variables if not _is_excluded(sv.legacy_name, _EXCLUDED))
+    return tuple(sv for sv in variables if not _is_excluded(variable=sv.legacy_name, excludes=_EXCLUDED))
 
 
 def _get_new_hub_data_points(
+    *,
     data_points: Collection[GenericHubDataPoint],
 ) -> Mapping[DataPointCategory, AbstractSet[GenericHubDataPoint]]:
     """Return data points as category dict."""

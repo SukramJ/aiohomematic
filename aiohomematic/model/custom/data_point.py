@@ -254,6 +254,7 @@ class CustomDataPoint(BaseDataPoint):
 
     def _add_data_point(
         self,
+        *,
         field: Field,
         data_point: hmge.GenericDataPoint | None,
         is_visible: bool | None = None,
@@ -299,7 +300,7 @@ class CustomDataPoint(BaseDataPoint):
                 dp.force_usage(forced_usage=DataPointUsage.DATA_POINT)
 
     def _get_data_point[DataPointT: hmge.GenericDataPoint](
-        self, field: Field, data_point_type: type[DataPointT]
+        self, *, field: Field, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Get data point."""
         if dp := self._data_points.get(field):

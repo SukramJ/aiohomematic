@@ -357,7 +357,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
             self._device_removed_callbacks.remove(cb)
 
     @loop_check
-    def fire_data_point_updated_callback(self, *args: Any, **kwargs: Any) -> None:
+    def fire_data_point_updated_callback(self, **kwargs: Any) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_fire_data_point_updated_callback:
             return
@@ -367,16 +367,16 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 # Add the data_point reference once to kwargs to avoid per-callback writes.
                 kwargs[KWARGS_ARG_DATA_POINT] = self
                 kwargs[KWARGS_ARG_CUSTOM_ID] = custom_id
-                callback_handler(*args, **kwargs)
+                callback_handler(**kwargs)
             except Exception as exc:
                 _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     @loop_check
-    def fire_device_removed_callback(self, *args: Any) -> None:
+    def fire_device_removed_callback(self) -> None:
         """Do what is needed when the data_point has been removed."""
         for callback_handler in self._device_removed_callbacks:
             try:
-                callback_handler(*args)
+                callback_handler()
             except Exception as exc:
                 _LOGGER.warning("FIRE_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))
 
@@ -860,7 +860,7 @@ class BaseParameterDataPoint[
         return f"{self._category}/{self._channel.device.model}/{self._parameter}"
 
     @abstractmethod
-    async def event(self, value: Any, received_at: datetime, /) -> None:
+    async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
 
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:

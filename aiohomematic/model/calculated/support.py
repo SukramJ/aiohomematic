@@ -19,7 +19,7 @@ from aiohomematic.support import extract_exc_args
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def _calculate_heat_index(temperature: float, humidity: int) -> float:
+def _calculate_heat_index(*, temperature: float, humidity: int) -> float:
     """
     Calculate the Heat Index (feels like temperature) based on the NOAA equation.
 
@@ -68,7 +68,7 @@ def _calculate_heat_index(temperature: float, humidity: int) -> float:
     return heat_index_celsius
 
 
-def _calculate_wind_chill(temperature: float, wind_speed: float) -> float | None:
+def _calculate_wind_chill(*, temperature: float, wind_speed: float) -> float | None:
     """
     Calculate the Wind Chill (feels like temperature) based on NOAA.
 
@@ -84,7 +84,7 @@ def _calculate_wind_chill(temperature: float, wind_speed: float) -> float | None
     return float(13.12 + (0.6215 * temperature) - 11.37 * wind_speed**0.16 + 0.3965 * temperature * wind_speed**0.16)
 
 
-def calculate_vapor_concentration(temperature: float, humidity: int) -> float | None:
+def calculate_vapor_concentration(*, temperature: float, humidity: int) -> float | None:
     """Calculate the vapor concentration."""
     try:
         abs_temperature = temperature + 273.15
@@ -105,7 +105,7 @@ def calculate_vapor_concentration(temperature: float, humidity: int) -> float | 
     return None
 
 
-def calculate_apparent_temperature(temperature: float, humidity: int, wind_speed: float) -> float | None:
+def calculate_apparent_temperature(*, temperature: float, humidity: int, wind_speed: float) -> float | None:
     """Calculate the apparent temperature based on NOAA."""
     try:
         if temperature <= 10 and wind_speed > 4.8:
@@ -130,7 +130,7 @@ def calculate_apparent_temperature(temperature: float, humidity: int, wind_speed
     return None
 
 
-def calculate_dew_point(temperature: float, humidity: int) -> float | None:
+def calculate_dew_point(*, temperature: float, humidity: int) -> float | None:
     """Calculate the dew point."""
     try:
         a0 = 373.15 / (273.15 + temperature)
@@ -155,7 +155,7 @@ def calculate_dew_point(temperature: float, humidity: int) -> float | None:
     return None
 
 
-def calculate_frost_point(temperature: float, humidity: int) -> float | None:
+def calculate_frost_point(*, temperature: float, humidity: int) -> float | None:
     """Calculate the frost point."""
     try:
         if (dewpoint := calculate_dew_point(temperature=temperature, humidity=humidity)) is None:
@@ -177,7 +177,7 @@ def calculate_frost_point(temperature: float, humidity: int) -> float | None:
 
 
 def calculate_operating_voltage_level(
-    operating_voltage: float | None, low_bat_limit: float | None, voltage_max: float | None
+    *, operating_voltage: float | None, low_bat_limit: float | None, voltage_max: float | None
 ) -> float | None:
     """Return the operating voltage level."""
     if operating_voltage is None or low_bat_limit is None or voltage_max is None:

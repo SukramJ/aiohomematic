@@ -39,7 +39,7 @@ class Looper:
         start_time: float | None = None
         deadline: float | None = (monotonic() + wait_time) if wait_time is not None else None
         current_task = asyncio.current_task()
-        while tasks := [task for task in self._tasks if task is not current_task and not cancelling(task)]:
+        while tasks := [task for task in self._tasks if task is not current_task and not cancelling(task=task)]:
             # If we have a deadline and have exceeded it, log remaining tasks and break
             if deadline is not None and monotonic() >= deadline:
                 for task in tasks:
@@ -128,7 +128,7 @@ class Looper:
                 task.cancel()
 
 
-def cancelling(task: asyncio.Future[Any]) -> bool:
+def cancelling(*, task: asyncio.Future[Any]) -> bool:
     """Return True if task is cancelling."""
     return bool((cancelling_ := getattr(task, "cancelling", None)) and cancelling_())
 

@@ -60,7 +60,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 @inspector
-def create_calculated_data_points(channel: hmd.Channel) -> None:
+def create_calculated_data_points(*, channel: hmd.Channel) -> None:
     """Decides which data point category should be used, and creates the required data points."""
     for dp in _CALCULATED_DATA_POINTS:
         if dp.is_relevant_for_model(channel=channel):

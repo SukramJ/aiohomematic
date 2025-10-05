@@ -528,7 +528,7 @@ def _convert_value_noncached(value: Any, target_type: ParameterType, value_list:
             # relevant for ENUMs retyped to a BOOL
             return _get_binary_sensor_value(value=value, value_list=value_list)
         if isinstance(value, str):
-            return to_bool(value)
+            return to_bool(value=value)
         return bool(value)
     if target_type == ParameterType.FLOAT:
         return float(value)

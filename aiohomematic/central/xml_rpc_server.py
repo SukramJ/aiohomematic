@@ -134,7 +134,7 @@ class RPCFunctions:
 
     def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
         """Return the central by interface_id."""
-        return self._xml_rpc_server.get_central(interface_id)
+        return self._xml_rpc_server.get_central(interface_id=interface_id)
 
 
 # Restrict to specific paths.
@@ -243,17 +243,17 @@ class XmlRpcServer(threading.Thread):
         """Return if thread is active."""
         return self._started.is_set() is True  # type: ignore[attr-defined]
 
-    def add_central(self, central: hmcu.CentralUnit) -> None:
+    def add_central(self, *, central: hmcu.CentralUnit) -> None:
         """Register a central in the XmlRPC-Server."""
         if not self._centrals.get(central.name):
             self._centrals[central.name] = central
 
-    def remove_central(self, central: hmcu.CentralUnit) -> None:
+    def remove_central(self, *, central: hmcu.CentralUnit) -> None:
         """Unregister a central from XmlRPC-Server."""
         if self._centrals.get(central.name):
             del self._centrals[central.name]
 
-    def get_central(self, interface_id: str) -> hmcu.CentralUnit | None:
+    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
         """Return a central by interface_id."""
         for central in self._centrals.values():
             if central.has_client(interface_id=interface_id):
@@ -266,7 +266,7 @@ class XmlRpcServer(threading.Thread):
         return len(self._centrals) == 0
 
 
-def create_xml_rpc_server(ip_addr: str = IP_ANY_V4, port: int = PORT_ANY) -> XmlRpcServer:
+def create_xml_rpc_server(*, ip_addr: str = IP_ANY_V4, port: int = PORT_ANY) -> XmlRpcServer:
     """Register the xml rpc server."""
     xml_rpc = XmlRpcServer(ip_addr=ip_addr, port=port)
     if not xml_rpc.started:

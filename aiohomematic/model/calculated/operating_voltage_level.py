@@ -89,7 +89,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         )
 
     @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         if element_matches_key(
             search_elements=_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS, compare_with=channel.device.model

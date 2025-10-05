@@ -146,14 +146,14 @@ class BasePersistentCache(ABC):
         """Determine if save operation should proceed."""
         self.last_save_triggered = datetime.now()
         return (
-            check_or_create_directory(self._cache_dir)
+            check_or_create_directory(directory=self._cache_dir)
             and self._central.config.use_caches
             and self.cache_hash != self.last_hash_saved
         )
 
     async def load(self) -> DataOperationResult:
         """Load data from disk into the dictionary."""
-        if not check_or_create_directory(self._cache_dir) or not os.path.exists(self._file_path):
+        if not check_or_create_directory(directory=self._cache_dir) or not os.path.exists(self._file_path):
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:
@@ -293,7 +293,7 @@ class DeviceDescriptionCache(BasePersistentCache):
     def _process_device_description(self, *, interface_id: str, device_description: DeviceDescription) -> None:
         """Convert provided dict of device descriptions."""
         address = device_description["ADDRESS"]
-        device_address = get_device_address(address)
+        device_address = get_device_address(address=address)
         self._device_descriptions[interface_id][address] = device_description
 
         # Avoid redundant membership checks; set.add is idempotent and cheaper than check+add
@@ -348,6 +348,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
 
     def add(
         self,
+        *,
         interface_id: str,
         channel_address: str,
         paramset_key: ParamsetKey,
@@ -373,19 +374,19 @@ class ParamsetDescriptionCache(BasePersistentCache):
         return tuple(self._raw_paramset_descriptions[interface_id][channel_address])
 
     def get_channel_paramset_descriptions(
-        self, interface_id: str, channel_address: str
+        self, *, interface_id: str, channel_address: str
     ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Get paramset descriptions for a channelfrom cache."""
         return self._raw_paramset_descriptions[interface_id].get(channel_address, {})
 
     def get_paramset_descriptions(
-        self, interface_id: str, channel_address: str, paramset_key: ParamsetKey
+        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey
     ) -> Mapping[str, ParameterData]:
         """Get paramset descriptions from cache."""
         return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
 
     def get_parameter_data(
-        self, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
     ) -> ParameterData | None:
         """Get parameter_data  from cache."""
         return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].get(parameter)
@@ -394,12 +395,12 @@ class ParamsetDescriptionCache(BasePersistentCache):
         """Check if parameter is in multiple channels per device."""
         if ADDRESS_SEPARATOR not in channel_address:
             return False
-        if channels := self._address_parameter_cache.get((get_device_address(channel_address), parameter)):
+        if channels := self._address_parameter_cache.get((get_device_address(address=channel_address), parameter)):
             return len(channels) > 1
         return False
 
     def get_channel_addresses_by_paramset_key(
-        self, interface_id: str, device_address: str
+        self, *, interface_id: str, device_address: str
     ) -> Mapping[ParamsetKey, list[str]]:
         """Get device channel addresses."""
         channel_addresses: dict[ParamsetKey, list[str]] = {}
@@ -428,7 +429,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
 
     def _add_address_parameter(self, *, channel_address: str, paramsets: list[dict[str, Any]]) -> None:
         """Add address parameter to cache."""
-        device_address, channel_no = get_split_channel_address(channel_address)
+        device_address, channel_no = get_split_channel_address(channel_address=channel_address)
         cache = self._address_parameter_cache
         for paramset in paramsets:
             if not paramset:
@@ -450,17 +451,17 @@ class ParamsetDescriptionCache(BasePersistentCache):
         return await super().save()
 
 
-def _get_cache_path(storage_folder: str) -> str:
+def _get_cache_path(*, storage_folder: str) -> str:
     """Return the cache path."""
     return f"{storage_folder}/{CACHE_PATH}"
 
 
-def _get_filename(central_name: str, file_name: str) -> str:
+def _get_filename(*, central_name: str, file_name: str) -> str:
     """Return the cache filename."""
     return f"{slugify(central_name)}_{file_name}"
 
 
-def cleanup_cache_dirs(central_name: str, storage_folder: str) -> None:
+def cleanup_cache_dirs(*, central_name: str, storage_folder: str) -> None:
     """Clean up the used cached directories."""
     cache_dir = _get_cache_path(storage_folder=storage_folder)
     for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS):

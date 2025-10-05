@@ -48,8 +48,8 @@ async def test_clickevent(
         interface_id=const.INTERFACE_ID, channel_address="VCU2128127:1", parameter="PRESS_SHORT", value=True
     )
     assert factory.ha_event_mock.call_args_list[-1] == call(
-        "homematic.keypress",
-        {
+        event_type="homematic.keypress",
+        event_data={
             "interface_id": const.INTERFACE_ID,
             "address": "VCU2128127",
             "channel_no": 1,
@@ -86,8 +86,8 @@ async def test_impulseevent(
         interface_id=const.INTERFACE_ID, channel_address="VCU0000263:1", parameter="SEQUENCE_OK", value=True
     )
     assert factory.ha_event_mock.call_args_list[-1] == call(
-        "homematic.impulse",
-        {
+        event_type="homematic.impulse",
+        event_data={
             "interface_id": const.INTERFACE_ID,
             "address": "VCU0000263",
             "channel_no": 1,
@@ -127,8 +127,8 @@ async def test_deviceerrorevent(
         interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT", value=True
     )
     assert factory.ha_event_mock.call_args_list[-1] == call(
-        "homematic.device_error",
-        {
+        event_type="homematic.device_error",
+        event_data={
             "interface_id": const.INTERFACE_ID,
             "address": "VCU2128127",
             "channel_no": 0,

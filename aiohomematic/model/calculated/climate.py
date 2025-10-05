@@ -83,7 +83,7 @@ class ApparentTemperature(BaseClimateSensor):
         )
 
     @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return (
             element_matches_key(
@@ -126,7 +126,7 @@ class DewPoint(BaseClimateSensor):
         self._unit = "°C"
 
     @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel)
 
@@ -154,7 +154,7 @@ class FrostPoint(BaseClimateSensor):
         self._unit = "°C"
 
     @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(
             channel=channel, relevant_models=_RELEVANT_MODELS_FROST_POINT
@@ -184,7 +184,7 @@ class VaporConcentration(BaseClimateSensor):
         self._unit = "g/m³"
 
     @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel)
 

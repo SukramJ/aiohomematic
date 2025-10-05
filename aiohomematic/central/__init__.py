@@ -455,7 +455,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return None
 
     async def save_caches(
-        self, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
+        self, *, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
     ) -> None:
         """Save persistent caches."""
         if save_device_descriptions:
@@ -744,6 +744,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     @loop_check
     def fire_interface_event(
         self,
+        *,
         interface_id: str,
         interface_event_type: InterfaceEventType,
         data: dict[str, Any],
@@ -837,6 +838,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_data_points(
         self,
+        *,
         category: DataPointCategory | None = None,
         interface: Interface | None = None,
         exclude_no_create: bool = True,
@@ -853,7 +855,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return tuple(all_data_points)
 
     def get_readable_generic_data_points(
-        self, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
+        self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
     ) -> tuple[GenericDataPoint, ...]:
         """Return the readable generic data points."""
         return tuple(
@@ -875,7 +877,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return client
 
     def get_hub_data_points(
-        self, category: DataPointCategory | None = None, registered: bool | None = None
+        self, *, category: DataPointCategory | None = None, registered: bool | None = None
     ) -> tuple[GenericHubDataPoint, ...]:
         """Return the program data points."""
         return tuple(
@@ -1145,7 +1147,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 received_at = datetime.now()
                 for callback_handler in self._data_point_key_event_subscriptions[dpk]:
                     if callable(callback_handler):
-                        await callback_handler(value, received_at)
+                        await callback_handler(value=value, received_at=received_at)
             except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
@@ -1196,7 +1198,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 if callable(callback_handler):
                     received_at = datetime.now()
                     self._looper.create_task(
-                        target=callback_handler(value, received_at), name=f"sysvar-data-point-event-{state_path}"
+                        target=callback_handler(value=value, received_at=received_at),
+                        name=f"sysvar-data-point-event-{state_path}",
                     )
             except RuntimeError as rterr:  # pragma: no cover
                 _LOGGER_EVENT.debug(
@@ -1300,6 +1303,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     @inspector(measure_performance=True)
     async def load_and_refresh_data_point_data(
         self,
+        *,
         interface: Interface,
         paramset_key: ParamsetKey | None = None,
         direct_call: bool = False,
@@ -1326,6 +1330,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_parameters(
         self,
+        *,
         paramset_key: ParamsetKey,
         operations: tuple[Operations, ...],
         full_format: bool = False,
@@ -1412,7 +1417,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return None
 
     def get_generic_data_point(
-        self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
+        self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
         """Get data_point by channel_address and parameter."""
         if device := self.get_device(address=channel_address):
@@ -1434,7 +1439,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return None
 
     def get_sysvar_data_point(
-        self, vid: str | None = None, legacy_name: str | None = None
+        self, *, vid: str | None = None, legacy_name: str | None = None
     ) -> GenericSysvarDataPoint | None:
         """Return the sysvar data_point."""
         if vid and (sysvar := self._sysvar_data_points.get(vid)):
@@ -1520,7 +1525,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._homematic_callbacks.remove(cb)
 
     @loop_check
-    def fire_homematic_callback(self, event_type: EventType, event_data: dict[EventKey, str]) -> None:
+    def fire_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, str]) -> None:
         """
         Fire homematic_callback in central.
 
@@ -1528,7 +1533,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """
         for callback_handler in self._homematic_callbacks:
             try:
-                callback_handler(event_type, event_data)
+                callback_handler(event_type=event_type, event_data=event_data)
             except Exception as exc:
                 _LOGGER.error(
                     "FIRE_HOMEMATIC_CALLBACK: Unable to call handler: %s",
@@ -1549,7 +1554,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     @loop_check
     def fire_backend_parameter_callback(
-        self, interface_id: str, channel_address: str, parameter: str, value: Any
+        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
     ) -> None:
         """
         Fire backend_parameter callback in central.
@@ -1558,7 +1563,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """
         for callback_handler in self._backend_parameter_callbacks:
             try:
-                callback_handler(interface_id, channel_address, parameter, value)
+                callback_handler(
+                    interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
+                )
             except Exception as exc:
                 _LOGGER.error(
                     "FIRE_BACKEND_PARAMETER_CALLBACK: Unable to call handler: %s",
@@ -1578,7 +1585,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._backend_system_callbacks.remove(cb)
 
     @loop_check
-    def fire_backend_system_callback(self, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+    def fire_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
         """
         Fire system_event callback in central.
 
@@ -1586,7 +1593,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """
         for callback_handler in self._backend_system_callbacks:
             try:
-                callback_handler(system_event, **kwargs)
+                callback_handler(system_event=system_event, **kwargs)
             except Exception as exc:
                 _LOGGER.error(
                     "FIRE_BACKEND_SYSTEM_CALLBACK: Unable to call handler: %s",
@@ -2011,6 +2018,7 @@ class CentralConnectionState:
 
     def handle_exception_log(
         self,
+        *,
         issuer: ConnectionProblemIssuer,
         iid: str,
         exception: Exception,
@@ -2042,6 +2050,7 @@ class CentralConnectionState:
 
 
 def _get_new_data_points(
+    *,
     new_devices: set[Device],
 ) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPoint]]:
     """Return new data points by category."""
@@ -2057,7 +2066,7 @@ def _get_new_data_points(
     return data_points_by_category
 
 
-def _get_new_channel_events(new_devices: set[Device]) -> tuple[tuple[GenericEvent, ...], ...]:
+def _get_new_channel_events(*, new_devices: set[Device]) -> tuple[tuple[GenericEvent, ...], ...]:
     """Return new channel events by category."""
     channel_events: list[tuple[GenericEvent, ...]] = []
 

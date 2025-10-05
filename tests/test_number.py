@@ -45,7 +45,7 @@ async def test_hmfloat(
     central, mock_client, _ = central_client_factory
     efloat: DpFloat = cast(
         DpFloat,
-        central.get_generic_data_point("VCU0000011:3", "LEVEL"),
+        central.get_generic_data_point(channel_address="VCU0000011:3", parameter="LEVEL"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "%"
@@ -93,7 +93,7 @@ async def test_hmfloat_special(
     central, mock_client, _ = central_client_factory
     efloat: DpFloat = cast(
         DpFloat,
-        central.get_generic_data_point("VCU0000054:2", "SETPOINT"),
+        central.get_generic_data_point(channel_address="VCU0000054:2", parameter="SETPOINT"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "°C"
@@ -139,7 +139,7 @@ async def test_hminteger(
     central, mock_client, _ = central_client_factory
     einteger: DpInteger = cast(
         DpInteger,
-        central.get_generic_data_point("VCU4984404:1", "SET_POINT_MODE"),
+        central.get_generic_data_point(channel_address="VCU4984404:1", parameter="SET_POINT_MODE"),
     )
     assert einteger.usage == DataPointUsage.NO_CREATE
     assert einteger.unit is None

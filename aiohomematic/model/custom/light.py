@@ -772,7 +772,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
         if not self.is_state_change(on=True, **kwargs):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
-            simple_rgb_color = _convert_color(hs_color)
+            simple_rgb_color = _convert_color(color=hs_color)
             await self._dp_color.send_value(value=simple_rgb_color, collector=collector)
         elif self.color_name in _NO_COLOR:
             await self._dp_color.send_value(value=_FixedColor.WHITE, collector=collector)
@@ -803,7 +803,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
         await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 
-def _recalc_unit_timer(time: float) -> tuple[float, int | None]:
+def _recalc_unit_timer(*, time: float) -> tuple[float, int | None]:
     """Recalculate unit and value of timer."""
     ramp_time_unit = _TimeUnit.SECONDS
     if time == _NOT_USED:
@@ -817,7 +817,7 @@ def _recalc_unit_timer(time: float) -> tuple[float, int | None]:
     return time, ramp_time_unit
 
 
-def _convert_color(color: tuple[float, float]) -> str:
+def _convert_color(*, color: tuple[float, float]) -> str:
     """
     Convert the given color to the reduced color of the device.
 

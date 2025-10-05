@@ -68,6 +68,7 @@ class CommandCache:
 
     def add_set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -89,7 +90,7 @@ class CommandCache:
         return {(dpk, value)}
 
     def add_put_paramset(
-        self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
         dpk_values: set[DP_KEY_VALUE] = set()
@@ -106,7 +107,7 @@ class CommandCache:
         return dpk_values
 
     def add_combined_parameter(
-        self, parameter: str, channel_address: str, combined_parameter: str
+        self, *, parameter: str, channel_address: str, combined_parameter: str
     ) -> set[DP_KEY_VALUE]:
         """Add data from combined parameter."""
         if values := convert_combined_parameter_to_paramset(parameter=parameter, value=combined_parameter):
@@ -131,6 +132,7 @@ class CommandCache:
 
     def remove_last_value_send(
         self,
+        *,
         dpk: DataPointKey,
         value: Any = None,
         max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT,
@@ -300,6 +302,7 @@ class CentralDataCache:
 
     async def refresh_data_point_data(
         self,
+        *,
         paramset_key: ParamsetKey | None = None,
         interface: Interface | None = None,
         direct_call: bool = False,
@@ -315,6 +318,7 @@ class CentralDataCache:
 
     def get_data(
         self,
+        *,
         interface: Interface,
         channel_address: str,
         parameter: str,

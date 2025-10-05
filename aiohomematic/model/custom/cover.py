@@ -569,6 +569,7 @@ class CustomDpGarage(CustomDataPoint):
     @bind_collector()
     async def set_position(
         self,
+        *,
         position: int | None = None,
         tilt_position: int | None = None,
         collector: CallParameterCollector | None = None,

@@ -61,7 +61,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             return self._get_data_point_usage()
         return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
-    async def event(self, value: Any, received_at: datetime, /) -> None:
+    async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
         self._device.client.last_value_send_cache.remove_last_value_send(
             dpk=self.dpk,
@@ -83,7 +83,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             Parameter.UN_REACH,
             Parameter.STICKY_UN_REACH,
         ):
-            self._device.fire_device_updated_callback(self._unique_id)
+            self._device.fire_device_updated_callback()
             self._central.fire_homematic_callback(
                 event_type=EventType.DEVICE_AVAILABILITY,
                 event_data=self.get_event_data(value=new_value),

@@ -44,7 +44,7 @@ async def test_hmbinarysensor(
     central, mock_client, _ = central_client_factory
     binary_sensor: DpBinarySensor = cast(
         DpBinarySensor,
-        central.get_generic_data_point("VCU5864966:1", "STATE"),
+        central.get_generic_data_point(channel_address="VCU5864966:1", parameter="STATE"),
     )
     assert binary_sensor.usage == DataPointUsage.DATA_POINT
     assert binary_sensor.value is False

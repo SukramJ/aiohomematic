@@ -43,7 +43,7 @@ async def test_hmbutton(
     central, mock_client, _ = central_client_factory
     button: DpButton = cast(
         DpButton,
-        central.get_generic_data_point("VCU1437294:1", "RESET_MOTION"),
+        central.get_generic_data_point(channel_address="VCU1437294:1", parameter="RESET_MOTION"),
     )
     assert button.usage == DataPointUsage.DATA_POINT
     assert button.available is True

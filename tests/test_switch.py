@@ -117,7 +117,7 @@ async def test_hmswitch(
 ) -> None:
     """Test HmSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
+    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
     assert switch.service_method_names == (
         "send_value",

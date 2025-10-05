@@ -194,7 +194,7 @@ async def test_device_un_ignore_etrv(
             )
             is expected_result
         )
-        if dp := central.get_generic_data_point(f"VCU3609622:{channel_no}", parameter):
+        if dp := central.get_generic_data_point(channel_address=f"VCU3609622:{channel_no}", parameter=parameter):
             assert dp.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
@@ -232,7 +232,7 @@ async def test_device_un_ignore_broll(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(f"VCU8537918:{channel_no}", parameter)
+        dp = central.get_generic_data_point(channel_address=f"VCU8537918:{channel_no}", parameter=parameter)
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -273,7 +273,9 @@ async def test_device_un_ignore_hm(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter)
+        dp = central.get_generic_data_point(
+            channel_address=f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter=parameter
+        )
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -356,7 +358,9 @@ async def test_device_un_ignore_hm2(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter)
+        dp = central.get_generic_data_point(
+            channel_address=f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter=parameter
+        )
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -713,8 +717,8 @@ async def test_central_callbacks(
         data={EventKey.AVAILABLE: False},
     )
     assert factory.ha_event_mock.call_args_list[-1] == call(
-        "homematic.interface",
-        {
+        event_type="homematic.interface",
+        event_data={
             "interface_id": "SOME_ID",
             "type": "callback",
             "data": {EventKey.AVAILABLE: False},
@@ -916,8 +920,8 @@ async def test_pending_pong_failure(
         count += 1
     assert client.ping_pong_cache.pending_pong_count == max_count
     assert factory.ha_event_mock.mock_calls[-1] == call(
-        EventType.INTERFACE,
-        {
+        event_type=EventType.INTERFACE,
+        event_data={
             "data": {
                 "central_name": "CentralTest",
                 "pong_mismatch_count": 16,

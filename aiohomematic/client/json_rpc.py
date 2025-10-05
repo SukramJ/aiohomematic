@@ -205,7 +205,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         self._password: Final = password
         self._looper = Looper()
         self._tls: Final = tls
-        self._tls_context: Final[SSLContext | bool] = get_tls_context(verify_tls) if tls else False
+        self._tls_context: Final[SSLContext | bool] = get_tls_context(verify_tls=verify_tls) if tls else False
         self._url: Final = f"{device_url}{PATH_JSON_RPC}"
         self._script_cache: Final[dict[str, str]] = {}
         self._last_session_id_refresh: datetime | None = None
@@ -670,7 +670,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return response[_JsonKey.RESULT]
 
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from the backend."""
         variables: list[SystemVariableData] = []
@@ -864,7 +864,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return device_description
 
     @staticmethod
-    def _convert_device_description(json_data: dict[str, Any]) -> DeviceDescription:
+    def _convert_device_description(*, json_data: dict[str, Any]) -> DeviceDescription:
         """Convert json data dor device description."""
         device_description = DeviceDescription(
             TYPE=json_data["type"],
@@ -908,7 +908,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return device_details
 
     async def get_paramset(
-        self, interface: Interface, address: str, paramset_key: ParamsetKey | str
+        self, *, interface: Interface, address: str, paramset_key: ParamsetKey | str
     ) -> dict[str, Any] | None:
         """Get paramset from the backend."""
         paramset: dict[str, Any] = {}
@@ -931,6 +931,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def put_paramset(
         self,
+        *,
         interface: Interface,
         address: str,
         paramset_key: ParamsetKey | str,
@@ -1002,7 +1003,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
             )
 
     async def get_paramset_description(
-        self, interface: Interface, address: str, paramset_key: ParamsetKey
+        self, *, interface: Interface, address: str, paramset_key: ParamsetKey
     ) -> Mapping[str, ParameterData] | None:
         """Get paramset description from the backend."""
         paramset_description: dict[str, ParameterData] = {}
@@ -1021,7 +1022,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return paramset_description
 
     @staticmethod
-    def _convert_parameter_data(json_data: dict[str, Any]) -> ParameterData:
+    def _convert_parameter_data(*, json_data: dict[str, Any]) -> ParameterData:
         """Convert json data to parameter data."""
 
         _type = json_data["TYPE"]
@@ -1268,6 +1269,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
 
 def _get_params(
+    *,
     session_id: bool | str,
     extra_params: dict[_JsonKey, Any] | None,
     use_default_params: bool,

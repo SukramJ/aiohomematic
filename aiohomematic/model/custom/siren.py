@@ -224,6 +224,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     @bind_collector()
     async def turn_on(
         self,
+        *,
         collector: CallParameterCollector | None = None,
         **kwargs: Unpack[SirenOnArgs],
     ) -> None:

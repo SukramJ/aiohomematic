@@ -419,6 +419,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def copy_schedule_profile(
         self,
+        *,
         source_profile: ScheduleProfile,
         target_profile: ScheduleProfile,
         target_climate_data_point: BaseCustomDpClimate | None = None,
@@ -476,7 +477,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         return raw_schedule
 
     async def _get_schedule_profile(
-        self, profile: ScheduleProfile | None = None, weekday: ScheduleWeekday | None = None
+        self, *, profile: ScheduleProfile | None = None, weekday: ScheduleWeekday | None = None
     ) -> _SCHEDULE_DICT:
         """Get the schedule."""
         schedule_data: _SCHEDULE_DICT = {}
@@ -508,7 +509,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     @inspector
     async def set_schedule_profile(
-        self, profile: ScheduleProfile, profile_data: PROFILE_DICT, do_validate: bool = True
+        self, *, profile: ScheduleProfile, profile_data: PROFILE_DICT, do_validate: bool = True
     ) -> None:
         """Set a profile to device."""
         await self._set_schedule_profile(
@@ -520,6 +521,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     async def _set_schedule_profile(
         self,
+        *,
         target_channel_address: str,
         profile: ScheduleProfile,
         profile_data: PROFILE_DICT,
@@ -549,6 +551,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def set_simple_schedule_profile(
         self,
+        *,
         profile: ScheduleProfile,
         base_temperature: float,
         simple_profile_data: SIMPLE_PROFILE_DICT,
@@ -562,6 +565,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def set_schedule_profile_weekday(
         self,
+        *,
         profile: ScheduleProfile,
         weekday: ScheduleWeekday,
         weekday_data: WEEKDAY_DICT,
@@ -590,6 +594,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def set_simple_schedule_profile_weekday(
         self,
+        *,
         profile: ScheduleProfile,
         weekday: ScheduleWeekday,
         base_temperature: float,
@@ -602,7 +607,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         await self.set_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
     def _validate_and_convert_simple_to_profile(
-        self, base_temperature: float, simple_profile_data: SIMPLE_PROFILE_DICT
+        self, *, base_temperature: float, simple_profile_data: SIMPLE_PROFILE_DICT
     ) -> PROFILE_DICT:
         """Convert simple profile dict to profile dict."""
         profile_dict: PROFILE_DICT = {}
@@ -613,7 +618,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         return profile_dict
 
     def _validate_and_convert_simple_to_profile_weekday(
-        self, base_temperature: float, simple_weekday_list: SIMPLE_WEEKDAY_LIST
+        self, *, base_temperature: float, simple_weekday_list: SIMPLE_WEEKDAY_LIST
     ) -> WEEKDAY_DICT:
         """Convert simple weekday list to weekday dict."""
         if not self.min_temp <= base_temperature <= self.max_temp:
@@ -634,12 +639,16 @@ class BaseCustomDpClimate(CustomDataPoint):
             if (temperature := slot.get(ScheduleSlotType.TEMPERATURE)) is None:
                 raise ValidationException("VALIDATE_PROFILE: TEMPERATURE is missing.")
 
-            if _convert_time_str_to_minutes(str(starttime)) >= _convert_time_str_to_minutes(str(endtime)):
+            if _convert_time_str_to_minutes(time_str=str(starttime)) >= _convert_time_str_to_minutes(
+                time_str=str(endtime)
+            ):
                 raise ValidationException(
                     f"VALIDATE_PROFILE: Start time {starttime} must lower than end time {endtime}"
                 )
 
-            if _convert_time_str_to_minutes(str(starttime)) < _convert_time_str_to_minutes(previous_endtime):
+            if _convert_time_str_to_minutes(time_str=str(starttime)) < _convert_time_str_to_minutes(
+                time_str=previous_endtime
+            ):
                 raise ValidationException(
                     f"VALIDATE_PROFILE: Timespans are overlapping with a previous slot for start time: {starttime} / end time: {endtime}"
                 )
@@ -650,7 +659,9 @@ class BaseCustomDpClimate(CustomDataPoint):
                     f"max: {self.max_temp}) for start time: {starttime} / end time: {endtime}"
                 )
 
-            if _convert_time_str_to_minutes(str(starttime)) > _convert_time_str_to_minutes(previous_endtime):
+            if _convert_time_str_to_minutes(time_str=str(starttime)) > _convert_time_str_to_minutes(
+                time_str=previous_endtime
+            ):
                 weekday_data[slot_no] = {
                     ScheduleSlotType.ENDTIME: starttime,
                     ScheduleSlotType.TEMPERATURE: base_temperature,
@@ -673,6 +684,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     def _validate_schedule_profile_weekday(
         self,
+        *,
         profile: ScheduleProfile,
         weekday: ScheduleWeekday,
         weekday_data: WEEKDAY_DICT,
@@ -957,7 +969,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         return profiles
 
 
-def _party_mode_code(start: datetime, end: datetime, away_temperature: float) -> str:
+def _party_mode_code(*, start: datetime, end: datetime, away_temperature: float) -> str:
     """
     Create the party mode code.
 
@@ -1247,7 +1259,7 @@ def _convert_minutes_to_time_str(minutes: Any) -> str:
     return time_str
 
 
-def _convert_time_str_to_minutes(time_str: str) -> int:
+def _convert_time_str_to_minutes(*, time_str: str) -> int:
     """Convert minutes to a time string."""
     if SCHEDULER_TIME_PATTERN.match(time_str) is None:
         raise ValidationException(
@@ -1260,17 +1272,18 @@ def _convert_time_str_to_minutes(time_str: str) -> int:
         raise ValidationException(f"Failed to convert time {time_str}. Format must be hh:mm.") from exc
 
 
-def _sort_simple_weekday_list(simple_weekday_list: SIMPLE_WEEKDAY_LIST) -> SIMPLE_WEEKDAY_LIST:
+def _sort_simple_weekday_list(*, simple_weekday_list: SIMPLE_WEEKDAY_LIST) -> SIMPLE_WEEKDAY_LIST:
     """Sort simple weekday list."""
     simple_weekday_dict = sorted(
         {
-            _convert_time_str_to_minutes(str(slot[ScheduleSlotType.STARTTIME])): slot for slot in simple_weekday_list
+            _convert_time_str_to_minutes(time_str=str(slot[ScheduleSlotType.STARTTIME])): slot
+            for slot in simple_weekday_list
         }.items()
     )
     return [slot[1] for slot in simple_weekday_dict]
 
 
-def _fillup_weekday_data(base_temperature: float, weekday_data: WEEKDAY_DICT) -> WEEKDAY_DICT:
+def _fillup_weekday_data(*, base_temperature: float, weekday_data: WEEKDAY_DICT) -> WEEKDAY_DICT:
     """Fillup weekday data."""
     for slot_no in SCHEDULE_SLOT_IN_RANGE:
         if slot_no not in weekday_data:
@@ -1282,7 +1295,7 @@ def _fillup_weekday_data(base_temperature: float, weekday_data: WEEKDAY_DICT) ->
     return weekday_data
 
 
-def _get_raw_schedule_paramset(schedule_data: _SCHEDULE_DICT) -> _RAW_SCHEDULE_DICT:
+def _get_raw_schedule_paramset(*, schedule_data: _SCHEDULE_DICT) -> _RAW_SCHEDULE_DICT:
     """Return the raw paramset."""
     raw_paramset: _RAW_SCHEDULE_DICT = {}
     for profile, profile_data in schedule_data.items():
@@ -1294,12 +1307,13 @@ def _get_raw_schedule_paramset(schedule_data: _SCHEDULE_DICT) -> _RAW_SCHEDULE_D
                         raise ValidationException(f"Not a valid profile name: {raw_profile_name}")
                     raw_value: float | int = cast(float | int, slot_value)
                     if slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, str):
-                        raw_value = _convert_time_str_to_minutes(slot_value)
+                        raw_value = _convert_time_str_to_minutes(time_str=slot_value)
                     raw_paramset[raw_profile_name] = raw_value
     return raw_paramset
 
 
 def _add_to_schedule_data(
+    *,
     schedule_data: _SCHEDULE_DICT,
     profile: ScheduleProfile,
     weekday: ScheduleWeekday,

@@ -93,7 +93,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         )
 
     def _add_data_point[DataPointT: hmge.GenericDataPoint](
-        self, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
+        self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Add a new data point."""
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
@@ -110,7 +110,12 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         )
 
     def _add_device_data_point[DataPointT: hmge.GenericDataPoint](
-        self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
+        self,
+        *,
+        channel_address: str,
+        parameter: str,
+        paramset_key: ParamsetKey | None,
+        data_point_type: type[DataPointT],
     ) -> DataPointT:
         """Add a new data point."""
         if generic_data_point := self._channel.device.get_generic_data_point(
@@ -134,7 +139,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         return bool(self._operations & Operations.READ)
 
     @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the channel."""
         return False
 

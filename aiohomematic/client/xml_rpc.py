@@ -88,6 +88,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
 
     def __init__(
         self,
+        *,
         max_workers: int,
         interface_id: str,
         connection_state: hmcu.CentralConnectionState,
@@ -108,7 +109,7 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         self._supported_methods: tuple[str, ...] = ()
         kwargs: dict[str, Any] = {}
         if self._tls:
-            kwargs[_CONTEXT] = get_tls_context(self._verify_tls)
+            kwargs[_CONTEXT] = get_tls_context(verify_tls=self._verify_tls)
         # Due to magic method the log_context must be defined manually.
         self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": self._tls}
         xmlrpc.client.ServerProxy.__init__(
@@ -238,7 +239,7 @@ def _cleanup_args(*args: Any) -> Any:
     return args
 
 
-def _cleanup_item(item: Any) -> Any:
+def _cleanup_item(*, item: Any) -> Any:
     """Cleanup a single item."""
     if isinstance(item, StrEnum):
         return str(item)
@@ -249,7 +250,7 @@ def _cleanup_item(item: Any) -> Any:
     return item
 
 
-def _cleanup_paramset(paramset: Mapping[str, Any]) -> Mapping[str, Any]:
+def _cleanup_paramset(*, paramset: Mapping[str, Any]) -> Mapping[str, Any]:
     """Cleanup a paramset."""
     new_paramset: dict[str, Any] = {}
     for name, value in paramset.items():

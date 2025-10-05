@@ -102,6 +102,7 @@ _SWITCH_DP_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
 
 @inspector
 def create_data_point_and_append_to_channel(
+    *,
     channel: hmd.Channel,
     paramset_key: ParamsetKey,
     parameter: str,
@@ -115,7 +116,7 @@ def create_data_point_and_append_to_channel(
         channel.device.interface_id,
     )
 
-    if (dp_t := _determine_data_point_type(channel, parameter, parameter_data)) and (
+    if (dp_t := _determine_data_point_type(channel=channel, parameter=parameter, parameter_data=parameter_data)) and (
         dp := _safe_create_data_point(
             dp_t=dp_t, channel=channel, paramset_key=paramset_key, parameter=parameter, parameter_data=parameter_data
         )
@@ -126,13 +127,13 @@ def create_data_point_and_append_to_channel(
             channel.address,
             parameter,
         )
-        channel.add_data_point(dp)
+        channel.add_data_point(data_point=dp)
         if _check_switch_to_sensor(data_point=dp):
             dp.force_to_sensor()
 
 
 def _determine_data_point_type(
-    channel: hmd.Channel, parameter: str, parameter_data: ParameterData
+    *, channel: hmd.Channel, parameter: str, parameter_data: ParameterData
 ) -> type[GenericDataPoint] | None:
     """Determine the type of data point based on parameter and operations."""
     p_type = parameter_data["TYPE"]
@@ -173,6 +174,7 @@ def _determine_data_point_type(
 
 
 def _safe_create_data_point(
+    *,
     dp_t: type[GenericDataPoint],
     channel: hmd.Channel,
     paramset_key: ParamsetKey,
@@ -193,7 +195,7 @@ def _safe_create_data_point(
         ) from exc
 
 
-def _check_switch_to_sensor(data_point: GenericDataPoint) -> bool:
+def _check_switch_to_sensor(*, data_point: GenericDataPoint) -> bool:
     """Check if parameter of a device should be wrapped to a different category."""
     if data_point.device.central.parameter_visibility.parameter_is_un_ignored(
         channel=data_point.channel,

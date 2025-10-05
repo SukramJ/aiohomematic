@@ -24,7 +24,7 @@ class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[Number
     _category = DataPointCategory.NUMBER
 
     def _prepare_number_for_sending(
-        self, value: int | float | str, type_converter: type, do_validate: bool = True
+        self, *, value: int | float | str, type_converter: type, do_validate: bool = True
     ) -> NumberParameterT:
         """Prepare value before sending."""
         if not do_validate or (

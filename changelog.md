@@ -1,7 +1,6 @@
 # Version 2025.10.2 (2025-10-5)
 
 - API cleanup: ensure that kw arguments are passed to the underlying function
--
 
 # Version 2025.10.1 (2025-10-01)
 

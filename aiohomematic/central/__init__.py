@@ -229,7 +229,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {sysvar_name, program_button}
         self._program_data_points: Final[dict[str, ProgramDpType]] = {}
-        # Signature: (name, *args)
+        # Signature: (system_event, new_data_points, new_channel_events, **kwargs)
         # e.g. DEVICES_CREATED, HUB_REFRESHED
         self._backend_system_callbacks: Final[set[Callable]] = set()
         # Signature: (interface_id, channel_address, parameter, value)

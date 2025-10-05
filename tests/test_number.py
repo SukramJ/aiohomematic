@@ -45,13 +45,13 @@ async def test_hmfloat(
     central, mock_client, _ = central_client_factory
     efloat: DpFloat = cast(
         DpFloat,
-        central.get_generic_data_point("VCU0000011:3", "LEVEL"),
+        central.get_generic_data_point(channel_address="VCU0000011:3", parameter="LEVEL"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "%"
     assert efloat.values is None
     assert efloat.value is None
-    await efloat.send_value(0.3)
+    await efloat.send_value(value=0.3)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000011:3",
         paramset_key=ParamsetKey.VALUES,
@@ -59,14 +59,16 @@ async def test_hmfloat(
         value=0.3,
     )
     assert efloat.value == 0.3
-    await central.data_point_event(const.INTERFACE_ID, "VCU0000011:3", "LEVEL", 0.5)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU0000011:3", parameter="LEVEL", value=0.5
+    )
     assert efloat.value == 0.5
     # do not write. value above max
-    await efloat.send_value(45.0)
+    await efloat.send_value(value=45.0)
     assert efloat.value == 0.5
 
     call_count = len(mock_client.method_calls)
-    await efloat.send_value(45.0)
+    await efloat.send_value(value=45.0)
     assert call_count == len(mock_client.method_calls)
 
 
@@ -91,13 +93,13 @@ async def test_hmfloat_special(
     central, mock_client, _ = central_client_factory
     efloat: DpFloat = cast(
         DpFloat,
-        central.get_generic_data_point("VCU0000054:2", "SETPOINT"),
+        central.get_generic_data_point(channel_address="VCU0000054:2", parameter="SETPOINT"),
     )
     assert efloat.usage == DataPointUsage.NO_CREATE
     assert efloat.unit == "°C"
     assert efloat.values is None
     assert efloat.value is None
-    await efloat.send_value(8.0)
+    await efloat.send_value(value=8.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000054:2",
         paramset_key=ParamsetKey.VALUES,
@@ -106,7 +108,7 @@ async def test_hmfloat_special(
     )
     assert efloat.value == 8.0
 
-    await efloat.send_value("VENT_OPEN")
+    await efloat.send_value(value="VENT_OPEN")
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU0000054:2",
         paramset_key=ParamsetKey.VALUES,
@@ -137,7 +139,7 @@ async def test_hminteger(
     central, mock_client, _ = central_client_factory
     einteger: DpInteger = cast(
         DpInteger,
-        central.get_generic_data_point("VCU4984404:1", "SET_POINT_MODE"),
+        central.get_generic_data_point(channel_address="VCU4984404:1", parameter="SET_POINT_MODE"),
     )
     assert einteger.usage == DataPointUsage.NO_CREATE
     assert einteger.unit is None
@@ -145,7 +147,7 @@ async def test_hminteger(
     assert einteger.max == 3
     assert einteger.values is None
     assert einteger.value is None
-    await einteger.send_value(3)
+    await einteger.send_value(value=3)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU4984404:1",
         paramset_key=ParamsetKey.VALUES,
@@ -154,7 +156,7 @@ async def test_hminteger(
     )
     assert einteger.value == 3
 
-    await einteger.send_value(1.0)
+    await einteger.send_value(value=1.0)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU4984404:1",
         paramset_key=ParamsetKey.VALUES,
@@ -163,9 +165,11 @@ async def test_hminteger(
     )
     assert einteger.value == 1
 
-    await central.data_point_event(const.INTERFACE_ID, "VCU4984404:1", "SET_POINT_MODE", 2)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4984404:1", parameter="SET_POINT_MODE", value=2
+    )
     assert einteger.value == 2
-    await einteger.send_value(6)
+    await einteger.send_value(value=6)
     assert mock_client.method_calls[-1] != call.set_value(
         channel_address="VCU4984404:1",
         paramset_key=ParamsetKey.VALUES,
@@ -176,7 +180,7 @@ async def test_hminteger(
     assert einteger.value == 2
 
     call_count = len(mock_client.method_calls)
-    await einteger.send_value(6)
+    await einteger.send_value(value=6)
     assert call_count == len(mock_client.method_calls)
 
 
@@ -210,10 +214,10 @@ async def test_hmsysvarnumber(
     assert enumber.values is None
     assert enumber.value == 23.2
 
-    await enumber.send_variable(23.0)
+    await enumber.send_variable(value=23.0)
     assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="float_ext", value=23.0)
     assert enumber.value == 23.0
 
-    await enumber.send_variable(35.0)
+    await enumber.send_variable(value=35.0)
     # value over max won't change value
     assert enumber.value == 23.0

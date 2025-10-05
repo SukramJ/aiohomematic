@@ -149,6 +149,7 @@ class CustomDpCover(CustomDataPoint):
     @bind_collector()
     async def set_position(
         self,
+        *,
         position: int | None = None,
         tilt_position: int | None = None,
         collector: CallParameterCollector | None = None,
@@ -165,6 +166,7 @@ class CustomDpCover(CustomDataPoint):
 
     async def _set_level(
         self,
+        *,
         level: float | None = None,
         tilt_level: float | None = None,
         collector: CallParameterCollector | None = None,
@@ -194,21 +196,21 @@ class CustomDpCover(CustomDataPoint):
         return None
 
     @bind_collector()
-    async def open(self, collector: CallParameterCollector | None = None) -> None:
+    async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the cover."""
         if not self.is_state_change(open=True):
             return
         await self._set_level(level=self._open_level, collector=collector)
 
     @bind_collector()
-    async def close(self, collector: CallParameterCollector | None = None) -> None:
+    async def close(self, *, collector: CallParameterCollector | None = None) -> None:
         """Close the cover."""
         if not self.is_state_change(close=True):
             return
         await self._set_level(level=self._closed_level, collector=collector)
 
     @bind_collector(enabled=False)
-    async def stop(self, collector: CallParameterCollector | None = None) -> None:
+    async def stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
         await self._dp_stop.send_value(value=True, collector=collector)
 
@@ -243,6 +245,7 @@ class CustomDpWindowDrive(CustomDpCover):
 
     async def _set_level(
         self,
+        *,
         level: float | None = None,
         tilt_level: float | None = None,
         collector: CallParameterCollector | None = None,
@@ -321,6 +324,7 @@ class CustomDpBlind(CustomDpCover):
     @bind_collector(enabled=False)
     async def set_position(
         self,
+        *,
         position: int | None = None,
         tilt_position: int | None = None,
         collector: CallParameterCollector | None = None,
@@ -342,6 +346,7 @@ class CustomDpBlind(CustomDpCover):
 
     async def _set_level(
         self,
+        *,
         level: float | None = None,
         tilt_level: float | None = None,
         collector: CallParameterCollector | None = None,
@@ -392,6 +397,7 @@ class CustomDpBlind(CustomDpCover):
     @bind_collector()
     async def _send_level(
         self,
+        *,
         level: float,
         tilt_level: float,
         collector: CallParameterCollector | None = None,
@@ -408,7 +414,7 @@ class CustomDpBlind(CustomDpCover):
         await super()._set_level(level=level, collector=collector)
 
     @bind_collector(enabled=False)
-    async def open(self, collector: CallParameterCollector | None = None) -> None:
+    async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the cover and open the tilt."""
         if not self.is_state_change(open=True, tilt_open=True):
             return
@@ -419,7 +425,7 @@ class CustomDpBlind(CustomDpCover):
         )
 
     @bind_collector(enabled=False)
-    async def close(self, collector: CallParameterCollector | None = None) -> None:
+    async def close(self, *, collector: CallParameterCollector | None = None) -> None:
         """Close the cover and close the tilt."""
         if not self.is_state_change(close=True, tilt_close=True):
             return
@@ -430,7 +436,7 @@ class CustomDpBlind(CustomDpCover):
         )
 
     @bind_collector(enabled=False)
-    async def stop(self, collector: CallParameterCollector | None = None) -> None:
+    async def stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
         try:
             acquired: bool = await asyncio.wait_for(
@@ -446,26 +452,26 @@ class CustomDpBlind(CustomDpCover):
                 self._command_processing_lock.release()
 
     @bind_collector(enabled=False)
-    async def _stop(self, collector: CallParameterCollector | None = None) -> None:
+    async def _stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion. Do only call with _command_processing_lock held."""
         await super().stop(collector=collector)
 
     @bind_collector(enabled=False)
-    async def open_tilt(self, collector: CallParameterCollector | None = None) -> None:
+    async def open_tilt(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the tilt."""
         if not self.is_state_change(tilt_open=True):
             return
         await self._set_level(tilt_level=self._open_tilt_level, collector=collector)
 
     @bind_collector(enabled=False)
-    async def close_tilt(self, collector: CallParameterCollector | None = None) -> None:
+    async def close_tilt(self, *, collector: CallParameterCollector | None = None) -> None:
         """Close the tilt."""
         if not self.is_state_change(tilt_close=True):
             return
         await self._set_level(tilt_level=self._closed_level, collector=collector)
 
     @bind_collector(enabled=False)
-    async def stop_tilt(self, collector: CallParameterCollector | None = None) -> None:
+    async def stop_tilt(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion. Use only when command_processing_lock is held."""
         await self.stop(collector=collector)
 
@@ -481,16 +487,16 @@ class CustomDpBlind(CustomDpCover):
             return True
         return super().is_state_change(**kwargs)
 
-    def _get_combined_value(self, level: float | None = None, tilt_level: float | None = None) -> str | None:
+    def _get_combined_value(self, *, level: float | None = None, tilt_level: float | None = None) -> str | None:
         """Return the combined parameter."""
         if level is None and tilt_level is None:
             return None
         levels: list[str] = []
         # the resulting hex value is based on the doubled position
         if level is not None:
-            levels.append(convert_hm_level_to_cpv(hm_level=level))
+            levels.append(convert_hm_level_to_cpv(value=level))
         if tilt_level is not None:
-            levels.append(convert_hm_level_to_cpv(hm_level=tilt_level))
+            levels.append(convert_hm_level_to_cpv(value=tilt_level))
 
         if levels:
             return ",".join(levels)
@@ -513,7 +519,7 @@ class CustomDpIpBlind(CustomDpBlind):
         """Return operation mode of cover."""
         return self._dp_operation_mode.value
 
-    def _get_combined_value(self, level: float | None = None, tilt_level: float | None = None) -> str | None:
+    def _get_combined_value(self, *, level: float | None = None, tilt_level: float | None = None) -> str | None:
         """Return the combined parameter."""
         if level is None and tilt_level is None:
             return None
@@ -563,6 +569,7 @@ class CustomDpGarage(CustomDataPoint):
     @bind_collector()
     async def set_position(
         self,
+        *,
         position: int | None = None,
         tilt_position: int | None = None,
         collector: CallParameterCollector | None = None,
@@ -599,26 +606,26 @@ class CustomDpGarage(CustomDataPoint):
         return None
 
     @bind_collector()
-    async def open(self, collector: CallParameterCollector | None = None) -> None:
+    async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the garage door."""
         if not self.is_state_change(open=True):
             return
         await self._dp_door_command.send_value(value=_GarageDoorCommand.OPEN, collector=collector)
 
     @bind_collector()
-    async def close(self, collector: CallParameterCollector | None = None) -> None:
+    async def close(self, *, collector: CallParameterCollector | None = None) -> None:
         """Close the garage door."""
         if not self.is_state_change(close=True):
             return
         await self._dp_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
 
     @bind_collector(enabled=False)
-    async def stop(self, collector: CallParameterCollector | None = None) -> None:
+    async def stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
         await self._dp_door_command.send_value(value=_GarageDoorCommand.STOP, collector=collector)
 
     @bind_collector()
-    async def vent(self, collector: CallParameterCollector | None = None) -> None:
+    async def vent(self, *, collector: CallParameterCollector | None = None) -> None:
         """Move the garage door to vent position."""
         if not self.is_state_change(vent=True):
             return
@@ -636,6 +643,7 @@ class CustomDpGarage(CustomDataPoint):
 
 
 def make_ip_cover(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -649,6 +657,7 @@ def make_ip_cover(
 
 
 def make_rf_cover(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -662,6 +671,7 @@ def make_rf_cover(
 
 
 def make_ip_blind(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -675,6 +685,7 @@ def make_ip_blind(
 
 
 def make_ip_garage(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -688,6 +699,7 @@ def make_ip_garage(
 
 
 def make_ip_hdm(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -701,6 +713,7 @@ def make_ip_hdm(
 
 
 def make_rf_blind(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -714,6 +727,7 @@ def make_rf_blind(
 
 
 def make_rf_window_drive(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

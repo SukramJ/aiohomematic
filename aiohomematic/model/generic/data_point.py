@@ -38,6 +38,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -60,7 +61,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             return self._get_data_point_usage()
         return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
-    async def event(self, value: Any, received_at: datetime) -> None:
+    async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
         self._device.client.last_value_send_cache.remove_last_value_send(
             dpk=self.dpk,
@@ -82,15 +83,16 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             Parameter.UN_REACH,
             Parameter.STICKY_UN_REACH,
         ):
-            self._device.fire_device_updated_callback(self._unique_id)
+            self._device.fire_device_updated_callback()
             self._central.fire_homematic_callback(
                 event_type=EventType.DEVICE_AVAILABILITY,
-                event_data=self.get_event_data(new_value),
+                event_data=self.get_event_data(value=new_value),
             )
 
     @inspector
     async def send_value(
         self,
+        *,
         value: InputParameterT,
         collector: hme.CallParameterCollector | None = None,
         collector_order: int = 50,
@@ -123,7 +125,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             value=converted_value,
         )
 
-    def _prepare_value_for_sending(self, value: InputParameterT, do_validate: bool = True) -> ParameterT:
+    def _prepare_value_for_sending(self, *, value: InputParameterT, do_validate: bool = True) -> ParameterT:
         """Prepare value, if required, before send."""
         return value  # type: ignore[return-value]
 
@@ -151,7 +153,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             else DataPointUsage.DATA_POINT
         )
 
-    def is_state_change(self, value: ParameterT) -> bool:
+    def is_state_change(self, *, value: ParameterT) -> bool:
         """
         Check if the state/value changes.
 

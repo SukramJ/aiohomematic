@@ -78,7 +78,7 @@ async def test_ceswitch(
     assert switch.value is True
 
     await switch.turn_off()
-    switch.set_timer_on_time(35.4)
+    switch.set_timer_on_time(on_time=35.4)
     await switch.turn_on()
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="VCU2128127:4",
@@ -117,7 +117,7 @@ async def test_hmswitch(
 ) -> None:
     """Test HmSwitch."""
     central, mock_client, _ = central_client_factory
-    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point("VCU2128127:4", "STATE"))
+    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
     assert switch.service_method_names == (
         "send_value",
@@ -157,7 +157,7 @@ async def test_hmswitch(
         value=True,
     )
     assert switch.value is True
-    await switch.set_on_time(35.4)
+    await switch.set_on_time(on_time=35.4)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU2128127:4",
         paramset_key=ParamsetKey.VALUES,
@@ -199,5 +199,5 @@ async def test_hmsysvarswitch(
     assert switch.usage == DataPointUsage.DATA_POINT
 
     assert switch.value is False
-    await switch.send_variable(True)
+    await switch.send_variable(value=True)
     assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm_ext", value=True)

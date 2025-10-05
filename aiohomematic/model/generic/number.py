@@ -24,7 +24,7 @@ class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[Number
     _category = DataPointCategory.NUMBER
 
     def _prepare_number_for_sending(
-        self, value: int | float | str, type_converter: type, do_validate: bool = True
+        self, *, value: int | float | str, type_converter: type, do_validate: bool = True
     ) -> NumberParameterT:
         """Prepare value before sending."""
         if not do_validate or (
@@ -47,7 +47,7 @@ class DpFloat(BaseDpNumber[float | None]):
 
     __slots__ = ()
 
-    def _prepare_value_for_sending(self, value: int | float | str, do_validate: bool = True) -> float | None:
+    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> float | None:
         """Prepare value before sending."""
         return self._prepare_number_for_sending(value=value, type_converter=float, do_validate=do_validate)
 
@@ -66,7 +66,7 @@ class DpInteger(BaseDpNumber[int | None]):
 
     __slots__ = ()
 
-    def _prepare_value_for_sending(self, value: int | float | str, do_validate: bool = True) -> int | None:
+    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int | None:
         """Prepare value before sending."""
         return self._prepare_number_for_sending(value=value, type_converter=int, do_validate=do_validate)
 

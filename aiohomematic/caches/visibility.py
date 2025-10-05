@@ -239,7 +239,7 @@ _IGNORED_PARAMETERS_START_RE: Final = re.compile(
 )
 
 
-def _parameter_is_wildcard_ignored(parameter: TParameterName) -> bool:
+def _parameter_is_wildcard_ignored(*, parameter: TParameterName) -> bool:
     """Check if a parameter matches common wildcard patterns."""
     return bool(_IGNORED_PARAMETERS_END_RE.match(parameter) or _IGNORED_PARAMETERS_START_RE.match(parameter))
 
@@ -260,7 +260,7 @@ _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[TModelName, frozenset[Parameter
 
 
 @cache
-def _get_parameters_for_model_prefix(model_prefix: str | None) -> frozenset[Parameter] | None:
+def _get_parameters_for_model_prefix(*, model_prefix: str | None) -> frozenset[Parameter] | None:
     """Return the dict value by wildcard type."""
     if model_prefix is None:
         return None
@@ -359,6 +359,7 @@ class ParameterVisibilityCache:
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
     ) -> None:
         """Init the parameter visibility cache."""
@@ -419,7 +420,7 @@ class ParameterVisibilityCache:
         self._process_un_ignore_entries(lines=self._raw_un_ignores)
 
     def _resolve_prefix_key(
-        self, model_l: TModelName, mapping: Mapping[str, object], cache_dict: dict[TModelName, str | None]
+        self, *, model_l: TModelName, mapping: Mapping[str, object], cache_dict: dict[TModelName, str | None]
     ) -> str | None:
         """Resolve and memoize the first key in mapping that prefixes model_l."""
         dt_short_key = cache_dict.get(model_l)
@@ -428,7 +429,7 @@ class ParameterVisibilityCache:
             cache_dict[model_l] = dt_short_key
         return dt_short_key
 
-    def model_is_ignored(self, model: TModelName) -> bool:
+    def model_is_ignored(self, *, model: TModelName) -> bool:
         """Check if a model should be ignored for custom data points."""
         return element_matches_key(
             search_elements=self._ignore_custom_device_definition_models,
@@ -437,6 +438,7 @@ class ParameterVisibilityCache:
 
     def parameter_is_ignored(
         self,
+        *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
@@ -506,6 +508,7 @@ class ParameterVisibilityCache:
 
     def _parameter_is_un_ignored(
         self,
+        *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
@@ -555,6 +558,7 @@ class ParameterVisibilityCache:
 
     def parameter_is_un_ignored(
         self,
+        *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
@@ -590,7 +594,12 @@ class ParameterVisibilityCache:
         )
 
     def should_skip_parameter(
-        self, channel: hmd.Channel, paramset_key: ParamsetKey, parameter: TParameterName, parameter_is_un_ignored: bool
+        self,
+        *,
+        channel: hmd.Channel,
+        paramset_key: ParamsetKey,
+        parameter: TParameterName,
+        parameter_is_un_ignored: bool,
     ) -> bool:
         """Determine if a parameter should be skipped."""
         if self.parameter_is_ignored(
@@ -613,7 +622,7 @@ class ParameterVisibilityCache:
 
         return paramset_key == ParamsetKey.MASTER and not parameter_is_un_ignored
 
-    def _process_un_ignore_entries(self, lines: Iterable[str]) -> None:
+    def _process_un_ignore_entries(self, *, lines: Iterable[str]) -> None:
         """Batch process un_ignore entries into cache."""
         for line in lines:
             # ignore empty line
@@ -637,7 +646,7 @@ class ParameterVisibilityCache:
                 )
 
     def _get_un_ignore_line_details(
-        self, line: str
+        self, *, line: str
     ) -> tuple[TModelName, TUnIgnoreChannelNo, TParameterName, ParamsetKey] | str | None:
         """
         Check the format of the line for un_ignore file.
@@ -715,6 +724,7 @@ class ParameterVisibilityCache:
 
     def _add_complex_un_ignore_entry(
         self,
+        *,
         model: TModelName,
         channel_no: TUnIgnoreChannelNo,
         paramset_key: ParamsetKey,
@@ -739,6 +749,7 @@ class ParameterVisibilityCache:
 
     def parameter_is_hidden(
         self,
+        *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
@@ -757,6 +768,7 @@ class ParameterVisibilityCache:
 
     def is_relevant_paramset(
         self,
+        *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
     ) -> bool:

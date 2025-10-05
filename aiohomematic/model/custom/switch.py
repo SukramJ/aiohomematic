@@ -60,7 +60,7 @@ class CustomDpSwitch(CustomDataPoint):
         return self._dp_state.value
 
     @bind_collector()
-    async def turn_on(self, collector: CallParameterCollector | None = None, on_time: float | None = None) -> None:
+    async def turn_on(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch on."""
         if on_time is not None:
             self.set_timer_on_time(on_time=on_time)
@@ -72,7 +72,7 @@ class CustomDpSwitch(CustomDataPoint):
         await self._dp_state.turn_on(collector=collector)
 
     @bind_collector()
-    async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch off."""
         self.reset_timer_on_time()
         if not self.is_state_change(off=True):
@@ -93,6 +93,7 @@ class CustomDpSwitch(CustomDataPoint):
 
 
 def make_ip_switch(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

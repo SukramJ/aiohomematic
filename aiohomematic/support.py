@@ -54,7 +54,7 @@ from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, get_
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-def extract_exc_args(exc: Exception) -> tuple[Any, ...] | Any:
+def extract_exc_args(*, exc: Exception) -> tuple[Any, ...] | Any:
     """Return the first arg, if there is only one arg."""
     if exc.args:
         return exc.args[0] if len(exc.args) == 1 else exc.args
@@ -62,6 +62,7 @@ def extract_exc_args(exc: Exception) -> tuple[Any, ...] | Any:
 
 
 def build_xml_rpc_uri(
+    *,
     host: str,
     port: int | None,
     path: str | None,
@@ -80,6 +81,7 @@ def build_xml_rpc_uri(
 
 
 def build_xml_rpc_headers(
+    *,
     username: str,
     password: str,
 ) -> list[tuple[str, str]]:
@@ -90,6 +92,7 @@ def build_xml_rpc_headers(
 
 
 def check_config(
+    *,
     central_name: str,
     host: str,
     username: str,
@@ -111,10 +114,10 @@ def check_config(
         config_failures.append("Username must not be empty")
     if not password:
         config_failures.append("Password is required")
-    if not check_password(password):
+    if not check_password(password=password):
         config_failures.append("Password is not valid")
     try:
-        check_or_create_directory(storage_folder)
+        check_or_create_directory(directory=storage_folder)
     except BaseHomematicException as bhexc:
         config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
@@ -129,7 +132,7 @@ def check_config(
     return config_failures
 
 
-def has_primary_client(interface_configs: AbstractSet[hmcl.InterfaceConfig]) -> bool:
+def has_primary_client(*, interface_configs: AbstractSet[hmcl.InterfaceConfig]) -> bool:
     """Check if all configured clients exists in central."""
     for interface_config in interface_configs:
         if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
@@ -137,7 +140,7 @@ def has_primary_client(interface_configs: AbstractSet[hmcl.InterfaceConfig]) -> 
     return False
 
 
-def delete_file(folder: str, file_name: str) -> None:
+def delete_file(*, folder: str, file_name: str) -> None:
     """Delete the file."""
     file_path = os.path.join(folder, file_name)
     if (
@@ -148,7 +151,7 @@ def delete_file(folder: str, file_name: str) -> None:
         os.unlink(file_path)
 
 
-def check_or_create_directory(directory: str) -> bool:
+def check_or_create_directory(*, directory: str) -> bool:
     """Check / create directory."""
     if not directory:
         return False
@@ -162,12 +165,12 @@ def check_or_create_directory(directory: str) -> bool:
     return True
 
 
-def parse_sys_var(data_type: SysvarType | None, raw_value: Any) -> Any:
+def parse_sys_var(*, data_type: SysvarType | None, raw_value: Any) -> Any:
     """Parse system variables to fix type."""
     if not data_type:
         return raw_value
     if data_type in (SysvarType.ALARM, SysvarType.LOGIC):
-        return to_bool(raw_value)
+        return to_bool(value=raw_value)
     if data_type == SysvarType.FLOAT:
         return float(raw_value)
     if data_type in (SysvarType.INTEGER, SysvarType.LIST):
@@ -175,7 +178,7 @@ def parse_sys_var(data_type: SysvarType | None, raw_value: Any) -> Any:
     return raw_value
 
 
-def to_bool(value: Any) -> bool:
+def to_bool(*, value: Any) -> bool:
     """Convert defined string values to bool."""
     if isinstance(value, bool):
         return value
@@ -186,7 +189,7 @@ def to_bool(value: Any) -> bool:
     return value.lower() in ["y", "yes", "t", "true", "on", "1"]
 
 
-def check_password(password: str | None) -> bool:
+def check_password(*, password: str | None) -> bool:
     """Check password."""
     if password is None:
         return False
@@ -200,7 +203,7 @@ def check_password(password: str | None) -> bool:
     return True
 
 
-def regular_to_default_dict_hook(origin: dict) -> defaultdict[Any, Any]:
+def regular_to_default_dict_hook(origin: dict, /) -> defaultdict[Any, Any]:
     """Use defaultdict in json.loads object_hook."""
     new_dict: Callable = lambda: defaultdict(new_dict)
     new_instance = new_dict()
@@ -208,7 +211,7 @@ def regular_to_default_dict_hook(origin: dict) -> defaultdict[Any, Any]:
     return cast(defaultdict[Any, Any], new_instance)
 
 
-def _create_tls_context(verify_tls: bool) -> ssl.SSLContext:
+def _create_tls_context(*, verify_tls: bool) -> ssl.SSLContext:
     """Create tls verified/unverified context."""
     sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     if not verify_tls:
@@ -225,48 +228,48 @@ _DEFAULT_NO_VERIFY_SSL_CONTEXT = _create_tls_context(verify_tls=False)
 _DEFAULT_SSL_CONTEXT = _create_tls_context(verify_tls=True)
 
 
-def get_tls_context(verify_tls: bool) -> ssl.SSLContext:
+def get_tls_context(*, verify_tls: bool) -> ssl.SSLContext:
     """Return tls verified/unverified context."""
     return _DEFAULT_SSL_CONTEXT if verify_tls else _DEFAULT_NO_VERIFY_SSL_CONTEXT
 
 
-def get_channel_address(device_address: str, channel_no: int | None) -> str:
+def get_channel_address(*, device_address: str, channel_no: int | None) -> str:
     """Return the channel address."""
     return device_address if channel_no is None else f"{device_address}:{channel_no}"
 
 
-def get_device_address(address: str) -> str:
+def get_device_address(*, address: str) -> str:
     """Return the device part of an address."""
     return get_split_channel_address(channel_address=address)[0]
 
 
-def get_channel_no(address: str) -> int | None:
+def get_channel_no(*, address: str) -> int | None:
     """Return the channel part of an address."""
     return get_split_channel_address(channel_address=address)[1]
 
 
-def is_address(address: str) -> bool:
+def is_address(*, address: str) -> bool:
     """Check if it is a address."""
     return is_device_address(address=address) or is_channel_address(address=address)
 
 
-def is_channel_address(address: str) -> bool:
+def is_channel_address(*, address: str) -> bool:
     """Check if it is a channel address."""
     return CHANNEL_ADDRESS_PATTERN.match(address) is not None
 
 
-def is_device_address(address: str) -> bool:
+def is_device_address(*, address: str) -> bool:
     """Check if it is a device address."""
     return DEVICE_ADDRESS_PATTERN.match(address) is not None
 
 
-def is_paramset_key(paramset_key: ParamsetKey | str) -> bool:
+def is_paramset_key(*, paramset_key: ParamsetKey | str) -> bool:
     """Check if it is a paramset key."""
     return isinstance(paramset_key, ParamsetKey) or (isinstance(paramset_key, str) and paramset_key in ParamsetKey)
 
 
 @lru_cache(maxsize=4096)
-def get_split_channel_address(channel_address: str) -> tuple[str, int | None]:
+def get_split_channel_address(*, channel_address: str) -> tuple[str, int | None]:
     """
     Return the device part of an address.
 
@@ -281,7 +284,7 @@ def get_split_channel_address(channel_address: str) -> tuple[str, int | None]:
     return channel_address, None
 
 
-def changed_within_seconds(last_change: datetime, max_age: int = MAX_CACHE_AGE) -> bool:
+def changed_within_seconds(*, last_change: datetime, max_age: int = MAX_CACHE_AGE) -> bool:
     """DataPoint has been modified within X minutes."""
     if last_change == INIT_DATETIME:
         return False
@@ -297,7 +300,7 @@ def find_free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def get_ip_addr(host: str, port: int) -> str | None:
+def get_ip_addr(host: str, port: int, /) -> str | None:
     """Get local_ip from socket."""
     try:
         socket.gethostbyname(host)
@@ -314,7 +317,7 @@ def get_ip_addr(host: str, port: int) -> str | None:
     return local_ip
 
 
-def is_hostname(hostname: str | None) -> bool:
+def is_hostname(*, hostname: str | None) -> bool:
     """Return True if hostname is valid."""
     if not hostname:
         return False
@@ -333,7 +336,7 @@ def is_hostname(hostname: str | None) -> bool:
     return all(ALLOWED_HOSTNAME_PATTERN.match(label) for label in labels)
 
 
-def is_ipv4_address(address: str | None) -> bool:
+def is_ipv4_address(*, address: str | None) -> bool:
     """Return True if ipv4_address is valid."""
     if not address:
         return False
@@ -344,12 +347,13 @@ def is_ipv4_address(address: str | None) -> bool:
     return True
 
 
-def is_port(port: int) -> bool:
+def is_port(*, port: int) -> bool:
     """Return True if port is valid."""
     return 0 <= port <= 65535
 
 
 def element_matches_key(
+    *,
     search_elements: str | Collection[str],
     compare_with: str | None,
     search_key: str | None = None,
@@ -401,7 +405,7 @@ def element_matches_key(
     return False
 
 
-def _get_search_key(search_elements: Collection[str], search_key: str) -> str | None:
+def _get_search_key(*, search_elements: Collection[str], search_key: str) -> str | None:
     """Search for a matching key in a collection."""
     for element in search_elements:
         if search_key.startswith(element):
@@ -446,7 +450,7 @@ def debug_enabled() -> bool:
     return False
 
 
-def hash_sha256(value: Any) -> str:
+def hash_sha256(*, value: Any) -> str:
     """
     Hash a value with sha256.
 
@@ -459,26 +463,26 @@ def hash_sha256(value: Any) -> str:
         data = orjson.dumps(value, option=orjson.OPT_SORT_KEYS | orjson.OPT_NON_STR_KEYS)
     except Exception:
         # Fallback: convert to a hashable representation and use repr()
-        data = repr(_make_value_hashable(value)).encode()
+        data = repr(_make_value_hashable(value=value)).encode()
     hasher.update(data)
     return base64.b64encode(hasher.digest()).decode()
 
 
-def _make_value_hashable(value: Any) -> Any:
+def _make_value_hashable(*, value: Any) -> Any:
     """Make a hashable object."""
     if isinstance(value, tuple | list):
-        return tuple(_make_value_hashable(e) for e in value)
+        return tuple(_make_value_hashable(value=e) for e in value)
 
     if isinstance(value, dict):
-        return tuple(sorted((k, _make_value_hashable(v)) for k, v in value.items()))
+        return tuple(sorted((k, _make_value_hashable(value=v)) for k, v in value.items()))
 
     if isinstance(value, set | frozenset):
-        return tuple(sorted(_make_value_hashable(e) for e in value))
+        return tuple(sorted(_make_value_hashable(value=e) for e in value))
 
     return value
 
 
-def get_rx_modes(mode: int) -> tuple[RxMode, ...]:
+def get_rx_modes(*, mode: int) -> tuple[RxMode, ...]:
     """Convert int to rx modes."""
     rx_modes: set[RxMode] = set()
     if mode & RxMode.LAZY_CONFIG:
@@ -498,14 +502,14 @@ def get_rx_modes(mode: int) -> tuple[RxMode, ...]:
     return tuple(rx_modes)
 
 
-def supports_rx_mode(command_rx_mode: CommandRxMode, rx_modes: tuple[RxMode, ...]) -> bool:
+def supports_rx_mode(*, command_rx_mode: CommandRxMode, rx_modes: tuple[RxMode, ...]) -> bool:
     """Check if rx mode is supported."""
     return (command_rx_mode == CommandRxMode.BURST and RxMode.BURST in rx_modes) or (
         command_rx_mode == CommandRxMode.WAKEUP and RxMode.WAKEUP in rx_modes
     )
 
 
-def cleanup_text_from_html_tags(text: str) -> str:
+def cleanup_text_from_html_tags(*, text: str) -> str:
     """Cleanup text from html tags."""
     return re.sub(HTMLTAG_PATTERN, "", text)
 
@@ -515,7 +519,7 @@ def cleanup_text_from_html_tags(text: str) -> str:
 _BOUNDARY_MSG = "error_boundary"
 
 
-def _safe_log_context(context: Mapping[str, Any] | None) -> dict[str, Any]:
+def _safe_log_context(*, context: Mapping[str, Any] | None) -> dict[str, Any]:
     """Extract safe context from a mapping."""
     ctx: dict[str, Any] = {}
     if not context:
@@ -565,7 +569,9 @@ def log_boundary_error(
         log_message += f" {message}"
 
     if log_context:
-        log_message += f" ctx={orjson.dumps(_safe_log_context(log_context), option=orjson.OPT_SORT_KEYS).decode()}"
+        log_message += (
+            f" ctx={orjson.dumps(_safe_log_context(context=log_context), option=orjson.OPT_SORT_KEYS).decode()}"
+        )
 
     # Choose level if not provided:
     if (chosen_level := level) is None:

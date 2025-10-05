@@ -28,7 +28,7 @@ class Looper:
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         self._loop = asyncio.get_event_loop()
 
-    async def block_till_done(self, wait_time: float | None = None) -> None:
+    async def block_till_done(self, *, wait_time: float | None = None) -> None:
         """
         Block until all pending work is done.
 
@@ -39,14 +39,14 @@ class Looper:
         start_time: float | None = None
         deadline: float | None = (monotonic() + wait_time) if wait_time is not None else None
         current_task = asyncio.current_task()
-        while tasks := [task for task in self._tasks if task is not current_task and not cancelling(task)]:
+        while tasks := [task for task in self._tasks if task is not current_task and not cancelling(task=task)]:
             # If we have a deadline and have exceeded it, log remaining tasks and break
             if deadline is not None and monotonic() >= deadline:
                 for task in tasks:
                     _LOGGER.warning("Shutdown timeout reached; task still pending: %s", task)
                 break
 
-            await self._await_and_log_pending(tasks)
+            await self._await_and_log_pending(pending=tasks)
 
             if start_time is None:
                 # Avoid calling monotonic() until we know
@@ -63,7 +63,7 @@ class Looper:
                 for task in tasks:
                     _LOGGER.debug("Waiting for task: %s", task)
 
-    async def _await_and_log_pending(self, pending: Collection[asyncio.Future[Any]]) -> None:
+    async def _await_and_log_pending(self, *, pending: Collection[asyncio.Future[Any]]) -> None:
         """Await and log tasks that take a long time."""
         wait_time = 0
         while pending:
@@ -74,7 +74,7 @@ class Looper:
             for task in pending:
                 _LOGGER.debug("Waited %s seconds for task: %s", wait_time, task)
 
-    def create_task(self, target: Coroutine[Any, Any, Any], name: str) -> None:
+    def create_task(self, *, target: Coroutine[Any, Any, Any], name: str) -> None:
         """Add task to the executor pool."""
         try:
             self._loop.call_soon_threadsafe(self._async_create_task, target, name)
@@ -92,7 +92,7 @@ class Looper:
         task.add_done_callback(self._tasks.remove)
         return task
 
-    def run_coroutine(self, coro: Coroutine, name: str) -> Any:
+    def run_coroutine(self, *, coro: Coroutine, name: str) -> Any:
         """Call coroutine from sync."""
         try:
             return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
@@ -128,7 +128,7 @@ class Looper:
                 task.cancel()
 
 
-def cancelling(task: asyncio.Future[Any]) -> bool:
+def cancelling(*, task: asyncio.Future[Any]) -> bool:
     """Return True if task is cancelling."""
     return bool((cancelling_ := getattr(task, "cancelling", None)) and cancelling_())
 

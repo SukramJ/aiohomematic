@@ -31,10 +31,10 @@ class Example:
         self.SLEEPCOUNTER = 0
         self.central = None
 
-    def _systemcallback(self, name, *args, **kwargs):
+    def _systemcallback(self, system_event: str, **kwargs):
         self.got_devices = True
         if (
-            name == const.BackendSystemEvent.NEW_DEVICES
+            system_event == const.BackendSystemEvent.NEW_DEVICES
             and kwargs
             and kwargs.get("device_descriptions")
             and len(kwargs["device_descriptions"]) > 0
@@ -42,7 +42,7 @@ class Example:
             self.got_devices = True
             return
         if (
-            name == const.BackendSystemEvent.DEVICES_CREATED
+            system_event == const.BackendSystemEvent.DEVICES_CREATED
             and kwargs
             and kwargs.get("new_data_points")
             and len(kwargs["new_data_points"]) > 0
@@ -84,7 +84,7 @@ class Example:
         # For testing we set a short INIT_TIMEOUT
         const.INIT_TIMEOUT = 10
         # Add callbacks to handle the events and see what happens on the system.
-        self.central.register_backend_system_callback(self._systemcallback)
+        self.central.register_backend_system_callback(cb=self._systemcallback)
 
         await self.central.start()
         while not self.got_devices and self.SLEEPCOUNTER < 20:

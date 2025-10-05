@@ -33,7 +33,7 @@ GOT_DEVICES = False
 class Factory:
     """Factory for a central with one local client."""
 
-    def __init__(self, client_session: ClientSession | None = None):
+    def __init__(self, *, client_session: ClientSession | None = None):
         """Init the central factory."""
         self._client_session = client_session
         self.system_event_mock = MagicMock()
@@ -60,8 +60,8 @@ class Factory:
             start_direct=True,
         ).create_central()
 
-        central.register_backend_system_callback(self.system_event_mock)
-        central.register_homematic_callback(self.ha_event_mock)
+        central.register_backend_system_callback(cb=self.system_event_mock)
+        central.register_homematic_callback(cb=self.ha_event_mock)
 
         return central
 
@@ -245,7 +245,7 @@ async def get_pydev_ccu_central_unit_full(
         program_markers=(),
         sysvar_markers=(),
     ).create_central()
-    central.register_backend_system_callback(systemcallback)
+    central.register_backend_system_callback(cb=systemcallback)
     await central.start()
 
     # Fallback watcher: set the event as soon as any device appears to avoid long waits

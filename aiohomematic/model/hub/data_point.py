@@ -47,6 +47,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         address: str,
         data: HubData,
@@ -132,6 +133,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         data: SystemVariableData,
     ) -> None:
@@ -206,7 +208,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the path data of the data_point."""
         return SysvarPathData(vid=self._vid)
 
-    async def event(self, value: Any, received_at: datetime) -> None:
+    async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
         self.write_value(value=value, write_at=received_at)
 
@@ -215,7 +217,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._temporary_value = None
         self._reset_temporary_timestamps()
 
-    def write_value(self, value: Any, write_at: datetime) -> None:
+    def write_value(self, *, value: Any, write_at: datetime) -> None:
         """Set variable value on the backend."""
         self._reset_temporary_value()
 
@@ -230,7 +232,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self._state_uncertain = False
         self.fire_data_point_updated_callback()
 
-    def _write_temporary_value(self, value: Any, write_at: datetime) -> None:
+    def _write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
         """Update the temporary value of the data_point."""
         self._reset_temporary_value()
 
@@ -243,7 +245,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             self._state_uncertain = True
         self.fire_data_point_updated_callback()
 
-    def _convert_value(self, old_value: Any, new_value: Any) -> Any:
+    def _convert_value(self, *, old_value: Any, new_value: Any) -> Any:
         """Convert to value to SYSVAR_TYPE."""
         if new_value is None:
             return None
@@ -261,10 +263,12 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         return value
 
     @inspector
-    async def send_variable(self, value: Any) -> None:
+    async def send_variable(self, *, value: Any) -> None:
         """Set variable value on the backend."""
         if client := self.central.primary_client:
-            await client.set_system_variable(legacy_name=self._legacy_name, value=parse_sys_var(self._data_type, value))
+            await client.set_system_variable(
+                legacy_name=self._legacy_name, value=parse_sys_var(data_type=self._data_type, raw_value=value)
+            )
         self._write_temporary_value(value=value, write_at=datetime.now())
 
 
@@ -280,6 +284,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         data: ProgramData,
     ) -> None:
@@ -315,7 +320,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         """Return the program id."""
         return self._pid
 
-    def update_data(self, data: ProgramData) -> None:
+    def update_data(self, *, data: ProgramData) -> None:
         """Set variable value on the backend."""
         do_update: bool = False
         if self._is_active != data.is_active:

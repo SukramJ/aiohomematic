@@ -184,6 +184,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     def __init__(
         self,
+        *,
         username: str,
         password: str,
         device_url: str,
@@ -204,7 +205,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         self._password: Final = password
         self._looper = Looper()
         self._tls: Final = tls
-        self._tls_context: Final[SSLContext | bool] = get_tls_context(verify_tls) if tls else False
+        self._tls_context: Final[SSLContext | bool] = get_tls_context(verify_tls=verify_tls) if tls else False
         self._url: Final = f"{device_url}{PATH_JSON_RPC}"
         self._script_cache: Final[dict[str, str]] = {}
         self._last_session_id_refresh: datetime | None = None
@@ -234,10 +235,10 @@ class JsonRpcAioHttpClient(LogContextMixin):
             self._last_session_id_refresh = datetime.now()
             return self._session_id is not None
         if self._session_id:
-            self._session_id = await self._do_renew_login(self._session_id)
+            self._session_id = await self._do_renew_login(session_id=self._session_id)
         return self._session_id is not None
 
-    async def _do_renew_login(self, session_id: str) -> str | None:
+    async def _do_renew_login(self, *, session_id: str) -> str | None:
         """Renew JSON-RPC session or perform login."""
         if self._has_session_recently_refreshed:
             return session_id
@@ -291,6 +292,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def _post(
         self,
+        *,
         method: _JsonRpcMethod,
         extra_params: dict[_JsonKey, Any] | None = None,
         use_default_params: bool = True,
@@ -328,6 +330,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def _post_script(
         self,
+        *,
         script_name: str,
         extra_params: dict[_JsonKey, Any] | None = None,
         keep_session: bool = True,
@@ -370,7 +373,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return response
 
-    async def _get_script(self, script_name: str) -> str | None:
+    async def _get_script(self, *, script_name: str) -> str | None:
         """Return a script from the script cache. Load if required."""
         if script_name in self._script_cache:
             return self._script_cache[script_name]
@@ -387,6 +390,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def _do_post(
         self,
+        *,
         session_id: bool | str,
         method: _JsonRpcMethod,
         extra_params: dict[_JsonKey, Any] | None = None,
@@ -527,7 +531,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
             )
             raise ClientException(exc) from exc
 
-    async def _get_json_reponse(self, response: ClientResponse) -> dict[str, Any] | Any:
+    async def _get_json_reponse(self, *, response: ClientResponse) -> dict[str, Any] | Any:
         """Return the json object from response."""
         try:
             return await response.json(encoding=UTF_8)
@@ -543,7 +547,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         """Logout of the backend."""
         try:
             await self._looper.block_till_done()
-            await self._do_logout(self._session_id)
+            await self._do_logout(session_id=self._session_id)
         except BaseHomematicException:
             _LOGGER.debug("LOGOUT: logout failed")
 
@@ -552,7 +556,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         if self._is_internal_session:
             await self._client_session.close()
 
-    async def _do_logout(self, session_id: str | None) -> None:
+    async def _do_logout(self, *, session_id: str | None) -> None:
         """Logout of the backend."""
         if not session_id:
             _LOGGER.debug("DO_LOGOUT: Not logged in. Not logging out.")
@@ -579,7 +583,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         """Clear the current session."""
         self._session_id = None
 
-    async def execute_program(self, pid: str) -> bool:
+    async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
         params = {
             _JsonKey.ID: pid,
@@ -596,7 +600,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return True
 
-    async def set_program_state(self, pid: str, state: bool) -> bool:
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
         params = {
             _JsonKey.ID: pid,
@@ -613,7 +617,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return True
 
-    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
         params = {_JsonKey.NAME: legacy_name, _JsonKey.VALUE: value}
         if isinstance(value, bool):
@@ -639,7 +643,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return True
 
-    async def delete_system_variable(self, name: str) -> bool:
+    async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
         params = {_JsonKey.NAME: name}
         response = await self._post(
@@ -654,7 +658,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return True
 
-    async def get_system_variable(self, name: str) -> Any:
+    async def get_system_variable(self, *, name: str) -> Any:
         """Get single system variable from the backend."""
         params = {_JsonKey.NAME: name}
         response = await self._post(
@@ -666,7 +670,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return response[_JsonKey.RESULT]
 
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from the backend."""
         variables: list[SystemVariableData] = []
@@ -843,7 +847,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return channel_ids_function
 
-    async def get_device_description(self, interface: Interface, address: str) -> DeviceDescription | None:
+    async def get_device_description(self, *, interface: Interface, address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
         device_description: DeviceDescription | None = None
         params = {
@@ -860,7 +864,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return device_description
 
     @staticmethod
-    def _convert_device_description(json_data: dict[str, Any]) -> DeviceDescription:
+    def _convert_device_description(*, json_data: dict[str, Any]) -> DeviceDescription:
         """Convert json data dor device description."""
         device_description = DeviceDescription(
             TYPE=json_data["type"],
@@ -904,7 +908,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return device_details
 
     async def get_paramset(
-        self, interface: Interface, address: str, paramset_key: ParamsetKey | str
+        self, *, interface: Interface, address: str, paramset_key: ParamsetKey | str
     ) -> dict[str, Any] | None:
         """Get paramset from the backend."""
         paramset: dict[str, Any] = {}
@@ -927,6 +931,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
     async def put_paramset(
         self,
+        *,
         interface: Interface,
         address: str,
         paramset_key: ParamsetKey | str,
@@ -952,7 +957,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
                 str(json_result),
             )
 
-    async def get_value(self, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str) -> Any:
+    async def get_value(self, *, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str) -> Any:
         """Get value from the backend."""
         value: Any = None
         params = {
@@ -973,7 +978,9 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return value
 
-    async def set_value(self, interface: Interface, address: str, parameter: str, value_type: str, value: Any) -> None:
+    async def set_value(
+        self, *, interface: Interface, address: str, parameter: str, value_type: str, value: Any
+    ) -> None:
         """Set value to the backend."""
         params = {
             _JsonKey.INTERFACE: interface,
@@ -996,7 +1003,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
             )
 
     async def get_paramset_description(
-        self, interface: Interface, address: str, paramset_key: ParamsetKey
+        self, *, interface: Interface, address: str, paramset_key: ParamsetKey
     ) -> Mapping[str, ParameterData] | None:
         """Get paramset description from the backend."""
         paramset_description: dict[str, ParameterData] = {}
@@ -1015,7 +1022,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
         return paramset_description
 
     @staticmethod
-    def _convert_parameter_data(json_data: dict[str, Any]) -> ParameterData:
+    def _convert_parameter_data(*, json_data: dict[str, Any]) -> ParameterData:
         """Convert json data to parameter data."""
 
         _type = json_data["TYPE"]
@@ -1039,7 +1046,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return parameter_data
 
-    async def get_all_device_data(self, interface: Interface) -> Mapping[str, Any]:
+    async def get_all_device_data(self, *, interface: Interface) -> Mapping[str, Any]:
         """Get the all device data of the backend."""
         all_device_data: dict[str, Any] = {}
         params = {
@@ -1064,7 +1071,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return all_device_data
 
-    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get the all programs of the backend."""
         all_programs: list[ProgramData] = []
 
@@ -1118,7 +1125,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return tuple(all_programs)
 
-    async def is_present(self, interface: Interface) -> bool:
+    async def is_present(self, *, interface: Interface) -> bool:
         """Get value from the backend."""
         value: bool = False
         params = {_JsonKey.INTERFACE: interface}
@@ -1131,7 +1138,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return value
 
-    async def has_program_ids(self, channel_hmid: str) -> bool:
+    async def has_program_ids(self, *, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         params = {_JsonKey.ID: channel_hmid}
         response = await self._post(
@@ -1206,7 +1213,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
         return True
 
-    async def list_devices(self, interface: Interface) -> tuple[DeviceDescription, ...]:
+    async def list_devices(self, *, interface: Interface) -> tuple[DeviceDescription, ...]:
         """List devices from the backend."""
         devices: tuple[DeviceDescription, ...] = ()
         _LOGGER.debug("LIST_DEVICES: Getting all available interfaces")
@@ -1262,6 +1269,7 @@ class JsonRpcAioHttpClient(LogContextMixin):
 
 
 def _get_params(
+    *,
     session_id: bool | str,
     extra_params: dict[_JsonKey, Any] | None,
     use_default_params: bool,

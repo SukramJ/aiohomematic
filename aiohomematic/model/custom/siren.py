@@ -86,7 +86,7 @@ class BaseCustomDpSiren(CustomDataPoint):
 
     @abstractmethod
     @bind_collector()
-    async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
 
 
@@ -169,7 +169,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         await self._dp_duration.send_value(value=duration, collector=collector)
 
     @bind_collector()
-    async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
         await self._dp_acoustic_alarm_selection.send_value(
             value=self._dp_acoustic_alarm_selection.default, collector=collector
@@ -224,6 +224,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     @bind_collector()
     async def turn_on(
         self,
+        *,
         collector: CallParameterCollector | None = None,
         **kwargs: Unpack[SirenOnArgs],
     ) -> None:
@@ -231,12 +232,13 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.ON, collector=collector)
 
     @bind_collector()
-    async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.OFF, collector=collector)
 
 
 def make_ip_siren(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:
@@ -250,6 +252,7 @@ def make_ip_siren(
 
 
 def make_ip_siren_smoke(
+    *,
     channel: hmd.Channel,
     custom_config: CustomConfig,
 ) -> None:

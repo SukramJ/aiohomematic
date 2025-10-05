@@ -33,7 +33,7 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return cast(SensorT, value)
         if convert_func := self._get_converter_func():
-            return cast(SensorT, convert_func(self._value))
+            return cast(SensorT, convert_func(value=self._value))
         return cast(
             SensorT,
             check_length_and_log(name=self.name, value=self._value)
@@ -48,7 +48,7 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
         return None
 
 
-def _fix_rssi(value: Any) -> int | None:
+def _fix_rssi(*, value: Any) -> int | None:
     """
     Fix rssi value.
 

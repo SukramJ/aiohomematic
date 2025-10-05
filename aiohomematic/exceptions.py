@@ -102,12 +102,13 @@ class InternalBackendException(BaseHomematicException):
         super().__init__("InternalBackendException", *args)
 
 
-def _reduce_args(args: tuple[Any, ...]) -> tuple[Any, ...] | Any:
+def _reduce_args(*, args: tuple[Any, ...]) -> tuple[Any, ...] | Any:
     """Return the first arg, if there is only one arg."""
     return args[0] if len(args) == 1 else args
 
 
 def log_exception[**P, R](
+    *,
     exc_type: type[BaseException],
     logger: logging.Logger = _LOGGER,
     level: int = logging.ERROR,

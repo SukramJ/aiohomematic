@@ -46,7 +46,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 @inspector
-def create_data_points_and_events(device: hmd.Device) -> None:
+def create_data_points_and_events(*, device: hmd.Device) -> None:
     """Create the data points associated to this device."""
     for channel in device.channels.values():
         for paramset_key, paramsset_key_descriptions in channel.paramset_descriptions.items():
@@ -83,6 +83,7 @@ def create_data_points_and_events(device: hmd.Device) -> None:
 
 
 def _process_parameter(
+    *,
     channel: hmd.Channel,
     paramset_key: ParamsetKey,
     parameter: str,
@@ -119,7 +120,7 @@ def _process_parameter(
         )
 
 
-def _should_create_event(parameter_data: ParameterData, parameter: str) -> bool:
+def _should_create_event(*, parameter_data: ParameterData, parameter: str) -> bool:
     """Determine if an event should be created for the parameter."""
     return bool(
         parameter_data["OPERATIONS"] & Operations.EVENT
@@ -127,7 +128,7 @@ def _should_create_event(parameter_data: ParameterData, parameter: str) -> bool:
     )
 
 
-def _should_skip_data_point(parameter_data: ParameterData, parameter: str, parameter_is_un_ignored: bool) -> bool:
+def _should_skip_data_point(*, parameter_data: ParameterData, parameter: str, parameter_is_un_ignored: bool) -> bool:
     """Determine if a data point should be skipped."""
     return bool(
         (not parameter_data["OPERATIONS"] & Operations.EVENT and not parameter_data["OPERATIONS"] & Operations.WRITE)

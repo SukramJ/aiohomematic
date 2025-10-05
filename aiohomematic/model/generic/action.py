@@ -27,7 +27,7 @@ class DpAction(GenericDataPoint[None, Any]):
     _category = DataPointCategory.ACTION
     _validate_state_change = False
 
-    def _prepare_value_for_sending(self, value: Any, do_validate: bool = True) -> Any:
+    def _prepare_value_for_sending(self, *, value: Any, do_validate: bool = True) -> Any:
         """Prepare value before sending."""
         if (index := get_index_of_value_from_value_list(value=value, value_list=self._values)) is not None:
             return index

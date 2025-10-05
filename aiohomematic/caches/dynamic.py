@@ -60,7 +60,7 @@ class CommandCache:
         "_last_send_command",
     )
 
-    def __init__(self, interface_id: str) -> None:
+    def __init__(self, *, interface_id: str) -> None:
         """Init command cache."""
         self._interface_id: Final = interface_id
         # (paramset_key, device_address, channel_no, parameter)
@@ -68,6 +68,7 @@ class CommandCache:
 
     def add_set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -89,7 +90,7 @@ class CommandCache:
         return {(dpk, value)}
 
     def add_put_paramset(
-        self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
         dpk_values: set[DP_KEY_VALUE] = set()
@@ -106,10 +107,10 @@ class CommandCache:
         return dpk_values
 
     def add_combined_parameter(
-        self, parameter: str, channel_address: str, combined_parameter: str
+        self, *, parameter: str, channel_address: str, combined_parameter: str
     ) -> set[DP_KEY_VALUE]:
         """Add data from combined parameter."""
-        if values := convert_combined_parameter_to_paramset(parameter=parameter, cpv=combined_parameter):
+        if values := convert_combined_parameter_to_paramset(parameter=parameter, value=combined_parameter):
             return self.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey.VALUES,
@@ -117,7 +118,7 @@ class CommandCache:
             )
         return set()
 
-    def get_last_value_send(self, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
+    def get_last_value_send(self, *, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
         """Return the last send values."""
         if result := self._last_send_command.get(dpk):
             value, last_send_dt = result
@@ -131,6 +132,7 @@ class CommandCache:
 
     def remove_last_value_send(
         self,
+        *,
         dpk: DataPointKey,
         value: Any = None,
         max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT,
@@ -158,7 +160,7 @@ class DeviceDetailsCache:
         "_refreshed_at",
     )
 
-    def __init__(self, central: hmcu.CentralUnit) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Init the device details cache."""
         self._central: Final = central
         self._channel_rooms: Final[dict[str, set[str]]] = defaultdict(set)
@@ -169,7 +171,7 @@ class DeviceDetailsCache:
         self._names_cache: Final[dict[str, str]] = {}
         self._refreshed_at = INIT_DATETIME
 
-    async def load(self, direct_call: bool = False) -> None:
+    async def load(self, *, direct_call: bool = False) -> None:
         """Fetch names from the backend."""
         if direct_call is False and changed_within_seconds(
             last_change=self._refreshed_at, max_age=int(MAX_CACHE_AGE / 3)
@@ -194,27 +196,27 @@ class DeviceDetailsCache:
         """Return device channel ids."""
         return self._device_channel_ids
 
-    def add_name(self, address: str, name: str) -> None:
+    def add_name(self, *, address: str, name: str) -> None:
         """Add name to cache."""
         self._names_cache[address] = name
 
-    def get_name(self, address: str) -> str | None:
+    def get_name(self, *, address: str) -> str | None:
         """Get name from cache."""
         return self._names_cache.get(address)
 
-    def add_interface(self, address: str, interface: Interface) -> None:
+    def add_interface(self, *, address: str, interface: Interface) -> None:
         """Add interface to cache."""
         self._interface_cache[address] = interface
 
-    def get_interface(self, address: str) -> Interface:
+    def get_interface(self, *, address: str) -> Interface:
         """Get interface from cache."""
         return self._interface_cache.get(address) or Interface.BIDCOS_RF
 
-    def add_address_id(self, address: str, hmid: str) -> None:
+    def add_address_id(self, *, address: str, hmid: str) -> None:
         """Add channel id for a channel."""
         self._device_channel_ids[address] = hmid
 
-    def get_address_id(self, address: str) -> str:
+    def get_address_id(self, *, address: str) -> str:
         """Get id for address."""
         return self._device_channel_ids.get(address) or "0"
 
@@ -232,11 +234,11 @@ class DeviceDetailsCache:
                 _device_rooms[get_device_address(address=channel_address)].update(rooms)
         return _device_rooms
 
-    def get_device_rooms(self, device_address: str) -> set[str]:
+    def get_device_rooms(self, *, device_address: str) -> set[str]:
         """Return all rooms by device_address."""
         return set(self._device_rooms.get(device_address, ()))
 
-    def get_channel_rooms(self, channel_address: str) -> set[str]:
+    def get_channel_rooms(self, *, channel_address: str) -> set[str]:
         """Return rooms by channel_address."""
         return self._channel_rooms[channel_address]
 
@@ -246,13 +248,13 @@ class DeviceDetailsCache:
             return await client.get_all_functions()
         return {}
 
-    def get_function_text(self, address: str) -> str | None:
+    def get_function_text(self, *, address: str) -> str | None:
         """Return function by address."""
         if functions := self._functions.get(address):
             return ",".join(functions)
         return None
 
-    def remove_device(self, device: Device) -> None:
+    def remove_device(self, *, device: Device) -> None:
         """Remove name from cache."""
         if device.address in self._names_cache:
             del self._names_cache[device.address]
@@ -278,14 +280,14 @@ class CentralDataCache:
         "_value_cache",
     )
 
-    def __init__(self, central: hmcu.CentralUnit) -> None:
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Init the central data cache."""
         self._central: Final = central
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
 
-    async def load(self, direct_call: bool = False, interface: Interface | None = None) -> None:
+    async def load(self, *, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from the backend."""
         _LOGGER.debug("load: Loading device data for %s", self._central.name)
         for client in self._central.clients:
@@ -300,6 +302,7 @@ class CentralDataCache:
 
     async def refresh_data_point_data(
         self,
+        *,
         paramset_key: ParamsetKey | None = None,
         interface: Interface | None = None,
         direct_call: bool = False,
@@ -308,13 +311,14 @@ class CentralDataCache:
         for dp in self._central.get_readable_generic_data_points(paramset_key=paramset_key, interface=interface):
             await dp.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
 
-    def add_data(self, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
+    def add_data(self, *, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""
         self._value_cache[interface] = all_device_data
         self._refreshed_at[interface] = datetime.now()
 
     def get_data(
         self,
+        *,
         interface: Interface,
         channel_address: str,
         parameter: str,
@@ -324,7 +328,7 @@ class CentralDataCache:
             return iface_cache.get(f"{interface}.{channel_address}.{parameter}", NO_CACHE_ENTRY)
         return NO_CACHE_ENTRY
 
-    def clear(self, interface: Interface | None = None) -> None:
+    def clear(self, *, interface: Interface | None = None) -> None:
         """Clear the cache."""
         if interface:
             self._value_cache[interface] = {}
@@ -333,11 +337,11 @@ class CentralDataCache:
             for _interface in self._central.interfaces:
                 self.clear(interface=_interface)
 
-    def _get_refreshed_at(self, interface: Interface) -> datetime:
+    def _get_refreshed_at(self, *, interface: Interface) -> datetime:
         """Return when cache has been refreshed."""
         return self._refreshed_at.get(interface, INIT_DATETIME)
 
-    def _is_empty(self, interface: Interface) -> bool:
+    def _is_empty(self, *, interface: Interface) -> bool:
         """Return if cache is empty for the given interface."""
         # If there is no data stored for the requested interface, treat as empty.
         if not self._value_cache.get(interface):
@@ -365,6 +369,7 @@ class PingPongCache:
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         interface_id: str,
         allowed_delta: int = PING_PONG_MISMATCH_COUNT,
@@ -422,7 +427,7 @@ class PingPongCache:
         self._pending_pong_logged = False
         self._unknown_pong_logged = False
 
-    def handle_send_ping(self, ping_ts: datetime) -> None:
+    def handle_send_ping(self, *, ping_ts: datetime) -> None:
         """Handle send ping timestamp."""
         self._pending_pongs.add(ping_ts)
         self._check_and_fire_pong_event(
@@ -436,7 +441,7 @@ class PingPongCache:
             ping_ts,
         )
 
-    def handle_received_pong(self, pong_ts: datetime) -> None:
+    def handle_received_pong(self, *, pong_ts: datetime) -> None:
         """Handle received pong timestamp."""
         if pong_ts in self._pending_pongs:
             self._pending_pongs.remove(pong_ts)
@@ -492,7 +497,7 @@ class PingPongCache:
                     pong_ts,
                 )
 
-    def _check_and_fire_pong_event(self, event_type: InterfaceEventType, pong_mismatch_count: int) -> None:
+    def _check_and_fire_pong_event(self, *, event_type: InterfaceEventType, pong_mismatch_count: int) -> None:
         """Fire an event about the pong status."""
 
         def _fire_event(mismatch_count: int) -> None:

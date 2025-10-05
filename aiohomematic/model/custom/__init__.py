@@ -152,7 +152,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 @inspector
-def create_custom_data_points(device: hmd.Device) -> None:
+def create_custom_data_points(*, device: hmd.Device) -> None:
     """Decides which data point category should be used, and creates the required data points."""
 
     if device.ignore_for_custom_data_point:
@@ -163,7 +163,7 @@ def create_custom_data_points(device: hmd.Device) -> None:
             device.model,
         )
         return
-    if data_point_definition_exists(device.model):
+    if data_point_definition_exists(model=device.model):
         _LOGGER.debug(
             "CREATE_CUSTOM_DATA_POINTS: Handling custom data point integration: %s, %s, %s",
             device.interface_id,
@@ -174,4 +174,4 @@ def create_custom_data_points(device: hmd.Device) -> None:
         # Call the custom creation function.
         for custom_config in get_custom_configs(model=device.model):
             for channel in device.channels.values():
-                custom_config.make_ce_func(channel, custom_config)
+                custom_config.make_ce_func(channel=channel, custom_config=custom_config)

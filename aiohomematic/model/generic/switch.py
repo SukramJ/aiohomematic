@@ -32,19 +32,19 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
         return cast(bool | None, self._value)
 
     @inspector
-    async def turn_on(self, collector: CallParameterCollector | None = None, on_time: float | None = None) -> None:
+    async def turn_on(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch on."""
         if on_time is not None:
             await self.set_on_time(on_time=on_time)
         await self.send_value(value=True, collector=collector)
 
     @inspector
-    async def turn_off(self, collector: CallParameterCollector | None = None) -> None:
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch off."""
         await self.send_value(value=False, collector=collector)
 
     @inspector
-    async def set_on_time(self, on_time: float) -> None:
+    async def set_on_time(self, *, on_time: float) -> None:
         """Set the on time value in seconds."""
         await self._client.set_value(
             channel_address=self._channel.address,

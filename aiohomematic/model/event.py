@@ -73,6 +73,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
         parameter: str,
         parameter_data: ParameterData,
@@ -98,15 +99,15 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         """Return the event_type of the event."""
         return self._event_type
 
-    async def event(self, value: Any, received_at: datetime) -> None:
+    async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
         if self.event_type in DATA_POINT_EVENTS:
             self.fire_data_point_updated_callback()
         self._set_modified_at(modified_at=received_at)
-        self.fire_event(value)
+        self.fire_event(value=value)
 
     @loop_check
-    def fire_event(self, value: Any) -> None:
+    def fire_event(self, *, value: Any) -> None:
         """Do what is needed to fire an event."""
         self._central.fire_homematic_callback(event_type=self.event_type, event_data=self.get_event_data(value=value))
 
@@ -137,7 +138,7 @@ class DeviceErrorEvent(GenericEvent):
 
     _event_type = EventType.DEVICE_ERROR
 
-    async def event(self, value: Any, received_at: datetime) -> None:
+    async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
         old_value, new_value = self.write_value(value=value, write_at=received_at)
 
@@ -173,7 +174,7 @@ def create_event_and_append_to_channel(channel: hmd.Channel, parameter: str, par
             event_t=event_t, channel=channel, parameter=parameter, parameter_data=parameter_data
         )
     ):
-        channel.add_data_point(event)
+        channel.add_data_point(data_point=event)
 
 
 def _determine_event_type(parameter: str, parameter_data: ParameterData) -> type[GenericEvent] | None:

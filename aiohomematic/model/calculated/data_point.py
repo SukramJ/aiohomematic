@@ -59,6 +59,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
 
     def __init__(
         self,
+        *,
         channel: hmd.Channel,
     ) -> None:
         """Initialize the data point."""
@@ -92,7 +93,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         )
 
     def _add_data_point[DataPointT: hmge.GenericDataPoint](
-        self, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
+        self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Add a new data point."""
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
@@ -109,7 +110,12 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         )
 
     def _add_device_data_point[DataPointT: hmge.GenericDataPoint](
-        self, channel_address: str, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
+        self,
+        *,
+        channel_address: str,
+        parameter: str,
+        paramset_key: ParamsetKey | None,
+        data_point_type: type[DataPointT],
     ) -> DataPointT:
         """Add a new data point."""
         if generic_data_point := self._channel.device.get_generic_data_point(
@@ -133,7 +139,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         return bool(self._operations & Operations.READ)
 
     @staticmethod
-    def is_relevant_for_model(channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the channel."""
         return False
 
@@ -286,7 +292,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self._calculated_parameter}"
 
-    async def load_data_point_value(self, call_source: CallSource, direct_call: bool = False) -> None:
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
@@ -306,7 +312,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
     @property
     def _should_fire_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
-        if self.fired_recently:  # pylint: disable=using-constant-test
+        if self.fired_event_recently:  # pylint: disable=using-constant-test
             return False
 
         if (relevant_values_data_point := self._relevant_values_data_points) is not None and len(
@@ -314,9 +320,9 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         ) <= 1:
             return True
 
-        return all(dp.fired_recently for dp in relevant_values_data_point)
+        return all(dp.fired_event_recently for dp in relevant_values_data_point)
 
-    def _unregister_data_point_updated_callback(self, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:

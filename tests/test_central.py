@@ -35,13 +35,13 @@ TEST_DEVICES: dict[str, str] = {
 
 
 class _FakeDevice:
-    def __init__(self, model: str) -> None:
+    def __init__(self, *, model: str) -> None:
         """Initialize a FakeDevice."""
         self.model = model
 
 
 class _FakeChannel:
-    def __init__(self, model: str, no: int | None) -> None:
+    def __init__(self, *, model: str, no: int | None) -> None:
         """Initialize a FakeChannel."""
         self.no = no
         self.device = _FakeDevice(model=model)
@@ -75,7 +75,7 @@ async def test_central_basics(
     assert central.version == "0"
     system_information = await central.validate_config_and_get_system_information()
     assert system_information.serial == "0815_4711"
-    device = central.get_device("VCU2128127")
+    device = central.get_device(address="VCU2128127")
     assert device
     dps = central.get_readable_generic_data_points()
     assert dps
@@ -194,7 +194,7 @@ async def test_device_un_ignore_etrv(
             )
             is expected_result
         )
-        if dp := central.get_generic_data_point(f"VCU3609622:{channel_no}", parameter):
+        if dp := central.get_generic_data_point(channel_address=f"VCU3609622:{channel_no}", parameter=parameter):
             assert dp.usage == DataPointUsage.DATA_POINT
     finally:
         await central.stop()
@@ -232,7 +232,7 @@ async def test_device_un_ignore_broll(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(f"VCU8537918:{channel_no}", parameter)
+        dp = central.get_generic_data_point(channel_address=f"VCU8537918:{channel_no}", parameter=parameter)
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -273,7 +273,9 @@ async def test_device_un_ignore_hm(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter)
+        dp = central.get_generic_data_point(
+            channel_address=f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter=parameter
+        )
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -356,7 +358,9 @@ async def test_device_un_ignore_hm2(
             )
             is expected_result
         )
-        dp = central.get_generic_data_point(f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter)
+        dp = central.get_generic_data_point(
+            channel_address=f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter=parameter
+        )
         if expected_result:
             assert dp
             assert dp.usage == DataPointUsage.DATA_POINT
@@ -650,7 +654,7 @@ async def test_virtual_remote_delete(
     central, _, _ = central_client_factory
     assert len(central.get_virtual_remotes()) == 1
 
-    assert central._get_virtual_remote("VCU0000057")
+    assert central._get_virtual_remote(device_address="VCU0000057")
 
     await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
 
@@ -713,8 +717,8 @@ async def test_central_callbacks(
         data={EventKey.AVAILABLE: False},
     )
     assert factory.ha_event_mock.call_args_list[-1] == call(
-        "homematic.interface",
-        {
+        event_type="homematic.interface",
+        event_data={
             "interface_id": "SOME_ID",
             "type": "callback",
             "data": {EventKey.AVAILABLE: False},
@@ -754,7 +758,7 @@ async def test_central_services(
     assert len(mock_client.method_calls) == 52
 
     await central.get_system_variable(legacy_name="SysVar_Name")
-    assert mock_client.method_calls[-1] == call.get_system_variable("SysVar_Name")
+    assert mock_client.method_calls[-1] == call.get_system_variable(name="SysVar_Name")
 
     assert len(mock_client.method_calls) == 53
     await central.set_system_variable(legacy_name="alarm", value=True)
@@ -842,7 +846,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
             await central.validate_config_and_get_system_information()
 
         with pytest.raises(AioHomematicException):
-            central.get_client("NOT_A_VALID_INTERFACE_ID")
+            central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID")
 
         await central.start()
         assert central.all_clients_active is False
@@ -853,7 +857,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
         assert len(central.get_data_points()) == 0
 
         assert await central.get_system_variable(legacy_name="SysVar_Name") is None
-        assert central._get_virtual_remote("VCU4264293") is None
+        assert central._get_virtual_remote(device_address="VCU4264293") is None
     finally:
         await central.stop()
 
@@ -882,10 +886,10 @@ async def test_ping_pong(
     assert client.ping_pong_cache.pending_pong_count == 1
     for ts_stored in list(client.ping_pong_cache._pending_pongs):
         await central.data_point_event(
-            interface_id,
-            "",
-            Parameter.PONG,
-            f"{interface_id}#{ts_stored.strftime(DATETIME_FORMAT_MILLIS)}",
+            interface_id=interface_id,
+            channel_address="",
+            parameter=Parameter.PONG,
+            value=f"{interface_id}#{ts_stored.strftime(DATETIME_FORMAT_MILLIS)}",
         )
     assert client.ping_pong_cache.pending_pong_count == 0
 
@@ -916,8 +920,8 @@ async def test_pending_pong_failure(
         count += 1
     assert client.ping_pong_cache.pending_pong_count == max_count
     assert factory.ha_event_mock.mock_calls[-1] == call(
-        EventType.INTERFACE,
-        {
+        event_type=EventType.INTERFACE,
+        event_data={
             "data": {
                 "central_name": "CentralTest",
                 "pong_mismatch_count": 16,
@@ -953,10 +957,10 @@ async def test_unknown_pong_failure(
     max_count = PING_PONG_MISMATCH_COUNT + 1
     while count < max_count:
         await central.data_point_event(
-            interface_id,
-            "",
-            Parameter.PONG,
-            f"{interface_id}#{datetime.now().strftime(DATETIME_FORMAT_MILLIS)}",
+            interface_id=interface_id,
+            channel_address="",
+            parameter=Parameter.PONG,
+            value=f"{interface_id}#{datetime.now().strftime(DATETIME_FORMAT_MILLIS)}",
         )
         count += 1
 
@@ -1008,9 +1012,9 @@ async def test_central_getter(
 ) -> None:
     """Test central getter."""
     central, _, _ = central_client_factory
-    assert central.get_device("123") is None
-    assert central.get_custom_data_point("123", 1) is None
-    assert central.get_generic_data_point("123", 1) is None
-    assert central.get_event("123", 1) is None
-    assert central.get_program_data_point("123") is None
+    assert central.get_device(address="123") is None
+    assert central.get_custom_data_point(address="123", channel_no=1) is None
+    assert central.get_generic_data_point(channel_address="123", parameter=1) is None
+    assert central.get_event(channel_address="123", parameter=1) is None
+    assert central.get_program_data_point(pid="123") is None
     assert central.get_sysvar_data_point(legacy_name="123") is None

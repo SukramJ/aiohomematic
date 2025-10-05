@@ -42,21 +42,21 @@ async def test_hmaction(
     central, mock_client, _ = central_client_factory
     action: DpAction = cast(
         DpAction,
-        central.get_generic_data_point("VCU9724704:1", "LOCK_TARGET_LEVEL"),
+        central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
     )
     assert action.usage == DataPointUsage.NO_CREATE
     assert action.is_readable is False
     assert action.value is None
     assert action.values == ("LOCKED", "UNLOCKED", "OPEN")
     assert action.hmtype == "ENUM"
-    await action.send_value("OPEN")
+    await action.send_value(value="OPEN")
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9724704:1",
         paramset_key=ParamsetKey.VALUES,
         parameter="LOCK_TARGET_LEVEL",
         value=2,
     )
-    await action.send_value(1)
+    await action.send_value(value=1)
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU9724704:1",
         paramset_key=ParamsetKey.VALUES,
@@ -65,5 +65,5 @@ async def test_hmaction(
     )
 
     call_count = len(mock_client.method_calls)
-    await action.send_value(1)
+    await action.send_value(value=1)
     assert (call_count + 1) == len(mock_client.method_calls)

@@ -23,11 +23,11 @@ class SysvarDpNumber(GenericSysvarDataPoint):
     _is_extended = True
 
     @inspector
-    async def send_variable(self, value: float) -> None:
+    async def send_variable(self, *, value: float) -> None:
         """Set the value of the data_point."""
         if value is not None and self.max is not None and self.min is not None:
             if self.min <= float(value) <= self.max:
-                await super().send_variable(value)
+                await super().send_variable(value=value)
             else:
                 _LOGGER.warning(
                     "SYSVAR.NUMBER failed: Invalid value: %s (min: %s, max: %s)",
@@ -36,4 +36,4 @@ class SysvarDpNumber(GenericSysvarDataPoint):
                     self.max,
                 )
             return
-        await super().send_variable(value)
+        await super().send_variable(value=value)

@@ -129,7 +129,7 @@ _CCU_JSON_VALUE_TYPE: Final = {
 class Client(ABC, LogContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
-    def __init__(self, client_config: _ClientConfig) -> None:
+    def __init__(self, *, client_config: _ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
         self._supports_xml_rpc = self.interface in INTERFACES_SUPPORTING_XML_RPC
@@ -211,7 +211,7 @@ class Client(ABC, LogContextMixin):
         """Return the version id of the client."""
         return self._config.version
 
-    def get_product_group(self, model: str) -> ProductGroup:
+    def get_product_group(self, *, model: str) -> ProductGroup:
         """Return the product group."""
         l_model = model.lower()
         if l_model.startswith("hmipw-"):
@@ -309,7 +309,7 @@ class Client(ABC, LogContextMixin):
             return await self.initialize_proxy()
         return ProxyInitState.DE_INIT_FAILED
 
-    def _mark_all_devices_forced_availability(self, forced_availability: ForcedDeviceAvailability) -> None:
+    def _mark_all_devices_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Mark device's availability state for this interface."""
         available = forced_availability != ForcedDeviceAvailability.FORCE_FALSE
         if self._available != available:
@@ -419,44 +419,44 @@ class Client(ABC, LogContextMixin):
 
     @abstractmethod
     @inspector(re_raise=False, no_raise_return=False)
-    async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
+    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Send ping to the backend to generate PONG event."""
 
     @abstractmethod
     @inspector
-    async def execute_program(self, pid: str) -> bool:
+    async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
 
     @abstractmethod
     @inspector
-    async def set_program_state(self, pid: str, state: bool) -> bool:
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
 
     @abstractmethod
     @inspector(measure_performance=True)
-    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
 
     @abstractmethod
     @inspector
-    async def delete_system_variable(self, name: str) -> bool:
+    async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
 
     @abstractmethod
     @inspector
-    async def get_system_variable(self, name: str) -> Any:
+    async def get_system_variable(self, *, name: str) -> Any:
         """Get single system variable from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False)
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
 
     @abstractmethod
     @inspector(re_raise=False)
-    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
+    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
 
     @abstractmethod
@@ -482,7 +482,7 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector(re_raise=False)
-    async def get_device_description(self, device_address: str) -> DeviceDescription | None:
+    async def get_device_description(self, *, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
         try:
             if device_description := cast(
@@ -495,7 +495,7 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector
-    async def add_link(self, sender_address: str, receiver_address: str, name: str, description: str) -> None:
+    async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""
         try:
             await self._proxy.addLink(sender_address, receiver_address, name, description)
@@ -505,7 +505,7 @@ class Client(ABC, LogContextMixin):
             ) from bhexc
 
     @inspector
-    async def remove_link(self, sender_address: str, receiver_address: str) -> None:
+    async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Return a list of links."""
         try:
             await self._proxy.removeLink(sender_address, receiver_address)
@@ -515,7 +515,7 @@ class Client(ABC, LogContextMixin):
             ) from bhexc
 
     @inspector
-    async def get_link_peers(self, address: str) -> tuple[str, ...] | None:
+    async def get_link_peers(self, *, address: str) -> tuple[str, ...] | None:
         """Return a list of link pers."""
         try:
             return tuple(await self._proxy.getLinkPeers(address))
@@ -525,7 +525,7 @@ class Client(ABC, LogContextMixin):
             ) from bhexc
 
     @inspector
-    async def get_links(self, address: str, flags: int) -> dict[str, Any]:
+    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
         try:
             return cast(dict[str, Any], await self._proxy.getLinks(address, flags))
@@ -533,7 +533,7 @@ class Client(ABC, LogContextMixin):
             raise ClientException(f"GET_LINKS failed with for: {address}: {extract_exc_args(exc=bhexc)}") from bhexc
 
     @inspector
-    async def get_metadata(self, address: str, data_id: str) -> dict[str, Any]:
+    async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
         """Return the metadata for an object."""
         try:
             return cast(dict[str, Any], await self._proxy.getMetadata(address, data_id))
@@ -543,7 +543,7 @@ class Client(ABC, LogContextMixin):
             ) from bhexc
 
     @inspector
-    async def set_metadata(self, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
+    async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
         try:
             return cast(dict[str, Any], await self._proxy.setMetadata(address, data_id, value))
@@ -555,6 +555,7 @@ class Client(ABC, LogContextMixin):
     @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -581,6 +582,7 @@ class Client(ABC, LogContextMixin):
     @inspector(measure_performance=True)
     async def _set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -636,6 +638,7 @@ class Client(ABC, LogContextMixin):
 
     async def _exec_set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -647,7 +650,7 @@ class Client(ABC, LogContextMixin):
         else:
             await self._proxy.setValue(channel_address, parameter, value)
 
-    def _check_set_value(self, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any) -> Any:
+    def _check_set_value(self, *, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any) -> Any:
         """Check set_value."""
         return self._convert_value(
             channel_address=channel_address,
@@ -657,7 +660,7 @@ class Client(ABC, LogContextMixin):
             operation=Operations.WRITE,
         )
 
-    def _write_temporary_value(self, dpk_values: set[DP_KEY_VALUE]) -> None:
+    def _write_temporary_value(self, *, dpk_values: set[DP_KEY_VALUE]) -> None:
         """Write data point temp value."""
         for dpk, value in dpk_values:
             if (
@@ -672,6 +675,7 @@ class Client(ABC, LogContextMixin):
     @inspector(re_raise=False, no_raise_return=set())
     async def set_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -702,6 +706,7 @@ class Client(ABC, LogContextMixin):
     @inspector
     async def get_paramset(
         self,
+        *,
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
@@ -728,6 +733,7 @@ class Client(ABC, LogContextMixin):
     @inspector(measure_performance=True)
     async def put_paramset(
         self,
+        *,
         channel_address: str,
         paramset_key_or_link_address: ParamsetKey | str,
         values: dict[str, Any],
@@ -830,6 +836,7 @@ class Client(ABC, LogContextMixin):
 
     async def _exec_put_paramset(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
@@ -842,7 +849,7 @@ class Client(ABC, LogContextMixin):
             await self._proxy.putParamset(channel_address, paramset_key, values)
 
     def _check_put_paramset(
-        self, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> dict[str, Any]:
         """Check put_paramset."""
         checked_values: dict[str, Any] = {}
@@ -858,6 +865,7 @@ class Client(ABC, LogContextMixin):
 
     def _convert_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -886,6 +894,7 @@ class Client(ABC, LogContextMixin):
 
     def _get_parameter_type(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -900,7 +909,7 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector(re_raise=False)
-    async def fetch_paramset_description(self, channel_address: str, paramset_key: ParamsetKey) -> None:
+    async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
         """Fetch a specific paramset and add it to the known ones."""
         _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION: %s for %s", paramset_key, channel_address)
 
@@ -915,7 +924,7 @@ class Client(ABC, LogContextMixin):
             )
 
     @inspector(re_raise=False)
-    async def fetch_paramset_descriptions(self, device_description: DeviceDescription) -> None:
+    async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
         data = await self.get_paramset_descriptions(device_description=device_description)
         for address, paramsets in data.items():
@@ -930,7 +939,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_paramset_descriptions(
-        self, device_description: DeviceDescription
+        self, *, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
         """Get paramsets for provided device description."""
         paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
@@ -944,7 +953,7 @@ class Client(ABC, LogContextMixin):
         return paramsets
 
     async def _get_paramset_description(
-        self, address: str, paramset_key: ParamsetKey
+        self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Get paramset description from the backend."""
         try:
@@ -964,7 +973,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector
     async def get_all_paramset_descriptions(
-        self, device_descriptions: tuple[DeviceDescription, ...]
+        self, *, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
         """Get all paramset descriptions for provided device descriptions."""
         all_paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
@@ -973,7 +982,7 @@ class Client(ABC, LogContextMixin):
         return all_paramsets
 
     @inspector
-    async def has_program_ids(self, channel_hmid: str) -> bool:
+    async def has_program_ids(self, *, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         return False
 
@@ -991,12 +1000,12 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector
-    async def report_value_usage(self, address: str, value_id: str, ref_counter: int) -> bool:
+    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         return False
 
     @inspector
-    async def update_device_firmware(self, device_address: str) -> bool:
+    async def update_device_firmware(self, *, device_address: str) -> bool:
         """Update the firmware of a Homematic device."""
         if device := self.central.get_device(address=device_address):
             _LOGGER.info(
@@ -1021,7 +1030,7 @@ class Client(ABC, LogContextMixin):
         return False
 
     @inspector(re_raise=False)
-    async def update_paramset_descriptions(self, device_address: str) -> None:
+    async def update_paramset_descriptions(self, *, device_address: str) -> None:
         """Update paramsets descriptions for provided device_address."""
         if not self.central.device_descriptions.get_device_descriptions(interface_id=self.interface_id):
             _LOGGER.warning(
@@ -1052,7 +1061,7 @@ class Client(ABC, LogContextMixin):
 class ClientCCU(Client):
     """Client implementation for CCU backend."""
 
-    def __init__(self, client_config: _ClientConfig) -> None:
+    def __init__(self, *, client_config: _ClientConfig) -> None:
         """Initialize the Client."""
         self._json_rpc_client: Final = client_config.central.json_rpc_client
         super().__init__(client_config=client_config)
@@ -1112,7 +1121,7 @@ class ClientCCU(Client):
         )
 
     @inspector(re_raise=False, no_raise_return=False)
-    async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
+    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if _proxy is still initialized."""
         try:
             dt_now = datetime.now()
@@ -1139,22 +1148,22 @@ class ClientCCU(Client):
         return False
 
     @inspector
-    async def execute_program(self, pid: str) -> bool:
+    async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
         return await self._json_rpc_client.execute_program(pid=pid)
 
     @inspector
-    async def set_program_state(self, pid: str, state: bool) -> bool:
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
         return await self._json_rpc_client.set_program_state(pid=pid, state=state)
 
     @inspector
-    async def has_program_ids(self, channel_hmid: str) -> bool:
+    async def has_program_ids(self, *, channel_hmid: str) -> bool:
         """Return if a channel has program ids."""
         return await self._json_rpc_client.has_program_ids(channel_hmid=channel_hmid)
 
     @inspector
-    async def report_value_usage(self, address: str, value_id: str, ref_counter: int) -> bool:
+    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         try:
             return bool(await self._proxy.reportValueUsage(address, value_id, ref_counter))
@@ -1164,29 +1173,29 @@ class ClientCCU(Client):
             ) from bhexc
 
     @inspector(measure_performance=True)
-    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
         return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
 
     @inspector
-    async def delete_system_variable(self, name: str) -> bool:
+    async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
         return await self._json_rpc_client.delete_system_variable(name=name)
 
     @inspector
-    async def get_system_variable(self, name: str) -> Any:
+    async def get_system_variable(self, *, name: str) -> Any:
         """Get single system variable from the backend."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @inspector(re_raise=False)
-    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
+    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
         return await self._json_rpc_client.get_all_programs(markers=markers)
 
@@ -1228,7 +1237,7 @@ class ClientJsonCCU(ClientCCU):
         self._system_information = await self._get_system_information()
 
     @inspector(re_raise=False, no_raise_return=False)
-    async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
+    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
         return await self._json_rpc_client.is_present(interface=self.interface)
 
@@ -1238,7 +1247,7 @@ class ClientJsonCCU(ClientCCU):
         return False
 
     @inspector(re_raise=False)
-    async def get_device_description(self, device_address: str) -> DeviceDescription | None:
+    async def get_device_description(self, *, device_address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
         try:
             if device_description := await self._json_rpc_client.get_device_description(
@@ -1252,6 +1261,7 @@ class ClientJsonCCU(ClientCCU):
     @inspector
     async def get_paramset(
         self,
+        *,
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
@@ -1283,6 +1293,7 @@ class ClientJsonCCU(ClientCCU):
     @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -1332,7 +1343,7 @@ class ClientJsonCCU(ClientCCU):
         return None
 
     async def _get_paramset_description(
-        self, address: str, paramset_key: ParamsetKey
+        self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Get paramset description from the backend."""
         try:
@@ -1354,6 +1365,7 @@ class ClientJsonCCU(ClientCCU):
 
     async def _exec_put_paramset(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
@@ -1390,6 +1402,7 @@ class ClientJsonCCU(ClientCCU):
 
     async def _exec_set_value(
         self,
+        *,
         channel_address: str,
         parameter: str,
         value: Any,
@@ -1463,7 +1476,7 @@ class ClientHomegear(Client):
                 )
 
     @inspector(re_raise=False, no_raise_return=False)
-    async def check_connection_availability(self, handle_ping_pong: bool) -> bool:
+    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
         try:
             await self._proxy.clientServerInitialized(self.interface_id)
@@ -1480,35 +1493,35 @@ class ClientHomegear(Client):
         return False
 
     @inspector
-    async def execute_program(self, pid: str) -> bool:
+    async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
         return True
 
     @inspector
-    async def set_program_state(self, pid: str, state: bool) -> bool:
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
         return True
 
     @inspector(measure_performance=True)
-    async def set_system_variable(self, legacy_name: str, value: Any) -> bool:
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
         await self._proxy.setSystemVariable(legacy_name, value)
         return True
 
     @inspector
-    async def delete_system_variable(self, name: str) -> bool:
+    async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
         await self._proxy.deleteSystemVariable(name)
         return True
 
     @inspector
-    async def get_system_variable(self, name: str) -> Any:
+    async def get_system_variable(self, *, name: str) -> Any:
         """Get single system variable from the backend."""
         return await self._proxy.getSystemVariable(name)
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
         variables: list[SystemVariableData] = []
@@ -1518,7 +1531,7 @@ class ClientHomegear(Client):
         return tuple(variables)
 
     @inspector(re_raise=False)
-    async def get_all_programs(self, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
+    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
         return ()
 
@@ -1542,6 +1555,7 @@ class _ClientConfig:
 
     def __init__(
         self,
+        *,
         central: hmcu.CentralUnit,
         interface_config: InterfaceConfig,
     ) -> None:
@@ -1599,7 +1613,7 @@ class _ClientConfig:
         return "0"
 
     async def create_xml_rpc_proxy(
-        self, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
+        self, *, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
     ) -> XmlRpcProxy:
         """Return a XmlRPC proxy for the backend communication."""
         config = self.central.config
@@ -1633,6 +1647,7 @@ class InterfaceConfig:
 
     def __init__(
         self,
+        *,
         central_name: str,
         interface: Interface,
         port: int | None = None,
@@ -1679,6 +1694,7 @@ def get_client(interface_id: str) -> Client | None:
 
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
+    *,
     device: Device,
     dpk_values: set[DP_KEY_VALUE],
     wait_for_callback: int,
@@ -1697,7 +1713,7 @@ async def _wait_for_state_change_or_timeout(
 
 @measure_execution_time
 async def _track_single_data_point_state_change_or_timeout(
-    device: Device, dpk_value: DP_KEY_VALUE, wait_for_callback: int
+    *, device: Device, dpk_value: DP_KEY_VALUE, wait_for_callback: int
 ) -> None:
     """Wait for a data_point to change state."""
     ev = asyncio.Event()
@@ -1710,7 +1726,7 @@ async def _track_single_data_point_state_change_or_timeout(
                 dpk,
                 dp.value,
             )
-            if _isclose(value, dp.value):
+            if _isclose(value1=value, value2=dp.value):
                 _LOGGER.debug(
                     "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: Finished event %s with value %s",
                     dpk,
@@ -1747,7 +1763,7 @@ async def _track_single_data_point_state_change_or_timeout(
             unsub()
 
 
-def _isclose(value1: Any, value2: Any) -> bool:
+def _isclose(*, value1: Any, value2: Any) -> bool:
     """Check if the both values are close to each other."""
     if isinstance(value1, float):
         return bool(round(value1, 2) == round(value2, 2))

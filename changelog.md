@@ -1,6 +1,6 @@
 # Version 2025.10.3 (2025-10-06)
 
-- API cleanup: ensure that kw arguments are passed to the underlying function #2
+- Add Keyword-only method linter (mypy-style)
 
 # Version 2025.10.2 (2025-10-05)
 

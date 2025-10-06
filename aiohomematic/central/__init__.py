@@ -1640,7 +1640,7 @@ class _Scheduler(threading.Thread):
             ),
         ]
 
-    def _backend_system_callback(self, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+    def _backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
         """Handle event of new device creation, to delay the start of the sysvar scan."""
         if system_event == BackendSystemEvent.DEVICES_CREATED:
             self._devices_created = True

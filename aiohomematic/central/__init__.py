@@ -1084,7 +1084,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 save_device_descriptions = False
                 save_paramset_descriptions = False
                 _LOGGER.error(
-                    "ADD_NEW_DEVICES failed: %s [%s]",
+                    "UPDATE_CACHES_WITH_NEW_DEVICES failed: %s [%s]",
                     type(exc).__name__,
                     extract_exc_args(exc=exc),
                 )

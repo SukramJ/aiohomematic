@@ -999,6 +999,7 @@ class CallParameterCollector:
 
     def add_data_point(
         self,
+        *,
         data_point: BaseParameterDataPoint,
         value: Any,
         collector_order: int,

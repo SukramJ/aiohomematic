@@ -41,6 +41,7 @@ class Factory:
 
     async def get_raw_central(
         self,
+        *,
         interface_config: InterfaceConfig | None,
         un_ignore_list: list[str] | None = None,
         ignore_custom_device_definition_models: list[str] | None = None,
@@ -67,6 +68,7 @@ class Factory:
 
     async def get_unpatched_default_central(
         self,
+        *,
         address_device_translation: dict[str, str],
         do_mock_client: bool = True,
         ignore_devices_on_create: list[str] | None = None,
@@ -105,6 +107,7 @@ class Factory:
 
     async def get_default_central(
         self,
+        *,
         address_device_translation: dict[str, str],
         do_mock_client: bool = True,
         add_sysvars: bool = False,

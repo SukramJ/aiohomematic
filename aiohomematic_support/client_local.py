@@ -153,7 +153,7 @@ class ClientLocal(Client):  # pragma: no cover
 
     @inspector(re_raise=False)
     async def get_all_system_variables(
-        self, markers: tuple[DescriptionMarker | str, ...]
+        self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...]:
         """Get all system variables from the backend."""
         return ()
@@ -203,6 +203,7 @@ class ClientLocal(Client):  # pragma: no cover
     @inspector(log_level=logging.NOTSET)
     async def get_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -214,6 +215,7 @@ class ClientLocal(Client):  # pragma: no cover
     @inspector(re_raise=False, no_raise_return=set())
     async def set_value(
         self,
+        *,
         channel_address: str,
         paramset_key: ParamsetKey,
         parameter: str,
@@ -236,6 +238,7 @@ class ClientLocal(Client):  # pragma: no cover
     @inspector
     async def get_paramset(
         self,
+        *,
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
@@ -249,7 +252,7 @@ class ClientLocal(Client):  # pragma: no cover
         return {}
 
     async def _get_paramset_description(
-        self, address: str, paramset_key: ParamsetKey
+        self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Get paramset description from the backend."""
         if not self._local_resources:
@@ -277,6 +280,7 @@ class ClientLocal(Client):  # pragma: no cover
     @inspector(measure_performance=True)
     async def put_paramset(
         self,
+        *,
         channel_address: str,
         paramset_key_or_link_address: ParamsetKey | str,
         values: Any,
@@ -312,6 +316,7 @@ class ClientLocal(Client):  # pragma: no cover
 
     async def _load_all_json_files(
         self,
+        *,
         anchor: str,
         resource: str,
         include_list: list[str] | None = None,

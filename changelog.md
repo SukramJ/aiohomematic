@@ -1,4 +1,8 @@
-# Version 2025.10.2 (2025-10-5)
+# Version 2025.10.3 (2025-10-06)
+
+- API cleanup: ensure that kw arguments are passed to the underlying function #2
+
+# Version 2025.10.2 (2025-10-05)
 
 - API cleanup: ensure that kw arguments are passed to the underlying function
 

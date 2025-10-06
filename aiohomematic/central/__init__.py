@@ -92,6 +92,7 @@ from aiohomematic.const import (
     CONNECTION_CHECKER_INTERVAL,
     DATA_POINT_EVENTS,
     DATETIME_FORMAT_MILLIS,
+    DEFAULT_DELAY_NEW_DEVICE_CREATION,
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
     DEFAULT_ENABLE_PROGRAM_SCAN,
     DEFAULT_ENABLE_SYSVAR_SCAN,
@@ -1025,6 +1026,21 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Add new devices to central unit."""
         await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions)
 
+    async def append_new_devices(self) -> None:
+        """Append new devices to central unit, that have previously not been created."""
+        if not self._clients:
+            raise AioHomematicException(
+                f"APPEND_NEW_DEVICES failed: No clients initialized. Not appending new device to {self.name}."
+            )
+
+        if not self._config.delay_new_device_creation:
+            _LOGGER.debug("APPEND_NEW_DEVICES: No delay configured. Skipping.")
+            return
+        _LOGGER.debug("APPEND_NEW_DEVICES: Starting to append new devices for %s", self.name)
+
+        async with self._device_add_semaphore:
+            await self._create_new_devices(source=SourceOfDeviceCreation.NEW)
+
     @inspector(measure_performance=True)
     async def _add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
@@ -1049,26 +1065,27 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             return
 
         async with self._device_add_semaphore:
-            # Use mapping membership to avoid rebuilding known addresses and allow O(1) checks.
-            existing_map = self._device_descriptions.get_device_descriptions(interface_id=interface_id)
-            source = SourceOfDeviceCreation.NEW if existing_map else SourceOfDeviceCreation.INIT
-            await self._update_caches_with_new_devices(
-                interface_id=interface_id, device_descriptions=device_descriptions, existing_map=existing_map
+            source = (
+                SourceOfDeviceCreation.NEW
+                if self._device_descriptions.has_device_descriptions(interface_id=interface_id)
+                else SourceOfDeviceCreation.INIT
             )
-            if new_device_addresses := self._check_for_new_device_addresses():
-                await self._device_details.load()
-                await self._data_cache.load()
-                await self._create_devices(new_device_addresses=new_device_addresses, source=source)
+            await self._update_caches_with_new_devices(
+                interface_id=interface_id, device_descriptions=device_descriptions
+            )
+            if self._config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
+                return
+            await self._create_new_devices(source=source, interface_id=interface_id)
 
     async def _update_caches_with_new_devices(
         self,
         *,
         interface_id: str,
         device_descriptions: tuple[DeviceDescription, ...],
-        existing_map: Mapping[str, DeviceDescription],
     ) -> None:
         """Update caches with new devices."""
         client = self._clients[interface_id]
+        existing_map = self._device_descriptions.get_device_descriptions(interface_id=interface_id)
         save_paramset_descriptions = False
         save_device_descriptions = False
         for dev_desc in device_descriptions:
@@ -1094,24 +1111,38 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             save_paramset_descriptions=save_paramset_descriptions,
         )
 
-    def _check_for_new_device_addresses(self) -> Mapping[str, set[str]]:
+    async def _create_new_devices(self, *, source: SourceOfDeviceCreation, interface_id: str | None = None) -> None:
+        """Create new devices."""
+        if new_device_addresses := self._check_for_new_device_addresses(interface_id=interface_id):
+            await self._device_details.load()
+            await self._data_cache.load()
+            await self._create_devices(new_device_addresses=new_device_addresses, source=source)
+
+    def _check_for_new_device_addresses(self, *, interface_id: str | None = None) -> Mapping[str, set[str]]:
         """Check if there are new devices that need to be created."""
         new_device_addresses: dict[str, set[str]] = {}
-        for interface_id in self.interface_ids:
-            if not self._paramset_descriptions.has_interface_id(interface_id=interface_id):
+
+        def _check_for_new_device_addresses_helper(*, iid: str) -> None:
+            """Check if there are new devices that need to be created."""
+            if not self._paramset_descriptions.has_interface_id(interface_id=iid):
                 _LOGGER.debug(
                     "CHECK_FOR_NEW_DEVICE_ADDRESSES: Skipping interface %s, missing paramsets",
-                    interface_id,
+                    iid,
                 )
-                continue
-
+                return
             # Build the set locally and assign only if non-empty to avoid add-then-delete pattern
             new_set: set[str] = set()
-            for device_address in self._device_descriptions.get_addresses(interface_id=interface_id):
+            for device_address in self._device_descriptions.get_addresses(interface_id=iid):
                 if device_address not in self._devices:
                     new_set.add(device_address)
             if new_set:
-                new_device_addresses[interface_id] = new_set
+                new_device_addresses[iid] = new_set
+
+        if interface_id:
+            _check_for_new_device_addresses_helper(iid=interface_id)
+        else:
+            for iid in self.interface_ids:
+                _check_for_new_device_addresses_helper(iid=iid)
 
         if _LOGGER.isEnabledFor(level=DEBUG):
             count = sum(len(item) for item in new_device_addresses.values())
@@ -1864,6 +1895,7 @@ class CentralConfig:
         callback_host: str | None = None,
         callback_port: int | None = None,
         default_callback_port: int = PORT_ANY,
+        delay_new_device_creation: bool = DEFAULT_DELAY_NEW_DEVICE_CREATION,
         enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
         enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
         enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
@@ -1892,6 +1924,7 @@ class CentralConfig:
         self.central_id: Final = central_id
         self.client_session: Final = client_session
         self.default_callback_port: Final = default_callback_port
+        self.delay_new_device_creation: Final = delay_new_device_creation
         self.enable_device_firmware_check: Final = enable_device_firmware_check
         self.enable_program_scan: Final = enable_program_scan
         self.enable_sysvar_scan: Final = enable_sysvar_scan

@@ -258,6 +258,10 @@ class DeviceDescriptionCache(BasePersistentCache):
         """Return the devices by interface."""
         return self._device_descriptions[interface_id]
 
+    def has_device_descriptions(self, *, interface_id: str) -> bool:
+        """Return the devices by interface."""
+        return interface_id in self._device_descriptions
+
     def find_device_description(self, *, interface_id: str, device_address: str) -> DeviceDescription | None:
         """Return the device description by interface and device_address."""
         return self._device_descriptions[interface_id].get(device_address)

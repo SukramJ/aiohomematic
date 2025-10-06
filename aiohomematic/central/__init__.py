@@ -1073,9 +1073,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         save_device_descriptions = False
         for dev_desc in device_descriptions:
             try:
-                address = dev_desc["ADDRESS"]
                 # Check existence before mutating cache to ensure we detect truly new addresses.
-                is_new_address = address not in existing_map
+                is_new_address = dev_desc["ADDRESS"] not in existing_map
                 self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
                 save_device_descriptions = True
                 if is_new_address:

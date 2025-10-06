@@ -78,3 +78,9 @@ repos:
         language: script
         types_or: [python, pyi]
         files: ^(aiohomematic|aiohomematic_support)/.+\.py$
+      - id: kwonly-lint
+        name: kwonly-lint
+        entry: script/run-in-env.sh python script/lint_kwonly.py aiohomematic aiohomematic_support
+        language: script
+        types_or: [python, pyi]
+        files: ^(aiohomematic|aiohomematic_support)/.+\.py$

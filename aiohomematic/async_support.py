@@ -85,7 +85,7 @@ class Looper:
             )
             return
 
-    def _async_create_task[R](self, target: Coroutine[Any, Any, R], name: str) -> asyncio.Task[R]:
+    def _async_create_task[R](self, target: Coroutine[Any, Any, R], name: str) -> asyncio.Task[R]:  # kwonly: disable
         """Create a task from within the event_loop. This method must be run in the event_loop."""
         task = self._loop.create_task(target, name=name)
         self._tasks.add(task)

@@ -27,6 +27,9 @@ _LOGGER: Final = logging.getLogger(__name__)
 class RPCFunctions:
     """The XML-RPC functions the backend will expect."""
 
+    # Disable kw-only linter for this class since XML-RPC signatures are positional by protocol
+    __kwonly_check__ = False
+
     def __init__(self, *, xml_rpc_server: XmlRpcServer) -> None:
         """Init RPCFunctions."""
         self._xml_rpc_server: Final = xml_rpc_server
@@ -161,6 +164,8 @@ class AioHomematicXMLRPCServer(SimpleXMLRPCServer):
     system_listMethods(self, interface_id: str.
     """
 
+    __kwonly_check__ = False
+
     def system_listMethods(self, interface_id: str | None = None, /) -> list[str]:
         """Return a list of the methods supported by the server."""
         return SimpleXMLRPCServer.system_listMethods(self)
@@ -198,7 +203,7 @@ class XmlRpcServer(threading.Thread):
         self._simple_xml_rpc_server.register_instance(RPCFunctions(xml_rpc_server=self), allow_dotted_names=True)
         self._centrals: Final[dict[str, hmcu.CentralUnit]] = {}
 
-    def __new__(cls, ip_addr: str, port: int) -> XmlRpcServer:  # noqa: PYI034
+    def __new__(cls, ip_addr: str, port: int) -> XmlRpcServer:  # noqa: PYI034  # kwonly: disable
         """Create new XmlRPC server."""
         if (xml_rpc := cls._instances.get((ip_addr, port))) is None:
             _LOGGER.debug("Creating XmlRpc server")

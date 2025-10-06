@@ -65,6 +65,8 @@ class _GenericProperty[GETTER, SETTER](property):
 
     """
 
+    __kwonly_check__ = False
+
     fget: Callable[[Any], GETTER] | None
     fset: Callable[[Any, SETTER], None] | None
     fdel: Callable[[Any], None] | None

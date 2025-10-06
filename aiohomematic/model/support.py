@@ -87,7 +87,7 @@ class ChannelNameData:
         return ChannelNameData(device_name="", channel_name="")
 
     @staticmethod
-    def _get_channel_name(device_name: str, channel_name: str) -> str:
+    def _get_channel_name(*, device_name: str, channel_name: str) -> str:
         """Return the channel_name of the data_point only name."""
         if device_name and channel_name and channel_name.startswith(device_name):
             c_name = channel_name.replace(device_name, "").strip()
@@ -121,7 +121,7 @@ class DataPointNameData(ChannelNameData):
         return DataPointNameData(device_name="", channel_name="")
 
     @staticmethod
-    def _get_channel_parameter_name(channel_name: str, parameter_name: str | None) -> str:
+    def _get_channel_parameter_name(*, channel_name: str, parameter_name: str | None) -> str:
         """Return the channel parameter name of the data_point."""
         if channel_name and parameter_name:
             return f"{channel_name} {parameter_name}".strip()

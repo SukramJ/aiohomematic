@@ -183,7 +183,9 @@ async def test_device_un_ignore_etrv(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central({"VCU3609622": "HmIP-eTRV-2.json"}, un_ignore_list=[line])
+    central, _ = await factory.get_default_central(
+        address_device_translation={"VCU3609622": "HmIP-eTRV-2.json"}, un_ignore_list=[line]
+    )
     try:
         channel = _FakeChannel(model="HmIP-eTRV-2", no=channel_no)
         assert (
@@ -221,7 +223,9 @@ async def test_device_un_ignore_broll(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central({"VCU8537918": "HmIP-BROLL.json"}, un_ignore_list=[line])
+    central, _ = await factory.get_default_central(
+        address_device_translation={"VCU8537918": "HmIP-BROLL.json"}, un_ignore_list=[line]
+    )
     try:
         channel = _FakeChannel(model="HmIP-BROLL", no=channel_no)
         assert (
@@ -262,7 +266,9 @@ async def test_device_un_ignore_hm(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central({"VCU0000341": "HM-TC-IT-WM-W-EU.json"}, un_ignore_list=[line])
+    central, _ = await factory.get_default_central(
+        address_device_translation={"VCU0000341": "HM-TC-IT-WM-W-EU.json"}, un_ignore_list=[line]
+    )
     try:
         channel = _FakeChannel(model="HM-TC-IT-WM-W-EU", no=channel_no)
         assert (
@@ -347,7 +353,9 @@ async def test_device_un_ignore_hm2(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central({"VCU0000137": "HM-ES-PMSw1-Pl.json"}, un_ignore_list=lines)
+    central, _ = await factory.get_default_central(
+        address_device_translation={"VCU0000137": "HM-ES-PMSw1-Pl.json"}, un_ignore_list=lines
+    )
     try:
         channel = _FakeChannel(model="HM-ES-PMSw1-Pl", no=channel_no)
         assert (
@@ -401,7 +409,7 @@ async def test_ignore_(
 ) -> None:
     """Test device un ignore."""
     central, _ = await factory.get_default_central(
-        {"VCU1769958": "HmIP-BWTH.json", "VCU3609622": "HmIP-eTRV-2.json"},
+        address_device_translation={"VCU1769958": "HmIP-BWTH.json", "VCU3609622": "HmIP-eTRV-2.json"},
         ignore_custom_device_definition_models=ignore_custom_device_definition_models,
     )
     try:
@@ -438,7 +446,7 @@ async def test_all_parameters(
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory.get_default_central(TEST_DEVICES)
+    central, _ = await factory.get_default_central(address_device_translation=TEST_DEVICES)
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -472,7 +480,9 @@ async def test_all_parameters_with_un_ignore(
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory.get_default_central(TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"])
+    central, _ = await factory.get_default_central(
+        address_device_translation=TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"]
+    )
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -675,7 +685,7 @@ async def test_virtual_remote_delete(
 @pytest.mark.asyncio
 async def test_central_not_alive(factory: helper.Factory) -> None:
     """Test central other methods."""
-    central, client = await factory.get_unpatched_default_central({}, do_mock_client=False)
+    central, client = await factory.get_unpatched_default_central(address_device_translation={}, do_mock_client=False)
     try:
         mock_client = helper.get_mock(instance=client, available=False)
         assert central.system_information.serial is None
@@ -817,7 +827,9 @@ async def test_central_services(
 @pytest.mark.asyncio
 async def test_central_direct(factory: helper.Factory) -> None:
     """Test central other methods."""
-    central, client = await factory.get_unpatched_default_central(TEST_DEVICES, do_mock_client=False)
+    central, client = await factory.get_unpatched_default_central(
+        address_device_translation=TEST_DEVICES, do_mock_client=False
+    )
     try:
         mock_client = helper.get_mock(instance=client, available=False)
         assert central.system_information.serial is None

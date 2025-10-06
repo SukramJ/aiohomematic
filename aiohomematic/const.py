@@ -172,6 +172,16 @@ class CallSource(StrEnum):
     MANUAL_OR_SCHEDULED = "manual_or_scheduled"
 
 
+class CalulatedParameter(StrEnum):
+    """Enum with calculated Homematic parameters."""
+
+    APPARENT_TEMPERATURE = "APPARENT_TEMPERATURE"
+    DEW_POINT = "DEW_POINT"
+    FROST_POINT = "FROST_POINT"
+    OPERATING_VOLTAGE_LEVEL = "OPERATING_VOLTAGE_LEVEL"
+    VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
+
+
 class CentralUnitState(StrEnum):
     """Enum with central unit states."""
 
@@ -181,6 +191,13 @@ class CentralUnitState(StrEnum):
     STOPPED = "stopped"
     STOPPED_BY_ERROR = "stopped_by_error"
     STOPPING = "stopping"
+
+
+class CommandRxMode(StrEnum):
+    """Enum for Homematic rx modes for commands."""
+
+    BURST = "BURST"
+    WAKEUP = "WAKEUP"
 
 
 class DataOperationResult(Enum):
@@ -319,16 +336,6 @@ class Operations(IntEnum):
     READ = 1
     WRITE = 2
     EVENT = 4
-
-
-class CalulatedParameter(StrEnum):
-    """Enum with calculated Homematic parameters."""
-
-    APPARENT_TEMPERATURE = "APPARENT_TEMPERATURE"
-    DEW_POINT = "DEW_POINT"
-    FROST_POINT = "FROST_POINT"
-    OPERATING_VOLTAGE_LEVEL = "OPERATING_VOLTAGE_LEVEL"
-    VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
 
 
 class Parameter(StrEnum):
@@ -530,11 +537,12 @@ class RxMode(IntEnum):
     LAZY_CONFIG = 16
 
 
-class CommandRxMode(StrEnum):
-    """Enum for Homematic rx modes for commands."""
+class SourceOfDeviceCreation(StrEnum):
+    """Enum with source of device creation."""
 
-    BURST = "BURST"
-    WAKEUP = "WAKEUP"
+    CACHE = "CACHE"
+    INIT = "INIT"
+    NEW = "NEW"
 
 
 class SysvarType(StrEnum):

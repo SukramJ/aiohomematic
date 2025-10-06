@@ -136,6 +136,7 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
     ProxyInitState,
+    SourceOfDeviceCreation,
     SystemInformation,
 )
 from aiohomematic.decorators import inspector
@@ -618,7 +619,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             return False
         await self._load_caches()
         if new_device_addresses := self._check_for_new_device_addresses():
-            await self._create_devices(new_device_addresses=new_device_addresses)
+            await self._create_devices(new_device_addresses=new_device_addresses, source=SourceOfDeviceCreation.CACHE)
         await self._init_hub()
         await self._init_clients()
         # Proactively fetch device descriptions if none were created yet to avoid slow startup
@@ -934,7 +935,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         await self._data_cache.load()
         return True
 
-    async def _create_devices(self, *, new_device_addresses: Mapping[str, set[str]]) -> None:
+    async def _create_devices(
+        self, *, new_device_addresses: Mapping[str, set[str]], source: SourceOfDeviceCreation
+    ) -> None:
         """Trigger creation of the objects that expose the functionality."""
         if not self._clients:
             raise AioHomematicException(
@@ -988,6 +991,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 system_event=BackendSystemEvent.DEVICES_CREATED,
                 new_data_points=new_dps,
                 new_channel_events=new_channel_events,
+                source=source,
             )
 
     async def delete_device(self, *, interface_id: str, device_address: str) -> None:
@@ -1047,36 +1051,48 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         async with self._device_add_semaphore:
             # Use mapping membership to avoid rebuilding known addresses and allow O(1) checks.
             existing_map = self._device_descriptions.get_device_descriptions(interface_id=interface_id)
-            client = self._clients[interface_id]
-            save_paramset_descriptions = False
-            save_device_descriptions = False
-            for dev_desc in device_descriptions:
-                try:
-                    address = dev_desc["ADDRESS"]
-                    # Check existence before mutating cache to ensure we detect truly new addresses.
-                    is_new_address = address not in existing_map
-                    self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
-                    save_device_descriptions = True
-                    if is_new_address:
-                        await client.fetch_paramset_descriptions(device_description=dev_desc)
-                        save_paramset_descriptions = True
-                except Exception as exc:  # pragma: no cover
-                    save_device_descriptions = False
-                    save_paramset_descriptions = False
-                    _LOGGER.error(
-                        "ADD_NEW_DEVICES failed: %s [%s]",
-                        type(exc).__name__,
-                        extract_exc_args(exc=exc),
-                    )
-
-            await self.save_caches(
-                save_device_descriptions=save_device_descriptions,
-                save_paramset_descriptions=save_paramset_descriptions,
+            source = SourceOfDeviceCreation.NEW if existing_map else SourceOfDeviceCreation.INIT
+            await self._update_caches_with_new_devices(
+                interface_id=interface_id, device_descriptions=device_descriptions, existing_map=existing_map
             )
             if new_device_addresses := self._check_for_new_device_addresses():
                 await self._device_details.load()
                 await self._data_cache.load()
-                await self._create_devices(new_device_addresses=new_device_addresses)
+                await self._create_devices(new_device_addresses=new_device_addresses, source=source)
+
+    async def _update_caches_with_new_devices(
+        self,
+        *,
+        interface_id: str,
+        device_descriptions: tuple[DeviceDescription, ...],
+        existing_map: Mapping[str, DeviceDescription],
+    ) -> None:
+        """Update caches with new devices."""
+        client = self._clients[interface_id]
+        save_paramset_descriptions = False
+        save_device_descriptions = False
+        for dev_desc in device_descriptions:
+            try:
+                # Check existence before mutating cache to ensure we detect truly new addresses.
+                is_new_address = dev_desc["ADDRESS"] not in existing_map
+                self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
+                save_device_descriptions = True
+                if is_new_address:
+                    await client.fetch_paramset_descriptions(device_description=dev_desc)
+                    save_paramset_descriptions = True
+            except Exception as exc:  # pragma: no cover
+                save_device_descriptions = False
+                save_paramset_descriptions = False
+                _LOGGER.error(
+                    "UPDATE_CACHES_WITH_NEW_DEVICES failed: %s [%s]",
+                    type(exc).__name__,
+                    extract_exc_args(exc=exc),
+                )
+
+        await self.save_caches(
+            save_device_descriptions=save_device_descriptions,
+            save_paramset_descriptions=save_paramset_descriptions,
+        )
 
     def _check_for_new_device_addresses(self) -> Mapping[str, set[str]]:
         """Check if there are new devices that need to be created."""

@@ -1,3 +1,7 @@
+# Version 2025.10.4 (2025-10-06)
+
+- Add source of device creation to callback
+
 # Version 2025.10.3 (2025-10-06)
 
 - Add Keyword-only method linter (mypy-style)

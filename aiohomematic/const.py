@@ -156,6 +156,7 @@ class BackendSystemEvent(StrEnum):
 
     DELETE_DEVICES = "deleteDevices"
     DEVICES_CREATED = "devicesCreated"
+    DEVICES_DELAYED = "devicesDelayed"
     ERROR = "error"
     HUB_REFRESHED = "hubDataPointRefreshed"
     LIST_DEVICES = "listDevices"

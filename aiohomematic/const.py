@@ -543,7 +543,9 @@ class SourceOfDeviceCreation(StrEnum):
 
     CACHE = "CACHE"
     INIT = "INIT"
+    MANUAL = "MANUAL"
     NEW = "NEW"
+    REFRESH = "REFRESH"
 
 
 class SysvarType(StrEnum):

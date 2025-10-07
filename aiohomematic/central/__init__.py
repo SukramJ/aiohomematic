@@ -612,6 +612,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             await self._add_new_devices(
                 interface_id=client.interface_id,
                 device_descriptions=device_descriptions,
+                source=SourceOfDeviceCreation.REFRESH,
             )
 
     async def _start_clients(self) -> bool:
@@ -1024,25 +1025,25 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
-        await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions)
+        source = (
+            SourceOfDeviceCreation.NEW
+            if self._device_descriptions.has_device_descriptions(interface_id=interface_id)
+            else SourceOfDeviceCreation.INIT
+        )
+        await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions, source=source)
 
-    async def append_new_devices(self) -> None:
-        """Append new devices to central unit, that have previously not been created."""
-        if not self._clients:
-            raise AioHomematicException(
-                f"APPEND_NEW_DEVICES failed: No clients initialized. Not appending new device to {self.name}."
-            )
-
-        if not self._config.delay_new_device_creation:
-            _LOGGER.debug("APPEND_NEW_DEVICES: No delay configured. Skipping.")
-            return
-        _LOGGER.debug("APPEND_NEW_DEVICES: Starting to append new devices for %s", self.name)
-
-        async with self._device_add_semaphore:
-            await self._create_new_devices(source=SourceOfDeviceCreation.NEW)
+    async def add_new_devices_manually(
+        self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
+    ) -> None:
+        """Add new devices manually triggered to central unit."""
+        await self._add_new_devices(
+            interface_id=interface_id, device_descriptions=device_descriptions, source=SourceOfDeviceCreation.MANUAL
+        )
 
     @inspector(measure_performance=True)
-    async def _add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
+    async def _add_new_devices(
+        self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...], source: SourceOfDeviceCreation
+    ) -> None:
         """Add new devices to central unit."""
         if not device_descriptions:
             _LOGGER.debug(
@@ -1064,26 +1065,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
             return
 
-        async with self._device_add_semaphore:
-            source = (
-                SourceOfDeviceCreation.NEW
-                if self._device_descriptions.has_device_descriptions(interface_id=interface_id)
-                else SourceOfDeviceCreation.INIT
-            )
-            await self._update_caches_with_new_devices(
-                interface_id=interface_id, device_descriptions=device_descriptions
-            )
-            if self._config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
-                return
-            await self._create_new_devices(source=source, interface_id=interface_id)
+        # Here we block the automatic creation of new devices, if required
+        if self._config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
+            return
 
-    async def _update_caches_with_new_devices(
-        self,
-        *,
-        interface_id: str,
-        device_descriptions: tuple[DeviceDescription, ...],
-    ) -> None:
-        """Update caches with new devices."""
         client = self._clients[interface_id]
         existing_map = self._device_descriptions.get_device_descriptions(interface_id=interface_id)
         save_paramset_descriptions = False
@@ -1111,8 +1096,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             save_paramset_descriptions=save_paramset_descriptions,
         )
 
-    async def _create_new_devices(self, *, source: SourceOfDeviceCreation, interface_id: str | None = None) -> None:
-        """Create new devices."""
         if new_device_addresses := self._check_for_new_device_addresses(interface_id=interface_id):
             await self._device_details.load()
             await self._data_cache.load()

@@ -1,6 +1,7 @@
-# Version 2025.10.4 (2025-10-06)
+# Version 2025.10.4 (2025-10-07)
 
 - Add option to delay new device creation
+- Add option for manually triggered device creation
 - Add source of device creation to callback
 
 # Version 2025.10.3 (2025-10-06)

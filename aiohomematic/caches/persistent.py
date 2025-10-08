@@ -250,13 +250,19 @@ class DeviceDescriptionCache(BasePersistentCache):
                 addr_map.pop(address, None)
             desc_map.pop(address, None)
 
-    def get_addresses(self, *, interface_id: str) -> frozenset[str]:
+    def get_addresses(self, *, interface_id: str | None = None) -> frozenset[str]:
         """Return the addresses by interface as a set."""
-        return frozenset(self._addresses[interface_id])
+        if interface_id:
+            return frozenset(self._addresses[interface_id])
+        return frozenset(addr for interface_id in self.get_interface_ids() for addr in self._addresses[interface_id])
 
     def get_device_descriptions(self, *, interface_id: str) -> Mapping[str, DeviceDescription]:
         """Return the devices by interface."""
         return self._device_descriptions[interface_id]
+
+    def get_interface_ids(self) -> tuple[str, ...]:
+        """Return the interface ids."""
+        return tuple(self._raw_device_descriptions.keys())
 
     def has_device_descriptions(self, *, interface_id: str) -> bool:
         """Return the devices by interface."""

@@ -40,6 +40,7 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -48,7 +49,7 @@ TEST_DEVICES: dict[str, str] = {
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cecover(
@@ -136,6 +137,7 @@ async def test_cecover(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -144,7 +146,7 @@ async def test_cecover(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceipblind_dr(
@@ -252,6 +254,7 @@ async def test_ceipblind_dr(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -260,7 +263,7 @@ async def test_ceipblind_dr(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cewindowdrive(
@@ -321,6 +324,7 @@ async def test_cewindowdrive(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -329,7 +333,7 @@ async def test_cewindowdrive(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceblind(
@@ -499,6 +503,7 @@ async def test_ceblind(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -507,7 +512,7 @@ async def test_ceblind(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceblind_separate_level_and_tilt_change(
@@ -563,6 +568,7 @@ async def test_ceblind_separate_level_and_tilt_change(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -571,7 +577,7 @@ async def test_ceblind_separate_level_and_tilt_change(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceipblind(
@@ -741,6 +747,7 @@ async def test_ceipblind(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -749,7 +756,7 @@ async def test_ceipblind(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceipblind_hdm(
@@ -904,6 +911,7 @@ async def test_ceipblind_hdm(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -912,7 +920,7 @@ async def test_ceipblind_hdm(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cegarageho(
@@ -1052,6 +1060,7 @@ async def test_cegarageho(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -1060,7 +1069,7 @@ async def test_cegarageho(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cegaragetm(

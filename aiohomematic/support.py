@@ -352,6 +352,45 @@ def is_port(*, port: int) -> bool:
     return 0 <= port <= 65535
 
 
+@lru_cache(maxsize=2048)
+def _element_matches_key_cached(
+    *,
+    search_elements: tuple[str, ...] | str,
+    compare_with: str,
+    ignore_case: bool,
+    do_left_wildcard_search: bool,
+    do_right_wildcard_search: bool,
+) -> bool:
+    """Cache element matching for hashable inputs."""
+    compare_with_processed = compare_with.lower() if ignore_case else compare_with
+
+    if isinstance(search_elements, str):
+        element = search_elements.lower() if ignore_case else search_elements
+        if do_left_wildcard_search is True and do_right_wildcard_search is True:
+            return element in compare_with_processed
+        if do_left_wildcard_search:
+            return compare_with_processed.endswith(element)
+        if do_right_wildcard_search:
+            return compare_with_processed.startswith(element)
+        return compare_with_processed == element
+
+    # search_elements is a tuple
+    for item in search_elements:
+        element = item.lower() if ignore_case else item
+        if do_left_wildcard_search is True and do_right_wildcard_search is True:
+            if element in compare_with_processed:
+                return True
+        elif do_left_wildcard_search:
+            if compare_with_processed.endswith(element):
+                return True
+        elif do_right_wildcard_search:
+            if compare_with_processed.startswith(element):
+                return True
+        elif compare_with_processed == element:
+            return True
+    return False
+
+
 def element_matches_key(
     *,
     search_elements: str | Collection[str],
@@ -371,38 +410,48 @@ def element_matches_key(
     if compare_with is None or not search_elements:
         return False
 
-    compare_with = compare_with.lower() if ignore_case else compare_with
-
-    if isinstance(search_elements, str):
-        element = search_elements.lower() if ignore_case else search_elements
-        if do_left_wildcard_search is True and do_right_wildcard_search is True:
-            return element in compare_with
-        if do_left_wildcard_search:
-            return compare_with.endswith(element)
-        if do_right_wildcard_search:
-            return compare_with.startswith(element)
-        return compare_with == element
-    if isinstance(search_elements, Collection):
-        if isinstance(search_elements, dict) and (
-            match_key := _get_search_key(search_elements=search_elements, search_key=search_key) if search_key else None
-        ):
+    # Handle dict case with search_key
+    if isinstance(search_elements, dict) and search_key:
+        if match_key := _get_search_key(search_elements=search_elements, search_key=search_key):
             if (elements := search_elements.get(match_key)) is None:
                 return False
             search_elements = elements
+        else:
+            return False
+
+    search_elements_hashable: str | Collection[str]
+    # Convert to hashable types for caching
+    if isinstance(search_elements, str):
+        search_elements_hashable = search_elements
+    elif isinstance(search_elements, (list, set)):
+        search_elements_hashable = tuple(search_elements)
+    elif isinstance(search_elements, tuple):
+        search_elements_hashable = search_elements
+    else:
+        # Fall back to non-cached version for other collection types
+        compare_with_processed = compare_with.lower() if ignore_case else compare_with
         for item in search_elements:
             element = item.lower() if ignore_case else item
             if do_left_wildcard_search is True and do_right_wildcard_search is True:
-                if element in compare_with:
+                if element in compare_with_processed:
                     return True
             elif do_left_wildcard_search:
-                if compare_with.endswith(element):
+                if compare_with_processed.endswith(element):
                     return True
             elif do_right_wildcard_search:
-                if compare_with.startswith(element):
+                if compare_with_processed.startswith(element):
                     return True
-            elif compare_with == element:
+            elif compare_with_processed == element:
                 return True
-    return False
+        return False
+
+    return _element_matches_key_cached(
+        search_elements=search_elements_hashable,
+        compare_with=compare_with,
+        ignore_case=ignore_case,
+        do_left_wildcard_search=do_left_wildcard_search,
+        do_right_wildcard_search=do_right_wildcard_search,
+    )
 
 
 def _get_search_key(*, search_elements: Collection[str], search_key: str) -> str | None:

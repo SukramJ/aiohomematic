@@ -12,7 +12,7 @@ from aiohomematic.client import Client
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpIrrigationValve
 
-from tests import helper
+from tests import const, helper
 
 TEST_DEVICES: dict[str, str] = {
     "VCU8976407": "ELV-SH-WSM.json",
@@ -24,6 +24,7 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -32,7 +33,7 @@ TEST_DEVICES: dict[str, str] = {
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceipirrigationvalve(

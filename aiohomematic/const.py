@@ -125,8 +125,8 @@ UN_IGNORE_WILDCARD: Final = "all"
 WAIT_FOR_CALLBACK: Final[int | None] = None
 
 # Scheduler sleep durations (used by central scheduler loop)
-SCHEDULER_NOT_STARTED_SLEEP: Final = 0.05 if _TEST_SPEEDUP else 10
-SCHEDULER_LOOP_SLEEP: Final = 0.05 if _TEST_SPEEDUP else 5
+SCHEDULER_NOT_STARTED_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 10
+SCHEDULER_LOOP_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 5
 
 CALLBACK_WARN_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 40
 

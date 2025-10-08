@@ -471,7 +471,9 @@ class Example:
             patch("aiohomematic.client._ClientConfig.create_client", return_value=client),
         ):
             await self.central.start()
-            await self.central._refresh_device_descriptions(client=client)
+            await self.central._refresh_device_descriptions_and_create_missing_devices(
+                client=client, refresh_only_existing=False
+            )
 
         while not self.got_devices and self.SLEEPCOUNTER < 20:
             _LOGGER.info("Waiting for devices")

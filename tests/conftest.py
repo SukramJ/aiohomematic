@@ -33,10 +33,10 @@ def pydev_ccu_full() -> pydevccu.Server:
     ccu.stop()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def pydev_ccu_mini() -> pydevccu.Server:
     """Create the virtual ccu."""
-    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_PORT), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
+    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_MINI_PORT), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
     ccu.start()
     yield ccu
     ccu.stop()
@@ -45,7 +45,7 @@ def pydev_ccu_mini() -> pydevccu.Server:
 @pytest.fixture
 async def central_unit_mini(pydev_ccu_mini: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
-    central = await helper.get_pydev_ccu_central_unit_full()
+    central = await helper.get_pydev_ccu_central_unit_full(port=const.CCU_MINI_PORT)
     yield central
     await central.stop()
     await central.clear_caches()
@@ -61,7 +61,7 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
     def backend_system_callback(*args, **kwargs):
         """Do dummy backend_system_callback."""
 
-    central = await helper.get_pydev_ccu_central_unit_full()
+    central = await helper.get_pydev_ccu_central_unit_full(port=const.CCU_PORT)
 
     unregister_homematic_callback = central.register_homematic_callback(cb=homematic_callback)
     unregister_backend_system_callback = central.register_backend_system_callback(cb=backend_system_callback)
@@ -82,6 +82,7 @@ async def factory() -> helper.Factory:
 
 @pytest.fixture
 async def central_client_factory(
+    port: int,
     address_device_translation: dict[str, str],
     do_mock_client: bool,
     add_sysvars: bool,
@@ -92,6 +93,7 @@ async def central_client_factory(
     """Return central factory."""
     factory = helper.Factory()
     central_client = await factory.get_default_central(
+        port=port,
         address_device_translation=address_device_translation,
         do_mock_client=do_mock_client,
         add_sysvars=add_sysvars,

@@ -53,6 +53,7 @@ class _FakeChannel:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -61,7 +62,7 @@ class _FakeChannel:
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_central_basics(
@@ -84,6 +85,7 @@ async def test_central_basics(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -92,7 +94,7 @@ async def test_central_basics(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, True, True, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, True, True, None, None),
     ],
 )
 async def test_device_get_data_points(
@@ -110,6 +112,7 @@ async def test_device_get_data_points(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -118,7 +121,7 @@ async def test_device_get_data_points(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_device_export(
@@ -133,6 +136,7 @@ async def test_device_export(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -141,7 +145,7 @@ async def test_device_export(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_identify_ip_addr(
@@ -496,6 +500,7 @@ async def test_all_parameters_with_un_ignore(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -504,7 +509,7 @@ async def test_all_parameters_with_un_ignore(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_data_points_by_category(
@@ -528,6 +533,7 @@ async def test_data_points_by_category(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -536,7 +542,7 @@ async def test_data_points_by_category(
         "un_ignore_list",
     ),
     [
-        ({}, True, True, True, None, None),
+        (const.CCU_MINI_PORT, {}, True, True, True, None, None),
     ],
 )
 async def test_hub_data_points_by_category(
@@ -571,6 +577,7 @@ async def test_hub_data_points_by_category(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -579,7 +586,7 @@ async def test_hub_data_points_by_category(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, ["HmIP-BSM.json"], None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, ["HmIP-BSM.json"], None),
     ],
 )
 async def test_add_device(
@@ -604,6 +611,7 @@ async def test_add_device(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -612,7 +620,7 @@ async def test_add_device(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_delete_device(
@@ -635,6 +643,7 @@ async def test_delete_device(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -644,6 +653,7 @@ async def test_delete_device(
     ),
     [
         (
+            const.CCU_MINI_PORT,
             {
                 "VCU4264293": "HmIP-RCV-50.json",
                 "VCU0000057": "HM-RCV-50.json",
@@ -685,7 +695,9 @@ async def test_virtual_remote_delete(
 @pytest.mark.asyncio
 async def test_central_not_alive(factory: helper.Factory) -> None:
     """Test central other methods."""
-    central, client = await factory.get_unpatched_default_central(address_device_translation={}, do_mock_client=False)
+    central, client = await factory.get_unpatched_default_central(
+        port=const.CCU_MINI_PORT, address_device_translation={}, do_mock_client=False
+    )
     try:
         mock_client = helper.get_mock(instance=client, available=False)
         assert central.system_information.serial is None
@@ -705,6 +717,7 @@ async def test_central_not_alive(factory: helper.Factory) -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -713,7 +726,7 @@ async def test_central_not_alive(factory: helper.Factory) -> None:
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_central_callbacks(
@@ -739,6 +752,7 @@ async def test_central_callbacks(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -747,7 +761,7 @@ async def test_central_callbacks(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, True, True, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, True, True, None, None),
     ],
 )
 async def test_central_services(
@@ -828,7 +842,7 @@ async def test_central_services(
 async def test_central_direct(factory: helper.Factory) -> None:
     """Test central other methods."""
     central, client = await factory.get_unpatched_default_central(
-        address_device_translation=TEST_DEVICES, do_mock_client=False
+        port=const.CCU_MINI_PORT, address_device_translation=TEST_DEVICES, do_mock_client=False
     )
     try:
         mock_client = helper.get_mock(instance=client, available=False)
@@ -877,6 +891,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -885,7 +900,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, False, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, False, False, False, None, None),
     ],
 )
 async def test_ping_pong(
@@ -909,6 +924,7 @@ async def test_ping_pong(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -917,7 +933,7 @@ async def test_ping_pong(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, False, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, False, False, False, None, None),
     ],
 )
 async def test_pending_pong_failure(
@@ -948,6 +964,7 @@ async def test_pending_pong_failure(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -956,7 +973,7 @@ async def test_pending_pong_failure(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, False, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, False, False, False, None, None),
     ],
 )
 async def test_unknown_pong_failure(
@@ -982,6 +999,7 @@ async def test_unknown_pong_failure(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -990,7 +1008,7 @@ async def test_unknown_pong_failure(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_central_caches(
@@ -1008,6 +1026,7 @@ async def test_central_caches(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -1016,7 +1035,7 @@ async def test_central_caches(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_central_getter(

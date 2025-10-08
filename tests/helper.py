@@ -16,7 +16,7 @@ import orjson
 from aiohomematic import const as aiohomematic_const
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.client import Client, InterfaceConfig, _ClientConfig
-from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
+from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, SourceOfDeviceCreation
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
 
@@ -69,6 +69,7 @@ class Factory:
     async def get_unpatched_default_central(
         self,
         *,
+        port: int,
         address_device_translation: dict[str, str],
         do_mock_client: bool = True,
         ignore_devices_on_create: list[str] | None = None,
@@ -79,7 +80,7 @@ class Factory:
         interface_config = InterfaceConfig(
             central_name=const.CENTRAL_NAME,
             interface=aiohomematic_const.Interface.BIDCOS_RF,
-            port=2002,
+            port=port,
         )
 
         central = await self.get_raw_central(
@@ -108,6 +109,7 @@ class Factory:
     async def get_default_central(
         self,
         *,
+        port: int = const.CCU_MINI_PORT,
         address_device_translation: dict[str, str],
         do_mock_client: bool = True,
         add_sysvars: bool = False,
@@ -118,6 +120,7 @@ class Factory:
     ) -> tuple[CentralUnit, Client | Mock]:
         """Return a central based on give address_device_translation."""
         central, client = await self.get_unpatched_default_central(
+            port=port,
             address_device_translation=address_device_translation,
             do_mock_client=True,
             ignore_devices_on_create=ignore_devices_on_create,
@@ -139,7 +142,7 @@ class Factory:
 
         await central.start()
         if new_device_addresses := central._check_for_new_device_addresses():
-            await central._create_devices(new_device_addresses=new_device_addresses)
+            await central._create_devices(new_device_addresses=new_device_addresses, source=SourceOfDeviceCreation.INIT)
         await central._init_hub()
 
         assert central
@@ -218,6 +221,7 @@ def _load_json_file(anchor: str, resource: str, filename: str) -> Any | None:
 
 
 async def get_pydev_ccu_central_unit_full(
+    port: int,
     client_session: ClientSession | None = None,
 ) -> CentralUnit:
     """Create and yield central."""
@@ -233,7 +237,7 @@ async def get_pydev_ccu_central_unit_full(
         InterfaceConfig(
             central_name=const.CENTRAL_NAME,
             interface=Interface.BIDCOS_RF,
-            port=const.CCU_PORT,
+            port=port,
         )
     }
 

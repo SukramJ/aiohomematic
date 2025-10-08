@@ -117,78 +117,84 @@ def inspector[**P, R](  # noqa: C901
 
         @wraps(func)
         def wrap_sync_function(*args: P.args, **kwargs: P.kwargs) -> R:
-            """Wrap sync functions."""
+            """Wrap sync functions with minimized per-call overhead."""
 
-            start = (
-                monotonic() if measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
-            )
-            token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
+            # Fast-path: avoid logger check and time call unless explicitly enabled
+            start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
+            start = monotonic() if start_needed else None
+
+            # Avoid repeated ContextVar.get() calls; only set/reset when needed
+            was_in_service = IN_SERVICE_VAR.get()
+            token = IN_SERVICE_VAR.set(True) if not was_in_service else None
+            context_obj = args[0] if args else None
             try:
                 return_value: R = func(*args, **kwargs)
             except BaseHomematicException as bhexc:
-                if token:
+                if token is not None:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
                     exc=bhexc,
                     func=func,
-                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_sub_service_call=was_in_service,
                     is_homematic=True,
-                    context_obj=(args[0] if args else None),
+                    context_obj=context_obj,
                 )
             except Exception as exc:
-                if token:
+                if token is not None:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
                     exc=exc,
                     func=func,
-                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_sub_service_call=was_in_service,
                     is_homematic=False,
-                    context_obj=(args[0] if args else None),
+                    context_obj=context_obj,
                 )
             else:
-                if token:
+                if token is not None:
                     IN_SERVICE_VAR.reset(token)
                 return return_value
             finally:
-                if start:
+                if start is not None:
                     _log_performance_message(func, start, *args, **kwargs)
 
         @wraps(func)
         async def wrap_async_function(*args: P.args, **kwargs: P.kwargs) -> R:
-            """Wrap async functions."""
+            """Wrap async functions with minimized per-call overhead."""
 
-            start = (
-                monotonic() if measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
-            )
-            token = IN_SERVICE_VAR.set(True) if not IN_SERVICE_VAR.get() else None
+            start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
+            start = monotonic() if start_needed else None
+
+            was_in_service = IN_SERVICE_VAR.get()
+            token = IN_SERVICE_VAR.set(True) if not was_in_service else None
+            context_obj = args[0] if args else None
             try:
-                return_value = await func(*args, **kwargs)  # type: ignore[misc]  # Await the async call
+                return_value = await func(*args, **kwargs)  # type: ignore[misc]
             except BaseHomematicException as bhexc:
-                if token:
+                if token is not None:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
                     exc=bhexc,
                     func=func,
-                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_sub_service_call=was_in_service,
                     is_homematic=True,
-                    context_obj=(args[0] if args else None),
+                    context_obj=context_obj,
                 )
             except Exception as exc:
-                if token:
+                if token is not None:
                     IN_SERVICE_VAR.reset(token)
                 return handle_exception(
                     exc=exc,
                     func=func,
-                    is_sub_service_call=IN_SERVICE_VAR.get(),
+                    is_sub_service_call=was_in_service,
                     is_homematic=False,
-                    context_obj=(args[0] if args else None),
+                    context_obj=context_obj,
                 )
             else:
-                if token:
+                if token is not None:
                     IN_SERVICE_VAR.reset(token)
                 return cast(R, return_value)
             finally:
-                if start:
+                if start is not None:
                     _log_performance_message(func, start, *args, **kwargs)
 
         # Check if the function is a coroutine or not and select the appropriate wrapper

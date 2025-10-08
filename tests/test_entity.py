@@ -32,6 +32,7 @@ def test_validate_data_point_definition() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -40,7 +41,7 @@ def test_validate_data_point_definition() -> None:
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_custom_data_point_callback(
@@ -82,6 +83,7 @@ async def test_custom_data_point_callback(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -90,7 +92,7 @@ async def test_custom_data_point_callback(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_generic_data_point_callback(
@@ -130,6 +132,7 @@ async def test_generic_data_point_callback(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -138,7 +141,7 @@ async def test_generic_data_point_callback(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_load_custom_data_point(
@@ -165,6 +168,7 @@ async def test_load_custom_data_point(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -173,7 +177,7 @@ async def test_load_custom_data_point(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_load_generic_data_point(
@@ -194,6 +198,7 @@ async def test_load_generic_data_point(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -202,7 +207,7 @@ async def test_load_generic_data_point(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_generic_wrapped_data_point(

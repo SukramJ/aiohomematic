@@ -40,6 +40,7 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -48,7 +49,7 @@ TEST_DEVICES: dict[str, str] = {
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cedimmer(
@@ -166,6 +167,7 @@ async def test_cedimmer(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -174,7 +176,7 @@ async def test_cedimmer(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cecolordimmereffect(
@@ -326,6 +328,7 @@ async def test_cecolordimmereffect(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -334,7 +337,7 @@ async def test_cecolordimmereffect(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cecolortempdimmer(
@@ -416,6 +419,7 @@ async def test_cecolortempdimmer(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -424,7 +428,7 @@ async def test_cecolortempdimmer(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceipfixedcolorlight(
@@ -630,6 +634,7 @@ async def test_ceipfixedcolorlight(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -638,7 +643,7 @@ async def test_ceipfixedcolorlight(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceipfixedcolorlightwired(
@@ -919,6 +924,7 @@ async def test_ceipfixedcolorlightwired(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -927,7 +933,7 @@ async def test_ceipfixedcolorlightwired(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceiprgbwlight(
@@ -1097,6 +1103,7 @@ async def test_ceiprgbwlight(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -1105,7 +1112,7 @@ async def test_ceiprgbwlight(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_cecolordimmer(

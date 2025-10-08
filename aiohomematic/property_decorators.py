@@ -105,7 +105,7 @@ class _GenericProperty[GETTER, SETTER](property):
                 func_name = fdel.__name__
             else:
                 func_name = "prop"
-            self._cache_attr = f"_cached_{func_name}"  # Default name of the cache attribute
+            self._cache_attr = f"_cached_{func_name}"
 
     def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty:
         """Return generic getter."""
@@ -153,25 +153,45 @@ class _GenericProperty[GETTER, SETTER](property):
         if instance is None:
             # Accessed from class, return the descriptor itself
             return cast(GETTER, self)
-        if self.fget is None:
+
+        if (fget := self.fget) is None:
             raise AttributeError("unreadable attribute")  # pragma: no cover
 
         if not self._cached:
-            return self.fget(instance)
+            return fget(instance)
 
-        # If the cached value is not set yet, compute and store it
-        if not hasattr(instance, self._cache_attr):
-            value = self.fget(instance)
-            setattr(instance, self._cache_attr, value)
+        # Use direct __dict__ access when available for better performance
+        # Store cache_attr in local variable to avoid repeated attribute lookup
+        cache_attr = self._cache_attr
 
-        # Return the cached value
-        return cast(GETTER, getattr(instance, self._cache_attr))
+        try:
+            inst_dict = instance.__dict__
+            # Use 'in' check first to distinguish between missing and None
+            if cache_attr in inst_dict:
+                return cast(GETTER, inst_dict[cache_attr])
+
+            # Not cached yet, compute and store
+            value = fget(instance)
+            inst_dict[cache_attr] = value
+        except AttributeError:
+            # Object uses __slots__, fall back to getattr/setattr
+            try:
+                return cast(GETTER, getattr(instance, cache_attr))
+            except AttributeError:
+                value = fget(instance)
+                setattr(instance, cache_attr, value)
+        return value
 
     def __set__(self, instance: Any, value: Any, /) -> None:
         """Set the attribute value and invalidate cache if enabled."""
         # Delete the cached value so it can be recomputed on next access.
-        if self._cached and hasattr(instance, self._cache_attr):
-            delattr(instance, self._cache_attr)
+        if self._cached:
+            try:
+                instance.__dict__.pop(self._cache_attr, None)
+            except AttributeError:
+                # Object uses __slots__, fall back to delattr
+                if hasattr(instance, self._cache_attr):
+                    delattr(instance, self._cache_attr)
 
         if self.fset is None:
             raise AttributeError("can't set attribute")  # pragma: no cover
@@ -181,8 +201,13 @@ class _GenericProperty[GETTER, SETTER](property):
         """Delete the attribute and invalidate cache if enabled."""
 
         # Delete the cached value so it can be recomputed on next access.
-        if self._cached and hasattr(instance, self._cache_attr):
-            delattr(instance, self._cache_attr)
+        if self._cached:
+            try:
+                instance.__dict__.pop(self._cache_attr, None)
+            except AttributeError:
+                # Object uses __slots__, fall back to delattr
+                if hasattr(instance, self._cache_attr):
+                    delattr(instance, self._cache_attr)
 
         if self.fdel is None:
             raise AttributeError("can't delete attribute")  # pragma: no cover

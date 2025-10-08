@@ -508,7 +508,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if self._config.start_direct:
             if await self._create_clients():
                 for client in self._clients.values():
-                    await self._refresh_device_descriptions(client=client)
+                    await self._refresh_device_descriptions_and_create_missing_devices(
+                        client=client, refresh_only_existing=False
+                    )
         else:
             self._clients_started = await self._start_clients()
             if self._config.enable_server:
@@ -578,11 +580,15 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
         """Refresh device firmware data."""
         if device_address and (device := self.get_device(address=device_address)) is not None and device.is_updatable:
-            await self._refresh_device_descriptions(client=device.client, device_address=device_address)
+            await self._refresh_device_descriptions_and_create_missing_devices(
+                client=device.client, refresh_only_existing=True, device_address=device_address
+            )
             device.refresh_firmware_data()
         else:
             for client in self._clients.values():
-                await self._refresh_device_descriptions(client=client)
+                await self._refresh_device_descriptions_and_create_missing_devices(
+                    client=client, refresh_only_existing=True
+                )
             for device in self._devices.values():
                 if device.is_updatable:
                     device.refresh_firmware_data()
@@ -597,8 +603,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         ]:
             await self.refresh_firmware_data(device_address=device.address)
 
-    async def _refresh_device_descriptions(self, *, client: hmcl.Client, device_address: str | None = None) -> None:
-        """Refresh device descriptions."""
+    async def _refresh_device_descriptions_and_create_missing_devices(
+        self, *, client: hmcl.Client, refresh_only_existing: bool, device_address: str | None = None
+    ) -> None:
+        """Refresh device descriptions and create missing devices."""
         device_descriptions: tuple[DeviceDescription, ...] | None = None
         if (
             device_address
@@ -607,6 +615,20 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             device_descriptions = (device_description,)
         else:
             device_descriptions = await client.list_devices()
+
+        if (
+            device_descriptions
+            and refresh_only_existing
+            and (
+                existing_device_descriptions := tuple(
+                    dev_desc
+                    for dev_desc in list(device_descriptions)
+                    if dev_desc["ADDRESS"]
+                    in self.device_descriptions.get_device_descriptions(interface_id=client.interface_id)
+                )
+            )
+        ):
+            device_descriptions = existing_device_descriptions
 
         if device_descriptions:
             await self._add_new_devices(
@@ -627,7 +649,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         # Proactively fetch device descriptions if none were created yet to avoid slow startup
         if not self._devices:
             for client in self._clients.values():
-                await self._refresh_device_descriptions(client=client)
+                await self._refresh_device_descriptions_and_create_missing_devices(
+                    client=client, refresh_only_existing=False
+                )
         return True
 
     async def _stop_clients(self) -> None:
@@ -1032,17 +1056,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         )
         await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions, source=source)
 
-    async def add_new_devices_manually(
-        self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
-    ) -> None:
+    async def add_new_device_manually(self, *, interface_id: str, address: str) -> None:
         """Add new devices manually triggered to central unit."""
-        if not device_descriptions:
-            _LOGGER.debug(
-                "ADD_NEW_DEVICES_MANUALLY: Nothing to add for interface_id %s",
-                interface_id,
-            )
-            return
-
         if interface_id not in self._clients:
             _LOGGER.warning(
                 "ADD_NEW_DEVICES_MANUALLY failed: Missing client for interface_id %s",
@@ -1050,22 +1065,17 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
             return
         client = self._clients[interface_id]
-        refreshed_device_descriptions: list[DeviceDescription] = []
-
-        for dev_desc in device_descriptions:
-            if (
-                reloaded_dev_desc := await client.get_device_description(device_address=dev_desc["ADDRESS"])
-            ) is not None:
-                refreshed_device_descriptions.append(reloaded_dev_desc)
-            else:
-                _LOGGER.warning(
-                    "ADD_NEW_DEVICES_MANUALLY failed: Unable to get device description for %s",
-                    dev_desc["ADDRESS"],
-                )
+        if (device_descriptions := await client.get_device_description(device_address=address)) is None:
+            _LOGGER.warning(
+                "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
+                address,
+                interface_id,
+            )
+            return
 
         await self._add_new_devices(
             interface_id=interface_id,
-            device_descriptions=tuple(refreshed_device_descriptions),
+            device_descriptions=(device_descriptions,),
             source=SourceOfDeviceCreation.MANUAL,
         )
 
@@ -1094,14 +1104,20 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
             return
 
-        new_device_descriptions = self._identify_new_device_descriptions(
-            interface_id=interface_id, device_descriptions=device_descriptions
-        )
+        if not (
+            new_device_descriptions := self._identify_new_device_descriptions(
+                device_descriptions=device_descriptions, interface_id=interface_id
+            )
+        ):
+            _LOGGER.debug("ADD_NEW_DEVICES: Nothing to add for interface_id %s", interface_id)
+            return
+
         # Here we block the automatic creation of new devices, if required
         if self._config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
             self.fire_backend_system_callback(
                 system_event=BackendSystemEvent.DEVICES_DELAYED,
                 new_device_descriptions=new_device_descriptions,
+                interface_id=interface_id,
             )
             return
 
@@ -1127,22 +1143,33 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         if new_device_addresses := self._check_for_new_device_addresses(interface_id=interface_id):
             await self._device_details.load()
-            await self._data_cache.load()
+            await self._data_cache.load(interface=client.interface)
             await self._create_devices(new_device_addresses=new_device_addresses, source=source)
 
     def _identify_new_device_descriptions(
-        self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
+        self, *, device_descriptions: tuple[DeviceDescription, ...], interface_id: str | None = None
     ) -> tuple[DeviceDescription, ...]:
-        """Identify new devices."""
-        return tuple(
-            dev_desc
-            for dev_desc in device_descriptions
-            if dev_desc["ADDRESS"] not in self._device_descriptions.get_device_descriptions(interface_id=interface_id)
-        )
+        """Identify devices whose ADDRESS isn't already known on any interface."""
+
+        known_addresses = self._device_descriptions.get_addresses(interface_id=interface_id)
+
+        # Filter in a single pass, keeping order and deduping inputs (O(len(device_descriptions)))
+        result: list[DeviceDescription] = []
+        seen_new: set[str] = set()
+        for dev_desc in device_descriptions:
+            addr = dev_desc["ADDRESS"]
+            if addr not in known_addresses and addr not in seen_new:
+                result.append(dev_desc)
+                seen_new.add(addr)
+
+        return tuple(result)
 
     def _check_for_new_device_addresses(self, *, interface_id: str | None = None) -> Mapping[str, set[str]]:
         """Check if there are new devices that need to be created."""
         new_device_addresses: dict[str, set[str]] = {}
+
+        # Cache existing device addresses once to avoid repeated mapping lookups
+        existing_addresses = set(self._devices.keys())
 
         def _check_for_new_device_addresses_helper(*, iid: str) -> None:
             """Check if there are new devices that need to be created."""
@@ -1153,11 +1180,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
                 return
             # Build the set locally and assign only if non-empty to avoid add-then-delete pattern
-            new_set: set[str] = set()
-            for device_address in self._device_descriptions.get_addresses(interface_id=iid):
-                if device_address not in self._devices:
-                    new_set.add(device_address)
-            if new_set:
+            # Use set difference for speed on large collections
+            addresses = set(self._device_descriptions.get_addresses(interface_id=iid))
+            # get_addresses returns an iterable (likely tuple); convert to set once for efficient diff
+            if new_set := addresses - existing_addresses:
                 new_device_addresses[iid] = new_set
 
         if interface_id:
@@ -1739,12 +1765,31 @@ class _Scheduler(threading.Thread):
                 _LOGGER.debug("SCHEDULER: Waiting till central %s is started", self._central.name)
                 await asyncio.sleep(SCHEDULER_NOT_STARTED_SLEEP)
                 continue
+
+            any_executed = False
             for job in self._scheduler_jobs:
                 if not self._active or not job.ready:
                     continue
                 await job.run()
                 job.schedule_next_execution()
-            if self._active:
+                any_executed = True
+
+            if not self._active:
+                break  # type: ignore[unreachable]
+
+            # If no job was executed this cycle, we can sleep until the next job is due
+            if not any_executed:
+                now = datetime.now()
+                try:
+                    next_due = min(job.next_run for job in self._scheduler_jobs)
+                    # Sleep until the next task should run, but cap to 1s to remain responsive
+                    delay = max(0.0, (next_due - now).total_seconds())
+                    await asyncio.sleep(min(1.0, delay))
+                except ValueError:
+                    # No jobs configured; fallback to default loop sleep
+                    await asyncio.sleep(SCHEDULER_LOOP_SLEEP)
+            else:
+                # When work was done, yield briefly to the loop
                 await asyncio.sleep(SCHEDULER_LOOP_SLEEP)
 
     async def _check_connection(self) -> None:
@@ -1891,6 +1936,11 @@ class _SchedulerJob:
     def ready(self) -> bool:
         """Return if the job can be executed."""
         return self._next_run < datetime.now()
+
+    @property
+    def next_run(self) -> datetime:
+        """Return the next scheduled run timestamp."""
+        return self._next_run
 
     async def run(self) -> None:
         """Run the task."""

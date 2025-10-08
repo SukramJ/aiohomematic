@@ -13,7 +13,7 @@ from aiohomematic.const import DataPointUsage, ParamsetKey, ProgramData
 from aiohomematic.model.generic import DpButton
 from aiohomematic.model.hub import ProgramDpButton
 
-from tests import helper
+from tests import const, helper
 
 TEST_DEVICES: dict[str, str] = {
     "VCU1437294": "HmIP-SMI.json",
@@ -25,6 +25,7 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -33,7 +34,7 @@ TEST_DEVICES: dict[str, str] = {
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_hmbutton(
@@ -67,6 +68,7 @@ async def test_hmbutton(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -75,7 +77,7 @@ async def test_hmbutton(
         "un_ignore_list",
     ),
     [
-        ({}, True, False, True, None, None),
+        (const.CCU_MINI_PORT, {}, True, False, True, None, None),
     ],
 )
 async def test_hmprogrambutton(

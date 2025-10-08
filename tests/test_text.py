@@ -13,7 +13,7 @@ from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
 
-from tests import helper
+from tests import const, helper
 
 TEST_DEVICES: dict[str, str] = {}
 
@@ -23,6 +23,7 @@ TEST_DEVICES: dict[str, str] = {}
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -31,7 +32,7 @@ TEST_DEVICES: dict[str, str] = {}
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> None:
@@ -44,6 +45,7 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -52,7 +54,7 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
         "un_ignore_list",
     ),
     [
-        ({}, True, True, False, None, None),
+        (const.CCU_MINI_PORT, {}, True, True, False, None, None),
     ],
 )
 async def test_sysvardptext(

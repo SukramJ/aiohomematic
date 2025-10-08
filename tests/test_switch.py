@@ -14,7 +14,7 @@ from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.generic import DpSwitch
 from aiohomematic.model.hub import SysvarDpSwitch
 
-from tests import helper
+from tests import const, helper
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
@@ -26,6 +26,7 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -34,7 +35,7 @@ TEST_DEVICES: dict[str, str] = {
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_ceswitch(
@@ -101,6 +102,7 @@ async def test_ceswitch(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -109,7 +111,7 @@ async def test_ceswitch(
         "un_ignore_list",
     ),
     [
-        (TEST_DEVICES, True, False, False, None, None),
+        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
     ],
 )
 async def test_hmswitch(
@@ -179,6 +181,7 @@ async def test_hmswitch(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",
@@ -187,7 +190,7 @@ async def test_hmswitch(
         "un_ignore_list",
     ),
     [
-        ({}, True, True, False, None, None),
+        (const.CCU_MINI_PORT, {}, True, True, False, None, None),
     ],
 )
 async def test_hmsysvarswitch(

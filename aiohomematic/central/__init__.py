@@ -166,6 +166,7 @@ from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
     check_config,
+    extract_device_addresses_from_device_descriptions,
     extract_exc_args,
     get_channel_no,
     get_device_address,
@@ -608,6 +609,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     ) -> None:
         """Refresh device descriptions and create missing devices."""
         device_descriptions: tuple[DeviceDescription, ...] | None = None
+
         if (
             device_address
             and (device_description := await client.get_device_description(device_address=device_address)) is not None
@@ -1044,7 +1046,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for address in addresses:
             if device := self._devices.get(address):
                 self.remove_device(device=device)
-        await self.save_caches()
+        await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
 
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
@@ -1104,42 +1106,52 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
             return
 
-        if not (
-            new_device_descriptions := self._identify_new_device_descriptions(
-                device_descriptions=device_descriptions, interface_id=interface_id
-            )
-        ):
-            _LOGGER.debug("ADD_NEW_DEVICES: Nothing to add for interface_id %s", interface_id)
-            return
-
-        # Here we block the automatic creation of new devices, if required
-        if self._config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
-            self.fire_backend_system_callback(
-                system_event=BackendSystemEvent.DEVICES_DELAYED,
-                new_device_descriptions=new_device_descriptions,
-                interface_id=interface_id,
-            )
-            return
-
-        client = self._clients[interface_id]
-        save_descriptions = False
-        for dev_desc in new_device_descriptions:
-            try:
-                self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
-                await client.fetch_paramset_descriptions(device_description=dev_desc)
-                save_descriptions = True
-            except Exception as exc:  # pragma: no cover
-                save_descriptions = False
-                _LOGGER.error(
-                    "UPDATE_CACHES_WITH_NEW_DEVICES failed: %s [%s]",
-                    type(exc).__name__,
-                    extract_exc_args(exc=exc),
+        async with self._device_add_semaphore:
+            if not (
+                new_device_descriptions := self._identify_new_device_descriptions(
+                    device_descriptions=device_descriptions, interface_id=interface_id
                 )
+            ):
+                _LOGGER.debug("ADD_NEW_DEVICES: Nothing to add for interface_id %s", interface_id)
+                return
 
-        await self.save_caches(
-            save_device_descriptions=save_descriptions,
-            save_paramset_descriptions=save_descriptions,
-        )
+            # Here we block the automatic creation of new devices, if required
+            if (
+                self._config.delay_new_device_creation
+                and source == SourceOfDeviceCreation.NEW
+                and (
+                    new_addresses := extract_device_addresses_from_device_descriptions(
+                        device_descriptions=new_device_descriptions
+                    )
+                )
+            ):
+                self.fire_backend_system_callback(
+                    system_event=BackendSystemEvent.DEVICES_DELAYED,
+                    new_addresses=new_addresses,
+                    interface_id=interface_id,
+                    source=source,
+                )
+                return
+
+            client = self._clients[interface_id]
+            save_descriptions = False
+            for dev_desc in new_device_descriptions:
+                try:
+                    self._device_descriptions.add_device(interface_id=interface_id, device_description=dev_desc)
+                    await client.fetch_paramset_descriptions(device_description=dev_desc)
+                    save_descriptions = True
+                except Exception as exc:  # pragma: no cover
+                    save_descriptions = False
+                    _LOGGER.error(
+                        "UPDATE_CACHES_WITH_NEW_DEVICES failed: %s [%s]",
+                        type(exc).__name__,
+                        extract_exc_args(exc=exc),
+                    )
+
+            await self.save_caches(
+                save_device_descriptions=save_descriptions,
+                save_paramset_descriptions=save_descriptions,
+            )
 
         if new_device_addresses := self._check_for_new_device_addresses(interface_id=interface_id):
             await self._device_details.load()
@@ -1150,19 +1162,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self, *, device_descriptions: tuple[DeviceDescription, ...], interface_id: str | None = None
     ) -> tuple[DeviceDescription, ...]:
         """Identify devices whose ADDRESS isn't already known on any interface."""
-
         known_addresses = self._device_descriptions.get_addresses(interface_id=interface_id)
-
-        # Filter in a single pass, keeping order and deduping inputs (O(len(device_descriptions)))
-        result: list[DeviceDescription] = []
-        seen_new: set[str] = set()
-        for dev_desc in device_descriptions:
-            addr = dev_desc["ADDRESS"]
-            if addr not in known_addresses and addr not in seen_new:
-                result.append(dev_desc)
-                seen_new.add(addr)
-
-        return tuple(result)
+        return tuple(
+            dev_desc
+            for dev_desc in device_descriptions
+            if (dev_desc["ADDRESS"] if dev_desc["PARENT"] == "" else dev_desc["PARENT"]) not in known_addresses
+        )
 
     def _check_for_new_device_addresses(self, *, interface_id: str | None = None) -> Mapping[str, set[str]]:
         """Check if there are new devices that need to be created."""

@@ -15,7 +15,8 @@ from typing import Any, Final, cast
 
 from aiohomematic.const import BLOCK_LOG_TIMEOUT
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.support import debug_enabled, extract_exc_args
+import aiohomematic.support as hms
+from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -46,7 +47,13 @@ class Looper:
                     _LOGGER.warning("Shutdown timeout reached; task still pending: %s", task)
                 break
 
-            await self._await_and_log_pending(pending=tasks)
+            pending_after_wait = await self._await_and_log_pending(pending=tasks, deadline=deadline)
+
+            # If deadline has been reached and tasks are still pending, log and break
+            if deadline is not None and monotonic() >= deadline and pending_after_wait:
+                for task in pending_after_wait:
+                    _LOGGER.warning("Shutdown timeout reached; task still pending: %s", task)
+                break
 
             if start_time is None:
                 # Avoid calling monotonic() until we know
@@ -63,16 +70,35 @@ class Looper:
                 for task in tasks:
                     _LOGGER.debug("Waiting for task: %s", task)
 
-    async def _await_and_log_pending(self, *, pending: Collection[asyncio.Future[Any]]) -> None:
-        """Await and log tasks that take a long time."""
-        wait_time = 0
-        while pending:
-            _, pending = await asyncio.wait(pending, timeout=BLOCK_LOG_TIMEOUT)
-            if not pending:
-                return
-            wait_time += BLOCK_LOG_TIMEOUT
-            for task in pending:
+    async def _await_and_log_pending(
+        self, *, pending: Collection[asyncio.Future[Any]], deadline: float | None
+    ) -> set[asyncio.Future[Any]]:
+        """
+        Await and log tasks that take a long time, respecting an optional deadline.
+
+        Returns the set of pending tasks if the deadline has been reached (or zero timeout),
+        allowing the caller to decide about timeout logging. Returns an empty set if no tasks are pending.
+        """
+        wait_time = 0.0
+        pending_set: set[asyncio.Future[Any]] = set(pending)
+        while pending_set:
+            if deadline is None:
+                timeout = BLOCK_LOG_TIMEOUT
+            else:
+                remaining = int(max(0.0, deadline - monotonic()))
+                if (timeout := min(BLOCK_LOG_TIMEOUT, remaining)) == 0.0:
+                    # Deadline reached; return current pending to caller for warning log
+                    return pending_set
+            done, still_pending = await asyncio.wait(pending_set, timeout=timeout)
+            if not (pending_set := set(still_pending)):
+                return set()
+            wait_time += timeout
+            for task in pending_set:
                 _LOGGER.debug("Waited %s seconds for task: %s", wait_time, task)
+            # If the deadline was reached during the wait, let caller handle warning
+            if deadline is not None and monotonic() >= deadline:
+                return pending_set
+        return set()
 
     def create_task(self, *, target: Coroutine[Any, Any, Any], name: str) -> None:
         """Add task to the executor pool."""
@@ -134,7 +160,12 @@ def cancelling(*, task: asyncio.Future[Any]) -> bool:
 
 
 def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
-    """Annotation to mark method that must be run within the event loop."""
+    """
+    Annotation to mark method that must be run within the event loop.
+
+    Always wraps the function, but only performs loop checks when debug is enabled.
+    This allows tests to monkeypatch aiohomematic.support.debug_enabled at runtime.
+    """
 
     _with_loop: set = set()
 
@@ -143,17 +174,22 @@ def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
         """Wrap loop check."""
         return_value = func(*args, **kwargs)
 
-        try:
-            asyncio.get_running_loop()
-            loop_running = True
-        except Exception:
-            loop_running = False
+        # Only perform the (potentially expensive) loop check when debug is enabled.
+        if hms.debug_enabled():
+            try:
+                asyncio.get_running_loop()
+                loop_running = True
+            except Exception:
+                loop_running = False
 
-        if not loop_running and func not in _with_loop:
-            _with_loop.add(func)
-            _LOGGER.warning("Method %s must run in the event_loop. No loop detected.", func.__name__)
+            if not loop_running and func not in _with_loop:
+                _with_loop.add(func)
+                _LOGGER.warning(
+                    "Method %s must run in the event_loop. No loop detected.",
+                    func.__name__,
+                )
 
         return return_value
 
     setattr(func, "_loop_check", True)
-    return cast(Callable[P, R], wrapper_loop_check) if debug_enabled() else func
+    return cast(Callable[P, R], wrapper_loop_check)

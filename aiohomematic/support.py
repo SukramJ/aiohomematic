@@ -44,6 +44,7 @@ from aiohomematic.const import (
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     TIMEOUT,
     CommandRxMode,
+    DeviceDescription,
     ParamsetKey,
     RxMode,
     SysvarType,
@@ -163,6 +164,19 @@ def check_or_create_directory(*, directory: str) -> bool:
                 f"CHECK_OR_CREATE_DIRECTORY failed: Unable to create directory {directory} ('{oserr.strerror}')"
             ) from oserr
     return True
+
+
+def extract_device_addresses_from_device_descriptions(
+    *, device_descriptions: tuple[DeviceDescription, ...]
+) -> tuple[str, ...]:
+    """Extract addresses from device descriptions."""
+    return tuple(
+        {
+            parent_address
+            for dev_desc in device_descriptions
+            if (parent_address := dev_desc["PARENT"]) is not None and (is_device_address(address=parent_address))
+        }
+    )
 
 
 def parse_sys_var(*, data_type: SysvarType | None, raw_value: Any) -> Any:

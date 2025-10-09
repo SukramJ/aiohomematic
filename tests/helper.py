@@ -224,12 +224,10 @@ async def get_pydev_ccu_central_unit_full(
     port: int,
     client_session: ClientSession | None = None,
 ) -> CentralUnit:
-    """Create and yield central."""
-    # Use an asyncio.Event for faster, non-polling wait on device creation
+    """Create and yield central, after all devices have been created."""
     device_event = asyncio.Event()
 
     def systemcallback(system_event, *args, **kwargs):
-        # Signal that devices have been created as soon as the event fires
         if system_event == BackendSystemEvent.DEVICES_CREATED:
             device_event.set()
 
@@ -255,23 +253,8 @@ async def get_pydev_ccu_central_unit_full(
     central.register_backend_system_callback(cb=systemcallback)
     await central.start()
 
-    # Fallback watcher: set the event as soon as any device appears to avoid long waits
-    async def _watch_devices():
-        try:
-            for _ in range(600):  # up to ~30s at 50ms intervals
-                if getattr(central, "_devices", None) and len(central._devices) > 0:
-                    device_event.set()
-                    return
-                await asyncio.sleep(0.05)
-        except Exception:
-            # Do not fail startup if watcher errors out
-            pass
-
-    # Launch the watcher without blocking; register via central looper so it is cancelled on stop
-    central.looper.create_task(target=_watch_devices(), name="pydevccu_watch_devices")
-
-    # Wait up to 60 seconds, react immediately when ready
+    # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available
     with contextlib.suppress(TimeoutError):
-        await asyncio.wait_for(device_event.wait(), timeout=120)
+        await asyncio.wait_for(device_event.wait(), timeout=60)
 
     return central

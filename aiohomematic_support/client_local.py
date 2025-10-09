@@ -35,7 +35,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.support import is_channel_address
 
 LOCAL_SERIAL: Final = "0815_4711"
-BACKEND_LOCAL: Final = "Local CCU"
+BACKEND_LOCAL: Final = "PyDevCCU"
 
 
 class ClientLocal(Client):  # pragma: no cover

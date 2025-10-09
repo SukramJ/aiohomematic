@@ -400,15 +400,15 @@ class PingPongCache:
 
     @property
     def low_pending_pongs(self) -> bool:
-        """Return the pending pong count is low."""
+        """Return True when pending pong count is at or below the allowed delta (i.e., not high)."""
         self._cleanup_pending_pongs()
-        return len(self._pending_pongs) < (self._allowed_delta / 2)
+        return len(self._pending_pongs) <= self._allowed_delta
 
     @property
     def low_unknown_pongs(self) -> bool:
-        """Return the unknown pong count is low."""
+        """Return True when unknown pong count is at or below the allowed delta (i.e., not high)."""
         self._cleanup_unknown_pongs()
-        return len(self._unknown_pongs) < (self._allowed_delta / 2)
+        return len(self._unknown_pongs) <= self._allowed_delta
 
     @property
     def pending_pong_count(self) -> int:
@@ -430,10 +430,14 @@ class PingPongCache:
     def handle_send_ping(self, *, ping_ts: datetime) -> None:
         """Handle send ping timestamp."""
         self._pending_pongs.add(ping_ts)
-        self._check_and_fire_pong_event(
-            event_type=InterfaceEventType.PENDING_PONG,
-            pong_mismatch_count=self.pending_pong_count,
-        )
+        # Throttle event emission to every second ping to avoid spamming callbacks,
+        # but always emit when crossing the high threshold.
+        count = self.pending_pong_count
+        if (count > self._allowed_delta) or (count % 2 == 0):
+            self._check_and_fire_pong_event(
+                event_type=InterfaceEventType.PENDING_PONG,
+                pong_mismatch_count=count,
+            )
         _LOGGER.debug(
             "PING PONG CACHE: Increase pending PING count: %s - %i for ts: %s",
             self._interface_id,
@@ -473,8 +477,8 @@ class PingPongCache:
         """Cleanup too old pending pongs."""
         dt_now = datetime.now()
         for pong_ts in list(self._pending_pongs):
-            delta = dt_now - pong_ts
-            if delta.seconds > self._ttl:
+            # Only expire entries that are actually older than the TTL.
+            if (dt_now - pong_ts).total_seconds() > self._ttl:
                 self._pending_pongs.remove(pong_ts)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired pending PONG: %s - %i for ts: %s",
@@ -487,8 +491,8 @@ class PingPongCache:
         """Cleanup too old unknown pongs."""
         dt_now = datetime.now()
         for pong_ts in list(self._unknown_pongs):
-            delta = dt_now - pong_ts
-            if delta.seconds > self._ttl:
+            # Only expire entries that are actually older than the TTL.
+            if (dt_now - pong_ts).total_seconds() > self._ttl:
                 self._unknown_pongs.remove(pong_ts)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired unknown PONG: %s - %i or ts: %s",
@@ -519,11 +523,20 @@ class PingPongCache:
             )
 
         if self.low_pending_pongs and event_type == InterfaceEventType.PENDING_PONG:
-            _fire_event(mismatch_count=0)
-            self._pending_pong_logged = False
+            # In low state:
+            # - If we previously logged a high state, emit a reset event (mismatch=0) exactly once.
+            # - Otherwise, throttle emission to every second ping (even counts > 0) to avoid spamming.
+            if self._pending_pong_logged:
+                _fire_event(mismatch_count=0)
+                self._pending_pong_logged = False
+                return
+            if pong_mismatch_count > 0 and pong_mismatch_count % 2 == 0:
+                _fire_event(mismatch_count=pong_mismatch_count)
             return
 
         if self.low_unknown_pongs and event_type == InterfaceEventType.UNKNOWN_PONG:
+            # For unknown pongs, only reset the logged flag when we drop below the threshold.
+            # We do not emit an event here since there is no explicit expectation for a reset notification.
             self._unknown_pong_logged = False
             return
 

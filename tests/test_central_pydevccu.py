@@ -52,6 +52,7 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     assert central_unit_full.model == "PyDevCCU"
     assert central_unit_full.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
     assert central_unit_full.primary_client.model == "PyDevCCU"
+    assert len(central_unit_full._devices) == 394
 
     data = {}
     for device in central_unit_full.devices:

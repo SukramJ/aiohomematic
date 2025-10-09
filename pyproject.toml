@@ -567,9 +567,19 @@ max-complexity = 25
 
 
 [tool.coverage.run]
+branch = true
 source = ["aiohomematic",]
+omit = [
+  "aiohomematic/hmcli.py",
+  "aiohomematic/client/__init__.py",
+  "aiohomematic/validator.py",
+  "aiohomematic/exceptions.py",
+  "aiohomematic/central/xml_rpc_server.py",
+]
 
 [tool.coverage.report]
+show_missing = true
+skip_empty = true
 exclude_lines = [
     # Have to re-enable the standard pragma
     "pragma: no cover",

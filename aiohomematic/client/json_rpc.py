@@ -1259,7 +1259,16 @@ class JsonRpcAioHttpClient(LogContextMixin):
             response = await self._post_script(script_name=RegaScript.GET_SERIAL)
 
             if json_result := response[_JsonKey.RESULT]:
-                serial: str = json_result[_JsonKey.SERIAL]
+                # The backend may return a JSON string which needs to be decoded first
+                # or an already-parsed dict. Support both.
+                if isinstance(json_result, str):
+                    try:
+                        json_result = orjson.loads(json_result)
+                    except Exception:
+                        # Fall back to plain string handling; return last 10 chars
+                        serial_exc = str(json_result)
+                        return serial_exc[-10:] if len(serial_exc) > 10 else serial_exc
+                serial: str = str(json_result.get(_JsonKey.SERIAL) if isinstance(json_result, dict) else json_result)
                 if len(serial) > 10:
                     serial = serial[-10:]
                 return serial

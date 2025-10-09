@@ -1,7 +1,6 @@
 # Version 2025.10.4 (2025-10-07)
 
-- Add option to delay new device creation
-- Add option for manually triggered device creation
+- Add delayed device creation
 - Add source of device creation to callback
 - Improve test setup and cleanup
 - Minimize decorator overhead

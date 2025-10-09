@@ -272,6 +272,6 @@ async def get_pydev_ccu_central_unit_full(
 
     # Wait up to 60 seconds, react immediately when ready
     with contextlib.suppress(TimeoutError):
-        await asyncio.wait_for(device_event.wait(), timeout=60)
+        await asyncio.wait_for(device_event.wait(), timeout=120)
 
     return central

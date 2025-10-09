@@ -494,6 +494,29 @@ class Client(ABC, LogContextMixin):
             _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc))
         return None
 
+    @inspector(re_raise=False)
+    async def get_all_device_description(self, *, device_address: str) -> tuple[DeviceDescription, ...] | None:
+        """Get all device descriptions from the backend."""
+        all_device_description: list[DeviceDescription] = []
+        if main_dd := await self.get_device_description(device_address=device_address):
+            all_device_description.append(main_dd)
+        else:
+            _LOGGER.warning(
+                "GET_ALL_DEVICE_DESCRIPTIONS: No device description for %s",
+                device_address,
+            )
+
+        if main_dd:
+            for channel_address in main_dd["CHILDREN"]:
+                if channel_dd := await self.get_device_description(device_address=channel_address):
+                    all_device_description.append(channel_dd)
+                else:
+                    _LOGGER.warning(
+                        "GET_ALL_DEVICE_DESCRIPTIONS: No channel description for %s",
+                        channel_address,
+                    )
+        return tuple(all_device_description)
+
     @inspector
     async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""

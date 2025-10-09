@@ -1067,7 +1067,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
             return
         client = self._clients[interface_id]
-        if (device_descriptions := await client.get_device_description(device_address=address)) is None:
+        if (device_descriptions := await client.get_all_device_description(device_address=address)) is None:
             _LOGGER.warning(
                 "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
                 address,
@@ -1077,7 +1077,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         await self._add_new_devices(
             interface_id=interface_id,
-            device_descriptions=(device_descriptions,),
+            device_descriptions=device_descriptions,
             source=SourceOfDeviceCreation.MANUAL,
         )
 

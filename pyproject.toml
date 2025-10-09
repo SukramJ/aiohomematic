@@ -571,10 +571,7 @@ branch = true
 source = ["aiohomematic",]
 omit = [
   "aiohomematic/hmcli.py",
-  "aiohomematic/client/json_rpc.py",
   "aiohomematic/client/__init__.py",
-  "aiohomematic/client/_rpc_errors.py",
-  "aiohomematic/client/xml_rpc.py",
   "aiohomematic/validator.py",
   "aiohomematic/exceptions.py",
   "aiohomematic/central/xml_rpc_server.py",

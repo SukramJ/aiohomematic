@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator, Generator
 import logging
 from unittest.mock import Mock, patch
 
+from aiohttp import ClientSession
 import pydevccu
 import pytest
 
@@ -12,6 +14,8 @@ from aiohomematic.central import CentralUnit
 from aiohomematic.client import Client
 
 from tests import const, helper
+from tests.helpers.mock_json_rpc import MockJsonRpc
+from tests.helpers.mock_xml_rpc import MockXmlRpcServer
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,8 +33,10 @@ def pydev_ccu_full() -> pydevccu.Server:
     """Create the virtual ccu."""
     ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_PORT))
     ccu.start()
-    yield ccu
-    ccu.stop()
+    try:
+        yield ccu
+    finally:
+        ccu.stop()
 
 
 @pytest.fixture(scope="module")
@@ -38,17 +44,21 @@ def pydev_ccu_mini() -> pydevccu.Server:
     """Create the virtual ccu."""
     ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_MINI_PORT), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
     ccu.start()
-    yield ccu
-    ccu.stop()
+    try:
+        yield ccu
+    finally:
+        ccu.stop()
 
 
 @pytest.fixture
 async def central_unit_mini(pydev_ccu_mini: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
     central = await helper.get_pydev_ccu_central_unit_full(port=const.CCU_MINI_PORT)
-    yield central
-    await central.stop()
-    await central.clear_caches()
+    try:
+        yield central
+    finally:
+        await central.stop()
+        await central.clear_caches()
 
 
 @pytest.fixture
@@ -66,18 +76,29 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
     unregister_homematic_callback = central.register_homematic_callback(cb=homematic_callback)
     unregister_backend_system_callback = central.register_backend_system_callback(cb=backend_system_callback)
 
-    yield central
-
-    unregister_homematic_callback()
-    unregister_backend_system_callback()
-    await central.stop()
-    await central.clear_caches()
+    try:
+        yield central
+    finally:
+        unregister_homematic_callback()
+        unregister_backend_system_callback()
+        await central.stop()
+        await central.clear_caches()
 
 
 @pytest.fixture
 async def factory() -> helper.Factory:
     """Return central factory."""
     return helper.Factory()
+
+
+@pytest.fixture
+async def aiohttp_session() -> AsyncGenerator[ClientSession]:
+    """Provide a shared aiohttp ClientSession for tests and ensure cleanup."""
+    session = ClientSession()
+    try:
+        yield session
+    finally:
+        await session.close()
 
 
 @pytest.fixture
@@ -102,6 +123,30 @@ async def central_client_factory(
         un_ignore_list=un_ignore_list,
     )
     central, client = central_client
-    yield central, client, factory
-    await central.stop()
-    await central.clear_caches()
+    try:
+        yield central, client, factory
+    finally:
+        await central.stop()
+        await central.clear_caches()
+
+
+@pytest.fixture
+def mock_xml_rpc_server() -> Generator[tuple[MockXmlRpcServer, str]]:
+    """Yield a running mock XML-RPC server and its base URL for tests."""
+    srv = MockXmlRpcServer()
+    host, port = srv.start()
+    try:
+        yield srv, f"http://{host}:{port}"
+    finally:
+        srv.stop()
+
+
+@pytest.fixture
+async def mock_json_rpc_server() -> AsyncGenerator[tuple[MockJsonRpc, str]]:
+    """Yield a running mock JSON-RPC server and its base URL for tests."""
+    srv = MockJsonRpc()
+    base_url = await srv.start()
+    try:
+        yield srv, base_url
+    finally:
+        await srv.stop()

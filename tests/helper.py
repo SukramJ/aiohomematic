@@ -267,8 +267,8 @@ async def get_pydev_ccu_central_unit_full(
             # Do not fail startup if watcher errors out
             pass
 
-    # Launch the watcher without blocking; event will be set either by callback or watcher
-    asyncio.create_task(_watch_devices())  # noqa: RUF006
+    # Launch the watcher without blocking; register via central looper so it is cancelled on stop
+    central.looper.create_task(target=_watch_devices(), name="pydevccu_watch_devices")
 
     # Wait up to 60 seconds, react immediately when ready
     with contextlib.suppress(TimeoutError):

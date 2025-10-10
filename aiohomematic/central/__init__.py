@@ -1166,7 +1166,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return tuple(
             dev_desc
             for dev_desc in device_descriptions
-            if (dev_desc["ADDRESS"] if dev_desc["PARENT"] == "" else dev_desc["PARENT"]) not in known_addresses
+            if (dev_desc["ADDRESS"] if not (parent_address := dev_desc.get("PARENT")) else parent_address)
+            not in known_addresses
         )
 
     def _check_for_new_device_addresses(self, *, interface_id: str | None = None) -> Mapping[str, set[str]]:

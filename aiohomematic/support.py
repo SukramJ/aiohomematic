@@ -174,7 +174,7 @@ def extract_device_addresses_from_device_descriptions(
         {
             parent_address
             for dev_desc in device_descriptions
-            if (parent_address := dev_desc["PARENT"]) is not None and (is_device_address(address=parent_address))
+            if (parent_address := dev_desc.get("PARENT")) and (is_device_address(address=parent_address))
         }
     )
 

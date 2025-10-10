@@ -1,3 +1,7 @@
+# Version 2025.10.5 (2025-10-10)
+
+- Fix issue with non existing PARENT in device description
+
 # Version 2025.10.4 (2025-10-07)
 
 - Add delayed device creation

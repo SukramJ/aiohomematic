@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.5"
+VERSION: Final = "2025.10.6"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -573,6 +573,13 @@ class ParameterType(StrEnum):
     EMPTY = ""
 
 
+class RpcServerType(StrEnum):
+    """Enum for Homematic rpc server types."""
+
+    XML_RPC = "xml_rpc"
+    NONE = "none"
+
+
 CLICK_EVENTS: Final[frozenset[Parameter]] = frozenset(
     {
         Parameter.PRESS,
@@ -689,7 +696,7 @@ INTERFACES_SUPPORTING_FIRMWARE_UPDATES: Final[frozenset[Interface]] = frozenset(
     }
 )
 
-INTERFACES_SUPPORTING_XML_RPC: Final[frozenset[Interface]] = frozenset(
+INTERFACES_REQUIRING_XML_RPC: Final[frozenset[Interface]] = frozenset(
     {
         Interface.BIDCOS_RF,
         Interface.BIDCOS_WIRED,
@@ -698,12 +705,32 @@ INTERFACES_SUPPORTING_XML_RPC: Final[frozenset[Interface]] = frozenset(
     }
 )
 
-INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[frozenset[Interface]] = frozenset(
+
+INTERFACES_SUPPORTING_RPC_CALLBACK: Final[frozenset[Interface]] = frozenset(INTERFACES_REQUIRING_XML_RPC)
+
+
+INTERFACES_REQUIRING_JSON_RPC_CLIENT: Final[frozenset[Interface]] = frozenset(
     {
-        Interface.CCU_JACK,
         Interface.CUXD,
+        Interface.CCU_JACK,
     }
 )
+
+DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[frozenset[Interface]] = frozenset(
+    INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC
+)
+
+INTERFACE_RPC_SERVER_TYPE: Final[Mapping[Interface, RpcServerType]] = MappingProxyType(
+    {
+        Interface.BIDCOS_RF: RpcServerType.XML_RPC,
+        Interface.BIDCOS_WIRED: RpcServerType.XML_RPC,
+        Interface.HMIP_RF: RpcServerType.XML_RPC,
+        Interface.VIRTUAL_DEVICES: RpcServerType.XML_RPC,
+        Interface.CUXD: RpcServerType.NONE,
+        Interface.CCU_JACK: RpcServerType.NONE,
+    }
+)
+
 
 DEFAULT_USE_PERIODIC_SCAN_FOR_INTERFACES: Final = True
 

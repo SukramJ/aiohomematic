@@ -25,14 +25,14 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 class RPCFunctions:
-    """The XML-RPC functions the backend will expect."""
+    """The RPC functions the backend will expect."""
 
-    # Disable kw-only linter for this class since XML-RPC signatures are positional by protocol
+    # Disable kw-only linter
     __kwonly_check__ = False
 
-    def __init__(self, *, xml_rpc_server: XmlRpcServer) -> None:
+    def __init__(self, *, rpc_server: RpcServer) -> None:
         """Init RPCFunctions."""
-        self._xml_rpc_server: Final = xml_rpc_server
+        self._rpc_server: Final = rpc_server
 
     def event(self, interface_id: str, channel_address: str, parameter: str, value: Any, /) -> None:
         """If a device emits some sort event, we will handle it here."""
@@ -50,13 +50,13 @@ class RPCFunctions:
     @callback_backend_system(system_event=BackendSystemEvent.ERROR)
     def error(self, interface_id: str, error_code: str, msg: str, /) -> None:
         """When some error occurs the backend will send its error message here."""
-        # Structured boundary log (warning level). XML-RPC server received error notification.
+        # Structured boundary log (warning level). RPC server received error notification.
         try:
             raise RuntimeError(str(msg))
         except RuntimeError as err:
             log_boundary_error(
                 logger=_LOGGER,
-                boundary="xml-rpc-server",
+                boundary="rpc-server",
                 action="error",
                 err=err,
                 level=logging.WARNING,
@@ -137,7 +137,7 @@ class RPCFunctions:
 
     def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
         """Return the central by interface_id."""
-        return self._xml_rpc_server.get_central(interface_id=interface_id)
+        return self._rpc_server.get_central(interface_id=interface_id)
 
 
 # Restrict to specific paths.
@@ -150,7 +150,7 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
     )
 
 
-class AioHomematicXMLRPCServer(SimpleXMLRPCServer):
+class HomematicXMLRPCServer(SimpleXMLRPCServer):
     """
     Simple XML-RPC server.
 
@@ -171,8 +171,8 @@ class AioHomematicXMLRPCServer(SimpleXMLRPCServer):
         return SimpleXMLRPCServer.system_listMethods(self)
 
 
-class XmlRpcServer(threading.Thread):
-    """XML-RPC server thread to handle messages from the backend."""
+class RpcServer(threading.Thread):
+    """RPC server thread to handle messages from the backend."""
 
     _initialized: bool = False
     _instances: Final[dict[tuple[str, int], XmlRpcServer]] = {}
@@ -190,46 +190,30 @@ class XmlRpcServer(threading.Thread):
         self._listen_ip_addr: Final = ip_addr
         self._listen_port: Final[int] = find_free_port() if port == PORT_ANY else port
         self._address: Final[tuple[str, int]] = (ip_addr, self._listen_port)
-        self._instances[self._address] = self
-        threading.Thread.__init__(self, name=f"XmlRpcServer {ip_addr}:{self._listen_port}")
-        self._simple_xml_rpc_server = AioHomematicXMLRPCServer(
-            addr=self._address,
-            requestHandler=RequestHandler,
-            logRequests=False,
-            allow_none=True,
-        )
-        self._simple_xml_rpc_server.register_introspection_functions()
-        self._simple_xml_rpc_server.register_multicall_functions()
-        self._simple_xml_rpc_server.register_instance(RPCFunctions(xml_rpc_server=self), allow_dotted_names=True)
+        threading.Thread.__init__(self, name=f"RpcServer {ip_addr}:{self._listen_port}")
         self._centrals: Final[dict[str, hmcu.CentralUnit]] = {}
-
-    def __new__(cls, ip_addr: str, port: int) -> XmlRpcServer:  # noqa: PYI034  # kwonly: disable
-        """Create new XmlRPC server."""
-        if (xml_rpc := cls._instances.get((ip_addr, port))) is None:
-            _LOGGER.debug("Creating XmlRpc server")
-            return super().__new__(cls)
-        return xml_rpc
+        self._simple_rpc_server: SimpleXMLRPCServer
 
     def run(self) -> None:
-        """Run the XmlRPC-Server thread."""
+        """Run the RPC-Server thread."""
         _LOGGER.debug(
-            "RUN: Starting XmlRPC-Server listening on http://%s:%i",
+            "RUN: Starting RPC-Server listening on %s:%i",
             self._listen_ip_addr,
             self._listen_port,
         )
-        if self._simple_xml_rpc_server:
-            self._simple_xml_rpc_server.serve_forever()
+        if self._simple_rpc_server:
+            self._simple_rpc_server.serve_forever()
 
     def stop(self) -> None:
-        """Stop the XmlRPC-Server."""
-        _LOGGER.debug("STOP: Shutting down XmlRPC-Server")
-        self._simple_xml_rpc_server.shutdown()
-        _LOGGER.debug("STOP: Stopping XmlRPC-Server")
-        self._simple_xml_rpc_server.server_close()
+        """Stop the RPC-Server."""
+        _LOGGER.debug("STOP: Shutting down RPC-Server")
+        self._simple_rpc_server.shutdown()
+        _LOGGER.debug("STOP: Stopping RPC-Server")
+        self._simple_rpc_server.server_close()
         # Ensure the server thread has actually terminated to avoid slow teardown
         with contextlib.suppress(RuntimeError):
             self.join(timeout=1.0)
-        _LOGGER.debug("STOP: XmlRPC-Server stopped")
+        _LOGGER.debug("STOP: RPC-Server stopped")
         if self._address in self._instances:
             del self._instances[self._address]
 
@@ -249,12 +233,12 @@ class XmlRpcServer(threading.Thread):
         return self._started.is_set() is True  # type: ignore[attr-defined]
 
     def add_central(self, *, central: hmcu.CentralUnit) -> None:
-        """Register a central in the XmlRPC-Server."""
+        """Register a central in the RPC-Server."""
         if not self._centrals.get(central.name):
             self._centrals[central.name] = central
 
     def remove_central(self, *, central: hmcu.CentralUnit) -> None:
-        """Unregister a central from XmlRPC-Server."""
+        """Unregister a central from RPC-Server."""
         if self._centrals.get(central.name):
             del self._centrals[central.name]
 
@@ -271,14 +255,45 @@ class XmlRpcServer(threading.Thread):
         return len(self._centrals) == 0
 
 
+class XmlRpcServer(RpcServer):
+    """XML-RPC server thread to handle messages from the backend."""
+
+    def __init__(
+        self,
+        *,
+        ip_addr: str,
+        port: int,
+    ) -> None:
+        """Init XmlRPC server."""
+
+        super().__init__(ip_addr=ip_addr, port=port)
+        self._instances[self._address] = self
+        self._simple_rpc_server = HomematicXMLRPCServer(
+            addr=self._address,
+            requestHandler=RequestHandler,
+            logRequests=False,
+            allow_none=True,
+        )
+        self._simple_rpc_server.register_introspection_functions()
+        self._simple_rpc_server.register_multicall_functions()
+        self._simple_rpc_server.register_instance(RPCFunctions(rpc_server=self), allow_dotted_names=True)
+
+    def __new__(cls, ip_addr: str, port: int) -> XmlRpcServer:  # noqa: PYI034  # kwonly: disable
+        """Create new RPC server."""
+        if (rpc := cls._instances.get((ip_addr, port))) is None:
+            _LOGGER.debug("Creating XmlRpc server")
+            return super().__new__(cls)
+        return rpc
+
+
 def create_xml_rpc_server(*, ip_addr: str = IP_ANY_V4, port: int = PORT_ANY) -> XmlRpcServer:
-    """Register the xml rpc server."""
-    xml_rpc = XmlRpcServer(ip_addr=ip_addr, port=port)
-    if not xml_rpc.started:
-        xml_rpc.start()
+    """Register the rpc server."""
+    rpc = XmlRpcServer(ip_addr=ip_addr, port=port)
+    if not rpc.started:
+        rpc.start()
         _LOGGER.debug(
             "CREATE_XML_RPC_SERVER: Starting XmlRPC-Server listening on %s:%i",
-            xml_rpc.listen_ip_addr,
-            xml_rpc.listen_port,
+            rpc.listen_ip_addr,
+            rpc.listen_port,
         )
-    return xml_rpc
+    return rpc

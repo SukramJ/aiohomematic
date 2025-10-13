@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from aiohomematic import central as hmcu
-from aiohomematic.client.xml_rpc import XmlRpcProxy
+from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
 
 
 @pytest.mark.asyncio
@@ -14,7 +14,7 @@ async def test_xml_rpc_ping(mock_xml_rpc_server) -> None:
     (_, base_url) = mock_xml_rpc_server
     conn_state = hmcu.CentralConnectionState()
 
-    proxy = XmlRpcProxy(
+    proxy = AioXmlRpcProxy(
         max_workers=1,
         interface_id="BidCos-RF",
         connection_state=conn_state,

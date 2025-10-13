@@ -541,7 +541,7 @@ fixture-parentheses = false
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
 voluptuous = "vol"
 "aiohomematic.central" = "hmcu"
-"aiohomematic.central.xml_rpc_server" = "xmlrpc"
+"aiohomematic.central.rpc_server" = "rpc"
 "aiohomematic.client" = "hmcl"
 "aiohomematic.exporter" = "hmexp"
 "aiohomematic.platforms.custom.definition" = "hmed"
@@ -574,7 +574,7 @@ omit = [
   "aiohomematic/client/__init__.py",
   "aiohomematic/validator.py",
   "aiohomematic/exceptions.py",
-  "aiohomematic/central/xml_rpc_server.py",
+  "aiohomematic/central/rpc_server.py",
 ]
 
 [tool.coverage.report]

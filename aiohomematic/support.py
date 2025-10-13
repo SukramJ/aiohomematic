@@ -100,7 +100,7 @@ def check_config(
     password: str,
     storage_folder: str,
     callback_host: str | None,
-    callback_port: int | None,
+    callback_port_xml_rpc: int | None,
     json_port: int | None,
     interface_configs: AbstractSet[hmcl.InterfaceConfig] | None = None,
 ) -> list[str]:
@@ -123,8 +123,8 @@ def check_config(
         config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
         config_failures.append("Invalid callback hostname or ipv4 address")
-    if callback_port and not is_port(port=callback_port):
-        config_failures.append("Invalid callback port")
+    if callback_port_xml_rpc and not is_port(port=callback_port_xml_rpc):
+        config_failures.append("Invalid xml rpc callback port")
     if json_port and not is_port(port=json_port):
         config_failures.append("Invalid json port")
     if interface_configs and not has_primary_client(interface_configs=interface_configs):

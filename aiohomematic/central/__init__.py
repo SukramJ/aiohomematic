@@ -82,10 +82,10 @@ from aiohomematic.async_support import Looper, loop_check
 from aiohomematic.caches.dynamic import CentralDataCache, DeviceDetailsCache
 from aiohomematic.caches.persistent import DeviceDescriptionCache, ParamsetDescriptionCache
 from aiohomematic.caches.visibility import ParameterVisibilityCache
-from aiohomematic.central import xml_rpc_server as xmlrpc
+from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
-from aiohomematic.client.json_rpc import JsonRpcAioHttpClient
-from aiohomematic.client.xml_rpc import XmlRpcProxy
+from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
+from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
 from aiohomematic.const import (
     CALLBACK_TYPE,
     CATEGORIES,
@@ -98,6 +98,7 @@ from aiohomematic.const import (
     DEFAULT_ENABLE_SYSVAR_SCAN,
     DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
     DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
+    DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
@@ -112,7 +113,6 @@ from aiohomematic.const import (
     DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
     DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
-    INTERFACES_REQUIRING_PERIODIC_REFRESH,
     IP_ANY_V4,
     LOCAL_HOST,
     PORT_ANY,
@@ -137,6 +137,7 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
     ProxyInitState,
+    RpcServerType,
     SourceOfDeviceCreation,
     SystemInformation,
 )
@@ -180,7 +181,7 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 
 # {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
-ConnectionProblemIssuer = JsonRpcAioHttpClient | XmlRpcProxy
+ConnectionProblemIssuer = AioJsonRpcAioHttpClient | AioXmlRpcProxy
 
 INTERFACE_EVENT_SCHEMA = vol.Schema(
     {
@@ -208,8 +209,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()
-        self._xml_rpc_server: xmlrpc.XmlRpcServer | None = None
-        self._json_rpc_client: JsonRpcAioHttpClient | None = None
+        self._xml_rpc_server: rpc.XmlRpcServer | None = None
+        self._json_rpc_client: AioJsonRpcAioHttpClient | None = None
 
         # Caches for the backend data
         self._data_cache: Final = CentralDataCache(central=self)
@@ -248,9 +249,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._version: str | None = None
         # store last event received datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
-        self._xml_rpc_callback_ip: str = IP_ANY_V4
+        self._rpc_callback_ip: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
-        self._listen_port: int = PORT_ANY
+        self._listen_port_xml_rpc: int = PORT_ANY
 
     @property
     def available(self) -> bool:
@@ -260,7 +261,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     @property
     def callback_ip_addr(self) -> str:
         """Return the xml rpc server callback ip address."""
-        return self._xml_rpc_callback_ip
+        return self._rpc_callback_ip
 
     @info_property(log_context=True)
     def url(self) -> str:
@@ -327,7 +328,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return all(client.is_callback_alive() for client in self._clients.values())
 
     @property
-    def json_rpc_client(self) -> JsonRpcAioHttpClient:
+    def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
         """Return the json rpc client."""
         if not self._json_rpc_client:
             self._json_rpc_client = self._config.create_json_rpc_client(central=self)
@@ -363,9 +364,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return self._listen_ip_addr
 
     @property
-    def listen_port(self) -> int:
+    def listen_port_xml_rpc(self) -> int:
         """Return the xml rpc listening server port."""
-        return self._listen_port
+        return self._listen_port_xml_rpc
 
     @property
     def looper(self) -> Looper:
@@ -483,22 +484,22 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if self._config.enabled_interface_configs and (
             ip_addr := await self._identify_ip_addr(port=self._config.connection_check_port)
         ):
-            self._xml_rpc_callback_ip = ip_addr
+            self._rpc_callback_ip = ip_addr
             self._listen_ip_addr = self._config.listen_ip_addr if self._config.listen_ip_addr else ip_addr
 
-        listen_port: int = (
-            self._config.listen_port
-            if self._config.listen_port
-            else self._config.callback_port or self._config.default_callback_port
+        port_xml_rpc: int = (
+            self._config.listen_port_xml_rpc
+            if self._config.listen_port_xml_rpc
+            else self._config.callback_port_xml_rpc or self._config.default_callback_port_xml_rpc
         )
         try:
             if (
-                xml_rpc_server := xmlrpc.create_xml_rpc_server(ip_addr=self._listen_ip_addr, port=listen_port)
-                if self._config.enable_server
+                xml_rpc_server := rpc.create_xml_rpc_server(ip_addr=self._listen_ip_addr, port=port_xml_rpc)
+                if self._config.enable_xml_rpc_server
                 else None
             ):
                 self._xml_rpc_server = xml_rpc_server
-                self._listen_port = xml_rpc_server.listen_port
+                self._listen_port_xml_rpc = xml_rpc_server.listen_port
                 self._xml_rpc_server.add_central(central=self)
         except OSError as oserr:
             self._state = CentralUnitState.STOPPED_BY_ERROR
@@ -514,7 +515,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     )
         else:
             self._clients_started = await self._start_clients()
-            if self._config.enable_server:
+            if self._config.enable_xml_rpc_server:
                 self._start_scheduler()
 
         self._state = CentralUnitState.RUNNING
@@ -1331,7 +1332,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 self._data_point_key_event_subscriptions[data_point.dpk] = []
             self._data_point_key_event_subscriptions[data_point.dpk].append(data_point.event)
             if (
-                not data_point.channel.device.client.supports_xml_rpc
+                not data_point.channel.device.client.supports_rpc_callback
                 and data_point.state_path not in self._data_point_path_event_subscriptions
             ):
                 self._data_point_path_event_subscriptions[data_point.state_path] = data_point.dpk
@@ -1971,18 +1972,18 @@ class CentralConfig:
         username: str,
         client_session: ClientSession | None = None,
         callback_host: str | None = None,
-        callback_port: int | None = None,
-        default_callback_port: int = PORT_ANY,
+        callback_port_xml_rpc: int | None = None,
+        default_callback_port_xml_rpc: int = PORT_ANY,
         delay_new_device_creation: bool = DEFAULT_DELAY_NEW_DEVICE_CREATION,
         enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
         enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
         enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
         hm_master_poll_after_send_intervals: tuple[int, ...] = DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
         ignore_custom_device_definition_models: frozenset[str] = DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
-        interfaces_requiring_periodic_refresh: frozenset[Interface] = INTERFACES_REQUIRING_PERIODIC_REFRESH,
+        interfaces_requiring_periodic_refresh: frozenset[Interface] = DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
         json_port: int | None = None,
         listen_ip_addr: str | None = None,
-        listen_port: int | None = None,
+        listen_port_xml_rpc: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
@@ -1997,11 +1998,14 @@ class CentralConfig:
     ) -> None:
         """Init the client config."""
         self._interface_configs: Final = interface_configs
+        self.requires_xml_rpc_server: Final = any(
+            ic for ic in interface_configs if ic.rpc_server == RpcServerType.XML_RPC
+        )
         self.callback_host: Final = callback_host
-        self.callback_port: Final = callback_port
+        self.callback_port_xml_rpc: Final = callback_port_xml_rpc
         self.central_id: Final = central_id
         self.client_session: Final = client_session
-        self.default_callback_port: Final = default_callback_port
+        self.default_callback_port_xml_rpc: Final = default_callback_port_xml_rpc
         self.delay_new_device_creation: Final = delay_new_device_creation
         self.enable_device_firmware_check: Final = enable_device_firmware_check
         self.enable_program_scan: Final = enable_program_scan
@@ -2012,7 +2016,7 @@ class CentralConfig:
         self.interfaces_requiring_periodic_refresh: Final = frozenset(interfaces_requiring_periodic_refresh or ())
         self.json_port: Final = json_port
         self.listen_ip_addr: Final = listen_ip_addr
-        self.listen_port: Final = listen_port
+        self.listen_port_xml_rpc: Final = listen_port_xml_rpc
         self.max_read_workers = max_read_workers
         self.name: Final = name
         self.password: Final = password
@@ -2029,9 +2033,9 @@ class CentralConfig:
         self.verify_tls: Final = verify_tls
 
     @property
-    def enable_server(self) -> bool:
+    def enable_xml_rpc_server(self) -> bool:
         """Return if server and connection checker should be started."""
-        return self.start_direct is False
+        return self.requires_xml_rpc_server and self.start_direct is False
 
     @property
     def load_un_ignore(self) -> bool:
@@ -2066,7 +2070,7 @@ class CentralConfig:
             password=self.password,
             storage_folder=self.storage_folder,
             callback_host=self.callback_host,
-            callback_port=self.callback_port,
+            callback_port_xml_rpc=self.callback_port_xml_rpc,
             json_port=self.json_port,
             interface_configs=self._interface_configs,
         ):
@@ -2091,9 +2095,9 @@ class CentralConfig:
             url = f"{url}:{self.json_port}"
         return f"{url}"
 
-    def create_json_rpc_client(self, *, central: CentralUnit) -> JsonRpcAioHttpClient:
+    def create_json_rpc_client(self, *, central: CentralUnit) -> AioJsonRpcAioHttpClient:
         """Create a json rpc client."""
-        return JsonRpcAioHttpClient(
+        return AioJsonRpcAioHttpClient(
             username=self.username,
             password=self.password,
             device_url=central.url,
@@ -2110,38 +2114,38 @@ class CentralConnectionState:
     def __init__(self) -> None:
         """Init the CentralConnectionStatus."""
         self._json_issues: Final[list[str]] = []
-        self._xml_proxy_issues: Final[list[str]] = []
+        self._rpc_proxy_issues: Final[list[str]] = []
 
     def add_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
         """Add issue to collection."""
-        if isinstance(issuer, JsonRpcAioHttpClient) and iid not in self._json_issues:
+        if isinstance(issuer, AioJsonRpcAioHttpClient) and iid not in self._json_issues:
             self._json_issues.append(iid)
             _LOGGER.debug("add_issue: add issue  [%s] for JsonRpcAioHttpClient", iid)
             return True
-        if isinstance(issuer, XmlRpcProxy) and iid not in self._xml_proxy_issues:
-            self._xml_proxy_issues.append(iid)
+        if isinstance(issuer, AioXmlRpcProxy) and iid not in self._rpc_proxy_issues:
+            self._rpc_proxy_issues.append(iid)
             _LOGGER.debug("add_issue: add issue [%s] for %s", iid, issuer.interface_id)
             return True
         return False
 
     def remove_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
         """Add issue to collection."""
-        if isinstance(issuer, JsonRpcAioHttpClient) and iid in self._json_issues:
+        if isinstance(issuer, AioJsonRpcAioHttpClient) and iid in self._json_issues:
             self._json_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for JsonRpcAioHttpClient", iid)
             return True
-        if isinstance(issuer, XmlRpcProxy) and issuer.interface_id in self._xml_proxy_issues:
-            self._xml_proxy_issues.remove(iid)
+        if isinstance(issuer, AioXmlRpcProxy) and issuer.interface_id in self._rpc_proxy_issues:
+            self._rpc_proxy_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for %s", iid, issuer.interface_id)
             return True
         return False
 
     def has_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
         """Add issue to collection."""
-        if isinstance(issuer, JsonRpcAioHttpClient):
+        if isinstance(issuer, AioJsonRpcAioHttpClient):
             return iid in self._json_issues
-        if isinstance(issuer, XmlRpcProxy):
-            return iid in self._xml_proxy_issues
+        if isinstance(issuer, (AioXmlRpcProxy)):
+            return iid in self._rpc_proxy_issues
 
     def handle_exception_log(
         self,

@@ -6,7 +6,7 @@ from aiohttp import ClientSession
 import pytest
 
 from aiohomematic import central as hmcu
-from aiohomematic.client.json_rpc import JsonRpcAioHttpClient
+from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 
 
 @pytest.mark.asyncio
@@ -15,7 +15,7 @@ async def test_json_rpc_get_system_information(mock_json_rpc_server, aiohttp_ses
     (_, base_url) = mock_json_rpc_server
     conn_state = hmcu.CentralConnectionState()
 
-    client = JsonRpcAioHttpClient(
+    client = AioJsonRpcAioHttpClient(
         username="user",
         password="pass",
         device_url=base_url,

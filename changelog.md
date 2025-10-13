@@ -1,3 +1,8 @@
+# Version 2025.10.6 (2025-10-12)
+
+- Add ELV-SH-PSMCI
+- Refactor rpc handling
+
 # Version 2025.10.5 (2025-10-10)
 
 - Fix issue with non existing PARENT in device description

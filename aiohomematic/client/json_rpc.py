@@ -179,7 +179,7 @@ _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
 )
 
 
-class JsonRpcAioHttpClient(LogContextMixin):
+class AioJsonRpcAioHttpClient(LogContextMixin):
     """Connection to CCU JSON-RPC Server."""
 
     def __init__(

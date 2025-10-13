@@ -12,7 +12,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, client as hmcl
-from aiohomematic.central import xml_rpc_server as xmlrpc
+from aiohomematic.central import rpc_server as rpc
 from aiohomematic.const import BackendSystemEvent
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.support import extract_exc_args
@@ -48,7 +48,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
                 central: hmcu.CentralUnit | None = None
                 if isinstance(unit, hmcu.CentralUnit):
                     central = unit
-                if central is None and isinstance(unit, xmlrpc.RPCFunctions):
+                if central is None and isinstance(unit, rpc.RPCFunctions):
                     central = unit.get_central(interface_id=str(args[1]))
                 if central:
                     central.looper.create_task(

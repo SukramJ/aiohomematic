@@ -56,7 +56,7 @@ from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu
 from aiohomematic.caches.dynamic import CommandCache, PingPongCache
-from aiohomematic.client.xml_rpc import XmlRpcProxy
+from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.const import (
     CALLBACK_WARN_INTERVAL,
     DATETIME_FORMAT_MILLIS,
@@ -65,8 +65,10 @@ from aiohomematic.const import (
     DP_KEY_VALUE,
     DUMMY_SERIAL,
     INIT_DATETIME,
+    INTERFACE_RPC_SERVER_TYPE,
+    INTERFACES_REQUIRING_JSON_RPC_CLIENT,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
-    INTERFACES_SUPPORTING_XML_RPC,
+    INTERFACES_SUPPORTING_RPC_CALLBACK,
     RECONNECT_WAIT,
     VIRTUAL_REMOTE_MODELS,
     WAIT_FOR_CALLBACK,
@@ -86,6 +88,7 @@ from aiohomematic.const import (
     ProductGroup,
     ProgramData,
     ProxyInitState,
+    RpcServerType,
     SystemInformation,
     SystemVariableData,
 )
@@ -132,7 +135,6 @@ class Client(ABC, LogContextMixin):
     def __init__(self, *, client_config: _ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
-        self._supports_xml_rpc = self.interface in INTERFACES_SUPPORTING_XML_RPC
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
         self._available: bool = True
         self._connection_error_count: int = 0
@@ -141,8 +143,8 @@ class Client(ABC, LogContextMixin):
         self._ping_pong_cache: Final = PingPongCache(
             central=client_config.central, interface_id=client_config.interface_id
         )
-        self._proxy: XmlRpcProxy
-        self._proxy_read: XmlRpcProxy
+        self._proxy: BaseRpcProxy
+        self._proxy_read: BaseRpcProxy
         self._system_information: SystemInformation
         self.modified_at: datetime = INIT_DATETIME
 
@@ -150,11 +152,16 @@ class Client(ABC, LogContextMixin):
     async def init_client(self) -> None:
         """Init the client."""
         self._system_information = await self._get_system_information()
-        self._proxy = await self._config.create_xml_rpc_proxy(auth_enabled=self.system_information.auth_enabled)
-        self._proxy_read = await self._config.create_xml_rpc_proxy(
-            auth_enabled=self.system_information.auth_enabled,
-            max_workers=self._config.max_read_workers,
-        )
+        if self.supports_rpc_callback:
+            self._proxy = await self._config.create_rpc_proxy(
+                interface=self.interface,
+                auth_enabled=self.system_information.auth_enabled,
+            )
+            self._proxy_read = await self._config.create_rpc_proxy(
+                interface=self.interface,
+                auth_enabled=self.system_information.auth_enabled,
+                max_workers=self._config.max_read_workers,
+            )
 
     @property
     def available(self) -> bool:
@@ -197,9 +204,9 @@ class Client(ABC, LogContextMixin):
         return self._ping_pong_cache
 
     @property
-    def supports_xml_rpc(self) -> bool:
-        """Return if interface support xml rpc."""
-        return self._supports_xml_rpc
+    def supports_rpc_callback(self) -> bool:
+        """Return if interface support rpc callback."""
+        return self._config.supports_rpc_callback
 
     @property
     def system_information(self) -> SystemInformation:
@@ -233,24 +240,24 @@ class Client(ABC, LogContextMixin):
         return ProductGroup.UNKNOWN
 
     @property
-    @abstractmethod
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
+        return self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
 
     @property
     def supports_push_updates(self) -> bool:
         """Return the client supports push update."""
-        return self.interface not in self.central.config.interfaces_requiring_periodic_refresh
+        return self._config.supports_push_updates
 
     @property
     def supports_firmware_updates(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
-        return self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
+        return self._config.supports_firmware_updates
 
     async def initialize_proxy(self) -> ProxyInitState:
         """Init the proxy has to tell the backend where to send the events."""
 
-        if not self.supports_xml_rpc:
+        if not self.supports_rpc_callback:
             if device_descriptions := await self.list_devices():
                 await self.central.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
@@ -278,7 +285,7 @@ class Client(ABC, LogContextMixin):
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""
-        if not self.supports_xml_rpc:
+        if not self.supports_rpc_callback:
             return ProxyInitState.DE_INIT_SUCCESS
 
         if self.modified_at == INIT_DATETIME:
@@ -348,7 +355,7 @@ class Client(ABC, LogContextMixin):
 
     async def stop(self) -> None:
         """Stop depending services."""
-        if not self.supports_xml_rpc:
+        if not self.supports_rpc_callback:
             return
         await self._proxy.stop()
         await self._proxy_read.stop()
@@ -422,15 +429,17 @@ class Client(ABC, LogContextMixin):
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Send ping to the backend to generate PONG event."""
 
-    @abstractmethod
     @inspector
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
+        _LOGGER.debug("EXECUTE_PROGRAM: not usable for %s.", self.interface_id)
+        return True
 
-    @abstractmethod
     @inspector
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
+        _LOGGER.debug("SET_PROGRAM_STATE: not usable for %s.", self.interface_id)
+        return True
 
     @abstractmethod
     @inspector(measure_performance=True)
@@ -454,20 +463,23 @@ class Client(ABC, LogContextMixin):
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
 
-    @abstractmethod
     @inspector(re_raise=False)
     async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
         """Get all programs, if available."""
+        _LOGGER.debug("GET_ALL_PROGRAMS: not usable for %s.", self.interface_id)
+        return None
 
-    @abstractmethod
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms, if available."""
+        _LOGGER.debug("GET_ALL_ROOMS: not usable for %s.", self.interface_id)
+        return {}
 
-    @abstractmethod
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions, if available."""
+        _LOGGER.debug("GET_ALL_FUNCTIONS: not usable for %s.", self.interface_id)
+        return {}
 
     @abstractmethod
     async def _get_system_information(self) -> SystemInformation:
@@ -1094,11 +1106,6 @@ class ClientCCU(Client):
         """Return the model of the backend."""
         return Backend.CCU
 
-    @property
-    def supports_ping_pong(self) -> bool:
-        """Return the supports_ping_pong info of the backend."""
-        return True
-
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
         """Get all names via JSON-RPS and store in data.NAMES."""
@@ -1252,22 +1259,12 @@ class ClientCCU(Client):
 
 
 class ClientJsonCCU(ClientCCU):
-    """Client implementation for CCU-like backend (CCU-Jack, CuXD)."""
-
-    @inspector
-    async def init_client(self) -> None:
-        """Init the client."""
-        self._system_information = await self._get_system_information()
+    """Client implementation for CCU-like backend (CCU-Jack)."""
 
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
         return await self._json_rpc_client.is_present(interface=self.interface)
-
-    @property
-    def supports_ping_pong(self) -> bool:
-        """Return the supports_ping_pong info of the backend."""
-        return False
 
     @inspector(re_raise=False)
     async def get_device_description(self, *, device_address: str) -> DeviceDescription | None:
@@ -1401,7 +1398,7 @@ class ClientJsonCCU(ClientCCU):
                 channel_address=channel_address, parameter=parameter, value=value, rx_mode=rx_mode
             )
 
-        # Funktioniert nicht
+        # Doesn't work. put_paramset not supported
         #     if (
         #         value_type := self._get_parameter_type(
         #             channel_address=channel_address,
@@ -1459,6 +1456,52 @@ class ClientJsonCCU(ClientCCU):
             serial=f"{self.interface}_{DUMMY_SERIAL}",
         )
 
+    @inspector
+    async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
+        """Return a list of links."""
+        _LOGGER.debug("ADD_LINK: not usable for %s.", self.interface_id)
+
+    @inspector
+    async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
+        """Return a list of links."""
+        _LOGGER.debug("REMOVE_LINK: not usable for %s.", self.interface_id)
+
+    @inspector
+    async def get_link_peers(self, *, address: str) -> tuple[str, ...] | None:
+        """Return a list of link pers."""
+        _LOGGER.debug("GET_LINK_PEERS: not usable for %s.", self.interface_id)
+        return None
+
+    @inspector
+    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
+        """Return a list of links."""
+        _LOGGER.debug("GET_LINKS: not usable for %s.", self.interface_id)
+        return {}
+
+    @inspector
+    async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
+        """Return the metadata for an object."""
+        _LOGGER.debug("GET_METADATA: not usable for %s.", self.interface_id)
+        return {}
+
+    @inspector
+    async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
+        """Write the metadata for an object."""
+        _LOGGER.debug("SET_METADATA: not usable for %s.", self.interface_id)
+        return {}
+
+    @inspector
+    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
+        """Report value usage."""
+        _LOGGER.debug("REPORT_VALUE_USAGE: not usable for %s.", self.interface_id)
+        return True
+
+    @inspector
+    async def update_device_firmware(self, *, device_address: str) -> bool:
+        """Update the firmware of a Homematic device."""
+        _LOGGER.debug("UPDATE_DEVICE_FIRMWARE: not usable for %s.", self.interface_id)
+        return True
+
 
 class ClientHomegear(Client):
     """Client implementation for Homegear backend."""
@@ -1515,16 +1558,6 @@ class ClientHomegear(Client):
         self.modified_at = INIT_DATETIME
         return False
 
-    @inspector
-    async def execute_program(self, *, pid: str) -> bool:
-        """Execute a program on the backend."""
-        return True
-
-    @inspector
-    async def set_program_state(self, *, pid: str, state: bool) -> bool:
-        """Set the program state on the backend."""
-        return True
-
     @inspector(measure_performance=True)
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
@@ -1553,21 +1586,6 @@ class ClientHomegear(Client):
                 variables.append(SystemVariableData(vid=name, legacy_name=name, value=value))
         return tuple(variables)
 
-    @inspector(re_raise=False)
-    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
-        """Get all programs, if available."""
-        return ()
-
-    @inspector(re_raise=False, no_raise_return={})
-    async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from the backend."""
-        return {}
-
-    @inspector(re_raise=False, no_raise_return={})
-    async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from the backend."""
-        return {}
-
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
         return SystemInformation(available_interfaces=(Interface.BIDCOS_RF,), serial=f"{self.interface}_{DUMMY_SERIAL}")
@@ -1590,9 +1608,20 @@ class _ClientConfig:
         self.interface_id: Final = interface_config.interface_id
         self.max_read_workers: Final[int] = central.config.max_read_workers
         self.has_credentials: Final[bool] = central.config.username is not None and central.config.password is not None
-        self.init_url: Final[str] = f"http://{
+        self.supports_firmware_updates: Final = self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
+        self.supports_push_updates: Final = self.interface not in central.config.interfaces_requiring_periodic_refresh
+        self.supports_rpc_callback: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
+        callback_host: Final = (
             central.config.callback_host if central.config.callback_host else central.callback_ip_addr
-        }:{central.config.callback_port if central.config.callback_port else central.listen_port}"
+        )
+        callback_port = (
+            central.config.callback_port_xml_rpc
+            if central.config.callback_port_xml_rpc
+            else central.listen_port_xml_rpc
+        )
+        init_url = f"{callback_host}:{callback_port}"
+        self.init_url: Final = f"http://{init_url}"
+
         self.xml_rpc_uri: Final = build_xml_rpc_uri(
             host=central.config.host,
             port=interface_config.port,
@@ -1607,7 +1636,7 @@ class _ClientConfig:
             client: Client | None
             if self.interface == Interface.BIDCOS_RF and ("Homegear" in self.version or "pydevccu" in self.version):
                 client = ClientHomegear(client_config=self)
-            elif self.interface in (Interface.CCU_JACK, Interface.CUXD):
+            elif self.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT:
                 client = ClientJsonCCU(client_config=self)
             else:
                 client = ClientCCU(client_config=self)
@@ -1624,9 +1653,9 @@ class _ClientConfig:
 
     async def _get_version(self) -> str:
         """Return the version of the the backend."""
-        if self.interface in (Interface.CCU_JACK, Interface.CUXD):
+        if self.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT:
             return "0"
-        check_proxy = await self._create_simple_xml_rpc_proxy()
+        check_proxy = await self._create_simple_rpc_proxy(interface=self.interface)
         try:
             if (methods := check_proxy.supported_methods) and "getVersion" in methods:
                 # BidCos-Wired does not support getVersion()
@@ -1635,9 +1664,14 @@ class _ClientConfig:
             raise NoConnectionException(f"Unable to connect {extract_exc_args(exc=exc)}.") from exc
         return "0"
 
-    async def create_xml_rpc_proxy(
+    async def create_rpc_proxy(
+        self, *, interface: Interface, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
+    ) -> BaseRpcProxy:
+        return await self._create_xml_rpc_proxy(auth_enabled=auth_enabled, max_workers=max_workers)
+
+    async def _create_xml_rpc_proxy(
         self, *, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
-    ) -> XmlRpcProxy:
+    ) -> AioXmlRpcProxy:
         """Return a XmlRPC proxy for the backend communication."""
         config = self.central.config
         xml_rpc_headers = (
@@ -1648,7 +1682,7 @@ class _ClientConfig:
             if auth_enabled
             else []
         )
-        xml_proxy = XmlRpcProxy(
+        xml_proxy = AioXmlRpcProxy(
             max_workers=max_workers,
             interface_id=self.interface_id,
             connection_state=self.central.connection_state,
@@ -1660,9 +1694,13 @@ class _ClientConfig:
         await xml_proxy.do_init()
         return xml_proxy
 
-    async def _create_simple_xml_rpc_proxy(self) -> XmlRpcProxy:
+    async def _create_simple_rpc_proxy(self, *, interface: Interface) -> BaseRpcProxy:
+        """Return a RPC proxy for the backend communication."""
+        return await self._create_xml_rpc_proxy()
+
+    async def _create_simple_xml_rpc_proxy(self) -> AioXmlRpcProxy:
         """Return a XmlRPC proxy for the backend communication."""
-        return await self.create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
+        return await self._create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
 
 
 class InterfaceConfig:
@@ -1673,11 +1711,13 @@ class InterfaceConfig:
         *,
         central_name: str,
         interface: Interface,
-        port: int | None = None,
+        port: int,
         remote_path: str | None = None,
     ) -> None:
         """Init the interface config."""
         self.interface: Final[Interface] = interface
+
+        self.rpc_server: Final[RpcServerType] = INTERFACE_RPC_SERVER_TYPE[interface]
         self.interface_id: Final[str] = f"{central_name}-{self.interface}"
         self.port: Final = port
         self.remote_path: Final = remote_path
@@ -1686,7 +1726,7 @@ class InterfaceConfig:
 
     def _init_validate(self) -> None:
         """Validate the client_config."""
-        if not self.port and self.interface in INTERFACES_SUPPORTING_XML_RPC:
+        if not self.port and self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK:
             raise ClientException(f"VALIDATE interface config failed: Port must defined for interface{self.interface}")
 
     @property

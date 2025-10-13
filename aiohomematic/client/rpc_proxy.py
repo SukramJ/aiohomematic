@@ -21,13 +21,14 @@ Notes
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import asyncio
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, IntEnum, StrEnum
 import errno
 import logging
-from ssl import SSLError
+from ssl import SSLContext, SSLError
 from typing import Any, Final
 import xmlrpc.client
 
@@ -51,7 +52,7 @@ _TLS: Final = "tls"
 _VERIFY_TLS: Final = "verify_tls"
 
 
-class _XmlRpcMethod(StrEnum):
+class _RpcMethod(StrEnum):
     """Enum for Homematic json rpc methods types."""
 
     GET_VERSION = "getVersion"
@@ -61,12 +62,12 @@ class _XmlRpcMethod(StrEnum):
     SYSTEM_LIST_METHODS = "system.listMethods"
 
 
-_VALID_XMLRPC_COMMANDS_ON_NO_CONNECTION: Final[tuple[str, ...]] = (
-    _XmlRpcMethod.GET_VERSION,
-    _XmlRpcMethod.HOMEGEAR_INIT,
-    _XmlRpcMethod.INIT,
-    _XmlRpcMethod.PING,
-    _XmlRpcMethod.SYSTEM_LIST_METHODS,
+_VALID_RPC_COMMANDS_ON_NO_CONNECTION: Final[tuple[str, ...]] = (
+    _RpcMethod.GET_VERSION,
+    _RpcMethod.HOMEGEAR_INIT,
+    _RpcMethod.INIT,
+    _RpcMethod.PING,
+    _RpcMethod.SYSTEM_LIST_METHODS,
 )
 
 _SSL_ERROR_CODES: Final[dict[int, str]] = {
@@ -83,7 +84,61 @@ _OS_ERROR_CODES: Final[dict[int, str]] = {
 
 
 # noinspection PyProtectedMember,PyUnresolvedReferences
-class XmlRpcProxy(xmlrpc.client.ServerProxy):
+class BaseRpcProxy(ABC):
+    """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
+
+    def __init__(
+        self,
+        *,
+        max_workers: int,
+        interface_id: str,
+        connection_state: hmcu.CentralConnectionState,
+        magic_method: Callable,
+        tls: bool = False,
+        verify_tls: bool = False,
+    ) -> None:
+        """Initialize new proxy for server and get local ip."""
+        self._interface_id: Final = interface_id
+        self._connection_state: Final = connection_state
+        self._magic_method: Final = magic_method
+        self._looper: Final = Looper()
+        self._proxy_executor: Final = (
+            ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix=interface_id) if max_workers > 0 else None
+        )
+        self._tls: Final[bool | SSLContext] = get_tls_context(verify_tls=verify_tls) if tls else False
+        self._supported_methods: tuple[str, ...] = ()
+        self._kwargs: dict[str, Any] = {}
+        if tls:
+            self._kwargs[_CONTEXT] = self._tls
+        # Due to magic method the log_context must be defined manually.
+        self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": tls}
+
+    @abstractmethod
+    async def do_init(self) -> None:
+        """Init the rpc proxy."""
+
+    @property
+    def supported_methods(self) -> tuple[str, ...]:
+        """Return the supported methods."""
+        return self._supported_methods
+
+    async def stop(self) -> None:
+        """Stop depending services."""
+        await self._looper.block_till_done()
+        if self._proxy_executor:
+            self._proxy_executor.shutdown()
+
+    @abstractmethod
+    async def _async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        """Call method on server side."""
+
+    def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        """Magic method dispatcher."""
+        return self._magic_method(self._async_request, *args, **kwargs)
+
+
+# noinspection PyProtectedMember,PyUnresolvedReferences
+class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
 
     def __init__(
@@ -98,53 +153,36 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         verify_tls: bool = False,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
-        self._interface_id: Final = interface_id
-        self._connection_state: Final = connection_state
-        self._looper: Final = Looper()
-        self._proxy_executor: Final = (
-            ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix=interface_id) if max_workers > 0 else None
+        super().__init__(
+            max_workers=max_workers,
+            interface_id=interface_id,
+            connection_state=connection_state,
+            magic_method=xmlrpc.client._Method,
+            tls=tls,
+            verify_tls=verify_tls,
         )
-        self._tls: Final[bool] = tls
-        self._verify_tls: Final[bool] = verify_tls
-        self._supported_methods: tuple[str, ...] = ()
-        kwargs: dict[str, Any] = {}
-        if self._tls:
-            kwargs[_CONTEXT] = get_tls_context(verify_tls=self._verify_tls)
-        # Due to magic method the log_context must be defined manually.
-        self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": self._tls}
+
         xmlrpc.client.ServerProxy.__init__(
             self,
             uri=uri,
             encoding=ISO_8859_1,
             headers=headers,
-            **kwargs,
+            **self._kwargs,
         )
 
-    async def do_init(self) -> None:
-        """Init the xml rpc proxy."""
-        if supported_methods := await self.system.listMethods():
-            # ping is missing in VirtualDevices interface but can be used.
-            supported_methods.append(_XmlRpcMethod.PING)
-            self._supported_methods = tuple(supported_methods)
-
-    @property
-    def supported_methods(self) -> tuple[str, ...]:
-        """Return the supported methods."""
-        return self._supported_methods
-
-    async def __async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+    async def _async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Call method on server side."""
         parent = xmlrpc.client.ServerProxy
         try:
             method = args[0]
             if self._supported_methods and method not in self._supported_methods:
-                raise UnsupportedException(f"__ASYNC_REQUEST: method '{method} not supported by the backend.")
+                raise UnsupportedException(f"XmlRPC.__ASYNC_REQUEST: method '{method} not supported by the backend.")
 
-            if method in _VALID_XMLRPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
+            if method in _VALID_RPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
                 issuer=self, iid=self._interface_id
             ):
                 args = _cleanup_args(*args)
-                _LOGGER.debug("__ASYNC_REQUEST: %s", args)
+                _LOGGER.debug("XmlRPC.__ASYNC_REQUEST: %s", args)
                 result = await asyncio.shield(
                     self._looper.async_add_executor_job(
                         # pylint: disable=protected-access
@@ -212,15 +250,12 @@ class XmlRpcProxy(xmlrpc.client.ServerProxy):
         except Exception as exc:
             raise ClientException(exc) from exc
 
-    def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-        """Magic method dispatcher."""
-        return xmlrpc.client._Method(self.__async_request, *args, **kwargs)
-
-    async def stop(self) -> None:
-        """Stop depending services."""
-        await self._looper.block_till_done()
-        if self._proxy_executor:
-            self._proxy_executor.shutdown()
+    async def do_init(self) -> None:
+        """Init the xml rpc proxy."""
+        if supported_methods := await self.system.listMethods():
+            # ping is missing in VirtualDevices interface but can be used.
+            supported_methods.append(_RpcMethod.PING)
+            self._supported_methods = tuple(supported_methods)
 
 
 def _cleanup_args(*args: Any) -> Any:

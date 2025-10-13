@@ -12,7 +12,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import threading
-from typing import Any, Final
+from typing import Any, Final, cast
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 from aiohomematic import central as hmcu
@@ -175,7 +175,7 @@ class RpcServer(threading.Thread):
     """RPC server thread to handle messages from the backend."""
 
     _initialized: bool = False
-    _instances: Final[dict[tuple[str, int], XmlRpcServer]] = {}
+    _instances: Final[dict[tuple[str, int], RpcServer]] = {}
 
     def __init__(
         self,
@@ -190,9 +190,10 @@ class RpcServer(threading.Thread):
         self._listen_ip_addr: Final = ip_addr
         self._listen_port: Final[int] = find_free_port() if port == PORT_ANY else port
         self._address: Final[tuple[str, int]] = (ip_addr, self._listen_port)
-        threading.Thread.__init__(self, name=f"RpcServer {ip_addr}:{self._listen_port}")
         self._centrals: Final[dict[str, hmcu.CentralUnit]] = {}
         self._simple_rpc_server: SimpleXMLRPCServer
+        self._instances[self._address] = self
+        threading.Thread.__init__(self, name=f"RpcServer {ip_addr}:{self._listen_port}")
 
     def run(self) -> None:
         """Run the RPC-Server thread."""
@@ -266,8 +267,9 @@ class XmlRpcServer(RpcServer):
     ) -> None:
         """Init XmlRPC server."""
 
+        if self._initialized:
+            return
         super().__init__(ip_addr=ip_addr, port=port)
-        self._instances[self._address] = self
         self._simple_rpc_server = HomematicXMLRPCServer(
             addr=self._address,
             requestHandler=RequestHandler,
@@ -283,7 +285,7 @@ class XmlRpcServer(RpcServer):
         if (rpc := cls._instances.get((ip_addr, port))) is None:
             _LOGGER.debug("Creating XmlRpc server")
             return super().__new__(cls)
-        return rpc
+        return cast(XmlRpcServer, rpc)
 
 
 def create_xml_rpc_server(*, ip_addr: str = IP_ANY_V4, port: int = PORT_ANY) -> XmlRpcServer:

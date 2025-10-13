@@ -1,4 +1,8 @@
-# Version 2025.10.6 (2025-10-12)
+# Version 2025.10.7 (2025-10-13)
+
+- Fix issue with RPC-Server setup
+
+# Version 2025.10.6 (2025-10-13)
 
 - Add ELV-SH-PSMCI
 - Refactor rpc handling

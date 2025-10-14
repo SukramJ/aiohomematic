@@ -124,7 +124,7 @@ class BasePersistentCache(ABC):
 
         def _perform_save() -> DataOperationResult:
             try:
-                with open(file=self._file_path, mode="wb") as file_pointer:
+                with open(file=self._file_path, mode="wb", encoding=UTF_8) as file_pointer:
                     file_pointer.write(
                         orjson.dumps(
                             self._persistent_cache,

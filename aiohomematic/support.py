@@ -43,6 +43,7 @@ from aiohomematic.const import (
     NO_CACHE_ENTRY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     TIMEOUT,
+    UTF_8,
     CommandRxMode,
     DeviceDescription,
     ParamsetKey,
@@ -526,9 +527,9 @@ def hash_sha256(*, value: Any) -> str:
         data = orjson.dumps(value, option=orjson.OPT_SORT_KEYS | orjson.OPT_NON_STR_KEYS)
     except Exception:
         # Fallback: convert to a hashable representation and use repr()
-        data = repr(_make_value_hashable(value=value)).encode()
+        data = repr(_make_value_hashable(value=value)).encode(encoding=UTF_8)
     hasher.update(data)
-    return base64.b64encode(hasher.digest()).decode()
+    return base64.b64encode(hasher.digest()).decode(encoding=UTF_8)
 
 
 def _make_value_hashable(*, value: Any) -> Any:
@@ -632,9 +633,7 @@ def log_boundary_error(
         log_message += f" {message}"
 
     if log_context:
-        log_message += (
-            f" ctx={orjson.dumps(_safe_log_context(context=log_context), option=orjson.OPT_SORT_KEYS).decode()}"
-        )
+        log_message += f" ctx={orjson.dumps(_safe_log_context(context=log_context), option=orjson.OPT_SORT_KEYS).decode(encoding=UTF_8)}"
 
     # Choose level if not provided:
     if (chosen_level := level) is None:

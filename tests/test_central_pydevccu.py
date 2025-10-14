@@ -8,7 +8,7 @@ import os
 import orjson
 import pytest
 
-from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
+from aiohomematic.const import ADDRESS_SEPARATOR, UTF_8, DataPointUsage
 from aiohomematic.model.generic import GenericDataPoint
 from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, hm_property
 
@@ -161,6 +161,7 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     with open(
         file=os.path.join(central_unit_full.config.storage_folder, "all_devices.json"),
         mode="wb",
+        encoding=UTF_8,
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 

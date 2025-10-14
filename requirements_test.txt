@@ -8,9 +8,9 @@ pip==25.2
 pre-commit==4.3.0
 pur==7.3.3
 pydevccu==0.1.18
-pylint-per-file-ignores==3.0.0
+pylint-per-file-ignores==3.1.0
 pylint-strict-informational==0.1
-pylint==3.3.9
+pylint==4.0.0
 pytest-aiohttp==1.1.0
 pytest-asyncio==1.2.0
 pytest-cov==7.0.0

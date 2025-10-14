@@ -47,7 +47,6 @@ from aiohomematic.const import (
     RELEVANT_INIT_PARAMETERS,
     REPORT_VALUE_USAGE_DATA,
     REPORT_VALUE_USAGE_VALUE_ID,
-    UTF_8,
     VIRTUAL_REMOTE_MODELS,
     CallSource,
     DataOperationResult,
@@ -1339,7 +1338,7 @@ class _DefinitionExporter:
         def perform_save() -> DataOperationResult:
             if not check_or_create_directory(directory=file_dir):
                 return DataOperationResult.NO_SAVE  # pragma: no cover
-            with open(file=os.path.join(file_dir, filename), mode="wb", encoding=UTF_8) as fptr:
+            with open(file=os.path.join(file_dir, filename), mode="wb") as fptr:
                 fptr.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
             return DataOperationResult.SAVE_SUCCESS
 

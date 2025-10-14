@@ -27,7 +27,7 @@ async def test_central_mini(central_unit_mini) -> None:
     assert central_unit_mini.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
     assert central_unit_mini.primary_client.model == "PyDevCCU"
     assert len(central_unit_mini._devices) == 2
-    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 68
+    assert len(central_unit_mini.get_data_points(exclude_no_create=False)) == 70
 
     usage_types: dict[DataPointUsage, int] = {}
     for dp in central_unit_mini.get_data_points(exclude_no_create=False):
@@ -39,7 +39,7 @@ async def test_central_mini(central_unit_mini) -> None:
 
     assert usage_types[DataPointUsage.NO_CREATE] == 45
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
-    assert usage_types[DataPointUsage.DATA_POINT] == 14
+    assert usage_types[DataPointUsage.DATA_POINT] == 16
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 5
 
 
@@ -193,12 +193,12 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 272
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 141
-    assert usage_types[DataPointUsage.DATA_POINT] == 3937
+    assert usage_types[DataPointUsage.DATA_POINT] == 4033
     assert usage_types[DataPointUsage.NO_CREATE] == 4291
 
     assert len(ce_channels) == 130
     assert len(data_point_types) == 6
-    assert len(parameters) == 232
+    assert len(parameters) == 234
 
     assert len(central_unit_full._devices) == 394
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

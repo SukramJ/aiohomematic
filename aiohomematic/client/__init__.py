@@ -507,7 +507,7 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector(re_raise=False)
-    async def get_all_device_description(self, *, device_address: str) -> tuple[DeviceDescription, ...] | None:
+    async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...] | None:
         """Get all device descriptions from the backend."""
         all_device_description: list[DeviceDescription] = []
         if main_dd := await self.get_device_description(device_address=device_address):

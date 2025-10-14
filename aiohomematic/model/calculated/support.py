@@ -16,7 +16,45 @@ from typing import Final
 
 from aiohomematic.support import extract_exc_args
 
+_DEFAULT_PRESSURE_HPA: Final = 1013.25
 _LOGGER: Final = logging.getLogger(__name__)
+
+
+def calculate_dew_point_spread(*, temperature: float, humidity: int) -> float | None:
+    """
+    Calculate the dew point spread.
+
+    Dew point spread = Difference between current air temperature and dew point.
+    Specifies the safety margin against condensation(K).
+    """
+    if dew_point := calculate_dew_point(temperature=temperature, humidity=humidity):
+        return round(temperature - dew_point, 2)
+    return None
+
+
+def calculate_enthalpy(
+    *, temperature: float, humidity: int, pressure_hPa: float = _DEFAULT_PRESSURE_HPA
+) -> float | None:
+    """
+    Calculate the enthalpy based on temperature and humidity.
+
+    Calculates the specific enthalpy of humid air in kJ/kg (relative to dry air).
+    temperature: Air temperature in °C
+    humidity: Relative humidity in %
+    pressure_hPa: Air pressure (default: 1013.25 hPa)
+
+    """
+
+    # Saturation vapor pressure according to Magnus in hPa
+    e_s = 6.112 * math.exp((17.62 * temperature) / (243.12 + temperature))
+    e = humidity / 100.0 * e_s  # aktueller Dampfdruck in hPa
+
+    # Mixing ratio (g water / kg dry air)
+    r = 622 * e / (pressure_hPa - e)
+
+    # Specific enthalpy (kJ/kg dry air)
+    h = 1.006 * temperature + r * (2501 + 1.86 * temperature) / 1000  # in kJ/kg
+    return round(h, 2)
 
 
 def _calculate_heat_index(*, temperature: float, humidity: int) -> float:
@@ -158,10 +196,10 @@ def calculate_dew_point(*, temperature: float, humidity: int) -> float | None:
 def calculate_frost_point(*, temperature: float, humidity: int) -> float | None:
     """Calculate the frost point."""
     try:
-        if (dewpoint := calculate_dew_point(temperature=temperature, humidity=humidity)) is None:
+        if (dew_point := calculate_dew_point(temperature=temperature, humidity=humidity)) is None:
             return None
         t = temperature + 273.15
-        td = dewpoint + 273.15
+        td = dew_point + 273.15
 
         return round((td + (2671.02 / ((2954.61 / t) + 2.193665 * math.log(t) - 13.3448)) - t) - 273.15, 1)
     except ValueError as verr:

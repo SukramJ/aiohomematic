@@ -24,7 +24,7 @@ Factory:
   normal read-only data points.
 
 Modules/classes:
-- ApparentTemperature, DewPoint, FrostPoint, VaporConcentration: Climate-related
+- ApparentTemperature, DewPoint, DewPointSpread, Enthalphy, FrostPoint, VaporConcentration: Climate-related
   sensors implemented in climate.py using well-known formulas (see
   aiohomematic.model.calculated.support for details and references).
 - OperatingVoltageLevel: Interprets battery/voltage values and exposes a human
@@ -41,7 +41,14 @@ from typing import Final
 
 from aiohomematic.decorators import inspector
 from aiohomematic.model import device as hmd
-from aiohomematic.model.calculated.climate import ApparentTemperature, DewPoint, FrostPoint, VaporConcentration
+from aiohomematic.model.calculated.climate import (
+    ApparentTemperature,
+    DewPoint,
+    DewPointSpread,
+    Enthalpy,
+    FrostPoint,
+    VaporConcentration,
+)
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.operating_voltage_level import OperatingVoltageLevel
 
@@ -49,13 +56,23 @@ __all__ = [
     "ApparentTemperature",
     "CalculatedDataPoint",
     "DewPoint",
+    "DewPointSpread",
+    "Enthalpy",
     "FrostPoint",
     "OperatingVoltageLevel",
     "VaporConcentration",
     "create_calculated_data_points",
 ]
 
-_CALCULATED_DATA_POINTS: Final = (ApparentTemperature, DewPoint, FrostPoint, OperatingVoltageLevel, VaporConcentration)
+_CALCULATED_DATA_POINTS: Final = (
+    ApparentTemperature,
+    DewPoint,
+    DewPointSpread,
+    Enthalpy,
+    FrostPoint,
+    OperatingVoltageLevel,
+    VaporConcentration,
+)
 _LOGGER: Final = logging.getLogger(__name__)
 
 

@@ -13,6 +13,8 @@ from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
     calculate_dew_point,
+    calculate_dew_point_spread,
+    calculate_enthalpy,
     calculate_frost_point,
     calculate_vapor_concentration,
 )
@@ -135,6 +137,62 @@ class DewPoint(BaseClimateSensor):
         """Return the value."""
         if self._dp_temperature.value is not None and self._dp_humidity.value is not None:
             return calculate_dew_point(
+                temperature=self._dp_temperature.value,
+                humidity=self._dp_humidity.value,
+            )
+        return None
+
+
+class DewPointSpread(BaseClimateSensor):
+    """Implementation of a calculated sensor for dew point spread."""
+
+    __slots__ = ()
+
+    _calculated_parameter = CalulatedParameter.DEW_POINT_SPREAD
+
+    def __init__(self, *, channel: hmd.Channel) -> None:
+        """Initialize the data point."""
+        super().__init__(channel=channel)
+        self._unit = "K"
+
+    @staticmethod
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+        """Return if this calculated data point is relevant for the model."""
+        return _is_relevant_for_model_temperature_and_humidity(channel=channel)
+
+    @state_property
+    def value(self) -> float | None:
+        """Return the value."""
+        if self._dp_temperature.value is not None and self._dp_humidity.value is not None:
+            return calculate_dew_point_spread(
+                temperature=self._dp_temperature.value,
+                humidity=self._dp_humidity.value,
+            )
+        return None
+
+
+class Enthalpy(BaseClimateSensor):
+    """Implementation of a calculated sensor for enthalpy."""
+
+    __slots__ = ()
+
+    _calculated_parameter = CalulatedParameter.ENTHALPY
+
+    def __init__(self, *, channel: hmd.Channel) -> None:
+        """Initialize the data point."""
+        super().__init__(channel=channel)
+        self._unit = "kJ/kg"
+
+    @staticmethod
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+        """Return if this calculated data point is relevant for the model."""
+        return _is_relevant_for_model_temperature_and_humidity(channel=channel)
+
+    @state_property
+    def value(self) -> float | None:
+        """Return the value."""
+        if self._dp_temperature.value is not None and self._dp_humidity.value is not None:
+            return calculate_enthalpy(
                 temperature=self._dp_temperature.value,
                 humidity=self._dp_humidity.value,
             )

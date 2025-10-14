@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.7"
+VERSION: Final = "2025.10.8"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -179,6 +179,8 @@ class CalulatedParameter(StrEnum):
 
     APPARENT_TEMPERATURE = "APPARENT_TEMPERATURE"
     DEW_POINT = "DEW_POINT"
+    DEW_POINT_SPREAD = "DEW_POINT_SPREAD"
+    ENTHALPY = "ENTHALPY"
     FROST_POINT = "FROST_POINT"
     OPERATING_VOLTAGE_LEVEL = "OPERATING_VOLTAGE_LEVEL"
     VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"

@@ -1,4 +1,4 @@
-pybinrpc==2025.10.0
+pybinrpc==2025.10.1
 aiohttp>=3.13.0
 orjson>=3.11.3
 python-slugify>=8.0.4

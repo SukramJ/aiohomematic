@@ -24,7 +24,7 @@ classifiers = [
 ]
 requires-python = ">=3.13.0"
 dependencies    = [
-    "pybinrpc==2025.10.0",
+    "pybinrpc==2025.10.1",
     "aiohttp>=3.10.0",
     "orjson>=3.10.0",
     "python-slugify>=8.0.0",

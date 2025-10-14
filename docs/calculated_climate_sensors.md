@@ -20,6 +20,23 @@ requires: temperature, humidity
 
 The temperature, with constant pressure and water-vapour content, to which air must be cooled for saturation to occur.
 
+### Dew Point Spread
+
+requires: temperature, humidity
+
+The difference between current air temperature and dew point. Specifies the safety margin against condensation(K).
+
+• Spread < 2K → critical (condenser danger)
+• Spread 2–4K → caution, high humidity
+• Spread > 5 K → safe area
+
+### Enthalphy
+
+requires: temperature, humidity, air pressure (used default is 1013.25 hPa)
+
+The specific enthalpy of humid air in kJ/kg (relative to dry air). Relevant
+It is important when calculating, for example, heat recovery or ventilation efficiency.
+
 ### Frost Point
 
 requires: temperature, humidity

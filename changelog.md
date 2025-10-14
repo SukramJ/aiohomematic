@@ -1,6 +1,6 @@
 # Version 2025.10.8 (2025-10-14)
 
-- Add dew point spread and enthalphy to calculated sensors
+- Add dew point spread and enthalpy to calculated sensors
 
 # Version 2025.10.7 (2025-10-13)
 

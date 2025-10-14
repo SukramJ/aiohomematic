@@ -276,6 +276,7 @@ class BinRpcServer(RpcServer):
             allow_none=True,
         )
         self._simple_rpc_server.register_introspection_functions()
+        self._simple_rpc_server.register_multicall_functions()
         self._simple_rpc_server.register_instance(RPCFunctions(rpc_server=self), allow_dotted_names=True)
 
     def __new__(cls, ip_addr: str, port: int) -> BinRpcServer:  # noqa: PYI034  # kwonly: disable

@@ -671,7 +671,7 @@ class Device(LogContextMixin, PayloadMixin):
                     channel_address=channel_address,
                     paramset_key=paramset_key,
                 )
-        await self._central.save_caches(save_paramset_descriptions=True)
+        await self._central.save_files(save_paramset_descriptions=True)
         for dp in self.generic_data_points:
             dp.update_parameter_data()
         self.fire_device_updated_callback()

@@ -1086,7 +1086,7 @@ class Client(ABC, LogContextMixin):
                 device_address,
             )
             return
-        await self.central.save_caches(save_paramset_descriptions=True)
+        await self.central.save_files(save_paramset_descriptions=True)
 
     def __str__(self) -> str:
         """Provide some useful information."""

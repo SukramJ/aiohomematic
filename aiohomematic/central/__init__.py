@@ -464,14 +464,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 return channel
         return None
 
-    async def save_caches(
+    async def save_files(
         self,
         *,
         save_device_descriptions: bool = False,
         save_paramset_descriptions: bool = False,
         save_session_recorder: bool = False,
     ) -> None:
-        """Save persistent caches."""
+        """Save persistent files to disk."""
         if save_device_descriptions:
             await self._device_descriptions.save()
         if save_paramset_descriptions:
@@ -548,7 +548,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._state = CentralUnitState.STOPPING
         _LOGGER.debug("STOP: Stopping Central %s", self.name)
 
-        await self.save_caches(
+        await self.save_files(
             save_device_descriptions=True, save_paramset_descriptions=True, save_session_recorder=True
         )
         self._stop_scheduler()
@@ -1061,7 +1061,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for address in addresses:
             if device := self._devices.get(address):
                 self.remove_device(device=device)
-        await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
+        await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
 
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
@@ -1163,7 +1163,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         extract_exc_args(exc=exc),
                     )
 
-            await self.save_caches(
+            await self.save_files(
                 save_device_descriptions=save_descriptions,
                 save_paramset_descriptions=save_descriptions,
             )

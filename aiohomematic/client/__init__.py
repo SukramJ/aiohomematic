@@ -1696,10 +1696,6 @@ class _ClientConfig:
 
     async def _create_simple_rpc_proxy(self, *, interface: Interface) -> BaseRpcProxy:
         """Return a RPC proxy for the backend communication."""
-        return await self._create_xml_rpc_proxy()
-
-    async def _create_simple_xml_rpc_proxy(self) -> AioXmlRpcProxy:
-        """Return a XmlRPC proxy for the backend communication."""
         return await self._create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
 
 

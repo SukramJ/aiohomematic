@@ -80,7 +80,7 @@ import voluptuous as vol
 from aiohomematic import client as hmcl
 from aiohomematic.async_support import Looper, loop_check
 from aiohomematic.caches.dynamic import CentralDataCache, DeviceDetailsCache
-from aiohomematic.caches.persistent import DeviceDescriptionCache, ParamsetDescriptionCache
+from aiohomematic.caches.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
 from aiohomematic.caches.visibility import ParameterVisibilityCache
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
@@ -218,6 +218,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_descriptions: Final = DeviceDescriptionCache(central=self)
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
+        self._session_recorder: Final = SessionRecorder(central=self)
 
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
@@ -345,6 +346,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return self._parameter_visibility
 
     @property
+    def session_recorder(self) -> SessionRecorder:
+        """Return the session recorder."""
+        return self._session_recorder
+
+    @property
     def poll_clients(self) -> tuple[hmcl.Client, ...]:
         """Return clients that need to poll data."""
         return tuple(client for client in self._clients.values() if not client.supports_push_updates)
@@ -459,13 +465,19 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return None
 
     async def save_caches(
-        self, *, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
+        self,
+        *,
+        save_device_descriptions: bool = False,
+        save_paramset_descriptions: bool = False,
+        save_session_recorder: bool = False,
     ) -> None:
         """Save persistent caches."""
         if save_device_descriptions:
             await self._device_descriptions.save()
         if save_paramset_descriptions:
             await self._paramset_descriptions.save()
+        if save_session_recorder:
+            await self._session_recorder.save()
 
     async def start(self) -> None:
         """Start processing of the central unit."""
@@ -536,7 +548,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._state = CentralUnitState.STOPPING
         _LOGGER.debug("STOP: Stopping Central %s", self.name)
 
-        await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
+        await self.save_caches(
+            save_device_descriptions=True, save_paramset_descriptions=True, save_session_recorder=True
+        )
         self._stop_scheduler()
         await self._stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
@@ -2105,6 +2119,7 @@ class CentralConfig:
             client_session=self.client_session,
             tls=self.tls,
             verify_tls=self.verify_tls,
+            session_recorder=central.session_recorder,
         )
 
 

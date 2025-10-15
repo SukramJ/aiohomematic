@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
 """
-Persistent caches used to persist Homematic metadata between runs.
+Persistent content used to persist Homematic metadata between runs.
 
 This module provides on-disk caches that complement the short‑lived, in‑memory
 caches from aiohomematic.caches.dynamic. The goal is to minimize expensive data
@@ -9,7 +9,7 @@ retrieval from the backend by storing stable metadata such as device and
 paramset descriptions in JSON files inside a dedicated cache directory.
 
 Overview
-- BasePersistentCache: Abstract base for file‑backed caches. It encapsulates
+- BasePersistentFile: Abstract base for file‑backed content. It encapsulates
   file path resolution, change detection via hashing, and thread‑safe save/load
   operations delegated to the CentralUnit looper.
 - DeviceDescriptionCache: Persists device descriptions per interface, including
@@ -17,6 +17,7 @@ Overview
 - ParamsetDescriptionCache: Persists paramset descriptions per interface and
   channel, and offers helpers to query parameters, paramset keys and related
   channel addresses.
+- SessionRecorder: Persists session recorder data
 
 Key behaviors
 - Saves only if caches are enabled (CentralConfig.use_caches) and content has
@@ -26,8 +27,8 @@ Key behaviors
 - Save/load/clear operations are synchronized via a semaphore and executed via
   the CentralUnit looper to avoid blocking the event loop.
 
-Helper functions are provided to build cache paths and filenames and to
-optionally clean up stale cache directories.
+Helper functions are provided to build content paths and filenames and to
+optionally clean up stale content directories.
 """
 
 from __future__ import annotations
@@ -48,15 +49,17 @@ from slugify import slugify
 from aiohomematic import central as hmcu
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
-    CACHE_PATH,
+    CONTENT_PATH,
     FILE_DEVICES,
     FILE_PARAMSETS,
+    FILE_SESSION_RECORDER,
     INIT_DATETIME,
     UTF_8,
     DataOperationResult,
     DeviceDescription,
     ParameterData,
     ParamsetKey,
+    RPCType,
 )
 from aiohomematic.model.device import Device
 from aiohomematic.support import (
@@ -71,15 +74,15 @@ from aiohomematic.support import (
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class BasePersistentCache(ABC):
+class BasePersistentFile(ABC):
     """Cache for files."""
 
     __slots__ = (
-        "_cache_dir",
+        "_file_dir",
         "_central",
         "_file_postfix",
         "_filename",
-        "_persistent_cache",
+        "_persistent_content",
         "_save_load_semaphore",
         "last_hash_saved",
         "last_save_triggered",
@@ -91,31 +94,31 @@ class BasePersistentCache(ABC):
         self,
         *,
         central: hmcu.CentralUnit,
-        persistent_cache: dict[str, Any],
+        persistent_content: dict[str, Any],
     ) -> None:
-        """Initialize the base class of the persistent cache."""
+        """Initialize the base class of the persistent content."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
         self._central: Final = central
-        self._cache_dir: Final = _get_cache_path(storage_folder=central.config.storage_folder)
+        self._file_dir: Final = _get_file_path(storage_folder=central.config.storage_folder)
         self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_postfix)
-        self._persistent_cache: Final = persistent_cache
+        self._persistent_content: Final = persistent_content
         self.last_save_triggered: datetime = INIT_DATETIME
-        self.last_hash_saved = hash_sha256(value=persistent_cache)
+        self.last_hash_saved = hash_sha256(value=persistent_content)
 
     @property
-    def cache_hash(self) -> str:
-        """Return the hash of the cache."""
-        return hash_sha256(value=self._persistent_cache)
+    def content_hash(self) -> str:
+        """Return the hash of the content."""
+        return hash_sha256(value=self._persistent_content)
 
     @property
     def data_changed(self) -> bool:
         """Return if the data has changed."""
-        return self.cache_hash != self.last_hash_saved
+        return self.content_hash != self.last_hash_saved
 
     @property
     def _file_path(self) -> str:
         """Return the full file path."""
-        return os.path.join(self._cache_dir, self._filename)
+        return os.path.join(self._file_dir, self._filename)
 
     async def save(self) -> DataOperationResult:
         """Save current data to disk."""
@@ -127,18 +130,18 @@ class BasePersistentCache(ABC):
                 with open(file=self._file_path, mode="wb") as file_pointer:
                     file_pointer.write(
                         orjson.dumps(
-                            self._persistent_cache,
+                            self._persistent_content,
                             option=orjson.OPT_NON_STR_KEYS,
                         )
                     )
-                self.last_hash_saved = self.cache_hash
+                self.last_hash_saved = self.content_hash
             except json.JSONDecodeError:
                 return DataOperationResult.SAVE_FAIL
             return DataOperationResult.SAVE_SUCCESS
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_save, name=f"save-persistent-cache-{self._filename}"
+                _perform_save, name=f"save-persistent-content-{self._filename}"
             )
 
     @property
@@ -146,14 +149,14 @@ class BasePersistentCache(ABC):
         """Determine if save operation should proceed."""
         self.last_save_triggered = datetime.now()
         return (
-            check_or_create_directory(directory=self._cache_dir)
+            check_or_create_directory(directory=self._file_dir)
             and self._central.config.use_caches
-            and self.cache_hash != self.last_hash_saved
+            and self.content_hash != self.last_hash_saved
         )
 
     async def load(self) -> DataOperationResult:
         """Load data from disk into the dictionary."""
-        if not check_or_create_directory(directory=self._cache_dir) or not os.path.exists(self._file_path):
+        if not check_or_create_directory(directory=self._file_dir) or not os.path.exists(self._file_path):
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:
@@ -162,8 +165,8 @@ class BasePersistentCache(ABC):
                     data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
                     if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
                         return DataOperationResult.NO_LOAD
-                    self._persistent_cache.clear()
-                    self._persistent_cache.update(data)
+                    self._persistent_content.clear()
+                    self._persistent_content.update(data)
                     self.last_hash_saved = converted_hash
                 except json.JSONDecodeError:
                     return DataOperationResult.LOAD_FAIL
@@ -171,21 +174,21 @@ class BasePersistentCache(ABC):
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_load, name=f"load-persistent-cache-{self._filename}"
+                _perform_load, name=f"load-persistent-content-{self._filename}"
             )
 
     async def clear(self) -> None:
         """Remove stored file from disk."""
 
         def _perform_clear() -> None:
-            delete_file(folder=self._cache_dir, file_name=self._filename)
-            self._persistent_cache.clear()
+            delete_file(folder=self._file_dir, file_name=self._filename)
+            self._persistent_content.clear()
 
         async with self._save_load_semaphore:
-            await self._central.looper.async_add_executor_job(_perform_clear, name="clear-persistent-cache")
+            await self._central.looper.async_add_executor_job(_perform_clear, name="clear-persistent-content")
 
 
-class DeviceDescriptionCache(BasePersistentCache):
+class DeviceDescriptionCache(BasePersistentFile):
     """Cache for device/channel names."""
 
     __slots__ = (
@@ -202,7 +205,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         self._raw_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         super().__init__(
             central=central,
-            persistent_cache=self._raw_device_descriptions,
+            persistent_content=self._raw_device_descriptions,
         )
         # {interface_id, {device_address, [channel_address]}}
         self._addresses: Final[dict[str, dict[str, set[str]]]] = defaultdict(lambda: defaultdict(set))
@@ -325,7 +328,7 @@ class DeviceDescriptionCache(BasePersistentCache):
         return result
 
 
-class ParamsetDescriptionCache(BasePersistentCache):
+class ParamsetDescriptionCache(BasePersistentFile):
     """Cache for paramset descriptions."""
 
     __slots__ = (
@@ -343,7 +346,7 @@ class ParamsetDescriptionCache(BasePersistentCache):
         )
         super().__init__(
             central=central,
-            persistent_cache=self._raw_paramset_descriptions,
+            persistent_content=self._raw_paramset_descriptions,
         )
 
         # {(device_address, parameter), [channel_no]}
@@ -461,18 +464,91 @@ class ParamsetDescriptionCache(BasePersistentCache):
         return await super().save()
 
 
-def _get_cache_path(*, storage_folder: str) -> str:
-    """Return the cache path."""
-    return f"{storage_folder}/{CACHE_PATH}"
+class SessionRecorder(BasePersistentFile):
+    """Session recorder for central unit."""
+
+    __slots__ = (
+        "_active",
+        "_sessions",
+    )
+
+    _file_postfix = FILE_SESSION_RECORDER
+
+    def __init__(self, *, central: hmcu.CentralUnit) -> None:
+        """Init the session recorder."""
+        # {Json/RPC, { method , {params, (ts, Response}}}}
+        self._sessions: Final[dict[str, dict[str, dict[str | dict[str, Any], tuple[datetime, Any]]]]] = defaultdict(
+            lambda: defaultdict(dict)
+        )
+
+        super().__init__(
+            central=central,
+            persistent_content=self._sessions,
+        )
+        self._active: bool = False
+
+    @property
+    def active(self) -> bool:
+        """Return if session recorder is active."""
+        return self._active
+
+    @active.setter
+    def active(self, active: bool) -> None:
+        """Set active."""
+        self._active = active
+
+    def add_json_rpc_session(
+        self,
+        *,
+        method: str,
+        params: dict[str, Any],
+        response: dict[str, Any] | None = None,
+        exc: Exception | None = None,
+    ) -> None:
+        """Add json rpc session to content."""
+        self._sessions[str(RPCType.JSON_RPC)][method][json.dumps(params)] = (datetime.now(), response)
+
+    def add_xml_rpc_session(
+        self, *, method: str, params: tuple[Any, ...], response: Any | None = None, exc: Exception | None = None
+    ) -> None:
+        """Add rpc session to content."""
+        self._sessions[str(RPCType.XML_RPC)][method][_serialize_params(params=params)] = (datetime.now(), response)
+
+    @property
+    def _should_save(self) -> bool:
+        """Determine if save operation should proceed."""
+        return len(self._sessions) > 0
+
+
+def _serialize_params(*, params: tuple[Any, ...]) -> str | dict[str, Any]:
+    """Serialize params to string."""
+    result: list[str] = []
+    for param in params:
+        if isinstance(param, datetime):
+            result.append(f"{param.isoformat()}Z")
+        elif isinstance(param, (int, float)):
+            result.append(str(param))
+        elif isinstance(param, str):
+            result.append(param)
+        elif isinstance(param, dict):
+            result.append(json.dumps(param))
+        else:
+            pass
+    return "|".join(result)
+
+
+def _get_file_path(*, storage_folder: str) -> str:
+    """Return the content path."""
+    return f"{storage_folder}/{CONTENT_PATH}"
 
 
 def _get_filename(*, central_name: str, file_name: str) -> str:
-    """Return the cache filename."""
+    """Return the content filename."""
     return f"{slugify(central_name)}_{file_name}"
 
 
-def cleanup_cache_dirs(*, central_name: str, storage_folder: str) -> None:
-    """Clean up the used cached directories."""
-    cache_dir = _get_cache_path(storage_folder=storage_folder)
-    for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS):
-        delete_file(folder=cache_dir, file_name=_get_filename(central_name=central_name, file_name=file_to_delete))
+def cleanup_content_dirs(*, central_name: str, storage_folder: str) -> None:
+    """Clean up the used content directories."""
+    content_dir = _get_file_path(storage_folder=storage_folder)
+    for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS, FILE_SESSION_RECORDER):
+        delete_file(folder=content_dir, file_name=_get_filename(central_name=central_name, file_name=file_to_delete))

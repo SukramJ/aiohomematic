@@ -65,6 +65,7 @@ from aiohomematic.model.device import Device
 from aiohomematic.support import (
     check_or_create_directory,
     delete_file,
+    extract_exc_args,
     get_device_address,
     get_split_channel_address,
     hash_sha256,
@@ -503,16 +504,34 @@ class SessionRecorder(BasePersistentFile):
         method: str,
         params: dict[str, Any],
         response: dict[str, Any] | None = None,
-        exc: Exception | None = None,
+        session_exc: Exception | None = None,
     ) -> None:
         """Add json rpc session to content."""
-        self._sessions[str(RPCType.JSON_RPC)][method][json.dumps(params)] = (datetime.now(), response)
+        try:
+            if session_exc:
+                self._sessions[str(RPCType.JSON_RPC)][method][json.dumps(params)] = (
+                    datetime.now(),
+                    extract_exc_args(exc=session_exc),
+                )
+                return
+            self._sessions[str(RPCType.JSON_RPC)][method][json.dumps(params)] = (datetime.now(), response)
+        except Exception as exc:
+            _LOGGER.debug("ADD_JSON_RPC_SESSION: failed with %s", extract_exc_args(exc=exc))
 
     def add_xml_rpc_session(
-        self, *, method: str, params: tuple[Any, ...], response: Any | None = None, exc: Exception | None = None
+        self, *, method: str, params: tuple[Any, ...], response: Any | None = None, session_exc: Exception | None = None
     ) -> None:
         """Add rpc session to content."""
-        self._sessions[str(RPCType.XML_RPC)][method][_serialize_params(params=params)] = (datetime.now(), response)
+        try:
+            if session_exc:
+                self._sessions[str(RPCType.XML_RPC)][method][_serialize_params(params=params)] = (
+                    datetime.now(),
+                    extract_exc_args(exc=session_exc),
+                )
+                return
+            self._sessions[str(RPCType.XML_RPC)][method][_serialize_params(params=params)] = (datetime.now(), response)
+        except Exception as exc:
+            _LOGGER.debug("ADD_XML_RPC_SESSION: failed with %s", extract_exc_args(exc=exc))
 
     @property
     def _should_save(self) -> bool:

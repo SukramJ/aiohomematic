@@ -545,7 +545,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     ) -> bool:
         """Record the session."""
         if self._session_recorder and self._session_recorder.active:
-            self._session_recorder.add_json_rpc_session(method=method, params=dict(params), response=response, exc=exc)
+            self._session_recorder.add_json_rpc_session(
+                method=method, params=dict(params), response=response, session_exc=exc
+            )
             return True
         return False
 

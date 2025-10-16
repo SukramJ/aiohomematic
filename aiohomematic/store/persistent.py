@@ -502,7 +502,7 @@ class SessionRecorder(BasePersistentFile):
         *,
         central: hmcu.CentralUnit,
         default_ttl_seconds: float,
-        active: bool = False,
+        active: bool,
         refresh_on_get: bool = False,
         randomize_output: bool = True,
     ):

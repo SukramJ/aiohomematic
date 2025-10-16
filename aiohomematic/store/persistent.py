@@ -489,6 +489,7 @@ class SessionRecorder(BasePersistentFile):
     __slots__ = (
         "_active",
         "_default_ttl",
+        "_is_delayed",
         "_randomize_output",
         "_refresh_on_get",
         "_store",
@@ -501,13 +502,16 @@ class SessionRecorder(BasePersistentFile):
         *,
         central: hmcu.CentralUnit,
         default_ttl_seconds: float,
+        active: bool = False,
         refresh_on_get: bool = False,
         randomize_output: bool = True,
     ):
         """Init the cache."""
+        self._active = active
         if default_ttl_seconds <= 0:
             raise ValueError("default_ttl_seconds must be positive")
         self._default_ttl: Final = float(default_ttl_seconds)
+        self._is_delayed: bool = False
         self._refresh_on_get: Final = refresh_on_get
         self._randomize_output: Final = randomize_output
         # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> (response, ttl_s)
@@ -519,7 +523,6 @@ class SessionRecorder(BasePersistentFile):
             central=central,
             persistent_content=self._store,
         )
-        self._active: bool = True
 
     # ---------- internal helpers ----------
 
@@ -563,10 +566,38 @@ class SessionRecorder(BasePersistentFile):
         """Return if session recorder is active."""
         return self._active
 
-    @active.setter
-    def active(self, active: bool) -> None:
-        """Set active."""
-        self._active = active
+    async def _change_state_after_delay(self, *, new_state: bool, delay: int) -> None:
+        """Change the state of the session recorder after a delay."""
+        await asyncio.sleep(delay)
+        self._active = new_state
+
+    async def activate(self, *, on_time: int = 0) -> None:
+        """Activate the session recorder."""
+        if self._is_delayed:
+            return
+
+        self._active = True
+        if on_time > 0:
+            self._is_delayed = True
+            self._central.looper.create_task(
+                target=self._change_state_after_delay(new_state=False, delay=on_time),
+                name=f"session_recorder_{self._central.name}",
+            )
+        self._is_delayed = False
+
+    async def deactivate(self, *, delay: int) -> None:
+        """Deactivate the session recorder after a delay."""
+        if self._is_delayed:
+            return
+
+        if delay > 0:
+            self._is_delayed = True
+            self._central.looper.create_task(
+                target=self._change_state_after_delay(new_state=False, delay=delay),
+                name=f"session_recorder_{self._central.name}",
+            )
+        self._active = False
+        self._is_delayed = False
 
     def add_json_rpc_session(
         self,

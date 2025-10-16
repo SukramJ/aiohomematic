@@ -218,7 +218,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_descriptions: Final = DeviceDescriptionCache(central=self)
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
-        self._session_recorder: Final = SessionRecorder(central=self, default_ttl_seconds=3600)
+        self._recorder: Final = SessionRecorder(
+            central=self, default_ttl_seconds=3600, active=central_config.start_recorder
+        )
 
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
@@ -346,9 +348,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return self._parameter_visibility
 
     @property
-    def session_recorder(self) -> SessionRecorder:
+    def recorder(self) -> SessionRecorder:
         """Return the session recorder."""
-        return self._session_recorder
+        return self._recorder
 
     @property
     def poll_clients(self) -> tuple[hmcl.Client, ...]:
@@ -476,7 +478,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if save_paramset_descriptions:
             await self._paramset_descriptions.save()
 
-        await self._session_recorder.save()
+        await self._recorder.save()
 
     async def start(self) -> None:
         """Start processing of the central unit."""
@@ -1999,6 +2001,7 @@ class CentralConfig:
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
+        start_recorder: bool = False,
         storage_folder: str = DEFAULT_STORAGE_FOLDER,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
@@ -2034,6 +2037,7 @@ class CentralConfig:
         self.periodic_refresh_interval = periodic_refresh_interval
         self.program_markers: Final = program_markers
         self.start_direct: Final = start_direct
+        self.start_recorder: Final = start_recorder
         self.storage_folder: Final = storage_folder
         self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers
@@ -2116,7 +2120,7 @@ class CentralConfig:
             client_session=self.client_session,
             tls=self.tls,
             verify_tls=self.verify_tls,
-            session_recorder=central.session_recorder,
+            session_recorder=central.recorder,
         )
 
 

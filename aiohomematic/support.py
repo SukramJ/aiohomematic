@@ -20,6 +20,7 @@ import inspect
 from ipaddress import IPv4Address
 import logging
 import os
+import random
 import re
 import socket
 import ssl
@@ -576,6 +577,11 @@ def supports_rx_mode(*, command_rx_mode: CommandRxMode, rx_modes: tuple[RxMode, 
 def cleanup_text_from_html_tags(*, text: str) -> str:
     """Cleanup text from html tags."""
     return re.sub(HTMLTAG_PATTERN, "", text)
+
+
+def create_random_device_addresses(*, addresses: list[str]) -> dict[str, str]:
+    """Create a random device address."""
+    return {adr: f"VCU{int(random.randint(1000000, 9999999))}" for adr in addresses}
 
 
 # --- Structured error boundary logging helpers ---

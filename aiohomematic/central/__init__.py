@@ -218,7 +218,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_descriptions: Final = DeviceDescriptionCache(central=self)
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
-        self._session_recorder: Final = SessionRecorder(central=self)
+        self._session_recorder: Final = SessionRecorder(central=self, default_ttl_seconds=3600)
 
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
@@ -469,15 +469,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         *,
         save_device_descriptions: bool = False,
         save_paramset_descriptions: bool = False,
-        save_session_recorder: bool = False,
     ) -> None:
         """Save persistent files to disk."""
         if save_device_descriptions:
             await self._device_descriptions.save()
         if save_paramset_descriptions:
             await self._paramset_descriptions.save()
-        if save_session_recorder:
-            await self._session_recorder.save()
 
     async def start(self) -> None:
         """Start processing of the central unit."""
@@ -548,9 +545,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._state = CentralUnitState.STOPPING
         _LOGGER.debug("STOP: Stopping Central %s", self.name)
 
-        await self.save_files(
-            save_device_descriptions=True, save_paramset_descriptions=True, save_session_recorder=True
-        )
+        await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
         self._stop_scheduler()
         await self._stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:

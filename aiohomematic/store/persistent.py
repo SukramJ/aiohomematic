@@ -34,14 +34,15 @@ optionally clean up stale content directories.
 from __future__ import annotations
 
 from abc import ABC
+import ast
 import asyncio
 from collections import defaultdict
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import UTC, datetime
 import json
 import logging
 import os
-from typing import Any, Final
+from typing import Any, Final, Self
 
 import orjson
 from slugify import slugify
@@ -466,27 +467,91 @@ class ParamsetDescriptionCache(BasePersistentFile):
 
 
 class SessionRecorder(BasePersistentFile):
-    """Session recorder for central unit."""
+    """
+    Session recorder for central unit.
+
+    Nested cache with TTL support.
+    Structure:
+        store[rpc_type][method][params] = (ts: datetime, response: Any, ttl_s: float)
+
+    - Each entry expires after its TTL (global default or per-entry override).
+    - Expiration is lazy (checked on access/update).
+    - Optional refresh_on_get extends TTL when reading.
+    """
 
     __slots__ = (
         "_active",
-        "_sessions",
+        "_store",
+        "_default_ttl",
+        "_refresh_on_get",
     )
 
     _file_postfix = FILE_SESSION_RECORDER
 
-    def __init__(self, *, central: hmcu.CentralUnit) -> None:
-        """Init the session recorder."""
-        # {Json/RPC, { method , {params, (ts, Response}}}}
-        self._sessions: Final[dict[str, dict[str, dict[str | dict[str, Any], tuple[datetime, Any]]]]] = defaultdict(
-            lambda: defaultdict(dict)
+    def __init__(self, *, central: hmcu.CentralUnit, default_ttl_seconds: float, refresh_on_get: bool = False):
+        """Init the cache."""
+        if default_ttl_seconds <= 0:
+            raise ValueError("default_ttl_seconds must be positive")
+        self._default_ttl: Final = float(default_ttl_seconds)
+        self._refresh_on_get: Final = refresh_on_get
+        # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> (response, ttl_s)
+        # Annotate as defaultdict to match the actual type and satisfy mypy.
+        self._store: dict[str, dict[str, dict[str, dict[int, tuple[Any, float]]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(dict))
         )
-
         super().__init__(
             central=central,
-            persistent_content=self._sessions,
+            persistent_content=self._store,
         )
         self._active: bool = False
+
+    # ---------- internal helpers ----------
+
+    @staticmethod
+    def _now() -> int:
+        """Return current UTC time as epoch seconds (int)."""
+        return int(datetime.now(tz=UTC).timestamp())
+
+    @staticmethod
+    def _is_expired(*, ts: int, ttl_s: float, now: int | None = None) -> bool:
+        """Check whether an entry has expired given epoch seconds."""
+        now = now if now is not None else int(datetime.now(tz=UTC).timestamp())
+        return (now - ts) > ttl_s
+
+    def _purge_expired_at(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+    ) -> None:
+        """Remove expired entries for a given (rpc_type, method) bucket without creating new ones."""
+
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return
+        now = self._now()
+        empty_params: list[str] = []
+        for p, bucket_by_ts in bucket_by_parameter.items():
+            expired_ts = [
+                ts for ts, (_r, ttl_s) in list(bucket_by_ts.items()) if self._is_expired(ts=ts, ttl_s=ttl_s, now=now)
+            ]
+            for ts in expired_ts:
+                del bucket_by_ts[ts]
+            if not bucket_by_ts:
+                empty_params.append(p)
+        for p in empty_params:
+            bucket_by_parameter.pop(p, None)
+        if not bucket_by_parameter:
+            bucket_by_method.pop(method, None)
+            if not bucket_by_method:
+                self._store.pop(rpc_type, None)
+
+    def _bucket(self, *, rpc_type: str, method: str) -> dict[str, dict[int, tuple[Any, float]]]:
+        """Ensure and return the innermost bucket."""
+        return self._store[rpc_type][method]
+
+    # ---------- public API ----------
 
     @property
     def active(self) -> bool:
@@ -509,12 +574,14 @@ class SessionRecorder(BasePersistentFile):
         """Add json rpc session to content."""
         try:
             if session_exc:
-                self._sessions[str(RPCType.JSON_RPC)][method][json.dumps(params)] = (
-                    datetime.now(),
-                    extract_exc_args(exc=session_exc),
+                self.set(
+                    rpc_type=str(RPCType.JSON_RPC),
+                    method=method,
+                    params=params,
+                    response=extract_exc_args(exc=session_exc),
                 )
                 return
-            self._sessions[str(RPCType.JSON_RPC)][method][json.dumps(params)] = (datetime.now(), response)
+            self.set(rpc_type=str(RPCType.JSON_RPC), method=method, params=params, response=response)
         except Exception as exc:
             _LOGGER.debug("ADD_JSON_RPC_SESSION: failed with %s", extract_exc_args(exc=exc))
 
@@ -524,36 +591,233 @@ class SessionRecorder(BasePersistentFile):
         """Add rpc session to content."""
         try:
             if session_exc:
-                self._sessions[str(RPCType.XML_RPC)][method][_serialize_params(params=params)] = (
-                    datetime.now(),
-                    extract_exc_args(exc=session_exc),
+                self.set(
+                    rpc_type=str(RPCType.XML_RPC),
+                    method=method,
+                    params=params,
+                    response=extract_exc_args(exc=session_exc),
                 )
                 return
-            self._sessions[str(RPCType.XML_RPC)][method][_serialize_params(params=params)] = (datetime.now(), response)
+            self.set(rpc_type=str(RPCType.XML_RPC), method=method, params=params, response=response)
         except Exception as exc:
             _LOGGER.debug("ADD_XML_RPC_SESSION: failed with %s", extract_exc_args(exc=exc))
+
+    def set(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+        response: Any,
+        ttl_seconds: float | None = None,
+        ts: int | datetime | None = None,
+    ) -> Self:
+        """Insert or update an entry."""
+        self._purge_expired_at(rpc_type=rpc_type, method=method)
+        frozen_param = _freeze_params(params)
+        if (ttl_s := ttl_seconds if ttl_seconds is not None else self._default_ttl) <= 0:
+            raise ValueError("ttl_seconds must be positive")
+        # Normalize timestamp to int epoch seconds
+        if isinstance(ts, datetime):
+            ts_int = int(ts.timestamp())
+        elif isinstance(ts, int):
+            ts_int = ts
+        else:
+            ts_int = self._now()
+        self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = (response, ttl_s)
+        return self
+
+    def get(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+        default: Any = None,
+    ) -> Any:
+        """
+        Return a cached response if still valid, else default.
+
+        This method must avoid creating buckets when the entry is missing.
+        It purges expired entries first, then returns the response at the
+        latest timestamp for the given params. If refresh_on_get is enabled,
+        it appends a new timestamp with the same response/ttl.
+        """
+        self._purge_expired_at(rpc_type=rpc_type, method=method)
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return default
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return default
+        frozen_param = _freeze_params(params)
+        if not (bucket_by_ts := bucket_by_parameter.get(frozen_param)):
+            return default
+        try:
+            latest_ts = max(bucket_by_ts.keys())
+        except ValueError:
+            return default
+        resp, ttl_s = bucket_by_ts[latest_ts]
+        if self._refresh_on_get:
+            bucket_by_ts[self._now()] = (resp, ttl_s)
+        return resp
+
+    def delete(self, *, rpc_type: str, method: str, params: Any) -> bool:
+        """
+        Delete an entry if it exists. Returns True if removed.
+
+        Avoid creating buckets when the target does not exist.
+        Clean up empty parent buckets on successful deletion.
+        """
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return False
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return False
+        if (frozen_param := _freeze_params(params)) not in bucket_by_parameter:
+            return False
+        # Perform deletion
+        bucket_by_parameter.pop(frozen_param, None)
+        if not bucket_by_parameter:
+            bucket_by_method.pop(method, None)
+            if not bucket_by_method:
+                self._store.pop(rpc_type, None)
+        return True
+
+    def get_latest_fresh(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+        """Return latest non-expired responses for a given (rpc_type, method)."""
+        # Purge expired entries first without creating any new buckets.
+        self._purge_expired_at(rpc_type=rpc_type, method=method)
+        result: list[Any] = []
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return result
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return result
+        # For each parameter, choose the response at the latest timestamp.
+        for frozen_params, bucket_by_ts in bucket_by_parameter.items():
+            if not bucket_by_ts:
+                continue
+            try:
+                latest_ts = max(bucket_by_ts.keys())
+            except ValueError:
+                continue
+            resp, _ttl_s = bucket_by_ts[latest_ts]
+            params = _unfreeze_params(frozen_params=frozen_params)
+
+            result.append((params, resp))
+        return result
+
+    def cleanup(self) -> None:
+        """Purge all expired entries globally."""
+        for rpc_type in list(self._store.keys()):
+            for method in list(self._store[rpc_type].keys()):
+                self._purge_expired_at(rpc_type=rpc_type, method=method)
+
+    def peek_ts(self, *, rpc_type: str, method: str, params: Any) -> datetime | None:
+        """
+        Return the most recent timestamp for a live entry, else None.
+
+        This method must not create buckets as a side effect. It purges expired
+        entries first and then returns the newest timestamp for the given
+        (rpc_type, method, params) if present.
+        """
+        self._purge_expired_at(rpc_type=rpc_type, method=method)
+        # Do NOT create buckets here — use .get chaining only.
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return None
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return None
+        frozen_param = _freeze_params(params)
+        if (bucket_by_ts := bucket_by_parameter.get(frozen_param)) is None or not bucket_by_ts:
+            return None
+        # After purge, remaining entries are alive; return the latest timestamp.
+        try:
+            latest_ts_int = max(bucket_by_ts.keys())
+        except ValueError:
+            # bucket was empty (shouldn't happen due to check), be safe
+            return None
+        return datetime.fromtimestamp(latest_ts_int, tz=UTC)
 
     @property
     def _should_save(self) -> bool:
         """Determine if save operation should proceed."""
-        return len(self._sessions) > 0
+        self.cleanup()
+        return len(self._store.items()) > 0
+
+    def __repr__(self) -> str:
+        """Return the representation."""
+        self.cleanup()
+        return f"{self.__class__.__name__}({self._store})"
 
 
-def _serialize_params(*, params: tuple[Any, ...]) -> str | dict[str, Any]:
-    """Serialize params to string."""
-    result: list[str] = []
-    for param in params:
-        if isinstance(param, datetime):
-            result.append(f"{param.isoformat()}Z")
-        elif isinstance(param, (int, float)):
-            result.append(str(param))
-        elif isinstance(param, str):
-            result.append(param)
-        elif isinstance(param, dict):
-            result.append(json.dumps(param))
-        else:
-            pass
-    return "|".join(result)
+def _freeze_params(params: Any) -> str:
+    """
+    Recursively freeze any structure so it can be used as a dictionary key.
+
+    - dict → tuple of (key, frozen(value)) sorted by key.
+    - list/tuple → tuple of frozen elements.
+    - set/frozenset → tagged tuple ("__set__", tuple(sorted(frozen elements by repr))) to ensure JSON-serializable keys.
+    - datetime → tagged ISO 8601 string to ensure JSON-serializable keys.
+    """
+    res: Any = ""
+    match params:
+        case datetime():
+            # orjson cannot serialize datetime objects as dict keys even with OPT_NON_STR_KEYS.
+            # Use a tagged ISO string to preserve value and guarantee a stable, hashable key.
+            res = ("__datetime__", params.isoformat())
+        case dict():
+            res = {k: _freeze_params(v) for k, v in sorted(params.items())}
+        case list() | tuple():
+            res = tuple(_freeze_params(x) for x in params)
+        case set() | frozenset():
+            # Convert to a deterministically ordered, JSON-serializable representation.
+            frozen_elems = tuple(sorted((_freeze_params(x) for x in params), key=repr))
+            res = ("__set__", frozen_elems)
+        case _:
+            res = params
+
+    return str(res)
+
+
+def _unfreeze_params(frozen_params: str) -> Any:
+    """
+    Reverse the _freeze_params transformation.
+
+    Tries to parse the frozen string with ast.literal_eval and then recursively
+    reconstructs original structures:
+    - ("__set__", (<items>...)) -> set of items
+    - ("__datetime__", iso_string) -> datetime.fromisoformat(iso_string)
+    - dict values and tuple elements are processed recursively
+
+    If parsing fails, return the original string.
+    """
+    try:
+        obj = ast.literal_eval(frozen_params)
+    except Exception:
+        return frozen_params
+
+    def _walk(o: Any) -> Any:
+        if o and isinstance(o, tuple):
+            tag = o[0]
+            # Tagged set
+            if tag == "__set__" and len(o) == 2 and isinstance(o[1], tuple):
+                return {_walk(x) for x in o[1]}
+            # Tagged datetime
+            if tag == "__datetime__" and len(o) == 2 and isinstance(o[1], str):
+                try:
+                    return datetime.fromisoformat(o[1])
+                except Exception:
+                    return o[1]
+            # Generic tuple
+            return tuple(_walk(x) for x in o)
+        if isinstance(o, dict):
+            return {k: _walk(v) for k, v in o.items()}
+        if isinstance(o, list):
+            return [_walk(x) for x in o]
+        if o.startswith("{") and o.endswith("}"):
+            return ast.literal_eval(o)
+        return o
+
+    return _walk(obj)
 
 
 def _get_file_path(*, storage_folder: str) -> str:

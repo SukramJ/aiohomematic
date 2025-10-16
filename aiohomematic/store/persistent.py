@@ -3,8 +3,8 @@
 """
 Persistent content used to persist Homematic metadata between runs.
 
-This module provides on-disk caches that complement the short‑lived, in‑memory
-caches from aiohomematic.caches.dynamic. The goal is to minimize expensive data
+This module provides on-disk store that complement the short‑lived, in‑memory
+store from aiohomematic.store.dynamic. The goal is to minimize expensive data
 retrieval from the backend by storing stable metadata such as device and
 paramset descriptions in JSON files inside a dedicated cache directory.
 
@@ -20,7 +20,7 @@ Overview
 - SessionRecorder: Persists session recorder data
 
 Key behaviors
-- Saves only if caches are enabled (CentralConfig.use_caches) and content has
+- Saves only if store are enabled (CentralConfig.use_caches) and content has
   changed (hash comparison), keeping I/O minimal and predictable.
 - Uses orjson for fast binary writes and json for reads with a custom
   object_hook to rebuild nested defaultdict structures.

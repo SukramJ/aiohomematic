@@ -9,8 +9,8 @@ This package provides the central coordination layer for aiohomematic. It models
 Homematic CCU (or compatible backend such as Homegear) and orchestrates
 interfaces, devices, channels, data points, events, and background jobs.
 
-The central unit ties together the various submodules: caches, client adapters
-(JSON-RPC/XML-RPC), device and data point models, and visibility/description caches.
+The central unit ties together the various submodules: store, client adapters
+(JSON-RPC/XML-RPC), device and data point models, and visibility/description store.
 It exposes high-level APIs to query and manipulate the backend state while
 encapsulating transport and scheduling details.
 
@@ -52,7 +52,7 @@ Example (simplified):
     )
 
     central = cfg.create_central()
-    central.start()           # start XML-RPC server, create/init clients, load caches
+    central.start()           # start XML-RPC server, create/init clients, load store
     # ... interact with devices / data points via central ...
     central.stop()
 
@@ -79,9 +79,6 @@ import voluptuous as vol
 
 from aiohomematic import client as hmcl
 from aiohomematic.async_support import Looper, loop_check
-from aiohomematic.caches.dynamic import CentralDataCache, DeviceDetailsCache
-from aiohomematic.caches.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
-from aiohomematic.caches.visibility import ParameterVisibilityCache
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
@@ -163,6 +160,9 @@ from aiohomematic.model.hub import (
     ProgramDpType,
 )
 from aiohomematic.property_decorators import info_property
+from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
+from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
+from aiohomematic.store.visibility import ParameterVisibilityCache
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
@@ -966,12 +966,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return len(self._clients) > 0
 
     async def _load_caches(self) -> bool:
-        """Load files to caches."""
+        """Load files to store."""
         if DataOperationResult.LOAD_FAIL in (
             await self._device_descriptions.load(),
             await self._paramset_descriptions.load(),
         ):
-            _LOGGER.warning("LOAD_CACHES failed: Unable to load caches for %s. Clearing files", self.name)
+            _LOGGER.warning("LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name)
             await self.clear_caches()
             return False
         await self._device_details.load()
@@ -2072,7 +2072,7 @@ class CentralConfig:
 
     @property
     def use_caches(self) -> bool:
-        """Return if caches should be used."""
+        """Return if store should be used."""
         return self.start_direct is False
 
     def check_config(self) -> None:

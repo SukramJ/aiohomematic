@@ -24,7 +24,7 @@ used directly for advanced tasks. Typical flow:
 Notes
 -----
 - Some JSON-RPC methods are backend/firmware dependent. The client detects and
-  caches supported methods at runtime.
+  store supported methods at runtime.
 - Binary/text encodings are handled carefully (UTF-8 / ISO-8859-1) for script IO.
 
 """
@@ -59,7 +59,6 @@ import orjson
 
 from aiohomematic import central as hmcu
 from aiohomematic.async_support import Looper
-from aiohomematic.caches.persistent import SessionRecorder
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
@@ -93,6 +92,7 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
+from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
     cleanup_text_from_html_tags,

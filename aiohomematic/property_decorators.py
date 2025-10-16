@@ -15,7 +15,7 @@ All decorators accept an optional keyword-only argument log_context. If set to
 True, the property will be included in the LogContextMixin.log_context mapping.
 
 Notes on caching
-- Marked with cached=True always caches on first access and invalidates on set/delete.
+- Marked with cached=True always store on first access and invalidates on set/delete.
 """
 
 from __future__ import annotations

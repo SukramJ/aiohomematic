@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
 """
-Dynamic caches used at runtime by the central unit and clients.
+Dynamic store used at runtime by the central unit and clients.
 
-This module provides short-lived, in-memory caches that support robust and efficient
+This module provides short-lived, in-memory store that support robust and efficient
 communication with Homematic interfaces:
 
 - CommandCache: Tracks recently sent commands and their values per data point,
@@ -16,7 +16,7 @@ communication with Homematic interfaces:
 - PingPongCache: Tracks ping/pong timestamps to detect connection health issues
   and emits interface events on mismatch thresholds.
 
-The caches are intentionally ephemeral and cleared/aged according to the rules in
+The store are intentionally ephemeral and cleared/aged according to the rules in
 constants to keep memory footprint predictable while improving responsiveness.
 """
 

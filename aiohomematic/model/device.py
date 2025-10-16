@@ -1240,7 +1240,7 @@ class _ValueCache:
         *,
         dpk: DataPointKey,
     ) -> Any:
-        """Load data from caches."""
+        """Load data from store."""
         # Try to get data from central cache
         if (
             dpk.paramset_key == ParamsetKey.VALUES

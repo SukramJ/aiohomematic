@@ -1,5 +1,5 @@
 """
-Tests for runtime caches in aiohomematic.caches.dynamic.
+Tests for runtime store in aiohomematic.store.dynamic.
 
 This test suite focuses on lightweight, behavior-centric checks that improve
 coverage without touching production logic. It covers:
@@ -14,8 +14,8 @@ from typing import Any
 
 import pytest
 
-from aiohomematic.caches.dynamic import CommandCache, PingPongCache
 from aiohomematic.const import EventKey, EventType, InterfaceEventType, ParamsetKey
+from aiohomematic.store.dynamic import CommandCache, PingPongCache
 
 
 class CentralStub:
@@ -62,7 +62,7 @@ def test_command_cache_add_and_get_last_value_send() -> None:
 
 
 def test_command_cache_add_put_paramset_and_remove() -> None:
-    """Ensure add_put_paramset stores values and targeted remove purges entries."""
+    """Ensure add_put_paramset store values and targeted remove purges entries."""
     cache = CommandCache(interface_id="if2")
 
     # Put two parameters
@@ -123,7 +123,7 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
 
 
 def test_pingpongcache_cleanup_by_ttl() -> None:
-    """Confirm TTL-based cleanup removes stale timestamps from both caches."""
+    """Confirm TTL-based cleanup removes stale timestamps from both store."""
     central = CentralStub()
     ppc = PingPongCache(central=central, interface_id="ifTTL", allowed_delta=1, ttl=1)
 

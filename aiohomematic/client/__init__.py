@@ -55,7 +55,6 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu
-from aiohomematic.caches.dynamic import CommandCache, PingPongCache
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.const import (
     CALLBACK_WARN_INTERVAL,
@@ -97,6 +96,7 @@ from aiohomematic.exceptions import BaseHomematicException, ClientException, NoC
 from aiohomematic.model.device import Device
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
+from aiohomematic.store.dynamic import CommandCache, PingPongCache
 from aiohomematic.support import (
     LogContextMixin,
     build_xml_rpc_headers,

@@ -34,7 +34,6 @@ import xmlrpc.client
 
 from aiohomematic import central as hmcu
 from aiohomematic.async_support import Looper
-from aiohomematic.caches.persistent import SessionRecorder
 from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
 from aiohomematic.const import ISO_8859_1
 from aiohomematic.exceptions import (
@@ -44,6 +43,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
+from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)

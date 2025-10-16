@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 Asynchronous JSON-RPC client for Homematic CCU-compatible backends.
 
@@ -24,7 +24,7 @@ used directly for advanced tasks. Typical flow:
 Notes
 -----
 - Some JSON-RPC methods are backend/firmware dependent. The client detects and
-  caches supported methods at runtime.
+  store supported methods at runtime.
 - Binary/text encodings are handled carefully (UTF-8 / ISO-8859-1) for script IO.
 
 """
@@ -92,6 +92,7 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
+from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
     cleanup_text_from_html_tags,
@@ -192,6 +193,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         client_session: ClientSession | None,
         tls: bool = False,
         verify_tls: bool = False,
+        session_recorder: SessionRecorder | None = None,
     ) -> None:
         """Session setup."""
         self._client_session: Final = (
@@ -210,6 +212,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._script_cache: Final[dict[str, str]] = {}
         self._last_session_id_refresh: datetime | None = None
         self._session_id: str | None = None
+        self._session_recorder: Final = session_recorder
         self._supported_methods: tuple[str, ...] | None = None
         self._sema: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
 
@@ -431,7 +434,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
             if response.status == 200:
                 json_response = await asyncio.shield(self._get_json_reponse(response=response))
-
+                self._record_session(method=method, params=params, response=json_response)
                 if error := json_response[_JsonKey.ERROR]:
                     # Map JSON-RPC error to actionable exception with context
                     ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
@@ -466,6 +469,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 raise exc
             raise ClientException(message)
         except BaseHomematicException as bhe:
+            self._record_session(method=method, params=params, exc=bhe)
             if method in (_JsonRpcMethod.SESSION_LOGIN, _JsonRpcMethod.SESSION_LOGOUT, _JsonRpcMethod.SESSION_RENEW):
                 self.clear_session()
             # Domain error at boundary -> warning
@@ -530,6 +534,22 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 log_context=self.log_context,
             )
             raise ClientException(exc) from exc
+
+    def _record_session(
+        self,
+        *,
+        method: str,
+        params: Mapping[str, Any],
+        response: dict[str, Any] | None = None,
+        exc: Exception | None = None,
+    ) -> bool:
+        """Record the session."""
+        if self._session_recorder and self._session_recorder.active:
+            self._session_recorder.add_json_rpc_session(
+                method=method, params=dict(params), response=response, session_exc=exc
+            )
+            return True
+        return False
 
     async def _get_json_reponse(self, *, response: ClientResponse) -> dict[str, Any] | Any:
         """Return the json object from response."""

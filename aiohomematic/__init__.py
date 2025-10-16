@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 AioHomematic: a Python 3 library to interact with Homematic and HomematicIP backends.
 
@@ -9,10 +9,10 @@ This package provides a high-level API to discover devices and channels, read an
 parameters (data points), receive events, and manage programs and system variables.
 
 Key layers and responsibilities:
-- aiohomematic.central: Orchestrates clients, caches, device creation and events.
+- aiohomematic.central: Orchestrates clients, store, device creation and events.
 - aiohomematic.client: Interface-specific clients (JSON-RPC/XML-RPC, Homegear) handling IO.
 - aiohomematic.model: Data point abstraction for generic, hub, and calculated entities.
-- aiohomematic.caches: Persistent and runtime caches for descriptions, values, and metadata.
+- aiohomematic.store: Persistent and runtime store for descriptions, values, and metadata.
 
 Typical usage is to construct a CentralConfig, create a CentralUnit and start it, then
 consume data points and events or issue write commands via the exposed API.

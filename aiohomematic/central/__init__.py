@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 Central unit and core orchestration for Homematic CCU and compatible backends.
 
@@ -9,8 +9,8 @@ This package provides the central coordination layer for aiohomematic. It models
 Homematic CCU (or compatible backend such as Homegear) and orchestrates
 interfaces, devices, channels, data points, events, and background jobs.
 
-The central unit ties together the various submodules: caches, client adapters
-(JSON-RPC/XML-RPC), device and data point models, and visibility/description caches.
+The central unit ties together the various submodules: store, client adapters
+(JSON-RPC/XML-RPC), device and data point models, and visibility/description store.
 It exposes high-level APIs to query and manipulate the backend state while
 encapsulating transport and scheduling details.
 
@@ -52,7 +52,7 @@ Example (simplified):
     )
 
     central = cfg.create_central()
-    central.start()           # start XML-RPC server, create/init clients, load caches
+    central.start()           # start XML-RPC server, create/init clients, load store
     # ... interact with devices / data points via central ...
     central.stop()
 
@@ -79,9 +79,6 @@ import voluptuous as vol
 
 from aiohomematic import client as hmcl
 from aiohomematic.async_support import Looper, loop_check
-from aiohomematic.caches.dynamic import CentralDataCache, DeviceDetailsCache
-from aiohomematic.caches.persistent import DeviceDescriptionCache, ParamsetDescriptionCache
-from aiohomematic.caches.visibility import ParameterVisibilityCache
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
@@ -163,6 +160,9 @@ from aiohomematic.model.hub import (
     ProgramDpType,
 )
 from aiohomematic.property_decorators import info_property
+from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
+from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
+from aiohomematic.store.visibility import ParameterVisibilityCache
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
@@ -218,6 +218,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_descriptions: Final = DeviceDescriptionCache(central=self)
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
+        self._session_recorder: Final = SessionRecorder(central=self, default_ttl_seconds=3600)
 
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
@@ -345,6 +346,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return self._parameter_visibility
 
     @property
+    def session_recorder(self) -> SessionRecorder:
+        """Return the session recorder."""
+        return self._session_recorder
+
+    @property
     def poll_clients(self) -> tuple[hmcl.Client, ...]:
         """Return clients that need to poll data."""
         return tuple(client for client in self._clients.values() if not client.supports_push_updates)
@@ -458,10 +464,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 return channel
         return None
 
-    async def save_caches(
-        self, *, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
+    async def save_files(
+        self,
+        *,
+        save_device_descriptions: bool = False,
+        save_paramset_descriptions: bool = False,
     ) -> None:
-        """Save persistent caches."""
+        """Save persistent files to disk."""
         if save_device_descriptions:
             await self._device_descriptions.save()
         if save_paramset_descriptions:
@@ -536,7 +545,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._state = CentralUnitState.STOPPING
         _LOGGER.debug("STOP: Stopping Central %s", self.name)
 
-        await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
+        await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
         self._stop_scheduler()
         await self._stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
@@ -952,12 +961,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return len(self._clients) > 0
 
     async def _load_caches(self) -> bool:
-        """Load files to caches."""
+        """Load files to store."""
         if DataOperationResult.LOAD_FAIL in (
             await self._device_descriptions.load(),
             await self._paramset_descriptions.load(),
         ):
-            _LOGGER.warning("LOAD_CACHES failed: Unable to load caches for %s. Clearing files", self.name)
+            _LOGGER.warning("LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name)
             await self.clear_caches()
             return False
         await self._device_details.load()
@@ -1047,7 +1056,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for address in addresses:
             if device := self._devices.get(address):
                 self.remove_device(device=device)
-        await self.save_caches(save_device_descriptions=True, save_paramset_descriptions=True)
+        await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
 
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
@@ -1149,7 +1158,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         extract_exc_args(exc=exc),
                     )
 
-            await self.save_caches(
+            await self.save_files(
                 save_device_descriptions=save_descriptions,
                 save_paramset_descriptions=save_descriptions,
             )
@@ -2058,7 +2067,7 @@ class CentralConfig:
 
     @property
     def use_caches(self) -> bool:
-        """Return if caches should be used."""
+        """Return if store should be used."""
         return self.start_direct is False
 
     def check_config(self) -> None:
@@ -2105,6 +2114,7 @@ class CentralConfig:
             client_session=self.client_session,
             tls=self.tls,
             verify_tls=self.verify_tls,
+            session_recorder=central.session_recorder,
         )
 
 

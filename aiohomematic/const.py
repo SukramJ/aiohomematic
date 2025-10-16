@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 Constants used by aiohomematic.
 
@@ -82,7 +82,7 @@ SYSVAR_ENABLE_DEFAULT: Final[frozenset[str]] = ALWAYS_ENABLE_SYSVARS_BY_ID
 
 ADDRESS_SEPARATOR: Final = ":"
 BLOCK_LOG_TIMEOUT: Final = 60
-CACHE_PATH: Final = "cache"
+CONTENT_PATH: Final = "cache"
 CONF_PASSWORD: Final = "password"
 CONF_USERNAME: Final = "username"
 
@@ -96,6 +96,7 @@ DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
 DUMMY_SERIAL: Final = "SN0815"
 FILE_DEVICES: Final = "homematic_devices.json"
 FILE_PARAMSETS: Final = "homematic_paramsets.json"
+FILE_SESSION_RECORDER: Final = "homematic_session_recorder.json"
 HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
@@ -497,6 +498,13 @@ class RegaScript(StrEnum):
     GET_SYSTEM_VARIABLE_DESCRIPTIONS: Final = "get_system_variable_descriptions.fn"
     SET_PROGRAM_STATE: Final = "set_program_state.fn"
     SET_SYSTEM_VARIABLE: Final = "set_system_variable.fn"
+
+
+class RPCType(StrEnum):
+    """Enum with Homematic rpc types."""
+
+    XML_RPC = "xmlrpc"
+    JSON_RPC = "jsonrpc"
 
 
 class Interface(StrEnum):

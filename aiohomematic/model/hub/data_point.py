@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """Module for AioHomematic hub data points."""
 
 from __future__ import annotations

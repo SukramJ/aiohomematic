@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 Device and channel model for AioHomematic.
 
@@ -671,7 +671,7 @@ class Device(LogContextMixin, PayloadMixin):
                     channel_address=channel_address,
                     paramset_key=paramset_key,
                 )
-        await self._central.save_caches(save_paramset_descriptions=True)
+        await self._central.save_files(save_paramset_descriptions=True)
         for dp in self.generic_data_points:
             dp.update_parameter_data()
         self.fire_device_updated_callback()
@@ -1240,7 +1240,7 @@ class _ValueCache:
         *,
         dpk: DataPointKey,
     ) -> Any:
-        """Load data from caches."""
+        """Load data from store."""
         # Try to get data from central cache
         if (
             dpk.paramset_key == ParamsetKey.VALUES

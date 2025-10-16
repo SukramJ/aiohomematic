@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 Parameter visibility rules and cache for Homematic data points.
 
@@ -8,7 +8,7 @@ ignored, or un‑ignored for channels and devices. It centralizes the rules
 that influence the visibility of data points exposed by the library.
 
 Overview
-- ParameterVisibilityCache: Computes and caches visibility decisions per model,
+- ParameterVisibilityCache: Computes and store visibility decisions per model,
   channel number, paramset and parameter. It consolidates rules from multiple
   sources, such as model‑specific defaults, paramset relevance, hidden lists,
   and explicit un‑ignore directives.

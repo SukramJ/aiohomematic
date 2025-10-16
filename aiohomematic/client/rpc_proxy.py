@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 XML-RPC transport proxy with concurrency control and connection awareness.
 
@@ -43,6 +43,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
+from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -96,10 +97,12 @@ class BaseRpcProxy(ABC):
         magic_method: Callable,
         tls: bool = False,
         verify_tls: bool = False,
+        session_recorder: SessionRecorder | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         self._interface_id: Final = interface_id
         self._connection_state: Final = connection_state
+        self._session_recorder: Final = session_recorder
         self._magic_method: Final = magic_method
         self._looper: Final = Looper()
         self._proxy_executor: Final = (
@@ -136,6 +139,15 @@ class BaseRpcProxy(ABC):
         """Magic method dispatcher."""
         return self._magic_method(self._async_request, *args, **kwargs)
 
+    def _record_session(
+        self, *, method: str, params: tuple[Any, ...], response: Any | None = None, exc: Exception | None = None
+    ) -> bool:
+        """Record the session."""
+        if self._session_recorder and self._session_recorder.active:
+            self._session_recorder.add_xml_rpc_session(method=method, params=params, response=response, session_exc=exc)
+            return True
+        return False
+
 
 # noinspection PyProtectedMember,PyUnresolvedReferences
 class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
@@ -151,6 +163,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         headers: list[tuple[str, str]],
         tls: bool = False,
         verify_tls: bool = False,
+        session_recorder: SessionRecorder | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         super().__init__(
@@ -160,6 +173,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             magic_method=xmlrpc.client._Method,
             tls=tls,
             verify_tls=verify_tls,
+            session_recorder=session_recorder,
         )
 
         xmlrpc.client.ServerProxy.__init__(
@@ -193,10 +207,12 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                         executor=self._proxy_executor,
                     )
                 )
+                self._record_session(method=method, params=args[1], response=result)
                 self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
                 return result
             raise NoConnectionException(f"No connection to {self._interface_id}")
-        except BaseHomematicException:
+        except BaseHomematicException as bhe:
+            self._record_session(method=args[0], params=args[1:], exc=bhe)
             raise
         except SSLError as sslerr:
             message = f"SSLError on {self._interface_id}: {extract_exc_args(exc=sslerr)}"

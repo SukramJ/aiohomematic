@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025 Daniel Perna, SukramJ
+# Copyright (c) 2021-2025
 """
 Client adapters for communicating with Homematic CCU and compatible backends.
 
@@ -55,7 +55,6 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu
-from aiohomematic.caches.dynamic import CommandCache, PingPongCache
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.const import (
     CALLBACK_WARN_INTERVAL,
@@ -97,6 +96,7 @@ from aiohomematic.exceptions import BaseHomematicException, ClientException, NoC
 from aiohomematic.model.device import Device
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
+from aiohomematic.store.dynamic import CommandCache, PingPongCache
 from aiohomematic.support import (
     LogContextMixin,
     build_xml_rpc_headers,
@@ -1086,7 +1086,7 @@ class Client(ABC, LogContextMixin):
                 device_address,
             )
             return
-        await self.central.save_caches(save_paramset_descriptions=True)
+        await self.central.save_files(save_paramset_descriptions=True)
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -1690,6 +1690,7 @@ class _ClientConfig:
             headers=xml_rpc_headers,
             tls=config.tls,
             verify_tls=config.verify_tls,
+            session_recorder=self.central.session_recorder,
         )
         await xml_proxy.do_init()
         return xml_proxy

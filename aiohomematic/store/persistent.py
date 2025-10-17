@@ -52,6 +52,7 @@ from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CONTENT_PATH,
     FILE_DEVICES,
+    FILE_NAME_TS_PATTERN,
     FILE_PARAMSETS,
     FILE_SESSION_RECORDER,
     INIT_DATETIME,
@@ -81,11 +82,11 @@ class BasePersistentFile(ABC):
     """Cache for files."""
 
     __slots__ = (
-        "_file_dir",
         "_central",
+        "_file_dir",
         "_file_postfix",
-        "_filename",
         "_persistent_content",
+        "_use_ts_in_filenames",
         "_save_load_semaphore",
         "last_hash_saved",
         "last_save_triggered",
@@ -98,13 +99,14 @@ class BasePersistentFile(ABC):
         *,
         central: hmcu.CentralUnit,
         persistent_content: dict[str, Any],
+        use_ts_in_filenames: bool = False,
     ) -> None:
         """Initialize the base class of the persistent content."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
         self._central: Final = central
-        self._file_dir: Final = _get_file_path(storage_folder=central.config.storage_folder)
-        self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_postfix)
         self._persistent_content: Final = persistent_content
+        self._use_ts_in_filenames: Final = use_ts_in_filenames
+        self._file_dir: Final = _get_file_path(storage_folder=central.config.storage_folder)
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_content)
 
@@ -117,6 +119,15 @@ class BasePersistentFile(ABC):
     def data_changed(self) -> bool:
         """Return if the data has changed."""
         return self.content_hash != self.last_hash_saved
+
+    @property
+    def _filename(self) -> str:
+        """Return the file name."""
+        return _get_filename(
+            central_name=self._central.name,
+            file_name=self._file_postfix,
+            ts=datetime.now() if self._use_ts_in_filenames else None,
+        )
 
     @property
     def _file_path(self) -> str:
@@ -872,9 +883,12 @@ def _get_file_path(*, storage_folder: str) -> str:
     return f"{storage_folder}/{CONTENT_PATH}"
 
 
-def _get_filename(*, central_name: str, file_name: str) -> str:
+def _get_filename(*, central_name: str, file_name: str, ts: datetime | None = None) -> str:
     """Return the content filename."""
-    return f"{slugify(central_name)}_{file_name}"
+    fn = f"{slugify(central_name)}_{file_name}"
+    if ts:
+        fn += f"_{ts.strftime(FILE_NAME_TS_PATTERN)}"
+    return f"{fn}.json"
 
 
 def _now() -> int:

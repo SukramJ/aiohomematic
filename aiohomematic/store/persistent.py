@@ -582,8 +582,8 @@ class SessionRecorder(BasePersistentFile):
         await asyncio.sleep(delay)
         self._active = new_state
 
-    async def activate(self, *, on_time: int = 0) -> None:
-        """Activate the session recorder."""
+    async def activate(self, *, on_time: int = 0, auto_save: bool = False) -> None:
+        """Activate the session recorder. Optionally disable after a on_time(seconds)."""
         if self._is_delayed:
             return
 
@@ -595,9 +595,11 @@ class SessionRecorder(BasePersistentFile):
                 name=f"session_recorder_{self._central.name}",
             )
         self._is_delayed = False
+        if auto_save:
+            await self.save()
 
-    async def deactivate(self, *, delay: int) -> None:
-        """Deactivate the session recorder after a delay."""
+    async def deactivate(self, *, delay: int, auto_save: bool = False) -> None:
+        """Deactivate the session recorder. Optionally after a delay(seconds)."""
         if self._is_delayed:
             return
 
@@ -609,6 +611,12 @@ class SessionRecorder(BasePersistentFile):
             )
         self._active = False
         self._is_delayed = False
+        msg = "Deactivated session recorder"
+        if delay > 0:
+            msg += f" after {delay / 60} minutes"
+        _LOGGER.debug(msg)
+        if auto_save:
+            await self.save()
 
     def add_json_rpc_session(
         self,

@@ -219,7 +219,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
         self._recorder: Final = SessionRecorder(
-            central=self, default_ttl_seconds=3600, active=central_config.start_recorder
+            central=self, default_ttl_seconds=600, active=central_config.start_recorder
         )
 
         self._primary_client: hmcl.Client | None = None
@@ -489,6 +489,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if self._state == CentralUnitState.RUNNING:
             _LOGGER.debug("START: Central %s already started", self.name)
             return
+
+        if self._config.start_recorder:
+            await self._recorder.deactivate(delay=self._config.start_recorder_for_minutes * 60)
+            _LOGGER.debug("START: Starting Recorder for %s minutes", self._config.start_recorder_for_minutes)
 
         self._state = CentralUnitState.INITIALIZING
         _LOGGER.debug("START: Initializing Central %s", self.name)
@@ -1999,7 +2003,7 @@ class CentralConfig:
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
-        start_recorder: bool = False,
+        start_recorder_for_minutes: int = 0,
         storage_folder: str = DEFAULT_STORAGE_FOLDER,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
@@ -2035,7 +2039,8 @@ class CentralConfig:
         self.periodic_refresh_interval = periodic_refresh_interval
         self.program_markers: Final = program_markers
         self.start_direct: Final = start_direct
-        self.start_recorder: Final = start_recorder
+        self.start_recorder_for_minutes: Final = start_recorder_for_minutes
+        self.start_recorder = start_recorder_for_minutes > 0
         self.storage_folder: Final = storage_folder
         self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers

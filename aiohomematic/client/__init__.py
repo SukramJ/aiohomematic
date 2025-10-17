@@ -1690,7 +1690,7 @@ class _ClientConfig:
             headers=xml_rpc_headers,
             tls=config.tls,
             verify_tls=config.verify_tls,
-            session_recorder=self.central.session_recorder,
+            session_recorder=self.central.recorder,
         )
         await xml_proxy.do_init()
         return xml_proxy

@@ -52,6 +52,7 @@ from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CONTENT_PATH,
     FILE_DEVICES,
+    FILE_NAME_TS_PATTERN,
     FILE_PARAMSETS,
     FILE_SESSION_RECORDER,
     INIT_DATETIME,
@@ -65,6 +66,7 @@ from aiohomematic.const import (
 from aiohomematic.model.device import Device
 from aiohomematic.support import (
     check_or_create_directory,
+    create_random_device_addresses,
     delete_file,
     extract_exc_args,
     get_device_address,
@@ -80,11 +82,11 @@ class BasePersistentFile(ABC):
     """Cache for files."""
 
     __slots__ = (
-        "_file_dir",
         "_central",
+        "_file_dir",
         "_file_postfix",
-        "_filename",
         "_persistent_content",
+        "_use_ts_in_filenames",
         "_save_load_semaphore",
         "last_hash_saved",
         "last_save_triggered",
@@ -97,13 +99,14 @@ class BasePersistentFile(ABC):
         *,
         central: hmcu.CentralUnit,
         persistent_content: dict[str, Any],
+        use_ts_in_filename: bool = False,
     ) -> None:
         """Initialize the base class of the persistent content."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
         self._central: Final = central
-        self._file_dir: Final = _get_file_path(storage_folder=central.config.storage_folder)
-        self._filename: Final = _get_filename(central_name=central.name, file_name=self._file_postfix)
         self._persistent_content: Final = persistent_content
+        self._use_ts_in_filenames: Final = use_ts_in_filename
+        self._file_dir: Final = _get_file_path(storage_folder=central.config.storage_folder)
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_content)
 
@@ -116,6 +119,15 @@ class BasePersistentFile(ABC):
     def data_changed(self) -> bool:
         """Return if the data has changed."""
         return self.content_hash != self.last_hash_saved
+
+    @property
+    def _filename(self) -> str:
+        """Return the file name."""
+        return _get_filename(
+            central_name=self._central.name,
+            file_name=self._file_postfix,
+            ts=datetime.now() if self._use_ts_in_filenames else None,
+        )
 
     @property
     def _file_path(self) -> str:
@@ -131,9 +143,11 @@ class BasePersistentFile(ABC):
             try:
                 with open(file=self._file_path, mode="wb") as file_pointer:
                     file_pointer.write(
-                        orjson.dumps(
-                            self._persistent_content,
-                            option=orjson.OPT_NON_STR_KEYS,
+                        self._manipulate_content(
+                            content=orjson.dumps(
+                                self._persistent_content,
+                                option=orjson.OPT_NON_STR_KEYS,
+                            )
                         )
                     )
                 self.last_hash_saved = self.content_hash
@@ -145,6 +159,10 @@ class BasePersistentFile(ABC):
             return await self._central.looper.async_add_executor_job(
                 _perform_save, name=f"save-persistent-content-{self._filename}"
             )
+
+    def _manipulate_content(self, *, content: bytes) -> bytes:
+        """Manipulate the content of the file."""
+        return content
 
     @property
     def _should_save(self) -> bool:
@@ -481,19 +499,32 @@ class SessionRecorder(BasePersistentFile):
 
     __slots__ = (
         "_active",
-        "_store",
         "_default_ttl",
+        "_is_delayed",
+        "_randomize_output",
         "_refresh_on_get",
+        "_store",
     )
 
     _file_postfix = FILE_SESSION_RECORDER
 
-    def __init__(self, *, central: hmcu.CentralUnit, default_ttl_seconds: float, refresh_on_get: bool = False):
+    def __init__(
+        self,
+        *,
+        central: hmcu.CentralUnit,
+        default_ttl_seconds: float,
+        active: bool,
+        refresh_on_get: bool = False,
+        randomize_output: bool = True,
+    ):
         """Init the cache."""
+        self._active = active
         if default_ttl_seconds <= 0:
             raise ValueError("default_ttl_seconds must be positive")
         self._default_ttl: Final = float(default_ttl_seconds)
+        self._is_delayed: bool = False
         self._refresh_on_get: Final = refresh_on_get
+        self._randomize_output: Final = randomize_output
         # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> (response, ttl_s)
         # Annotate as defaultdict to match the actual type and satisfy mypy.
         self._store: dict[str, dict[str, dict[str, dict[int, tuple[Any, float]]]]] = defaultdict(
@@ -502,21 +533,10 @@ class SessionRecorder(BasePersistentFile):
         super().__init__(
             central=central,
             persistent_content=self._store,
+            use_ts_in_filename=True,
         )
-        self._active: bool = False
 
     # ---------- internal helpers ----------
-
-    @staticmethod
-    def _now() -> int:
-        """Return current UTC time as epoch seconds (int)."""
-        return int(datetime.now(tz=UTC).timestamp())
-
-    @staticmethod
-    def _is_expired(*, ts: int, ttl_s: float, now: int | None = None) -> bool:
-        """Check whether an entry has expired given epoch seconds."""
-        now = now if now is not None else int(datetime.now(tz=UTC).timestamp())
-        return (now - ts) > ttl_s
 
     def _purge_expired_at(
         self,
@@ -530,11 +550,11 @@ class SessionRecorder(BasePersistentFile):
             return
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return
-        now = self._now()
+        now = _now()
         empty_params: list[str] = []
         for p, bucket_by_ts in bucket_by_parameter.items():
             expired_ts = [
-                ts for ts, (_r, ttl_s) in list(bucket_by_ts.items()) if self._is_expired(ts=ts, ttl_s=ttl_s, now=now)
+                ts for ts, (_r, ttl_s) in list(bucket_by_ts.items()) if _is_expired(ts=ts, ttl_s=ttl_s, now=now)
             ]
             for ts in expired_ts:
                 del bucket_by_ts[ts]
@@ -558,10 +578,35 @@ class SessionRecorder(BasePersistentFile):
         """Return if session recorder is active."""
         return self._active
 
-    @active.setter
-    def active(self, active: bool) -> None:
-        """Set active."""
-        self._active = active
+    async def _deactivate_after_delay(self, *, delay: int, auto_save: bool = False) -> None:
+        """Change the state of the session recorder after a delay."""
+        self._is_delayed = True
+        await asyncio.sleep(delay)
+        self._active = False
+        self._is_delayed = False
+        if auto_save:
+            await self.save()
+        _LOGGER.debug("Deactivated session recorder after %s minutes", {delay / 60})
+
+    async def activate(self, *, on_time: int = 0, auto_save: bool = False) -> None:
+        """Activate the session recorder. Optionally disable after a on_time(seconds)."""
+        self._active = True
+        if on_time > 0:
+            self._central.looper.create_task(
+                target=self._deactivate_after_delay(delay=on_time, auto_save=auto_save),
+                name=f"session_recorder_{self._central.name}",
+            )
+
+    async def deactivate(self, *, delay: int, auto_save: bool = False) -> None:
+        """Deactivate the session recorder. Optionally after a delay(seconds)."""
+        if delay > 0:
+            self._central.looper.create_task(
+                target=self._deactivate_after_delay(delay=delay, auto_save=auto_save),
+                name=f"session_recorder_{self._central.name}",
+            )
+        else:
+            self._active = False
+            self._is_delayed = False
 
     def add_json_rpc_session(
         self,
@@ -623,7 +668,7 @@ class SessionRecorder(BasePersistentFile):
         elif isinstance(ts, int):
             ts_int = ts
         else:
-            ts_int = self._now()
+            ts_int = _now()
         self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = (response, ttl_s)
         return self
 
@@ -658,7 +703,7 @@ class SessionRecorder(BasePersistentFile):
             return default
         resp, ttl_s = bucket_by_ts[latest_ts]
         if self._refresh_on_get:
-            bucket_by_ts[self._now()] = (resp, ttl_s)
+            bucket_by_ts[_now()] = (resp, ttl_s)
         return resp
 
     def delete(self, *, rpc_type: str, method: str, params: Any) -> bool:
@@ -743,6 +788,17 @@ class SessionRecorder(BasePersistentFile):
         self.cleanup()
         return len(self._store.items()) > 0
 
+    def _manipulate_content(self, *, content: bytes) -> bytes:
+        """Manipulate the content of the file."""
+        if not self._randomize_output:
+            return content
+
+        addresses = [device.address for device in self._central.devices]
+        text = content.decode(encoding=UTF_8)
+        for device_address, rnd_address in create_random_device_addresses(addresses=addresses).items():
+            text = text.replace(device_address, rnd_address)
+        return text.encode(encoding=UTF_8)
+
     def __repr__(self) -> str:
         """Return the representation."""
         self.cleanup()
@@ -825,9 +881,23 @@ def _get_file_path(*, storage_folder: str) -> str:
     return f"{storage_folder}/{CONTENT_PATH}"
 
 
-def _get_filename(*, central_name: str, file_name: str) -> str:
+def _get_filename(*, central_name: str, file_name: str, ts: datetime | None = None) -> str:
     """Return the content filename."""
-    return f"{slugify(central_name)}_{file_name}"
+    fn = f"{slugify(central_name)}_{file_name}"
+    if ts:
+        fn += f"_{ts.strftime(FILE_NAME_TS_PATTERN)}"
+    return f"{fn}.json"
+
+
+def _now() -> int:
+    """Return current UTC time as epoch seconds (int)."""
+    return int(datetime.now(tz=UTC).timestamp())
+
+
+def _is_expired(*, ts: int, ttl_s: float, now: int | None = None) -> bool:
+    """Check whether an entry has expired given epoch seconds."""
+    now = now if now is not None else _now()
+    return (now - ts) > ttl_s
 
 
 def cleanup_content_dirs(*, central_name: str, storage_folder: str) -> None:

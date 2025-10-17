@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.8"
+VERSION: Final = "2025.10.9"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -94,9 +94,10 @@ DEVICE_FIRMWARE_CHECK_INTERVAL: Final = 21600  # 6h
 DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL: Final = 3600  # 1h
 DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
 DUMMY_SERIAL: Final = "SN0815"
-FILE_DEVICES: Final = "homematic_devices.json"
-FILE_PARAMSETS: Final = "homematic_paramsets.json"
-FILE_SESSION_RECORDER: Final = "homematic_session_recorder.json"
+FILE_DEVICES: Final = "homematic_devices"
+FILE_PARAMSETS: Final = "homematic_paramsets"
+FILE_SESSION_RECORDER: Final = "homematic_session_recorder"
+FILE_NAME_TS_PATTERN: Final = "%Y%m%d_%H%M%S"
 HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)

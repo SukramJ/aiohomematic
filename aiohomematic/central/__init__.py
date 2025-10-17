@@ -478,8 +478,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if save_paramset_descriptions:
             await self._paramset_descriptions.save()
 
-        await self._recorder.save()
-
     async def start(self) -> None:
         """Start processing of the central unit."""
 

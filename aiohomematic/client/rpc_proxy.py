@@ -143,6 +143,8 @@ class BaseRpcProxy(ABC):
         self, *, method: str, params: tuple[Any, ...], response: Any | None = None, exc: Exception | None = None
     ) -> bool:
         """Record the session."""
+        if method in (_RpcMethod.PING,):
+            return False
         if self._session_recorder and self._session_recorder.active:
             self._session_recorder.add_xml_rpc_session(method=method, params=params, response=response, session_exc=exc)
             return True

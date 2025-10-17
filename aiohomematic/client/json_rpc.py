@@ -544,6 +544,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         exc: Exception | None = None,
     ) -> bool:
         """Record the session."""
+        if method == _JsonRpcMethod.SESSION_LOGIN and isinstance(params, dict):
+            if params.get(_JsonKey.USERNAME):
+                params[_JsonKey.USERNAME] = "********"
+            if params.get(_JsonKey.PASSWORD):
+                params[_JsonKey.PASSWORD] = "********"
+
         if self._session_recorder and self._session_recorder.active:
             self._session_recorder.add_json_rpc_session(
                 method=method, params=dict(params), response=response, session_exc=exc

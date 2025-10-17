@@ -1,3 +1,7 @@
+# Version 2025.10.9 (2025-10-17)
+
+- Add session recorder
+
 # Version 2025.10.8 (2025-10-14)
 
 - Add dew point spread and enthalpy to calculated sensors

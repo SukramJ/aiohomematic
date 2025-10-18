@@ -149,6 +149,9 @@ class BasePersistentFile(ABC):
         if not self._should_save:
             return DataOperationResult.NO_SAVE
 
+        if not check_or_create_directory(directory=self._directory):
+            return DataOperationResult.NO_SAVE
+
         def _perform_save() -> DataOperationResult:
             try:
                 with open(
@@ -600,7 +603,7 @@ class SessionRecorder(BasePersistentFile):
             await self.save(use_ts_in_filename=use_ts_in_filename)
         _LOGGER.debug("Deactivated session recorder after %s minutes", {delay / 60})
 
-    async def activate(self, *, on_time: int = 0, auto_save: bool = False, use_ts_in_filename: bool = False) -> None:
+    async def activate(self, *, on_time: int = 0, auto_save: bool, use_ts_in_filename: bool) -> None:
         """Activate the session recorder. Optionally disable after a on_time(seconds)."""
         self._active = True
         if on_time > 0:
@@ -611,7 +614,7 @@ class SessionRecorder(BasePersistentFile):
                 name=f"session_recorder_{self._central.name}",
             )
 
-    async def deactivate(self, *, delay: int, auto_save: bool = False, use_ts_in_filename: bool = False) -> None:
+    async def deactivate(self, *, delay: int, auto_save: bool, use_ts_in_filename: bool) -> None:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
         if delay > 0:
             self._central.looper.create_task(

@@ -49,6 +49,12 @@ DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
 DEFAULT_VERIFY_TLS: Final = False
 
+MANU_TEMP_CUSTOM_ID: Final = "manu_temp"
+INTERNAL_CUSTOM_IDS: Final[tuple[str, ...]] = (
+    DEFAULT_CUSTOM_ID,
+    MANU_TEMP_CUSTOM_ID,
+)
+
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"
 # Default encoding for xmlrpc service calls and script files

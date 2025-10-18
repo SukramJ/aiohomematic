@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig
-from aiohomematic.client import InterfaceConfig, _ClientConfig
+from aiohomematic.client import ClientConfig, InterfaceConfig
 from aiohomematic.model.custom import validate_custom_data_point_definition
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
 
@@ -455,7 +455,7 @@ class Example:
         self.central.register_backend_system_callback(cb=self._systemcallback)
 
         client = ClientLocal(
-            client_config=_ClientConfig(
+            client_config=ClientConfig(
                 central=self.central,
                 interface_config=interface_config,
             ),

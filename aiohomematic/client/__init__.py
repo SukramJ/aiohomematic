@@ -55,6 +55,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu
+from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.const import (
     CALLBACK_WARN_INTERVAL,
@@ -108,7 +109,13 @@ from aiohomematic.support import (
     supports_rx_mode,
 )
 
-__all__ = ["Client", "InterfaceConfig", "create_client", "get_client"]
+__all__ = [
+    "AioJsonRpcAioHttpClient",
+    "BaseRpcProxy",
+    "Client",
+    "InterfaceConfig",
+    "ClientConfig",
+]
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -132,7 +139,7 @@ _CCU_JSON_VALUE_TYPE: Final = {
 class Client(ABC, LogContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
-    def __init__(self, *, client_config: _ClientConfig) -> None:
+    def __init__(self, *, client_config: ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
@@ -1096,7 +1103,7 @@ class Client(ABC, LogContextMixin):
 class ClientCCU(Client):
     """Client implementation for CCU backend."""
 
-    def __init__(self, *, client_config: _ClientConfig) -> None:
+    def __init__(self, *, client_config: ClientConfig) -> None:
         """Initialize the Client."""
         self._json_rpc_client: Final = client_config.central.json_rpc_client
         super().__init__(client_config=client_config)
@@ -1591,7 +1598,7 @@ class ClientHomegear(Client):
         return SystemInformation(available_interfaces=(Interface.BIDCOS_RF,), serial=f"{self.interface}_{DUMMY_SERIAL}")
 
 
-class _ClientConfig:
+class ClientConfig:
     """Config for a Client."""
 
     def __init__(
@@ -1600,6 +1607,7 @@ class _ClientConfig:
         central: hmcu.CentralUnit,
         interface_config: InterfaceConfig,
     ) -> None:
+        """Initialize the config."""
         self.central: Final = central
         self.version: str = "0"
         self.system_information = SystemInformation()
@@ -1667,6 +1675,7 @@ class _ClientConfig:
     async def create_rpc_proxy(
         self, *, interface: Interface, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
     ) -> BaseRpcProxy:
+        """Return a RPC proxy for the backend communication."""
         return await self._create_xml_rpc_proxy(auth_enabled=auth_enabled, max_workers=max_workers)
 
     async def _create_xml_rpc_proxy(
@@ -1741,7 +1750,7 @@ async def create_client(
     interface_config: InterfaceConfig,
 ) -> Client:
     """Return a new client for with a given interface_config."""
-    return await _ClientConfig(central=central, interface_config=interface_config).create_client()
+    return await ClientConfig(central=central, interface_config=interface_config).create_client()
 
 
 def get_client(interface_id: str) -> Client | None:

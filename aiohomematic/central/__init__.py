@@ -81,8 +81,7 @@ from aiohomematic import client as hmcl
 from aiohomematic.async_support import Looper, loop_check
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
-from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
-from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
+from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import (
     CALLBACK_TYPE,
     CATEGORIES,
@@ -186,7 +185,7 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 
 # {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
-ConnectionProblemIssuer = AioJsonRpcAioHttpClient | AioXmlRpcProxy
+ConnectionProblemIssuer = AioJsonRpcAioHttpClient | BaseRpcProxy
 
 INTERFACE_EVENT_SCHEMA = vol.Schema(
     {
@@ -2146,7 +2145,7 @@ class CentralConnectionState:
             self._json_issues.append(iid)
             _LOGGER.debug("add_issue: add issue  [%s] for JsonRpcAioHttpClient", iid)
             return True
-        if isinstance(issuer, AioXmlRpcProxy) and iid not in self._rpc_proxy_issues:
+        if isinstance(issuer, BaseRpcProxy) and iid not in self._rpc_proxy_issues:
             self._rpc_proxy_issues.append(iid)
             _LOGGER.debug("add_issue: add issue [%s] for %s", iid, issuer.interface_id)
             return True
@@ -2158,7 +2157,7 @@ class CentralConnectionState:
             self._json_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for JsonRpcAioHttpClient", iid)
             return True
-        if isinstance(issuer, AioXmlRpcProxy) and issuer.interface_id in self._rpc_proxy_issues:
+        if isinstance(issuer, BaseRpcProxy) and issuer.interface_id in self._rpc_proxy_issues:
             self._rpc_proxy_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for %s", iid, issuer.interface_id)
             return True
@@ -2168,7 +2167,7 @@ class CentralConnectionState:
         """Add issue to collection."""
         if isinstance(issuer, AioJsonRpcAioHttpClient):
             return iid in self._json_issues
-        if isinstance(issuer, (AioXmlRpcProxy)):
+        if isinstance(issuer, (BaseRpcProxy)):
             return iid in self._rpc_proxy_issues
 
     def handle_exception_log(

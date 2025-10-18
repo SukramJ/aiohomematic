@@ -12,7 +12,7 @@ from typing import Any, Final, cast
 
 import orjson
 
-from aiohomematic.client import _LOGGER, Client, _ClientConfig
+from aiohomematic.client import _LOGGER, Client, ClientConfig
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     DP_KEY_VALUE,
@@ -41,7 +41,7 @@ BACKEND_LOCAL: Final = "PyDevCCU"
 class ClientLocal(Client):  # pragma: no cover
     """Local client object to provide access to locally stored files."""
 
-    def __init__(self, *, client_config: _ClientConfig, local_resources: LocalRessources) -> None:
+    def __init__(self, *, client_config: ClientConfig, local_resources: LocalRessources) -> None:
         """Initialize the Client."""
         super().__init__(client_config=client_config)
         self._local_resources = local_resources

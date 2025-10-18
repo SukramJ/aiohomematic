@@ -16,10 +16,9 @@
 /.idea/*
 build
 
-unignore
 venv
 
 .coverage
 .output.txt
 *.out
-tests_profile_after.out.txt
+*.out.txt

@@ -96,7 +96,7 @@ from aiohomematic.exceptions import BaseHomematicException, ClientException, NoC
 from aiohomematic.model.device import Device
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
-from aiohomematic.store.dynamic import CommandCache, PingPongCache
+from aiohomematic.store import CommandCache, PingPongCache
 from aiohomematic.support import (
     LogContextMixin,
     build_xml_rpc_headers,

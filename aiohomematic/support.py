@@ -15,6 +15,7 @@ import contextlib
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
+import glob
 import hashlib
 import inspect
 from ipaddress import IPv4Address
@@ -143,21 +144,12 @@ def has_primary_client(*, interface_configs: AbstractSet[hmcl.InterfaceConfig]) 
     return False
 
 
-def delete_file(*, directory: str, file_name: str) -> None:
-    """Delete the file."""
-    file_path = os.path.join(directory, file_name)
-    if (
-        os.path.exists(directory)
-        and os.path.exists(file_path)
-        and (os.path.isfile(file_path) or os.path.islink(file_path))
-    ):
-        os.unlink(file_path)
-
-
-def delete_directory(*, directory: str) -> None:
-    """Delete the directory."""
-    if os.path.exists(directory) and os.path.isdir(directory):
-        os.remove(path=directory)
+def delete_file(directory: str, file_name: str) -> None:  # kwonly: disable
+    """Delete the file. File can contain a wildcard."""
+    if os.path.exists(directory):
+        for file_path in glob.glob(os.path.join(directory, file_name)):
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
 
 def check_or_create_directory(*, directory: str) -> bool:

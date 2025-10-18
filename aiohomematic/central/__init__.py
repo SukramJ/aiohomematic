@@ -978,7 +978,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             await self._paramset_descriptions.load(),
         ):
             _LOGGER.warning("LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name)
-            await self.clear_caches()
+            await self.clear_files()
             return False
         await self._device_details.load()
         await self._data_cache.load()
@@ -1627,10 +1627,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
         return candidates
 
-    async def clear_caches(self) -> None:
-        """Clear all stored data."""
+    async def clear_files(self) -> None:
+        """Remove all stored files and caches."""
         await self._device_descriptions.clear()
         await self._paramset_descriptions.clear()
+        await self._recorder.clear()
         self._device_details.clear()
         self._data_cache.clear()
 

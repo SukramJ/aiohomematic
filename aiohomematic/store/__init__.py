@@ -16,7 +16,7 @@ from aiohomematic.store.persistent import (
     DeviceDescriptionCache,
     ParamsetDescriptionCache,
     SessionRecorder,
-    cleanup_caches,
+    cleanup_files,
 )
 from aiohomematic.store.visibility import ParameterVisibilityCache, check_ignore_parameters_is_clean
 
@@ -29,6 +29,6 @@ __all__ = [
     "ParamsetDescriptionCache",
     "PingPongCache",
     "SessionRecorder",
-    "cleanup_caches",
+    "cleanup_files",
     "check_ignore_parameters_is_clean",
 ]

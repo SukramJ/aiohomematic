@@ -68,7 +68,6 @@ from aiohomematic.model.device import Device
 from aiohomematic.support import (
     check_or_create_directory,
     create_random_device_addresses,
-    delete_directory,
     delete_file,
     extract_exc_args,
     get_device_address,
@@ -217,7 +216,7 @@ class BasePersistentFile(ABC):
         """Remove stored file from disk."""
 
         def _perform_clear() -> None:
-            delete_file(directory=self._directory, file_name=self._get_filename())
+            delete_file(directory=self._directory, file_name=f"{self._central.name}*.json".lower())
             self._persistent_content.clear()
 
         async with self._save_load_semaphore:
@@ -919,16 +918,10 @@ def _is_expired(*, ts: int, ttl_s: float, now: int | None = None) -> bool:
     return (now - ts) > ttl_s
 
 
-def cleanup_caches(*, central_name: str, storage_directory: str) -> None:
-    """Clean up the used files in cache directory."""
-
+async def cleanup_files(*, central_name: str, storage_directory: str) -> None:
+    """Clean up the used files."""
+    loop = asyncio.get_running_loop()
     cache_dir = _get_file_path(storage_directory=storage_directory, sub_directory=SUB_DIRECTORY_CACHE)
-    for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS):
-        delete_file(directory=cache_dir, file_name=_get_filename(central_name=central_name, file_name=file_to_delete))
-
-
-def cleanup_sessions(*, central_name: str, storage_directory: str) -> None:
-    """Clean up the used content directories."""
-
+    loop.call_soon_threadsafe(delete_file, cache_dir, f"{central_name}*.json".lower())
     session_dir = _get_file_path(storage_directory=storage_directory, sub_directory=SUB_DIRECTORY_SESSION)
-    delete_directory(directory=session_dir)
+    loop.call_soon_threadsafe(delete_file, session_dir, f"{central_name}*.json".lower())

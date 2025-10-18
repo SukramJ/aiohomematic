@@ -143,7 +143,7 @@ class BasePersistentFile(ABC):
         """Return the full file path."""
         return os.path.join(self._directory, self._get_filename(use_ts_in_filename=use_ts_in_filename))
 
-    async def save(self, *, use_ts_in_filename: bool = False) -> DataOperationResult:
+    async def save(self, *, randomize_output: bool = False, use_ts_in_filename: bool = False) -> DataOperationResult:
         """Save current data to disk."""
         if not self._should_save:
             return DataOperationResult.NO_SAVE
@@ -162,7 +162,8 @@ class BasePersistentFile(ABC):
                             content=orjson.dumps(
                                 self._persistent_content,
                                 option=orjson.OPT_NON_STR_KEYS,
-                            )
+                            ),
+                            randomize_output=randomize_output,
                         )
                     )
                 self.last_hash_saved = self.content_hash
@@ -175,9 +176,16 @@ class BasePersistentFile(ABC):
                 _perform_save, name=f"save-persistent-content-{self._get_filename()}"
             )
 
-    def _manipulate_content(self, *, content: bytes) -> bytes:
-        """Manipulate the content of the file."""
-        return content
+    def _manipulate_content(self, *, content: bytes, randomize_output: bool = False) -> bytes:
+        """Manipulate the content of the file. Optionally randomize addresses."""
+        if not randomize_output:
+            return content
+
+        addresses = [device.address for device in self._central.devices]
+        text = content.decode(encoding=UTF_8)
+        for device_address, rnd_address in create_random_device_addresses(addresses=addresses).items():
+            text = text.replace(device_address, rnd_address)
+        return text.encode(encoding=UTF_8)
 
     @property
     def _should_save(self) -> bool:
@@ -514,7 +522,6 @@ class SessionRecorder(BasePersistentFile):
         "_active",
         "_default_ttl",
         "_is_delayed",
-        "_randomize_output",
         "_refresh_on_get",
         "_store",
     )
@@ -528,9 +535,7 @@ class SessionRecorder(BasePersistentFile):
         central: hmcu.CentralUnit,
         default_ttl_seconds: float,
         active: bool,
-        randomize_output: bool = True,
         refresh_on_get: bool = False,
-        use_ts_in_filename: bool = False,
     ):
         """Init the cache."""
         self._active = active
@@ -539,7 +544,6 @@ class SessionRecorder(BasePersistentFile):
         self._default_ttl: Final = float(default_ttl_seconds)
         self._is_delayed: bool = False
         self._refresh_on_get: Final = refresh_on_get
-        self._randomize_output: Final = randomize_output
         # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> (response, ttl_s)
         # Annotate as defaultdict to match the actual type and satisfy mypy.
         self._store: dict[str, dict[str, dict[str, dict[int, tuple[Any, float]]]]] = defaultdict(
@@ -592,33 +596,46 @@ class SessionRecorder(BasePersistentFile):
         """Return if session recorder is active."""
         return self._active
 
-    async def _deactivate_after_delay(self, *, delay: int, auto_save: bool, use_ts_in_filename: bool) -> None:
+    async def _deactivate_after_delay(
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
+    ) -> None:
         """Change the state of the session recorder after a delay."""
         self._is_delayed = True
         await asyncio.sleep(delay)
         self._active = False
         self._is_delayed = False
         if auto_save:
-            await self.save(use_ts_in_filename=use_ts_in_filename)
+            await self.save(randomize_output=randomize_output, use_ts_in_filename=use_ts_in_filename)
         _LOGGER.debug("Deactivated session recorder after %s minutes", {delay / 60})
 
-    async def activate(self, *, on_time: int = 0, auto_save: bool, use_ts_in_filename: bool) -> None:
-        """Activate the session recorder. Optionally disable after a on_time(seconds)."""
+    async def activate(
+        self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
+    ) -> None:
+        """Activate the session recorder. Disable after on_time(seconds)."""
+        self._store.clear()
         self._active = True
         if on_time > 0:
             self._central.looper.create_task(
                 target=self._deactivate_after_delay(
-                    delay=on_time, auto_save=auto_save, use_ts_in_filename=use_ts_in_filename
+                    delay=on_time,
+                    auto_save=auto_save,
+                    randomize_output=randomize_output,
+                    use_ts_in_filename=use_ts_in_filename,
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
 
-    async def deactivate(self, *, delay: int, auto_save: bool, use_ts_in_filename: bool) -> None:
+    async def deactivate(
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
+    ) -> None:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
         if delay > 0:
             self._central.looper.create_task(
                 target=self._deactivate_after_delay(
-                    delay=delay, auto_save=auto_save, use_ts_in_filename=use_ts_in_filename
+                    delay=delay,
+                    auto_save=auto_save,
+                    randomize_output=randomize_output,
+                    use_ts_in_filename=use_ts_in_filename,
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
@@ -805,17 +822,6 @@ class SessionRecorder(BasePersistentFile):
         """Determine if save operation should proceed."""
         self.cleanup()
         return len(self._store.items()) > 0
-
-    def _manipulate_content(self, *, content: bytes) -> bytes:
-        """Manipulate the content of the file."""
-        if not self._randomize_output:
-            return content
-
-        addresses = [device.address for device in self._central.devices]
-        text = content.decode(encoding=UTF_8)
-        for device_address, rnd_address in create_random_device_addresses(addresses=addresses).items():
-            text = text.replace(device_address, rnd_address)
-        return text.encode(encoding=UTF_8)
 
     def __repr__(self) -> str:
         """Return the representation."""

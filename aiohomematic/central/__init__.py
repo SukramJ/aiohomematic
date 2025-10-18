@@ -495,7 +495,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         if self._config.start_recorder:
             await self._recorder.deactivate(
-                delay=self._config.start_recorder_for_minutes * 60, auto_save=True, use_ts_in_filename=False
+                delay=self._config.start_recorder_for_minutes * 60,
+                auto_save=True,
+                randomize_output=True,
+                use_ts_in_filename=False,
             )
             _LOGGER.debug("START: Starting Recorder for %s minutes", self._config.start_recorder_for_minutes)
 

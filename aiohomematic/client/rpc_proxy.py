@@ -43,7 +43,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
-from aiohomematic.store.persistent import SessionRecorder
+from aiohomematic.store import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)

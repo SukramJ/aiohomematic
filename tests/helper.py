@@ -15,7 +15,7 @@ import orjson
 
 from aiohomematic import const as aiohomematic_const
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.client import Client, InterfaceConfig, _ClientConfig
+from aiohomematic.client import Client, ClientConfig, InterfaceConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, SourceOfDeviceCreation
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
@@ -90,7 +90,7 @@ class Factory:
         )
 
         _client = ClientLocal(
-            client_config=_ClientConfig(
+            client_config=ClientConfig(
                 central=central,
                 interface_config=interface_config,
             ),
@@ -129,7 +129,7 @@ class Factory:
         )
 
         patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client).start()
-        patch("aiohomematic.client._ClientConfig.create_client", return_value=client).start()
+        patch("aiohomematic.client.ClientConfig.create_client", return_value=client).start()
         patch(
             "aiohomematic_support.client_local.ClientLocal.get_all_system_variables",
             return_value=const.SYSVAR_DATA if add_sysvars else [],

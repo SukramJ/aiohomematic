@@ -92,7 +92,7 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
-from aiohomematic.store.persistent import SessionRecorder
+from aiohomematic.store import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
     cleanup_text_from_html_tags,

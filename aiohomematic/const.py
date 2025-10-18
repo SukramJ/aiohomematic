@@ -27,7 +27,7 @@ _TEST_SPEEDUP: Final = (
 )
 
 # default
-DEFAULT_STORAGE_FOLDER: Final = "aiohomematic_storage"
+DEFAULT_STORAGE_DIRECTORY: Final = "aiohomematic_storage"
 DEFAULT_CUSTOM_ID: Final = "custom_id"
 DEFAULT_DELAY_NEW_DEVICE_CREATION: Final = False
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
@@ -98,6 +98,8 @@ FILE_DEVICES: Final = "homematic_devices"
 FILE_PARAMSETS: Final = "homematic_paramsets"
 FILE_SESSION_RECORDER: Final = "homematic_session_recorder"
 FILE_NAME_TS_PATTERN: Final = "%Y%m%d_%H%M%S"
+SUB_DIRECTORY_CACHE: Final = "cache"
+SUB_DIRECTORY_SESSION: Final = "session"
 HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)

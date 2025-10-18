@@ -81,8 +81,7 @@ from aiohomematic import client as hmcl
 from aiohomematic.async_support import Looper, loop_check
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
-from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
-from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
+from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import (
     CALLBACK_TYPE,
     CATEGORIES,
@@ -99,7 +98,7 @@ from aiohomematic.const import (
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
-    DEFAULT_STORAGE_FOLDER,
+    DEFAULT_STORAGE_DIRECTORY,
     DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
     DEFAULT_TLS,
@@ -160,9 +159,14 @@ from aiohomematic.model.hub import (
     ProgramDpType,
 )
 from aiohomematic.property_decorators import info_property
-from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
-from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
-from aiohomematic.store.visibility import ParameterVisibilityCache
+from aiohomematic.store import (
+    CentralDataCache,
+    DeviceDescriptionCache,
+    DeviceDetailsCache,
+    ParameterVisibilityCache,
+    ParamsetDescriptionCache,
+    SessionRecorder,
+)
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
@@ -181,7 +185,7 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 
 # {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
-ConnectionProblemIssuer = AioJsonRpcAioHttpClient | AioXmlRpcProxy
+ConnectionProblemIssuer = AioJsonRpcAioHttpClient | BaseRpcProxy
 
 INTERFACE_EVENT_SCHEMA = vol.Schema(
     {
@@ -221,7 +225,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._recorder: Final = SessionRecorder(
             central=self, default_ttl_seconds=600, active=central_config.start_recorder
         )
-
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
@@ -491,7 +494,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             return
 
         if self._config.start_recorder:
-            await self._recorder.deactivate(delay=self._config.start_recorder_for_minutes * 60, auto_save=True)
+            await self._recorder.deactivate(
+                delay=self._config.start_recorder_for_minutes * 60, auto_save=True, use_ts_in_filename=False
+            )
             _LOGGER.debug("START: Starting Recorder for %s minutes", self._config.start_recorder_for_minutes)
 
         self._state = CentralUnitState.INITIALIZING
@@ -973,7 +978,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             await self._paramset_descriptions.load(),
         ):
             _LOGGER.warning("LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name)
-            await self.clear_caches()
+            await self.clear_files()
             return False
         await self._device_details.load()
         await self._data_cache.load()
@@ -1622,10 +1627,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             )
         return candidates
 
-    async def clear_caches(self) -> None:
-        """Clear all stored data."""
+    async def clear_files(self) -> None:
+        """Remove all stored files and caches."""
         await self._device_descriptions.clear()
         await self._paramset_descriptions.clear()
+        await self._recorder.clear()
         self._device_details.clear()
         self._data_cache.clear()
 
@@ -2004,7 +2010,7 @@ class CentralConfig:
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
         start_recorder_for_minutes: int = 0,
-        storage_folder: str = DEFAULT_STORAGE_FOLDER,
+        storage_directory: str = DEFAULT_STORAGE_DIRECTORY,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         tls: bool = DEFAULT_TLS,
@@ -2041,7 +2047,7 @@ class CentralConfig:
         self.start_direct: Final = start_direct
         self.start_recorder_for_minutes: Final = start_recorder_for_minutes
         self.start_recorder = start_recorder_for_minutes > 0
-        self.storage_folder: Final = storage_folder
+        self.storage_directory: Final = storage_directory
         self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers
         self.tls: Final = tls
@@ -2086,7 +2092,7 @@ class CentralConfig:
             host=self.host,
             username=self.username,
             password=self.password,
-            storage_folder=self.storage_folder,
+            storage_directory=self.storage_directory,
             callback_host=self.callback_host,
             callback_port_xml_rpc=self.callback_port_xml_rpc,
             json_port=self.json_port,
@@ -2141,7 +2147,7 @@ class CentralConnectionState:
             self._json_issues.append(iid)
             _LOGGER.debug("add_issue: add issue  [%s] for JsonRpcAioHttpClient", iid)
             return True
-        if isinstance(issuer, AioXmlRpcProxy) and iid not in self._rpc_proxy_issues:
+        if isinstance(issuer, BaseRpcProxy) and iid not in self._rpc_proxy_issues:
             self._rpc_proxy_issues.append(iid)
             _LOGGER.debug("add_issue: add issue [%s] for %s", iid, issuer.interface_id)
             return True
@@ -2153,7 +2159,7 @@ class CentralConnectionState:
             self._json_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for JsonRpcAioHttpClient", iid)
             return True
-        if isinstance(issuer, AioXmlRpcProxy) and issuer.interface_id in self._rpc_proxy_issues:
+        if isinstance(issuer, BaseRpcProxy) and issuer.interface_id in self._rpc_proxy_issues:
             self._rpc_proxy_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for %s", iid, issuer.interface_id)
             return True
@@ -2163,7 +2169,7 @@ class CentralConnectionState:
         """Add issue to collection."""
         if isinstance(issuer, AioJsonRpcAioHttpClient):
             return iid in self._json_issues
-        if isinstance(issuer, (AioXmlRpcProxy)):
+        if isinstance(issuer, (BaseRpcProxy)):
             return iid in self._rpc_proxy_issues
 
     def handle_exception_log(

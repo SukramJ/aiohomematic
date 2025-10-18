@@ -1269,14 +1269,14 @@ class _DefinitionExporter:
         "_device_address",
         "_interface_id",
         "_random_id",
-        "_storage_folder",
+        "_storage_directory",
     )
 
     def __init__(self, *, device: Device) -> None:
         """Init the device exporter."""
         self._client: Final = device.client
         self._central: Final = device.client.central
-        self._storage_folder: Final = self._central.config.storage_folder
+        self._storage_directory: Final = self._central.config.storage_directory
         self._interface_id: Final = device.interface_id
         self._device_address: Final = device.address
         self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
@@ -1315,14 +1315,14 @@ class _DefinitionExporter:
 
         # Save device_descriptions for device to file.
         await self._save(
-            file_dir=f"{self._storage_folder}/{DEVICE_DESCRIPTIONS_DIR}",
+            directory=f"{self._storage_directory}/{DEVICE_DESCRIPTIONS_DIR}",
             filename=filename,
             data=anonymize_device_descriptions,
         )
 
         # Save device_descriptions for device to file.
         await self._save(
-            file_dir=f"{self._storage_folder}/{PARAMSET_DESCRIPTIONS_DIR}",
+            directory=f"{self._storage_directory}/{PARAMSET_DESCRIPTIONS_DIR}",
             filename=filename,
             data=anonymize_paramset_descriptions,
         )
@@ -1332,13 +1332,13 @@ class _DefinitionExporter:
         address_parts[0] = self._random_id
         return ADDRESS_SEPARATOR.join(address_parts)
 
-    async def _save(self, *, file_dir: str, filename: str, data: Any) -> DataOperationResult:
+    async def _save(self, *, directory: str, filename: str, data: Any) -> DataOperationResult:
         """Save file to disk."""
 
         def perform_save() -> DataOperationResult:
-            if not check_or_create_directory(directory=file_dir):
+            if not check_or_create_directory(directory=directory):
                 return DataOperationResult.NO_SAVE  # pragma: no cover
-            with open(file=os.path.join(file_dir, filename), mode="wb") as fptr:
+            with open(file=os.path.join(directory, filename), mode="wb") as fptr:
                 fptr.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
             return DataOperationResult.SAVE_SUCCESS
 

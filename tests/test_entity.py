@@ -12,7 +12,7 @@ from aiohomematic.client import Client
 from aiohomematic.const import CallSource, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters, validate_custom_data_point_definition
 from aiohomematic.model.generic import DpSensor, DpSwitch
-from aiohomematic.store.visibility import check_ignore_parameters_is_clean
+from aiohomematic.store import check_ignore_parameters_is_clean
 
 from tests import const, helper
 

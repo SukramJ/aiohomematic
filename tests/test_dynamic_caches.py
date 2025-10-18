@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 
 from aiohomematic.const import EventKey, EventType, InterfaceEventType, ParamsetKey
-from aiohomematic.store.dynamic import CommandCache, PingPongCache
+from aiohomematic.store import CommandCache, PingPongCache
 
 
 class CentralStub:

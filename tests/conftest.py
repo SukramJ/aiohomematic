@@ -58,7 +58,7 @@ async def central_unit_mini(pydev_ccu_mini: pydevccu.Server) -> CentralUnit:
         yield central
     finally:
         await central.stop()
-        await central.clear_caches()
+        await central.clear_files()
 
 
 @pytest.fixture
@@ -82,7 +82,7 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
         unregister_homematic_callback()
         unregister_backend_system_callback()
         await central.stop()
-        await central.clear_caches()
+        await central.clear_files()
 
 
 @pytest.fixture
@@ -127,7 +127,7 @@ async def central_client_factory(
         yield central, client, factory
     finally:
         await central.stop()
-        await central.clear_caches()
+        await central.clear_files()
 
 
 @pytest.fixture

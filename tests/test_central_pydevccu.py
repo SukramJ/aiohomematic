@@ -159,7 +159,7 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
         addresses[address] = f"{device.model}.json"
 
     with open(
-        file=os.path.join(central_unit_full.config.storage_folder, "all_devices.json"),
+        file=os.path.join(central_unit_full.config.storage_directory, "all_devices.json"),
         mode="wb",
     ) as fptr:
         fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))

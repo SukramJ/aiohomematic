@@ -611,7 +611,8 @@ class SessionRecorder(BasePersistentFile):
     async def activate(
         self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
     ) -> None:
-        """Activate the session recorder. Optionally disable after a on_time(seconds)."""
+        """Activate the session recorder. Disable after on_time(seconds)."""
+        self._store.clear()
         self._active = True
         if on_time > 0:
             self._central.looper.create_task(

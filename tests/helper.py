@@ -129,7 +129,7 @@ class Factory:
         )
 
         patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client).start()
-        patch("aiohomematic.client._ClientConfig.create_client", return_value=client).start()
+        patch("aiohomematic.client.ClientConfig.create_client", return_value=client).start()
         patch(
             "aiohomematic_support.client_local.ClientLocal.get_all_system_variables",
             return_value=const.SYSVAR_DATA if add_sysvars else [],

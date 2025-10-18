@@ -98,7 +98,7 @@ from aiohomematic.const import (
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
-    DEFAULT_STORAGE_FOLDER,
+    DEFAULT_STORAGE_DIRECTORY,
     DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
     DEFAULT_TLS,
@@ -225,7 +225,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._recorder: Final = SessionRecorder(
             central=self, default_ttl_seconds=600, active=central_config.start_recorder
         )
-
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
@@ -2008,7 +2007,7 @@ class CentralConfig:
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
         start_recorder_for_minutes: int = 0,
-        storage_folder: str = DEFAULT_STORAGE_FOLDER,
+        storage_directory: str = DEFAULT_STORAGE_DIRECTORY,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         tls: bool = DEFAULT_TLS,
@@ -2045,7 +2044,7 @@ class CentralConfig:
         self.start_direct: Final = start_direct
         self.start_recorder_for_minutes: Final = start_recorder_for_minutes
         self.start_recorder = start_recorder_for_minutes > 0
-        self.storage_folder: Final = storage_folder
+        self.storage_directory: Final = storage_directory
         self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers
         self.tls: Final = tls
@@ -2090,7 +2089,7 @@ class CentralConfig:
             host=self.host,
             username=self.username,
             password=self.password,
-            storage_folder=self.storage_folder,
+            storage_directory=self.storage_directory,
             callback_host=self.callback_host,
             callback_port_xml_rpc=self.callback_port_xml_rpc,
             json_port=self.json_port,

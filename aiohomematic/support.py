@@ -100,7 +100,7 @@ def check_config(
     host: str,
     username: str,
     password: str,
-    storage_folder: str,
+    storage_directory: str,
     callback_host: str | None,
     callback_port_xml_rpc: int | None,
     json_port: int | None,
@@ -120,7 +120,7 @@ def check_config(
     if not check_password(password=password):
         config_failures.append("Password is not valid")
     try:
-        check_or_create_directory(directory=storage_folder)
+        check_or_create_directory(directory=storage_directory)
     except BaseHomematicException as bhexc:
         config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
@@ -143,15 +143,21 @@ def has_primary_client(*, interface_configs: AbstractSet[hmcl.InterfaceConfig]) 
     return False
 
 
-def delete_file(*, folder: str, file_name: str) -> None:
+def delete_file(*, directory: str, file_name: str) -> None:
     """Delete the file."""
-    file_path = os.path.join(folder, file_name)
+    file_path = os.path.join(directory, file_name)
     if (
-        os.path.exists(folder)
+        os.path.exists(directory)
         and os.path.exists(file_path)
         and (os.path.isfile(file_path) or os.path.islink(file_path))
     ):
         os.unlink(file_path)
+
+
+def delete_directory(*, directory: str) -> None:
+    """Delete the directory."""
+    if os.path.exists(directory) and os.path.isdir(directory):
+        os.remove(path=directory)
 
 
 def check_or_create_directory(*, directory: str) -> bool:

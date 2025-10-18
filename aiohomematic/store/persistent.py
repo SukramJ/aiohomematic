@@ -50,12 +50,13 @@ from slugify import slugify
 from aiohomematic import central as hmcu
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
-    CONTENT_PATH,
     FILE_DEVICES,
     FILE_NAME_TS_PATTERN,
     FILE_PARAMSETS,
     FILE_SESSION_RECORDER,
     INIT_DATETIME,
+    SUB_DIRECTORY_CACHE,
+    SUB_DIRECTORY_SESSION,
     UTF_8,
     DataOperationResult,
     DeviceDescription,
@@ -67,6 +68,7 @@ from aiohomematic.model.device import Device
 from aiohomematic.support import (
     check_or_create_directory,
     create_random_device_addresses,
+    delete_directory,
     delete_file,
     extract_exc_args,
     get_device_address,
@@ -83,30 +85,32 @@ class BasePersistentFile(ABC):
 
     __slots__ = (
         "_central",
-        "_file_dir",
+        "_directory",
         "_file_postfix",
         "_persistent_content",
-        "_use_ts_in_filenames",
         "_save_load_semaphore",
+        "_sub_directory",
+        "_use_ts_in_filenames",
         "last_hash_saved",
         "last_save_triggered",
     )
 
     _file_postfix: str
+    _sub_directory: str
 
     def __init__(
         self,
         *,
         central: hmcu.CentralUnit,
         persistent_content: dict[str, Any],
-        use_ts_in_filename: bool = False,
     ) -> None:
         """Initialize the base class of the persistent content."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
         self._central: Final = central
         self._persistent_content: Final = persistent_content
-        self._use_ts_in_filenames: Final = use_ts_in_filename
-        self._file_dir: Final = _get_file_path(storage_folder=central.config.storage_folder)
+        self._directory: Final = _get_file_path(
+            storage_directory=central.config.storage_directory, sub_directory=self._sub_directory
+        )
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_content)
 
@@ -120,28 +124,37 @@ class BasePersistentFile(ABC):
         """Return if the data has changed."""
         return self.content_hash != self.last_hash_saved
 
-    @property
-    def _filename(self) -> str:
+    def _get_filename(
+        self,
+        *,
+        use_ts_in_filename: bool = False,
+    ) -> str:
         """Return the file name."""
         return _get_filename(
             central_name=self._central.name,
             file_name=self._file_postfix,
-            ts=datetime.now() if self._use_ts_in_filenames else None,
+            ts=datetime.now() if use_ts_in_filename else None,
         )
 
-    @property
-    def _file_path(self) -> str:
+    def _get_file_path(
+        self,
+        *,
+        use_ts_in_filename: bool = False,
+    ) -> str:
         """Return the full file path."""
-        return os.path.join(self._file_dir, self._filename)
+        return os.path.join(self._directory, self._get_filename(use_ts_in_filename=use_ts_in_filename))
 
-    async def save(self) -> DataOperationResult:
+    async def save(self, *, use_ts_in_filename: bool = False) -> DataOperationResult:
         """Save current data to disk."""
         if not self._should_save:
             return DataOperationResult.NO_SAVE
 
         def _perform_save() -> DataOperationResult:
             try:
-                with open(file=self._file_path, mode="wb") as file_pointer:
+                with open(
+                    file=self._get_file_path(use_ts_in_filename=use_ts_in_filename),
+                    mode="wb",
+                ) as file_pointer:
                     file_pointer.write(
                         self._manipulate_content(
                             content=orjson.dumps(
@@ -157,7 +170,7 @@ class BasePersistentFile(ABC):
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_save, name=f"save-persistent-content-{self._filename}"
+                _perform_save, name=f"save-persistent-content-{self._get_filename()}"
             )
 
     def _manipulate_content(self, *, content: bytes) -> bytes:
@@ -169,18 +182,18 @@ class BasePersistentFile(ABC):
         """Determine if save operation should proceed."""
         self.last_save_triggered = datetime.now()
         return (
-            check_or_create_directory(directory=self._file_dir)
+            check_or_create_directory(directory=self._directory)
             and self._central.config.use_caches
             and self.content_hash != self.last_hash_saved
         )
 
     async def load(self) -> DataOperationResult:
         """Load data from disk into the dictionary."""
-        if not check_or_create_directory(directory=self._file_dir) or not os.path.exists(self._file_path):
+        if not check_or_create_directory(directory=self._directory) or not os.path.exists(self._get_file_path()):
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:
-            with open(file=self._file_path, encoding=UTF_8) as file_pointer:
+            with open(file=self._get_file_path(), encoding=UTF_8) as file_pointer:
                 try:
                     data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
                     if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
@@ -194,14 +207,14 @@ class BasePersistentFile(ABC):
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_load, name=f"load-persistent-content-{self._filename}"
+                _perform_load, name=f"load-persistent-content-{self._get_filename()}"
             )
 
     async def clear(self) -> None:
         """Remove stored file from disk."""
 
         def _perform_clear() -> None:
-            delete_file(folder=self._file_dir, file_name=self._filename)
+            delete_file(directory=self._directory, file_name=self._get_filename())
             self._persistent_content.clear()
 
         async with self._save_load_semaphore:
@@ -218,6 +231,7 @@ class DeviceDescriptionCache(BasePersistentFile):
     )
 
     _file_postfix = FILE_DEVICES
+    _sub_directory = SUB_DIRECTORY_CACHE
 
     def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Initialize the device description cache."""
@@ -357,6 +371,7 @@ class ParamsetDescriptionCache(BasePersistentFile):
     )
 
     _file_postfix = FILE_PARAMSETS
+    _sub_directory = SUB_DIRECTORY_CACHE
 
     def __init__(self, *, central: hmcu.CentralUnit) -> None:
         """Init the paramset description cache."""
@@ -479,10 +494,6 @@ class ParamsetDescriptionCache(BasePersistentFile):
             self._init_address_parameter_list()
         return result
 
-    async def save(self) -> DataOperationResult:
-        """Save current paramset descriptions to disk."""
-        return await super().save()
-
 
 class SessionRecorder(BasePersistentFile):
     """
@@ -507,6 +518,7 @@ class SessionRecorder(BasePersistentFile):
     )
 
     _file_postfix = FILE_SESSION_RECORDER
+    _sub_directory = SUB_DIRECTORY_SESSION
 
     def __init__(
         self,
@@ -514,8 +526,9 @@ class SessionRecorder(BasePersistentFile):
         central: hmcu.CentralUnit,
         default_ttl_seconds: float,
         active: bool,
-        refresh_on_get: bool = False,
         randomize_output: bool = True,
+        refresh_on_get: bool = False,
+        use_ts_in_filename: bool = False,
     ):
         """Init the cache."""
         self._active = active
@@ -533,7 +546,6 @@ class SessionRecorder(BasePersistentFile):
         super().__init__(
             central=central,
             persistent_content=self._store,
-            use_ts_in_filename=True,
         )
 
     # ---------- internal helpers ----------
@@ -578,30 +590,34 @@ class SessionRecorder(BasePersistentFile):
         """Return if session recorder is active."""
         return self._active
 
-    async def _deactivate_after_delay(self, *, delay: int, auto_save: bool = False) -> None:
+    async def _deactivate_after_delay(self, *, delay: int, auto_save: bool, use_ts_in_filename: bool) -> None:
         """Change the state of the session recorder after a delay."""
         self._is_delayed = True
         await asyncio.sleep(delay)
         self._active = False
         self._is_delayed = False
         if auto_save:
-            await self.save()
+            await self.save(use_ts_in_filename=use_ts_in_filename)
         _LOGGER.debug("Deactivated session recorder after %s minutes", {delay / 60})
 
-    async def activate(self, *, on_time: int = 0, auto_save: bool = False) -> None:
+    async def activate(self, *, on_time: int = 0, auto_save: bool = False, use_ts_in_filename: bool = False) -> None:
         """Activate the session recorder. Optionally disable after a on_time(seconds)."""
         self._active = True
         if on_time > 0:
             self._central.looper.create_task(
-                target=self._deactivate_after_delay(delay=on_time, auto_save=auto_save),
+                target=self._deactivate_after_delay(
+                    delay=on_time, auto_save=auto_save, use_ts_in_filename=use_ts_in_filename
+                ),
                 name=f"session_recorder_{self._central.name}",
             )
 
-    async def deactivate(self, *, delay: int, auto_save: bool = False) -> None:
+    async def deactivate(self, *, delay: int, auto_save: bool = False, use_ts_in_filename: bool = False) -> None:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
         if delay > 0:
             self._central.looper.create_task(
-                target=self._deactivate_after_delay(delay=delay, auto_save=auto_save),
+                target=self._deactivate_after_delay(
+                    delay=delay, auto_save=auto_save, use_ts_in_filename=use_ts_in_filename
+                ),
                 name=f"session_recorder_{self._central.name}",
             )
         else:
@@ -876,9 +892,9 @@ def _unfreeze_params(frozen_params: str) -> Any:
     return _walk(obj)
 
 
-def _get_file_path(*, storage_folder: str) -> str:
+def _get_file_path(*, storage_directory: str, sub_directory: str) -> str:
     """Return the content path."""
-    return f"{storage_folder}/{CONTENT_PATH}"
+    return f"{storage_directory}/{sub_directory}"
 
 
 def _get_filename(*, central_name: str, file_name: str, ts: datetime | None = None) -> str:
@@ -900,8 +916,16 @@ def _is_expired(*, ts: int, ttl_s: float, now: int | None = None) -> bool:
     return (now - ts) > ttl_s
 
 
-def cleanup_content_dirs(*, central_name: str, storage_folder: str) -> None:
+def cleanup_caches(*, central_name: str, storage_directory: str) -> None:
+    """Clean up the used files in cache directory."""
+
+    cache_dir = _get_file_path(storage_directory=storage_directory, sub_directory=SUB_DIRECTORY_CACHE)
+    for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS):
+        delete_file(directory=cache_dir, file_name=_get_filename(central_name=central_name, file_name=file_to_delete))
+
+
+def cleanup_sessions(*, central_name: str, storage_directory: str) -> None:
     """Clean up the used content directories."""
-    content_dir = _get_file_path(storage_folder=storage_folder)
-    for file_to_delete in (FILE_DEVICES, FILE_PARAMSETS, FILE_SESSION_RECORDER):
-        delete_file(folder=content_dir, file_name=_get_filename(central_name=central_name, file_name=file_to_delete))
+
+    session_dir = _get_file_path(storage_directory=storage_directory, sub_directory=SUB_DIRECTORY_SESSION)
+    delete_directory(directory=session_dir)

@@ -93,16 +93,16 @@ async def test_delete_file_behaviour(tmp_path: Path) -> None:
     d.mkdir()
 
     # delete regular file
-    delete_file(folder=str(tmp_path), file_name=f.name)
+    delete_file(directory=str(tmp_path), file_name=f.name)
     assert not f.exists()
 
     # delete symlink
-    delete_file(folder=str(tmp_path), file_name=s.name)
+    delete_file(directory=str(tmp_path), file_name=s.name)
     assert not s.exists()
 
     # attempt to delete directory by name -> function should no-op
-    delete_file(folder=str(tmp_path), file_name=d.name)
+    delete_file(directory=str(tmp_path), file_name=d.name)
     assert d.exists()
 
     # nonexistent file -> should not raise
-    delete_file(folder=str(tmp_path), file_name="does_not_exist")
+    delete_file(directory=str(tmp_path), file_name="does_not_exist")

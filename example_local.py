@@ -468,7 +468,7 @@ class Example:
 
         with (
             patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client),
-            patch("aiohomematic.client._ClientConfig.create_client", return_value=client),
+            patch("aiohomematic.client.ClientConfig.create_client", return_value=client),
         ):
             await self.central.start()
             await self.central._refresh_device_descriptions_and_create_missing_devices(

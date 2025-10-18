@@ -352,7 +352,7 @@ class ParameterVisibilityCache:
         "_relevant_master_paramsets_by_device",
         "_relevant_prefix_cache",
         "_required_parameters",
-        "_storage_folder",
+        "_storage_directory",
         "_un_ignore_parameters_by_device_paramset_key",
         "_un_ignore_prefix_cache",
     )
@@ -364,7 +364,7 @@ class ParameterVisibilityCache:
     ) -> None:
         """Init the parameter visibility cache."""
         self._central = central
-        self._storage_folder: Final = central.config.storage_folder
+        self._storage_directory: Final = central.config.storage_directory
         self._required_parameters: Final = get_required_parameters()
         self._raw_un_ignores: Final[frozenset[str]] = central.config.un_ignore_list or frozenset()
 

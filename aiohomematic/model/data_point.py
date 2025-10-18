@@ -43,6 +43,7 @@ from aiohomematic.const import (
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
     INIT_DATETIME,
+    INTERNAL_CUSTOM_IDS,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
     KWARGS_ARG_CUSTOM_ID,
     KWARGS_ARG_DATA_POINT,
@@ -312,7 +313,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register data_point updated callback."""
-        if custom_id != DEFAULT_CUSTOM_ID:
+        if custom_id not in INTERNAL_CUSTOM_IDS:
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise AioHomematicException(
                     f"REGISTER_data_point_updated_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"

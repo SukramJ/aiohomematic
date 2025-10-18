@@ -1,6 +1,8 @@
-# Version 2025.10.9 (2025-10-17)
+# Version 2025.10.9 (2025-10-18)
 
 - Add session recorder
+- Ensure custom_ids are only used for external registrations
+- Fix rpc auth
 
 # Version 2025.10.8 (2025-10-14)
 

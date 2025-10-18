@@ -175,6 +175,7 @@ async def test_identify_ip_addr(
         ("LEVEL:VALUES@all", "LEVEL", 1, ParamsetKey.VALUES, False),
         ("LEVEL::VALUES@all:1", "LEVEL", 1, ParamsetKey.VALUES, False),
         ("LEVEL:VALUES@all::1", "LEVEL", 1, ParamsetKey.VALUES, False),
+        ("SET_POINT_TEMPERATURE", "SET_POINT_TEMPERATURE", 1, ParamsetKey.VALUES, True),
     ],
 )
 @pytest.mark.asyncio

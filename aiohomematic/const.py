@@ -27,12 +27,10 @@ _TEST_SPEEDUP: Final = (
 )
 
 # default
-DEFAULT_STORAGE_DIRECTORY: Final = "aiohomematic_storage"
 DEFAULT_DELAY_NEW_DEVICE_CREATION: Final = False
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True
 DEFAULT_ENABLE_SYSVAR_SCAN: Final = True
-DEFAULT_OPTIONAL_SETTINGS: Final[tuple[OptionalSettings | str, ...]] = ()
 DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS: Final = (5,)
 DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS: Final[frozenset[str]] = frozenset()
 DEFAULT_INCLUDE_INTERNAL_PROGRAMS: Final = False
@@ -40,8 +38,11 @@ DEFAULT_INCLUDE_INTERNAL_SYSVARS: Final = True
 DEFAULT_MAX_READ_WORKERS: Final = 1
 DEFAULT_MAX_WORKERS: Final = 1
 DEFAULT_MULTIPLIER: Final = 1.0
+DEFAULT_OPTIONAL_SETTINGS: Final[tuple[OptionalSettings | str, ...]] = ()
 DEFAULT_PERIODIC_REFRESH_INTERVAL: Final = 15
 DEFAULT_PROGRAM_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
+DEFAULT_SESSION_RECORDER_START_FOR_SECONDS: Final = 120
+DEFAULT_STORAGE_DIRECTORY: Final = "aiohomematic_storage"
 DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TLS: Final = False
@@ -356,7 +357,8 @@ class Operations(IntEnum):
 class OptionalSettings(StrEnum):
     """Enum with aiohomematic optional settings."""
 
-    DISABLE_ANONYMIZE_SR_OUTPUT = "disable_anonymize_sr_output"
+    SR_DISABLE_RANDOMIZE_OUTPUT = "SR_DISABLE_RANDOMIZED_OUTPUT"
+    SR_RECORD_SYSTEM_INIT = "SR_RECORD_SYSTEM_INIT"
 
 
 class Parameter(StrEnum):

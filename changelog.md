@@ -1,6 +1,6 @@
 # Version 2025.10.10 (2025-10-10)
 
-- Add file_name to BasePersitentFile load
+- Add file_path to BasePersitentFile load
 - Add get_latest_response_by_params to session recorder
 - Add 'optional settings' config option
 - Remove individual ttl for session recorder entry

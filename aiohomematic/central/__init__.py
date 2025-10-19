@@ -222,9 +222,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_descriptions: Final = DeviceDescriptionCache(central=self)
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
-        self._recorder: Final = SessionRecorder(
-            central=self, default_ttl_seconds=600, active=central_config.start_recorder
-        )
+        self._recorder: Final = SessionRecorder(central=self, ttl_seconds=600, active=central_config.start_recorder)
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}

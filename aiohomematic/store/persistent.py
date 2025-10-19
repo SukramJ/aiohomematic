@@ -520,7 +520,7 @@ class SessionRecorder(BasePersistentFile):
 
     __slots__ = (
         "_active",
-        "_default_ttl",
+        "_ttl",
         "_is_delayed",
         "_refresh_on_get",
         "_store",
@@ -533,20 +533,20 @@ class SessionRecorder(BasePersistentFile):
         self,
         *,
         central: hmcu.CentralUnit,
-        default_ttl_seconds: float,
         active: bool,
+        ttl_seconds: float,
         refresh_on_get: bool = False,
     ):
         """Init the cache."""
         self._active = active
-        if default_ttl_seconds <= 0:
+        if ttl_seconds <= 0:
             raise ValueError("default_ttl_seconds must be positive")
-        self._default_ttl: Final = float(default_ttl_seconds)
+        self._ttl: Final = float(ttl_seconds)
         self._is_delayed: bool = False
         self._refresh_on_get: Final = refresh_on_get
         # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> (response, ttl_s)
         # Annotate as defaultdict to match the actual type and satisfy mypy.
-        self._store: dict[str, dict[str, dict[str, dict[int, tuple[Any, float]]]]] = defaultdict(
+        self._store: dict[str, dict[str, dict[str, dict[int, Any]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
         )
         super().__init__(
@@ -555,6 +555,11 @@ class SessionRecorder(BasePersistentFile):
         )
 
     # ---------- internal helpers ----------
+
+    def _is_expired(self, *, ts: int, now: int | None = None) -> bool:
+        """Check whether an entry has expired given epoch seconds."""
+        now = now if now is not None else _now()
+        return (now - ts) > self._ttl
 
     def _purge_expired_at(
         self,
@@ -571,9 +576,7 @@ class SessionRecorder(BasePersistentFile):
         now = _now()
         empty_params: list[str] = []
         for p, bucket_by_ts in bucket_by_parameter.items():
-            expired_ts = [
-                ts for ts, (_r, ttl_s) in list(bucket_by_ts.items()) if _is_expired(ts=ts, ttl_s=ttl_s, now=now)
-            ]
+            expired_ts = [ts for ts, _r in list(bucket_by_ts.items()) if self._is_expired(ts=ts, now=now)]
             for ts in expired_ts:
                 del bucket_by_ts[ts]
             if not bucket_by_ts:
@@ -689,14 +692,11 @@ class SessionRecorder(BasePersistentFile):
         method: str,
         params: Any,
         response: Any,
-        ttl_seconds: float | None = None,
         ts: int | datetime | None = None,
     ) -> Self:
         """Insert or update an entry."""
         self._purge_expired_at(rpc_type=rpc_type, method=method)
         frozen_param = _freeze_params(params)
-        if (ttl_s := ttl_seconds if ttl_seconds is not None else self._default_ttl) <= 0:
-            raise ValueError("ttl_seconds must be positive")
         # Normalize timestamp to int epoch seconds
         if isinstance(ts, datetime):
             ts_int = int(ts.timestamp())
@@ -704,7 +704,7 @@ class SessionRecorder(BasePersistentFile):
             ts_int = ts
         else:
             ts_int = _now()
-        self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = (response, ttl_s)
+        self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = response
         return self
 
     def get(
@@ -736,9 +736,9 @@ class SessionRecorder(BasePersistentFile):
             latest_ts = max(bucket_by_ts.keys())
         except ValueError:
             return default
-        resp, ttl_s = bucket_by_ts[latest_ts]
+        resp = bucket_by_ts[latest_ts]
         if self._refresh_on_get:
-            bucket_by_ts[_now()] = (resp, ttl_s)
+            bucket_by_ts[_now()] = resp
         return resp
 
     def delete(self, *, rpc_type: str, method: str, params: Any) -> bool:
@@ -780,7 +780,7 @@ class SessionRecorder(BasePersistentFile):
                 latest_ts = max(bucket_by_ts.keys())
             except ValueError:
                 continue
-            resp, _ttl_s = bucket_by_ts[latest_ts]
+            resp = bucket_by_ts[latest_ts]
             params = _unfreeze_params(frozen_params=frozen_params)
 
             result.append((params, resp))
@@ -916,12 +916,6 @@ def _get_filename(*, central_name: str, file_name: str, ts: datetime | None = No
 def _now() -> int:
     """Return current UTC time as epoch seconds (int)."""
     return int(datetime.now(tz=UTC).timestamp())
-
-
-def _is_expired(*, ts: int, ttl_s: float, now: int | None = None) -> bool:
-    """Check whether an entry has expired given epoch seconds."""
-    now = now if now is not None else _now()
-    return (now - ts) > ttl_s
 
 
 async def cleanup_files(*, central_name: str, storage_directory: str) -> None:

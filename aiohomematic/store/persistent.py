@@ -815,8 +815,6 @@ class SessionRecorder(BasePersistentFile):
             return None
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return None
-        if not params:
-            return None
         frozen_params = _freeze_params(params=params)
 
         # For each parameter, choose the response at the latest timestamp.
@@ -936,6 +934,8 @@ def _unfreeze_params(frozen_params: str) -> Any:
             return {k: _walk(v) for k, v in o.items()}
         if isinstance(o, list):
             return [_walk(x) for x in o]
+        if isinstance(o, tuple):
+            return tuple(_walk(x) for x in o)
         if o.startswith("{") and o.endswith("}"):
             return ast.literal_eval(o)
         return o

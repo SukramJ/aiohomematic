@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.9"
+VERSION: Final = "2025.10.10"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -28,7 +28,6 @@ _TEST_SPEEDUP: Final = (
 
 # default
 DEFAULT_STORAGE_DIRECTORY: Final = "aiohomematic_storage"
-DEFAULT_CUSTOM_ID: Final = "custom_id"
 DEFAULT_DELAY_NEW_DEVICE_CREATION: Final = False
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True
@@ -48,12 +47,6 @@ DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
 DEFAULT_VERIFY_TLS: Final = False
-
-MANU_TEMP_CUSTOM_ID: Final = "manu_temp"
-INTERNAL_CUSTOM_IDS: Final[tuple[str, ...]] = (
-    DEFAULT_CUSTOM_ID,
-    MANU_TEMP_CUSTOM_ID,
-)
 
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"
@@ -212,6 +205,13 @@ class CommandRxMode(StrEnum):
 
     BURST = "BURST"
     WAKEUP = "WAKEUP"
+
+
+class InternalCustomID(StrEnum):
+    """Enum for Homematic internal custom IDs."""
+
+    DEFAULT = "cid_default"
+    MANU_TEMP = "cid_manu_temp"
 
 
 class DataOperationResult(Enum):

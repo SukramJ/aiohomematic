@@ -60,7 +60,6 @@ from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.const import (
     CALLBACK_WARN_INTERVAL,
     DATETIME_FORMAT_MILLIS,
-    DEFAULT_CUSTOM_ID,
     DEFAULT_MAX_WORKERS,
     DP_KEY_VALUE,
     DUMMY_SERIAL,
@@ -81,6 +80,7 @@ from aiohomematic.const import (
     ForcedDeviceAvailability,
     Interface,
     InterfaceEventType,
+    InternalCustomID,
     Operations,
     ParameterData,
     ParameterType,
@@ -1815,7 +1815,9 @@ async def _track_single_data_point_state_change_or_timeout(
             )
             return
         if (
-            unsub := dp.register_data_point_updated_callback(cb=_async_event_changed, custom_id=DEFAULT_CUSTOM_ID)
+            unsub := dp.register_data_point_updated_callback(
+                cb=_async_event_changed, custom_id=InternalCustomID.DEFAULT
+            )
         ) is None:
             return
 

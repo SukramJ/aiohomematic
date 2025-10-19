@@ -1,3 +1,8 @@
+# Version 2025.10.10 (2025-10-10)
+
+- Remove individual ttl for session recorder entry
+- Use enum for internal custom ids
+
 # Version 2025.10.9 (2025-10-18)
 
 - Add session recorder

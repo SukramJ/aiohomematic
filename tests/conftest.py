@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator, Generator
 import logging
+import os
 from unittest.mock import Mock, patch
 
 from aiohttp import ClientSession
@@ -150,3 +152,40 @@ async def mock_json_rpc_server() -> AsyncGenerator[tuple[MockJsonRpc, str]]:
         yield srv, base_url
     finally:
         await srv.stop()
+
+
+@pytest.fixture
+async def session_recorder_from_full_session():
+    """Provide a SessionRecorder preloaded from the randomized full session JSON file."""
+
+    # Lightweight stubs to satisfy BasePersistentFile requirements without spinning up a full CentralUnit.
+    class _LooperStub:
+        async def async_add_executor_job(self, func, name: str | None = None):  # pragma: no cover - simple stub
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(None, func)
+
+        def create_task(self, target, name: str | None = None):  # pragma: no cover - simple stub
+            return asyncio.create_task(target)
+
+    class _ConfigStub:
+        def __init__(self) -> None:
+            # Use the tests storage directory which exists in the repo
+            self.storage_directory = os.path.join(os.path.dirname(__file__), "..", "aiohomematic_storage")
+            self.use_caches = True
+
+    class _CentralStub:
+        def __init__(self) -> None:
+            self.name = "test"
+            self.config = _ConfigStub()
+            self.devices: list = []
+            self.looper = _LooperStub()
+
+    from aiohomematic.store import SessionRecorder
+
+    central = _CentralStub()
+    # ttl_seconds=0 -> no expiry in tests; refresh_on_get disabled for deterministic reads
+    recorder = SessionRecorder(central=central, active=False, ttl_seconds=0, refresh_on_get=False)
+
+    file_path = os.path.join(os.path.dirname(__file__), "data", "full_session_randomized.json")
+    await recorder.load(file_path=file_path)
+    return recorder

@@ -27,7 +27,7 @@ Key behaviors
 - Save/load/clear operations are synchronized via a semaphore and executed via
   the CentralUnit looper to avoid blocking the event loop.
 
-Helper functions are provided to build content paths and filenames and to
+Helper functions are provided to build content paths and file names and to
 optionally clean up stale content directories.
 """
 
@@ -89,7 +89,7 @@ class BasePersistentFile(ABC):
         "_persistent_content",
         "_save_load_semaphore",
         "_sub_directory",
-        "_use_ts_in_filenames",
+        "_use_ts_in_file_names",
         "last_hash_saved",
         "last_save_triggered",
     )
@@ -123,27 +123,27 @@ class BasePersistentFile(ABC):
         """Return if the data has changed."""
         return self.content_hash != self.last_hash_saved
 
-    def _get_filename(
+    def _get_file_name(
         self,
         *,
-        use_ts_in_filename: bool = False,
+        use_ts_in_file_name: bool = False,
     ) -> str:
         """Return the file name."""
-        return _get_filename(
+        return _get_file_name(
             central_name=self._central.name,
             file_name=self._file_postfix,
-            ts=datetime.now() if use_ts_in_filename else None,
+            ts=datetime.now() if use_ts_in_file_name else None,
         )
 
     def _get_file_path(
         self,
         *,
-        use_ts_in_filename: bool = False,
+        use_ts_in_file_name: bool = False,
     ) -> str:
         """Return the full file path."""
-        return os.path.join(self._directory, self._get_filename(use_ts_in_filename=use_ts_in_filename))
+        return os.path.join(self._directory, self._get_file_name(use_ts_in_file_name=use_ts_in_file_name))
 
-    async def save(self, *, randomize_output: bool = False, use_ts_in_filename: bool = False) -> DataOperationResult:
+    async def save(self, *, randomize_output: bool = False, use_ts_in_file_name: bool = False) -> DataOperationResult:
         """Save current data to disk."""
         if not self._should_save:
             return DataOperationResult.NO_SAVE
@@ -154,7 +154,7 @@ class BasePersistentFile(ABC):
         def _perform_save() -> DataOperationResult:
             try:
                 with open(
-                    file=self._get_file_path(use_ts_in_filename=use_ts_in_filename),
+                    file=self._get_file_path(use_ts_in_file_name=use_ts_in_file_name),
                     mode="wb",
                 ) as file_pointer:
                     file_pointer.write(
@@ -173,7 +173,7 @@ class BasePersistentFile(ABC):
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_save, name=f"save-persistent-content-{self._get_filename()}"
+                _perform_save, name=f"save-persistent-content-{self._get_file_name()}"
             )
 
     def _manipulate_content(self, *, content: bytes, randomize_output: bool = False) -> bytes:
@@ -197,13 +197,16 @@ class BasePersistentFile(ABC):
             and self.content_hash != self.last_hash_saved
         )
 
-    async def load(self) -> DataOperationResult:
+    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
         """Load data from disk into the dictionary."""
-        if not check_or_create_directory(directory=self._directory) or not os.path.exists(self._get_file_path()):
+        if not file_path and not check_or_create_directory(directory=self._directory):
+            return DataOperationResult.NO_LOAD
+
+        if (file_path := file_path or self._get_file_path()) and not os.path.exists(file_path):
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:
-            with open(file=self._get_file_path(), encoding=UTF_8) as file_pointer:
+            with open(file=file_path, encoding=UTF_8) as file_pointer:
                 try:
                     data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
                     if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
@@ -217,7 +220,7 @@ class BasePersistentFile(ABC):
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_load, name=f"load-persistent-content-{self._get_filename()}"
+                _perform_load, name=f"load-persistent-content-{self._get_file_name()}"
             )
 
     async def clear(self) -> None:
@@ -358,12 +361,12 @@ class DeviceDescriptionCache(BasePersistentFile):
         addr_set.add(device_address)
         addr_set.add(address)
 
-    async def load(self) -> DataOperationResult:
+    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
         """Load device data from disk into _device_description_cache."""
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching paramset descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        if (result := await super().load()) == DataOperationResult.LOAD_SUCCESS:
+        if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
             for (
                 interface_id,
                 device_descriptions,
@@ -495,12 +498,12 @@ class ParamsetDescriptionCache(BasePersistentFile):
             for parameter in paramset:
                 cache.setdefault((device_address, parameter), set()).add(channel_no)
 
-    async def load(self) -> DataOperationResult:
+    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
         """Load paramset descriptions from disk into paramset cache."""
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching device descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        if (result := await super().load()) == DataOperationResult.LOAD_SUCCESS:
+        if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
             self._init_address_parameter_list()
         return result
 
@@ -511,17 +514,16 @@ class SessionRecorder(BasePersistentFile):
 
     Nested cache with TTL support.
     Structure:
-        store[rpc_type][method][params] = (ts: datetime, response: Any, ttl_s: float)
+        store[rpc_type][method][params][ts: datetime] = response: Any
 
-    - Each entry expires after its TTL (global default or per-entry override).
     - Expiration is lazy (checked on access/update).
     - Optional refresh_on_get extends TTL when reading.
     """
 
     __slots__ = (
         "_active",
-        "_default_ttl",
-        "_is_delayed",
+        "_ttl",
+        "_is_recording",
         "_refresh_on_get",
         "_store",
     )
@@ -533,20 +535,20 @@ class SessionRecorder(BasePersistentFile):
         self,
         *,
         central: hmcu.CentralUnit,
-        default_ttl_seconds: float,
         active: bool,
+        ttl_seconds: float,
         refresh_on_get: bool = False,
     ):
         """Init the cache."""
         self._active = active
-        if default_ttl_seconds <= 0:
+        if ttl_seconds < 0:
             raise ValueError("default_ttl_seconds must be positive")
-        self._default_ttl: Final = float(default_ttl_seconds)
-        self._is_delayed: bool = False
+        self._ttl: Final = float(ttl_seconds)
+        self._is_recording: bool = False
         self._refresh_on_get: Final = refresh_on_get
-        # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> (response, ttl_s)
+        # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> response
         # Annotate as defaultdict to match the actual type and satisfy mypy.
-        self._store: dict[str, dict[str, dict[str, dict[int, tuple[Any, float]]]]] = defaultdict(
+        self._store: dict[str, dict[str, dict[str, dict[int, Any]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
         )
         super().__init__(
@@ -556,6 +558,13 @@ class SessionRecorder(BasePersistentFile):
 
     # ---------- internal helpers ----------
 
+    def _is_expired(self, *, ts: int, now: int | None = None) -> bool:
+        """Check whether an entry has expired given epoch seconds."""
+        if self._ttl == 0:
+            return False
+        now = now if now is not None else _now()
+        return (now - ts) > self._ttl
+
     def _purge_expired_at(
         self,
         *,
@@ -563,7 +572,8 @@ class SessionRecorder(BasePersistentFile):
         method: str,
     ) -> None:
         """Remove expired entries for a given (rpc_type, method) bucket without creating new ones."""
-
+        if self._ttl == 0:
+            return
         if not (bucket_by_method := self._store.get(rpc_type)):
             return
         if not (bucket_by_parameter := bucket_by_method.get(method)):
@@ -571,9 +581,7 @@ class SessionRecorder(BasePersistentFile):
         now = _now()
         empty_params: list[str] = []
         for p, bucket_by_ts in bucket_by_parameter.items():
-            expired_ts = [
-                ts for ts, (_r, ttl_s) in list(bucket_by_ts.items()) if _is_expired(ts=ts, ttl_s=ttl_s, now=now)
-            ]
+            expired_ts = [ts for ts, _r in list(bucket_by_ts.items()) if self._is_expired(ts=ts, now=now)]
             for ts in expired_ts:
                 del bucket_by_ts[ts]
             if not bucket_by_ts:
@@ -597,21 +605,24 @@ class SessionRecorder(BasePersistentFile):
         return self._active
 
     async def _deactivate_after_delay(
-        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
     ) -> None:
         """Change the state of the session recorder after a delay."""
-        self._is_delayed = True
+        self._is_recording = True
         await asyncio.sleep(delay)
         self._active = False
-        self._is_delayed = False
+        self._is_recording = False
         if auto_save:
-            await self.save(randomize_output=randomize_output, use_ts_in_filename=use_ts_in_filename)
-        _LOGGER.debug("Deactivated session recorder after %s minutes", {delay / 60})
+            await self.save(randomize_output=randomize_output, use_ts_in_file_name=use_ts_in_file_name)
+        _LOGGER.debug("Deactivated session recorder after %s seconds", {delay})
 
     async def activate(
-        self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
-    ) -> None:
+        self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
+    ) -> bool:
         """Activate the session recorder. Disable after on_time(seconds)."""
+        if self._is_recording:
+            _LOGGER.info("ACTIVATE: Recording session is already running.")
+            return False
         self._store.clear()
         self._active = True
         if on_time > 0:
@@ -620,28 +631,33 @@ class SessionRecorder(BasePersistentFile):
                     delay=on_time,
                     auto_save=auto_save,
                     randomize_output=randomize_output,
-                    use_ts_in_filename=use_ts_in_filename,
+                    use_ts_in_file_name=use_ts_in_file_name,
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
+        return True
 
     async def deactivate(
-        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
-    ) -> None:
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
+    ) -> bool:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
+        if self._is_recording:
+            _LOGGER.info("DEACTIVATE: Recording session is already running.")
+            return False
         if delay > 0:
             self._central.looper.create_task(
                 target=self._deactivate_after_delay(
                     delay=delay,
                     auto_save=auto_save,
                     randomize_output=randomize_output,
-                    use_ts_in_filename=use_ts_in_filename,
+                    use_ts_in_file_name=use_ts_in_file_name,
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
         else:
             self._active = False
-            self._is_delayed = False
+            self._is_recording = False
+        return True
 
     def add_json_rpc_session(
         self,
@@ -689,14 +705,11 @@ class SessionRecorder(BasePersistentFile):
         method: str,
         params: Any,
         response: Any,
-        ttl_seconds: float | None = None,
         ts: int | datetime | None = None,
     ) -> Self:
         """Insert or update an entry."""
         self._purge_expired_at(rpc_type=rpc_type, method=method)
         frozen_param = _freeze_params(params)
-        if (ttl_s := ttl_seconds if ttl_seconds is not None else self._default_ttl) <= 0:
-            raise ValueError("ttl_seconds must be positive")
         # Normalize timestamp to int epoch seconds
         if isinstance(ts, datetime):
             ts_int = int(ts.timestamp())
@@ -704,7 +717,7 @@ class SessionRecorder(BasePersistentFile):
             ts_int = ts
         else:
             ts_int = _now()
-        self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = (response, ttl_s)
+        self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = response
         return self
 
     def get(
@@ -736,9 +749,9 @@ class SessionRecorder(BasePersistentFile):
             latest_ts = max(bucket_by_ts.keys())
         except ValueError:
             return default
-        resp, ttl_s = bucket_by_ts[latest_ts]
+        resp = bucket_by_ts[latest_ts]
         if self._refresh_on_get:
-            bucket_by_ts[_now()] = (resp, ttl_s)
+            bucket_by_ts[_now()] = resp
         return resp
 
     def delete(self, *, rpc_type: str, method: str, params: Any) -> bool:
@@ -762,7 +775,7 @@ class SessionRecorder(BasePersistentFile):
                 self._store.pop(rpc_type, None)
         return True
 
-    def get_latest_fresh(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
         """Return latest non-expired responses for a given (rpc_type, method)."""
         # Purge expired entries first without creating any new buckets.
         self._purge_expired_at(rpc_type=rpc_type, method=method)
@@ -780,11 +793,39 @@ class SessionRecorder(BasePersistentFile):
                 latest_ts = max(bucket_by_ts.keys())
             except ValueError:
                 continue
-            resp, _ttl_s = bucket_by_ts[latest_ts]
+            resp = bucket_by_ts[latest_ts]
             params = _unfreeze_params(frozen_params=frozen_params)
 
             result.append((params, resp))
         return result
+
+    def get_latest_response_by_params(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+    ) -> Any:
+        """Return latest non-expired responses for a given (rpc_type, method, params)."""
+        # Purge expired entries first without creating any new buckets.
+        self._purge_expired_at(rpc_type=rpc_type, method=method)
+
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return None
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return None
+        frozen_params = _freeze_params(params=params)
+
+        # For each parameter, choose the response at the latest timestamp.
+        if (bucket_by_ts := bucket_by_parameter.get(frozen_params)) is None:
+            return None
+
+        try:
+            latest_ts = max(bucket_by_ts.keys())
+            return bucket_by_ts[latest_ts]
+        except ValueError:
+            return None
 
     def cleanup(self) -> None:
         """Purge all expired entries globally."""
@@ -893,6 +934,8 @@ def _unfreeze_params(frozen_params: str) -> Any:
             return {k: _walk(v) for k, v in o.items()}
         if isinstance(o, list):
             return [_walk(x) for x in o]
+        if isinstance(o, tuple):
+            return tuple(_walk(x) for x in o)
         if o.startswith("{") and o.endswith("}"):
             return ast.literal_eval(o)
         return o
@@ -905,8 +948,8 @@ def _get_file_path(*, storage_directory: str, sub_directory: str) -> str:
     return f"{storage_directory}/{sub_directory}"
 
 
-def _get_filename(*, central_name: str, file_name: str, ts: datetime | None = None) -> str:
-    """Return the content filename."""
+def _get_file_name(*, central_name: str, file_name: str, ts: datetime | None = None) -> str:
+    """Return the content file_name."""
     fn = f"{slugify(central_name)}_{file_name}"
     if ts:
         fn += f"_{ts.strftime(FILE_NAME_TS_PATTERN)}"
@@ -916,12 +959,6 @@ def _get_filename(*, central_name: str, file_name: str, ts: datetime | None = No
 def _now() -> int:
     """Return current UTC time as epoch seconds (int)."""
     return int(datetime.now(tz=UTC).timestamp())
-
-
-def _is_expired(*, ts: int, ttl_s: float, now: int | None = None) -> bool:
-    """Check whether an entry has expired given epoch seconds."""
-    now = now if now is not None else _now()
-    return (now - ts) > ttl_s
 
 
 async def cleanup_files(*, central_name: str, storage_directory: str) -> None:

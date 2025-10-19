@@ -599,7 +599,7 @@ async def test_add_device(
     assert len(central.get_data_points(exclude_no_create=False)) == 33
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
     assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
-    dev_desc = helper.load_device_description(central=central, filename="HmIP-BSM.json")
+    dev_desc = helper.load_device_description(central=central, file_name="HmIP-BSM.json")
     await central.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
     assert len(central._devices) == 2
     assert len(central.get_data_points(exclude_no_create=False)) == 64

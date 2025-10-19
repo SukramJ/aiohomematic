@@ -96,8 +96,10 @@ from aiohomematic.const import (
     DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
     DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
     DEFAULT_MAX_READ_WORKERS,
+    DEFAULT_OPTIONAL_SETTINGS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
+    DEFAULT_SESSION_RECORDER_START_FOR_SECONDS,
     DEFAULT_STORAGE_DIRECTORY,
     DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
@@ -130,6 +132,7 @@ from aiohomematic.const import (
     Interface,
     InterfaceEventType,
     Operations,
+    OptionalSettings,
     Parameter,
     ParamsetKey,
     ProxyInitState,
@@ -223,7 +226,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._paramset_descriptions: Final = ParamsetDescriptionCache(central=self)
         self._parameter_visibility: Final = ParameterVisibilityCache(central=self)
         self._recorder: Final = SessionRecorder(
-            central=self, default_ttl_seconds=600, active=central_config.start_recorder
+            central=self, ttl_seconds=600, active=central_config.session_recorder_start
         )
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
@@ -493,14 +496,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             _LOGGER.debug("START: Central %s already started", self.name)
             return
 
-        if self._config.start_recorder:
+        if self._config.session_recorder_start:
             await self._recorder.deactivate(
-                delay=self._config.start_recorder_for_minutes * 60,
+                delay=self._config.session_recorder_start_for_seconds,
                 auto_save=True,
-                randomize_output=True,
-                use_ts_in_filename=False,
+                randomize_output=self._config.session_recorder_randomize_output,
+                use_ts_in_file_name=False,
             )
-            _LOGGER.debug("START: Starting Recorder for %s minutes", self._config.start_recorder_for_minutes)
+            _LOGGER.debug("START: Starting Recorder for %s seconds", self._config.session_recorder_start_for_seconds)
 
         self._state = CentralUnitState.INITIALIZING
         _LOGGER.debug("START: Initializing Central %s", self.name)
@@ -2009,10 +2012,10 @@ class CentralConfig:
         listen_ip_addr: str | None = None,
         listen_port_xml_rpc: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
+        optional_settings: tuple[OptionalSettings | str, ...] = DEFAULT_OPTIONAL_SETTINGS,
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
-        start_recorder_for_minutes: int = 0,
         storage_directory: str = DEFAULT_STORAGE_DIRECTORY,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
@@ -2023,6 +2026,7 @@ class CentralConfig:
     ) -> None:
         """Init the client config."""
         self._interface_configs: Final = interface_configs
+        self._optional_settings: Final = frozenset(optional_settings or ())
         self.requires_xml_rpc_server: Final = any(
             ic for ic in interface_configs if ic.rpc_server == RpcServerType.XML_RPC
         )
@@ -2048,8 +2052,15 @@ class CentralConfig:
         self.periodic_refresh_interval = periodic_refresh_interval
         self.program_markers: Final = program_markers
         self.start_direct: Final = start_direct
-        self.start_recorder_for_minutes: Final = start_recorder_for_minutes
-        self.start_recorder = start_recorder_for_minutes > 0
+        self.session_recorder_randomize_output = (
+            OptionalSettings.SR_DISABLE_RANDOMIZE_OUTPUT not in self._optional_settings
+        )
+        self.session_recorder_start_for_seconds: Final = (
+            DEFAULT_SESSION_RECORDER_START_FOR_SECONDS
+            if OptionalSettings.SR_RECORD_SYSTEM_INIT in self._optional_settings
+            else 0
+        )
+        self.session_recorder_start = self.session_recorder_start_for_seconds > 0
         self.storage_directory: Final = storage_directory
         self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers

@@ -12,10 +12,10 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic.const import (
-    MANU_TEMP_CUSTOM_ID,
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     DataPointCategory,
+    InternalCustomID,
     Parameter,
     ParamsetKey,
     ProductGroup,
@@ -235,7 +235,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
         self._unregister_callbacks.append(
             self._dp_setpoint.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=MANU_TEMP_CUSTOM_ID
+                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
 
@@ -802,7 +802,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
 
         self._unregister_callbacks.append(
             self._dp_control_mode.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=MANU_TEMP_CUSTOM_ID
+                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
 
@@ -1047,7 +1047,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
         self._unregister_callbacks.append(
             self._dp_set_point_mode.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=MANU_TEMP_CUSTOM_ID
+                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
 

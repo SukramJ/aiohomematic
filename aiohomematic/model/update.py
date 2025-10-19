@@ -11,11 +11,11 @@ from typing import Final
 
 from aiohomematic.const import (
     CALLBACK_TYPE,
-    DEFAULT_CUSTOM_ID,
     HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES,
     HMIP_FIRMWARE_UPDATE_READY_STATES,
     DataPointCategory,
     Interface,
+    InternalCustomID,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
@@ -114,7 +114,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
 
     def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register update callback."""
-        if custom_id != DEFAULT_CUSTOM_ID:
+        if custom_id != InternalCustomID.DEFAULT:
             if self._custom_id is not None:
                 raise AioHomematicException(
                     f"REGISTER_UPDATE_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"

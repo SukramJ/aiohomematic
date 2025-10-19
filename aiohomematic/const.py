@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.9"
+VERSION: Final = "2025.10.10"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -27,8 +27,6 @@ _TEST_SPEEDUP: Final = (
 )
 
 # default
-DEFAULT_STORAGE_DIRECTORY: Final = "aiohomematic_storage"
-DEFAULT_CUSTOM_ID: Final = "custom_id"
 DEFAULT_DELAY_NEW_DEVICE_CREATION: Final = False
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True
@@ -40,20 +38,17 @@ DEFAULT_INCLUDE_INTERNAL_SYSVARS: Final = True
 DEFAULT_MAX_READ_WORKERS: Final = 1
 DEFAULT_MAX_WORKERS: Final = 1
 DEFAULT_MULTIPLIER: Final = 1.0
+DEFAULT_OPTIONAL_SETTINGS: Final[tuple[OptionalSettings | str, ...]] = ()
 DEFAULT_PERIODIC_REFRESH_INTERVAL: Final = 15
 DEFAULT_PROGRAM_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
+DEFAULT_SESSION_RECORDER_START_FOR_SECONDS: Final = 120
+DEFAULT_STORAGE_DIRECTORY: Final = "aiohomematic_storage"
 DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
 DEFAULT_VERIFY_TLS: Final = False
-
-MANU_TEMP_CUSTOM_ID: Final = "manu_temp"
-INTERNAL_CUSTOM_IDS: Final[tuple[str, ...]] = (
-    DEFAULT_CUSTOM_ID,
-    MANU_TEMP_CUSTOM_ID,
-)
 
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"
@@ -214,6 +209,13 @@ class CommandRxMode(StrEnum):
     WAKEUP = "WAKEUP"
 
 
+class InternalCustomID(StrEnum):
+    """Enum for Homematic internal custom IDs."""
+
+    DEFAULT = "cid_default"
+    MANU_TEMP = "cid_manu_temp"
+
+
 class DataOperationResult(Enum):
     """Enum with data operation results."""
 
@@ -350,6 +352,13 @@ class Operations(IntEnum):
     READ = 1
     WRITE = 2
     EVENT = 4
+
+
+class OptionalSettings(StrEnum):
+    """Enum with aiohomematic optional settings."""
+
+    SR_DISABLE_RANDOMIZE_OUTPUT = "SR_DISABLE_RANDOMIZED_OUTPUT"
+    SR_RECORD_SYSTEM_INIT = "SR_RECORD_SYSTEM_INIT"
 
 
 class Parameter(StrEnum):

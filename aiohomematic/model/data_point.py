@@ -39,11 +39,9 @@ from aiohomematic import central as hmcu, client as hmcl, support as hms, valida
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     CALLBACK_TYPE,
-    DEFAULT_CUSTOM_ID,
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
     INIT_DATETIME,
-    INTERNAL_CUSTOM_IDS,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
     KWARGS_ARG_CUSTOM_ID,
     KWARGS_ARG_DATA_POINT,
@@ -55,6 +53,7 @@ from aiohomematic.const import (
     DataPointUsage,
     EventKey,
     Flag,
+    InternalCustomID,
     Operations,
     Parameter,
     ParameterData,
@@ -309,11 +308,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     def register_internal_data_point_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register internal data_point updated callback."""
-        return self.register_data_point_updated_callback(cb=cb, custom_id=DEFAULT_CUSTOM_ID)
+        return self.register_data_point_updated_callback(cb=cb, custom_id=InternalCustomID.DEFAULT)
 
     def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register data_point updated callback."""
-        if custom_id not in INTERNAL_CUSTOM_IDS:
+        if custom_id not in InternalCustomID:
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise AioHomematicException(
                     f"REGISTER_data_point_updated_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"

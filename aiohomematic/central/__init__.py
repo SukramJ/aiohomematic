@@ -496,7 +496,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 delay=self._config.start_recorder_for_minutes * 60,
                 auto_save=True,
                 randomize_output=True,
-                use_ts_in_filename=False,
+                use_ts_in_file_name=False,
             )
             _LOGGER.debug("START: Starting Recorder for %s minutes", self._config.start_recorder_for_minutes)
 

@@ -27,7 +27,7 @@ Key behaviors
 - Save/load/clear operations are synchronized via a semaphore and executed via
   the CentralUnit looper to avoid blocking the event loop.
 
-Helper functions are provided to build content paths and filenames and to
+Helper functions are provided to build content paths and file names and to
 optionally clean up stale content directories.
 """
 
@@ -89,7 +89,7 @@ class BasePersistentFile(ABC):
         "_persistent_content",
         "_save_load_semaphore",
         "_sub_directory",
-        "_use_ts_in_filenames",
+        "_use_ts_in_file_names",
         "last_hash_saved",
         "last_save_triggered",
     )
@@ -123,27 +123,27 @@ class BasePersistentFile(ABC):
         """Return if the data has changed."""
         return self.content_hash != self.last_hash_saved
 
-    def _get_filename(
+    def _get_file_name(
         self,
         *,
-        use_ts_in_filename: bool = False,
+        use_ts_in_file_name: bool = False,
     ) -> str:
         """Return the file name."""
-        return _get_filename(
+        return _get_file_name(
             central_name=self._central.name,
             file_name=self._file_postfix,
-            ts=datetime.now() if use_ts_in_filename else None,
+            ts=datetime.now() if use_ts_in_file_name else None,
         )
 
     def _get_file_path(
         self,
         *,
-        use_ts_in_filename: bool = False,
+        use_ts_in_file_name: bool = False,
     ) -> str:
         """Return the full file path."""
-        return os.path.join(self._directory, self._get_filename(use_ts_in_filename=use_ts_in_filename))
+        return os.path.join(self._directory, self._get_file_name(use_ts_in_file_name=use_ts_in_file_name))
 
-    async def save(self, *, randomize_output: bool = False, use_ts_in_filename: bool = False) -> DataOperationResult:
+    async def save(self, *, randomize_output: bool = False, use_ts_in_file_name: bool = False) -> DataOperationResult:
         """Save current data to disk."""
         if not self._should_save:
             return DataOperationResult.NO_SAVE
@@ -154,7 +154,7 @@ class BasePersistentFile(ABC):
         def _perform_save() -> DataOperationResult:
             try:
                 with open(
-                    file=self._get_file_path(use_ts_in_filename=use_ts_in_filename),
+                    file=self._get_file_path(use_ts_in_file_name=use_ts_in_file_name),
                     mode="wb",
                 ) as file_pointer:
                     file_pointer.write(
@@ -173,7 +173,7 @@ class BasePersistentFile(ABC):
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_save, name=f"save-persistent-content-{self._get_filename()}"
+                _perform_save, name=f"save-persistent-content-{self._get_file_name()}"
             )
 
     def _manipulate_content(self, *, content: bytes, randomize_output: bool = False) -> bytes:
@@ -197,12 +197,12 @@ class BasePersistentFile(ABC):
             and self.content_hash != self.last_hash_saved
         )
 
-    async def load(self, *, filename: str | None = None) -> DataOperationResult:
+    async def load(self, *, file_name: str | None = None) -> DataOperationResult:
         """Load data from disk into the dictionary."""
         if not check_or_create_directory(directory=self._directory):
             return DataOperationResult.NO_LOAD
 
-        file_path = os.path.join(self._directory, filename) if filename else self._get_file_path()
+        file_path = os.path.join(self._directory, file_name) if file_name else self._get_file_path()
         if not os.path.exists(file_path):
             return DataOperationResult.NO_LOAD
 
@@ -221,7 +221,7 @@ class BasePersistentFile(ABC):
 
         async with self._save_load_semaphore:
             return await self._central.looper.async_add_executor_job(
-                _perform_load, name=f"load-persistent-content-{self._get_filename()}"
+                _perform_load, name=f"load-persistent-content-{self._get_file_name()}"
             )
 
     async def clear(self) -> None:
@@ -362,12 +362,12 @@ class DeviceDescriptionCache(BasePersistentFile):
         addr_set.add(device_address)
         addr_set.add(address)
 
-    async def load(self, *, filename: str | None = None) -> DataOperationResult:
+    async def load(self, *, file_name: str | None = None) -> DataOperationResult:
         """Load device data from disk into _device_description_cache."""
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching paramset descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        if (result := await super().load(filename=filename)) == DataOperationResult.LOAD_SUCCESS:
+        if (result := await super().load(file_name=file_name)) == DataOperationResult.LOAD_SUCCESS:
             for (
                 interface_id,
                 device_descriptions,
@@ -499,12 +499,12 @@ class ParamsetDescriptionCache(BasePersistentFile):
             for parameter in paramset:
                 cache.setdefault((device_address, parameter), set()).add(channel_no)
 
-    async def load(self, *, filename: str | None = None) -> DataOperationResult:
+    async def load(self, *, file_name: str | None = None) -> DataOperationResult:
         """Load paramset descriptions from disk into paramset cache."""
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching device descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        if (result := await super().load(filename=filename)) == DataOperationResult.LOAD_SUCCESS:
+        if (result := await super().load(file_name=file_name)) == DataOperationResult.LOAD_SUCCESS:
             self._init_address_parameter_list()
         return result
 
@@ -606,7 +606,7 @@ class SessionRecorder(BasePersistentFile):
         return self._active
 
     async def _deactivate_after_delay(
-        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
     ) -> None:
         """Change the state of the session recorder after a delay."""
         self._is_recording = True
@@ -614,11 +614,11 @@ class SessionRecorder(BasePersistentFile):
         self._active = False
         self._is_recording = False
         if auto_save:
-            await self.save(randomize_output=randomize_output, use_ts_in_filename=use_ts_in_filename)
+            await self.save(randomize_output=randomize_output, use_ts_in_file_name=use_ts_in_file_name)
         _LOGGER.debug("Deactivated session recorder after %s minutes", {delay / 60})
 
     async def activate(
-        self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
+        self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
     ) -> bool:
         """Activate the session recorder. Disable after on_time(seconds)."""
         if self._is_recording:
@@ -632,14 +632,14 @@ class SessionRecorder(BasePersistentFile):
                     delay=on_time,
                     auto_save=auto_save,
                     randomize_output=randomize_output,
-                    use_ts_in_filename=use_ts_in_filename,
+                    use_ts_in_file_name=use_ts_in_file_name,
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
         return True
 
     async def deactivate(
-        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
     ) -> bool:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
         if self._is_recording:
@@ -651,7 +651,7 @@ class SessionRecorder(BasePersistentFile):
                     delay=delay,
                     auto_save=auto_save,
                     randomize_output=randomize_output,
-                    use_ts_in_filename=use_ts_in_filename,
+                    use_ts_in_file_name=use_ts_in_file_name,
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
@@ -949,8 +949,8 @@ def _get_file_path(*, storage_directory: str, sub_directory: str) -> str:
     return f"{storage_directory}/{sub_directory}"
 
 
-def _get_filename(*, central_name: str, file_name: str, ts: datetime | None = None) -> str:
-    """Return the content filename."""
+def _get_file_name(*, central_name: str, file_name: str, ts: datetime | None = None) -> str:
+    """Return the content file_name."""
     fn = f"{slugify(central_name)}_{file_name}"
     if ts:
         fn += f"_{ts.strftime(FILE_NAME_TS_PATTERN)}"

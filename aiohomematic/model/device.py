@@ -1293,7 +1293,7 @@ class _DefinitionExporter:
             str, dict[ParamsetKey, dict[str, ParameterData]]
         ] = await self._client.get_all_paramset_descriptions(device_descriptions=tuple(device_descriptions.values()))
         model = device_descriptions[self._device_address]["TYPE"]
-        filename = f"{model}.json"
+        file_name = f"{model}.json"
 
         # anonymize device_descriptions
         anonymize_device_descriptions: list[DeviceDescription] = []
@@ -1316,14 +1316,14 @@ class _DefinitionExporter:
         # Save device_descriptions for device to file.
         await self._save(
             directory=f"{self._storage_directory}/{DEVICE_DESCRIPTIONS_DIR}",
-            filename=filename,
+            file_name=file_name,
             data=anonymize_device_descriptions,
         )
 
         # Save device_descriptions for device to file.
         await self._save(
             directory=f"{self._storage_directory}/{PARAMSET_DESCRIPTIONS_DIR}",
-            filename=filename,
+            file_name=file_name,
             data=anonymize_paramset_descriptions,
         )
 
@@ -1332,13 +1332,13 @@ class _DefinitionExporter:
         address_parts[0] = self._random_id
         return ADDRESS_SEPARATOR.join(address_parts)
 
-    async def _save(self, *, directory: str, filename: str, data: Any) -> DataOperationResult:
+    async def _save(self, *, directory: str, file_name: str, data: Any) -> DataOperationResult:
         """Save file to disk."""
 
         def perform_save() -> DataOperationResult:
             if not check_or_create_directory(directory=directory):
                 return DataOperationResult.NO_SAVE  # pragma: no cover
-            with open(file=os.path.join(directory, filename), mode="wb") as fptr:
+            with open(file=os.path.join(directory, file_name), mode="wb") as fptr:
                 fptr.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
             return DataOperationResult.SAVE_SUCCESS
 

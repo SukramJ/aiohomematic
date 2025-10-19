@@ -269,7 +269,7 @@ class ClientLocal(Client):  # pragma: no cover
                 data := await self._load_json_file(
                     anchor=self._local_resources.anchor,
                     resource=self._local_resources.paramset_description_dir,
-                    filename=file_name,
+                    file_name=file_name,
                 )
             )
         ):
@@ -329,20 +329,20 @@ class ClientLocal(Client):  # pragma: no cover
             exclude_list = []
         result: list[Any] = []
         resource_path = os.path.join(str(importlib.resources.files(anchor)), resource)
-        for filename in os.listdir(resource_path):
-            if filename not in include_list or filename in exclude_list:
+        for file_name in os.listdir(resource_path):
+            if file_name not in include_list or file_name in exclude_list:
                 continue
-            if file_content := await self._load_json_file(anchor=anchor, resource=resource, filename=filename):
+            if file_content := await self._load_json_file(anchor=anchor, resource=resource, file_name=file_name):
                 result.append(file_content)
         return result
 
-    async def _load_json_file(self, *, anchor: str, resource: str, filename: str) -> Any | None:
+    async def _load_json_file(self, *, anchor: str, resource: str, file_name: str) -> Any | None:
         """Load json file from disk into dict."""
         package_path = str(importlib.resources.files(anchor))
 
         def _perform_load() -> Any | None:
             with open(
-                file=os.path.join(package_path, resource, filename),
+                file=os.path.join(package_path, resource, file_name),
                 encoding=UTF_8,
             ) as fptr:
                 return orjson.loads(fptr.read())

@@ -1,6 +1,9 @@
 # Version 2025.10.10 (2025-10-10)
 
+- Add file_name to BasePersitentFile load
+- Add get_latest_response_by_params to session recorder
 - Remove individual ttl for session recorder entry
+- Rename filename to file_name
 - Use enum for internal custom ids
 
 # Version 2025.10.9 (2025-10-18)

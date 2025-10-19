@@ -161,9 +161,9 @@ def get_prepared_custom_data_point(
     return None
 
 
-def load_device_description(central: CentralUnit, filename: str) -> Any:
+def load_device_description(central: CentralUnit, file_name: str) -> Any:
     """Load device description."""
-    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", filename=filename)
+    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
     assert dev_desc
     return dev_desc
 
@@ -210,11 +210,11 @@ def _get_properties(data_object: Any, decorator: Any) -> set[str]:
     return {y for y in dir(cls) if isinstance(getattr(cls, y), resolved_decorator)}
 
 
-def _load_json_file(anchor: str, resource: str, filename: str) -> Any | None:
+def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:
     """Load json file from disk into dict."""
     package_path = str(importlib.resources.files(anchor))
     with open(
-        file=os.path.join(package_path, resource, filename),
+        file=os.path.join(package_path, resource, file_name),
         encoding=aiohomematic_const.UTF_8,
     ) as fptr:
         return orjson.loads(fptr.read())

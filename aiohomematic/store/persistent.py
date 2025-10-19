@@ -511,9 +511,8 @@ class SessionRecorder(BasePersistentFile):
 
     Nested cache with TTL support.
     Structure:
-        store[rpc_type][method][params] = (ts: datetime, response: Any, ttl_s: float)
+        store[rpc_type][method][params][ts: datetime] = response: Any
 
-    - Each entry expires after its TTL (global default or per-entry override).
     - Expiration is lazy (checked on access/update).
     - Optional refresh_on_get extends TTL when reading.
     """
@@ -521,7 +520,7 @@ class SessionRecorder(BasePersistentFile):
     __slots__ = (
         "_active",
         "_ttl",
-        "_is_delayed",
+        "_is_recording",
         "_refresh_on_get",
         "_store",
     )
@@ -542,9 +541,9 @@ class SessionRecorder(BasePersistentFile):
         if ttl_seconds <= 0:
             raise ValueError("default_ttl_seconds must be positive")
         self._ttl: Final = float(ttl_seconds)
-        self._is_delayed: bool = False
+        self._is_recording: bool = False
         self._refresh_on_get: Final = refresh_on_get
-        # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> (response, ttl_s)
+        # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> response
         # Annotate as defaultdict to match the actual type and satisfy mypy.
         self._store: dict[str, dict[str, dict[str, dict[int, Any]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
@@ -558,6 +557,8 @@ class SessionRecorder(BasePersistentFile):
 
     def _is_expired(self, *, ts: int, now: int | None = None) -> bool:
         """Check whether an entry has expired given epoch seconds."""
+        if self._ttl == 0:
+            return False
         now = now if now is not None else _now()
         return (now - ts) > self._ttl
 
@@ -568,7 +569,8 @@ class SessionRecorder(BasePersistentFile):
         method: str,
     ) -> None:
         """Remove expired entries for a given (rpc_type, method) bucket without creating new ones."""
-
+        if self._ttl == 0:
+            return
         if not (bucket_by_method := self._store.get(rpc_type)):
             return
         if not (bucket_by_parameter := bucket_by_method.get(method)):
@@ -603,18 +605,21 @@ class SessionRecorder(BasePersistentFile):
         self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
     ) -> None:
         """Change the state of the session recorder after a delay."""
-        self._is_delayed = True
+        self._is_recording = True
         await asyncio.sleep(delay)
         self._active = False
-        self._is_delayed = False
+        self._is_recording = False
         if auto_save:
             await self.save(randomize_output=randomize_output, use_ts_in_filename=use_ts_in_filename)
         _LOGGER.debug("Deactivated session recorder after %s minutes", {delay / 60})
 
     async def activate(
         self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
-    ) -> None:
+    ) -> bool:
         """Activate the session recorder. Disable after on_time(seconds)."""
+        if self._is_recording:
+            _LOGGER.info("ACTIVATE: Recording session is already running.")
+            return False
         self._store.clear()
         self._active = True
         if on_time > 0:
@@ -627,11 +632,15 @@ class SessionRecorder(BasePersistentFile):
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
+        return True
 
     async def deactivate(
         self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_filename: bool
-    ) -> None:
+    ) -> bool:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
+        if self._is_recording:
+            _LOGGER.info("DEACTIVATE: Recording session is already running.")
+            return False
         if delay > 0:
             self._central.looper.create_task(
                 target=self._deactivate_after_delay(
@@ -644,7 +653,8 @@ class SessionRecorder(BasePersistentFile):
             )
         else:
             self._active = False
-            self._is_delayed = False
+            self._is_recording = False
+        return True
 
     def add_json_rpc_session(
         self,
@@ -762,7 +772,7 @@ class SessionRecorder(BasePersistentFile):
                 self._store.pop(rpc_type, None)
         return True
 
-    def get_latest_fresh(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
         """Return latest non-expired responses for a given (rpc_type, method)."""
         # Purge expired entries first without creating any new buckets.
         self._purge_expired_at(rpc_type=rpc_type, method=method)
@@ -785,6 +795,36 @@ class SessionRecorder(BasePersistentFile):
 
             result.append((params, resp))
         return result
+
+    def get_latest_response_by_params(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+    ) -> Any:
+        """Return latest non-expired responses for a given (rpc_type, method, params)."""
+        # Purge expired entries first without creating any new buckets.
+        self._purge_expired_at(rpc_type=rpc_type, method=method)
+
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return None
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return None
+        if not params:
+            return None
+        frozen_params = _freeze_params(params=params)
+
+        # For each parameter, choose the response at the latest timestamp.
+        if (bucket_by_ts := bucket_by_parameter.get(frozen_params)) is None:
+            return None
+
+        try:
+            latest_ts = max(bucket_by_ts.keys())
+            return bucket_by_ts[latest_ts]
+        except ValueError:
+            return None
 
     def cleanup(self) -> None:
         """Purge all expired entries globally."""

@@ -197,13 +197,17 @@ class BasePersistentFile(ABC):
             and self.content_hash != self.last_hash_saved
         )
 
-    async def load(self) -> DataOperationResult:
+    async def load(self, *, filename: str | None = None) -> DataOperationResult:
         """Load data from disk into the dictionary."""
-        if not check_or_create_directory(directory=self._directory) or not os.path.exists(self._get_file_path()):
+        if not check_or_create_directory(directory=self._directory):
+            return DataOperationResult.NO_LOAD
+
+        file_path = os.path.join(self._directory, filename) if filename else self._get_file_path()
+        if not os.path.exists(file_path):
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:
-            with open(file=self._get_file_path(), encoding=UTF_8) as file_pointer:
+            with open(file=file_path, encoding=UTF_8) as file_pointer:
                 try:
                     data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
                     if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
@@ -358,12 +362,12 @@ class DeviceDescriptionCache(BasePersistentFile):
         addr_set.add(device_address)
         addr_set.add(address)
 
-    async def load(self) -> DataOperationResult:
+    async def load(self, *, filename: str | None = None) -> DataOperationResult:
         """Load device data from disk into _device_description_cache."""
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching paramset descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        if (result := await super().load()) == DataOperationResult.LOAD_SUCCESS:
+        if (result := await super().load(filename=filename)) == DataOperationResult.LOAD_SUCCESS:
             for (
                 interface_id,
                 device_descriptions,
@@ -495,12 +499,12 @@ class ParamsetDescriptionCache(BasePersistentFile):
             for parameter in paramset:
                 cache.setdefault((device_address, parameter), set()).add(channel_no)
 
-    async def load(self) -> DataOperationResult:
+    async def load(self, *, filename: str | None = None) -> DataOperationResult:
         """Load paramset descriptions from disk into paramset cache."""
         if not self._central.config.use_caches:
             _LOGGER.debug("load: not caching device descriptions for %s", self._central.name)
             return DataOperationResult.NO_LOAD
-        if (result := await super().load()) == DataOperationResult.LOAD_SUCCESS:
+        if (result := await super().load(filename=filename)) == DataOperationResult.LOAD_SUCCESS:
             self._init_address_parameter_list()
         return result
 

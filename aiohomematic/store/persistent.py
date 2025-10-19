@@ -541,7 +541,7 @@ class SessionRecorder(BasePersistentFile):
     ):
         """Init the cache."""
         self._active = active
-        if ttl_seconds <= 0:
+        if ttl_seconds < 0:
             raise ValueError("default_ttl_seconds must be positive")
         self._ttl: Final = float(ttl_seconds)
         self._is_recording: bool = False

@@ -32,6 +32,7 @@ DEFAULT_DELAY_NEW_DEVICE_CREATION: Final = False
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True
 DEFAULT_ENABLE_SYSVAR_SCAN: Final = True
+DEFAULT_OPTIONAL_SETTINGS: Final[tuple[OptionalSettings | str, ...]] = ()
 DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS: Final = (5,)
 DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS: Final[frozenset[str]] = frozenset()
 DEFAULT_INCLUDE_INTERNAL_PROGRAMS: Final = False
@@ -350,6 +351,12 @@ class Operations(IntEnum):
     READ = 1
     WRITE = 2
     EVENT = 4
+
+
+class OptionalSettings(StrEnum):
+    """Enum with aiohomematic optional settings."""
+
+    DISABLE_ANONYMIZE_SR_OUTPUT = "disable_anonymize_sr_output"
 
 
 class Parameter(StrEnum):

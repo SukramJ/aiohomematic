@@ -96,6 +96,7 @@ from aiohomematic.const import (
     DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
     DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
     DEFAULT_MAX_READ_WORKERS,
+    DEFAULT_OPTIONAL_SETTINGS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
     DEFAULT_STORAGE_DIRECTORY,
@@ -130,6 +131,7 @@ from aiohomematic.const import (
     Interface,
     InterfaceEventType,
     Operations,
+    OptionalSettings,
     Parameter,
     ParamsetKey,
     ProxyInitState,
@@ -491,11 +493,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             _LOGGER.debug("START: Central %s already started", self.name)
             return
 
+        randomize_output = OptionalSettings.DISABLE_ANONYMIZE_SR_OUTPUT not in self._config.optional_settings
         if self._config.start_recorder:
             await self._recorder.deactivate(
                 delay=self._config.start_recorder_for_minutes * 60,
                 auto_save=True,
-                randomize_output=True,
+                randomize_output=randomize_output,
                 use_ts_in_file_name=False,
             )
             _LOGGER.debug("START: Starting Recorder for %s minutes", self._config.start_recorder_for_minutes)
@@ -2007,6 +2010,7 @@ class CentralConfig:
         listen_ip_addr: str | None = None,
         listen_port_xml_rpc: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
+        optional_settings: tuple[OptionalSettings | str, ...] = DEFAULT_OPTIONAL_SETTINGS,
         periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
         start_direct: bool = False,
@@ -2042,6 +2046,7 @@ class CentralConfig:
         self.listen_port_xml_rpc: Final = listen_port_xml_rpc
         self.max_read_workers = max_read_workers
         self.name: Final = name
+        self.optional_settings: Final = frozenset(optional_settings or ())
         self.password: Final = password
         self.periodic_refresh_interval = periodic_refresh_interval
         self.program_markers: Final = program_markers

@@ -18,7 +18,7 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 from aiohomematic import central as hmcu
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
-from aiohomematic.support import find_free_port, log_boundary_error
+from aiohomematic.support import log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -177,23 +177,19 @@ class RpcServer(threading.Thread):
     _initialized: bool = False
     _instances: Final[dict[tuple[str, int], RpcServer]] = {}
 
-    def __init__(
-        self,
-        *,
-        ip_addr: str,
-        port: int,
-    ) -> None:
+    def __init__(self, *, server: SimpleXMLRPCServer) -> None:
         """Init XmlRPC server."""
-        if self._initialized:
-            return
+        self._server = server
+        self._server.register_introspection_functions()
+        self._server.register_multicall_functions()
+        self._server.register_instance(RPCFunctions(rpc_server=self), allow_dotted_names=True)
         self._initialized = True
-        self._listen_ip_addr: Final = ip_addr
-        self._listen_port: Final[int] = find_free_port() if port == PORT_ANY else port
-        self._address: Final[tuple[str, int]] = (ip_addr, self._listen_port)
+        self._address: Final[tuple[str, int]] = cast(tuple[str, int], server.server_address)
+        self._listen_ip_addr: Final = self._address[0]
+        self._listen_port: Final = self._address[1]
         self._centrals: Final[dict[str, hmcu.CentralUnit]] = {}
-        self._simple_rpc_server: SimpleXMLRPCServer
         self._instances[self._address] = self
-        threading.Thread.__init__(self, name=f"RpcServer {ip_addr}:{self._listen_port}")
+        threading.Thread.__init__(self, name=f"RpcServer {self._listen_ip_addr}:{self._listen_port}")
 
     def run(self) -> None:
         """Run the RPC-Server thread."""
@@ -202,15 +198,15 @@ class RpcServer(threading.Thread):
             self._listen_ip_addr,
             self._listen_port,
         )
-        if self._simple_rpc_server:
-            self._simple_rpc_server.serve_forever()
+        if self._server:
+            self._server.serve_forever()
 
     def stop(self) -> None:
         """Stop the RPC-Server."""
         _LOGGER.debug("STOP: Shutting down RPC-Server")
-        self._simple_rpc_server.shutdown()
+        self._server.shutdown()
         _LOGGER.debug("STOP: Stopping RPC-Server")
-        self._simple_rpc_server.server_close()
+        self._server.server_close()
         # Ensure the server thread has actually terminated to avoid slow teardown
         with contextlib.suppress(RuntimeError):
             self.join(timeout=1.0)
@@ -269,16 +265,14 @@ class XmlRpcServer(RpcServer):
 
         if self._initialized:
             return
-        super().__init__(ip_addr=ip_addr, port=port)
-        self._simple_rpc_server = HomematicXMLRPCServer(
-            addr=self._address,
-            requestHandler=RequestHandler,
-            logRequests=False,
-            allow_none=True,
+        super().__init__(
+            server=HomematicXMLRPCServer(
+                addr=self._address,
+                requestHandler=RequestHandler,
+                logRequests=False,
+                allow_none=True,
+            )
         )
-        self._simple_rpc_server.register_introspection_functions()
-        self._simple_rpc_server.register_multicall_functions()
-        self._simple_rpc_server.register_instance(RPCFunctions(rpc_server=self), allow_dotted_names=True)
 
     def __new__(cls, ip_addr: str, port: int) -> XmlRpcServer:  # noqa: PYI034  # kwonly: disable
         """Create new RPC server."""

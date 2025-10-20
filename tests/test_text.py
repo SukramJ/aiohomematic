@@ -13,7 +13,7 @@ from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {}
 
@@ -58,10 +58,10 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
     ],
 )
 async def test_sysvardptext(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test SysvarDpText. There are currently no text data points."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point(legacy_name="string_ext"))
     assert text.usage == DataPointUsage.DATA_POINT
 

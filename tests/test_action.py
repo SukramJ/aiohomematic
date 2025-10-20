@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpAction
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU9724704": "HmIP-DLD.json",
@@ -37,10 +35,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmaction(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmAction."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     action: DpAction = cast(
         DpAction,
         central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),

@@ -4,17 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import cast
-from unittest.mock import Mock
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.hub import SysvarDpBinarySensor
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU5864966": "HmIP-SWDO-I.json",
@@ -39,10 +36,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmbinarysensor(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmBinarySensor."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     binary_sensor: DpBinarySensor = cast(
         DpBinarySensor,
         central.get_generic_data_point(channel_address="VCU5864966:1", parameter="STATE"),
@@ -85,10 +82,10 @@ async def test_hmbinarysensor(
     ],
 )
 async def test_hmsysvarbinarysensor(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSysvarBinarySensor."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     binary_sensor: SysvarDpBinarySensor = cast(
         SysvarDpBinarySensor,
         central.get_sysvar_data_point(legacy_name="logic"),

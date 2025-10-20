@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage, ParamsetKey, ProgramData
 from aiohomematic.model.generic import DpButton
 from aiohomematic.model.hub import ProgramDpButton
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU1437294": "HmIP-SMI.json",
@@ -38,10 +36,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmbutton(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmButton."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     button: DpButton = cast(
         DpButton,
         central.get_generic_data_point(channel_address="VCU1437294:1", parameter="RESET_MOTION"),
@@ -81,10 +79,10 @@ async def test_hmbutton(
     ],
 )
 async def test_hmprogrambutton(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmProgramButton."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     button: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point(pid="pid1").button)
     assert button.usage == DataPointUsage.DATA_POINT
     assert button.available is True

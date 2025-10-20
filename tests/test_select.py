@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpSelect
 from aiohomematic.model.hub import SysvarDpSelect
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU6354483": "HmIP-STHD.json",
@@ -38,10 +36,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmselect(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSelect."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     select: DpSelect = cast(
         DpSelect,
         central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
@@ -100,10 +98,10 @@ async def test_hmselect(
     ],
 )
 async def test_hmsysvarselect(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSysvarSelect."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
     assert select.usage == DataPointUsage.DATA_POINT
     assert select.unit is None

@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.generic import DpSwitch
@@ -39,10 +37,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_ceswitch(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpSwitch."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     switch: CustomDpSwitch = cast(CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
@@ -115,10 +113,10 @@ async def test_ceswitch(
     ],
 )
 async def test_hmswitch(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSwitch."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
     assert switch.service_method_names == (
@@ -194,10 +192,10 @@ async def test_hmswitch(
     ],
 )
 async def test_hmsysvarswitch(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSysvarSwitch."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     switch: SysvarDpSwitch = cast(SysvarDpSwitch, central.get_sysvar_data_point(legacy_name="alarm_ext"))
     assert switch.usage == DataPointUsage.DATA_POINT
 

@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpIrrigationValve
 
@@ -37,10 +35,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_ceipirrigationvalve(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpValve."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     valve: CustomDpIpIrrigationValve = cast(
         CustomDpIpIrrigationValve, helper.get_prepared_custom_data_point(central, "VCU8976407", 4)
     )

@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from typing import cast
-from unittest.mock import DEFAULT, Mock, call
+from unittest.mock import DEFAULT, call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpBlind, CustomDpCover, CustomDpGarage, CustomDpIpBlind, CustomDpWindowDrive
 from aiohomematic.model.custom.cover import (
@@ -53,10 +51,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_cecover(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpCover."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpCover = cast(CustomDpCover, helper.get_prepared_custom_data_point(central, "VCU8537918", 4))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.current_position == 0
@@ -150,10 +148,10 @@ async def test_cecover(
     ],
 )
 async def test_ceipblind_dr(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpIpBlind DIN Rail."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpIpBlind = cast(CustomDpIpBlind, helper.get_prepared_custom_data_point(central, "VCU7807849", 14))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
@@ -267,10 +265,10 @@ async def test_ceipblind_dr(
     ],
 )
 async def test_cewindowdrive(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpWindowDrive."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpWindowDrive = cast(
         CustomDpWindowDrive, helper.get_prepared_custom_data_point(central, "VCU0000350", 1)
     )
@@ -337,10 +335,10 @@ async def test_cewindowdrive(
     ],
 )
 async def test_ceblind(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpBlind."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpBlind = cast(CustomDpBlind, helper.get_prepared_custom_data_point(central, "VCU0000144", 1))
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
@@ -516,10 +514,10 @@ async def test_ceblind(
     ],
 )
 async def test_ceblind_separate_level_and_tilt_change(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test if CustomDpBlind sends correct commands even when rapidly changing level and tilt via separate service calls."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpBlind = cast(
         CustomDpBlind, helper.get_prepared_custom_data_point(central=central, address="VCU0000144", channel_no=1)
     )
@@ -581,10 +579,10 @@ async def test_ceblind_separate_level_and_tilt_change(
     ],
 )
 async def test_ceipblind(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpIpBlind."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpIpBlind = cast(
         CustomDpIpBlind, helper.get_prepared_custom_data_point(central=central, address="VCU1223813", channel_no=4)
     )
@@ -760,10 +758,10 @@ async def test_ceipblind(
     ],
 )
 async def test_ceipblind_hdm(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpIpBlind HDM."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpIpBlind = cast(
         CustomDpIpBlind, helper.get_prepared_custom_data_point(central=central, address="VCU3560967", channel_no=1)
     )
@@ -924,10 +922,10 @@ async def test_ceipblind_hdm(
     ],
 )
 async def test_cegarageho(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpGarageHO."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpGarage = cast(
         CustomDpGarage, helper.get_prepared_custom_data_point(central=central, address="VCU3574044", channel_no=1)
     )
@@ -1073,10 +1071,10 @@ async def test_cegarageho(
     ],
 )
 async def test_cegaragetm(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpGarageTM."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     cover: CustomDpGarage = cast(
         CustomDpGarage, helper.get_prepared_custom_data_point(central=central, address="VCU6166407", channel_no=1)
     )

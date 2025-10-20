@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import Mock
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
-
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
@@ -36,10 +32,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_device_general(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     device = central.get_device(address="VCU2128127")
     assert device.address == "VCU2128127"
     assert device.name == "HmIP-BSM_VCU2128127"
@@ -76,10 +72,10 @@ async def test_device_general(
     ],
 )
 async def test_device_availability(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     device = central.get_device(address="VCU6354483")
     assert device.available is True
     for gdp in device.generic_data_points:
@@ -122,10 +118,10 @@ async def test_device_availability(
     ],
 )
 async def test_device_config_pending(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     device = central.get_device(address="VCU2128127")
     assert device._dp_config_pending.value is False
     cache_hash = central.paramset_descriptions.content_hash

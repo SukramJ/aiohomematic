@@ -104,7 +104,7 @@ async def aiohttp_session() -> AsyncGenerator[ClientSession]:
 
 
 @pytest.fixture
-async def central_client_factory(
+async def central_client_factory_with_local_client(
     port: int,
     address_device_translation: dict[str, str],
     do_mock_client: bool,

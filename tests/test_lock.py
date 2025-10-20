@@ -40,7 +40,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_cerflock(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpRfLock."""
     central, mock_client, _ = central_client_factory
@@ -127,7 +127,7 @@ async def test_cerflock(
     ],
 )
 async def test_ceiplock(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpIpLock."""
     central, mock_client, _ = central_client_factory

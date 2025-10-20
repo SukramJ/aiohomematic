@@ -78,7 +78,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_generate_unique_id(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test generate_unique_id."""
     central, _, _ = central_client_factory
@@ -187,7 +187,7 @@ async def test_to_bool() -> None:
     ],
 )
 async def test_get_data_point_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test get_data_point_name."""
     central, _, _ = central_client_factory
@@ -229,7 +229,7 @@ async def test_get_data_point_name(
     ],
 )
 async def test_get_event_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test get_event_name."""
     central, _, _ = central_client_factory
@@ -273,7 +273,7 @@ async def test_get_event_name(
     ],
 )
 async def test_custom_data_point_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test get_custom_data_point_name."""
     central, _, _ = central_client_factory
@@ -348,7 +348,7 @@ async def test_custom_data_point_name(
     ],
 )
 async def test_get_device_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test get_device_name."""
     central, _, _ = central_client_factory

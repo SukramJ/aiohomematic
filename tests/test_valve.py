@@ -37,7 +37,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_ceipirrigationvalve(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpValve."""
     central, mock_client, _ = central_client_factory

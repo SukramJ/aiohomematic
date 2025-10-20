@@ -56,7 +56,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_cesimplerfthermostat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpSimpleRfThermostat."""
     central, mock_client, _ = central_client_factory
@@ -151,7 +151,7 @@ async def test_cesimplerfthermostat(
     ],
 )
 async def test_cerfthermostat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpRfThermostat."""
     central, mock_client, _ = central_client_factory
@@ -350,7 +350,7 @@ async def test_cerfthermostat(
     ],
 )
 async def test_cerfthermostat_with_profiles(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpRfThermostat."""
     central, mock_client, _ = central_client_factory
@@ -637,7 +637,7 @@ async def test_cerfthermostat_with_profiles(
     ],
 )
 async def test_ceipthermostat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpIpThermostat."""
     central, mock_client, _ = central_client_factory

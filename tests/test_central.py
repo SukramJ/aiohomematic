@@ -66,7 +66,7 @@ class _FakeChannel:
     ],
 )
 async def test_central_basics(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central basics."""
     central, client, _ = central_client_factory
@@ -98,7 +98,7 @@ async def test_central_basics(
     ],
 )
 async def test_device_get_data_points(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central/device get_data_points."""
     central, _, _ = central_client_factory
@@ -125,7 +125,7 @@ async def test_device_get_data_points(
     ],
 )
 async def test_device_export(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test device export."""
     central, _, _ = central_client_factory
@@ -149,7 +149,7 @@ async def test_device_export(
     ],
 )
 async def test_identify_ip_addr(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test identify_ip_addr."""
     central, _, _ = central_client_factory
@@ -180,7 +180,7 @@ async def test_identify_ip_addr(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_etrv(
-    factory: helper.Factory,
+    factory: helper.FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -220,7 +220,7 @@ async def test_device_un_ignore_etrv(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_broll(
-    factory: helper.Factory,
+    factory: helper.FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -263,7 +263,7 @@ async def test_device_un_ignore_broll(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm(
-    factory: helper.Factory,
+    factory: helper.FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int | None,
@@ -350,7 +350,7 @@ async def test_device_un_ignore_hm(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm2(
-    factory: helper.Factory,
+    factory: helper.FactoryWithLocalClient,
     lines: list[str],
     parameter: str,
     channel_no: int | None,
@@ -406,7 +406,7 @@ async def test_device_un_ignore_hm2(
 )
 @pytest.mark.asyncio
 async def test_ignore_(
-    factory: helper.Factory,
+    factory: helper.FactoryWithLocalClient,
     ignore_custom_device_definition_models: list[str],
     model: str,
     address: str,
@@ -444,7 +444,7 @@ async def test_ignore_(
     ],
 )
 async def test_all_parameters(
-    factory: helper.Factory,
+    factory: helper.FactoryWithLocalClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
@@ -478,7 +478,7 @@ async def test_all_parameters(
     ],
 )
 async def test_all_parameters_with_un_ignore(
-    factory: helper.Factory,
+    factory: helper.FactoryWithLocalClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
@@ -514,7 +514,7 @@ async def test_all_parameters_with_un_ignore(
     ],
 )
 async def test_data_points_by_category(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test data_points_by_category."""
     central, _, _ = central_client_factory
@@ -547,7 +547,7 @@ async def test_data_points_by_category(
     ],
 )
 async def test_hub_data_points_by_category(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test hub_data_points_by_category."""
     central, _, _ = central_client_factory
@@ -591,7 +591,7 @@ async def test_hub_data_points_by_category(
     ],
 )
 async def test_add_device(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test add_device."""
     central, _, _ = central_client_factory
@@ -625,7 +625,7 @@ async def test_add_device(
     ],
 )
 async def test_delete_device(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test device delete_device."""
     central, _, _ = central_client_factory
@@ -669,7 +669,7 @@ async def test_delete_device(
     ],
 )
 async def test_virtual_remote_delete(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test device delete."""
     central, _, _ = central_client_factory
@@ -694,7 +694,7 @@ async def test_virtual_remote_delete(
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_not_alive(factory: helper.Factory) -> None:
+async def test_central_not_alive(factory: helper.FactoryWithLocalClient) -> None:
     """Test central other methods."""
     central, client = await factory.get_unpatched_default_central(
         port=const.CCU_MINI_PORT, address_device_translation={}, do_mock_client=False
@@ -731,7 +731,7 @@ async def test_central_not_alive(factory: helper.Factory) -> None:
     ],
 )
 async def test_central_callbacks(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central other methods."""
     central, _, factory = central_client_factory
@@ -766,7 +766,7 @@ async def test_central_callbacks(
     ],
 )
 async def test_central_services(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central fetch sysvar and programs."""
     central, mock_client, _ = central_client_factory
@@ -840,7 +840,7 @@ async def test_central_services(
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_direct(factory: helper.Factory) -> None:
+async def test_central_direct(factory: helper.FactoryWithLocalClient) -> None:
     """Test central other methods."""
     central, client = await factory.get_unpatched_default_central(
         port=const.CCU_MINI_PORT, address_device_translation=TEST_DEVICES, do_mock_client=False
@@ -863,7 +863,7 @@ async def test_central_direct(factory: helper.Factory) -> None:
 
 
 @pytest.mark.asyncio
-async def test_central_without_interface_config(factory: helper.Factory) -> None:
+async def test_central_without_interface_config(factory: helper.FactoryWithLocalClient) -> None:
     """Test central other methods."""
     central = await factory.get_raw_central(interface_config=None)
     try:
@@ -905,7 +905,7 @@ async def test_central_without_interface_config(factory: helper.Factory) -> None
     ],
 )
 async def test_ping_pong(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central other methods."""
     central, client, _ = central_client_factory
@@ -938,7 +938,7 @@ async def test_ping_pong(
     ],
 )
 async def test_pending_pong_failure(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central other methods."""
     central, client, factory = central_client_factory
@@ -978,7 +978,7 @@ async def test_pending_pong_failure(
     ],
 )
 async def test_unknown_pong_failure(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central other methods."""
     central, client, _ = central_client_factory
@@ -1013,7 +1013,7 @@ async def test_unknown_pong_failure(
     ],
 )
 async def test_central_caches(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central cache."""
     central, client, _ = central_client_factory
@@ -1040,7 +1040,7 @@ async def test_central_caches(
     ],
 )
 async def test_central_getter(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test central getter."""
     central, _, _ = central_client_factory

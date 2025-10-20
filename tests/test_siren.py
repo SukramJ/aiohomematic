@@ -38,7 +38,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_ceipsiren(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpIpSiren."""
     central, mock_client, _ = central_client_factory
@@ -149,7 +149,7 @@ async def test_ceipsiren(
     ],
 )
 async def test_ceipsirensmoke(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpIpSirenSmoke."""
     central, mock_client, _ = central_client_factory

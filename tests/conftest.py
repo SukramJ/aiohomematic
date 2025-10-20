@@ -88,9 +88,9 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
 
 
 @pytest.fixture
-async def factory() -> helper.Factory:
+async def factory() -> helper.FactoryWithLocalClient:
     """Return central factory."""
-    return helper.Factory()
+    return helper.FactoryWithLocalClient()
 
 
 @pytest.fixture
@@ -112,9 +112,9 @@ async def central_client_factory(
     add_programs: bool,
     ignore_devices_on_create: list[str] | None,
     un_ignore_list: list[str] | None,
-) -> tuple[CentralUnit, Client | Mock, helper.Factory]:
+) -> tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient]:
     """Return central factory."""
-    factory = helper.Factory()
+    factory = helper.FactoryWithLocalClient()
     central_client = await factory.get_default_central(
         port=port,
         address_device_translation=address_device_translation,

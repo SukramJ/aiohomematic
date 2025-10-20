@@ -40,7 +40,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmfloat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmFloat."""
     central, mock_client, _ = central_client_factory
@@ -89,7 +89,7 @@ async def test_hmfloat(
     ],
 )
 async def test_hmfloat_special(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmFloat."""
     central, mock_client, _ = central_client_factory
@@ -136,7 +136,7 @@ async def test_hmfloat_special(
     ],
 )
 async def test_hminteger(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmInteger."""
     central, mock_client, _ = central_client_factory
@@ -203,7 +203,7 @@ async def test_hminteger(
     ],
 )
 async def test_hmsysvarnumber(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmSysvarNumber."""
     central, mock_client, _ = central_client_factory

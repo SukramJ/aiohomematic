@@ -38,7 +38,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_clickevent(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test ClickEvent."""
     central, _, factory = central_client_factory
@@ -77,7 +77,7 @@ async def test_clickevent(
     ],
 )
 async def test_impulseevent(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test ImpulseEvent."""
     central, _, factory = central_client_factory
@@ -116,7 +116,7 @@ async def test_impulseevent(
     ],
 )
 async def test_deviceerrorevent(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test DeviceErrorEvent."""
     central, _, factory = central_client_factory

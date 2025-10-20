@@ -45,7 +45,7 @@ def test_validate_data_point_definition() -> None:
     ],
 )
 async def test_custom_data_point_callback(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpSwitch."""
     central, _, factory = central_client_factory
@@ -96,7 +96,7 @@ async def test_custom_data_point_callback(
     ],
 )
 async def test_generic_data_point_callback(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpSwitch."""
     central, _, factory = central_client_factory
@@ -145,7 +145,7 @@ async def test_generic_data_point_callback(
     ],
 )
 async def test_load_custom_data_point(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test load custom_data_point."""
     central, mock_client, _ = central_client_factory
@@ -181,7 +181,7 @@ async def test_load_custom_data_point(
     ],
 )
 async def test_load_generic_data_point(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test load generic_data_point."""
     central, mock_client, _ = central_client_factory
@@ -211,7 +211,7 @@ async def test_load_generic_data_point(
     ],
 )
 async def test_generic_wrapped_data_point(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test wrapped data_point."""
     central, _, _ = central_client_factory

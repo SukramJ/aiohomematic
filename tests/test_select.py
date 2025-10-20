@@ -38,7 +38,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmselect(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmSelect."""
     central, mock_client, _ = central_client_factory
@@ -100,7 +100,7 @@ async def test_hmselect(
     ],
 )
 async def test_hmsysvarselect(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmSysvarSelect."""
     central, mock_client, _ = central_client_factory

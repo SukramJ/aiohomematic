@@ -39,7 +39,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_ceswitch(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpSwitch."""
     central, mock_client, _ = central_client_factory
@@ -115,7 +115,7 @@ async def test_ceswitch(
     ],
 )
 async def test_hmswitch(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmSwitch."""
     central, mock_client, _ = central_client_factory
@@ -194,7 +194,7 @@ async def test_hmswitch(
     ],
 )
 async def test_hmsysvarswitch(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmSysvarSwitch."""
     central, mock_client, _ = central_client_factory

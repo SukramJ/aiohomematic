@@ -30,7 +30,7 @@ GOT_DEVICES = False
 
 
 # pylint: disable=protected-access
-class Factory:
+class FactoryWithLocalClient:
     """Factory for a central with one local client."""
 
     def __init__(self, *, client_session: ClientSession | None = None):

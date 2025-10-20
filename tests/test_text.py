@@ -58,7 +58,7 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
     ],
 )
 async def test_sysvardptext(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test SysvarDpText. There are currently no text data points."""
     central, mock_client, _ = central_client_factory

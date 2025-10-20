@@ -53,7 +53,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_cecover(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpCover."""
     central, mock_client, _ = central_client_factory
@@ -150,7 +150,7 @@ async def test_cecover(
     ],
 )
 async def test_ceipblind_dr(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpIpBlind DIN Rail."""
     central, mock_client, _ = central_client_factory
@@ -267,7 +267,7 @@ async def test_ceipblind_dr(
     ],
 )
 async def test_cewindowdrive(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpWindowDrive."""
     central, mock_client, _ = central_client_factory
@@ -337,7 +337,7 @@ async def test_cewindowdrive(
     ],
 )
 async def test_ceblind(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpBlind."""
     central, mock_client, _ = central_client_factory
@@ -516,7 +516,7 @@ async def test_ceblind(
     ],
 )
 async def test_ceblind_separate_level_and_tilt_change(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test if CustomDpBlind sends correct commands even when rapidly changing level and tilt via separate service calls."""
     central, mock_client, _ = central_client_factory
@@ -581,7 +581,7 @@ async def test_ceblind_separate_level_and_tilt_change(
     ],
 )
 async def test_ceipblind(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpIpBlind."""
     central, mock_client, _ = central_client_factory
@@ -760,7 +760,7 @@ async def test_ceipblind(
     ],
 )
 async def test_ceipblind_hdm(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpIpBlind HDM."""
     central, mock_client, _ = central_client_factory
@@ -924,7 +924,7 @@ async def test_ceipblind_hdm(
     ],
 )
 async def test_cegarageho(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpGarageHO."""
     central, mock_client, _ = central_client_factory
@@ -1073,7 +1073,7 @@ async def test_cegarageho(
     ],
 )
 async def test_cegaragetm(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test CustomDpGarageTM."""
     central, mock_client, _ = central_client_factory

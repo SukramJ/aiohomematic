@@ -39,7 +39,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmbinarysensor(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmBinarySensor."""
     central, mock_client, _ = central_client_factory
@@ -85,7 +85,7 @@ async def test_hmbinarysensor(
     ],
 )
 async def test_hmsysvarbinarysensor(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test HmSysvarBinarySensor."""
     central, _, _ = central_client_factory

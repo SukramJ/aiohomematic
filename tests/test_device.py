@@ -36,7 +36,7 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_device_general(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test device availability."""
     central, _, _ = central_client_factory
@@ -76,7 +76,7 @@ async def test_device_general(
     ],
 )
 async def test_device_availability(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test device availability."""
     central, _, _ = central_client_factory
@@ -122,7 +122,7 @@ async def test_device_availability(
     ],
 )
 async def test_device_config_pending(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory: tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient],
 ) -> None:
     """Test device availability."""
     central, _, _ = central_client_factory

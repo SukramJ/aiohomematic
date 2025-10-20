@@ -267,7 +267,7 @@ class XmlRpcServer(RpcServer):
             return
         super().__init__(
             server=HomematicXMLRPCServer(
-                addr=self._address,
+                addr=(ip_addr, port),
                 requestHandler=RequestHandler,
                 logRequests=False,
                 allow_none=True,

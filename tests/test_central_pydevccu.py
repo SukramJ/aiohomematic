@@ -19,9 +19,9 @@ from tests import const
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_mini(central_unit_full) -> None:
+async def test_central_mini(central_unit_mini) -> None:
     """Test the central."""
-    central = central_unit_full
+    central = central_unit_mini
     assert central
     assert central.name == const.CENTRAL_NAME
     assert central.model == "PyDevCCU"

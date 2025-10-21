@@ -178,7 +178,7 @@ async def test_identify_ip_addr(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_etrv(
-    factory: helper.FactoryWithLocalClient,
+    factory_with_local_client: helper.FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -186,7 +186,7 @@ async def test_device_un_ignore_etrv(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
+    central, _ = await factory_with_local_client.get_default_central(
         address_device_translation={"VCU3609622": "HmIP-eTRV-2.json"}, un_ignore_list=[line]
     )
     try:
@@ -218,7 +218,7 @@ async def test_device_un_ignore_etrv(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_broll(
-    factory: helper.FactoryWithLocalClient,
+    factory_with_local_client: helper.FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -226,7 +226,7 @@ async def test_device_un_ignore_broll(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
+    central, _ = await factory_with_local_client.get_default_central(
         address_device_translation={"VCU8537918": "HmIP-BROLL.json"}, un_ignore_list=[line]
     )
     try:
@@ -261,7 +261,7 @@ async def test_device_un_ignore_broll(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm(
-    factory: helper.FactoryWithLocalClient,
+    factory_with_local_client: helper.FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int | None,
@@ -269,7 +269,7 @@ async def test_device_un_ignore_hm(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
+    central, _ = await factory_with_local_client.get_default_central(
         address_device_translation={"VCU0000341": "HM-TC-IT-WM-W-EU.json"}, un_ignore_list=[line]
     )
     try:
@@ -348,7 +348,7 @@ async def test_device_un_ignore_hm(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm2(
-    factory: helper.FactoryWithLocalClient,
+    factory_with_local_client: helper.FactoryWithLocalClient,
     lines: list[str],
     parameter: str,
     channel_no: int | None,
@@ -356,7 +356,7 @@ async def test_device_un_ignore_hm2(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
+    central, _ = await factory_with_local_client.get_default_central(
         address_device_translation={"VCU0000137": "HM-ES-PMSw1-Pl.json"}, un_ignore_list=lines
     )
     try:
@@ -404,14 +404,14 @@ async def test_device_un_ignore_hm2(
 )
 @pytest.mark.asyncio
 async def test_ignore_(
-    factory: helper.FactoryWithLocalClient,
+    factory_with_local_client: helper.FactoryWithLocalClient,
     ignore_custom_device_definition_models: list[str],
     model: str,
     address: str,
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory.get_default_central(
+    central, _ = await factory_with_local_client.get_default_central(
         address_device_translation={"VCU1769958": "HmIP-BWTH.json", "VCU3609622": "HmIP-eTRV-2.json"},
         ignore_custom_device_definition_models=ignore_custom_device_definition_models,
     )
@@ -442,14 +442,14 @@ async def test_ignore_(
     ],
 )
 async def test_all_parameters(
-    factory: helper.FactoryWithLocalClient,
+    factory_with_local_client: helper.FactoryWithLocalClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory.get_default_central(address_device_translation=TEST_DEVICES)
+    central, _ = await factory_with_local_client.get_default_central(address_device_translation=TEST_DEVICES)
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -476,14 +476,14 @@ async def test_all_parameters(
     ],
 )
 async def test_all_parameters_with_un_ignore(
-    factory: helper.FactoryWithLocalClient,
+    factory_with_local_client: helper.FactoryWithLocalClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory.get_default_central(
+    central, _ = await factory_with_local_client.get_default_central(
         address_device_translation=TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"]
     )
     parameters = central.get_parameters(
@@ -692,9 +692,9 @@ async def test_virtual_remote_delete(
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_not_alive(factory: helper.FactoryWithLocalClient) -> None:
+async def test_central_not_alive(factory_with_local_client: helper.FactoryWithLocalClient) -> None:
     """Test central other methods."""
-    central, client = await factory.get_unpatched_default_central(
+    central, client = await factory_with_local_client.get_unpatched_default_central(
         port=const.CCU_MINI_PORT, address_device_translation={}, do_mock_client=False
     )
     try:
@@ -838,9 +838,9 @@ async def test_central_services(
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_direct(factory: helper.FactoryWithLocalClient) -> None:
+async def test_central_direct(factory_with_local_client: helper.FactoryWithLocalClient) -> None:
     """Test central other methods."""
-    central, client = await factory.get_unpatched_default_central(
+    central, client = await factory_with_local_client.get_unpatched_default_central(
         port=const.CCU_MINI_PORT, address_device_translation=TEST_DEVICES, do_mock_client=False
     )
     try:
@@ -861,9 +861,9 @@ async def test_central_direct(factory: helper.FactoryWithLocalClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_central_without_interface_config(factory: helper.FactoryWithLocalClient) -> None:
+async def test_central_without_interface_config(factory_with_local_client: helper.FactoryWithLocalClient) -> None:
     """Test central other methods."""
-    central = await factory.get_raw_central(interface_config=None)
+    central = await factory_with_local_client.get_raw_central(interface_config=None)
     try:
         assert central.all_clients_active is False
 

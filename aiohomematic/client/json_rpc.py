@@ -368,8 +368,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         _LOGGER.debug("POST_SCRIPT: method: %s [%s]", method, script_name)
 
         try:
-            if not response[_JsonKey.ERROR]:
-                response[_JsonKey.RESULT] = orjson.loads(response[_JsonKey.RESULT])
+            if not response[_JsonKey.ERROR] and (resp := response[_JsonKey.RESULT]) and isinstance(resp, str):
+                response[_JsonKey.RESULT] = orjson.loads(resp)
         finally:
             if not keep_session:
                 await self._do_logout(session_id=session_id)

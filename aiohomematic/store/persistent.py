@@ -43,6 +43,7 @@ import json
 import logging
 import os
 from typing import Any, Final, Self
+import zipfile
 
 import orjson
 from slugify import slugify
@@ -198,7 +199,13 @@ class BasePersistentFile(ABC):
         )
 
     async def load(self, *, file_path: str | None = None) -> DataOperationResult:
-        """Load data from disk into the dictionary."""
+        """
+        Load data from disk into the dictionary.
+
+        Supports plain JSON files and ZIP archives containing a JSON file.
+        When a ZIP archive is provided, the first JSON member inside the archive
+        will be loaded.
+        """
         if not file_path and not check_or_create_directory(directory=self._directory):
             return DataOperationResult.NO_LOAD
 
@@ -206,16 +213,25 @@ class BasePersistentFile(ABC):
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:
-            with open(file=file_path, encoding=UTF_8) as file_pointer:
-                try:
-                    data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
-                    if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
-                        return DataOperationResult.NO_LOAD
-                    self._persistent_content.clear()
-                    self._persistent_content.update(data)
-                    self.last_hash_saved = converted_hash
-                except json.JSONDecodeError:
-                    return DataOperationResult.LOAD_FAIL
+            try:
+                if zipfile.is_zipfile(file_path):
+                    with zipfile.ZipFile(file_path, mode="r") as zf:
+                        # Prefer json files; pick the first .json entry if available
+                        if not (json_members := [n for n in zf.namelist() if n.lower().endswith(".json")]):
+                            return DataOperationResult.LOAD_FAIL
+                        raw = zf.read(json_members[0]).decode(UTF_8)
+                        data = json.loads(raw, object_hook=regular_to_default_dict_hook)
+                else:
+                    with open(file=file_path, encoding=UTF_8) as file_pointer:
+                        data = json.loads(file_pointer.read(), object_hook=regular_to_default_dict_hook)
+
+                if (converted_hash := hash_sha256(value=data)) == self.last_hash_saved:
+                    return DataOperationResult.NO_LOAD
+                self._persistent_content.clear()
+                self._persistent_content.update(data)
+                self.last_hash_saved = converted_hash
+            except (json.JSONDecodeError, zipfile.BadZipFile, UnicodeDecodeError, OSError):
+                return DataOperationResult.LOAD_FAIL
             return DataOperationResult.LOAD_SUCCESS
 
         async with self._save_load_semaphore:

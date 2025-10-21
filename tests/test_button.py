@@ -24,6 +24,44 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.parametrize(
     (
         "port",
+        "un_ignore_list",
+    ),
+    [
+        (const.CCU_MINI_PORT, None),
+    ],
+)
+async def test_hmbutton2(
+    central_client_factory_with_pydevccu_client,
+) -> None:
+    """Test HmButton."""
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    button: DpButton = cast(
+        DpButton,
+        central.get_generic_data_point(channel_address="VCU1437294:1", parameter="RESET_MOTION"),
+    )
+    assert button.usage == DataPointUsage.DATA_POINT
+    assert button.available is True
+    assert button.is_readable is False
+    assert button.value is None
+    assert button.values is None
+    assert button.hmtype == "ACTION"
+    await button.press()
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU1437294:1",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="RESET_MOTION",
+        value=True,
+    )
+
+    call_count = len(mock_client.method_calls)
+    await button.press()
+    assert (call_count + 1) == len(mock_client.method_calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "port",
         "address_device_translation",
         "do_mock_client",
         "add_sysvars",

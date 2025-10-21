@@ -3,17 +3,14 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpSensor
 from aiohomematic.model.hub import SysvarDpSensor
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU7981740": "HmIP-SRH.json",
@@ -40,10 +37,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmsensor_psm(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSensor."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     sensor: DpSensor = cast(
         DpSensor, central.get_generic_data_point(channel_address="VCU3941846:6", parameter="VOLTAGE")
     )
@@ -115,10 +112,10 @@ async def test_hmsensor_psm(
     ],
 )
 async def test_hmsensor_srh(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSensor."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     sensor: DpSensor = cast(DpSensor, central.get_generic_data_point(channel_address="VCU7981740:1", parameter="STATE"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit is None
@@ -150,10 +147,10 @@ async def test_hmsensor_srh(
     ],
 )
 async def test_hmsysvarsensor(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSysvarSensor."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     sensor: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point(legacy_name="list"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.available is True

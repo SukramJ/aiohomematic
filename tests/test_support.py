@@ -6,12 +6,10 @@ from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Final
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import (
     INIT_DATETIME,
     SCHEDULER_PROFILE_PATTERN,
@@ -52,7 +50,7 @@ from aiohomematic.support import (
     to_bool,
 )
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
@@ -78,10 +76,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_generate_unique_id(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test generate_unique_id."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     assert generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL") == "vcu2128127_level"
     assert (
         generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL", prefix="PREFIX")
@@ -187,10 +185,10 @@ async def test_to_bool() -> None:
     ],
 )
 async def test_get_data_point_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test get_data_point_name."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:5")
@@ -229,10 +227,10 @@ async def test_get_data_point_name(
     ],
 )
 async def test_get_event_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test get_event_name."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
@@ -273,10 +271,10 @@ async def test_get_event_name(
     ],
 )
 async def test_custom_data_point_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test get_custom_data_point_name."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
@@ -348,10 +346,10 @@ async def test_custom_data_point_name(
     ],
 )
 async def test_get_device_name(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test get_device_name."""
-    central, _, _ = central_client_factory
+    central, _, _ = central_client_factory_with_local_client
     assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM_VCU2128127"
     central.device_details.add_name(address="VCU2128127", name="Roof")
     assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"

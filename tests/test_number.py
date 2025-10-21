@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpFloat, DpInteger
 from aiohomematic.model.hub import SysvarDpNumber
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU4984404": "HmIPW-STHD.json",
@@ -40,10 +38,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_hmfloat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmFloat."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     efloat: DpFloat = cast(
         DpFloat,
         central.get_generic_data_point(channel_address="VCU0000011:3", parameter="LEVEL"),
@@ -89,10 +87,10 @@ async def test_hmfloat(
     ],
 )
 async def test_hmfloat_special(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmFloat."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     efloat: DpFloat = cast(
         DpFloat,
         central.get_generic_data_point(channel_address="VCU0000054:2", parameter="SETPOINT"),
@@ -136,10 +134,10 @@ async def test_hmfloat_special(
     ],
 )
 async def test_hminteger(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmInteger."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     einteger: DpInteger = cast(
         DpInteger,
         central.get_generic_data_point(channel_address="VCU4984404:1", parameter="SET_POINT_MODE"),
@@ -203,10 +201,10 @@ async def test_hminteger(
     ],
 )
 async def test_hmsysvarnumber(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test HmSysvarNumber."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     enumber: SysvarDpNumber = cast(
         SysvarDpNumber,
         central.get_sysvar_data_point(legacy_name="float_ext"),

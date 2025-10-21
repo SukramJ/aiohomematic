@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage, EventType
 from aiohomematic.model.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
 
-from tests import const, helper
+from tests import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
@@ -38,10 +36,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_clickevent(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test ClickEvent."""
-    central, _, factory = central_client_factory
+    central, _, factory = central_client_factory_with_local_client
     event: ClickEvent = cast(ClickEvent, central.get_event(channel_address="VCU2128127:1", parameter="PRESS_SHORT"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.KEYPRESS
@@ -77,10 +75,10 @@ async def test_clickevent(
     ],
 )
 async def test_impulseevent(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test ImpulseEvent."""
-    central, _, factory = central_client_factory
+    central, _, factory = central_client_factory_with_local_client
     event: ImpulseEvent = cast(ImpulseEvent, central.get_event(channel_address="VCU0000263:1", parameter="SEQUENCE_OK"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.IMPULSE
@@ -116,10 +114,10 @@ async def test_impulseevent(
     ],
 )
 async def test_deviceerrorevent(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test DeviceErrorEvent."""
-    central, _, factory = central_client_factory
+    central, _, factory = central_client_factory_with_local_client
     event: DeviceErrorEvent = cast(
         DeviceErrorEvent,
         central.get_event(channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT"),

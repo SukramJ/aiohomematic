@@ -5,13 +5,11 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 from freezegun import freeze_time
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import (
@@ -56,10 +54,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_cesimplerfthermostat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpSimpleRfThermostat."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     climate: CustomDpSimpleRfThermostat = cast(
         CustomDpSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
     )
@@ -151,10 +149,10 @@ async def test_cesimplerfthermostat(
     ],
 )
 async def test_cerfthermostat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpRfThermostat."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     climate: CustomDpRfThermostat = cast(
         CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
     )
@@ -350,10 +348,10 @@ async def test_cerfthermostat(
     ],
 )
 async def test_cerfthermostat_with_profiles(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpRfThermostat."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     climate: CustomDpRfThermostat = cast(
         CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000341", 2)
     )
@@ -637,10 +635,10 @@ async def test_cerfthermostat_with_profiles(
     ],
 )
 async def test_ceipthermostat(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpIpThermostat."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     climate: CustomDpIpThermostat = cast(
         CustomDpIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)
     )

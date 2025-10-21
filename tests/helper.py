@@ -15,7 +15,7 @@ import orjson
 
 from aiohomematic import const as aiohomematic_const
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.client import Client, ClientConfig, InterfaceConfig
+from aiohomematic.client import BaseRpcProxy, Client, ClientConfig, InterfaceConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, SourceOfDeviceCreation
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
@@ -30,7 +30,7 @@ GOT_DEVICES = False
 
 
 # pylint: disable=protected-access
-class Factory:
+class FactoryWithLocalClient:
     """Factory for a central with one local client."""
 
     def __init__(self, *, client_session: ClientSession | None = None):
@@ -145,6 +145,100 @@ class Factory:
             await central._create_devices(new_device_addresses=new_device_addresses, source=SourceOfDeviceCreation.INIT)
         await central._init_hub()
 
+        assert central
+        assert client
+        return central, client
+
+
+class FactoryWithClient:
+    """Factory for a central with one local client."""
+
+    def __init__(self, *, client_session: ClientSession, xml_proxy: BaseRpcProxy):
+        """Init the central factory."""
+        self._client_session = client_session
+        self._xml_proxy = xml_proxy
+        self.system_event_mock = MagicMock()
+        self.ha_event_mock = MagicMock()
+
+    async def get_raw_central(
+        self,
+        *,
+        interface_config: InterfaceConfig | None,
+        un_ignore_list: list[str] | None = None,
+        ignore_custom_device_definition_models: list[str] | None = None,
+    ) -> CentralUnit:
+        """Return a central based on give address_device_translation."""
+        interface_configs = {interface_config} if interface_config else set()
+        central = CentralConfig(
+            name=const.CENTRAL_NAME,
+            host=const.CCU_HOST,
+            username=const.CCU_USERNAME,
+            password=const.CCU_PASSWORD,
+            central_id="test1234",
+            interface_configs=interface_configs,
+            client_session=self._client_session,
+            un_ignore_list=un_ignore_list,
+            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+            start_direct=True,
+        ).create_central()
+
+        central.register_backend_system_callback(cb=self.system_event_mock)
+        central.register_homematic_callback(cb=self.ha_event_mock)
+
+        return central
+
+    async def get_unpatched_default_central(
+        self,
+        *,
+        un_ignore_list: list[str] | None = None,
+        ignore_custom_device_definition_models: list[str] | None = None,
+    ) -> CentralUnit:
+        """Return a central based on give address_device_translation."""
+        interface_config = InterfaceConfig(
+            central_name=const.CENTRAL_NAME,
+            interface=aiohomematic_const.Interface.BIDCOS_RF,
+            port=2001,
+        )
+
+        central = await self.get_raw_central(
+            interface_config=interface_config,
+            un_ignore_list=un_ignore_list,
+            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+        )
+
+        assert central
+        return central
+
+    async def get_default_central(
+        self,
+        *,
+        do_mock_client=True,
+        un_ignore_list: list[str] | None = None,
+        ignore_custom_device_definition_models: list[str] | None = None,
+    ) -> tuple[CentralUnit, Client | Mock]:
+        """Return a central based on give address_device_translation."""
+        central = await self.get_unpatched_default_central(
+            un_ignore_list=un_ignore_list,
+            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+        )
+
+        await self._xml_proxy.do_init()
+        patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy).start()
+        patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
+
+        # Optionally patch client creation to return a mocked client
+        if do_mock_client:
+            _orig_create_client = ClientConfig.create_client
+
+            async def _mocked_create_client(self: ClientConfig) -> Client | Mock:
+                real_client = await _orig_create_client(self)
+                return get_mock(real_client)
+
+            patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
+
+        await central.start()
+
+        client = central.primary_client
         assert central
         assert client
         return central, client

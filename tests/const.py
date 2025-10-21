@@ -12,6 +12,9 @@ CCU_PORT = 2002
 CCU_MINI_PORT = 2003
 INTERFACE_ID = f"{CENTRAL_NAME}-{Interface.BIDCOS_RF}"
 
+FULL_SESSION_RANDOMIZED_PYDEVCCU = "full_session_randomized_pydevccu.zip"
+FULL_SESSION_RANDOMIZED_CCU = "full_session_randomized_ccu.zip"
+
 
 SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(

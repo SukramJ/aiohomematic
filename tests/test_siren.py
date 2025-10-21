@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 
@@ -38,10 +36,10 @@ TEST_DEVICES: dict[str, str] = {
     ],
 )
 async def test_ceipsiren(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpIpSiren."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     siren: CustomDpIpSiren = cast(CustomDpIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
@@ -149,10 +147,10 @@ async def test_ceipsiren(
     ],
 )
 async def test_ceipsirensmoke(
-    central_client_factory: tuple[CentralUnit, Client | Mock, helper.Factory],
+    central_client_factory_with_local_client,
 ) -> None:
     """Test CustomDpIpSirenSmoke."""
-    central, mock_client, _ = central_client_factory
+    central, mock_client, _ = central_client_factory_with_local_client
     siren: CustomDpIpSirenSmoke = cast(
         CustomDpIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
     )

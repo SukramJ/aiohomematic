@@ -6,14 +6,19 @@ import asyncio
 from collections.abc import AsyncGenerator, Generator
 import logging
 import os
+from typing import cast
 from unittest.mock import Mock, patch
 
 from aiohttp import ClientSession
+import orjson
 import pydevccu
 import pytest
 
 from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
+from aiohomematic.client import BaseRpcProxy, Client
+from aiohomematic.client.rpc_proxy import _RpcMethod
+from aiohomematic.const import UTF_8, RPCType
+from aiohomematic.store import SessionRecorder
 
 from tests import const, helper
 from tests.helpers.mock_json_rpc import MockJsonRpc
@@ -224,18 +229,18 @@ async def mock_json_rpc_server() -> AsyncGenerator[tuple[MockJsonRpc, str]]:
 
 
 @pytest.fixture
-async def session_recorder_from_full_session_ccu():
+async def session_recorder_from_full_session_ccu() -> SessionRecorder:
     """Provide a SessionRecorder preloaded from the randomized full session JSON file."""
     return await _session_recorder_session(file_name=const.FULL_SESSION_RANDOMIZED_CCU)
 
 
 @pytest.fixture
-async def session_recorder_from_full_session_pydevccu():
+async def session_recorder_from_full_session_pydevccu() -> SessionRecorder:
     """Provide a SessionRecorder preloaded from the randomized full session JSON file."""
     return await _session_recorder_session(file_name=const.FULL_SESSION_RANDOMIZED_PYDEVCCU)
 
 
-async def _session_recorder_session(file_name: str):
+async def _session_recorder_session(*, file_name: str) -> SessionRecorder:
     """Provide a SessionRecorder preloaded from the randomized full session JSON file."""
 
     # Lightweight stubs to satisfy BasePersistentFile requirements without spinning up a full CentralUnit.
@@ -260,8 +265,6 @@ async def _session_recorder_session(file_name: str):
             self.devices: list = []
             self.looper = _LooperStub()
 
-    from aiohomematic.store import SessionRecorder
-
     central = _CentralStub()
     # ttl_seconds=0 -> no expiry in tests; refresh_on_get disabled for deterministic reads
     recorder = SessionRecorder(central=central, active=False, ttl_seconds=0, refresh_on_get=False)
@@ -272,29 +275,28 @@ async def _session_recorder_session(file_name: str):
 
 
 @pytest.fixture
-async def client_session_from_full_session_ccu(session_recorder_from_full_session_ccu):
+async def client_session_from_full_session_ccu(
+    session_recorder_from_full_session_ccu: SessionRecorder,
+) -> ClientSession:
     """Return a ClientSession-like fixture that answers via SessionRecorder (JSON-RPC)."""
-    return await _client_session(session_recorder_from_full_session_ccu)
+    return await _client_session(recorder=session_recorder_from_full_session_ccu)
 
 
 @pytest.fixture
-async def client_session_from_full_session_pydevccu(session_recorder_from_full_session_pydevccu):
+async def client_session_from_full_session_pydevccu(
+    session_recorder_from_full_session_pydevccu: SessionRecorder,
+) -> ClientSession:
     """Return a ClientSession-like fixture that answers via SessionRecorder (JSON-RPC)."""
-    return await _client_session(session_recorder_from_full_session_pydevccu)
+    return await _client_session(recorder=session_recorder_from_full_session_pydevccu)
 
 
-async def _client_session(session_recorder_from_full_session):
+async def _client_session(*, recorder: SessionRecorder) -> ClientSession:
     """
     Provide a ClientSession-like fixture that answers via SessionRecorder (JSON-RPC).
 
     Any POST request will be answered by looking up the latest recorded
     JSON-RPC response in the session recorder using the provided method and params.
     """
-    import orjson
-
-    from aiohomematic.const import UTF_8, RPCType
-
-    recorder = session_recorder_from_full_session
 
     class _MockResponse:
         def __init__(self, json_data: dict | None) -> None:
@@ -337,22 +339,26 @@ async def _client_session(session_recorder_from_full_session):
         async def close(self) -> None:  # compatibility
             return None
 
-    return _MockClientSession()
+    return cast(ClientSession, _MockClientSession())
 
 
 @pytest.fixture
-async def aio_xml_rpc_proxy_from_full_session_ccu(session_recorder_from_full_session_ccu):
+async def aio_xml_rpc_proxy_from_full_session_ccu(
+    session_recorder_from_full_session_ccu: SessionRecorder,
+) -> BaseRpcProxy:
     """Return an AioXmlRpcProxy-like fixture that answers via SessionRecorder (XML-RPC)."""
-    return await _aio_xml_rpc_proxy(session_recorder_from_full_session_ccu)
+    return await _aio_xml_rpc_proxy(recorder=session_recorder_from_full_session_ccu)
 
 
 @pytest.fixture
-async def aio_xml_rpc_proxy_from_full_session_pydevccu(session_recorder_from_full_session_pydevccu):
+async def aio_xml_rpc_proxy_from_full_session_pydevccu(
+    session_recorder_from_full_session_pydevccu: SessionRecorder,
+) -> BaseRpcProxy:
     """Return an AioXmlRpcProxy-like fixture that answers via SessionRecorder (XML-RPC)."""
-    return await _aio_xml_rpc_proxy(session_recorder_from_full_session_pydevccu)
+    return await _aio_xml_rpc_proxy(recorder=session_recorder_from_full_session_pydevccu)
 
 
-async def _aio_xml_rpc_proxy(session_recorder_from_full_session_ccu):
+async def _aio_xml_rpc_proxy(*, recorder: SessionRecorder) -> BaseRpcProxy:
     """
     Provide an AioXmlRpcProxy-like fixture that answers via SessionRecorder (XML-RPC).
 
@@ -360,10 +366,6 @@ async def _aio_xml_rpc_proxy(session_recorder_from_full_session_ccu):
     will be answered by looking up the latest recorded XML-RPC response
     in the session recorder using the provided method and positional params.
     """
-    from aiohomematic.client.rpc_proxy import _RpcMethod
-    from aiohomematic.const import RPCType
-
-    recorder = session_recorder_from_full_session_ccu
 
     class _XmlMethod:
         def __init__(self, full_name: str, caller):
@@ -410,4 +412,4 @@ async def _aio_xml_rpc_proxy(session_recorder_from_full_session_ccu):
                 supported_methods.append(_RpcMethod.PING)
                 self._supported_methods = tuple(supported_methods)
 
-    return _AioXmlRpcProxyFromRecorder()
+    return cast(BaseRpcProxy, _AioXmlRpcProxyFromRecorder())

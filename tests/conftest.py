@@ -162,7 +162,6 @@ async def central_client_factory_with_ccu_client(
 ) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, helper.FactoryWithClient]]:
     """Yield central factory using CCU session and XML-RPC proxy."""
     async for result in _central_client_factory(
-        port=port,
         un_ignore_list=un_ignore_list,
         client_session=client_session_from_full_session_ccu,
         aio_xml_rpc_proxy=aio_xml_rpc_proxy_from_full_session_ccu,
@@ -172,13 +171,11 @@ async def central_client_factory_with_ccu_client(
 
 @pytest.fixture
 async def central_client_factory_with_pydevccu_client(
-    port: int,
     un_ignore_list: list[str] | None,
     aio_xml_rpc_proxy_from_full_session_pydevccu,
 ) -> Generator[tuple[CentralUnit, Client | Mock, helper.FactoryWithClient]]:
     """Yield central factory using pydevccu XML-RPC proxy."""
     async for result in _central_client_factory(
-        port=port,
         un_ignore_list=un_ignore_list,
         client_session=None,
         aio_xml_rpc_proxy=aio_xml_rpc_proxy_from_full_session_pydevccu,
@@ -187,7 +184,6 @@ async def central_client_factory_with_pydevccu_client(
 
 
 async def _central_client_factory(
-    port: int,
     un_ignore_list: list[str] | None,
     client_session,
     aio_xml_rpc_proxy,
@@ -195,7 +191,6 @@ async def _central_client_factory(
     """Return central factory."""
     factory = helper.FactoryWithClient(client_session=client_session, xml_proxy=aio_xml_rpc_proxy)
     central_client = await factory.get_default_central(
-        port=port,
         un_ignore_list=un_ignore_list,
     )
     central, client = central_client

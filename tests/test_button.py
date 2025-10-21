@@ -22,12 +22,9 @@ TEST_DEVICES: dict[str, str] = {
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    (
-        "port",
-        "un_ignore_list",
-    ),
+    "un_ignore_list",
     [
-        (const.CCU_MINI_PORT, None),
+        None,
     ],
 )
 async def test_hmbutton2(

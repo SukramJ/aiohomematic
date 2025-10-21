@@ -190,7 +190,6 @@ class FactoryWithClient:
     async def get_unpatched_default_central(
         self,
         *,
-        port: int,
         un_ignore_list: list[str] | None = None,
         ignore_custom_device_definition_models: list[str] | None = None,
     ) -> CentralUnit:
@@ -198,7 +197,7 @@ class FactoryWithClient:
         interface_config = InterfaceConfig(
             central_name=const.CENTRAL_NAME,
             interface=aiohomematic_const.Interface.BIDCOS_RF,
-            port=port,
+            port=2001,
         )
 
         central = await self.get_raw_central(
@@ -213,14 +212,12 @@ class FactoryWithClient:
     async def get_default_central(
         self,
         *,
-        port: int = const.CCU_MINI_PORT,
         do_mock_client=True,
         un_ignore_list: list[str] | None = None,
         ignore_custom_device_definition_models: list[str] | None = None,
     ) -> tuple[CentralUnit, Client | Mock]:
         """Return a central based on give address_device_translation."""
         central = await self.get_unpatched_default_central(
-            port=port,
             un_ignore_list=un_ignore_list,
             ignore_custom_device_definition_models=ignore_custom_device_definition_models,
         )
@@ -229,8 +226,19 @@ class FactoryWithClient:
         patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy).start()
         patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
 
+        # Optionally patch client creation to return a mocked client
+        if do_mock_client:
+            _orig_create_client = ClientConfig.create_client
+
+            async def _mocked_create_client(self: ClientConfig) -> Client | Mock:
+                real_client = await _orig_create_client(self)
+                return get_mock(real_client)
+
+            patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
+
         await central.start()
-        client = get_mock(central.primary_client) if do_mock_client else central.primary_client
+
+        client = central.primary_client
         assert central
         assert client
         return central, client

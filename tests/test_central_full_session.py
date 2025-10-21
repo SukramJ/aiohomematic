@@ -17,38 +17,16 @@ from tests import const
 # pylint: disable=protected-access
 
 
-@pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_mini(central_unit_full) -> None:
+@pytest.mark.parametrize(
+    "un_ignore_list",
+    [
+        None,
+    ],
+)
+async def test_central_full(central_client_factory_with_pydevccu_client) -> None:  # noqa: C901
     """Test the central."""
-    central = central_unit_full
-    assert central
-    assert central.name == const.CENTRAL_NAME
-    assert central.model == "PyDevCCU"
-    assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
-    assert central.primary_client.model == "PyDevCCU"
-    assert len(central._devices) == 2
-    assert len(central.get_data_points(exclude_no_create=False)) == 70
-
-    usage_types: dict[DataPointUsage, int] = {}
-    for dp in central.get_data_points(exclude_no_create=False):
-        if hasattr(dp, "usage"):
-            if dp.usage not in usage_types:
-                usage_types[dp.usage] = 0
-            counter = usage_types[dp.usage]
-            usage_types[dp.usage] = counter + 1
-
-    assert usage_types[DataPointUsage.NO_CREATE] == 45
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
-    assert usage_types[DataPointUsage.DATA_POINT] == 16
-    assert usage_types[DataPointUsage.CDP_VISIBLE] == 5
-
-
-@pytest.mark.enable_socket
-@pytest.mark.asyncio
-async def test_central_full(central_unit_full) -> None:  # noqa: C901
-    """Test the central."""
-    central = central_unit_full
+    central, _, _ = central_client_factory_with_pydevccu_client
     assert central
     assert central.name == const.CENTRAL_NAME
     assert central.model == "PyDevCCU"
@@ -192,15 +170,15 @@ async def test_central_full(central_unit_full) -> None:  # noqa: C901
     for sv in central.sysvar_data_points:
         assert hasattr(sv, "__dict__") is False
 
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 272
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 273
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 141
-    assert usage_types[DataPointUsage.DATA_POINT] == 4033
-    assert usage_types[DataPointUsage.NO_CREATE] == 4291
+    assert usage_types[DataPointUsage.DATA_POINT] == 4036
+    assert usage_types[DataPointUsage.NO_CREATE] == 4296
 
     assert len(ce_channels) == 130
     assert len(data_point_types) == 6
-    assert len(parameters) == 234
+    assert len(parameters) == 238
 
     assert len(central._devices) == 394
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

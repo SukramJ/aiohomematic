@@ -10,8 +10,7 @@ import pytest
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpSelect
 from aiohomematic.model.hub import SysvarDpSelect
-
-from tests import const
+from aiohomematic_test_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU6354483": "HmIP-STHD.json",

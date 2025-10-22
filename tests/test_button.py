@@ -10,8 +10,7 @@ import pytest
 from aiohomematic.const import DataPointUsage, ParamsetKey, ProgramData
 from aiohomematic.model.generic import DpButton
 from aiohomematic.model.hub import ProgramDpButton
-
-from tests import const
+from aiohomematic_test_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU1437294": "HmIP-SMI.json",

@@ -1,10 +1,10 @@
-# This extend our general Ruff rules specifically for aiohomematic_support
+# This extend our general Ruff rules specifically for aiohomematic_test_support
 extend = "../pyproject.toml"
 
 [lint.isort]
 known-first-party = [
     "aiohomematic",
-    "aiohomematic_support"
+    "aiohomematic_test_support"
 ]
 
 known-third-party = [

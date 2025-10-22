@@ -12,7 +12,7 @@ from aiohomematic import const
 from aiohomematic.central import CentralConfig
 from aiohomematic.client import ClientConfig, InterfaceConfig
 from aiohomematic.model.custom import validate_custom_data_point_definition
-from aiohomematic_support.client_local import ClientLocal, LocalRessources
+from aiohomematic_test_support.client_local import ClientLocal, LocalRessources
 
 logging.basicConfig(level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)

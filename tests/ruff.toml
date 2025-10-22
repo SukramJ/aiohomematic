@@ -24,7 +24,7 @@ lint.extend-ignore = [
 [lint.isort]
 known-first-party = [
     "aiohomematic",
-    "aiohomematic_support",
+    "aiohomematic_test_support",
     "tests",
     "script",
 ]

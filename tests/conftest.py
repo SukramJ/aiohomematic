@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Generator
 import logging
-import os
 from unittest.mock import Mock, patch
 
 from aiohttp import ClientSession
@@ -13,9 +12,16 @@ import pytest
 
 from aiohomematic.central import CentralUnit
 from aiohomematic.client import Client
-from aiohomematic_support.client_support import SessionPlayer, get_session_player
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import (
+    FactoryWithClient,
+    FactoryWithLocalClient,
+    SessionPlayer,
+    get_central_client_factory,
+    get_pydev_ccu_central_unit_full,
+    get_session_player,
+)
 
-from tests import const, helper
 from tests.helpers.mock_json_rpc import MockJsonRpc
 from tests.helpers.mock_xml_rpc import MockXmlRpcServer
 
@@ -55,7 +61,7 @@ def pydev_ccu_mini() -> pydevccu.Server:
 @pytest.fixture
 async def central_unit_mini(pydev_ccu_mini: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
-    central = await helper.get_pydev_ccu_central_unit_full(port=const.CCU_MINI_PORT)
+    central = await get_pydev_ccu_central_unit_full(port=const.CCU_MINI_PORT)
     try:
         yield central
     finally:
@@ -73,7 +79,7 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
     def backend_system_callback(*args, **kwargs):
         """Do dummy backend_system_callback."""
 
-    central = await helper.get_pydev_ccu_central_unit_full(port=const.CCU_PORT)
+    central = await get_pydev_ccu_central_unit_full(port=const.CCU_PORT)
 
     unregister_homematic_callback = central.register_homematic_callback(cb=homematic_callback)
     unregister_backend_system_callback = central.register_backend_system_callback(cb=backend_system_callback)
@@ -88,9 +94,9 @@ async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
 
 
 @pytest.fixture
-async def factory_with_local_client() -> helper.FactoryWithLocalClient:
+async def factory_with_local_client() -> FactoryWithLocalClient:
     """Return central factory."""
-    return helper.FactoryWithLocalClient()
+    return FactoryWithLocalClient()
 
 
 @pytest.fixture
@@ -112,9 +118,9 @@ async def central_client_factory_with_local_client(
     add_programs: bool,
     ignore_devices_on_create: list[str] | None,
     un_ignore_list: list[str] | None,
-) -> tuple[CentralUnit, Client | Mock, helper.FactoryWithLocalClient]:
+) -> tuple[CentralUnit, Client | Mock, FactoryWithLocalClient]:
     """Return central factory."""
-    factory = helper.FactoryWithLocalClient()
+    factory = FactoryWithLocalClient()
     central_client = await factory.get_default_central(
         port=port,
         address_device_translation=address_device_translation,
@@ -139,7 +145,7 @@ async def central_client_factory_with_ccu_client(
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
     un_ignore_list: list[str] | None,
-) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, helper.FactoryWithClient]]:
+) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
     """Yield central factory using CCU session and XML-RPC proxy."""
     async for result in get_central_client_factory(
         recorder=session_recorder_from_full_session_ccu,
@@ -159,7 +165,7 @@ async def central_client_factory_with_pydevccu_client(
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
     un_ignore_list: list[str] | None,
-) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, helper.FactoryWithClient]]:
+) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
     """Yield central factory using pydevccu XML-RPC proxy."""
     async for result in get_central_client_factory(
         recorder=session_recorder_from_full_session_pydevccu,
@@ -170,33 +176,6 @@ async def central_client_factory_with_pydevccu_client(
         un_ignore_list=un_ignore_list,
     ):
         yield result
-
-
-async def get_central_client_factory(
-    recorder: SessionPlayer,
-    address_device_translation: dict[str, str],
-    do_mock_client: bool,
-    ignore_devices_on_create: list[str] | None,
-    ignore_custom_device_definition_models: list[str] | None,
-    un_ignore_list: list[str] | None,
-) -> tuple[CentralUnit, Client | Mock, helper.FactoryWithClient]:
-    """Return central factory."""
-    factory = helper.FactoryWithClient(
-        recorder=recorder,
-        address_device_translation=address_device_translation,
-        ignore_devices_on_create=ignore_devices_on_create,
-    )
-    central_client = await factory.get_default_central(
-        do_mock_client=do_mock_client,
-        ignore_custom_device_definition_models=ignore_custom_device_definition_models,
-        un_ignore_list=un_ignore_list,
-    )
-    central, client = central_client
-    try:
-        yield central, client, factory
-    finally:
-        await central.stop()
-        await central.clear_files()
 
 
 @pytest.fixture
@@ -224,12 +203,10 @@ async def mock_json_rpc_server() -> AsyncGenerator[tuple[MockJsonRpc, str]]:
 @pytest.fixture
 async def session_recorder_from_full_session_ccu() -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
-    file_path = os.path.join(os.path.dirname(__file__), "data", const.FULL_SESSION_RANDOMIZED_CCU)
-    return await get_session_player(file_path=file_path)
+    return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_CCU)
 
 
 @pytest.fixture
 async def session_recorder_from_full_session_pydevccu() -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
-    file_path = os.path.join(os.path.dirname(__file__), "data", const.FULL_SESSION_RANDOMIZED_PYDEVCCU)
-    return await get_session_player(file_path=file_path)
+    return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_PYDEVCCU)

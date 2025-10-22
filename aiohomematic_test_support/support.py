@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
+from collections.abc import AsyncGenerator
 import contextlib
 import importlib.resources
+import json
 import logging
 import os
 from typing import Any, Final, cast
 from unittest.mock import MagicMock, Mock, patch
+import zipfile
 
 from aiohttp import ClientSession
 import orjson
 
-from aiohomematic import const as aiohomematic_const
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.client import BaseRpcProxy, Client, ClientConfig, InterfaceConfig
 from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
@@ -22,21 +25,22 @@ from aiohomematic.const import (
     LOCAL_HOST,
     UTF_8,
     BackendSystemEvent,
+    DataOperationResult,
     Interface,
     Parameter,
+    ParamsetKey,
     RPCType,
     SourceOfDeviceCreation,
 )
 from aiohomematic.model.custom import CustomDataPoint
-from aiohomematic_support.client_local import ClientLocal, LocalRessources
-from aiohomematic_support.client_support import SessionPlayer
-
-from tests import const
+from aiohomematic.store.persistent import _freeze_params, _unfreeze_params
+from aiohomematic_test_support import const
+from aiohomematic_test_support.client_local import ClientLocal, LocalRessources
 
 _LOGGER = logging.getLogger(__name__)
 
-EXCLUDE_METHODS_FROM_MOCKS: Final = []
-INCLUDE_PROPERTIES_IN_MOCKS: Final = []
+EXCLUDE_METHODS_FROM_MOCKS: Final[list[str]] = []
+INCLUDE_PROPERTIES_IN_MOCKS: Final[list[str]] = []
 
 
 # pylint: disable=protected-access
@@ -66,8 +70,8 @@ class FactoryWithLocalClient:
             central_id="test1234",
             interface_configs=interface_configs,
             client_session=self._client_session,
-            un_ignore_list=un_ignore_list,
-            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+            un_ignore_list=frozenset(un_ignore_list or []),
+            ignore_custom_device_definition_models=frozenset(ignore_custom_device_definition_models or []),
             start_direct=True,
         ).create_central()
 
@@ -89,7 +93,7 @@ class FactoryWithLocalClient:
         """Return a central based on give address_device_translation."""
         interface_config = InterfaceConfig(
             central_name=const.CENTRAL_NAME,
-            interface=aiohomematic_const.Interface.BIDCOS_RF,
+            interface=Interface.BIDCOS_RF,
             port=port,
         )
 
@@ -141,11 +145,11 @@ class FactoryWithLocalClient:
         patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client).start()
         patch("aiohomematic.client.ClientConfig.create_client", return_value=client).start()
         patch(
-            "aiohomematic_support.client_local.ClientLocal.get_all_system_variables",
+            "aiohomematic_test_support.client_local.ClientLocal.get_all_system_variables",
             return_value=const.SYSVAR_DATA if add_sysvars else [],
         ).start()
         patch(
-            "aiohomematic_support.client_local.ClientLocal.get_all_programs",
+            "aiohomematic_test_support.client_local.ClientLocal.get_all_programs",
             return_value=const.PROGRAM_DATA if add_programs else [],
         ).start()
         patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
@@ -201,8 +205,8 @@ class FactoryWithClient:
             central_id="test1234",
             interface_configs=interface_configs,
             client_session=self._client_session,
-            un_ignore_list=un_ignore_list,
-            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+            un_ignore_list=frozenset(un_ignore_list or []),
+            ignore_custom_device_definition_models=frozenset(ignore_custom_device_definition_models or []),
             start_direct=True,
         ).create_central()
 
@@ -220,7 +224,7 @@ class FactoryWithClient:
         """Return a central based on give address_device_translation."""
         interface_config = InterfaceConfig(
             central_name=const.CENTRAL_NAME,
-            interface=aiohomematic_const.Interface.BIDCOS_RF,
+            interface=Interface.BIDCOS_RF,
             port=2001,
         )
 
@@ -231,14 +235,14 @@ class FactoryWithClient:
         )
 
         assert central
-        self._client_session.set_central(central=central)
+        self._client_session.set_central(central=central)  # type: ignore[attr-defined]
         self._xml_proxy.set_central(central=central)
         return central
 
     async def get_default_central(
         self,
         *,
-        do_mock_client=True,
+        do_mock_client: bool = True,
         un_ignore_list: list[str] | None = None,
         ignore_custom_device_definition_models: list[str] | None = None,
     ) -> tuple[CentralUnit, Client | Mock]:
@@ -258,7 +262,7 @@ class FactoryWithClient:
 
             async def _mocked_create_client(self: ClientConfig) -> Client | Mock:
                 real_client = await _orig_create_client(self)
-                return get_mock(real_client)
+                return cast(Mock, get_mock(real_client))
 
             patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
 
@@ -268,44 +272,6 @@ class FactoryWithClient:
         assert central
         assert client
         return central, client
-
-
-def get_prepared_custom_data_point(
-    central: CentralUnit, address: str, channel_no: int | None
-) -> CustomDataPoint | None:
-    """Return the hm custom_data_point."""
-    if cdp := central.get_custom_data_point(address=address, channel_no=channel_no):
-        for dp in cdp._data_points.values():
-            dp._state_uncertain = False
-        return cdp
-    return None
-
-
-def load_device_description(file_name: str) -> Any:
-    """Load device description."""
-    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
-    assert dev_desc
-    return dev_desc
-
-
-def get_mock(instance: Any, **kwargs):
-    """Create a mock and copy instance attributes over mock."""
-    if isinstance(instance, Mock):
-        instance.__dict__.update(instance._mock_wraps.__dict__)
-        return instance
-    mock = MagicMock(spec=instance, wraps=instance, **kwargs)
-    mock.__dict__.update(instance.__dict__)
-    try:
-        for method_name in [
-            prop
-            for prop in _get_not_mockable_method_names(instance)
-            if prop not in INCLUDE_PROPERTIES_IN_MOCKS and prop not in kwargs
-        ]:
-            setattr(mock, method_name, getattr(instance, method_name))
-    except Exception:
-        pass
-    finally:
-        return mock
 
 
 def _get_not_mockable_method_names(instance: Any) -> set[str]:
@@ -335,49 +301,9 @@ def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:
     package_path = str(importlib.resources.files(anchor))
     with open(
         file=os.path.join(package_path, resource, file_name),
-        encoding=aiohomematic_const.UTF_8,
+        encoding=UTF_8,
     ) as fptr:
         return orjson.loads(fptr.read())
-
-
-async def get_pydev_ccu_central_unit_full(
-    port: int,
-    client_session: ClientSession | None = None,
-) -> CentralUnit:
-    """Create and yield central, after all devices have been created."""
-    device_event = asyncio.Event()
-
-    def systemcallback(system_event, *args, **kwargs):
-        if system_event == BackendSystemEvent.DEVICES_CREATED:
-            device_event.set()
-
-    interface_configs = {
-        InterfaceConfig(
-            central_name=const.CENTRAL_NAME,
-            interface=Interface.BIDCOS_RF,
-            port=port,
-        )
-    }
-
-    central = CentralConfig(
-        name=const.CENTRAL_NAME,
-        host=const.CCU_HOST,
-        username=const.CCU_USERNAME,
-        password=const.CCU_PASSWORD,
-        central_id="test1234",
-        interface_configs=interface_configs,
-        client_session=client_session,
-        program_markers=(),
-        sysvar_markers=(),
-    ).create_central()
-    central.register_backend_system_callback(cb=systemcallback)
-    await central.start()
-
-    # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available
-    with contextlib.suppress(TimeoutError):
-        await asyncio.wait_for(device_event.wait(), timeout=60)
-
-    return central
 
 
 def _get_client_session(
@@ -403,7 +329,7 @@ def _get_client_session(
             }
             self.status = 200
 
-        async def json(self, encoding: str | None = None):  # mimic aiohttp API
+        async def json(self, encoding: str | None = None) -> dict[str, Any]:  # mimic aiohttp API
             return self._json
 
         async def read(self) -> bytes:
@@ -419,8 +345,14 @@ def _get_client_session(
             self._central = central
 
         async def post(
-            self, *, url: str, data: bytes | bytearray | str | None = None, headers=None, timeout=None, ssl=None
-        ):
+            self,
+            *,
+            url: str,
+            data: bytes | bytearray | str | None = None,
+            headers: Any = None,
+            timeout: Any = None,  # noqa: ASYNC109
+            ssl: Any = None,
+        ) -> _MockResponse:
             # Payload is produced by AioJsonRpcAioHttpClient via orjson.dumps
             if isinstance(data, (bytes, bytearray)):
                 payload = orjson.loads(data)
@@ -442,16 +374,16 @@ def _get_client_session(
                     )
                     return _MockResponse({"result": "200"})
                 if method == _JsonRpcMethod.INTERFACE_PUT_PARAMSET:
-                    if params[_JsonKey.PARAMSET_KEY] == aiohomematic_const.ParamsetKey.VALUES:
+                    if params[_JsonKey.PARAMSET_KEY] == ParamsetKey.VALUES:
                         interface_id = params[_JsonKey.INTERFACE]
                         channel_address = params[_JsonKey.ADDRESS]
                         values = params[_JsonKey.SET]
-                        for param, param in values.items():
+                        for param, value in values.items():
                             await self._central.data_point_event(
                                 interface_id=interface_id,
                                 channel_address=channel_address,
                                 parameter=param,
-                                value=param,
+                                value=value,
                             )
                     return _MockResponse({"result": "200"})
 
@@ -489,15 +421,15 @@ def _get_xml_rpc_proxy(  # noqa: C901
     """
 
     class _Method:
-        def __init__(self, full_name: str, caller):
+        def __init__(self, full_name: str, caller: Any) -> None:
             self._name = full_name
             self._caller = caller
 
-        def __getattr__(self, sub: str):
+        def __getattr__(self, sub: str) -> _Method:
             # Allow chaining like proxy.system.listMethods
             return _Method(f"{self._name}.{sub}", self._caller)
 
-        async def __call__(self, *args):
+        async def __call__(self, *args: Any) -> Any:
             # Forward to caller with collected method name and positional params
             return await self._caller(self._name, *args)
 
@@ -520,7 +452,7 @@ def _get_xml_rpc_proxy(  # noqa: C901
             """Set a value."""
             if self._central:
                 await self._central.data_point_event(
-                    interface_id=self._central.primary_client.interface_id,
+                    interface_id=self._central.primary_client.interface_id,  # type: ignore[union-attr]
                     channel_address=channel_address,
                     parameter=parameter,
                     value=value,
@@ -530,8 +462,8 @@ def _get_xml_rpc_proxy(  # noqa: C901
             self, channel_address: str, paramset_key: str, values: Any, rx_mode: Any | None = None
         ) -> None:
             """Set a paramset."""
-            if self._central and paramset_key == aiohomematic_const.ParamsetKey.VALUES:
-                interface_id = self._central.primary_client.interface_id
+            if self._central and paramset_key == ParamsetKey.VALUES:
+                interface_id = self._central.primary_client.interface_id  # type: ignore[union-attr]
                 for param, value in values.items():
                     await self._central.data_point_event(
                         interface_id=interface_id, channel_address=channel_address, parameter=param, value=value
@@ -551,7 +483,7 @@ def _get_xml_rpc_proxy(  # noqa: C901
             """Answer clientServerInitialized with pong."""
             await self.ping(callerId=interface_id)
 
-        async def listDevices(self) -> dict[str, Any]:
+        async def listDevices(self) -> list[Any]:
             """Return a list of devices."""
             devices = self._recorder.get_latest_response_by_params(
                 rpc_type=RPCType.XML_RPC,
@@ -561,7 +493,7 @@ def _get_xml_rpc_proxy(  # noqa: C901
 
             new_devices = []
             if ignore_devices_on_create is None and address_device_translation is None:
-                return devices
+                return cast(list[Any], devices)
 
             for device in devices:
                 if ignore_devices_on_create is not None and (
@@ -579,11 +511,11 @@ def _get_xml_rpc_proxy(  # noqa: C901
 
             return new_devices
 
-        def __getattr__(self, name: str):
+        def __getattr__(self, name: str) -> Any:
             # Start of method chain
             return _Method(name, self._invoke)
 
-        async def _invoke(self, method: str, *args):
+        async def _invoke(self, method: str, *args: Any) -> Any:
             params = tuple(args)
             return self._recorder.get_latest_response_by_params(
                 rpc_type=RPCType.XML_RPC,
@@ -602,3 +534,209 @@ def _get_xml_rpc_proxy(  # noqa: C901
                 self._supported_methods = tuple(supported_methods)
 
     return cast(BaseRpcProxy, _AioXmlRpcProxyFromRecorder())
+
+
+async def get_central_client_factory(
+    recorder: SessionPlayer,
+    address_device_translation: dict[str, str],
+    do_mock_client: bool,
+    ignore_devices_on_create: list[str] | None,
+    ignore_custom_device_definition_models: list[str] | None,
+    un_ignore_list: list[str] | None,
+) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
+    """Return central factory."""
+    factory = FactoryWithClient(
+        recorder=recorder,
+        address_device_translation=address_device_translation,
+        ignore_devices_on_create=ignore_devices_on_create,
+    )
+    central_client = await factory.get_default_central(
+        do_mock_client=do_mock_client,
+        ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+        un_ignore_list=un_ignore_list,
+    )
+    central, client = central_client
+    try:
+        yield central, client, factory
+    finally:
+        await central.stop()
+        await central.clear_files()
+
+
+def get_mock(instance: Any, **kwargs: Any) -> Any:
+    """Create a mock and copy instance attributes over mock."""
+    if isinstance(instance, Mock):
+        instance.__dict__.update(instance._mock_wraps.__dict__)
+        return instance
+    mock = MagicMock(spec=instance, wraps=instance, **kwargs)
+    mock.__dict__.update(instance.__dict__)
+    try:
+        for method_name in [
+            prop
+            for prop in _get_not_mockable_method_names(instance)
+            if prop not in INCLUDE_PROPERTIES_IN_MOCKS and prop not in kwargs
+        ]:
+            setattr(mock, method_name, getattr(instance, method_name))
+    except Exception:
+        pass
+
+    return mock
+
+
+def get_prepared_custom_data_point(central: CentralUnit, address: str, channel_no: int) -> CustomDataPoint | None:
+    """Return the hm custom_data_point."""
+    if cdp := central.get_custom_data_point(address=address, channel_no=channel_no):
+        for dp in cdp._data_points.values():
+            dp._state_uncertain = False
+        return cdp
+    return None
+
+
+async def get_pydev_ccu_central_unit_full(
+    port: int,
+    client_session: ClientSession | None = None,
+) -> CentralUnit:
+    """Create and yield central, after all devices have been created."""
+    device_event = asyncio.Event()
+
+    def systemcallback(system_event: Any, *args: Any, **kwargs: Any) -> None:
+        if system_event == BackendSystemEvent.DEVICES_CREATED:
+            device_event.set()
+
+    interface_configs = {
+        InterfaceConfig(
+            central_name=const.CENTRAL_NAME,
+            interface=Interface.BIDCOS_RF,
+            port=port,
+        )
+    }
+
+    central = CentralConfig(
+        name=const.CENTRAL_NAME,
+        host=const.CCU_HOST,
+        username=const.CCU_USERNAME,
+        password=const.CCU_PASSWORD,
+        central_id="test1234",
+        interface_configs=interface_configs,
+        client_session=client_session,
+        program_markers=(),
+        sysvar_markers=(),
+    ).create_central()
+    central.register_backend_system_callback(cb=systemcallback)
+    await central.start()
+
+    # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available
+    with contextlib.suppress(TimeoutError):
+        await asyncio.wait_for(device_event.wait(), timeout=60)
+
+    return central
+
+
+async def get_session_player(*, file_name: str) -> SessionPlayer:
+    """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
+    player = SessionPlayer(file_id=file_name)
+    file_path = os.path.join(os.path.dirname(__file__), "data", file_name)
+    await player.load(file_path=file_path)
+    return player
+
+
+def load_device_description(file_name: str) -> Any:
+    """Load device description."""
+    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
+    assert dev_desc
+    return dev_desc
+
+
+class SessionPlayer:
+    """Player for sessions."""
+
+    _store: dict[str, dict[str, dict[str, dict[str, dict[int, Any]]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
+    )
+
+    def __init__(self, *, file_id: str) -> None:
+        """Initialize the session recorder."""
+        self._file_id = file_id
+
+    async def load(self, *, file_path: str) -> DataOperationResult:
+        """
+        Load data from disk into the dictionary.
+
+        Supports plain JSON files and ZIP archives containing a JSON file.
+        When a ZIP archive is provided, the first JSON member inside the archive
+        will be loaded.
+        """
+
+        if self._store[self._file_id]:
+            return DataOperationResult.NO_LOAD
+
+        if not os.path.exists(file_path):
+            return DataOperationResult.NO_LOAD
+
+        def _perform_load() -> DataOperationResult:
+            try:
+                if zipfile.is_zipfile(file_path):
+                    with zipfile.ZipFile(file_path, mode="r") as zf:
+                        # Prefer json files; pick the first .json entry if available
+                        if not (json_members := [n for n in zf.namelist() if n.lower().endswith(".json")]):
+                            return DataOperationResult.LOAD_FAIL
+                        raw = zf.read(json_members[0]).decode(UTF_8)
+                        data = json.loads(raw)
+                else:
+                    with open(file=file_path, encoding=UTF_8) as file_pointer:
+                        data = json.loads(file_pointer.read())
+
+                self._store[self._file_id] = data
+            except (json.JSONDecodeError, zipfile.BadZipFile, UnicodeDecodeError, OSError):
+                return DataOperationResult.LOAD_FAIL
+            return DataOperationResult.LOAD_SUCCESS
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, _perform_load)
+
+    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+        """Return latest non-expired responses for a given (rpc_type, method)."""
+        result: list[Any] = []
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store[self._file_id].get(rpc_type)):
+            return result
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return result
+        # For each parameter, choose the response at the latest timestamp.
+        for frozen_params, bucket_by_ts in bucket_by_parameter.items():
+            if not bucket_by_ts:
+                continue
+            try:
+                latest_ts = max(bucket_by_ts.keys())
+            except ValueError:
+                continue
+            resp = bucket_by_ts[latest_ts]
+            params = _unfreeze_params(frozen_params=frozen_params)
+
+            result.append((params, resp))
+        return result
+
+    def get_latest_response_by_params(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+    ) -> Any:
+        """Return latest non-expired responses for a given (rpc_type, method, params)."""
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store[self._file_id].get(rpc_type)):
+            return None
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return None
+        frozen_params = _freeze_params(params=params)
+
+        # For each parameter, choose the response at the latest timestamp.
+        if (bucket_by_ts := bucket_by_parameter.get(frozen_params)) is None:
+            return None
+
+        try:
+            latest_ts = max(bucket_by_ts.keys())
+            return bucket_by_ts[latest_ts]
+        except ValueError:
+            return None

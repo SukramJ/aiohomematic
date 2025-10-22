@@ -1,64 +1,172 @@
-# This workflow will upload a Python Package to PyPI when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+# This workflow publishes the main AioHomematic package to PyPI when a GitHub Release is published,
+# and also creates a separate "support-vX.Y.Z" release that contains only the aiohomematic_test_support
+# folder as a ZIP PLUS an independently built support wheel/sdist (aiohomematic-support).
+#
+# Prereqs/assumptions:
+# - Root pyproject.toml excludes aiohomematic_test_support from prod builds (wheel/sdist).
+# - A minimal packaging setup exists at aiohomematic_test_support/{__init__.py, pyproject.toml}.
+# - Trusted Publishing to PyPI is configured for this repository.
+#
+# Result:
+# - Main Release tag: vX.Y.Z  -> uploads to PyPI.
+# - Support Release tag: support-vX.Y.Z -> attaches:
+#       * aiohomematic_test_support-vX.Y.Z.zip
+#       * aiohomematic_test_support-<version>-py3-none-any.whl
+#       * aiohomematic_test_support-<version>.tar.gz
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+name: Upload Python Package + Support Release
 
-name: Upload Python Package
-
-# yamllint disable-line rule:truthy
 on:
   release:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write # required to create tags/releases and upload assets
+  id-token: write # required for PyPI Trusted Publishing
 
 jobs:
+  # ==========================================================
+  # 1) MAIN BUILD JOB
+  #    - Builds the production distributions from the repo root
+  #    - Skips if the triggering tag already starts with "support-"
+  # ==========================================================
   release-build:
+    if: ${{ !startsWith(github.event.release.tag_name, 'support-') }}
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out repository
+        uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
-      - name: Build release distributions
+      - name: Build distributions (prod)
         run: |
-          # NOTE: put your own distribution build steps here.
+          python -m pip install --upgrade pip
           python -m pip install build
-          pip install -r requirements_test.txt
+          # Optional: if your tests requirements are needed for build steps
+          if [ -f requirements_test.txt ]; then pip install -r requirements_test.txt; fi
           python -m build
+          ls -l dist/
 
-      - name: Upload distributions
+      - name: Upload built distributions as artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-dists
           path: dist/
 
+  # ==========================================================
+  # 2) PYPI PUBLISH JOB
+  #    - Publishes the built distributions to PyPI (Trusted Publishing)
+  # ==========================================================
   pypi-publish:
+    if: ${{ !startsWith(github.event.release.tag_name, 'support-') }}
     runs-on: ubuntu-latest
-    needs:
-      - release-build
-    permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
-      id-token: write
-
+    needs: [release-build]
     environment:
       name: pypi
-
     steps:
-      - name: Retrieve release distributions
+      - name: Download built distributions
         uses: actions/download-artifact@v5
         with:
           name: release-dists
           path: dist/
 
-      - name: Publish release distributions to PyPI
+      - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+
+  # ==========================================================
+  # 3) SUPPORT RELEASE JOB
+  #    - Creates a separate support tag/release (support-vX.Y.Z)
+  #    - Zips only aiohomematic_test_support/ and also builds a real support package
+  # ==========================================================
+  support-release:
+    if: ${{ !startsWith(github.event.release.tag_name, 'support-') }}
+    runs-on: ubuntu-latest
+    needs: [release-build]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository (full history for tags)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # Make a ZIP that contains a top-level 'aiohomematic_test_support/' folder WITHOUT touching your real package dir
+      - name: Create support-only ZIP (stage into temp folder)
+        run: |
+          set -euo pipefail
+          rm -rf support_zip_stage
+          mkdir -p support_zip_stage
+          rsync -a --delete aiohomematic_test_support/ support_zip_stage/aiohomematic_test_support/
+          # If you also want to include non-.py files (e.g. py.typed, data), they’re already copied by rsync
+          (cd support_zip_stage && zip -r "../aiohomematic_test_support-${GITHUB_REF_NAME}.zip" aiohomematic_test_support)
+          ls -l "aiohomematic_test_support-${GITHUB_REF_NAME}.zip"
+
+      - name: Compute support version from main tag
+        id: vparse
+        run: |
+          RAW="${GITHUB_REF_NAME}"   # e.g. v1.2.3
+          VER="${RAW#v}"             # -> 1.2.3
+          echo "SUPPORT_VER=${VER}" >> "$GITHUB_OUTPUT"
+
+      # Ensure __init__.py exists in the real package dir and inject the version
+      - name: Inject version into aiohomematic_test_support/__init__.py
+        run: |
+          set -euo pipefail
+          VER="${{ steps.vparse.outputs.SUPPORT_VER }}"
+          if [ ! -f aiohomematic_test_support/__init__.py ]; then
+            echo '__version__ = "0.0.0"' > aiohomematic_test_support/__init__.py
+            echo "Created aiohomematic_test_support/__init__.py"
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("aiohomematic_test_support/__init__.py")
+          txt = p.read_text(encoding="utf-8")
+          if "__version__" not in txt:
+              txt = '__version__ = "0.0.0"\n' + txt
+          txt = re.sub(r'__version__\s*=\s*".*?"', f'__version__ = "${{ steps.vparse.outputs.SUPPORT_VER }}"', txt)
+          p.write_text(txt, encoding="utf-8")
+          print("Injected version into", p)
+          PY
+
+      # Build wheel + sdist from the REAL package folder
+      - name: Build support package (wheel + sdist)
+        working-directory: aiohomematic_test_support
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install build
+          python -m build
+          ls -l dist/
+
+      - name: Create & push support tag at the same commit
+        run: |
+          set -euo pipefail
+          SUPPORT_TAG="support-${GITHUB_REF_NAME}"
+          if ! git rev-parse -q --verify "refs/tags/${SUPPORT_TAG}" >/dev/null; then
+            MAIN_SHA="$(git rev-list -n 1 "${GITHUB_REF_NAME}")"
+            git tag "${SUPPORT_TAG}" "${MAIN_SHA}"
+            git push origin "${SUPPORT_TAG}"
+          fi
+
+      - name: Create/Update Support Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: support-${{ github.ref_name }}
+          name: "AioHomematic Support ${{ github.ref_name }}"
+          body: |
+            Support-only release for testing. Contains only the `aiohomematic_test_support` package.
+            This release is linked to main release ${{ github.ref_name }}.
+          prerelease: true
+          files: |
+            aiohomematic_test_support-${{ github.ref_name }}.zip
+            aiohomematic_test_support/dist/*.whl
+            aiohomematic_test_support/dist/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

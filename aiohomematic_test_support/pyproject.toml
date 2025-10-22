@@ -1,0 +1,36 @@
+# aiohomematic_test_support/pyproject.toml
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiohomematic-test-support"
+# Version is dynamic, read from the package at build time
+dynamic = ["version"]
+description = "Support-only package for AioHomematic (tests/dev). Not part of production builds."
+authors     = [
+    {name = "SukramJ", email = "sukramj@icloud.com"},
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.setuptools]
+# Keep the “no-move” layout: treat THIS directory as the package
+packages = ["aiohomematic_test_support"]
+package-dir = { "aiohomematic_test_support" = "." }
+
+[tool.setuptools.package-data]
+aiohomematic = ["py.typed", "data/*.json", "data/*.zip"]
+
+[tool.setuptools.dynamic]
+version = { attr = "aiohomematic_test_support.__version__" }
+
+[project.urls]
+Homepage = "https://github.com/SukramJ/aiohomematic"

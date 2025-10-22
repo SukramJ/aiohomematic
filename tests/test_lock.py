@@ -9,8 +9,8 @@ import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpLock, CustomDpRfLock
-
-from tests import const, helper
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU9724704": "HmIP-DLD.json",
@@ -39,7 +39,7 @@ async def test_cerflock(
 ) -> None:
     """Test CustomDpRfLock."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    lock: CustomDpRfLock = cast(CustomDpRfLock, helper.get_prepared_custom_data_point(central, "VCU0000146", 1))
+    lock: CustomDpRfLock = cast(CustomDpRfLock, get_prepared_custom_data_point(central, "VCU0000146", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
 
     assert lock.is_locked is True
@@ -123,7 +123,7 @@ async def test_ceiplock(
 ) -> None:
     """Test CustomDpIpLock."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    lock: CustomDpIpLock = cast(CustomDpIpLock, helper.get_prepared_custom_data_point(central, "VCU9724704", 1))
+    lock: CustomDpIpLock = cast(CustomDpIpLock, get_prepared_custom_data_point(central, "VCU9724704", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
     assert lock.service_method_names == ("lock", "open", "unlock")
 

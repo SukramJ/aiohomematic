@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools==80.9.0"]
+requires = ["setuptools>=80"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -46,8 +46,8 @@ include-package-data = true
 version = {attr = "aiohomematic.const.VERSION"}
 
 [tool.setuptools.packages.find]
-include = ["aiohomematic*"]
-exclude = ["tests", "tests.*", "dist", "build"]
+include = ["aiohomematic", "aiohomematic.*"]
+exclude = ["aiohomematic_test_support", "aiohomematic_test_support.*", "tests", "tests.*", "dist", "build"]
 
 [tool.setuptools.package-data]
 aiohomematic = ["py.typed", "rega_scripts/*.fn"]
@@ -390,7 +390,6 @@ max-line-length-suggestions = 120
 pythonpath = [
     ".",
     "aiohomematic",
-    "aiohomematic_support",
 ]
 testpaths = [
     "tests",

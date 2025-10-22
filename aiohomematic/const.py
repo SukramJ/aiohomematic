@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.11"
+VERSION: Final = "2025.10.12"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (

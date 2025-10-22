@@ -11,8 +11,8 @@ from aiohomematic.const import CallSource, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters, validate_custom_data_point_definition
 from aiohomematic.model.generic import DpSensor, DpSwitch
 from aiohomematic.store import check_ignore_parameters_is_clean
-
-from tests import const, helper
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
@@ -44,7 +44,7 @@ async def test_custom_data_point_callback(
 ) -> None:
     """Test CustomDpSwitch."""
     central, _, factory = central_client_factory_with_pydevccu_client
-    switch: CustomDpSwitch = cast(CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
+    switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
 
     device_updated_mock = MagicMock()
@@ -138,7 +138,7 @@ async def test_load_custom_data_point(
 ) -> None:
     """Test load custom_data_point."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    switch: DpSwitch = cast(DpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
+    switch: DpSwitch = cast(DpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-2] == call.get_value(
         channel_address="VCU2128127:4",

@@ -1,0 +1,14 @@
+# MANIFEST.in
+
+# Include the main package and important files
+graft aiohomematic
+include README.md
+include LICENSE
+
+# Exclude tests and build artifacts
+prune tests
+prune build
+prune dist
+
+# IMPORTANT: exclude support package from the sdist tarball
+prune aiohomematic_test_support

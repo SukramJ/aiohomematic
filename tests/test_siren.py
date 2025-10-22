@@ -9,8 +9,8 @@ import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
-
-from tests import const, helper
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU8249617": "HmIP-ASIR-2.json",
@@ -37,7 +37,7 @@ async def test_ceipsiren(
 ) -> None:
     """Test CustomDpIpSiren."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    siren: CustomDpIpSiren = cast(CustomDpIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3))
+    siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
 
@@ -145,9 +145,7 @@ async def test_ceipsirensmoke(
 ) -> None:
     """Test CustomDpIpSirenSmoke."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    siren: CustomDpIpSirenSmoke = cast(
-        CustomDpIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
-    )
+    siren: CustomDpIpSirenSmoke = cast(CustomDpIpSirenSmoke, get_prepared_custom_data_point(central, "VCU2822385", 1))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
 
     assert siren.is_on is False

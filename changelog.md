@@ -1,4 +1,9 @@
-# Version 2025.10.10 (2025-10-10)
+# Version 2025.10.11 (2025-10-22)
+
+- Refactor tests to use SessionPlayer instead of ClientLocal
+- Use recorded session for testing
+
+# Version 2025.10.10 (2025-10-19)
 
 - Add file_path to BasePersitentFile load
 - Add get_latest_response_by_params to session recorder

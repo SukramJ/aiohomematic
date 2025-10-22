@@ -24,23 +24,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_hmsensor_psm(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test HmSensor."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     sensor: DpSensor = cast(
         DpSensor, central.get_generic_data_point(channel_address="VCU3941846:6", parameter="VOLTAGE")
     )
@@ -99,23 +96,20 @@ async def test_hmsensor_psm(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_hmsensor_srh(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test HmSensor."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     sensor: DpSensor = cast(DpSensor, central.get_generic_data_point(channel_address="VCU7981740:1", parameter="STATE"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit is None

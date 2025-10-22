@@ -10,11 +10,7 @@ import pytest
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpAction
 
-from tests import const
-
-TEST_DEVICES: dict[str, str] = {
-    "VCU9724704": "HmIP-DLD.json",
-}
+TEST_DEVICES: list[str] = ["VCU9724704"]
 
 # pylint: disable=protected-access
 
@@ -22,23 +18,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_hmaction(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test HmAction."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     action: DpAction = cast(
         DpAction,
         central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),

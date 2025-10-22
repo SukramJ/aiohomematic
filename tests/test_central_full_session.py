@@ -19,9 +19,14 @@ from tests import const
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "un_ignore_list",
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
     [
-        None,
+        (None, True, None, None),
     ],
 )
 async def test_central_full(central_client_factory_with_pydevccu_client) -> None:  # noqa: C901

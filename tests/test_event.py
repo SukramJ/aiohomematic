@@ -23,23 +23,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_clickevent(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test ClickEvent."""
-    central, _, factory = central_client_factory_with_local_client
+    central, _, factory = central_client_factory_with_pydevccu_client
     event: ClickEvent = cast(ClickEvent, central.get_event(channel_address="VCU2128127:1", parameter="PRESS_SHORT"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.KEYPRESS
@@ -62,23 +59,20 @@ async def test_clickevent(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_impulseevent(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test ImpulseEvent."""
-    central, _, factory = central_client_factory_with_local_client
+    central, _, factory = central_client_factory_with_pydevccu_client
     event: ImpulseEvent = cast(ImpulseEvent, central.get_event(channel_address="VCU0000263:1", parameter="SEQUENCE_OK"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.IMPULSE
@@ -101,23 +95,20 @@ async def test_impulseevent(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_deviceerrorevent(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test DeviceErrorEvent."""
-    central, _, factory = central_client_factory_with_local_client
+    central, _, factory = central_client_factory_with_pydevccu_client
     event: DeviceErrorEvent = cast(
         DeviceErrorEvent,
         central.get_event(channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT"),

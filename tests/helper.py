@@ -7,7 +7,7 @@ import contextlib
 import importlib.resources
 import logging
 import os
-from typing import Any, Final
+from typing import Any, Final, cast
 from unittest.mock import MagicMock, Mock, patch
 
 from aiohttp import ClientSession
@@ -16,9 +16,20 @@ import orjson
 from aiohomematic import const as aiohomematic_const
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.client import BaseRpcProxy, Client, ClientConfig, InterfaceConfig
-from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, SourceOfDeviceCreation
+from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
+from aiohomematic.client.rpc_proxy import _RpcMethod
+from aiohomematic.const import (
+    LOCAL_HOST,
+    UTF_8,
+    BackendSystemEvent,
+    Interface,
+    Parameter,
+    RPCType,
+    SourceOfDeviceCreation,
+)
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic_support.client_local import ClientLocal, LocalRessources
+from aiohomematic_support.client_support import SessionPlayer
 
 from tests import const
 
@@ -26,7 +37,6 @@ _LOGGER = logging.getLogger(__name__)
 
 EXCLUDE_METHODS_FROM_MOCKS: Final = []
 INCLUDE_PROPERTIES_IN_MOCKS: Final = []
-GOT_DEVICES = False
 
 
 # pylint: disable=protected-access
@@ -153,10 +163,24 @@ class FactoryWithLocalClient:
 class FactoryWithClient:
     """Factory for a central with one local client."""
 
-    def __init__(self, *, client_session: ClientSession, xml_proxy: BaseRpcProxy):
+    def __init__(
+        self,
+        *,
+        recorder: SessionPlayer,
+        address_device_translation: dict[str, str] | None = None,
+        ignore_devices_on_create: list[str] | None = None,
+    ):
         """Init the central factory."""
-        self._client_session = client_session
-        self._xml_proxy = xml_proxy
+        self._client_session = _get_client_session(
+            recorder=recorder,
+            address_device_translation=address_device_translation,
+            ignore_devices_on_create=ignore_devices_on_create,
+        )
+        self._xml_proxy = _get_xml_rpc_proxy(
+            recorder=recorder,
+            address_device_translation=address_device_translation,
+            ignore_devices_on_create=ignore_devices_on_create,
+        )
         self.system_event_mock = MagicMock()
         self.ha_event_mock = MagicMock()
 
@@ -207,6 +231,8 @@ class FactoryWithClient:
         )
 
         assert central
+        self._client_session.set_central(central=central)
+        self._xml_proxy.set_central(central=central)
         return central
 
     async def get_default_central(
@@ -255,7 +281,7 @@ def get_prepared_custom_data_point(
     return None
 
 
-def load_device_description(central: CentralUnit, file_name: str) -> Any:
+def load_device_description(file_name: str) -> Any:
     """Load device description."""
     dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
     assert dev_desc
@@ -352,3 +378,227 @@ async def get_pydev_ccu_central_unit_full(
         await asyncio.wait_for(device_event.wait(), timeout=60)
 
     return central
+
+
+def _get_client_session(
+    *,
+    recorder: SessionPlayer,
+    address_device_translation: dict[str, str] | None = None,
+    ignore_devices_on_create: list[str] | None = None,
+) -> ClientSession:
+    """
+    Provide a ClientSession-like fixture that answers via SimpleSessionRecorder (JSON-RPC).
+
+    Any POST request will be answered by looking up the latest recorded
+    JSON-RPC response in the session recorder using the provided method and params.
+    """
+
+    class _MockResponse:
+        def __init__(self, json_data: dict | None) -> None:
+            # If no match is found, emulate backend error payload
+            self._json = json_data or {
+                "result": None,
+                "error": {"name": "-1", "code": -1, "message": "Not found in session recorder"},
+                "id": 0,
+            }
+            self.status = 200
+
+        async def json(self, encoding: str | None = None):  # mimic aiohttp API
+            return self._json
+
+        async def read(self) -> bytes:
+            return orjson.dumps(self._json)
+
+    class _MockClientSession:
+        def __init__(self) -> None:
+            """Initialize the mock client session."""
+            self._central: CentralUnit | None = None
+
+        def set_central(self, *, central: CentralUnit) -> None:
+            """Set the central."""
+            self._central = central
+
+        async def post(
+            self, *, url: str, data: bytes | bytearray | str | None = None, headers=None, timeout=None, ssl=None
+        ):
+            # Payload is produced by AioJsonRpcAioHttpClient via orjson.dumps
+            if isinstance(data, (bytes, bytearray)):
+                payload = orjson.loads(data)
+            elif isinstance(data, str):
+                payload = orjson.loads(data.encode(UTF_8))
+            else:
+                payload = {}
+
+            method = payload.get("method")
+            params = payload.get("params")
+
+            if self._central:
+                if method == _JsonRpcMethod.INTERFACE_SET_VALUE:
+                    await self._central.data_point_event(
+                        interface_id=params[_JsonKey.INTERFACE],
+                        channel_address=params[_JsonKey.ADDRESS],
+                        parameter=params[_JsonKey.VALUE_KEY],
+                        value=params[_JsonKey.VALUE],
+                    )
+                    return _MockResponse({"result": "200"})
+                if method == _JsonRpcMethod.INTERFACE_PUT_PARAMSET:
+                    if params[_JsonKey.PARAMSET_KEY] == aiohomematic_const.ParamsetKey.VALUES:
+                        interface_id = params[_JsonKey.INTERFACE]
+                        channel_address = params[_JsonKey.ADDRESS]
+                        values = params[_JsonKey.SET]
+                        for param, param in values.items():
+                            await self._central.data_point_event(
+                                interface_id=interface_id,
+                                channel_address=channel_address,
+                                parameter=param,
+                                value=param,
+                            )
+                    return _MockResponse({"result": "200"})
+
+            json_data = recorder.get_latest_response_by_params(
+                rpc_type=RPCType.JSON_RPC,
+                method=str(method) if method is not None else "",
+                params=params,
+            )
+            # if method == _JsonRpcMethod.INTERFACE_LIST_DEVICES:
+            #     if address_device_translation:
+            #         devices: dict[str, Any] = {}
+            #         for address, device in json_data["result"].items():
+            #             if address in address_device_translation:
+            #                 device["ADDRESS"] = address_device_translation[address]
+            return _MockResponse(json_data)
+
+        async def close(self) -> None:  # compatibility
+            return None
+
+    return cast(ClientSession, _MockClientSession())
+
+
+def _get_xml_rpc_proxy(  # noqa: C901
+    *,
+    recorder: SessionPlayer,
+    address_device_translation: dict[str, str] | None = None,
+    ignore_devices_on_create: list[str] | None = None,
+) -> BaseRpcProxy:
+    """
+    Provide an BaseRpcProxy-like fixture that answers via SimpleSessionRecorder (XML-RPC).
+
+    Any method call like: await proxy.system.listMethods(...)
+    will be answered by looking up the latest recorded XML-RPC response
+    in the session recorder using the provided method and positional params.
+    """
+
+    class _Method:
+        def __init__(self, full_name: str, caller):
+            self._name = full_name
+            self._caller = caller
+
+        def __getattr__(self, sub: str):
+            # Allow chaining like proxy.system.listMethods
+            return _Method(f"{self._name}.{sub}", self._caller)
+
+        async def __call__(self, *args):
+            # Forward to caller with collected method name and positional params
+            return await self._caller(self._name, *args)
+
+    class _AioXmlRpcProxyFromRecorder:
+        def __init__(self) -> None:
+            self._recorder = recorder
+            self._supported_methods: tuple[str, ...] = ()
+            self._central: CentralUnit | None = None
+
+        def set_central(self, *, central: CentralUnit) -> None:
+            """Set the central."""
+            self._central = central
+
+        @property
+        def supported_methods(self) -> tuple[str, ...]:
+            """Return the supported methods."""
+            return self._supported_methods
+
+        async def setValue(self, channel_address: str, parameter: str, value: Any, rx_mode: Any | None = None) -> None:
+            """Set a value."""
+            if self._central:
+                await self._central.data_point_event(
+                    interface_id=self._central.primary_client.interface_id,
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    value=value,
+                )
+
+        async def putParamset(
+            self, channel_address: str, paramset_key: str, values: Any, rx_mode: Any | None = None
+        ) -> None:
+            """Set a paramset."""
+            if self._central and paramset_key == aiohomematic_const.ParamsetKey.VALUES:
+                interface_id = self._central.primary_client.interface_id
+                for param, value in values.items():
+                    await self._central.data_point_event(
+                        interface_id=interface_id, channel_address=channel_address, parameter=param, value=value
+                    )
+
+        async def ping(self, callerId: str) -> None:
+            """Answer ping with pong."""
+            if self._central:
+                await self._central.data_point_event(
+                    interface_id=callerId,
+                    channel_address="",
+                    parameter=Parameter.PONG,
+                    value=callerId,
+                )
+
+        async def clientServerInitialized(self, interface_id: str) -> None:
+            """Answer clientServerInitialized with pong."""
+            await self.ping(callerId=interface_id)
+
+        async def listDevices(self) -> dict[str, Any]:
+            """Return a list of devices."""
+            devices = self._recorder.get_latest_response_by_params(
+                rpc_type=RPCType.XML_RPC,
+                method="listDevices",
+                params="()",
+            )
+
+            new_devices = []
+            if ignore_devices_on_create is None and address_device_translation is None:
+                return devices
+
+            for device in devices:
+                if ignore_devices_on_create is not None and (
+                    device["ADDRESS"] in ignore_devices_on_create or device["PARENT"] in ignore_devices_on_create
+                ):
+                    continue
+                if address_device_translation is not None:
+                    if (
+                        device["ADDRESS"] in address_device_translation
+                        or device["PARENT"] in address_device_translation
+                    ):
+                        new_devices.append(device)
+                else:
+                    new_devices.append(device)
+
+            return new_devices
+
+        def __getattr__(self, name: str):
+            # Start of method chain
+            return _Method(name, self._invoke)
+
+        async def _invoke(self, method: str, *args):
+            params = tuple(args)
+            return self._recorder.get_latest_response_by_params(
+                rpc_type=RPCType.XML_RPC,
+                method=method,
+                params=params,
+            )
+
+        async def stop(self) -> None:  # compatibility with AioXmlRpcProxy.stop
+            return None
+
+        async def do_init(self) -> None:
+            """Init the xml rpc proxy."""
+            if supported_methods := await self.system.listMethods():
+                # ping is missing in VirtualDevices interface but can be used.
+                supported_methods.append(_RpcMethod.PING)
+                self._supported_methods = tuple(supported_methods)
+
+    return cast(BaseRpcProxy, _AioXmlRpcProxyFromRecorder())

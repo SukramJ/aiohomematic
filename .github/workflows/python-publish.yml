@@ -170,3 +170,9 @@ jobs:
             aiohomematic_test_support/dist/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish support package to PyPI (OIDC Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: aiohomematic_test_support/dist/
+          skip-existing: true
+          verbose: true

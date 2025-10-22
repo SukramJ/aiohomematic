@@ -1,0 +1,4 @@
+# aiohomematic_test_support/MANIFEST.in
+graft data
+# If you ship typing marker:
+include py.typed

@@ -25,9 +25,10 @@ dependencies = []
 # Keep the “no-move” layout: treat THIS directory as the package
 packages = ["aiohomematic_test_support"]
 package-dir = { "aiohomematic_test_support" = "." }
+include-package-data = true
 
 [tool.setuptools.package-data]
-aiohomematic = ["py.typed", "data/*.json", "data/*.zip"]
+aiohomematic_test_support = ["py.typed", "data/*.json", "data/*.zip"]
 
 [tool.setuptools.dynamic]
 version = { attr = "aiohomematic_test_support.__version__" }

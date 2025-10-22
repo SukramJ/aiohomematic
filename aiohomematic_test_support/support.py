@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from collections.abc import AsyncGenerator
 import contextlib
 import importlib.resources
 import json
@@ -273,42 +274,6 @@ class FactoryWithClient:
         return central, client
 
 
-def get_prepared_custom_data_point(central: CentralUnit, address: str, channel_no: int) -> CustomDataPoint | None:
-    """Return the hm custom_data_point."""
-    if cdp := central.get_custom_data_point(address=address, channel_no=channel_no):
-        for dp in cdp._data_points.values():
-            dp._state_uncertain = False
-        return cdp
-    return None
-
-
-def load_device_description(file_name: str) -> Any:
-    """Load device description."""
-    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
-    assert dev_desc
-    return dev_desc
-
-
-def get_mock(instance: Any, **kwargs: Any) -> Any:
-    """Create a mock and copy instance attributes over mock."""
-    if isinstance(instance, Mock):
-        instance.__dict__.update(instance._mock_wraps.__dict__)
-        return instance
-    mock = MagicMock(spec=instance, wraps=instance, **kwargs)
-    mock.__dict__.update(instance.__dict__)
-    try:
-        for method_name in [
-            prop
-            for prop in _get_not_mockable_method_names(instance)
-            if prop not in INCLUDE_PROPERTIES_IN_MOCKS and prop not in kwargs
-        ]:
-            setattr(mock, method_name, getattr(instance, method_name))
-    except Exception:
-        pass
-
-    return mock
-
-
 def _get_not_mockable_method_names(instance: Any) -> set[str]:
     """Return all relevant method names for mocking."""
     methods: set[str] = set(_get_properties(data_object=instance, decorator=property))
@@ -339,46 +304,6 @@ def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:
         encoding=UTF_8,
     ) as fptr:
         return orjson.loads(fptr.read())
-
-
-async def get_pydev_ccu_central_unit_full(
-    port: int,
-    client_session: ClientSession | None = None,
-) -> CentralUnit:
-    """Create and yield central, after all devices have been created."""
-    device_event = asyncio.Event()
-
-    def systemcallback(system_event: Any, *args: Any, **kwargs: Any) -> None:
-        if system_event == BackendSystemEvent.DEVICES_CREATED:
-            device_event.set()
-
-    interface_configs = {
-        InterfaceConfig(
-            central_name=const.CENTRAL_NAME,
-            interface=Interface.BIDCOS_RF,
-            port=port,
-        )
-    }
-
-    central = CentralConfig(
-        name=const.CENTRAL_NAME,
-        host=const.CCU_HOST,
-        username=const.CCU_USERNAME,
-        password=const.CCU_PASSWORD,
-        central_id="test1234",
-        interface_configs=interface_configs,
-        client_session=client_session,
-        program_markers=(),
-        sysvar_markers=(),
-    ).create_central()
-    central.register_backend_system_callback(cb=systemcallback)
-    await central.start()
-
-    # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available
-    with contextlib.suppress(TimeoutError):
-        await asyncio.wait_for(device_event.wait(), timeout=60)
-
-    return central
 
 
 def _get_client_session(
@@ -611,12 +536,115 @@ def _get_xml_rpc_proxy(  # noqa: C901
     return cast(BaseRpcProxy, _AioXmlRpcProxyFromRecorder())
 
 
+async def get_central_client_factory(
+    recorder: SessionPlayer,
+    address_device_translation: dict[str, str],
+    do_mock_client: bool,
+    ignore_devices_on_create: list[str] | None,
+    ignore_custom_device_definition_models: list[str] | None,
+    un_ignore_list: list[str] | None,
+) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
+    """Return central factory."""
+    factory = FactoryWithClient(
+        recorder=recorder,
+        address_device_translation=address_device_translation,
+        ignore_devices_on_create=ignore_devices_on_create,
+    )
+    central_client = await factory.get_default_central(
+        do_mock_client=do_mock_client,
+        ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+        un_ignore_list=un_ignore_list,
+    )
+    central, client = central_client
+    try:
+        yield central, client, factory
+    finally:
+        await central.stop()
+        await central.clear_files()
+
+
+def get_mock(instance: Any, **kwargs: Any) -> Any:
+    """Create a mock and copy instance attributes over mock."""
+    if isinstance(instance, Mock):
+        instance.__dict__.update(instance._mock_wraps.__dict__)
+        return instance
+    mock = MagicMock(spec=instance, wraps=instance, **kwargs)
+    mock.__dict__.update(instance.__dict__)
+    try:
+        for method_name in [
+            prop
+            for prop in _get_not_mockable_method_names(instance)
+            if prop not in INCLUDE_PROPERTIES_IN_MOCKS and prop not in kwargs
+        ]:
+            setattr(mock, method_name, getattr(instance, method_name))
+    except Exception:
+        pass
+
+    return mock
+
+
+def get_prepared_custom_data_point(central: CentralUnit, address: str, channel_no: int) -> CustomDataPoint | None:
+    """Return the hm custom_data_point."""
+    if cdp := central.get_custom_data_point(address=address, channel_no=channel_no):
+        for dp in cdp._data_points.values():
+            dp._state_uncertain = False
+        return cdp
+    return None
+
+
+async def get_pydev_ccu_central_unit_full(
+    port: int,
+    client_session: ClientSession | None = None,
+) -> CentralUnit:
+    """Create and yield central, after all devices have been created."""
+    device_event = asyncio.Event()
+
+    def systemcallback(system_event: Any, *args: Any, **kwargs: Any) -> None:
+        if system_event == BackendSystemEvent.DEVICES_CREATED:
+            device_event.set()
+
+    interface_configs = {
+        InterfaceConfig(
+            central_name=const.CENTRAL_NAME,
+            interface=Interface.BIDCOS_RF,
+            port=port,
+        )
+    }
+
+    central = CentralConfig(
+        name=const.CENTRAL_NAME,
+        host=const.CCU_HOST,
+        username=const.CCU_USERNAME,
+        password=const.CCU_PASSWORD,
+        central_id="test1234",
+        interface_configs=interface_configs,
+        client_session=client_session,
+        program_markers=(),
+        sysvar_markers=(),
+    ).create_central()
+    central.register_backend_system_callback(cb=systemcallback)
+    await central.start()
+
+    # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available
+    with contextlib.suppress(TimeoutError):
+        await asyncio.wait_for(device_event.wait(), timeout=60)
+
+    return central
+
+
 async def get_session_player(*, file_name: str) -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
     player = SessionPlayer(file_id=file_name)
     file_path = os.path.join(os.path.dirname(__file__), "data", file_name)
     await player.load(file_path=file_path)
     return player
+
+
+def load_device_description(file_name: str) -> Any:
+    """Load device description."""
+    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
+    assert dev_desc
+    return dev_desc
 
 
 class SessionPlayer:

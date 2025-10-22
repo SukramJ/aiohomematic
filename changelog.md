@@ -1,5 +1,6 @@
-# Version 2025.10.11 (2025-10-22)
+# Version 2025.10.12 (2025-10-22)
 
+- Add separate deployment for aiohomematic_test_support
 - Refactor tests to use SessionPlayer instead of ClientLocal
 - Use recorded session for testing
 

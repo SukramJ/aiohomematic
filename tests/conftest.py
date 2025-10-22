@@ -11,6 +11,7 @@ from aiohomematic_test_support.support import (
     FactoryWithClient,
     FactoryWithLocalClient,
     SessionPlayer,
+    get_central_client_factory,
     get_pydev_ccu_central_unit_full,
     get_session_player,
 )
@@ -175,33 +176,6 @@ async def central_client_factory_with_pydevccu_client(
         un_ignore_list=un_ignore_list,
     ):
         yield result
-
-
-async def get_central_client_factory(
-    recorder: SessionPlayer,
-    address_device_translation: dict[str, str],
-    do_mock_client: bool,
-    ignore_devices_on_create: list[str] | None,
-    ignore_custom_device_definition_models: list[str] | None,
-    un_ignore_list: list[str] | None,
-) -> tuple[CentralUnit, Client | Mock, FactoryWithClient]:
-    """Return central factory."""
-    factory = FactoryWithClient(
-        recorder=recorder,
-        address_device_translation=address_device_translation,
-        ignore_devices_on_create=ignore_devices_on_create,
-    )
-    central_client = await factory.get_default_central(
-        do_mock_client=do_mock_client,
-        ignore_custom_device_definition_models=ignore_custom_device_definition_models,
-        un_ignore_list=un_ignore_list,
-    )
-    central, client = central_client
-    try:
-        yield central, client, factory
-    finally:
-        await central.stop()
-        await central.clear_files()
 
 
 @pytest.fixture

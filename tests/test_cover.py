@@ -6,8 +6,6 @@ import asyncio
 from typing import cast
 from unittest.mock import DEFAULT, call
 
-from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
 import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
@@ -19,6 +17,8 @@ from aiohomematic.model.custom.cover import (
     _WD_CLOSED_LEVEL,
     _GarageDoorActivity,
 )
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU0000045": "HM-LC-Bl1-FM.json",

@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import cast
 from unittest.mock import call
 
-from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
 import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.generic import DpSwitch
 from aiohomematic.model.hub import SysvarDpSwitch
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",

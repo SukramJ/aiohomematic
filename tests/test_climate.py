@@ -7,8 +7,6 @@ from datetime import datetime
 from typing import cast
 from unittest.mock import call
 
-from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
 from freezegun import freeze_time
 import pytest
 
@@ -24,6 +22,8 @@ from aiohomematic.model.custom import (
     CustomDpSimpleRfThermostat,
 )
 from aiohomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU1769958": "HmIP-BWTH.json",

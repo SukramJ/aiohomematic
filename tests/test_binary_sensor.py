@@ -5,12 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import cast
 
-from aiohomematic_test_support import const
 import pytest
 
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.hub import SysvarDpBinarySensor
+from aiohomematic_test_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU5864966": "HmIP-SWDO-I.json",

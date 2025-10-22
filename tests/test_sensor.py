@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import cast
 
-from aiohomematic_test_support import const
 import pytest
 
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpSensor
 from aiohomematic.model.hub import SysvarDpSensor
+from aiohomematic_test_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU7981740": "HmIP-SRH.json",

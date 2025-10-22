@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import cast
 from unittest.mock import call
 
-from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
 import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
@@ -19,6 +17,8 @@ from aiohomematic.model.custom import (
     CustomDpIpRGBWLight,
 )
 from aiohomematic.model.custom.light import _NOT_USED, _ColorBehaviour, _FixedColor, _TimeUnit
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU0000098": "HM-DW-WM.json",

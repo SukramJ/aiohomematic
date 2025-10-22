@@ -22,5 +22,5 @@ venv
 .output.txt
 *.out
 *.out.txt
-/aiohomematic_test_support/aiohomematic_support.egg-info
+/aiohomematic_test_support/aiohomematic_test_support.egg-info
 /aiohomematic_test_support/dist

@@ -11,4 +11,4 @@ prune build
 prune dist
 
 # IMPORTANT: exclude support package from the sdist tarball
-prune aiohomematic_support
+prune aiohomematic_test_support

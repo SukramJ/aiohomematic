@@ -102,10 +102,10 @@ jobs:
           set -euo pipefail
           rm -rf support_zip_stage
           mkdir -p support_zip_stage
-          rsync -a --delete aiohomematic_support/ support_zip_stage/aiohomematic_support/
+          rsync -a --delete aiohomematic_test_support/ support_zip_stage/aiohomematic_test_support/
           # If you also want to include non-.py files (e.g. py.typed, data), they’re already copied by rsync
-          (cd support_zip_stage && zip -r "../aiohomematic_support-${GITHUB_REF_NAME}.zip" aiohomematic_support)
-          ls -l "aiohomematic_support-${GITHUB_REF_NAME}.zip"
+          (cd support_zip_stage && zip -r "../aiohomematic_test_support-${GITHUB_REF_NAME}.zip" aiohomematic_test_support)
+          ls -l "aiohomematic_test_support-${GITHUB_REF_NAME}.zip"
 
       - name: Compute support version from main tag
         id: vparse
@@ -119,14 +119,14 @@ jobs:
         run: |
           set -euo pipefail
           VER="${{ steps.vparse.outputs.SUPPORT_VER }}"
-          if [ ! -f aiohomematic_support/__init__.py ]; then
-            echo '__version__ = "0.0.0"' > aiohomematic_support/__init__.py
-            echo "Created aiohomematic_support/__init__.py"
+          if [ ! -f aiohomematic_test_support/__init__.py ]; then
+            echo '__version__ = "0.0.0"' > aiohomematic_test_support/__init__.py
+            echo "Created aiohomematic_test_support/__init__.py"
           fi
           python - <<'PY'
           from pathlib import Path
           import re
-          p = Path("aiohomematic_support/__init__.py")
+          p = Path("aiohomematic_test_support/__init__.py")
           txt = p.read_text(encoding="utf-8")
           if "__version__" not in txt:
               txt = '__version__ = "0.0.0"\n' + txt
@@ -161,12 +161,12 @@ jobs:
           tag_name: support-${{ github.ref_name }}
           name: "AioHomematic Support ${{ github.ref_name }}"
           body: |
-            Support-only release for testing. Contains only the `aiohomematic_support` package.
+            Support-only release for testing. Contains only the `aiohomematic_test_support` package.
             This release is linked to main release ${{ github.ref_name }}.
           prerelease: true
           files: |
-            aiohomematic_support-${{ github.ref_name }}.zip
-            aiohomematic_support/dist/*.whl
-            aiohomematic_support/dist/*.tar.gz
+            aiohomematic_test_support-${{ github.ref_name }}.zip
+            aiohomematic_test_support/dist/*.whl
+            aiohomematic_test_support/dist/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -5,7 +5,7 @@ requires = ["setuptools>=80"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aiohomematic-support"
+name = "aiohomematic-test-support"
 # Version is dynamic, read from the package at build time
 dynamic = ["version"]
 description = "Support-only package for AioHomematic (tests/dev). Not part of production builds."
@@ -23,14 +23,14 @@ dependencies = []
 
 [tool.setuptools]
 # Keep the “no-move” layout: treat THIS directory as the package
-packages = ["aiohomematic_support"]
-package-dir = { "aiohomematic_support" = "." }
+packages = ["aiohomematic_test_support"]
+package-dir = { "aiohomematic_test_support" = "." }
 
 [tool.setuptools.package-data]
 aiohomematic = ["py.typed", "data/*.json", "data/*.zip"]
 
 [tool.setuptools.dynamic]
-version = { attr = "aiohomematic_support.__version__" }
+version = { attr = "aiohomematic_test_support.__version__" }
 
 [project.urls]
 Homepage = "https://github.com/SukramJ/aiohomematic"

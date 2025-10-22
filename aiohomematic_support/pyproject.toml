@@ -1,0 +1,38 @@
+# aiohomematic_support/pyproject.toml
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiohomematic-support"
+# Version is dynamic, read from the package at build time
+dynamic = ["version"]
+description = "Support-only package for AioHomematic (tests/dev). Not part of production builds."
+requires-python = ">=3.10"
+# (Optional) Keep readme if it's located next to this file; otherwise omit to avoid file-not-found.
+# readme = "README.md"
+authors = [{ name = "AioHomematic maintainers" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[tool.setuptools]
+# Keep the “no-move” layout: treat THIS directory as the package
+packages = ["aiohomematic_support"]
+package-dir = { "aiohomematic_support" = "." }
+
+[tool.setuptools.dynamic]
+version = { attr = "aiohomematic_support.__version__" }
+
+[project.urls]
+Homepage = "https://github.com/SukramJ/aiohomematic"

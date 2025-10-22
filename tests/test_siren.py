@@ -23,23 +23,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_ceipsiren(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpIpSiren."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     siren: CustomDpIpSiren = cast(CustomDpIpSiren, helper.get_prepared_custom_data_point(central, "VCU8249617", 3))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
@@ -134,23 +131,20 @@ async def test_ceipsiren(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_ceipsirensmoke(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpIpSirenSmoke."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     siren: CustomDpIpSirenSmoke = cast(
         CustomDpIpSirenSmoke, helper.get_prepared_custom_data_point(central, "VCU2822385", 1)
     )

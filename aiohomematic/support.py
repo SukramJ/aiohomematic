@@ -582,6 +582,15 @@ def create_random_device_addresses(*, addresses: list[str]) -> dict[str, str]:
     return {adr: f"VCU{int(random.randint(1000000, 9999999))}" for adr in addresses}
 
 
+def shrink_json_file(file_name: str) -> None:
+    """Shrink a json file."""
+    with open(file_name, "rb") as f:
+        data = orjson.loads(f.read())
+
+    with open(file_name, "wb") as f:
+        f.write(orjson.dumps(data))
+
+
 # --- Structured error boundary logging helpers ---
 
 _BOUNDARY_MSG = "error_boundary"

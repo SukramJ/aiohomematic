@@ -23,23 +23,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_hmbinarysensor(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test HmBinarySensor."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     binary_sensor: DpBinarySensor = cast(
         DpBinarySensor,
         central.get_generic_data_point(channel_address="VCU5864966:1", parameter="STATE"),

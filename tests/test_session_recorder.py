@@ -29,7 +29,7 @@ async def test_session_recorder(session_recorder_from_full_session_ccu) -> None:
         rpc_type=RPCType.XML_RPC, method="system.listMethods", params=()
     )
     assert list_methods
-    assert len(list_methods) == 53
+    assert len(list_methods) == 55
 
     dd_mestods = session_recorder_from_full_session_ccu.get_latest_response_by_params(
         rpc_type=RPCType.JSON_RPC, method="Interface.listInterfaces", params="{'_session_id_': 'DzzhYRjWXr'}"

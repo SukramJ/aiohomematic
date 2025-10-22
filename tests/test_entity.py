@@ -30,23 +30,20 @@ def test_validate_data_point_definition() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_custom_data_point_callback(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpSwitch."""
-    central, _, factory = central_client_factory_with_local_client
+    central, _, factory = central_client_factory_with_pydevccu_client
     switch: CustomDpSwitch = cast(CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
 
@@ -58,7 +55,7 @@ async def test_custom_data_point_callback(
     )
     unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
     assert switch.value is None
-    assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
+    assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM VCU2128127"
     await central.data_point_event(
         interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
     )
@@ -81,23 +78,20 @@ async def test_custom_data_point_callback(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_generic_data_point_callback(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpSwitch."""
-    central, _, factory = central_client_factory_with_local_client
+    central, _, factory = central_client_factory_with_pydevccu_client
     switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
 
@@ -107,7 +101,7 @@ async def test_generic_data_point_callback(
     switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
     switch.register_device_removed_callback(cb=device_removed_mock)
     assert switch.value is None
-    assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
+    assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM VCU2128127 State"
     await central.data_point_event(
         interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
     )
@@ -130,23 +124,20 @@ async def test_generic_data_point_callback(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_load_custom_data_point(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test load custom_data_point."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     switch: DpSwitch = cast(DpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-2] == call.get_value(
@@ -166,23 +157,20 @@ async def test_load_custom_data_point(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_load_generic_data_point(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test load generic_data_point."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-1] == call.get_value(
@@ -196,23 +184,20 @@ async def test_load_generic_data_point(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_generic_wrapped_data_point(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test wrapped data_point."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     wrapped_data_point: DpSensor = cast(
         DpSensor, central.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL")
     )

@@ -50,8 +50,6 @@ from aiohomematic.support import (
     to_bool,
 )
 
-from tests import const
-
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
     "VCU3609622": "HmIP-eTRV-2.json",
@@ -63,23 +61,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, {}, True, False, False, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_generate_unique_id(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test generate_unique_id."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     assert generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL") == "vcu2128127_level"
     assert (
         generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL", prefix="PREFIX")
@@ -172,34 +167,31 @@ async def test_to_bool() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_get_data_point_name(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test get_data_point_name."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_data_point_name_data(channel=channel4, parameter="LEVEL")
-    assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
+    assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
     assert name_data.name == "Level"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
-    assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
+    assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
     assert name_data.name == "Roof Level"
 
     with patch(
@@ -214,37 +206,34 @@ async def test_get_data_point_name(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_get_event_name(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test get_event_name."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
     name_data = get_event_name(channel=channel4, parameter="LEVEL")
-    assert name_data.channel_name == "ch4"
-    assert name_data.name == "ch4 Level"
-    assert name_data.full_name == "HmIP-BSM_VCU2128127 ch4 Level"
+    assert name_data.channel_name == ""
+    assert name_data.name == "Level"
+    assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
     name_data = get_event_name(channel=channel5, parameter="LEVEL")
     assert name_data.channel_name == "Roof"
     assert name_data.name == "Roof Level"
-    assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
+    assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
 
     with patch(
         "aiohomematic.model.support._get_base_name_from_channel_or_device",
@@ -258,23 +247,20 @@ async def test_get_event_name(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_custom_data_point_name(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test get_custom_data_point_name."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
@@ -284,7 +270,7 @@ async def test_custom_data_point_name(
         ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_PRIMARY,
     )
-    assert name_data.full_name == "HmIP-BSM_VCU2128127"
+    assert name_data.full_name == "HmIP-BSM VCU2128127"
     assert name_data.name == ""
 
     name_data = get_custom_data_point_name(
@@ -293,8 +279,8 @@ async def test_custom_data_point_name(
         ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_SECONDARY,
     )
-    assert name_data.full_name == "HmIP-BSM_VCU2128127 vch4"
-    assert name_data.name == "vch4"
+    assert name_data.full_name == "HmIP-BSM VCU2128127"
+    assert name_data.name == ""
 
     central.device_details.add_name(address=f"{device.address}:5", name="Roof")
     channel5 = device.get_channel(channel_address=f"{device.address}:5")
@@ -304,7 +290,7 @@ async def test_custom_data_point_name(
         ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_PRIMARY,
     )
-    assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
+    assert name_data.full_name == "HmIP-BSM VCU2128127 Roof"
     assert name_data.name == "Roof"
 
     name_data = get_custom_data_point_name(
@@ -313,7 +299,7 @@ async def test_custom_data_point_name(
         ignore_multiple_channels_for_name=False,
         usage=DataPointUsage.CDP_SECONDARY,
     )
-    assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
+    assert name_data.full_name == "HmIP-BSM VCU2128127 Roof"
     assert name_data.name == "Roof"
 
     with patch(
@@ -333,24 +319,21 @@ async def test_custom_data_point_name(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_get_device_name(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test get_device_name."""
-    central, _, _ = central_client_factory_with_local_client
-    assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM_VCU2128127"
+    central, _, _ = central_client_factory_with_pydevccu_client
+    assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM VCU2128127"
     central.device_details.add_name(address="VCU2128127", name="Roof")
     assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"
 

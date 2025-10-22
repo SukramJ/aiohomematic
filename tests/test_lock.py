@@ -25,23 +25,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_cerflock(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpRfLock."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     lock: CustomDpRfLock = cast(CustomDpRfLock, helper.get_prepared_custom_data_point(central, "VCU0000146", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
 
@@ -112,23 +109,20 @@ async def test_cerflock(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_ceiplock(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpIpLock."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     lock: CustomDpIpLock = cast(CustomDpIpLock, helper.get_prepared_custom_data_point(central, "VCU9724704", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
     assert lock.service_method_names == ("lock", "open", "unlock")

@@ -19,30 +19,27 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_device_general(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     device = central.get_device(address="VCU2128127")
     assert device.address == "VCU2128127"
-    assert device.name == "HmIP-BSM_VCU2128127"
+    assert device.name == "HmIP-BSM VCU2128127"
     assert (
         str(device) == "address: VCU2128127, "
         "model: HmIP-BSM, "
-        "name: HmIP-BSM_VCU2128127, "
+        "name: HmIP-BSM VCU2128127, "
         "generic dps: 27, "
         "calculated dps: 0, "
         "custom dps: 3, "
@@ -59,23 +56,20 @@ async def test_device_general(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_device_availability(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     device = central.get_device(address="VCU6354483")
     assert device.available is True
     for gdp in device.generic_data_points:
@@ -105,23 +99,20 @@ async def test_device_availability(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_device_config_pending(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     device = central.get_device(address="VCU2128127")
     assert device._dp_config_pending.value is False
     cache_hash = central.paramset_descriptions.content_hash

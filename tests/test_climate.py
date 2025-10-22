@@ -41,23 +41,20 @@ TEST_DEVICES: dict[str, str] = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_cesimplerfthermostat(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpSimpleRfThermostat."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     climate: CustomDpSimpleRfThermostat = cast(
         CustomDpSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
     )
@@ -136,23 +133,20 @@ async def test_cesimplerfthermostat(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_cerfthermostat(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpRfThermostat."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     climate: CustomDpRfThermostat = cast(
         CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
     )
@@ -335,23 +329,20 @@ async def test_cerfthermostat(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_cerfthermostat_with_profiles(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpRfThermostat."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     climate: CustomDpRfThermostat = cast(
         CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000341", 2)
     )
@@ -622,23 +613,20 @@ async def test_cerfthermostat_with_profiles(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, False, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_ceipthermostat(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test CustomDpIpThermostat."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     climate: CustomDpIpThermostat = cast(
         CustomDpIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)
     )
@@ -660,7 +648,7 @@ async def test_ceipthermostat(
         "set_temperature",
     )
     assert climate.min_temp == 5.0
-    assert climate.max_temp == 30.5
+    assert climate.max_temp == 30.0
     assert climate.supports_profiles is True
     assert climate.target_temperature_step == 0.5
     assert climate.activity == ClimateActivity.IDLE

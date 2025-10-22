@@ -9,8 +9,7 @@ import pytest
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpSensor
 from aiohomematic.model.hub import SysvarDpSensor
-
-from tests import const
+from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU7981740": "HmIP-SRH.json",

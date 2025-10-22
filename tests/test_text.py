@@ -12,8 +12,7 @@ from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
-
-from tests import const
+from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {}
 

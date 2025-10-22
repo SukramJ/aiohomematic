@@ -10,8 +10,7 @@ import pytest
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpFloat, DpInteger
 from aiohomematic.model.hub import SysvarDpNumber
-
-from tests import const
+from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU4984404": "HmIPW-STHD.json",

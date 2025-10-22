@@ -11,8 +11,8 @@ from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.generic import DpSwitch
 from aiohomematic.model.hub import SysvarDpSwitch
-
-from tests import const, helper
+from aiohomematic_support import const
+from aiohomematic_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
@@ -38,7 +38,7 @@ async def test_ceswitch(
 ) -> None:
     """Test CustomDpSwitch."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    switch: CustomDpSwitch = cast(CustomDpSwitch, helper.get_prepared_custom_data_point(central, "VCU2128127", 4))
+    switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == ("turn_off", "turn_on")
     assert switch.channel.device.has_sub_devices is False

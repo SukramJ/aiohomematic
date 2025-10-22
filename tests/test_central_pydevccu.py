@@ -11,8 +11,7 @@ import pytest
 from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
 from aiohomematic.model.generic import GenericDataPoint
 from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, hm_property
-
-from tests import const
+from aiohomematic_support import const
 
 # pylint: disable=protected-access
 

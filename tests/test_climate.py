@@ -22,8 +22,8 @@ from aiohomematic.model.custom import (
     CustomDpSimpleRfThermostat,
 )
 from aiohomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
-
-from tests import const, helper
+from aiohomematic_support import const
+from aiohomematic_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU1769958": "HmIP-BWTH.json",
@@ -56,7 +56,7 @@ async def test_cesimplerfthermostat(
     """Test CustomDpSimpleRfThermostat."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
     climate: CustomDpSimpleRfThermostat = cast(
-        CustomDpSimpleRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000054", 1)
+        CustomDpSimpleRfThermostat, get_prepared_custom_data_point(central, "VCU0000054", 1)
     )
     assert climate.usage == DataPointUsage.CDP_PRIMARY
 
@@ -147,9 +147,7 @@ async def test_cerfthermostat(
 ) -> None:
     """Test CustomDpRfThermostat."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    climate: CustomDpRfThermostat = cast(
-        CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000050", 4)
-    )
+    climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000050", 4))
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
         "copy_schedule",
@@ -343,9 +341,7 @@ async def test_cerfthermostat_with_profiles(
 ) -> None:
     """Test CustomDpRfThermostat."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    climate: CustomDpRfThermostat = cast(
-        CustomDpRfThermostat, helper.get_prepared_custom_data_point(central, "VCU0000341", 2)
-    )
+    climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
         "copy_schedule",
@@ -627,9 +623,7 @@ async def test_ceipthermostat(
 ) -> None:
     """Test CustomDpIpThermostat."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
-    climate: CustomDpIpThermostat = cast(
-        CustomDpIpThermostat, helper.get_prepared_custom_data_point(central, "VCU1769958", 1)
-    )
+    climate: CustomDpIpThermostat = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU1769958", 1))
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
         "copy_schedule",

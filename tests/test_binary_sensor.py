@@ -10,8 +10,7 @@ import pytest
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.hub import SysvarDpBinarySensor
-
-from tests import const
+from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU5864966": "HmIP-SWDO-I.json",

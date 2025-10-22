@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Generator
 import logging
-import os
 from unittest.mock import Mock, patch
 
 from aiohttp import ClientSession
@@ -14,7 +13,7 @@ import pytest
 from aiohomematic.central import CentralUnit
 from aiohomematic.client import Client
 from aiohomematic_support import const
-from aiohomematic_support.client_support import (
+from aiohomematic_support.support import (
     FactoryWithClient,
     FactoryWithLocalClient,
     SessionPlayer,
@@ -230,12 +229,10 @@ async def mock_json_rpc_server() -> AsyncGenerator[tuple[MockJsonRpc, str]]:
 @pytest.fixture
 async def session_recorder_from_full_session_ccu() -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
-    file_path = os.path.join(os.path.dirname(__file__), "data", const.FULL_SESSION_RANDOMIZED_CCU)
-    return await get_session_player(file_path=file_path)
+    return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_CCU)
 
 
 @pytest.fixture
 async def session_recorder_from_full_session_pydevccu() -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
-    file_path = os.path.join(os.path.dirname(__file__), "data", const.FULL_SESSION_RANDOMIZED_PYDEVCCU)
-    return await get_session_player(file_path=file_path)
+    return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_PYDEVCCU)

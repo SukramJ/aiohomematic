@@ -6,7 +6,7 @@ import asyncio
 
 import pytest
 
-from tests import const
+from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",

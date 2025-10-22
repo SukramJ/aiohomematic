@@ -23,8 +23,8 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.exceptions import AioHomematicException, NoClientsException
-
-from tests import const, helper
+from aiohomematic_support import const
+from aiohomematic_support.support import FactoryWithLocalClient, get_mock, load_device_description
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",
@@ -169,7 +169,7 @@ async def test_identify_ip_addr(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_etrv(
-    factory_with_local_client: helper.FactoryWithLocalClient,
+    factory_with_local_client: FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -209,7 +209,7 @@ async def test_device_un_ignore_etrv(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_broll(
-    factory_with_local_client: helper.FactoryWithLocalClient,
+    factory_with_local_client: FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -252,7 +252,7 @@ async def test_device_un_ignore_broll(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm(
-    factory_with_local_client: helper.FactoryWithLocalClient,
+    factory_with_local_client: FactoryWithLocalClient,
     line: str,
     parameter: str,
     channel_no: int | None,
@@ -339,7 +339,7 @@ async def test_device_un_ignore_hm(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm2(
-    factory_with_local_client: helper.FactoryWithLocalClient,
+    factory_with_local_client: FactoryWithLocalClient,
     lines: list[str],
     parameter: str,
     channel_no: int | None,
@@ -395,7 +395,7 @@ async def test_device_un_ignore_hm2(
 )
 @pytest.mark.asyncio
 async def test_ignore_(
-    factory_with_local_client: helper.FactoryWithLocalClient,
+    factory_with_local_client: FactoryWithLocalClient,
     ignore_custom_device_definition_models: list[str],
     model: str,
     address: str,
@@ -433,7 +433,7 @@ async def test_ignore_(
     ],
 )
 async def test_all_parameters(
-    factory_with_local_client: helper.FactoryWithLocalClient,
+    factory_with_local_client: FactoryWithLocalClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
@@ -467,7 +467,7 @@ async def test_all_parameters(
     ],
 )
 async def test_all_parameters_with_un_ignore(
-    factory_with_local_client: helper.FactoryWithLocalClient,
+    factory_with_local_client: FactoryWithLocalClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
@@ -582,7 +582,7 @@ async def test_add_device(
     assert len(central.get_data_points(exclude_no_create=False)) == 33
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
     assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
-    dev_desc = helper.load_device_description(file_name="HmIP-BSM.json")
+    dev_desc = load_device_description(file_name="HmIP-BSM.json")
     await central.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
     assert len(central._devices) == 2
     assert len(central.get_data_points(exclude_no_create=False)) == 64
@@ -668,13 +668,13 @@ async def test_virtual_remote_delete(
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_not_alive(factory_with_local_client: helper.FactoryWithLocalClient) -> None:
+async def test_central_not_alive(factory_with_local_client: FactoryWithLocalClient) -> None:
     """Test central other methods."""
     central, client = await factory_with_local_client.get_unpatched_default_central(
         port=const.CCU_MINI_PORT, address_device_translation={}, do_mock_client=False
     )
     try:
-        mock_client = helper.get_mock(instance=client, available=False)
+        mock_client = get_mock(instance=client, available=False)
         assert central.system_information.serial is None
         assert central.is_alive is True
 
@@ -811,13 +811,13 @@ async def test_central_services(
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_direct(factory_with_local_client: helper.FactoryWithLocalClient) -> None:
+async def test_central_direct(factory_with_local_client: FactoryWithLocalClient) -> None:
     """Test central other methods."""
     central, client = await factory_with_local_client.get_unpatched_default_central(
         port=const.CCU_MINI_PORT, address_device_translation=TEST_DEVICES, do_mock_client=False
     )
     try:
-        mock_client = helper.get_mock(instance=client, available=False)
+        mock_client = get_mock(instance=client, available=False)
         assert central.system_information.serial is None
         assert central.is_alive is True
 
@@ -834,7 +834,7 @@ async def test_central_direct(factory_with_local_client: helper.FactoryWithLocal
 
 
 @pytest.mark.asyncio
-async def test_central_without_interface_config(factory_with_local_client: helper.FactoryWithLocalClient) -> None:
+async def test_central_without_interface_config(factory_with_local_client: FactoryWithLocalClient) -> None:
     """Test central other methods."""
     central = await factory_with_local_client.get_raw_central(interface_config=None)
     try:

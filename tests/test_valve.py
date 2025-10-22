@@ -9,8 +9,7 @@ import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpIrrigationValve
-
-from tests import helper
+from aiohomematic_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU8976407": "ELV-SH-WSM.json",
@@ -37,7 +36,7 @@ async def test_ceipirrigationvalve(
     """Test CustomDpValve."""
     central, mock_client, _ = central_client_factory_with_pydevccu_client
     valve: CustomDpIpIrrigationValve = cast(
-        CustomDpIpIrrigationValve, helper.get_prepared_custom_data_point(central, "VCU8976407", 4)
+        CustomDpIpIrrigationValve, get_prepared_custom_data_point(central, "VCU8976407", 4)
     )
     assert valve.usage == DataPointUsage.CDP_PRIMARY
     assert valve.service_method_names == ("close", "open")

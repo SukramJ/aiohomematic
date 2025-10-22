@@ -425,7 +425,7 @@ def _get_client_session(
             url: str,
             data: bytes | bytearray | str | None = None,
             headers: Any = None,
-            timeout: Any = None,
+            timeout: Any = None,  # noqa: ASYNC109
             ssl: Any = None,
         ) -> _MockResponse:
             # Payload is produced by AioJsonRpcAioHttpClient via orjson.dumps
@@ -611,9 +611,10 @@ def _get_xml_rpc_proxy(  # noqa: C901
     return cast(BaseRpcProxy, _AioXmlRpcProxyFromRecorder())
 
 
-async def get_session_player(*, file_path: str) -> SessionPlayer:
+async def get_session_player(*, file_name: str) -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
-    player = SessionPlayer(file_id=file_path)
+    player = SessionPlayer(file_id=file_name)
+    file_path = os.path.join(os.path.dirname(__file__), "data", file_name)
     await player.load(file_path=file_path)
     return player
 

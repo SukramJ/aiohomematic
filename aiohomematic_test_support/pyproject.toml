@@ -1,4 +1,4 @@
-# aiohomematic_support/pyproject.toml
+# aiohomematic_test_support/pyproject.toml
 
 [build-system]
 requires = ["setuptools>=80"]

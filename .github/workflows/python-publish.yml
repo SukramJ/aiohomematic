@@ -1,18 +1,18 @@
 # This workflow publishes the main AioHomematic package to PyPI when a GitHub Release is published,
-# and also creates a separate "support-vX.Y.Z" release that contains only the aiohomematic_support
+# and also creates a separate "support-vX.Y.Z" release that contains only the aiohomematic_test_support
 # folder as a ZIP PLUS an independently built support wheel/sdist (aiohomematic-support).
 #
 # Prereqs/assumptions:
-# - Root pyproject.toml excludes aiohomematic_support from prod builds (wheel/sdist).
-# - A minimal packaging setup exists at aiohomematic_support/{__init__.py, pyproject.toml}.
+# - Root pyproject.toml excludes aiohomematic_test_support from prod builds (wheel/sdist).
+# - A minimal packaging setup exists at aiohomematic_test_support/{__init__.py, pyproject.toml}.
 # - Trusted Publishing to PyPI is configured for this repository.
 #
 # Result:
 # - Main Release tag: vX.Y.Z  -> uploads to PyPI.
 # - Support Release tag: support-vX.Y.Z -> attaches:
-#       * aiohomematic_support-vX.Y.Z.zip
-#       * aiohomematic_support-<version>-py3-none-any.whl
-#       * aiohomematic_support-<version>.tar.gz
+#       * aiohomematic_test_support-vX.Y.Z.zip
+#       * aiohomematic_test_support-<version>-py3-none-any.whl
+#       * aiohomematic_test_support-<version>.tar.gz
 
 name: Upload Python Package + Support Release
 
@@ -82,7 +82,7 @@ jobs:
   # ==========================================================
   # 3) SUPPORT RELEASE JOB
   #    - Creates a separate support tag/release (support-vX.Y.Z)
-  #    - Zips only aiohomematic_support/ and also builds a real support package
+  #    - Zips only aiohomematic_test_support/ and also builds a real support package
   # ==========================================================
   support-release:
     if: ${{ !startsWith(github.event.release.tag_name, 'support-') }}
@@ -96,7 +96,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Make a ZIP that contains a top-level 'aiohomematic_support/' folder WITHOUT touching your real package dir
+      # Make a ZIP that contains a top-level 'aiohomematic_test_support/' folder WITHOUT touching your real package dir
       - name: Create support-only ZIP (stage into temp folder)
         run: |
           set -euo pipefail
@@ -115,7 +115,7 @@ jobs:
           echo "SUPPORT_VER=${VER}" >> "$GITHUB_OUTPUT"
 
       # Ensure __init__.py exists in the real package dir and inject the version
-      - name: Inject version into aiohomematic_support/__init__.py
+      - name: Inject version into aiohomematic_test_support/__init__.py
         run: |
           set -euo pipefail
           VER="${{ steps.vparse.outputs.SUPPORT_VER }}"
@@ -137,7 +137,7 @@ jobs:
 
       # Build wheel + sdist from the REAL package folder
       - name: Build support package (wheel + sdist)
-        working-directory: aiohomematic_support
+        working-directory: aiohomematic_test_support
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip

@@ -6,6 +6,8 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import call, patch
 
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import FactoryWithLocalClient, get_mock, load_device_description
 import pytest
 
 from aiohomematic.const import (
@@ -23,8 +25,6 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.exceptions import AioHomematicException, NoClientsException
-from aiohomematic_support import const
-from aiohomematic_support.support import FactoryWithLocalClient, get_mock, load_device_description
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",

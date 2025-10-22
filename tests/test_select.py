@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import cast
 from unittest.mock import call
 
+from aiohomematic_test_support import const
 import pytest
 
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpSelect
 from aiohomematic.model.hub import SysvarDpSelect
-from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU6354483": "HmIP-STHD.json",

@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import cast
 from unittest.mock import call
 
+from aiohomematic_test_support import const
+from aiohomematic_test_support.support import get_prepared_custom_data_point
 import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpLock, CustomDpRfLock
-from aiohomematic_support import const
-from aiohomematic_support.support import get_prepared_custom_data_point
 
 TEST_DEVICES: dict[str, str] = {
     "VCU9724704": "HmIP-DLD.json",

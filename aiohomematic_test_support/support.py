@@ -33,8 +33,8 @@ from aiohomematic.const import (
 )
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic.store.persistent import _freeze_params, _unfreeze_params
-from aiohomematic_support import const
-from aiohomematic_support.client_local import ClientLocal, LocalRessources
+from aiohomematic_test_support import const
+from aiohomematic_test_support.client_local import ClientLocal, LocalRessources
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -144,11 +144,11 @@ class FactoryWithLocalClient:
         patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client).start()
         patch("aiohomematic.client.ClientConfig.create_client", return_value=client).start()
         patch(
-            "aiohomematic_support.client_local.ClientLocal.get_all_system_variables",
+            "aiohomematic_test_support.client_local.ClientLocal.get_all_system_variables",
             return_value=const.SYSVAR_DATA if add_sysvars else [],
         ).start()
         patch(
-            "aiohomematic_support.client_local.ClientLocal.get_all_programs",
+            "aiohomematic_test_support.client_local.ClientLocal.get_all_programs",
             return_value=const.PROGRAM_DATA if add_programs else [],
         ).start()
         patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()

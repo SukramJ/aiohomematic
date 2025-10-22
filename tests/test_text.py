@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import cast
 from unittest.mock import Mock, call
 
+from aiohomematic_test_support import const
 import pytest
 
 from aiohomematic.central import CentralUnit
@@ -12,7 +13,6 @@ from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
-from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {}
 

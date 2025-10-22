@@ -6,7 +6,7 @@ repos:
         args:
           - --fix
       - id: ruff-format
-        files: ^((aiohomematic|aiohomematic_support|pylint|script|tests)/.+)?[^/]+\.py$
+        files: ^((aiohomematic|aiohomematic_test_support|pylint|script|tests)/.+)?[^/]+\.py$
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.0
     hooks:
@@ -25,7 +25,7 @@ repos:
           - --quiet
           - --format=custom
           - --configfile=tests/bandit.yaml
-        files: ^(aiohomematic|aiohomematic_support|script|tests)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_test_support|script|tests)/.+\.py$
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -58,7 +58,7 @@ repos:
           - --py313-plus
           - --force
           - --keep-updates
-        files: ^(aiohomematic|aiohomematic_support|tests|script)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_test_support|tests|script)/.+\.py$
   - repo: local
     hooks:
       # Run mypy through our wrapper script in order to get the possible
@@ -71,16 +71,16 @@ repos:
         language: script
         types_or: [python, pyi]
         require_serial: true
-        files: ^(aiohomematic|aiohomematic_support|pylint)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_test_support|pylint)/.+\.py$
       - id: pylint
         name: pylint
         entry: script/run-in-env.sh pylint -j 0
         language: script
         types_or: [python, pyi]
-        files: ^(aiohomematic|aiohomematic_support)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_test_support)/.+\.py$
       - id: kwonly-lint
         name: kwonly-lint
-        entry: script/run-in-env.sh python script/lint_kwonly.py aiohomematic aiohomematic_support
+        entry: script/run-in-env.sh python script/lint_kwonly.py aiohomematic aiohomematic_test_support
         language: script
         types_or: [python, pyi]
-        files: ^(aiohomematic|aiohomematic_support)/.+\.py$
+        files: ^(aiohomematic|aiohomematic_test_support)/.+\.py$

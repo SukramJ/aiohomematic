@@ -5,13 +5,13 @@ from __future__ import annotations
 import collections
 import os
 
+from aiohomematic_test_support import const
 import orjson
 import pytest
 
 from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
 from aiohomematic.model.generic import GenericDataPoint
 from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, hm_property
-from aiohomematic_support import const
 
 # pylint: disable=protected-access
 

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import asyncio
 
+from aiohomematic_test_support import const
 import pytest
-
-from aiohomematic_support import const
 
 TEST_DEVICES: dict[str, str] = {
     "VCU2128127": "HmIP-BSM.json",

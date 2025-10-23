@@ -24,7 +24,8 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import AioHomematicException, NoClientsException
 from aiohomematic_test_support import const
-from aiohomematic_test_support.support import FactoryWithClient, load_device_description
+from aiohomematic_test_support.factory import FactoryWithClient
+from aiohomematic_test_support.helper import load_device_description
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
 

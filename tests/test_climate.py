@@ -23,7 +23,7 @@ from aiohomematic.model.custom import (
 )
 from aiohomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
 from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
+from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES: set[str] = {
     "VCU1769958",

@@ -20,16 +20,16 @@ from aiohomematic.model.custom.light import _NOT_USED, _ColorBehaviour, _FixedCo
 from aiohomematic_test_support import const
 from aiohomematic_test_support.support import get_prepared_custom_data_point
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU0000098": "HM-DW-WM.json",
-    "VCU0000115": "HM-LC-DW-WM.json",
-    "VCU0000122": "HM-LC-Dim1L-CV.json",
-    "VCU1399816": "HmIP-BDT.json",
-    "VCU6985973": "HmIP-BSL.json",
-    "VCU3747418": "HM-LC-RGBW-WM.json",
-    "VCU4704397": "HmIPW-WRC6.json",
-    "VCU5629873": "HmIP-RGBW.json",
-    "VCU9973336": "HBW-LC-RGBWW-IN6-DR.json",
+TEST_DEVICES: set[str] = {
+    "VCU0000098",
+    "VCU0000115",
+    "VCU0000122",
+    "VCU1399816",
+    "VCU6985973",
+    "VCU3747418",
+    "VCU4704397",
+    "VCU5629873",
+    "VCU9973336",
 }
 
 # pylint: disable=protected-access

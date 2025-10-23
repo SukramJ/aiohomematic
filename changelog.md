@@ -1,3 +1,7 @@
+# Version 2025.10.15 (2025-10-23)
+
+- Refactor tests to use central*client_factory_with*\*\*\*ccu_client
+
 # Version 2025.10.14 (2025-10-22)
 
 - Add separate deployment for aiohomematic_test_support

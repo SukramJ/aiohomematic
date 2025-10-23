@@ -8,10 +8,7 @@ import pytest
 
 from aiohomematic_test_support import const
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU2128127": "HmIP-BSM.json",
-    "VCU6354483": "HmIP-STHD.json",
-}
+TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
 
 # pylint: disable=protected-access
 

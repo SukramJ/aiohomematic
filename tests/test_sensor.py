@@ -11,11 +11,7 @@ from aiohomematic.model.generic import DpSensor
 from aiohomematic.model.hub import SysvarDpSensor
 from aiohomematic_test_support import const
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU7981740": "HmIP-SRH.json",
-    "VCU3941846": "HMIP-PSM.json",
-    "VCU8205532": "HmIP-SCTH230.json",
-}
+TEST_DEVICES: set[str] = {"VCU7981740", "VCU3941846", "VCU8205532"}
 
 # pylint: disable=protected-access
 
@@ -127,23 +123,20 @@ async def test_hmsensor_srh(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, {}, True, True, False, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_hmsysvarsensor(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test HmSysvarSensor."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_ccu_client
     sensor: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point(legacy_name="list"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.available is True

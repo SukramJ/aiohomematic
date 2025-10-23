@@ -11,12 +11,9 @@ from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.generic import DpSwitch
 from aiohomematic.model.hub import SysvarDpSwitch
-from aiohomematic_test_support import const
 from aiohomematic_test_support.support import get_prepared_custom_data_point
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU2128127": "HmIP-BSM.json",
-}
+TEST_DEVICES: set[str] = {"VCU2128127"}
 
 # pylint: disable=protected-access
 
@@ -173,23 +170,20 @@ async def test_hmswitch(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, {}, True, True, False, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_hmsysvarswitch(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test HmSysvarSwitch."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_ccu_client
     switch: SysvarDpSwitch = cast(SysvarDpSwitch, central.get_sysvar_data_point(legacy_name="alarm_ext"))
     assert switch.usage == DataPointUsage.DATA_POINT
 

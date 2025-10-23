@@ -20,16 +20,16 @@ from aiohomematic.model.custom.cover import (
 from aiohomematic_test_support import const
 from aiohomematic_test_support.support import get_prepared_custom_data_point
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU0000045": "HM-LC-Bl1-FM.json",
-    "VCU0000144": "HM-LC-Ja1PBU-FM.json",
-    "VCU0000350": "HM-Sec-Win.json",
-    "VCU1223813": "HmIP-FBL.json",
-    "VCU3560967": "HmIP-HDM1.json",
-    "VCU3574044": "HmIP-MOD-HO.json",
-    "VCU6166407": "HmIP-MOD-TM.json",
-    "VCU7807849": "HmIPW-DRBL4.json",
-    "VCU8537918": "HmIP-BROLL.json",
+TEST_DEVICES: set[str] = {
+    "VCU0000045",
+    "VCU0000144",
+    "VCU0000350",
+    "VCU1223813",
+    "VCU3560967",
+    "VCU3574044",
+    "VCU6166407",
+    "VCU7807849",
+    "VCU8537918",
 }
 
 # pylint: disable=protected-access

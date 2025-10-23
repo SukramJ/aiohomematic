@@ -92,7 +92,7 @@ jobs:
     needs: [release-build]
     permissions:
       contents: write
-      id-token: write     # <- REQUIRED for OIDC here too
+      id-token: write # <- REQUIRED for OIDC here too
     steps:
       - name: Checkout repository (full history for tags)
         uses: actions/checkout@v5

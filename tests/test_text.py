@@ -12,9 +12,8 @@ from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage
 from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
-from aiohomematic_test_support import const
 
-TEST_DEVICES: dict[str, str] = {}
+TEST_DEVICES: set[str] = {}
 
 # pylint: disable=protected-access
 
@@ -41,23 +40,20 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, {}, True, True, False, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_sysvardptext(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test SysvarDpText. There are currently no text data points."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point(legacy_name="string_ext"))
     assert text.usage == DataPointUsage.DATA_POINT
 

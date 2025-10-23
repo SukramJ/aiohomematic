@@ -36,7 +36,7 @@ async def test_central_full(central_client_factory_with_pydevccu_client) -> None
     assert central.model == "PyDevCCU"
     assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
     assert central.primary_client.model == "PyDevCCU"
-    assert len(central._devices) == 394
+    assert len(central._devices) == 395
 
     data = {}
     for device in central.devices:
@@ -92,7 +92,7 @@ async def test_central_full(central_client_factory_with_pydevccu_client) -> None
             channel_type_names.add(channel.type_name)
 
     channel_type_names = sorted(channel_type_names)
-    assert len(channel_type_names) == 556
+    assert len(channel_type_names) == 557
     ce_channels = {}
     for cdp in custom_dps:
         if cdp.device.model not in ce_channels:
@@ -174,20 +174,20 @@ async def test_central_full(central_client_factory_with_pydevccu_client) -> None
     for sv in central.sysvar_data_points:
         assert hasattr(sv, "__dict__") is False
 
-    assert usage_types[DataPointUsage.CDP_PRIMARY] == 273
+    assert usage_types[DataPointUsage.CDP_PRIMARY] == 274
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
-    assert usage_types[DataPointUsage.CDP_VISIBLE] == 141
-    assert usage_types[DataPointUsage.DATA_POINT] == 4036
-    assert usage_types[DataPointUsage.NO_CREATE] == 4296
+    assert usage_types[DataPointUsage.CDP_VISIBLE] == 143
+    assert usage_types[DataPointUsage.DATA_POINT] == 4041
+    assert usage_types[DataPointUsage.NO_CREATE] == 4315
 
-    assert len(ce_channels) == 130
+    assert len(ce_channels) == 131
     assert len(data_point_types) == 6
     assert len(parameters) == 238
 
-    assert len(central._devices) == 394
+    assert len(central._devices) == 395
     virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
     await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-    assert len(central._devices) == 391
+    assert len(central._devices) == 392
     del_addresses = list(central.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID))
     del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
     await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)

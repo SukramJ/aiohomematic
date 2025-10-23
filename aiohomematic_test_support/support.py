@@ -10,7 +10,7 @@ import importlib.resources
 import json
 import logging
 import os
-from typing import Any, Final, cast
+from typing import Any, Final, Self, cast
 from unittest.mock import MagicMock, Mock, patch
 import zipfile
 
@@ -170,33 +170,69 @@ class FactoryWithClient:
     def __init__(
         self,
         *,
-        recorder: SessionPlayer,
-        address_device_translation: dict[str, str] | None = None,
+        player: SessionPlayer,
+        address_device_translation: set[str] | None = None,
+        do_mock_client: bool = True,
+        ignore_custom_device_definition_models: list[str] | None = None,
         ignore_devices_on_create: list[str] | None = None,
-    ):
+        interface_configs: set[InterfaceConfig] | None = None,
+        un_ignore_list: list[str] | None = None,
+    ) -> None:
         """Init the central factory."""
-        self._client_session = _get_client_session(
-            recorder=recorder,
-            address_device_translation=address_device_translation,
-            ignore_devices_on_create=ignore_devices_on_create,
-        )
-        self._xml_proxy = _get_xml_rpc_proxy(
-            recorder=recorder,
+        self._player = player
+        self.init(
+            do_mock_client=do_mock_client,
+            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+            interface_configs=interface_configs,
+            un_ignore_list=un_ignore_list,
             address_device_translation=address_device_translation,
             ignore_devices_on_create=ignore_devices_on_create,
         )
         self.system_event_mock = MagicMock()
         self.ha_event_mock = MagicMock()
 
-    async def get_raw_central(
+    def init(
         self,
         *,
-        interface_config: InterfaceConfig | None,
-        un_ignore_list: list[str] | None = None,
+        address_device_translation: set[str] | None = None,
+        do_mock_client: bool = True,
         ignore_custom_device_definition_models: list[str] | None = None,
-    ) -> CentralUnit:
+        ignore_devices_on_create: list[str] | None = None,
+        interface_configs: set[InterfaceConfig] | None = None,
+        un_ignore_list: list[str] | None = None,
+    ) -> Self:
+        """Init the central factory."""
+        self._address_device_translation = address_device_translation
+        self._do_mock_client = do_mock_client
+        self._ignore_custom_device_definition_models = ignore_custom_device_definition_models
+        self._ignore_devices_on_create = ignore_devices_on_create
+        self._interface_configs = (
+            interface_configs
+            if interface_configs is not None
+            else {
+                InterfaceConfig(
+                    central_name=const.CENTRAL_NAME,
+                    interface=Interface.BIDCOS_RF,
+                    port=2001,
+                )
+            }
+        )
+        self._un_ignore_list = frozenset(un_ignore_list or [])
+        self._client_session = _get_client_session(
+            player=self._player,
+            address_device_translation=self._address_device_translation,
+            ignore_devices_on_create=self._ignore_devices_on_create,
+        )
+        self._xml_proxy = _get_xml_rpc_proxy(
+            player=self._player,
+            address_device_translation=self._address_device_translation,
+            ignore_devices_on_create=self._ignore_devices_on_create,
+        )
+        return self
+
+    async def get_raw_central(self) -> CentralUnit:
         """Return a central based on give address_device_translation."""
-        interface_configs = {interface_config} if interface_config else set()
+        interface_configs = self._interface_configs if self._interface_configs else set()
         central = CentralConfig(
             name=const.CENTRAL_NAME,
             host=const.CCU_HOST,
@@ -205,59 +241,29 @@ class FactoryWithClient:
             central_id="test1234",
             interface_configs=interface_configs,
             client_session=self._client_session,
-            un_ignore_list=frozenset(un_ignore_list or []),
-            ignore_custom_device_definition_models=frozenset(ignore_custom_device_definition_models or []),
+            un_ignore_list=self._un_ignore_list,
+            ignore_custom_device_definition_models=frozenset(self._ignore_custom_device_definition_models or []),
             start_direct=True,
         ).create_central()
 
         central.register_backend_system_callback(cb=self.system_event_mock)
         central.register_homematic_callback(cb=self.ha_event_mock)
 
-        return central
-
-    async def get_unpatched_default_central(
-        self,
-        *,
-        un_ignore_list: list[str] | None = None,
-        ignore_custom_device_definition_models: list[str] | None = None,
-    ) -> CentralUnit:
-        """Return a central based on give address_device_translation."""
-        interface_config = InterfaceConfig(
-            central_name=const.CENTRAL_NAME,
-            interface=Interface.BIDCOS_RF,
-            port=2001,
-        )
-
-        central = await self.get_raw_central(
-            interface_config=interface_config,
-            un_ignore_list=un_ignore_list,
-            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
-        )
-
         assert central
         self._client_session.set_central(central=central)  # type: ignore[attr-defined]
         self._xml_proxy.set_central(central=central)
         return central
 
-    async def get_default_central(
-        self,
-        *,
-        do_mock_client: bool = True,
-        un_ignore_list: list[str] | None = None,
-        ignore_custom_device_definition_models: list[str] | None = None,
-    ) -> tuple[CentralUnit, Client | Mock]:
+    async def get_default_central(self) -> tuple[CentralUnit, Client | Mock]:
         """Return a central based on give address_device_translation."""
-        central = await self.get_unpatched_default_central(
-            un_ignore_list=un_ignore_list,
-            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
-        )
+        central = await self.get_raw_central()
 
         await self._xml_proxy.do_init()
         patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy).start()
         patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
 
         # Optionally patch client creation to return a mocked client
-        if do_mock_client:
+        if self._do_mock_client:
             _orig_create_client = ClientConfig.create_client
 
             async def _mocked_create_client(self: ClientConfig) -> Client | Mock:
@@ -267,7 +273,7 @@ class FactoryWithClient:
             patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
 
         await central.start()
-
+        await central._init_hub()
         client = central.primary_client
         assert central
         assert client
@@ -306,26 +312,26 @@ def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:
         return orjson.loads(fptr.read())
 
 
-def _get_client_session(
+def _get_client_session(  # noqa: C901
     *,
-    recorder: SessionPlayer,
-    address_device_translation: dict[str, str] | None = None,
+    player: SessionPlayer,
+    address_device_translation: set[str] | None = None,
     ignore_devices_on_create: list[str] | None = None,
 ) -> ClientSession:
     """
-    Provide a ClientSession-like fixture that answers via SimpleSessionRecorder (JSON-RPC).
+    Provide a ClientSession-like fixture that answers via SessionPlayer(JSON-RPC).
 
     Any POST request will be answered by looking up the latest recorded
-    JSON-RPC response in the session recorder using the provided method and params.
+    JSON-RPC response in the session player using the provided method and params.
     """
 
     class _MockResponse:
         def __init__(self, json_data: dict | None) -> None:
             # If no match is found, emulate backend error payload
             self._json = json_data or {
-                "result": None,
-                "error": {"name": "-1", "code": -1, "message": "Not found in session recorder"},
-                "id": 0,
+                _JsonKey.RESULT: None,
+                _JsonKey.ERROR: {"name": "-1", "code": -1, "message": "Not found in session player"},
+                _JsonKey.ID: 0,
             }
             self.status = 200
 
@@ -365,6 +371,32 @@ def _get_client_session(
             params = payload.get("params")
 
             if self._central:
+                if method in (
+                    _JsonRpcMethod.PROGRAM_EXECUTE,
+                    _JsonRpcMethod.SYSVAR_SET_BOOL,
+                    _JsonRpcMethod.SYSVAR_SET_FLOAT,
+                    _JsonRpcMethod.SESSION_LOGOUT,
+                ):
+                    return _MockResponse({_JsonKey.ID: 0, _JsonKey.RESULT: "200", _JsonKey.ERROR: None})
+                if method == _JsonRpcMethod.SYSVAR_GET_ALL:
+                    return _MockResponse(
+                        {_JsonKey.ID: 0, _JsonKey.RESULT: const.SYSVAR_DATA_JSON, _JsonKey.ERROR: None}
+                    )
+                if method == _JsonRpcMethod.PROGRAM_GET_ALL:
+                    return _MockResponse(
+                        {_JsonKey.ID: 0, _JsonKey.RESULT: const.PROGRAM_DATA_JSON, _JsonKey.ERROR: None}
+                    )
+                if method == _JsonRpcMethod.REGA_RUN_SCRIPT:
+                    if "get_program_descriptions" in params[_JsonKey.SCRIPT]:
+                        return _MockResponse(
+                            {_JsonKey.ID: 0, _JsonKey.RESULT: const.PROGRAM_DATA_JSON_DESCRIPTION, _JsonKey.ERROR: None}
+                        )
+
+                    if "get_system_variable_descriptions" in params[_JsonKey.SCRIPT]:
+                        return _MockResponse(
+                            {_JsonKey.ID: 0, _JsonKey.RESULT: const.SYSVAR_DATA_JSON_DESCRIPTION, _JsonKey.ERROR: None}
+                        )
+
                 if method == _JsonRpcMethod.INTERFACE_SET_VALUE:
                     await self._central.data_point_event(
                         interface_id=params[_JsonKey.INTERFACE],
@@ -372,7 +404,7 @@ def _get_client_session(
                         parameter=params[_JsonKey.VALUE_KEY],
                         value=params[_JsonKey.VALUE],
                     )
-                    return _MockResponse({"result": "200"})
+                    return _MockResponse({_JsonKey.ID: 0, _JsonKey.RESULT: "200", _JsonKey.ERROR: None})
                 if method == _JsonRpcMethod.INTERFACE_PUT_PARAMSET:
                     if params[_JsonKey.PARAMSET_KEY] == ParamsetKey.VALUES:
                         interface_id = params[_JsonKey.INTERFACE]
@@ -385,19 +417,29 @@ def _get_client_session(
                                 parameter=param,
                                 value=value,
                             )
-                    return _MockResponse({"result": "200"})
+                    return _MockResponse({_JsonKey.RESULT: "200", _JsonKey.ERROR: None})
 
-            json_data = recorder.get_latest_response_by_params(
+            json_data = player.get_latest_response_by_params(
                 rpc_type=RPCType.JSON_RPC,
                 method=str(method) if method is not None else "",
                 params=params,
             )
-            # if method == _JsonRpcMethod.INTERFACE_LIST_DEVICES:
-            #     if address_device_translation:
-            #         devices: dict[str, Any] = {}
-            #         for address, device in json_data["result"].items():
-            #             if address in address_device_translation:
-            #                 device["ADDRESS"] = address_device_translation[address]
+            if method == _JsonRpcMethod.INTERFACE_LIST_DEVICES and (
+                ignore_devices_on_create is not None or address_device_translation is not None
+            ):
+                new_devices = []
+                for dd in json_data[_JsonKey.RESULT]:
+                    if ignore_devices_on_create is not None and (
+                        dd["address"] in ignore_devices_on_create or dd["parent"] in ignore_devices_on_create
+                    ):
+                        continue
+                    if address_device_translation is not None:
+                        if dd["address"] in address_device_translation or dd["parent"] in address_device_translation:
+                            new_devices.append(dd)
+                    else:
+                        new_devices.append(dd)
+
+                json_data[_JsonKey.RESULT] = new_devices
             return _MockResponse(json_data)
 
         async def close(self) -> None:  # compatibility
@@ -408,16 +450,16 @@ def _get_client_session(
 
 def _get_xml_rpc_proxy(  # noqa: C901
     *,
-    recorder: SessionPlayer,
-    address_device_translation: dict[str, str] | None = None,
+    player: SessionPlayer,
+    address_device_translation: set[str] | None = None,
     ignore_devices_on_create: list[str] | None = None,
 ) -> BaseRpcProxy:
     """
-    Provide an BaseRpcProxy-like fixture that answers via SimpleSessionRecorder (XML-RPC).
+    Provide an BaseRpcProxy-like fixture that answers via SessionPlayer (XML-RPC).
 
     Any method call like: await proxy.system.listMethods(...)
     will be answered by looking up the latest recorded XML-RPC response
-    in the session recorder using the provided method and positional params.
+    in the session player using the provided method and positional params.
     """
 
     class _Method:
@@ -433,9 +475,9 @@ def _get_xml_rpc_proxy(  # noqa: C901
             # Forward to caller with collected method name and positional params
             return await self._caller(self._name, *args)
 
-    class _AioXmlRpcProxyFromRecorder:
+    class _AioXmlRpcProxyFromSession:
         def __init__(self) -> None:
-            self._recorder = recorder
+            self._player = player
             self._supported_methods: tuple[str, ...] = ()
             self._central: CentralUnit | None = None
 
@@ -447,6 +489,20 @@ def _get_xml_rpc_proxy(  # noqa: C901
         def supported_methods(self) -> tuple[str, ...]:
             """Return the supported methods."""
             return self._supported_methods
+
+        async def getAllSystemVariables(self) -> dict[str, Any]:
+            """Return all system variables."""
+            return const.SYSVAR_DATA_XML
+
+        async def getParamset(self, channel_address: str, paramset: str) -> Any:
+            """Set a value."""
+            if self._central:
+                result = self._player.get_latest_response_by_params(
+                    rpc_type=RPCType.XML_RPC,
+                    method="getParamset",
+                    params=(channel_address, paramset),
+                )
+                return result if result else {}
 
         async def setValue(self, channel_address: str, parameter: str, value: Any, rx_mode: Any | None = None) -> None:
             """Set a value."""
@@ -485,7 +541,7 @@ def _get_xml_rpc_proxy(  # noqa: C901
 
         async def listDevices(self) -> list[Any]:
             """Return a list of devices."""
-            devices = self._recorder.get_latest_response_by_params(
+            devices = self._player.get_latest_response_by_params(
                 rpc_type=RPCType.XML_RPC,
                 method="listDevices",
                 params="()",
@@ -495,19 +551,16 @@ def _get_xml_rpc_proxy(  # noqa: C901
             if ignore_devices_on_create is None and address_device_translation is None:
                 return cast(list[Any], devices)
 
-            for device in devices:
+            for dd in devices:
                 if ignore_devices_on_create is not None and (
-                    device["ADDRESS"] in ignore_devices_on_create or device["PARENT"] in ignore_devices_on_create
+                    dd["ADDRESS"] in ignore_devices_on_create or dd["PARENT"] in ignore_devices_on_create
                 ):
                     continue
                 if address_device_translation is not None:
-                    if (
-                        device["ADDRESS"] in address_device_translation
-                        or device["PARENT"] in address_device_translation
-                    ):
-                        new_devices.append(device)
+                    if dd["ADDRESS"] in address_device_translation or dd["PARENT"] in address_device_translation:
+                        new_devices.append(dd)
                 else:
-                    new_devices.append(device)
+                    new_devices.append(dd)
 
             return new_devices
 
@@ -517,7 +570,7 @@ def _get_xml_rpc_proxy(  # noqa: C901
 
         async def _invoke(self, method: str, *args: Any) -> Any:
             params = tuple(args)
-            return self._recorder.get_latest_response_by_params(
+            return self._player.get_latest_response_by_params(
                 rpc_type=RPCType.XML_RPC,
                 method=method,
                 params=params,
@@ -533,12 +586,12 @@ def _get_xml_rpc_proxy(  # noqa: C901
                 supported_methods.append(_RpcMethod.PING)
                 self._supported_methods = tuple(supported_methods)
 
-    return cast(BaseRpcProxy, _AioXmlRpcProxyFromRecorder())
+    return cast(BaseRpcProxy, _AioXmlRpcProxyFromSession())
 
 
 async def get_central_client_factory(
-    recorder: SessionPlayer,
-    address_device_translation: dict[str, str],
+    player: SessionPlayer,
+    address_device_translation: set[str],
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
     ignore_custom_device_definition_models: list[str] | None,
@@ -546,15 +599,14 @@ async def get_central_client_factory(
 ) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
     """Return central factory."""
     factory = FactoryWithClient(
-        recorder=recorder,
+        player=player,
         address_device_translation=address_device_translation,
-        ignore_devices_on_create=ignore_devices_on_create,
-    )
-    central_client = await factory.get_default_central(
         do_mock_client=do_mock_client,
         ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+        ignore_devices_on_create=ignore_devices_on_create,
         un_ignore_list=un_ignore_list,
     )
+    central_client = await factory.get_default_central()
     central, client = central_client
     try:
         yield central, client, factory
@@ -655,7 +707,7 @@ class SessionPlayer:
     )
 
     def __init__(self, *, file_id: str) -> None:
-        """Initialize the session recorder."""
+        """Initialize the session player."""
         self._file_id = file_id
 
     async def load(self, *, file_path: str) -> DataOperationResult:

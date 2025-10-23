@@ -25,14 +25,14 @@ from aiohomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType,
 from aiohomematic_test_support import const
 from aiohomematic_test_support.support import get_prepared_custom_data_point
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU1769958": "HmIP-BWTH.json",
-    "VCU3609622": "HmIP-eTRV-2.json",
-    "INT0000001": "HM-CC-VG-1.json",
-    "VCU5778428": "HmIP-HEATING.json",
-    "VCU0000054": "HM-CC-TC.json",
-    "VCU0000050": "HM-CC-RT-DN.json",
-    "VCU0000341": "HM-TC-IT-WM-W-EU.json",
+TEST_DEVICES: set[str] = {
+    "VCU1769958",
+    "VCU3609622",
+    "INT0000001",
+    "VCU5778428",
+    "VCU0000054",
+    "VCU0000050",
+    "VCU0000341",
 }
 
 # pylint: disable=protected-access

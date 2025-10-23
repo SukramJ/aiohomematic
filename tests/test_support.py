@@ -50,10 +50,7 @@ from aiohomematic.support import (
     to_bool,
 )
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU2128127": "HmIP-BSM.json",
-    "VCU3609622": "HmIP-eTRV-2.json",
-}
+TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
 
 # pylint: disable=protected-access
 

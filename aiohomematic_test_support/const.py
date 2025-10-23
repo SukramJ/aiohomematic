@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from aiohomematic.client.json_rpc import _JsonKey
 from aiohomematic.const import LOCAL_HOST, Interface, ProgramData, SystemVariableData, SysvarType
 
 CENTRAL_NAME = "CentralTest"
@@ -32,7 +33,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(
         vid="2",
         legacy_name="alarm_ext",
-        description="",
+        description="HAHM",
         data_type=SysvarType.ALARM,
         unit=None,
         value=False,
@@ -56,7 +57,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(
         vid="4",
         legacy_name="logic_ext",
-        description="",
+        description="HAHM",
         data_type=SysvarType.LOGIC,
         unit=None,
         value=False,
@@ -80,7 +81,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(
         vid="6",
         legacy_name="list_ext",
-        description="",
+        description="HAHM",
         data_type=SysvarType.LIST,
         unit=None,
         value=0,
@@ -104,7 +105,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(
         vid="8",
         legacy_name="string_ext",
-        description="",
+        description="HAHM",
         data_type=SysvarType.STRING,
         unit=None,
         value="test1",
@@ -128,7 +129,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(
         vid="10",
         legacy_name="float_ext",
-        description="",
+        description="HAHM",
         data_type=SysvarType.FLOAT,
         unit="°C",
         value=23.2,
@@ -152,7 +153,7 @@ SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(
         vid="12",
         legacy_name="integer_ext",
-        description="",
+        description="HAHM",
         data_type=SysvarType.INTEGER,
         unit=None,
         value=17,
@@ -162,6 +163,31 @@ SYSVAR_DATA: list[SystemVariableData] = [
         extended_sysvar=True,
     ),
 ]
+
+
+SYSVAR_DATA_JSON = [
+    {
+        _JsonKey.ID: sv.vid,
+        _JsonKey.IS_INTERNAL: False,
+        _JsonKey.MAX_VALUE: sv.max_value,
+        _JsonKey.MIN_VALUE: sv.min_value,
+        _JsonKey.NAME: sv.legacy_name,
+        _JsonKey.TYPE: sv.data_type,
+        _JsonKey.UNIT: sv.unit,
+        _JsonKey.VALUE: sv.value,
+        _JsonKey.VALUE_LIST: ";".join(sv.values) if sv.values else None,
+    }
+    for sv in SYSVAR_DATA
+]
+SYSVAR_DATA_JSON_DESCRIPTION = [
+    {
+        _JsonKey.ID: sv.vid,
+        _JsonKey.DESCRIPTION: sv.description,
+    }
+    for sv in SYSVAR_DATA
+]
+
+SYSVAR_DATA_XML = {sv.legacy_name: sv.value for sv in SYSVAR_DATA}
 
 PROGRAM_DATA: list[ProgramData] = [
     ProgramData(
@@ -181,7 +207,23 @@ PROGRAM_DATA: list[ProgramData] = [
         last_execute_time="",
     ),
 ]
-
+PROGRAM_DATA_JSON = [
+    {
+        _JsonKey.ID: p.pid,
+        _JsonKey.IS_ACTIVE: p.is_active,
+        _JsonKey.IS_INTERNAL: p.is_internal,
+        _JsonKey.LAST_EXECUTE_TIME: p.last_execute_time,
+        _JsonKey.NAME: p.legacy_name,
+    }
+    for p in PROGRAM_DATA
+]
+PROGRAM_DATA_JSON_DESCRIPTION = [
+    {
+        _JsonKey.ID: p.pid,
+        _JsonKey.DESCRIPTION: p.description,
+    }
+    for p in PROGRAM_DATA
+]
 
 ADDRESS_DEVICE_TRANSLATION = {
     "VCU3432945": "HmIP-STV.json",

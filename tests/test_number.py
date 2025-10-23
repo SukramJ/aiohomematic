@@ -12,11 +12,7 @@ from aiohomematic.model.generic import DpFloat, DpInteger
 from aiohomematic.model.hub import SysvarDpNumber
 from aiohomematic_test_support import const
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU4984404": "HmIPW-STHD.json",
-    "VCU0000011": "HMW-LC-Bl1-DR.json",
-    "VCU0000054": "HM-CC-TC.json",
-}
+TEST_DEVICES: set[str] = {"VCU4984404", "VCU0000011", "VCU0000054"}
 
 # pylint: disable=protected-access
 
@@ -178,23 +174,20 @@ async def test_hminteger(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, True, False, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_hmsysvarnumber(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test HmSysvarNumber."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_ccu_client
     enumber: SysvarDpNumber = cast(
         SysvarDpNumber,
         central.get_sysvar_data_point(legacy_name="float_ext"),

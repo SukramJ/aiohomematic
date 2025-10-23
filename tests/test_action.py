@@ -10,7 +10,7 @@ import pytest
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpAction
 
-TEST_DEVICES: list[str] = ["VCU9724704"]
+TEST_DEVICES: set[str] = {"VCU9724704"}
 
 # pylint: disable=protected-access
 

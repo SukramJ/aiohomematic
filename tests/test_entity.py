@@ -14,10 +14,7 @@ from aiohomematic.store import check_ignore_parameters_is_clean
 from aiohomematic_test_support import const
 from aiohomematic_test_support.support import get_prepared_custom_data_point
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU2128127": "HmIP-BSM.json",
-    "VCU3609622": "HmIP-eTRV-2.json",
-}
+TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
 
 # pylint: disable=protected-access
 

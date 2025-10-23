@@ -12,9 +12,7 @@ from aiohomematic.model.generic import DpSelect
 from aiohomematic.model.hub import SysvarDpSelect
 from aiohomematic_test_support import const
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU6354483": "HmIP-STHD.json",
-}
+TEST_DEVICES: set[str] = {"VCU6354483"}
 
 # pylint: disable=protected-access
 
@@ -81,23 +79,20 @@ async def test_hmselect(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, True, False, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_hmsysvarselect(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test HmSysvarSelect."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_ccu_client
     select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
     assert select.usage == DataPointUsage.DATA_POINT
     assert select.unit is None

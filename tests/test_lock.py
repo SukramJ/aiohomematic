@@ -12,12 +12,7 @@ from aiohomematic.model.custom import CustomDpIpLock, CustomDpRfLock
 from aiohomematic_test_support import const
 from aiohomematic_test_support.support import get_prepared_custom_data_point
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU9724704": "HmIP-DLD.json",
-    "VCU0000146": "HM-Sec-Key.json",
-    "VCU3609622": "HmIP-eTRV-2.json",
-    "VCU0000341": "HM-TC-IT-WM-W-EU.json",
-}
+TEST_DEVICES: set[str] = {"VCU9724704", "VCU0000146", "VCU3609622", "VCU0000341"}
 
 # pylint: disable=protected-access
 

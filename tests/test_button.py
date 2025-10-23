@@ -10,11 +10,8 @@ import pytest
 from aiohomematic.const import DataPointUsage, ParamsetKey, ProgramData
 from aiohomematic.model.generic import DpButton
 from aiohomematic.model.hub import ProgramDpButton
-from aiohomematic_test_support import const
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU1437294": "HmIP-SMI.json",
-}
+TEST_DEVICES: set[str] = {"VCU1437294"}
 
 # pylint: disable=protected-access
 
@@ -62,23 +59,20 @@ async def test_hmbutton(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, {}, True, False, True, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_hmprogrambutton(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test HmProgramButton."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_ccu_client
     button: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point(pid="pid1").button)
     assert button.usage == DataPointUsage.DATA_POINT
     assert button.available is True

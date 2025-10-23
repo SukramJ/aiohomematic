@@ -12,9 +12,7 @@ from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.hub import SysvarDpBinarySensor
 from aiohomematic_test_support import const
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU5864966": "HmIP-SWDO-I.json",
-}
+TEST_DEVICES: set[str] = {"VCU5864966"}
 
 # pylint: disable=protected-access
 
@@ -65,23 +63,20 @@ async def test_hmbinarysensor(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, {}, True, True, False, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_hmsysvarbinarysensor(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test HmSysvarBinarySensor."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_ccu_client
     binary_sensor: SysvarDpBinarySensor = cast(
         SysvarDpBinarySensor,
         central.get_sysvar_data_point(legacy_name="logic"),

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import call, patch
+from unittest.mock import call
 
 import pytest
 
@@ -24,12 +24,9 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import AioHomematicException, NoClientsException
 from aiohomematic_test_support import const
-from aiohomematic_test_support.support import FactoryWithLocalClient, get_mock, load_device_description
+from aiohomematic_test_support.support import FactoryWithClient, load_device_description
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU2128127": "HmIP-BSM.json",
-    "VCU6354483": "HmIP-STHD.json",
-}
+TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
 
 
 class _FakeDevice:
@@ -80,23 +77,20 @@ async def test_central_basics(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, True, True, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_device_get_data_points(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test central/device get_data_points."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_pydevccu_client
     dps = central.get_data_points()
     assert dps
 
@@ -169,7 +163,7 @@ async def test_identify_ip_addr(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_etrv(
-    factory_with_local_client: FactoryWithLocalClient,
+    factory_with_pydevccu_client: FactoryWithClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -177,9 +171,9 @@ async def test_device_un_ignore_etrv(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_local_client.get_default_central(
-        address_device_translation={"VCU3609622": "HmIP-eTRV-2.json"}, un_ignore_list=[line]
-    )
+    central, _ = await factory_with_pydevccu_client.init(
+        address_device_translation={"VCU3609622"}, un_ignore_list=[line]
+    ).get_default_central()
     try:
         channel = _FakeChannel(model="HmIP-eTRV-2", no=channel_no)
         assert (
@@ -209,7 +203,7 @@ async def test_device_un_ignore_etrv(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_broll(
-    factory_with_local_client: FactoryWithLocalClient,
+    factory_with_pydevccu_client: FactoryWithClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -217,9 +211,9 @@ async def test_device_un_ignore_broll(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_local_client.get_default_central(
-        address_device_translation={"VCU8537918": "HmIP-BROLL.json"}, un_ignore_list=[line]
-    )
+    central, _ = await factory_with_pydevccu_client.init(
+        address_device_translation={"VCU8537918"}, un_ignore_list=[line]
+    ).get_default_central()
     try:
         channel = _FakeChannel(model="HmIP-BROLL", no=channel_no)
         assert (
@@ -252,7 +246,7 @@ async def test_device_un_ignore_broll(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm(
-    factory_with_local_client: FactoryWithLocalClient,
+    factory_with_pydevccu_client: FactoryWithClient,
     line: str,
     parameter: str,
     channel_no: int | None,
@@ -260,9 +254,9 @@ async def test_device_un_ignore_hm(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_local_client.get_default_central(
-        address_device_translation={"VCU0000341": "HM-TC-IT-WM-W-EU.json"}, un_ignore_list=[line]
-    )
+    central, _ = await factory_with_pydevccu_client.init(
+        address_device_translation={"VCU0000341"}, un_ignore_list=[line]
+    ).get_default_central()
     try:
         channel = _FakeChannel(model="HM-TC-IT-WM-W-EU", no=channel_no)
         assert (
@@ -339,7 +333,7 @@ async def test_device_un_ignore_hm(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm2(
-    factory_with_local_client: FactoryWithLocalClient,
+    factory_with_pydevccu_client: FactoryWithClient,
     lines: list[str],
     parameter: str,
     channel_no: int | None,
@@ -347,9 +341,9 @@ async def test_device_un_ignore_hm2(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_local_client.get_default_central(
-        address_device_translation={"VCU0000137": "HM-ES-PMSw1-Pl.json"}, un_ignore_list=lines
-    )
+    central, _ = await factory_with_pydevccu_client.init(
+        address_device_translation={"VCU0000137"}, un_ignore_list=lines
+    ).get_default_central()
     try:
         channel = _FakeChannel(model="HM-ES-PMSw1-Pl", no=channel_no)
         assert (
@@ -395,17 +389,17 @@ async def test_device_un_ignore_hm2(
 )
 @pytest.mark.asyncio
 async def test_ignore_(
-    factory_with_local_client: FactoryWithLocalClient,
+    factory_with_pydevccu_client: FactoryWithClient,
     ignore_custom_device_definition_models: list[str],
     model: str,
     address: str,
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_local_client.get_default_central(
-        address_device_translation={"VCU1769958": "HmIP-BWTH.json", "VCU3609622": "HmIP-eTRV-2.json"},
+    central, _ = await factory_with_pydevccu_client.init(
+        address_device_translation={"VCU1769958", "VCU3609622"},
         ignore_custom_device_definition_models=ignore_custom_device_definition_models,
-    )
+    ).get_default_central()
     try:
         assert central.parameter_visibility.model_is_ignored(model=model) is expected_result
         if device := central.get_device(address=address):
@@ -433,14 +427,14 @@ async def test_ignore_(
     ],
 )
 async def test_all_parameters(
-    factory_with_local_client: FactoryWithLocalClient,
+    factory_with_pydevccu_client: FactoryWithClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory_with_local_client.get_default_central(address_device_translation=TEST_DEVICES)
+    central, _ = await factory_with_pydevccu_client.init(address_device_translation=TEST_DEVICES).get_default_central()
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -467,16 +461,16 @@ async def test_all_parameters(
     ],
 )
 async def test_all_parameters_with_un_ignore(
-    factory_with_local_client: FactoryWithLocalClient,
+    factory_with_pydevccu_client: FactoryWithClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory_with_local_client.get_default_central(
+    central, _ = await factory_with_pydevccu_client.init(
         address_device_translation=TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"]
-    )
+    ).get_default_central()
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -520,23 +514,20 @@ async def test_data_points_by_category(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, {}, True, True, True, None, None),
+        ({}, True, None, None),
     ],
 )
 async def test_hub_data_points_by_category(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test hub_data_points_by_category."""
-    central, _, _ = central_client_factory_with_local_client
+    central, _, _ = central_client_factory_with_ccu_client
     ebp_sensor = central.get_hub_data_points(category=DataPointCategory.HUB_SENSOR)
     assert ebp_sensor
     assert len(ebp_sensor) == 4
@@ -666,29 +657,6 @@ async def test_virtual_remote_delete(
     await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
 
 
-@pytest.mark.enable_socket
-@pytest.mark.asyncio
-async def test_central_not_alive(factory_with_local_client: FactoryWithLocalClient) -> None:
-    """Test central other methods."""
-    central, client = await factory_with_local_client.get_unpatched_default_central(
-        port=const.CCU_MINI_PORT, address_device_translation={}, do_mock_client=False
-    )
-    try:
-        mock_client = get_mock(instance=client, available=False)
-        assert central.system_information.serial is None
-        assert central.is_alive is True
-
-        mock_client.is_callback_alive.return_value = False
-        with patch("aiohomematic.client.create_client", return_value=mock_client):
-            await central.start()
-
-        assert central.available is False
-        assert central.system_information.serial == "0815_4711"
-        assert central.is_alive is False
-    finally:
-        await central.stop()
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
@@ -724,44 +692,41 @@ async def test_central_callbacks(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, True, True, True, None, None),
+        (TEST_DEVICES, True, None, None),
     ],
 )
 async def test_central_services(
-    central_client_factory_with_local_client,
+    central_client_factory_with_pydevccu_client,
 ) -> None:
     """Test central fetch sysvar and programs."""
-    central, mock_client, _ = central_client_factory_with_local_client
+    central, mock_client, _ = central_client_factory_with_pydevccu_client
     await central.fetch_program_data(scheduled=True)
     assert mock_client.method_calls[-1] == call.get_all_programs(markers=())
 
     await central.fetch_sysvar_data(scheduled=True)
     assert mock_client.method_calls[-1] == call.get_all_system_variables(markers=())
 
-    assert len(mock_client.method_calls) == 41
+    assert len(mock_client.method_calls) == 37
     await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER)
-    assert len(mock_client.method_calls) == 41
+    assert len(mock_client.method_calls) == 37
     await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
-    assert len(mock_client.method_calls) == 52
+    assert len(mock_client.method_calls) == 48
 
     await central.get_system_variable(legacy_name="SysVar_Name")
     assert mock_client.method_calls[-1] == call.get_system_variable(name="SysVar_Name")
 
-    assert len(mock_client.method_calls) == 53
+    assert len(mock_client.method_calls) == 49
     await central.set_system_variable(legacy_name="alarm", value=True)
     assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm", value=True)
-    assert len(mock_client.method_calls) == 54
+    assert len(mock_client.method_calls) == 50
     await central.set_system_variable(legacy_name="SysVar_Name", value=True)
-    assert len(mock_client.method_calls) == 54
+    assert len(mock_client.method_calls) == 50
 
     await central.get_client(interface_id=const.INTERFACE_ID).set_value(
         channel_address="123",
@@ -775,7 +740,7 @@ async def test_central_services(
         parameter="LEVEL",
         value=1.0,
     )
-    assert len(mock_client.method_calls) == 55
+    assert len(mock_client.method_calls) == 51
 
     with pytest.raises(AioHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
@@ -784,7 +749,7 @@ async def test_central_services(
             parameter="LEVEL",
             value=1.0,
         )
-    assert len(mock_client.method_calls) == 55
+    assert len(mock_client.method_calls) == 51
 
     await central.get_client(interface_id=const.INTERFACE_ID).put_paramset(
         channel_address="123",
@@ -794,14 +759,14 @@ async def test_central_services(
     assert mock_client.method_calls[-1] == call.put_paramset(
         channel_address="123", paramset_key_or_link_address=ParamsetKey.VALUES, values={"LEVEL": 1.0}
     )
-    assert len(mock_client.method_calls) == 56
+    assert len(mock_client.method_calls) == 52
     with pytest.raises(AioHomematicException):
         await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
             channel_address="123",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL": 1.0},
         )
-    assert len(mock_client.method_calls) == 56
+    assert len(mock_client.method_calls) == 52
 
     assert (
         central.get_generic_data_point(channel_address="VCU6354483:0", parameter="DUTY_CYCLE").parameter == "DUTY_CYCLE"
@@ -809,34 +774,10 @@ async def test_central_services(
     assert central.get_generic_data_point(channel_address="VCU6354483", parameter="DUTY_CYCLE") is None
 
 
-@pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_direct(factory_with_local_client: FactoryWithLocalClient) -> None:
+async def test_central_without_interface_config(factory_with_pydevccu_client: FactoryWithClient) -> None:
     """Test central other methods."""
-    central, client = await factory_with_local_client.get_unpatched_default_central(
-        port=const.CCU_MINI_PORT, address_device_translation=TEST_DEVICES, do_mock_client=False
-    )
-    try:
-        mock_client = get_mock(instance=client, available=False)
-        assert central.system_information.serial is None
-        assert central.is_alive is True
-
-        with patch("aiohomematic.client.create_client", return_value=mock_client):
-            await central.start()
-        assert await central._create_clients() is False
-
-        assert central.available is False
-        assert central.system_information.serial == "0815_4711"
-        assert len(central._devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 64
-    finally:
-        await central.stop()
-
-
-@pytest.mark.asyncio
-async def test_central_without_interface_config(factory_with_local_client: FactoryWithLocalClient) -> None:
-    """Test central other methods."""
-    central = await factory_with_local_client.get_raw_central(interface_config=None)
+    central = await factory_with_pydevccu_client.init(interface_configs=set()).get_raw_central()
     try:
         assert central.all_clients_active is False
 
@@ -930,23 +871,20 @@ async def test_pending_pong_failure(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     (
-        "port",
         "address_device_translation",
         "do_mock_client",
-        "add_sysvars",
-        "add_programs",
         "ignore_devices_on_create",
         "un_ignore_list",
     ),
     [
-        (const.CCU_MINI_PORT, TEST_DEVICES, False, False, False, None, None),
+        (TEST_DEVICES, False, None, None),
     ],
 )
 async def test_unknown_pong_failure(
-    central_client_factory_with_local_client,
+    central_client_factory_with_ccu_client,
 ) -> None:
     """Test central other methods."""
-    central, client, _ = central_client_factory_with_local_client
+    central, client, _ = central_client_factory_with_ccu_client
     interface_id = client.interface_id
     count = 0
     max_count = PING_PONG_MISMATCH_COUNT + 1

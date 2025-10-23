@@ -12,10 +12,7 @@ from aiohomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 from aiohomematic_test_support import const
 from aiohomematic_test_support.support import get_prepared_custom_data_point
 
-TEST_DEVICES: dict[str, str] = {
-    "VCU8249617": "HmIP-ASIR-2.json",
-    "VCU2822385": "HmIP-SWSD.json",
-}
+TEST_DEVICES: set[str] = {"VCU8249617", "VCU2822385"}
 
 # pylint: disable=protected-access
 

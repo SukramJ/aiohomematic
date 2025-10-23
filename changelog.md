@@ -1,3 +1,7 @@
+# Version 2025.10.17 (2025-10-23)
+
+- Remove ClientLocal
+
 # Version 2025.10.16 (2025-10-23)
 
 - Add option to start central in get_default_central (tests)

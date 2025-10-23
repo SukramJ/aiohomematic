@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import collections
-import os
 
-import orjson
 import pytest
 
 from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
 from aiohomematic.model.generic import GenericDataPoint
-from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, hm_property
+from aiohomematic.property_decorators import Kind, get_hm_property_by_kind
 from aiohomematic_test_support import const
 
 # pylint: disable=protected-access
@@ -158,16 +156,6 @@ async def not_test_central_full(central_unit_full) -> None:  # noqa: C901
     addresses: dict[str, str] = {}
     for address, device in central._devices.items():
         addresses[address] = f"{device.model}.json"
-
-    with open(
-        file=os.path.join(central.config.storage_directory, "all_devices.json"),
-        mode="wb",
-    ) as fptr:
-        fptr.write(orjson.dumps(addresses, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
-
-    def is_cached(cls: type, attr_name: str) -> bool:
-        attr = getattr(cls, attr_name, None)
-        return isinstance(attr, hm_property) and attr.cached
 
     # check __dict__ / __slots__
     for device in central.devices:

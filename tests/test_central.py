@@ -171,7 +171,7 @@ async def test_device_un_ignore_etrv(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_pydevccu_client.init(
+    central = await factory_with_pydevccu_client.init(
         address_device_translation={"VCU3609622"}, un_ignore_list=[line]
     ).get_default_central()
     try:
@@ -211,7 +211,7 @@ async def test_device_un_ignore_broll(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_pydevccu_client.init(
+    central = await factory_with_pydevccu_client.init(
         address_device_translation={"VCU8537918"}, un_ignore_list=[line]
     ).get_default_central()
     try:
@@ -254,7 +254,7 @@ async def test_device_un_ignore_hm(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_pydevccu_client.init(
+    central = await factory_with_pydevccu_client.init(
         address_device_translation={"VCU0000341"}, un_ignore_list=[line]
     ).get_default_central()
     try:
@@ -341,7 +341,7 @@ async def test_device_un_ignore_hm2(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_pydevccu_client.init(
+    central = await factory_with_pydevccu_client.init(
         address_device_translation={"VCU0000137"}, un_ignore_list=lines
     ).get_default_central()
     try:
@@ -396,7 +396,7 @@ async def test_ignore_(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central, _ = await factory_with_pydevccu_client.init(
+    central = await factory_with_pydevccu_client.init(
         address_device_translation={"VCU1769958", "VCU3609622"},
         ignore_custom_device_definition_models=ignore_custom_device_definition_models,
     ).get_default_central()
@@ -434,7 +434,7 @@ async def test_all_parameters(
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory_with_pydevccu_client.init(address_device_translation=TEST_DEVICES).get_default_central()
+    central = await factory_with_pydevccu_client.init(address_device_translation=TEST_DEVICES).get_default_central()
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -468,7 +468,7 @@ async def test_all_parameters_with_un_ignore(
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central, _ = await factory_with_pydevccu_client.init(
+    central = await factory_with_pydevccu_client.init(
         address_device_translation=TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"]
     ).get_default_central()
     parameters = central.get_parameters(

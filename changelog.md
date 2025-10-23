@@ -1,3 +1,7 @@
+# Version 2025.10.16 (2025-10-23)
+
+- Add option to start central in get_default_central (tests)
+
 # Version 2025.10.15 (2025-10-23)
 
 - Refactor tests to use central*client_factory_with*\*\*\*ccu_client

@@ -10,7 +10,7 @@ import importlib.resources
 import json
 import logging
 import os
-from typing import Any, Final, Self, cast
+from typing import Any, Self, cast
 from unittest.mock import MagicMock, Mock, patch
 import zipfile
 
@@ -30,140 +30,15 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
     RPCType,
-    SourceOfDeviceCreation,
 )
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic.store.persistent import _freeze_params, _unfreeze_params
 from aiohomematic_test_support import const
-from aiohomematic_test_support.client_local import ClientLocal, LocalRessources
 
 _LOGGER = logging.getLogger(__name__)
 
-EXCLUDE_METHODS_FROM_MOCKS: Final[list[str]] = []
-INCLUDE_PROPERTIES_IN_MOCKS: Final[list[str]] = []
-
 
 # pylint: disable=protected-access
-class FactoryWithLocalClient:
-    """Factory for a central with one local client."""
-
-    def __init__(self, *, client_session: ClientSession | None = None):
-        """Init the central factory."""
-        self._client_session = client_session
-        self.system_event_mock = MagicMock()
-        self.ha_event_mock = MagicMock()
-
-    async def get_raw_central(
-        self,
-        *,
-        interface_config: InterfaceConfig | None,
-        un_ignore_list: list[str] | None = None,
-        ignore_custom_device_definition_models: list[str] | None = None,
-    ) -> CentralUnit:
-        """Return a central based on give address_device_translation."""
-        interface_configs = {interface_config} if interface_config else set()
-        central = CentralConfig(
-            name=const.CENTRAL_NAME,
-            host=const.CCU_HOST,
-            username=const.CCU_USERNAME,
-            password=const.CCU_PASSWORD,
-            central_id="test1234",
-            interface_configs=interface_configs,
-            client_session=self._client_session,
-            un_ignore_list=frozenset(un_ignore_list or []),
-            ignore_custom_device_definition_models=frozenset(ignore_custom_device_definition_models or []),
-            start_direct=True,
-        ).create_central()
-
-        central.register_backend_system_callback(cb=self.system_event_mock)
-        central.register_homematic_callback(cb=self.ha_event_mock)
-
-        return central
-
-    async def get_unpatched_default_central(
-        self,
-        *,
-        port: int,
-        address_device_translation: dict[str, str],
-        do_mock_client: bool = True,
-        ignore_devices_on_create: list[str] | None = None,
-        un_ignore_list: list[str] | None = None,
-        ignore_custom_device_definition_models: list[str] | None = None,
-    ) -> tuple[CentralUnit, Client | Mock]:
-        """Return a central based on give address_device_translation."""
-        interface_config = InterfaceConfig(
-            central_name=const.CENTRAL_NAME,
-            interface=Interface.BIDCOS_RF,
-            port=port,
-        )
-
-        central = await self.get_raw_central(
-            interface_config=interface_config,
-            un_ignore_list=un_ignore_list,
-            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
-        )
-
-        _client = ClientLocal(
-            client_config=ClientConfig(
-                central=central,
-                interface_config=interface_config,
-            ),
-            local_resources=LocalRessources(
-                address_device_translation=address_device_translation,
-                ignore_devices_on_create=ignore_devices_on_create if ignore_devices_on_create else [],
-            ),
-        )
-        await _client.init_client()
-        client = get_mock(_client) if do_mock_client else _client
-
-        assert central
-        assert client
-        return central, client
-
-    async def get_default_central(
-        self,
-        *,
-        port: int = const.CCU_MINI_PORT,
-        address_device_translation: dict[str, str],
-        do_mock_client: bool = True,
-        add_sysvars: bool = False,
-        add_programs: bool = False,
-        ignore_devices_on_create: list[str] | None = None,
-        un_ignore_list: list[str] | None = None,
-        ignore_custom_device_definition_models: list[str] | None = None,
-    ) -> tuple[CentralUnit, Client | Mock]:
-        """Return a central based on give address_device_translation."""
-        central, client = await self.get_unpatched_default_central(
-            port=port,
-            address_device_translation=address_device_translation,
-            do_mock_client=True,
-            ignore_devices_on_create=ignore_devices_on_create,
-            un_ignore_list=un_ignore_list,
-            ignore_custom_device_definition_models=ignore_custom_device_definition_models,
-        )
-
-        patch("aiohomematic.central.CentralUnit._get_primary_client", return_value=client).start()
-        patch("aiohomematic.client.ClientConfig.create_client", return_value=client).start()
-        patch(
-            "aiohomematic_test_support.client_local.ClientLocal.get_all_system_variables",
-            return_value=const.SYSVAR_DATA if add_sysvars else [],
-        ).start()
-        patch(
-            "aiohomematic_test_support.client_local.ClientLocal.get_all_programs",
-            return_value=const.PROGRAM_DATA if add_programs else [],
-        ).start()
-        patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
-
-        await central.start()
-        if new_device_addresses := central._check_for_new_device_addresses():
-            await central._create_devices(new_device_addresses=new_device_addresses, source=SourceOfDeviceCreation.INIT)
-        await central._init_hub()
-
-        assert central
-        assert client
-        return central, client
-
-
 class FactoryWithClient:
     """Factory for a central with one local client."""
 
@@ -173,20 +48,24 @@ class FactoryWithClient:
         player: SessionPlayer,
         address_device_translation: set[str] | None = None,
         do_mock_client: bool = True,
+        exclude_methods_from_mocks: set[str] | None = None,
         ignore_custom_device_definition_models: list[str] | None = None,
         ignore_devices_on_create: list[str] | None = None,
+        include_properties_in_mocks: set[str] | None = None,
         interface_configs: set[InterfaceConfig] | None = None,
         un_ignore_list: list[str] | None = None,
     ) -> None:
         """Init the central factory."""
         self._player = player
         self.init(
+            address_device_translation=address_device_translation,
             do_mock_client=do_mock_client,
+            exclude_methods_from_mocks=exclude_methods_from_mocks,
             ignore_custom_device_definition_models=ignore_custom_device_definition_models,
+            ignore_devices_on_create=ignore_devices_on_create,
+            include_properties_in_mocks=include_properties_in_mocks,
             interface_configs=interface_configs,
             un_ignore_list=un_ignore_list,
-            address_device_translation=address_device_translation,
-            ignore_devices_on_create=ignore_devices_on_create,
         )
         self.system_event_mock = MagicMock()
         self.ha_event_mock = MagicMock()
@@ -196,16 +75,20 @@ class FactoryWithClient:
         *,
         address_device_translation: set[str] | None = None,
         do_mock_client: bool = True,
+        exclude_methods_from_mocks: set[str] | None = None,
         ignore_custom_device_definition_models: list[str] | None = None,
         ignore_devices_on_create: list[str] | None = None,
+        include_properties_in_mocks: set[str] | None = None,
         interface_configs: set[InterfaceConfig] | None = None,
         un_ignore_list: list[str] | None = None,
     ) -> Self:
         """Init the central factory."""
         self._address_device_translation = address_device_translation
         self._do_mock_client = do_mock_client
+        self._exclude_methods_from_mocks = exclude_methods_from_mocks
         self._ignore_custom_device_definition_models = ignore_custom_device_definition_models
         self._ignore_devices_on_create = ignore_devices_on_create
+        self._include_properties_in_mocks = include_properties_in_mocks
         self._interface_configs = (
             interface_configs
             if interface_configs is not None
@@ -266,9 +149,16 @@ class FactoryWithClient:
         if self._do_mock_client:
             _orig_create_client = ClientConfig.create_client
 
-            async def _mocked_create_client(self: ClientConfig) -> Client | Mock:
-                real_client = await _orig_create_client(self)
-                return cast(Mock, get_mock(real_client))
+            async def _mocked_create_client(config: ClientConfig) -> Client | Mock:
+                real_client = await _orig_create_client(config)
+                return cast(
+                    Mock,
+                    get_mock(
+                        instance=real_client,
+                        exclude_methods=self._exclude_methods_from_mocks,
+                        include_properties=self._include_properties_in_mocks,
+                    ),
+                )
 
             patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
 
@@ -280,12 +170,12 @@ class FactoryWithClient:
         return central, client
 
 
-def _get_not_mockable_method_names(instance: Any) -> set[str]:
+def _get_not_mockable_method_names(instance: Any, exclude_methods: set[str]) -> set[str]:
     """Return all relevant method names for mocking."""
     methods: set[str] = set(_get_properties(data_object=instance, decorator=property))
 
     for method in dir(instance):
-        if method in EXCLUDE_METHODS_FROM_MOCKS:
+        if method in exclude_methods:
             methods.add(method)
     return methods
 
@@ -615,8 +505,15 @@ async def get_central_client_factory(
         await central.clear_files()
 
 
-def get_mock(instance: Any, **kwargs: Any) -> Any:
+def get_mock(
+    instance: Any, exclude_methods: set[str] | None = None, include_properties: set[str] | None = None, **kwargs: Any
+) -> Any:
     """Create a mock and copy instance attributes over mock."""
+    if exclude_methods is None:
+        exclude_methods = set()
+    if include_properties is None:
+        include_properties = set()
+
     if isinstance(instance, Mock):
         instance.__dict__.update(instance._mock_wraps.__dict__)
         return instance
@@ -625,8 +522,8 @@ def get_mock(instance: Any, **kwargs: Any) -> Any:
     try:
         for method_name in [
             prop
-            for prop in _get_not_mockable_method_names(instance)
-            if prop not in INCLUDE_PROPERTIES_IN_MOCKS and prop not in kwargs
+            for prop in _get_not_mockable_method_names(instance=instance, exclude_methods=exclude_methods)
+            if prop not in include_properties and prop not in kwargs
         ]:
             setattr(mock, method_name, getattr(instance, method_name))
     except Exception:
@@ -684,19 +581,19 @@ async def get_pydev_ccu_central_unit_full(
     return central
 
 
+def load_device_description(file_name: str) -> Any:
+    """Load device description."""
+    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
+    assert dev_desc
+    return dev_desc
+
+
 async def get_session_player(*, file_name: str) -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
     player = SessionPlayer(file_id=file_name)
     file_path = os.path.join(os.path.dirname(__file__), "data", file_name)
     await player.load(file_path=file_path)
     return player
-
-
-def load_device_description(file_name: str) -> Any:
-    """Load device description."""
-    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
-    assert dev_desc
-    return dev_desc
 
 
 class SessionPlayer:

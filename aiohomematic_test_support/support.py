@@ -137,7 +137,7 @@ class FactoryWithClient:
         self._xml_proxy.set_central(central=central)
         return central
 
-    async def get_default_central(self) -> tuple[CentralUnit, Client | Mock]:
+    async def get_default_central(self, *, start: bool = True) -> CentralUnit:
         """Return a central based on give address_device_translation."""
         central = await self.get_raw_central()
 
@@ -162,12 +162,11 @@ class FactoryWithClient:
 
             patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
 
-        await central.start()
-        await central._init_hub()
-        client = central.primary_client
+        if start:
+            await central.start()
+            await central._init_hub()
         assert central
-        assert client
-        return central, client
+        return central
 
 
 def _get_not_mockable_method_names(instance: Any, exclude_methods: set[str]) -> set[str]:
@@ -496,8 +495,9 @@ async def get_central_client_factory(
         ignore_devices_on_create=ignore_devices_on_create,
         un_ignore_list=un_ignore_list,
     )
-    central_client = await factory.get_default_central()
-    central, client = central_client
+    central = await factory.get_default_central()
+    client = central.primary_client
+    assert client
     try:
         yield central, client, factory
     finally:

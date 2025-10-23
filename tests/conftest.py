@@ -13,13 +13,12 @@ import pytest
 from aiohomematic.central import CentralUnit
 from aiohomematic.client import Client
 from aiohomematic_test_support import const
-from aiohomematic_test_support.support import (
+from aiohomematic_test_support.factory import (
     FactoryWithClient,
-    SessionPlayer,
     get_central_client_factory,
     get_pydev_ccu_central_unit_full,
-    get_session_player,
 )
+from aiohomematic_test_support.mock import SessionPlayer, get_session_player
 
 from tests.helpers.mock_json_rpc import MockJsonRpc
 from tests.helpers.mock_xml_rpc import MockXmlRpcServer

@@ -1,4 +1,4 @@
-"""Tests for support.py."""
+"""Tests for factory.py."""
 
 from __future__ import annotations
 

@@ -10,7 +10,7 @@ import pytest
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpLock, CustomDpRfLock
 from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
+from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES: set[str] = {"VCU9724704", "VCU0000146", "VCU3609622", "VCU0000341"}
 

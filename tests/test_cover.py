@@ -18,7 +18,7 @@ from aiohomematic.model.custom.cover import (
     _GarageDoorActivity,
 )
 from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
+from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES: set[str] = {
     "VCU0000045",

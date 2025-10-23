@@ -12,7 +12,7 @@ from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters, v
 from aiohomematic.model.generic import DpSensor, DpSwitch
 from aiohomematic.store import check_ignore_parameters_is_clean
 from aiohomematic_test_support import const
-from aiohomematic_test_support.support import get_prepared_custom_data_point
+from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
 

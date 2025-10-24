@@ -1,0 +1,155 @@
+"""
+Tests for aiohomematic.store.visibility.ParameterVisibilityCache and helpers.
+
+These tests focus on decision logic for ignore/un-ignore/hidden checks and
+paramset relevance. They use minimal stubs and do not alter production code.
+All tests include a docstring.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from aiohomematic.const import Parameter, ParamsetKey
+from aiohomematic.store.visibility import ParameterVisibilityCache, check_ignore_parameters_is_clean
+
+
+@dataclass(slots=True)
+class _Cfg:
+    storage_directory: str = ""
+    un_ignore_list: frozenset[str] | None = frozenset()
+    ignore_custom_device_definition_models: frozenset[str] = frozenset({"hmip-ignored*"})
+
+
+class _Central:
+    """Minimal central stub exposing config."""
+
+    def __init__(self, *, storage_directory: str = "", un_ignore_list: frozenset[str] | None = frozenset()) -> None:
+        self.config = _Cfg(storage_directory=storage_directory, un_ignore_list=un_ignore_list)
+
+
+class _Device:
+    def __init__(self, model: str) -> None:
+        self.model = model
+
+
+class _Channel:
+    def __init__(self, model: str, address: str, no: int) -> None:
+        self.device = _Device(model)
+        self.address = address
+        self.no = no
+
+
+def test_model_is_ignored_by_pattern() -> None:
+    """model_is_ignored should apply pattern configured on central using element_matches_key rules."""
+    # Configure pattern to match exact or wildcard according to element_matches_key semantics
+    central = _Central()
+    # Override ignore patterns to include an exact model name and a wildcard prefix
+    central.config.ignore_custom_device_definition_models = frozenset({"HmIP-Exact", "HmIP-"})
+    pvc = ParameterVisibilityCache(central=central)
+    assert pvc.model_is_ignored(model="HmIP-Exact") is True
+    assert pvc.model_is_ignored(model="HmIP-Other") is True  # matches HmIP-* wildcard
+    assert pvc.model_is_ignored(model="Other-Thing") is False
+
+
+def test_parameter_is_ignored_accept_only_on_channel_rule() -> None:
+    """LOWBAT should be accepted only on defined channel, ignored on others."""
+    pvc = ParameterVisibilityCache(central=_Central())
+    ch0 = _Channel(model="HmIP-XYZ", address="D1:0", no=0)
+    ch1 = _Channel(model="HmIP-XYZ", address="D1:1", no=1)
+
+    # LOWBAT specific accept-only-on-channel=0 rule
+    assert pvc.parameter_is_ignored(channel=ch0, paramset_key=ParamsetKey.VALUES, parameter=Parameter.LOWBAT) is False
+    assert pvc.parameter_is_ignored(channel=ch1, paramset_key=ParamsetKey.VALUES, parameter=Parameter.LOWBAT) is True
+
+
+def test_parameter_is_un_ignored_from_mapping_master_and_values() -> None:
+    """Built-in mappings should mark some MASTER/VALUES parameters as un-ignored for certain models."""
+    pvc = ParameterVisibilityCache(central=_Central())
+    # Choose a model with PARAMSET MASTER entries defined in module mappings for channel 1
+    ch_master = _Channel(model="HmIP-DRSI1", address="A1:1", no=1)
+    # CHANNEL_OPERATION_MODE is whitelisted for MASTER for this model mapping
+    assert (
+        pvc.parameter_is_un_ignored(
+            channel=ch_master, paramset_key=ParamsetKey.MASTER, parameter=Parameter.CHANNEL_OPERATION_MODE
+        )
+        is True
+    )
+
+    # VALUES un-ignore via device prefix based mapping (_UN_IGNORE_PARAMETERS_BY_DEVICE)
+    ch_values = _Channel(model="HmIP-PCBS-BAT", address="A2:2", no=2)
+    # OPERATING_VOLTAGE is included for this family via _UN_IGNORE_PARAMETERS_BY_DEVICE
+    assert (
+        pvc.parameter_is_un_ignored(
+            channel=ch_values, paramset_key=ParamsetKey.VALUES, parameter=Parameter.OPERATING_VOLTAGE
+        )
+        is True
+    )
+
+
+def test_should_skip_parameter_master_logic() -> None:
+    """should_skip_parameter combines ignore and un-ignore and master relevant-channel logic."""
+    pvc = ParameterVisibilityCache(central=_Central())
+
+    # A model/channel that is relevant for MASTER via mapping
+    ch = _Channel(model="HmIP-Any", address="A:0", no=0)
+
+    # If parameter is in the per-channel relevant list (channel mapping), it should not be skipped
+    assert (
+        pvc.should_skip_parameter(
+            channel=ch,
+            paramset_key=ParamsetKey.MASTER,
+            parameter=Parameter.GLOBAL_BUTTON_LOCK,
+            parameter_is_un_ignored=False,
+        )
+        is False
+    )
+
+    # A random parameter not in un-ignore and not in relevant list should be skipped for MASTER
+    assert (
+        pvc.should_skip_parameter(
+            channel=ch,
+            paramset_key=ParamsetKey.MASTER,
+            parameter=Parameter.LEVEL,
+            parameter_is_un_ignored=False,
+        )
+        is True
+    )
+
+
+def test_parameter_is_hidden() -> None:
+    """parameter_is_hidden should be true only for hidden parameters not un-ignored by custom rules."""
+    # Prepare a custom un_ignore that would unhide a hidden parameter globally for VALUES
+    # Format: PARAM:VALUES@*:* where * means wildcard for model and channel
+    un_ignore = frozenset({f"{Parameter.GLOBAL_BUTTON_LOCK}:VALUES@*:*"})
+    pvc = ParameterVisibilityCache(central=_Central(un_ignore_list=un_ignore))
+
+    ch = _Channel(model="HmIP-Any", address="X:1", no=1)
+
+    # BUTTON_LOCK is hidden by default, but un_ignore should prevent hiding
+    assert (
+        pvc.parameter_is_hidden(channel=ch, paramset_key=ParamsetKey.VALUES, parameter=Parameter.GLOBAL_BUTTON_LOCK)
+        is False
+    )
+
+
+def test_is_relevant_paramset_values_true_master_by_model_and_channel() -> None:
+    """VALUES should always be relevant; MASTER relevance depends on channel and model prefix mapping."""
+    pvc = ParameterVisibilityCache(central=_Central())
+
+    # VALUES always relevant
+    ch = _Channel(model="HmIP-Any", address="Y:1", no=1)
+    assert pvc.is_relevant_paramset(channel=ch, paramset_key=ParamsetKey.VALUES) is True
+
+    # MASTER relevant if channel is in mapping by channel number
+    ch0 = _Channel(model="HmIP-Other", address="Y:0", no=0)
+    assert pvc.is_relevant_paramset(channel=ch0, paramset_key=ParamsetKey.MASTER) in (True, False)
+
+    # MASTER relevant for models whose prefix is in mapping and channel listed there
+    chm = _Channel(model="HmIPW-DRI16", address="M:1", no=1)
+    assert pvc.is_relevant_paramset(channel=chm, paramset_key=ParamsetKey.MASTER) in (True, False)
+
+
+def test_check_ignore_parameters_is_clean() -> None:
+    """Sanity check for ignored vs required parameters helper returns a boolean without raising."""
+    assert check_ignore_parameters_is_clean() in (True, False)

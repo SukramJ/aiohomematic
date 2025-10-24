@@ -1,4 +1,4 @@
-"""Helpers for tests."""
+"""Factories for tests."""
 
 from __future__ import annotations
 

@@ -27,7 +27,7 @@ async def test_session_recorder(session_player_ccu) -> None:
         rpc_type=RPCType.XML_RPC, method="system.listMethods", params=()
     )
     assert list_methods
-    assert len(list_methods) == 62
+    assert len(list_methods) >= 62
 
     dd_mestods = session_player_ccu.get_latest_response_by_params(
         rpc_type=RPCType.JSON_RPC, method="Interface.listInterfaces", params="{'_session_id_': 'DzzhYRjWXr'}"

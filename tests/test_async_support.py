@@ -57,7 +57,12 @@ async def test_looper_await_and_log_pending_returns_empty_when_done(monkeypatch,
 
 def test_cancelling_helper(monkeypatch):
     """cancelling() should use Task.cancelling() when available."""
-    f = asyncio.Future()
+
+    # Use a simple dummy object to avoid needing a running event loop (Python 3.14+)
+    class Dummy:
+        pass
+
+    f = Dummy()
 
     # Create a fake cancelling method
     class Fake:

@@ -152,6 +152,7 @@ class FactoryWithClient:
 
 
 async def get_central_client_factory(
+    *,
     player: SessionPlayer,
     address_device_translation: set[str],
     do_mock_client: bool,
@@ -179,6 +180,7 @@ async def get_central_client_factory(
 
 
 async def get_pydev_ccu_central_unit_full(
+    *,
     port: int,
     client_session: ClientSession | None = None,
 ) -> CentralUnit:

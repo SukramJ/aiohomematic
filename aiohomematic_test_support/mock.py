@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 # pylint: disable=protected-access
 
 
-def _get_not_mockable_method_names(instance: Any, exclude_methods: set[str]) -> set[str]:
+def _get_not_mockable_method_names(*, instance: Any, exclude_methods: set[str]) -> set[str]:
     """Return all relevant method names for mocking."""
     methods: set[str] = set(_get_properties(data_object=instance, decorator=property))
 
@@ -37,7 +37,7 @@ def _get_not_mockable_method_names(instance: Any, exclude_methods: set[str]) -> 
     return methods
 
 
-def _get_properties(data_object: Any, decorator: Any) -> set[str]:
+def _get_properties(*, data_object: Any, decorator: Any) -> set[str]:
     """Return the object attributes by decorator."""
     cls = data_object.__class__
 
@@ -63,7 +63,7 @@ def get_client_session(  # noqa: C901
     """
 
     class _MockResponse:
-        def __init__(self, json_data: dict | None) -> None:
+        def __init__(self, *, json_data: dict | None) -> None:
             # If no match is found, emulate backend error payload
             self._json = json_data or {
                 _JsonKey.RESULT: None,
@@ -72,7 +72,7 @@ def get_client_session(  # noqa: C901
             }
             self.status = 200
 
-        async def json(self, encoding: str | None = None) -> dict[str, Any]:  # mimic aiohttp API
+        async def json(self, *, encoding: str | None = None) -> dict[str, Any]:  # mimic aiohttp API
             return self._json
 
         async def read(self) -> bytes:
@@ -114,24 +114,32 @@ def get_client_session(  # noqa: C901
                     _JsonRpcMethod.SYSVAR_SET_FLOAT,
                     _JsonRpcMethod.SESSION_LOGOUT,
                 ):
-                    return _MockResponse({_JsonKey.ID: 0, _JsonKey.RESULT: "200", _JsonKey.ERROR: None})
+                    return _MockResponse(json_data={_JsonKey.ID: 0, _JsonKey.RESULT: "200", _JsonKey.ERROR: None})
                 if method == _JsonRpcMethod.SYSVAR_GET_ALL:
                     return _MockResponse(
-                        {_JsonKey.ID: 0, _JsonKey.RESULT: const.SYSVAR_DATA_JSON, _JsonKey.ERROR: None}
+                        json_data={_JsonKey.ID: 0, _JsonKey.RESULT: const.SYSVAR_DATA_JSON, _JsonKey.ERROR: None}
                     )
                 if method == _JsonRpcMethod.PROGRAM_GET_ALL:
                     return _MockResponse(
-                        {_JsonKey.ID: 0, _JsonKey.RESULT: const.PROGRAM_DATA_JSON, _JsonKey.ERROR: None}
+                        json_data={_JsonKey.ID: 0, _JsonKey.RESULT: const.PROGRAM_DATA_JSON, _JsonKey.ERROR: None}
                     )
                 if method == _JsonRpcMethod.REGA_RUN_SCRIPT:
                     if "get_program_descriptions" in params[_JsonKey.SCRIPT]:
                         return _MockResponse(
-                            {_JsonKey.ID: 0, _JsonKey.RESULT: const.PROGRAM_DATA_JSON_DESCRIPTION, _JsonKey.ERROR: None}
+                            json_data={
+                                _JsonKey.ID: 0,
+                                _JsonKey.RESULT: const.PROGRAM_DATA_JSON_DESCRIPTION,
+                                _JsonKey.ERROR: None,
+                            }
                         )
 
                     if "get_system_variable_descriptions" in params[_JsonKey.SCRIPT]:
                         return _MockResponse(
-                            {_JsonKey.ID: 0, _JsonKey.RESULT: const.SYSVAR_DATA_JSON_DESCRIPTION, _JsonKey.ERROR: None}
+                            json_data={
+                                _JsonKey.ID: 0,
+                                _JsonKey.RESULT: const.SYSVAR_DATA_JSON_DESCRIPTION,
+                                _JsonKey.ERROR: None,
+                            }
                         )
 
                 if method == _JsonRpcMethod.INTERFACE_SET_VALUE:
@@ -141,7 +149,7 @@ def get_client_session(  # noqa: C901
                         parameter=params[_JsonKey.VALUE_KEY],
                         value=params[_JsonKey.VALUE],
                     )
-                    return _MockResponse({_JsonKey.ID: 0, _JsonKey.RESULT: "200", _JsonKey.ERROR: None})
+                    return _MockResponse(json_data={_JsonKey.ID: 0, _JsonKey.RESULT: "200", _JsonKey.ERROR: None})
                 if method == _JsonRpcMethod.INTERFACE_PUT_PARAMSET:
                     if params[_JsonKey.PARAMSET_KEY] == ParamsetKey.VALUES:
                         interface_id = params[_JsonKey.INTERFACE]
@@ -154,7 +162,7 @@ def get_client_session(  # noqa: C901
                                 parameter=param,
                                 value=value,
                             )
-                    return _MockResponse({_JsonKey.RESULT: "200", _JsonKey.ERROR: None})
+                    return _MockResponse(json_data={_JsonKey.RESULT: "200", _JsonKey.ERROR: None})
 
             json_data = player.get_latest_response_by_params(
                 rpc_type=RPCType.JSON_RPC,
@@ -177,7 +185,7 @@ def get_client_session(  # noqa: C901
                         new_devices.append(dd)
 
                 json_data[_JsonKey.RESULT] = new_devices
-            return _MockResponse(json_data)
+            return _MockResponse(json_data=json_data)
 
         async def close(self) -> None:  # compatibility
             return None
@@ -327,7 +335,7 @@ def get_xml_rpc_proxy(  # noqa: C901
 
 
 def get_mock(
-    instance: Any, exclude_methods: set[str] | None = None, include_properties: set[str] | None = None, **kwargs: Any
+    *, instance: Any, exclude_methods: set[str] | None = None, include_properties: set[str] | None = None, **kwargs: Any
 ) -> Any:
     """Create a mock and copy instance attributes over mock."""
     if exclude_methods is None:
@@ -356,8 +364,12 @@ def get_mock(
 async def get_session_player(*, file_name: str) -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
     player = SessionPlayer(file_id=file_name)
-    file_path = os.path.join(os.path.dirname(__file__), "data", file_name)
-    await player.load(file_path=file_path)
+    if player.supports_file_id(file_id=file_name):
+        return player
+
+    for load_fn in const.ALL_SESSION_FILES:
+        file_path = os.path.join(os.path.dirname(__file__), "data", load_fn)
+        await player.load(file_path=file_path, file_id=load_fn)
     return player
 
 
@@ -372,7 +384,16 @@ class SessionPlayer:
         """Initialize the session player."""
         self._file_id = file_id
 
-    async def load(self, *, file_path: str) -> DataOperationResult:
+    @property
+    def _secondary_file_ids(self) -> list[str]:
+        """Return the secondary store for the given file_id."""
+        return [fid for fid in self._store if fid != self._file_id]
+
+    def supports_file_id(self, *, file_id: str) -> bool:
+        """Return whether the session player supports the given file_id."""
+        return file_id in self._store
+
+    async def load(self, *, file_path: str, file_id: str) -> DataOperationResult:
         """
         Load data from disk into the dictionary.
 
@@ -381,7 +402,7 @@ class SessionPlayer:
         will be loaded.
         """
 
-        if self._store[self._file_id]:
+        if self.supports_file_id(file_id=file_id):
             return DataOperationResult.NO_LOAD
 
         if not os.path.exists(file_path):
@@ -400,7 +421,7 @@ class SessionPlayer:
                     with open(file=file_path, encoding=UTF_8) as file_pointer:
                         data = json.loads(file_pointer.read())
 
-                self._store[self._file_id] = data
+                self._store[file_id] = data
             except (json.JSONDecodeError, zipfile.BadZipFile, UnicodeDecodeError, OSError):
                 return DataOperationResult.LOAD_FAIL
             return DataOperationResult.LOAD_SUCCESS
@@ -408,11 +429,13 @@ class SessionPlayer:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _perform_load)
 
-    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+    def get_latest_response_by_method_for_file_id(
+        self, *, file_id: str, rpc_type: str, method: str
+    ) -> list[tuple[Any, Any]]:
         """Return latest non-expired responses for a given (rpc_type, method)."""
         result: list[Any] = []
         # Access store safely to avoid side effects from creating buckets.
-        if not (bucket_by_method := self._store[self._file_id].get(rpc_type)):
+        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
             return result
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return result
@@ -430,16 +453,35 @@ class SessionPlayer:
             result.append((params, resp))
         return result
 
-    def get_latest_response_by_params(
+    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+        """Return latest non-expired responses for a given (rpc_type, method)."""
+        if pri_result := self.get_latest_response_by_method_for_file_id(
+            file_id=self._file_id,
+            rpc_type=rpc_type,
+            method=method,
+        ):
+            return pri_result
+
+        for secondary_file_id in self._secondary_file_ids:
+            if sec_result := self.get_latest_response_by_method_for_file_id(
+                file_id=secondary_file_id,
+                rpc_type=rpc_type,
+                method=method,
+            ):
+                return sec_result
+        return pri_result
+
+    def get_latest_response_by_params_for_file_id(
         self,
         *,
+        file_id: str,
         rpc_type: str,
         method: str,
         params: Any,
     ) -> Any:
         """Return latest non-expired responses for a given (rpc_type, method, params)."""
         # Access store safely to avoid side effects from creating buckets.
-        if not (bucket_by_method := self._store[self._file_id].get(rpc_type)):
+        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
             return None
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return None
@@ -454,3 +496,29 @@ class SessionPlayer:
             return bucket_by_ts[latest_ts]
         except ValueError:
             return None
+
+    def get_latest_response_by_params(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+    ) -> Any:
+        """Return latest non-expired responses for a given (rpc_type, method, params)."""
+        if pri_result := self.get_latest_response_by_params_for_file_id(
+            file_id=self._file_id,
+            rpc_type=rpc_type,
+            method=method,
+            params=params,
+        ):
+            return pri_result
+
+        for secondary_file_id in self._secondary_file_ids:
+            if sec_result := self.get_latest_response_by_params_for_file_id(
+                file_id=secondary_file_id,
+                rpc_type=rpc_type,
+                method=method,
+                params=params,
+            ):
+                return sec_result
+        return pri_result

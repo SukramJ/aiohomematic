@@ -16,6 +16,11 @@ INTERFACE_ID = f"{CENTRAL_NAME}-{Interface.BIDCOS_RF}"
 FULL_SESSION_RANDOMIZED_PYDEVCCU = "full_session_randomized_pydevccu.zip"
 FULL_SESSION_RANDOMIZED_CCU = "full_session_randomized_ccu.zip"
 
+ALL_SESSION_FILES = [
+    FULL_SESSION_RANDOMIZED_PYDEVCCU,
+    FULL_SESSION_RANDOMIZED_CCU,
+]
+
 
 SYSVAR_DATA: list[SystemVariableData] = [
     SystemVariableData(

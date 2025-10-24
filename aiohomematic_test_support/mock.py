@@ -356,8 +356,12 @@ def get_mock(
 async def get_session_player(*, file_name: str) -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
     player = SessionPlayer(file_id=file_name)
-    file_path = os.path.join(os.path.dirname(__file__), "data", file_name)
-    await player.load(file_path=file_path)
+    if player.supports_file_id(file_id=file_name):
+        return player
+
+    for load_fn in const.ALL_SESSION_FILES:
+        file_path = os.path.join(os.path.dirname(__file__), "data", load_fn)
+        await player.load(file_path=file_path, file_id=load_fn)
     return player
 
 
@@ -372,7 +376,16 @@ class SessionPlayer:
         """Initialize the session player."""
         self._file_id = file_id
 
-    async def load(self, *, file_path: str) -> DataOperationResult:
+    @property
+    def _secondary_file_ids(self) -> list[str]:
+        """Return the secondary store for the given file_id."""
+        return [fid for fid in self._store if fid != self._file_id]
+
+    def supports_file_id(self, *, file_id: str) -> bool:
+        """Return whether the session player supports the given file_id."""
+        return file_id in self._store
+
+    async def load(self, *, file_path: str, file_id: str) -> DataOperationResult:
         """
         Load data from disk into the dictionary.
 
@@ -381,7 +394,7 @@ class SessionPlayer:
         will be loaded.
         """
 
-        if self._store[self._file_id]:
+        if self.supports_file_id(file_id=file_id):
             return DataOperationResult.NO_LOAD
 
         if not os.path.exists(file_path):
@@ -400,7 +413,7 @@ class SessionPlayer:
                     with open(file=file_path, encoding=UTF_8) as file_pointer:
                         data = json.loads(file_pointer.read())
 
-                self._store[self._file_id] = data
+                self._store[file_id] = data
             except (json.JSONDecodeError, zipfile.BadZipFile, UnicodeDecodeError, OSError):
                 return DataOperationResult.LOAD_FAIL
             return DataOperationResult.LOAD_SUCCESS
@@ -408,11 +421,11 @@ class SessionPlayer:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _perform_load)
 
-    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+    def _get_latest_response_by_method(self, *, file_id: str, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
         """Return latest non-expired responses for a given (rpc_type, method)."""
         result: list[Any] = []
         # Access store safely to avoid side effects from creating buckets.
-        if not (bucket_by_method := self._store[self._file_id].get(rpc_type)):
+        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
             return result
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return result
@@ -430,16 +443,40 @@ class SessionPlayer:
             result.append((params, resp))
         return result
 
-    def get_latest_response_by_params(
+    def get_latest_response_by_method(
+        self, *, rpc_type: str, method: str, use_secondary_stores: bool = False
+    ) -> list[tuple[Any, Any]]:
+        """Return latest non-expired responses for a given (rpc_type, method)."""
+        if result := self._get_latest_response_by_method(
+            file_id=self._file_id,
+            rpc_type=rpc_type,
+            method=method,
+        ):
+            return result
+
+        if use_secondary_stores is False:
+            return result
+
+        for secondary_file_id in self._secondary_file_ids:
+            if result := self._get_latest_response_by_method(
+                file_id=secondary_file_id,
+                rpc_type=rpc_type,
+                method=method,
+            ):
+                return result
+        return []
+
+    def _get_latest_response_by_params(
         self,
         *,
+        file_id: str,
         rpc_type: str,
         method: str,
         params: Any,
     ) -> Any:
         """Return latest non-expired responses for a given (rpc_type, method, params)."""
         # Access store safely to avoid side effects from creating buckets.
-        if not (bucket_by_method := self._store[self._file_id].get(rpc_type)):
+        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
             return None
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return None
@@ -454,3 +491,32 @@ class SessionPlayer:
             return bucket_by_ts[latest_ts]
         except ValueError:
             return None
+
+    def get_latest_response_by_params(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+        use_secondary_stores: bool = False,
+    ) -> Any:
+        """Return latest non-expired responses for a given (rpc_type, method, params)."""
+        if (
+            result := self._get_latest_response_by_params(
+                file_id=self._file_id,
+                rpc_type=rpc_type,
+                method=method,
+                params=params,
+            )
+        ) or use_secondary_stores is False:
+            return result
+
+        for secondary_file_id in self._secondary_file_ids:
+            if result := self._get_latest_response_by_params(
+                file_id=secondary_file_id,
+                rpc_type=rpc_type,
+                method=method,
+                params=params,
+            ):
+                return result
+        return None

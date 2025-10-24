@@ -1,3 +1,7 @@
+# Version 2025.10.18 (2025-10-24)
+
+- Add option to use other additional sessions
+
 # Version 2025.10.17 (2025-10-23)
 
 - Remove ClientLocal

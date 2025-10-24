@@ -1,4 +1,8 @@
-# Version 2025.10.18 (2025-10-24)
+#Version 2025.10.19 (2025-10-24)
+
+- Test support: Improve naming
+
+#Version 2025.10.18 (2025-10-24)
 
 - Test support: Search in secondary sessions if primary session has no results
 

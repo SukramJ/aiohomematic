@@ -28,10 +28,10 @@ TEST_DEVICES: set[str] = {"VCU9724704"}
     ],
 )
 async def test_hmaction(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmAction."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     action: DpAction = cast(
         DpAction,
         central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),

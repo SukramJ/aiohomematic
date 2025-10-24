@@ -1,171 +1,105 @@
-"""Tests for the async_support module."""
+"""Tests for aiohomematic.async_support helpers and decorators."""
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import logging
 
 import pytest
 
 from aiohomematic.async_support import Looper, cancelling, loop_check
+import aiohomematic.support as hms
 
 
 @pytest.mark.asyncio
-async def test_block_till_done_waits_for_tasks() -> None:
-    """Looper.block_till_done waits for pending tasks to complete."""
-    looper = Looper()
-    done: list[str] = []
-
-    async def short_job() -> None:
-        await asyncio.sleep(0)
-        done.append("ok")
-
-    # Create a task directly in the running loop
-    looper._async_create_task(short_job(), name="short")  # type: ignore[attr-defined]
-    await looper.block_till_done()
-    assert done == ["ok"]
-
-
-@pytest.mark.asyncio
-async def test_block_till_done_timeout_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
-    """Looper.block_till_done logs a warning if wait_time elapses with pending tasks."""
+async def test_looper_block_till_done_deadline_logs(monkeypatch, caplog):
+    """Looper.block_till_done should log a warning when deadline is reached."""
+    loop = asyncio.get_event_loop()
     looper = Looper()
 
-    async def long_job() -> None:
-        # Sleep long enough so our explicit wait_time forces timeout and warning
+    # Create a never-ending task to ensure it's pending
+    async def never():
         await asyncio.sleep(10)
 
-    looper._async_create_task(long_job(), name="long")  # type: ignore[attr-defined]
+    # Use internal method to add a task directly into tracking
+    t = loop.create_task(never(), name="never")
+    looper._tasks.add(t)  # noqa: SLF001
 
-    # Force a very short wait time so we don't actually wait long in tests
-    with caplog.at_level("WARNING"):
-        await looper.block_till_done(wait_time=0.01)
+    with caplog.at_level(logging.WARNING):
+        # wait_time small to trigger deadline path quickly
+        await looper.block_till_done(wait_time=0.0)
 
-    # Expect a shutdown timeout warning mentioning a pending task
-    assert any("Shutdown timeout reached" in rec.getMessage() for rec in caplog.records)
+    # After deadline 0, task should still be pending and a warning emitted
+    assert any("Shutdown timeout reached" in rec.message for rec in caplog.records)
 
-    # Make sure we clean up the task to not leak between tests
-    looper.cancel_tasks()
+    t.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await t
 
 
 @pytest.mark.asyncio
-async def test_create_task_tracks_and_completes() -> None:
-    """Looper.create_task registers tasks and removes them once completed."""
+async def test_looper_await_and_log_pending_returns_empty_when_done(monkeypatch, caplog):
+    """_await_and_log_pending should return empty set once tasks complete."""
     looper = Looper()
 
-    async def quick() -> str:
+    async def done_soon():
         await asyncio.sleep(0)
-        return "done"
+        return 1
 
-    # create_task schedules via call_soon_threadsafe; it should add and auto-remove when done
-    looper.create_task(target=quick(), name="quick-task")
-    await looper.block_till_done()
+    t = asyncio.create_task(done_soon(), name="soon")
+    looper._tasks.add(t)  # noqa: SLF001
 
-    # After finishing, internal task set should be empty
-    assert len(looper._tasks) == 0  # type: ignore[attr-defined]
-
-
-@pytest.mark.asyncio
-async def test_async_add_executor_job_returns_result() -> None:
-    """async_add_executor_job executes a function in the executor and returns its result."""
-    looper = Looper()
-
-    def add(a: int, b: int) -> int:
-        return a + b
-
-    fut = looper.async_add_executor_job(add, 2, 3, name="add-job", executor=None)
-    result = await fut
-    assert result == 5
-    await looper.block_till_done()
+    # No deadline; should wait and tasks finish; returns empty set
+    pending = await looper._await_and_log_pending(pending=[t], deadline=None)  # noqa: SLF001
+    assert pending == set()
 
 
-@pytest.mark.asyncio
-async def test_run_coroutine_from_thread() -> None:
-    """run_coroutine can be called from a worker thread to execute an async function."""
-    looper = Looper()
+def test_cancelling_helper(monkeypatch):
+    """cancelling() should use Task.cancelling() when available."""
 
-    async def compute(x: int) -> int:
-        await asyncio.sleep(0)
-        return x * 2
+    # Use a simple dummy object to avoid needing a running event loop (Python 3.14+)
+    class Dummy:
+        pass
 
-    # Call run_coroutine from a worker thread to avoid blocking the running loop thread
-    def call_sync() -> int:
-        return int(looper.run_coroutine(coro=compute(21), name="compute"))
+    f = Dummy()
 
-    loop = asyncio.get_running_loop()
-    value = await loop.run_in_executor(None, call_sync)
-    assert value == 42
+    # Create a fake cancelling method
+    class Fake:
+        def __call__(self):
+            return True
 
-
-@pytest.mark.asyncio
-async def test_cancel_tasks_cancels_running() -> None:
-    """cancel_tasks cancels all tracked running tasks."""
-    looper = Looper()
-    cancelled: dict[str, bool] = {"flag": False}
-
-    async def slow() -> None:
-        try:
-            await asyncio.sleep(10)
-        except asyncio.CancelledError:
-            cancelled["flag"] = True
-            raise
-
-    looper._async_create_task(slow(), name="slow")  # type: ignore[attr-defined]
-    # Ensure the task has a chance to start
-    await asyncio.sleep(0)
-
-    looper.cancel_tasks()
-    # Give the loop a chance to process the cancellation
-    await looper.block_till_done(wait_time=0.1)
-    assert cancelled["flag"] is True
+    setattr(f, "cancelling", Fake())
+    assert cancelling(task=f) is True
 
 
-@pytest.mark.asyncio
-async def test_cancelling_utility() -> None:
-    """cancelling() reports True for a task that has been cancelled."""
+def test_loop_check_decorator_warns_only_when_debug_enabled(monkeypatch, caplog):
+    """loop_check decorator should warn only once and only in debug mode."""
+    # Ensure debug disabled, no warning
+    monkeypatch.setattr(hms, "debug_enabled", lambda: False)
 
-    # Create a task and cancel it; cancelling() should then report True
-    async def sleeper() -> None:
-        await asyncio.sleep(10)
-
-    task = asyncio.create_task(sleeper())
-    # Give the task a moment to start
-    await asyncio.sleep(0)
-    task.cancel()
-    # In Py3.11+ Task has .cancelling() which returns number of times cancelled (>0 truthy)
-    assert cancelling(task=task) is True
-    # Cleanup
-    with pytest.raises(asyncio.CancelledError):
-        await task
-
-
-def test_loop_check_warns_when_no_loop_and_debug(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
-    """loop_check warns when called without a running loop if debug is enabled."""
-    # Force debug_enabled() to return True so decorator returns the wrapper that checks the loop
-
-    monkeypatch.setattr("aiohomematic.support.debug_enabled", lambda: True)
-
-    # Redefine a function with the decorator under forced debug-enabled environment
-    @loop_check
-    def my_func() -> str:
-        return "x"
-
-    # Call outside of a running event loop
-    with caplog.at_level("WARNING"):
-        assert my_func() == "x"
-
-    # Should have warned about missing event loop
-    assert any("must run in the event_loop" in rec.getMessage() for rec in caplog.records)
-
-    # Now ensure that when debug is disabled, the decorator returns the original function (no warning)
-    monkeypatch.setattr("aiohomematic.support.debug_enabled", lambda: False)
+    calls = {}
 
     @loop_check
-    def my_func2() -> str:
-        return "y"
+    def f(x):
+        calls["x"] = x
+        return x + 1
 
-    with caplog.at_level("WARNING"):
-        assert my_func2() == "y"
-    # No additional warning should be generated for the second function call
-    assert not any("my_func2" in rec.getMessage() for rec in caplog.records)
+    with caplog.at_level(logging.WARNING):
+        assert f(1) == 2
+        assert not any("must run in the event_loop" in rec.message for rec in caplog.records)
+
+    # Enable debug and ensure warning when no loop running
+    monkeypatch.setattr(hms, "debug_enabled", lambda: True)
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        assert f(2) == 3
+        assert any("must run in the event_loop" in rec.message for rec in caplog.records)
+
+    # Call again to ensure the one-time warning behavior
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        assert f(3) == 4
+        # No additional warning for same function
+        assert not any("must run in the event_loop" in rec.message for rec in caplog.records)

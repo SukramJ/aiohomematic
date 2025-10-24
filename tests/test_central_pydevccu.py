@@ -16,9 +16,9 @@ from aiohomematic_test_support import const
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_central_mini(central_unit_mini) -> None:
+async def test_central_mini(central_unit_pydevccu_mini) -> None:
     """Test the central."""
-    central = central_unit_mini
+    central = central_unit_pydevccu_mini
     assert central
     assert central.name == const.CENTRAL_NAME
     assert central.model == "PyDevCCU"

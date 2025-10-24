@@ -59,10 +59,10 @@ class _FakeChannel:
     ],
 )
 async def test_central_basics(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test central basics."""
-    central, client, _ = central_client_factory_with_pydevccu_client
+    central, client, _ = central_client_factory_with_homegear_client
     assert central.url == f"http://{LOCAL_HOST}"
     assert central.is_alive is True
     assert central.system_information.serial == "BidCos-RF_SN0815"
@@ -88,10 +88,10 @@ async def test_central_basics(
     ],
 )
 async def test_device_get_data_points(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test central/device get_data_points."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     dps = central.get_data_points()
     assert dps
 
@@ -112,10 +112,10 @@ async def test_device_get_data_points(
     ],
 )
 async def test_device_export(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test device export."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     device = central.get_device(address="VCU6354483")
     await device.export_device_definition()
 
@@ -133,10 +133,10 @@ async def test_device_export(
     ],
 )
 async def test_identify_ip_addr(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test identify_ip_addr."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert await central._identify_ip_addr(port=54321) == LOCAL_HOST
     central.config.host = "no_host"
     assert await central._identify_ip_addr(port=54321) == LOCAL_HOST
@@ -164,7 +164,7 @@ async def test_identify_ip_addr(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_etrv(
-    factory_with_pydevccu_client: FactoryWithClient,
+    factory_with_homegear_client: FactoryWithClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -172,7 +172,7 @@ async def test_device_un_ignore_etrv(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central = await factory_with_pydevccu_client.init(
+    central = await factory_with_homegear_client.init(
         address_device_translation={"VCU3609622"}, un_ignore_list=[line]
     ).get_default_central()
     try:
@@ -204,7 +204,7 @@ async def test_device_un_ignore_etrv(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_broll(
-    factory_with_pydevccu_client: FactoryWithClient,
+    factory_with_homegear_client: FactoryWithClient,
     line: str,
     parameter: str,
     channel_no: int,
@@ -212,7 +212,7 @@ async def test_device_un_ignore_broll(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central = await factory_with_pydevccu_client.init(
+    central = await factory_with_homegear_client.init(
         address_device_translation={"VCU8537918"}, un_ignore_list=[line]
     ).get_default_central()
     try:
@@ -247,7 +247,7 @@ async def test_device_un_ignore_broll(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm(
-    factory_with_pydevccu_client: FactoryWithClient,
+    factory_with_homegear_client: FactoryWithClient,
     line: str,
     parameter: str,
     channel_no: int | None,
@@ -255,7 +255,7 @@ async def test_device_un_ignore_hm(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central = await factory_with_pydevccu_client.init(
+    central = await factory_with_homegear_client.init(
         address_device_translation={"VCU0000341"}, un_ignore_list=[line]
     ).get_default_central()
     try:
@@ -334,7 +334,7 @@ async def test_device_un_ignore_hm(
 )
 @pytest.mark.asyncio
 async def test_device_un_ignore_hm2(
-    factory_with_pydevccu_client: FactoryWithClient,
+    factory_with_homegear_client: FactoryWithClient,
     lines: list[str],
     parameter: str,
     channel_no: int | None,
@@ -342,7 +342,7 @@ async def test_device_un_ignore_hm2(
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central = await factory_with_pydevccu_client.init(
+    central = await factory_with_homegear_client.init(
         address_device_translation={"VCU0000137"}, un_ignore_list=lines
     ).get_default_central()
     try:
@@ -390,14 +390,14 @@ async def test_device_un_ignore_hm2(
 )
 @pytest.mark.asyncio
 async def test_ignore_(
-    factory_with_pydevccu_client: FactoryWithClient,
+    factory_with_homegear_client: FactoryWithClient,
     ignore_custom_device_definition_models: list[str],
     model: str,
     address: str,
     expected_result: bool,
 ) -> None:
     """Test device un ignore."""
-    central = await factory_with_pydevccu_client.init(
+    central = await factory_with_homegear_client.init(
         address_device_translation={"VCU1769958", "VCU3609622"},
         ignore_custom_device_definition_models=ignore_custom_device_definition_models,
     ).get_default_central()
@@ -428,14 +428,14 @@ async def test_ignore_(
     ],
 )
 async def test_all_parameters(
-    factory_with_pydevccu_client: FactoryWithClient,
+    factory_with_homegear_client: FactoryWithClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central = await factory_with_pydevccu_client.init(address_device_translation=TEST_DEVICES).get_default_central()
+    central = await factory_with_homegear_client.init(address_device_translation=TEST_DEVICES).get_default_central()
     parameters = central.get_parameters(
         paramset_key=ParamsetKey.VALUES,
         operations=operations,
@@ -462,14 +462,14 @@ async def test_all_parameters(
     ],
 )
 async def test_all_parameters_with_un_ignore(
-    factory_with_pydevccu_client: FactoryWithClient,
+    factory_with_homegear_client: FactoryWithClient,
     operations: tuple[Operations, ...],
     full_format: bool,
     un_ignore_candidates_only: bool,
     expected_result: int,
 ) -> None:
     """Test all_parameters."""
-    central = await factory_with_pydevccu_client.init(
+    central = await factory_with_homegear_client.init(
         address_device_translation=TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"]
     ).get_default_central()
     parameters = central.get_parameters(
@@ -495,10 +495,10 @@ async def test_all_parameters_with_un_ignore(
     ],
 )
 async def test_data_points_by_category(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test data_points_by_category."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     ebp_sensor = central.get_data_points(category=DataPointCategory.SENSOR)
     assert ebp_sensor
     assert len(ebp_sensor) == 18
@@ -566,10 +566,10 @@ async def test_hub_data_points_by_category(
     ],
 )
 async def test_add_device(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test add_device."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert len(central._devices) == 1
     assert len(central.get_data_points(exclude_no_create=False)) == 33
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
@@ -597,10 +597,10 @@ async def test_add_device(
     ],
 )
 async def test_delete_device(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test device delete_device."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert len(central._devices) == 2
     assert len(central.get_data_points(exclude_no_create=False)) == 64
     assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
@@ -635,10 +635,10 @@ async def test_delete_device(
     ],
 )
 async def test_virtual_remote_delete(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test device delete."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert len(central.get_virtual_remotes()) == 1
 
     assert central._get_virtual_remote(device_address="VCU0000057")
@@ -671,10 +671,10 @@ async def test_virtual_remote_delete(
     ],
 )
 async def test_central_callbacks(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test central other methods."""
-    central, _, factory = central_client_factory_with_pydevccu_client
+    central, _, factory = central_client_factory_with_homegear_client
     central.fire_interface_event(
         interface_id="SOME_ID",
         interface_event_type=InterfaceEventType.CALLBACK,
@@ -703,10 +703,10 @@ async def test_central_callbacks(
     ],
 )
 async def test_central_services(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test central fetch sysvar and programs."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     await central.fetch_program_data(scheduled=True)
     assert mock_client.method_calls[-1] == call.get_all_programs(markers=())
 
@@ -776,9 +776,9 @@ async def test_central_services(
 
 
 @pytest.mark.asyncio
-async def test_central_without_interface_config(factory_with_pydevccu_client: FactoryWithClient) -> None:
+async def test_central_without_interface_config(factory_with_homegear_client: FactoryWithClient) -> None:
     """Test central other methods."""
-    central = await factory_with_pydevccu_client.init(interface_configs=set()).get_raw_central()
+    central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
     try:
         assert central.all_clients_active is False
 
@@ -914,10 +914,10 @@ async def test_unknown_pong_failure(
     ],
 )
 async def test_central_caches(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test central cache."""
-    central, client, _ = central_client_factory_with_pydevccu_client
+    central, client, _ = central_client_factory_with_homegear_client
     assert len(central.device_descriptions._raw_device_descriptions[client.interface_id]) == 20
     assert len(central.paramset_descriptions._raw_paramset_descriptions[client.interface_id]) == 20
     await central.clear_files()
@@ -938,10 +938,10 @@ async def test_central_caches(
     ],
 )
 async def test_central_getter(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test central getter."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert central.get_device(address="123") is None
     assert central.get_custom_data_point(address="123", channel_no=1) is None
     assert central.get_generic_data_point(channel_address="123", parameter=1) is None

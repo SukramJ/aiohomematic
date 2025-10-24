@@ -50,10 +50,10 @@ async def no_test_hmtext(central_client: tuple[CentralUnit, Client | Mock]) -> N
     ],
 )
 async def test_sysvardptext(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test SysvarDpText. There are currently no text data points."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     text: SysvarDpText = cast(SysvarDpText, central.get_sysvar_data_point(legacy_name="string_ext"))
     assert text.usage == DataPointUsage.DATA_POINT
 

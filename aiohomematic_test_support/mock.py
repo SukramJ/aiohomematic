@@ -1,4 +1,4 @@
-"""Helpers for tests."""
+"""Mocks for tests."""
 
 from __future__ import annotations
 

@@ -26,10 +26,10 @@ TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
     ],
 )
 async def test_device_general(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     device = central.get_device(address="VCU2128127")
     assert device.address == "VCU2128127"
     assert device.name == "HmIP-BSM VCU2128127"
@@ -63,10 +63,10 @@ async def test_device_general(
     ],
 )
 async def test_device_availability(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     device = central.get_device(address="VCU6354483")
     assert device.available is True
     for gdp in device.generic_data_points:
@@ -106,10 +106,10 @@ async def test_device_availability(
     ],
 )
 async def test_device_config_pending(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test device availability."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     device = central.get_device(address="VCU2128127")
     assert device._dp_config_pending.value is False
     cache_hash = central.paramset_descriptions.content_hash

@@ -37,10 +37,10 @@ def test_validate_data_point_definition() -> None:
     ],
 )
 async def test_custom_data_point_callback(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpSwitch."""
-    central, _, factory = central_client_factory_with_pydevccu_client
+    central, _, factory = central_client_factory_with_homegear_client
     switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
 
@@ -85,10 +85,10 @@ async def test_custom_data_point_callback(
     ],
 )
 async def test_generic_data_point_callback(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpSwitch."""
-    central, _, factory = central_client_factory_with_pydevccu_client
+    central, _, factory = central_client_factory_with_homegear_client
     switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
     assert switch.usage == DataPointUsage.NO_CREATE
 
@@ -131,10 +131,10 @@ async def test_generic_data_point_callback(
     ],
 )
 async def test_load_custom_data_point(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test load custom_data_point."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     switch: DpSwitch = cast(DpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-2] == call.get_value(
@@ -164,10 +164,10 @@ async def test_load_custom_data_point(
     ],
 )
 async def test_load_generic_data_point(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test load generic_data_point."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
     assert mock_client.method_calls[-1] == call.get_value(
@@ -191,10 +191,10 @@ async def test_load_generic_data_point(
     ],
 )
 async def test_generic_wrapped_data_point(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test wrapped data_point."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     wrapped_data_point: DpSensor = cast(
         DpSensor, central.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL")
     )

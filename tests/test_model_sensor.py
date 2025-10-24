@@ -29,10 +29,10 @@ TEST_DEVICES: set[str] = {"VCU7981740", "VCU3941846", "VCU8205532"}
     ],
 )
 async def test_hmsensor_psm(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmSensor."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     sensor: DpSensor = cast(
         DpSensor, central.get_generic_data_point(channel_address="VCU3941846:6", parameter="VOLTAGE")
     )
@@ -101,10 +101,10 @@ async def test_hmsensor_psm(
     ],
 )
 async def test_hmsensor_srh(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmSensor."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     sensor: DpSensor = cast(DpSensor, central.get_generic_data_point(channel_address="VCU7981740:1", parameter="STATE"))
     assert sensor.usage == DataPointUsage.DATA_POINT
     assert sensor.unit is None

@@ -9,6 +9,8 @@ import pytest
 from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
     calculate_dew_point,
+    calculate_dew_point_spread,
+    calculate_enthalpy,
     calculate_frost_point,
     calculate_operating_voltage_level,
     calculate_vapor_concentration,
@@ -166,3 +168,17 @@ def test_calculate_operating_voltage_level_normal() -> None:
     """Values above or equal to voltage_max clamp to 100."""
     assert calculate_operating_voltage_level(operating_voltage=3.5, low_bat_limit=2.0, voltage_max=3.0) == 100.0
     assert calculate_operating_voltage_level(operating_voltage=3.0, low_bat_limit=2.0, voltage_max=3.0) == 100.0
+
+
+def test_calculate_dew_point_spread_basic() -> None:
+    """Test dew point spread uses dew point calculation and rounds to two decimals."""
+    # With T=20, H=50 -> dew point around 9.3, spread 10.7
+    assert calculate_dew_point_spread(temperature=20.0, humidity=50) == 10.7
+
+
+def test_calculate_enthalpy_basic_rounding() -> None:
+    """Test enthalpy returns a rounded float for typical indoor conditions."""
+    h = calculate_enthalpy(temperature=22.0, humidity=45)
+    assert isinstance(h, float)
+    # Ensure value is rounded to two decimals according to implementation
+    assert round(h, 2) == h

@@ -30,10 +30,10 @@ TEST_DEVICES: set[str] = {"VCU5864966"}
     ],
 )
 async def test_hmbinarysensor(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmBinarySensor."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     binary_sensor: DpBinarySensor = cast(
         DpBinarySensor,
         central.get_generic_data_point(channel_address="VCU5864966:1", parameter="STATE"),

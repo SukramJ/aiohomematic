@@ -29,10 +29,10 @@ TEST_DEVICES: set[str] = {"VCU1437294"}
     ],
 )
 async def test_hmbutton(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmButton."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     button: DpButton = cast(
         DpButton,
         central.get_generic_data_point(channel_address="VCU1437294:1", parameter="RESET_MOTION"),

@@ -30,10 +30,10 @@ TEST_DEVICES: set[str] = {"VCU6354483"}
     ],
 )
 async def test_hmselect(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmSelect."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     select: DpSelect = cast(
         DpSelect,
         central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),

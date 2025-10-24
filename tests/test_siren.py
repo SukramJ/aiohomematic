@@ -30,10 +30,10 @@ TEST_DEVICES: set[str] = {"VCU8249617", "VCU2822385"}
     ],
 )
 async def test_ceipsiren(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpSiren."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == ("turn_off", "turn_on")
@@ -138,10 +138,10 @@ async def test_ceipsiren(
     ],
 )
 async def test_ceipsirensmoke(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpSirenSmoke."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     siren: CustomDpIpSirenSmoke = cast(CustomDpIpSirenSmoke, get_prepared_custom_data_point(central, "VCU2822385", 1))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
 

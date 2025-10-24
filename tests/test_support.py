@@ -68,10 +68,10 @@ TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
     ],
 )
 async def test_generate_unique_id(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test generate_unique_id."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL") == "vcu2128127_level"
     assert (
         generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL", prefix="PREFIX")
@@ -174,10 +174,10 @@ async def test_to_bool() -> None:
     ],
 )
 async def test_get_data_point_name(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test get_data_point_name."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:5")
@@ -213,10 +213,10 @@ async def test_get_data_point_name(
     ],
 )
 async def test_get_event_name(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test get_event_name."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
@@ -254,10 +254,10 @@ async def test_get_event_name(
     ],
 )
 async def test_custom_data_point_name(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test get_custom_data_point_name."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     device = central.get_device(address="VCU2128127")
     assert device
     channel4 = device.get_channel(channel_address=f"{device.address}:4")
@@ -326,10 +326,10 @@ async def test_custom_data_point_name(
     ],
 )
 async def test_get_device_name(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test get_device_name."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM VCU2128127"
     central.device_details.add_name(address="VCU2128127", name="Roof")
     assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"

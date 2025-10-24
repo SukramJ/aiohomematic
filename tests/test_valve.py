@@ -29,10 +29,10 @@ TEST_DEVICES: set[str] = {"VCU8976407"}
     ],
 )
 async def test_ceipirrigationvalve(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpValve."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     valve: CustomDpIpIrrigationValve = cast(
         CustomDpIpIrrigationValve, get_prepared_custom_data_point(central, "VCU8976407", 4)
     )

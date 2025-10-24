@@ -51,10 +51,10 @@ TEST_DEVICES: set[str] = {
     ],
 )
 async def test_cesimplerfthermostat(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpSimpleRfThermostat."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpSimpleRfThermostat = cast(
         CustomDpSimpleRfThermostat, get_prepared_custom_data_point(central, "VCU0000054", 1)
     )
@@ -143,10 +143,10 @@ async def test_cesimplerfthermostat(
     ],
 )
 async def test_cerfthermostat(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpRfThermostat."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000050", 4))
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
@@ -337,10 +337,10 @@ async def test_cerfthermostat(
     ],
 )
 async def test_cerfthermostat_with_profiles(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpRfThermostat."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
@@ -619,10 +619,10 @@ async def test_cerfthermostat_with_profiles(
     ],
 )
 async def test_ceipthermostat(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpThermostat."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpIpThermostat = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU1769958", 1))
     assert climate.usage == DataPointUsage.CDP_PRIMARY
     assert climate.service_method_names == (
@@ -876,17 +876,17 @@ async def test_ceipthermostat(
 
 @pytest.mark.enable_socket
 @pytest.mark.asyncio
-async def test_climate_ip_with_pydevccu(central_unit_mini) -> None:
+async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
     """Test the central."""
-    assert central_unit_mini
+    assert central_unit_pydevccu_mini
 
     climate_bwth: BaseCustomDpClimate = cast(
         BaseCustomDpClimate,
-        central_unit_mini.get_custom_data_point(address="VCU1769958", channel_no=1),
+        central_unit_pydevccu_mini.get_custom_data_point(address="VCU1769958", channel_no=1),
     )
     climate_etrv: BaseCustomDpClimate = cast(
         BaseCustomDpClimate,
-        central_unit_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
+        central_unit_pydevccu_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
     )
     assert climate_bwth
     profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)

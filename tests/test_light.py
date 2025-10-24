@@ -48,10 +48,10 @@ TEST_DEVICES: set[str] = {
     ],
 )
 async def test_cedimmer(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpDimmer."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
     assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.service_method_names == ("turn_off", "turn_on")
@@ -172,10 +172,10 @@ async def test_cedimmer(
     ],
 )
 async def test_cecolordimmereffect(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpColorDimmerEffect."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpColorDimmerEffect = cast(
         CustomDpColorDimmerEffect, get_prepared_custom_data_point(central, "VCU3747418", 1)
     )
@@ -330,10 +330,10 @@ async def test_cecolordimmereffect(
     ],
 )
 async def test_cecolortempdimmer(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpColorTempDimmer."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpColorTempDimmer = cast(
         CustomDpColorTempDimmer, get_prepared_custom_data_point(central, "VCU0000115", 1)
     )
@@ -418,10 +418,10 @@ async def test_cecolortempdimmer(
     ],
 )
 async def test_ceipfixedcolorlight(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpFixedColorLight."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpIpFixedColorLight = cast(
         CustomDpIpFixedColorLight, get_prepared_custom_data_point(central, "VCU6985973", 8)
     )
@@ -630,10 +630,10 @@ async def test_ceipfixedcolorlight(
     ],
 )
 async def test_ceipfixedcolorlightwired(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpFixedColorLight."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpIpFixedColorLight = cast(
         CustomDpIpFixedColorLight, get_prepared_custom_data_point(central, "VCU4704397", 8)
     )
@@ -917,10 +917,10 @@ async def test_ceipfixedcolorlightwired(
     ],
 )
 async def test_ceiprgbwlight(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpRGBWLight."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpIpRGBWLight = cast(CustomDpIpRGBWLight, get_prepared_custom_data_point(central, "VCU5629873", 1))
     assert light.channel.device.has_sub_devices is False
     assert light.usage == DataPointUsage.CDP_PRIMARY
@@ -1091,10 +1091,10 @@ async def test_ceiprgbwlight(
     ],
 )
 async def test_cecolordimmer(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpColorDimmer."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpColorDimmer = cast(CustomDpColorDimmer, get_prepared_custom_data_point(central, "VCU9973336", 13))
     assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.color_temp_kelvin is None

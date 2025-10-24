@@ -30,10 +30,10 @@ TEST_DEVICES: set[str] = {"VCU9724704", "VCU0000146", "VCU3609622", "VCU0000341"
     ],
 )
 async def test_cerflock(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpRfLock."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     lock: CustomDpRfLock = cast(CustomDpRfLock, get_prepared_custom_data_point(central, "VCU0000146", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
 
@@ -114,10 +114,10 @@ async def test_cerflock(
     ],
 )
 async def test_ceiplock(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpLock."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     lock: CustomDpIpLock = cast(CustomDpIpLock, get_prepared_custom_data_point(central, "VCU9724704", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
     assert lock.service_method_names == ("lock", "open", "unlock")

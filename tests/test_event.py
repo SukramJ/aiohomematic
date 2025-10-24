@@ -29,10 +29,10 @@ TEST_DEVICES: set[str] = {"VCU2128127", "VCU0000263"}
     ],
 )
 async def test_clickevent(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test ClickEvent."""
-    central, _, factory = central_client_factory_with_pydevccu_client
+    central, _, factory = central_client_factory_with_homegear_client
     event: ClickEvent = cast(ClickEvent, central.get_event(channel_address="VCU2128127:1", parameter="PRESS_SHORT"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.KEYPRESS
@@ -65,10 +65,10 @@ async def test_clickevent(
     ],
 )
 async def test_impulseevent(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test ImpulseEvent."""
-    central, _, factory = central_client_factory_with_pydevccu_client
+    central, _, factory = central_client_factory_with_homegear_client
     event: ImpulseEvent = cast(ImpulseEvent, central.get_event(channel_address="VCU0000263:1", parameter="SEQUENCE_OK"))
     assert event.usage == DataPointUsage.EVENT
     assert event.event_type == EventType.IMPULSE
@@ -101,10 +101,10 @@ async def test_impulseevent(
     ],
 )
 async def test_deviceerrorevent(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test DeviceErrorEvent."""
-    central, _, factory = central_client_factory_with_pydevccu_client
+    central, _, factory = central_client_factory_with_homegear_client
     event: DeviceErrorEvent = cast(
         DeviceErrorEvent,
         central.get_event(channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT"),

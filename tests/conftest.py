@@ -38,14 +38,14 @@ def teardown():
 
 
 @pytest.fixture
-async def factory_with_ccu_client(session_player_from_full_session_ccu) -> FactoryWithClient:
+async def factory_with_ccu_client(session_player_ccu) -> FactoryWithClient:
     """Return central factory."""
-    return FactoryWithClient(player=session_player_from_full_session_ccu)
+    return FactoryWithClient(player=session_player_ccu)
 
 
 @pytest.fixture
 async def central_client_factory_with_ccu_client(
-    session_player_from_full_session_ccu,
+    session_player_ccu,
     address_device_translation: set[str],
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
@@ -53,7 +53,7 @@ async def central_client_factory_with_ccu_client(
 ) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
     """Yield central factory using CCU session and XML-RPC proxy."""
     async for result in get_central_client_factory(
-        player=session_player_from_full_session_ccu,
+        player=session_player_ccu,
         address_device_translation=address_device_translation,
         do_mock_client=do_mock_client,
         ignore_devices_on_create=ignore_devices_on_create,
@@ -64,7 +64,7 @@ async def central_client_factory_with_ccu_client(
 
 
 @pytest.fixture
-async def session_player_from_full_session_ccu() -> SessionPlayer:
+async def session_player_ccu() -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
     return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_CCU)
 
@@ -73,22 +73,22 @@ async def session_player_from_full_session_ccu() -> SessionPlayer:
 
 
 @pytest.fixture
-async def factory_with_pydevccu_client(session_player_from_full_session_pydevccu) -> FactoryWithClient:
+async def factory_with_homegear_client(session_player_pydevccu) -> FactoryWithClient:
     """Return central factory."""
-    return FactoryWithClient(player=session_player_from_full_session_pydevccu)
+    return FactoryWithClient(player=session_player_pydevccu)
 
 
 @pytest.fixture
-async def central_client_factory_with_pydevccu_client(
-    session_player_from_full_session_pydevccu,
+async def central_client_factory_with_homegear_client(
+    session_player_pydevccu,
     address_device_translation: set[str],
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
     un_ignore_list: list[str] | None,
 ) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
-    """Yield central factory using pydevccu XML-RPC proxy."""
+    """Yield central factory using homegear XML-RPC proxy."""
     async for result in get_central_client_factory(
-        player=session_player_from_full_session_pydevccu,
+        player=session_player_pydevccu,
         address_device_translation=address_device_translation,
         do_mock_client=do_mock_client,
         ignore_devices_on_create=ignore_devices_on_create,
@@ -99,16 +99,16 @@ async def central_client_factory_with_pydevccu_client(
 
 
 @pytest.fixture
-async def session_player_from_full_session_pydevccu() -> SessionPlayer:
+async def session_player_pydevccu() -> SessionPlayer:
     """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
     return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_PYDEVCCU)
 
 
-# pydevccu mini fixtures
+# homegear mini fixtures
 
 
 @pytest.fixture(scope="module")
-def pydev_ccu_mini() -> pydevccu.Server:
+def pydevccu_mini() -> pydevccu.Server:
     """Create the virtual ccu."""
     ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_MINI_PORT), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
     ccu.start()
@@ -119,7 +119,7 @@ def pydev_ccu_mini() -> pydevccu.Server:
 
 
 @pytest.fixture
-async def central_unit_mini(pydev_ccu_mini: pydevccu.Server) -> CentralUnit:
+async def central_unit_pydevccu_mini(pydevccu_mini: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
     central = await get_pydev_ccu_central_unit_full(port=const.CCU_MINI_PORT)
     try:
@@ -133,7 +133,7 @@ async def central_unit_mini(pydev_ccu_mini: pydevccu.Server) -> CentralUnit:
 
 
 @pytest.fixture
-def pydev_ccu_full() -> pydevccu.Server:
+def pydevccu_full() -> pydevccu.Server:
     """Create the virtual ccu."""
     ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_PORT))
     ccu.start()
@@ -144,7 +144,7 @@ def pydev_ccu_full() -> pydevccu.Server:
 
 
 @pytest.fixture
-async def central_unit_full(pydev_ccu_full: pydevccu.Server) -> CentralUnit:
+async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
 
     def homematic_callback(*args, **kwargs):

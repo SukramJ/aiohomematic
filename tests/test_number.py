@@ -30,10 +30,10 @@ TEST_DEVICES: set[str] = {"VCU4984404", "VCU0000011", "VCU0000054"}
     ],
 )
 async def test_hmfloat(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmFloat."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     efloat: DpFloat = cast(
         DpFloat,
         central.get_generic_data_point(channel_address="VCU0000011:3", parameter="LEVEL"),
@@ -76,10 +76,10 @@ async def test_hmfloat(
     ],
 )
 async def test_hmfloat_special(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmFloat."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     efloat: DpFloat = cast(
         DpFloat,
         central.get_generic_data_point(channel_address="VCU0000054:2", parameter="SETPOINT"),
@@ -120,10 +120,10 @@ async def test_hmfloat_special(
     ],
 )
 async def test_hminteger(
-    central_client_factory_with_pydevccu_client,
+    central_client_factory_with_homegear_client,
 ) -> None:
     """Test HmInteger."""
-    central, mock_client, _ = central_client_factory_with_pydevccu_client
+    central, mock_client, _ = central_client_factory_with_homegear_client
     einteger: DpInteger = cast(
         DpInteger,
         central.get_generic_data_point(channel_address="VCU4984404:1", parameter="SET_POINT_MODE"),

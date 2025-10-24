@@ -26,9 +26,9 @@ from aiohomematic_test_support import const
         (None, True, None, None),
     ],
 )
-async def test_central_full(central_client_factory_with_pydevccu_client) -> None:  # noqa: C901
+async def test_central_full(central_client_factory_with_homegear_client) -> None:  # noqa: C901
     """Test the central."""
-    central, _, _ = central_client_factory_with_pydevccu_client
+    central, _, _ = central_client_factory_with_homegear_client
     assert central
     assert central.name == const.CENTRAL_NAME
     assert central.model == "PyDevCCU"

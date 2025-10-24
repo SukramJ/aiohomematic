@@ -1,24 +1,24 @@
 # Version 2025.10.18 (2025-10-24)
 
-- Add option to use other additional sessions
+- Test support: Search in secondary sessions if primary session has no results
 
 # Version 2025.10.17 (2025-10-23)
 
-- Remove ClientLocal
+- Test support: Remove ClientLocal
 
 # Version 2025.10.16 (2025-10-23)
 
-- Add option to start central in get_default_central (tests)
+- Test support: Add option to start central in get_default_central (tests)
 
 # Version 2025.10.15 (2025-10-23)
 
-- Refactor tests to use central*client_factory_with*\*\*\*ccu_client
+- Test support: Refactor tests to use central*client_factory_with*\*\*\*ccu_client
 
 # Version 2025.10.14 (2025-10-22)
 
-- Add separate deployment for aiohomematic_test_support
-- Refactor tests to use SessionPlayer instead of ClientLocal
-- Use recorded session for testing
+- Test support: Add separate deployment for aiohomematic_test_support
+- Test support: Refactor tests to use SessionPlayer instead of ClientLocal
+- Test support: Use recorded session for testing
 
 # Version 2025.10.10 (2025-10-19)
 

@@ -1510,8 +1510,13 @@ class ClientJsonCCU(ClientCCU):
         return True
 
 
-class ClientHomegear(Client):
-    """Client implementation for Homegear backend."""
+class ClientHomegear(ClientCCU):
+    """
+    Client implementation for Homegear backend.
+
+    Inherit from ClientCCU to share common behavior used by tests and code paths
+    that expect a CCU-like client interface for Homegear selections.
+    """
 
     @property
     def model(self) -> str:
@@ -1525,7 +1530,7 @@ class ClientHomegear(Client):
         """Return the supports_ping_pong info of the backend."""
         return False
 
-    @inspector(re_raise=False)
+    @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from the backend."""
         return

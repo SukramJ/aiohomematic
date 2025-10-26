@@ -204,12 +204,12 @@ class CustomDataPoint(BaseDataPoint):
     def _init_data_points(self) -> None:
         """Init data point collection."""
         # Add repeating fields
-        for field_name, parameter in self._device_def.get(hmed.CDPD.REPEATABLE_FIELDS, {}).items():
+        for field_name, parameter in self._device_def.get(CDPD.REPEATABLE_FIELDS, {}).items():
             if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=False)
 
         # Add visible repeating fields
-        for field_name, parameter in self._device_def.get(hmed.CDPD.VISIBLE_REPEATABLE_FIELDS, {}).items():
+        for field_name, parameter in self._device_def.get(CDPD.VISIBLE_REPEATABLE_FIELDS, {}).items():
             if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=True)
 
@@ -229,11 +229,11 @@ class CustomDataPoint(BaseDataPoint):
 
         # Add device fields
         self._add_data_points(
-            field_dict_name=hmed.CDPD.FIELDS,
+            field_dict_name=CDPD.FIELDS,
         )
         # Add visible device fields
         self._add_data_points(
-            field_dict_name=hmed.CDPD.VISIBLE_FIELDS,
+            field_dict_name=CDPD.VISIBLE_FIELDS,
             is_visible=True,
         )
 
@@ -243,7 +243,7 @@ class CustomDataPoint(BaseDataPoint):
         if hmed.get_include_default_data_points(device_profile=self._device_profile):
             self._mark_data_points(custom_data_point_def=hmed.get_default_data_points())
 
-    def _add_data_points(self, *, field_dict_name: hmed.CDPD, is_visible: bool | None = None) -> None:
+    def _add_data_points(self, *, field_dict_name: CDPD, is_visible: bool | None = None) -> None:
         """Add data points to custom data point."""
         fields = self._device_def.get(field_dict_name, {})
         for channel_no, channel in fields.items():

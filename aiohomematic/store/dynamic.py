@@ -394,12 +394,12 @@ class PingPongCache:
     @property
     def _high_pending_pongs(self) -> bool:
         """Check, if store contains too many pending pongs. Triggers TTL cleanup."""
-        return len(self._pending_pongs) > self._allowed_delta
+        return self._pending_pong_count > self._allowed_delta
 
     @property
     def _high_unknown_pongs(self) -> bool:
         """Check, if store contains too many unknown pongs. Triggers TTL cleanup."""
-        return len(self._unknown_pongs) > self._allowed_delta
+        return self._unknown_pong_count > self._allowed_delta
 
     @property
     def _pending_pong_count(self) -> int:
@@ -456,14 +456,15 @@ class PingPongCache:
         else:
             self._unknown_pongs.add(pong_ts)
             self._cleanup_unknown_pongs()
+            count = self._unknown_pong_count
             self._check_and_fire_pong_event(
                 event_type=InterfaceEventType.UNKNOWN_PONG,
-                pong_mismatch_count=self._unknown_pong_count,
+                pong_mismatch_count=count,
             )
             _LOGGER.debug(
                 "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
                 self._interface_id,
-                self._unknown_pong_count,
+                count,
                 pong_ts,
             )
 
@@ -482,7 +483,7 @@ class PingPongCache:
                 )
 
     def _cleanup_unknown_pongs(self) -> None:
-        """Leanup too old unknown pongs."""
+        """Cleanup too old unknown pongs."""
         dt_now = datetime.now()
         for up_pong_ts in list(self._unknown_pongs):
             # Only expire entries that are actually older than the TTL.

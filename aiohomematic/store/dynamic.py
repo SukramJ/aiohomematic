@@ -426,10 +426,7 @@ class PingPongCache:
         # but always emit when crossing the high threshold.
         count = self._pending_pong_count
         if (count > self._allowed_delta) or (count % 2 == 0):
-            self._check_and_fire_pong_event(
-                event_type=InterfaceEventType.PENDING_PONG,
-                pong_mismatch_count=count,
-            )
+            self._check_and_fire_pong_event(event_type=InterfaceEventType.PENDING_PONG)
         _LOGGER.debug(
             "PING PONG CACHE: Increase pending PING count: %s - %i for ts: %s",
             self._interface_id,
@@ -443,10 +440,7 @@ class PingPongCache:
             self._pending_pongs.remove(pong_ts)
             self._cleanup_pending_pongs()
             count = self._pending_pong_count
-            self._check_and_fire_pong_event(
-                event_type=InterfaceEventType.PENDING_PONG,
-                pong_mismatch_count=count,
-            )
+            self._check_and_fire_pong_event(event_type=InterfaceEventType.PENDING_PONG)
             _LOGGER.debug(
                 "PING PONG CACHE: Reduce pending PING count: %s - %i for ts: %s",
                 self._interface_id,
@@ -457,10 +451,7 @@ class PingPongCache:
             self._unknown_pongs.add(pong_ts)
             self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
-            self._check_and_fire_pong_event(
-                event_type=InterfaceEventType.UNKNOWN_PONG,
-                pong_mismatch_count=count,
-            )
+            self._check_and_fire_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
             _LOGGER.debug(
                 "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
                 self._interface_id,
@@ -496,7 +487,7 @@ class PingPongCache:
                     up_pong_ts,
                 )
 
-    def _check_and_fire_pong_event(self, *, event_type: InterfaceEventType, pong_mismatch_count: int) -> None:
+    def _check_and_fire_pong_event(self, *, event_type: InterfaceEventType) -> None:
         """Fire an event about the pong status."""
 
         def _fire_event(mismatch_count: int) -> None:
@@ -519,9 +510,11 @@ class PingPongCache:
             )
 
         if event_type == InterfaceEventType.PENDING_PONG:
+            self._cleanup_pending_pongs()
+            count = self._pending_pong_count
             if self._high_pending_pongs:
                 # Emit interface event to inform subscribers about high pending pong count.
-                _fire_event(mismatch_count=pong_mismatch_count)
+                _fire_event(mismatch_count=count)
                 if self._pending_pong_logged is False:
                     _LOGGER.warning(
                         "Pending PONG mismatch: There is a mismatch between send ping events and received pong events for instance %s. "
@@ -539,11 +532,13 @@ class PingPongCache:
                 _fire_event(mismatch_count=0)
                 self._pending_pong_logged = False
             elif pong_mismatch_count > 0 and pong_mismatch_count % 2 == 0:
-                _fire_event(mismatch_count=pong_mismatch_count)
+                _fire_event(mismatch_count=count)
         elif event_type == InterfaceEventType.UNKNOWN_PONG:
+            self._cleanup_unlnown_pongs()
+            count = self._unknown_pong_count
             if self._high_unknown_pongs:
                 # Emit interface event to inform subscribers about high unknown pong count.
-                _fire_event(mismatch_count=pong_mismatch_count)
+                _fire_event(mismatch_count=count)
                 if self._unknown_pong_logged is False:
                     _LOGGER.warning(
                         "Unknown PONG Mismatch: Your instance %s receives PONG events, that it hasn't send. "

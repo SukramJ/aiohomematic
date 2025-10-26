@@ -317,7 +317,7 @@ _IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, frozenset[TModelName]]] =
             "HmIP-WGT",
         }
     ),
-    Parameter.VALVE_STATE: frozenset({"HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"}),
+    Parameter.VALVE_STATE: frozenset({"HmIP-FALMOT-C8", "HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"}),
 }
 
 _IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[TParameterName, frozenset[TModelName]]] = {

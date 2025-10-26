@@ -266,7 +266,7 @@ def test_calculated_datapoint_misc_properties_and_callbacks(monkeypatch: pytest.
     monkeypatch.setattr(calc, "fire_data_point_updated_callback", _noop)
     import asyncio
 
-    asyncio.get_event_loop().run_until_complete(
+    asyncio.run(
         calc.load_data_point_value(call_source=None, direct_call=False)  # type: ignore[arg-type]
     )
 

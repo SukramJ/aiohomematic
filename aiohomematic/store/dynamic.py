@@ -392,36 +392,22 @@ class PingPongCache:
         return self._allowed_delta
 
     @property
-    def high_pending_pongs(self) -> bool:
-        """Check, if store contains too many pending pongs."""
-        self._cleanup_pending_pongs()
+    def _high_pending_pongs(self) -> bool:
+        """Check, if store contains too many pending pongs. Triggers TTL cleanup."""
         return len(self._pending_pongs) > self._allowed_delta
 
     @property
-    def high_unknown_pongs(self) -> bool:
-        """Check, if store contains too many unknown pongs."""
-        self._cleanup_unknown_pongs()
+    def _high_unknown_pongs(self) -> bool:
+        """Check, if store contains too many unknown pongs. Triggers TTL cleanup."""
         return len(self._unknown_pongs) > self._allowed_delta
 
     @property
-    def low_pending_pongs(self) -> bool:
-        """Return True when pending pong count is at or below the allowed delta (i.e., not high)."""
-        self._cleanup_pending_pongs()
-        return len(self._pending_pongs) <= self._allowed_delta
-
-    @property
-    def low_unknown_pongs(self) -> bool:
-        """Return True when unknown pong count is at or below the allowed delta (i.e., not high)."""
-        self._cleanup_unknown_pongs()
-        return len(self._unknown_pongs) <= self._allowed_delta
-
-    @property
-    def pending_pong_count(self) -> int:
+    def _pending_pong_count(self) -> int:
         """Return the pending pong count."""
         return len(self._pending_pongs)
 
     @property
-    def unknown_pong_count(self) -> int:
+    def _unknown_pong_count(self) -> int:
         """Return the unknown pong count."""
         return len(self._unknown_pongs)
 
@@ -435,9 +421,10 @@ class PingPongCache:
     def handle_send_ping(self, *, ping_ts: datetime) -> None:
         """Handle send ping timestamp."""
         self._pending_pongs.add(ping_ts)
+        self._cleanup_pending_pongs()
         # Throttle event emission to every second ping to avoid spamming callbacks,
         # but always emit when crossing the high threshold.
-        count = self.pending_pong_count
+        count = self._pending_pong_count
         if (count > self._allowed_delta) or (count % 2 == 0):
             self._check_and_fire_pong_event(
                 event_type=InterfaceEventType.PENDING_PONG,
@@ -446,7 +433,7 @@ class PingPongCache:
         _LOGGER.debug(
             "PING PONG CACHE: Increase pending PING count: %s - %i for ts: %s",
             self._interface_id,
-            self.pending_pong_count,
+            count,
             ping_ts,
         )
 
@@ -454,56 +441,58 @@ class PingPongCache:
         """Handle received pong timestamp."""
         if pong_ts in self._pending_pongs:
             self._pending_pongs.remove(pong_ts)
+            self._cleanup_pending_pongs()
+            count = self._pending_pong_count
             self._check_and_fire_pong_event(
                 event_type=InterfaceEventType.PENDING_PONG,
-                pong_mismatch_count=self.pending_pong_count,
+                pong_mismatch_count=count,
             )
             _LOGGER.debug(
                 "PING PONG CACHE: Reduce pending PING count: %s - %i for ts: %s",
                 self._interface_id,
-                self.pending_pong_count,
+                count,
                 pong_ts,
             )
-            return
-
-        self._unknown_pongs.add(pong_ts)
-        self._check_and_fire_pong_event(
-            event_type=InterfaceEventType.UNKNOWN_PONG,
-            pong_mismatch_count=self.unknown_pong_count,
-        )
-        _LOGGER.debug(
-            "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
-            self._interface_id,
-            self.unknown_pong_count,
-            pong_ts,
-        )
+        else:
+            self._unknown_pongs.add(pong_ts)
+            self._cleanup_unknown_pongs()
+            self._check_and_fire_pong_event(
+                event_type=InterfaceEventType.UNKNOWN_PONG,
+                pong_mismatch_count=self._unknown_pong_count,
+            )
+            _LOGGER.debug(
+                "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
+                self._interface_id,
+                self._unknown_pong_count,
+                pong_ts,
+            )
 
     def _cleanup_pending_pongs(self) -> None:
         """Cleanup too old pending pongs."""
         dt_now = datetime.now()
-        for pong_ts in list(self._pending_pongs):
+        for pp_pong_ts in list(self._pending_pongs):
             # Only expire entries that are actually older than the TTL.
-            if (dt_now - pong_ts).total_seconds() > self._ttl:
-                self._pending_pongs.remove(pong_ts)
+            if (dt_now - pp_pong_ts).total_seconds() > self._ttl:
+                self._pending_pongs.remove(pp_pong_ts)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired pending PONG: %s - %i for ts: %s",
                     self._interface_id,
-                    self.pending_pong_count,
-                    pong_ts,
+                    self._pending_pong_count,
+                    pp_pong_ts,
                 )
 
     def _cleanup_unknown_pongs(self) -> None:
-        """Cleanup too old unknown pongs."""
+        """Leanup too old unknown pongs."""
         dt_now = datetime.now()
-        for pong_ts in list(self._unknown_pongs):
+        for up_pong_ts in list(self._unknown_pongs):
             # Only expire entries that are actually older than the TTL.
-            if (dt_now - pong_ts).total_seconds() > self._ttl:
-                self._unknown_pongs.remove(pong_ts)
+            if (dt_now - up_pong_ts).total_seconds() > self._ttl:
+                self._unknown_pongs.remove(up_pong_ts)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired unknown PONG: %s - %i or ts: %s",
                     self._interface_id,
-                    self.unknown_pong_count,
-                    pong_ts,
+                    self._unknown_pong_count,
+                    up_pong_ts,
                 )
 
     def _check_and_fire_pong_event(self, *, event_type: InterfaceEventType, pong_mismatch_count: int) -> None:
@@ -528,44 +517,42 @@ class PingPongCache:
                 ),
             )
 
-        if self.low_pending_pongs and event_type == InterfaceEventType.PENDING_PONG:
+        if event_type == InterfaceEventType.PENDING_PONG:
+            if self._high_pending_pongs:
+                # Emit interface event to inform subscribers about high pending pong count.
+                _fire_event(mismatch_count=pong_mismatch_count)
+                if self._pending_pong_logged is False:
+                    _LOGGER.warning(
+                        "Pending PONG mismatch: There is a mismatch between send ping events and received pong events for instance %s. "
+                        "Possible reason 1: You are running multiple instances with the same instance name configured for this integration. "
+                        "Re-add one instance! Otherwise this instance will not receive update events from your CCU. "
+                        "Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart."
+                        "Possible reason 3: Your setup is misconfigured and this instance is not able to receive events from the CCU.",
+                        self._interface_id,
+                    )
+                self._pending_pong_logged = True
             # In low state:
             # - If we previously logged a high state, emit a reset event (mismatch=0) exactly once.
             # - Otherwise, throttle emission to every second ping (even counts > 0) to avoid spamming.
-            if self._pending_pong_logged:
+            elif self._pending_pong_logged:
                 _fire_event(mismatch_count=0)
                 self._pending_pong_logged = False
-                return
-            if pong_mismatch_count > 0 and pong_mismatch_count % 2 == 0:
+            elif pong_mismatch_count > 0 and pong_mismatch_count % 2 == 0:
                 _fire_event(mismatch_count=pong_mismatch_count)
-            return
-
-        if self.low_unknown_pongs and event_type == InterfaceEventType.UNKNOWN_PONG:
-            # For unknown pongs, only reset the logged flag when we drop below the threshold.
-            # We do not emit an event here since there is no explicit expectation for a reset notification.
-            self._unknown_pong_logged = False
-            return
-
-        if self.high_pending_pongs and event_type == InterfaceEventType.PENDING_PONG:
-            _fire_event(mismatch_count=pong_mismatch_count)
-            if self._pending_pong_logged is False:
-                _LOGGER.warning(
-                    "Pending PONG mismatch: There is a mismatch between send ping events and received pong events for instance %s. "
-                    "Possible reason 1: You are running multiple instances with the same instance name configured for this integration. "
-                    "Re-add one instance! Otherwise this instance will not receive update events from your CCU. "
-                    "Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart."
-                    "Possible reason 3: Your setup is misconfigured and this instance is not able to receive events from the CCU.",
-                    self._interface_id,
-                )
-            self._pending_pong_logged = True
-
-        if self.high_unknown_pongs and event_type == InterfaceEventType.UNKNOWN_PONG:
-            if self._unknown_pong_logged is False:
-                _LOGGER.warning(
-                    "Unknown PONG Mismatch: Your instance %s receives PONG events, that it hasn't send. "
-                    "Possible reason 1: You are running multiple instances with the same instance name configured for this integration. "
-                    "Re-add one instance! Otherwise the other instance will not receive update events from your CCU. "
-                    "Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart.",
-                    self._interface_id,
-                )
-            self._unknown_pong_logged = True
+        elif event_type == InterfaceEventType.UNKNOWN_PONG:
+            if self._high_unknown_pongs:
+                # Emit interface event to inform subscribers about high unknown pong count.
+                _fire_event(mismatch_count=pong_mismatch_count)
+                if self._unknown_pong_logged is False:
+                    _LOGGER.warning(
+                        "Unknown PONG Mismatch: Your instance %s receives PONG events, that it hasn't send. "
+                        "Possible reason 1: You are running multiple instances with the same instance name configured for this integration. "
+                        "Re-add one instance! Otherwise the other instance will not receive update events from your CCU. "
+                        "Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart.",
+                        self._interface_id,
+                    )
+                self._unknown_pong_logged = True
+            else:
+                # For unknown pongs, only reset the logged flag when we drop below the threshold.
+                # We do not emit an event here since there is no explicit expectation for a reset notification.
+                self._unknown_pong_logged = False

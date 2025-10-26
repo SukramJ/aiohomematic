@@ -820,7 +820,7 @@ async def test_ping_pong(central_client_factory_with_ccu_client) -> None:
     client._is_initialized = True
     interface_id = client.interface_id
     await client.check_connection_availability(handle_ping_pong=True)
-    assert client.ping_pong_cache.pending_pong_count == 1
+    assert client.ping_pong_cache._pending_pong_count == 1
     for ts_stored in list(client.ping_pong_cache._pending_pongs):
         await central.data_point_event(
             interface_id=interface_id,
@@ -828,7 +828,7 @@ async def test_ping_pong(central_client_factory_with_ccu_client) -> None:
             parameter=Parameter.PONG,
             value=f"{interface_id}#{ts_stored.strftime(DATETIME_FORMAT_MILLIS)}",
         )
-    assert client.ping_pong_cache.pending_pong_count == 0
+    assert client.ping_pong_cache._pending_pong_count == 0
 
 
 @pytest.mark.asyncio
@@ -854,7 +854,7 @@ async def test_pending_pong_failure(
     while count < max_count:
         await client.check_connection_availability(handle_ping_pong=True)
         count += 1
-    assert client.ping_pong_cache.pending_pong_count == max_count
+    assert client.ping_pong_cache._pending_pong_count == max_count
     assert factory.ha_event_mock.mock_calls[-1] == call(
         event_type=EventType.INTERFACE,
         event_data={
@@ -899,7 +899,7 @@ async def test_unknown_pong_failure(
         )
         count += 1
 
-    assert client.ping_pong_cache.unknown_pong_count == 16
+    assert client.ping_pong_cache._unknown_pong_count == 16
 
 
 @pytest.mark.asyncio

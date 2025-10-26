@@ -32,7 +32,7 @@ from aiohomematic.const import (
     ParameterType,
 )
 from aiohomematic.model import device as hmd
-from aiohomematic.model.custom import definition as hmed
+from aiohomematic.model.custom.const import CDPD
 from aiohomematic.support import to_bool
 
 __all__ = [
@@ -565,7 +565,7 @@ def check_channel_is_the_only_primary_channel(
     device_has_multiple_channels: bool,
 ) -> bool:
     """Check if this channel is the only primary channel."""
-    primary_channel: int = device_def[hmed.CDPD.PRIMARY_CHANNEL]
+    primary_channel: int = device_def[CDPD.PRIMARY_CHANNEL]
     return bool(primary_channel == current_channel_no and device_has_multiple_channels is False)
 
 

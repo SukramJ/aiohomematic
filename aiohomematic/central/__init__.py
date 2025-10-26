@@ -110,6 +110,7 @@ from aiohomematic.const import (
     DEVICE_FIRMWARE_CHECK_INTERVAL,
     DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
     DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
+    IDENTIFIER_SEPARATOR,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
     LOCAL_HOST,
@@ -173,12 +174,16 @@ from aiohomematic.store import (
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
-    check_config,
+    check_or_create_directory,
+    check_password,
     extract_device_addresses_from_device_descriptions,
     extract_exc_args,
     get_channel_no,
     get_device_address,
     get_ip_addr,
+    is_hostname,
+    is_ipv4_address,
+    is_port,
 )
 
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
@@ -2217,6 +2222,55 @@ class CentralConnectionState:
                 extract_exc_args(exc=exception),
                 extra_msg,
             )
+
+
+def check_config(
+    *,
+    central_name: str,
+    host: str,
+    username: str,
+    password: str,
+    storage_directory: str,
+    callback_host: str | None,
+    callback_port_xml_rpc: int | None,
+    json_port: int | None,
+    interface_configs: AbstractSet[hmcl.InterfaceConfig] | None = None,
+) -> list[str]:
+    """Check config. Throws BaseHomematicException on failure."""
+    config_failures: list[str] = []
+    if central_name and IDENTIFIER_SEPARATOR in central_name:
+        config_failures.append(f"Instance name must not contain {IDENTIFIER_SEPARATOR}")
+
+    if not (is_hostname(hostname=host) or is_ipv4_address(address=host)):
+        config_failures.append("Invalid hostname or ipv4 address")
+    if not username:
+        config_failures.append("Username must not be empty")
+    if not password:
+        config_failures.append("Password is required")
+    if not check_password(password=password):
+        config_failures.append("Password is not valid")
+    try:
+        check_or_create_directory(directory=storage_directory)
+    except BaseHomematicException as bhexc:
+        config_failures.append(extract_exc_args(exc=bhexc)[0])
+    if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
+        config_failures.append("Invalid callback hostname or ipv4 address")
+    if callback_port_xml_rpc and not is_port(port=callback_port_xml_rpc):
+        config_failures.append("Invalid xml rpc callback port")
+    if json_port and not is_port(port=json_port):
+        config_failures.append("Invalid json port")
+    if interface_configs and not _has_primary_client(interface_configs=interface_configs):
+        config_failures.append(f"No primary interface ({', '.join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined")
+
+    return config_failures
+
+
+def _has_primary_client(*, interface_configs: AbstractSet[hmcl.InterfaceConfig]) -> bool:
+    """Check if all configured clients exists in central."""
+    for interface_config in interface_configs:
+        if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
+            return True
+    return False
 
 
 def _get_new_data_points(

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "aiohomematic"
-dynamic = ["version"]
+dynamic = ["version", "dependencies"]
 license     = {text = "MIT License"}
 description = "Homematic interface for Home Assistant running on Python 3."
 readme      = "README.md"
@@ -12,7 +12,7 @@ authors     = [
     {name = "SukramJ", email = "sukramj@icloud.com"},
     {name = "Daniel Perna", email = "danielperna84@gmail.com"},
 ]
-keywords    = ["home", "automation", "homematic"]
+keywords    = ["home", "automation", "homematic", "openccu", "homegear"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
@@ -24,12 +24,6 @@ classifiers = [
     "Topic :: Home Automation",
 ]
 requires-python = ">=3.13.0"
-dependencies    = [
-    "aiohttp>=3.10.0",
-    "orjson>=3.10.0",
-    "python-slugify>=8.0.0",
-    "voluptuous>=0.14.0",
-]
 
 [project.urls]
 "Source Code" = "https://github.com/sukramj/aiohomematic"
@@ -45,6 +39,7 @@ include-package-data = true
 
 [tool.setuptools.dynamic]
 version = {attr = "aiohomematic.const.VERSION"}
+dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.packages.find]
 include = ["aiohomematic", "aiohomematic.*"]
@@ -131,6 +126,7 @@ disable = [
     "cyclic-import",
     "duplicate-code",
     "inconsistent-return-statements",
+    "import-outside-toplevel",  # C0415
     "locally-disabled",
     "not-context-manager",
     "too-few-public-methods",

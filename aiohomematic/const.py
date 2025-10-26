@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.20"
+VERSION: Final = "2025.10.21"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -133,8 +133,7 @@ WAIT_FOR_CALLBACK: Final[int | None] = None
 SCHEDULER_NOT_STARTED_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 10
 SCHEDULER_LOOP_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 5
 
-CALLBACK_WARN_ARM_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 40
-CALLBACK_WARN_DISARM_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 20
+CALLBACK_WARN_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 40
 
 # Path
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
@@ -304,6 +303,7 @@ class EventKey(StrEnum):
     INTERFACE_ID = "interface_id"
     MODEL = "model"
     PARAMETER = "parameter"
+    PONG_MISMATCH_ALLOWED = "pong_mismatch_allowed"
     PONG_MISMATCH_COUNT = "pong_mismatch_count"
     SECONDS_SINCE_LAST_EVENT = "seconds_since_last_event"
     TYPE = "type"

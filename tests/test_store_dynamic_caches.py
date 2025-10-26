@@ -83,6 +83,7 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
     ppc = PingPongCache(central=central, interface_id="ifX", allowed_delta=allowed_delta, ttl=60)
 
     # Initially low and zero counts
+    assert ppc.allowed_delta == allowed_delta
     assert ppc.pending_pong_count == 0
     assert ppc.unknown_pong_count == 0
     assert ppc.low_pending_pongs is True

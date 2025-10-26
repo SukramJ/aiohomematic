@@ -387,6 +387,11 @@ class PingPongCache:
         self._unknown_pong_logged: bool = False
 
     @property
+    def allowed_delta(self) -> int:
+        """Return the allowed delta."""
+        return self._allowed_delta
+
+    @property
     def high_pending_pongs(self) -> bool:
         """Check, if store contains too many pending pongs."""
         self._cleanup_pending_pongs()
@@ -515,6 +520,7 @@ class PingPongCache:
                             EventKey.TYPE: event_type,
                             EventKey.DATA: {
                                 EventKey.CENTRAL_NAME: self._central.name,
+                                EventKey.PONG_MISMATCH_ALLOWED: mismatch_count <= self._allowed_delta,
                                 EventKey.PONG_MISMATCH_COUNT: mismatch_count,
                             },
                         }

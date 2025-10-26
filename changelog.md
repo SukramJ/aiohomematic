@@ -1,3 +1,8 @@
+# Version 2025.10.21 (2025-10-26)
+
+- Add pong_mismatch_allowed to ping pong event
+- Revert: Improve call back alive check
+
 # Version 2025.10.20 (2025-10-26)
 
 - Test support: Improve code/test coverage

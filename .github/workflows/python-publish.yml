@@ -110,37 +110,11 @@ jobs:
           (cd support_zip_stage && zip -r "../aiohomematic_test_support-${GITHUB_REF_NAME}.zip" aiohomematic_test_support)
           ls -l "aiohomematic_test_support-${GITHUB_REF_NAME}.zip"
 
-      - name: Compute support version from main tag
-        id: vparse
-        run: |
-          RAW="${GITHUB_REF_NAME}"   # e.g. v1.2.3
-          VER="${RAW#v}"             # -> 1.2.3
-          echo "SUPPORT_VER=${VER}" >> "$GITHUB_OUTPUT"
-
-      # Ensure __init__.py exists in the real package dir and inject the version
-      - name: Inject version into aiohomematic_test_support/__init__.py
-        run: |
-          set -euo pipefail
-          VER="${{ steps.vparse.outputs.SUPPORT_VER }}"
-          if [ ! -f aiohomematic_test_support/__init__.py ]; then
-            echo '__version__ = "0.0.0"' > aiohomematic_test_support/__init__.py
-            echo "Created aiohomematic_test_support/__init__.py"
-          fi
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path("aiohomematic_test_support/__init__.py")
-          txt = p.read_text(encoding="utf-8")
-          if "__version__" not in txt:
-              txt = '__version__ = "0.0.0"\n' + txt
-          txt = re.sub(r'__version__\s*=\s*".*?"', f'__version__ = "${{ steps.vparse.outputs.SUPPORT_VER }}"', txt)
-          p.write_text(txt, encoding="utf-8")
-          print("Injected version into", p)
-          PY
-
       # Build wheel + sdist from the REAL package folder
       - name: Build support package (wheel + sdist)
         working-directory: aiohomematic_test_support
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip

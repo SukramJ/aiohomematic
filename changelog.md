@@ -1,6 +1,8 @@
-# Version 2025.10.19 (2025-10-24)
+# Version 2025.10.19 (2025-10-26)
 
 - Test support: Improve code/test coverage
+- Improve call back alive check
+- Improve version creation for aiohomematic_test_support
 
 # Version 2025.10.18 (2025-10-24)
 

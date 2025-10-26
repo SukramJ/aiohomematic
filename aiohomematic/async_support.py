@@ -8,9 +8,11 @@ import asyncio
 from collections.abc import Callable, Collection, Coroutine
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures._base import CancelledError
+import contextlib
 from functools import wraps
 import logging
 from time import monotonic
+from types import CoroutineType
 from typing import Any, Final, cast
 
 from aiohomematic.const import BLOCK_LOG_TIMEOUT
@@ -100,20 +102,35 @@ class Looper:
                 return pending_set
         return set()
 
-    def create_task(self, *, target: Coroutine[Any, Any, Any], name: str) -> None:
-        """Add task to the executor pool."""
+    def create_task(
+        self, *, target: Coroutine[Any, Any, Any] | Callable[[], Coroutine[Any, Any, Any]], name: str
+    ) -> None:
+        """
+        Schedule a coroutine to run in the loop.
+
+        Accepts either an already-created coroutine object or a zero-argument
+        callable that returns a coroutine. The callable form defers coroutine
+        creation until inside the event loop, which avoids "was never awaited"
+        warnings if callers only inspect the parameters (e.g. in tests).
+        """
         try:
             self._loop.call_soon_threadsafe(self._async_create_task, target, name)
         except CancelledError:
-            _LOGGER.debug(
-                "create_task: task cancelled for %s",
-                name,
-            )
+            # Scheduling failed; if a coroutine object was provided, close it to
+            # avoid 'was never awaited' warnings.
+            if asyncio.iscoroutine(target):
+                with contextlib.suppress(Exception):
+                    cast(CoroutineType, target).close()
+            _LOGGER.debug("create_task: task cancelled for %s", name)
             return
 
-    def _async_create_task[R](self, target: Coroutine[Any, Any, R], name: str) -> asyncio.Task[R]:  # kwonly: disable
-        """Create a task from within the event_loop. This method must be run in the event_loop."""
-        task = self._loop.create_task(target, name=name)
+    def _async_create_task[R](  # kwonly: disable
+        self, target: Coroutine[Any, Any, R] | Callable[[], Coroutine[Any, Any, R]], name: str
+    ) -> asyncio.Task[R]:
+        """Create a task from within the event loop. Must be run in the event loop."""
+        # If target is a callable, call it here to create the coroutine inside the loop
+        coro: Coroutine[Any, Any, R] = target if asyncio.iscoroutine(target) else target()
+        task = self._loop.create_task(coro, name=name)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.remove)
         return task

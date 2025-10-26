@@ -640,7 +640,7 @@ class Device(LogContextMixin, PayloadMixin):
                 await self._central.refresh_firmware_data(device_address=self._address)
 
         if refresh_after_update_intervals:
-            self._central.looper.create_task(target=refresh_data(), name="refresh_firmware_data")
+            self._central.looper.create_task(target=refresh_data, name="refresh_firmware_data")
 
         return update_result
 

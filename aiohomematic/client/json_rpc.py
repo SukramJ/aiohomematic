@@ -483,18 +483,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
             raise
 
-        except ClientConnectorError as cceerr:
-            self.clear_session()
-            message = f"ClientConnectorError[{cceerr}]"
-            log_boundary_error(
-                logger=_LOGGER,
-                boundary="json-rpc",
-                action=str(method),
-                err=cceerr,
-                level=logging.ERROR,
-                log_context=self.log_context,
-            )
-            raise ClientException(message) from cceerr
         except ClientConnectorCertificateError as cccerr:
             self.clear_session()
             message = f"ClientConnectorCertificateError[{cccerr}]"
@@ -512,6 +500,18 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 log_context=self.log_context,
             )
             raise ClientException(message) from cccerr
+        except ClientConnectorError as cceerr:
+            self.clear_session()
+            message = f"ClientConnectorError[{cceerr}]"
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="json-rpc",
+                action=str(method),
+                err=cceerr,
+                level=logging.ERROR,
+                log_context=self.log_context,
+            )
+            raise ClientException(message) from cceerr
         except (ClientError, OSError) as err:
             self.clear_session()
             log_boundary_error(
@@ -1182,11 +1182,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Get the supported methods of the backend."""
         supported_methods: tuple[str, ...] = ()
 
-        await self._login_or_renew()
-        if not (session_id := self._session_id):
-            raise ClientException("Error while logging in")
-
         try:
+            await self._login_or_renew()
+            if not (session_id := self._session_id):
+                raise ClientException("Error while logging in")
+
             response = await self._do_post(
                 session_id=session_id,
                 method=_JsonRpcMethod.SYSTEM_LIST_METHODS,

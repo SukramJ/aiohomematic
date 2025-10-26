@@ -858,12 +858,13 @@ async def test_pending_pong_failure(
     assert factory.ha_event_mock.mock_calls[-1] == call(
         event_type=EventType.INTERFACE,
         event_data={
-            "data": {
-                "central_name": "CentralTest",
-                "pong_mismatch_count": 16,
+            EventKey.DATA: {
+                EventKey.CENTRAL_NAME: "CentralTest",
+                EventKey.PONG_MISMATCH_ALLOWED: False,
+                EventKey.PONG_MISMATCH_COUNT: 16,
             },
-            "interface_id": "CentralTest-BidCos-RF",
-            "type": InterfaceEventType.PENDING_PONG,
+            EventKey.INTERFACE_ID: "CentralTest-BidCos-RF",
+            EventKey.TYPE: InterfaceEventType.PENDING_PONG,
         },
     )
     assert len(factory.ha_event_mock.mock_calls) == 10

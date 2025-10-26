@@ -145,8 +145,8 @@ def test_pingpongcache_cleanup_by_ttl() -> None:
     assert ppc._unknown_pong_count >= 1
 
     # Both cleanup helpers are called by respective property checks
-    assert ppc._high_pending_pongs in (True, False)
-    assert ppc._high_unknown_pongs in (True, False)
+    assert ppc._high_pending_pongs is False
+    assert ppc._high_unknown_pongs is True
 
     ppc._cleanup_pending_pongs()
     ppc._cleanup_unknown_pongs()

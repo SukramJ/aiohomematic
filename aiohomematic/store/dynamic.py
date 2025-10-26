@@ -531,10 +531,10 @@ class PingPongCache:
             elif self._pending_pong_logged:
                 _fire_event(mismatch_count=0)
                 self._pending_pong_logged = False
-            elif pong_mismatch_count > 0 and pong_mismatch_count % 2 == 0:
+            elif count > 0 and count % 2 == 0:
                 _fire_event(mismatch_count=count)
         elif event_type == InterfaceEventType.UNKNOWN_PONG:
-            self._cleanup_unlnown_pongs()
+            self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
             if self._high_unknown_pongs:
                 # Emit interface event to inform subscribers about high unknown pong count.

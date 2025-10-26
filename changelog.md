@@ -1,6 +1,7 @@
 # Version 2025.10.19 (2025-10-24)
 
 - Test support: Improve code/test coverage
+- Improve call back alive check
 
 # Version 2025.10.18 (2025-10-24)
 

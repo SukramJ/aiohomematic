@@ -20,7 +20,7 @@ from aiohomematic.client import (
     get_client as get_client_by_id,
 )
 from aiohomematic.const import (
-    CALLBACK_WARN_INTERVAL,
+    CALLBACK_WARN_ARM_INTERVAL,
     DataPointKey,
     EventKey,
     Interface,
@@ -951,7 +951,7 @@ def test_is_callback_alive_paths_consolidated(monkeypatch: pytest.MonkeyPatch) -
 
     assert client.is_callback_alive() is True
 
-    central._last_event = datetime.now() - timedelta(seconds=CALLBACK_WARN_INTERVAL + 1)
+    central._last_event = datetime.now() - timedelta(seconds=CALLBACK_WARN_ARM_INTERVAL + 1)
     assert client.is_callback_alive() is False
     assert client.is_callback_alive() is False
 

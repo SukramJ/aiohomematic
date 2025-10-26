@@ -58,7 +58,8 @@ from aiohomematic import central as hmcu
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.const import (
-    CALLBACK_WARN_INTERVAL,
+    CALLBACK_WARN_ARM_INTERVAL,
+    CALLBACK_WARN_DISARM_INTERVAL,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_MAX_WORKERS,
     DP_KEY_VALUE,
@@ -145,7 +146,6 @@ class Client(ABC, LogContextMixin):
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
         self._available: bool = True
         self._connection_error_count: int = 0
-        self._is_callback_alive: bool = True
         self._is_initialized: bool = False
         self._ping_pong_cache: Final = PingPongCache(
             central=client_config.central, interface_id=client_config.interface_id
@@ -395,7 +395,7 @@ class Client(ABC, LogContextMixin):
             return False
         if not self.supports_push_updates:
             return True
-        return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
+        return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_ARM_INTERVAL
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
@@ -404,31 +404,29 @@ class Client(ABC, LogContextMixin):
         if (
             last_events_dt := self.central.get_last_event_seen_for_interface(interface_id=self.interface_id)
         ) is not None:
-            if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > CALLBACK_WARN_INTERVAL:
-                if self._is_callback_alive:
-                    self.central.fire_interface_event(
-                        interface_id=self.interface_id,
-                        interface_event_type=InterfaceEventType.CALLBACK,
-                        data={
-                            EventKey.AVAILABLE: False,
-                            EventKey.SECONDS_SINCE_LAST_EVENT: int(seconds_since_last_event),
-                        },
-                    )
-                    self._is_callback_alive = False
+            if (
+                seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()
+            ) > CALLBACK_WARN_ARM_INTERVAL:
+                self.central.fire_interface_event(
+                    interface_id=self.interface_id,
+                    interface_event_type=InterfaceEventType.CALLBACK,
+                    data={
+                        EventKey.AVAILABLE: False,
+                        EventKey.SECONDS_SINCE_LAST_EVENT: int(seconds_since_last_event),
+                    },
+                )
                 _LOGGER.warning(
                     "IS_CALLBACK_ALIVE: Callback for %s has not received events for %is",
                     self.interface_id,
                     seconds_since_last_event,
                 )
                 return False
-
-            if not self._is_callback_alive:
+            if ((datetime.now() - last_events_dt).total_seconds()) < CALLBACK_WARN_DISARM_INTERVAL:
                 self.central.fire_interface_event(
                     interface_id=self.interface_id,
                     interface_event_type=InterfaceEventType.CALLBACK,
                     data={EventKey.AVAILABLE: True},
                 )
-                self._is_callback_alive = True
         return True
 
     @abstractmethod

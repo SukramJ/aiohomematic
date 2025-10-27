@@ -38,7 +38,7 @@ def _extract_pong_event_payload(event: dict[str, Any]) -> dict[str, Any]:
         EventKey.INTERFACE_ID: event[EventKey.DATA][EventKey.INTERFACE_ID],
         EventKey.TYPE: event[EventKey.DATA][EventKey.TYPE],
         EventKey.CENTRAL_NAME: data[EventKey.CENTRAL_NAME],
-        EventKey.PONG_MISMATCH_ALLOWED: data.get(EventKey.PONG_MISMATCH_ALLOWED),
+        EventKey.PONG_MISMATCH_ACCEPTABLE: data.get(EventKey.PONG_MISMATCH_ACCEPTABLE),
         EventKey.PONG_MISMATCH_COUNT: data.get(EventKey.PONG_MISMATCH_COUNT),
     }
 
@@ -104,7 +104,7 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
     assert payload[EventKey.INTERFACE_ID] == "ifX"
     assert payload[EventKey.TYPE] == InterfaceEventType.PENDING_PONG
     assert payload[EventKey.CENTRAL_NAME] == central.name
-    assert payload[EventKey.PONG_MISMATCH_ALLOWED] is False
+    assert payload[EventKey.PONG_MISMATCH_ACCEPTABLE] is False
     assert payload[EventKey.PONG_MISMATCH_COUNT] == ppc._pending_pong_count
 
     # Now resolve one by receiving matching pong — count decreases and another event should fire
@@ -169,7 +169,7 @@ def test_pingpongcache_unknown_pong_warning_and_event(caplog: pytest.LogCaptureF
     assert payload[EventKey.INTERFACE_ID] == "ifU"
     assert payload[EventKey.TYPE] == InterfaceEventType.UNKNOWN_PONG
     assert payload[EventKey.CENTRAL_NAME] == central.name
-    assert payload[EventKey.PONG_MISMATCH_ALLOWED] is False
+    assert payload[EventKey.PONG_MISMATCH_ACCEPTABLE] is False
     assert payload[EventKey.PONG_MISMATCH_COUNT] == ppc._unknown_pong_count
 
 

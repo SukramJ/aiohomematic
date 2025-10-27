@@ -491,7 +491,7 @@ class PingPongCache:
                             EventKey.TYPE: event_type,
                             EventKey.DATA: {
                                 EventKey.CENTRAL_NAME: self._central.name,
-                                EventKey.PONG_MISMATCH_ALLOWED: mismatch_count <= self._allowed_delta,
+                                EventKey.PONG_MISMATCH_ACCEPTABLE: mismatch_count <= self._allowed_delta,
                                 EventKey.PONG_MISMATCH_COUNT: mismatch_count,
                             },
                         }

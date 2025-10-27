@@ -303,7 +303,7 @@ class EventKey(StrEnum):
     INTERFACE_ID = "interface_id"
     MODEL = "model"
     PARAMETER = "parameter"
-    PONG_MISMATCH_ALLOWED = "pong_mismatch_allowed"
+    PONG_MISMATCH_ACCEPTABLE = "pong_mismatch_allowed"
     PONG_MISMATCH_COUNT = "pong_mismatch_count"
     SECONDS_SINCE_LAST_EVENT = "seconds_since_last_event"
     TYPE = "type"

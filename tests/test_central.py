@@ -860,7 +860,7 @@ async def test_pending_pong_failure(
         event_data={
             EventKey.DATA: {
                 EventKey.CENTRAL_NAME: "CentralTest",
-                EventKey.PONG_MISMATCH_ALLOWED: False,
+                EventKey.PONG_MISMATCH_ACCEPTABLE: False,
                 EventKey.PONG_MISMATCH_COUNT: 16,
             },
             EventKey.INTERFACE_ID: "CentralTest-BidCos-RF",

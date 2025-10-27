@@ -1,3 +1,8 @@
+# Version 2025.10.23 (2025-10-27)
+
+- Fix custom HmIP-WGTC definition
+- Test support: Improve central unit code/test coverage
+
 # Version 2025.10.22 (2025-10-26)
 
 - Refactor PingPongCache

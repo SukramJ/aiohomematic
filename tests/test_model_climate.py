@@ -26,13 +26,14 @@ from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES: set[str] = {
+    "INT0000001",
+    "VCU0000050",
+    "VCU0000054",
+    "VCU0000341",
     "VCU1769958",
     "VCU3609622",
-    "INT0000001",
+    "VCU4105035",
     "VCU5778428",
-    "VCU0000054",
-    "VCU0000050",
-    "VCU0000341",
 }
 
 # pylint: disable=protected-access
@@ -618,7 +619,7 @@ async def test_cerfthermostat_with_profiles(
         (TEST_DEVICES, True, None, None),
     ],
 )
-async def test_ceipthermostat(
+async def test_ceipthermostat_bwth(
     central_client_factory_with_homegear_client,
 ) -> None:
     """Test CustomDpIpThermostat."""
@@ -863,6 +864,274 @@ async def test_ceipthermostat(
 
     await central.data_point_event(
         interface_id=const.INTERFACE_ID, channel_address="VCU1769958:1", parameter="SET_POINT_TEMPERATURE", value=12.0
+    )
+    call_count = len(mock_client.method_calls)
+    await climate.set_temperature(temperature=12.0)
+    assert call_count + 1 == len(mock_client.method_calls)
+
+    await climate.set_mode(mode=ClimateMode.AUTO)
+    call_count = len(mock_client.method_calls)
+    await climate.set_mode(mode=ClimateMode.AUTO)
+    assert call_count == len(mock_client.method_calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        (TEST_DEVICES, True, None, None),
+    ],
+)
+async def test_ceipthermostat_wgtc(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """Test CustomDpIpThermostat."""
+    central, mock_client, _ = central_client_factory_with_homegear_client
+    climate: CustomDpIpThermostat = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU4105035", 8))
+    assert climate.usage == DataPointUsage.CDP_PRIMARY
+    assert climate.service_method_names == (
+        "copy_schedule",
+        "copy_schedule_profile",
+        "disable_away_mode",
+        "enable_away_mode_by_calendar",
+        "enable_away_mode_by_duration",
+        "get_schedule_profile",
+        "get_schedule_profile_weekday",
+        "set_mode",
+        "set_profile",
+        "set_schedule_profile",
+        "set_schedule_profile_weekday",
+        "set_simple_schedule_profile",
+        "set_simple_schedule_profile_weekday",
+        "set_temperature",
+    )
+    assert climate.min_temp == 5.0
+    assert climate.max_temp == 30.0
+    assert climate.supports_profiles is True
+    assert climate.target_temperature_step == 0.5
+    assert climate.activity == ClimateActivity.IDLE
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:3", parameter="STATE", value=1
+    )
+    assert climate.activity == ClimateActivity.HEAT
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:3", parameter="STATE", value=0
+    )
+    assert climate.activity == ClimateActivity.IDLE
+    assert climate._old_manu_setpoint is None
+    assert climate.current_humidity is None
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="HUMIDITY", value=75
+    )
+    assert climate.current_humidity == 75
+
+    assert climate.target_temperature is None
+    await climate.set_temperature(temperature=12.0)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU4105035:8",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="SET_POINT_TEMPERATURE",
+        value=12.0,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    assert climate.target_temperature == 12.0
+
+    assert climate.current_temperature is None
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="ACTUAL_TEMPERATURE", value=11.0
+    )
+    assert climate.current_temperature == 11.0
+
+    assert climate.mode == ClimateMode.AUTO
+    assert climate.modes == (ClimateMode.AUTO, ClimateMode.HEAT, ClimateMode.OFF)
+    assert climate.profile == ClimateProfile.NONE
+
+    await climate.set_mode(mode=ClimateMode.OFF)
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 4.5},
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    assert climate.mode == ClimateMode.OFF
+    assert climate.activity == ClimateActivity.OFF
+
+    await climate.set_mode(mode=ClimateMode.HEAT)
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 5.0},
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    await climate.set_temperature(temperature=19.5)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU4105035:8",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="SET_POINT_TEMPERATURE",
+        value=19.5,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="SET_POINT_TEMPERATURE", value=19.5
+    )
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address="VCU4105035:8",
+        parameter="SET_POINT_MODE",
+        value=_ModeHmIP.MANU.value,
+    )
+    assert climate.mode == ClimateMode.HEAT
+    assert climate._old_manu_setpoint == 19.5
+
+    assert climate.profile == ClimateProfile.NONE
+    assert climate.profiles == (
+        ClimateProfile.BOOST,
+        ClimateProfile.NONE,
+    )
+    await climate.set_profile(profile=ClimateProfile.BOOST)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU4105035:8",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="BOOST_MODE",
+        value=True,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="BOOST_MODE", value=1
+    )
+    assert climate.profile == ClimateProfile.BOOST
+
+    await climate.set_mode(mode=ClimateMode.AUTO)
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={"BOOST_MODE": False, "CONTROL_MODE": 0},
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address="VCU4105035:8",
+        parameter="SET_POINT_MODE",
+        value=_ModeHmIP.AUTO.value,
+    )
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="BOOST_MODE", value=1
+    )
+    assert climate.mode == ClimateMode.AUTO
+    assert climate.profiles == (
+        ClimateProfile.BOOST,
+        ClimateProfile.NONE,
+        "week_program_1",
+        "week_program_2",
+        "week_program_3",
+        "week_program_4",
+        "week_program_5",
+        "week_program_6",
+    )
+
+    await climate.set_mode(mode=ClimateMode.HEAT)
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": climate._temperature_for_heat_mode},
+        wait_for_callback=None,
+    )
+
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="SET_POINT_TEMPERATURE", value=19.5
+    )
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address="VCU4105035:8",
+        parameter="SET_POINT_MODE",
+        value=_ModeHmIP.MANU.value,
+    )
+    assert climate.mode == ClimateMode.HEAT
+    assert climate.target_temperature == 19.5
+
+    await climate.set_profile(profile=ClimateProfile.NONE)
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 19.5},
+        wait_for_callback=None,
+    )
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address="VCU4105035:8",
+        parameter="SET_POINT_MODE",
+        value=_ModeHmIP.AWAY.value,
+    )
+    assert climate.profile == ClimateProfile.AWAY
+
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address="VCU4105035:8",
+        parameter="SET_POINT_MODE",
+        value=_ModeHmIP.AUTO.value,
+    )
+    await climate.set_profile(profile=ClimateProfile.WEEK_PROGRAM_1)
+    assert mock_client.method_calls[-1] == call.set_value(
+        channel_address="VCU4105035:8",
+        paramset_key=ParamsetKey.VALUES,
+        parameter="ACTIVE_PROFILE",
+        value=1,
+        wait_for_callback=WAIT_FOR_CALLBACK,
+    )
+    assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
+
+    with freeze_time("2023-03-03 08:00:00"):
+        await climate.enable_away_mode_by_duration(hours=100, away_temperature=17.0)
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={
+            "SET_POINT_MODE": 2,
+            "SET_POINT_TEMPERATURE": 17.0,
+            "PARTY_TIME_START": "2023_03_03 07:50",
+            "PARTY_TIME_END": "2023_03_07 12:00",
+        },
+    )
+
+    await climate.enable_away_mode_by_calendar(
+        start=datetime(2000, 12, 1), end=datetime(2024, 12, 1), away_temperature=17.0
+    )
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={
+            "SET_POINT_MODE": 2,
+            "SET_POINT_TEMPERATURE": 17.0,
+            "PARTY_TIME_START": "2000_12_01 00:00",
+            "PARTY_TIME_END": "2024_12_01 00:00",
+        },
+    )
+
+    await climate.disable_away_mode()
+    assert mock_client.method_calls[-1] == call.put_paramset(
+        channel_address="VCU4105035:8",
+        paramset_key_or_link_address=ParamsetKey.VALUES,
+        values={
+            "SET_POINT_MODE": 2,
+            "PARTY_TIME_START": "2000_01_01 00:00",
+            "PARTY_TIME_END": "2000_01_01 00:00",
+        },
+    )
+
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="BOOST_MODE", value=1
+    )
+    call_count = len(mock_client.method_calls)
+    await climate.set_profile(profile=ClimateProfile.BOOST)
+    assert call_count == len(mock_client.method_calls)
+
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="SET_POINT_TEMPERATURE", value=12.0
     )
     call_count = len(mock_client.method_calls)
     await climate.set_temperature(temperature=12.0)

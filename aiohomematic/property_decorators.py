@@ -117,7 +117,7 @@ class _GenericProperty[GETTER, SETTER](property):
             kind=self.kind,
             cached=self._cached,
             log_context=self.log_context,
-        )  # pragma: no cover
+        )
 
     def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty:
         """Return generic setter."""

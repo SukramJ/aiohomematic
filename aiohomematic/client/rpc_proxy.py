@@ -216,7 +216,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         except BaseHomematicException as bhe:
             self._record_session(method=args[0], params=args[1:], exc=bhe)
             raise
-        except SSLError as sslerr:
+        except SSLError as sslerr:  # pragma: no cover
             message = f"SSLError on {self._interface_id}: {extract_exc_args(exc=sslerr)}"
             level = logging.ERROR
             if sslerr.args[0] in _SSL_ERROR_CODES:
@@ -237,7 +237,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 log_context=self.log_context,
             )
             raise NoConnectionException(message) from sslerr
-        except OSError as oserr:
+        except OSError as oserr:  # pragma: no cover
             message = f"OSError on {self._interface_id}: {extract_exc_args(exc=oserr)}"
             level = (
                 logging.ERROR
@@ -258,7 +258,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         except xmlrpc.client.Fault as flt:
             ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self._interface_id)
             raise map_xmlrpc_fault(code=flt.faultCode, fault_string=flt.faultString, ctx=ctx) from flt
-        except TypeError as terr:
+        except TypeError as terr:  # pragma: no cover
             raise ClientException(terr) from terr
         except xmlrpc.client.ProtocolError as perr:
             if not self._connection_state.has_issue(issuer=self, iid=self._interface_id):

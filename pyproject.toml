@@ -19,11 +19,17 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
     "Topic :: Home Automation",
 ]
-requires-python = ">=3.13.0"
+requires-python = ">=3.13"
 
 [project.urls]
 "Source Code" = "https://github.com/sukramj/aiohomematic"
@@ -31,8 +37,9 @@ requires-python = ">=3.13.0"
 "Docs: Dev"   = "https://github.com/sukramj/aiohomematic"
 "Forum"       = "https://github.com/sukramj/aiohomematic/discussions"
 
-[options.entry_points."console_scripts"]
+[project.scripts]
 aiohomematic = "aiohomematic.hmcli:main"
+
 
 [tool.setuptools]
 include-package-data = true
@@ -549,6 +556,8 @@ voluptuous = "vol"
 
 [tool.ruff.lint.per-file-ignores]
 "script/*" = ["T20"]
+"aiohomematic/hmcli.py" = ["T20"]
+"tests/test_hmcli.py" = ["D100", "D102", "D103", "D107"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
@@ -566,7 +575,6 @@ max-complexity = 25
 branch = true
 source = ["aiohomematic",]
 omit = [
-  "aiohomematic/hmcli.py",
   "aiohomematic/validator.py",
   "aiohomematic/exceptions.py",
   "aiohomematic/central/rpc_server.py",

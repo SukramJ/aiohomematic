@@ -532,7 +532,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 self._xml_rpc_server = xml_rpc_server
                 self._listen_port_xml_rpc = xml_rpc_server.listen_port
                 self._xml_rpc_server.add_central(central=self)
-        except OSError as oserr:
+        except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
             self._state = CentralUnitState.STOPPED_BY_ERROR
             raise AioHomematicException(
                 f"START: Failed to start central unit {self.name}: {extract_exc_args(exc=oserr)}"
@@ -763,7 +763,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
                 self._clients[client.interface_id] = client
                 return True
-        except BaseHomematicException as bhexc:
+        except BaseHomematicException as bhexc:  # pragma: no cover
             self.fire_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,
@@ -862,7 +862,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for interface_config in self._config.enabled_interface_configs:
             try:
                 client = await hmcl.create_client(central=self, interface_config=interface_config)
-            except BaseHomematicException as bhexc:
+            except BaseHomematicException as bhexc:  # pragma: no cover
                 _LOGGER.error(
                     "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client %s: %s",
                     interface_config.interface,
@@ -2125,7 +2125,7 @@ class CentralConfig:
         try:
             self.check_config()
             return CentralUnit(central_config=self)
-        except BaseHomematicException as bhexc:
+        except BaseHomematicException as bhexc:  # pragma: no cover
             raise AioHomematicException(
                 f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=bhexc)}"
             ) from bhexc

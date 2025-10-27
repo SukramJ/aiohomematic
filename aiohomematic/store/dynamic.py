@@ -392,16 +392,6 @@ class PingPongCache:
         return self._allowed_delta
 
     @property
-    def _high_pending_pongs(self) -> bool:
-        """Check, if store contains too many pending pongs. Triggers TTL cleanup."""
-        return self._pending_pong_count > self._allowed_delta
-
-    @property
-    def _high_unknown_pongs(self) -> bool:
-        """Check, if store contains too many unknown pongs. Triggers TTL cleanup."""
-        return self._unknown_pong_count > self._allowed_delta
-
-    @property
     def _pending_pong_count(self) -> int:
         """Return the pending pong count."""
         return len(self._pending_pongs)
@@ -512,7 +502,7 @@ class PingPongCache:
         if event_type == InterfaceEventType.PENDING_PONG:
             self._cleanup_pending_pongs()
             count = self._pending_pong_count
-            if self._high_pending_pongs:
+            if self._pending_pong_count > self._allowed_delta:
                 # Emit interface event to inform subscribers about high pending pong count.
                 _fire_event(mismatch_count=count)
                 if self._pending_pong_logged is False:
@@ -536,7 +526,7 @@ class PingPongCache:
         elif event_type == InterfaceEventType.UNKNOWN_PONG:
             self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
-            if self._high_unknown_pongs:
+            if self._unknown_pong_count > self._allowed_delta:
                 # Emit interface event to inform subscribers about high unknown pong count.
                 _fire_event(mismatch_count=count)
                 if self._unknown_pong_logged is False:

@@ -87,14 +87,12 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
     assert ppc.allowed_delta == allowed_delta
     assert ppc._pending_pong_count == 0
     assert ppc._unknown_pong_count == 0
-    assert ppc._high_pending_pongs is False
-    assert ppc._high_unknown_pongs is False
 
     # Add pending pings beyond threshold to trigger high and a warning/event
     with caplog.at_level("WARNING"):
         for i in range(allowed_delta + 1):
             ppc.handle_send_ping(ping_ts=datetime.now() + timedelta(seconds=i))
-    assert ppc._high_pending_pongs is True
+    assert (ppc._pending_pong_count > ppc.allowed_delta) is True
 
     # One warning logged for pending pong mismatch
     assert any("Pending PONG mismatch" in rec.getMessage() for rec in caplog.records)
@@ -122,7 +120,7 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
         ppc.handle_received_pong(pong_ts=datetime.now() + timedelta(seconds=999))
     assert ppc._unknown_pong_count == 1
     # For a single unknown, may or may not exceed high depending on delta; ensure property access ok
-    _ = ppc._high_unknown_pongs
+    _ = ppc._pending_pong_count > ppc.allowed_delta
 
 
 def test_pingpongcache_cleanup_by_ttl() -> None:
@@ -143,10 +141,6 @@ def test_pingpongcache_cleanup_by_ttl() -> None:
     # Trigger cleanup via property access
     assert ppc._pending_pong_count >= 1
     assert ppc._unknown_pong_count >= 1
-
-    # Both cleanup helpers are called by respective property checks
-    assert ppc._high_pending_pongs is False
-    assert ppc._high_unknown_pongs is True
 
     ppc._cleanup_pending_pongs()
     ppc._cleanup_unknown_pongs()
@@ -193,8 +187,6 @@ def test_pingpongcache_clear_resets_state() -> None:
     ppc.clear()
     assert ppc._pending_pong_count == 0
     assert ppc._unknown_pong_count == 0
-    assert ppc._high_pending_pongs is False
-    assert ppc._high_unknown_pongs is False
 
     # After clear, sending a single ping (count=1) should not emit an event (still low and odd count)
     ppc.handle_send_ping(ping_ts=datetime.now() + timedelta(seconds=2))

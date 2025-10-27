@@ -353,13 +353,13 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                         Field.LEVEL: Parameter.LEVEL,
                         Field.CONCENTRATION: Parameter.CONCENTRATION,
                     },
-                    8: {
-                        Field.STATE: Parameter.STATE,
-                    },
                 },
                 CDPD.FIELDS: {
                     7: {
                         Field.HEATING_VALVE_TYPE: Parameter.HEATING_VALVE_TYPE,
+                    },
+                    -5: {  # e.g. WGTC
+                        Field.STATE: Parameter.STATE,
                     },
                 },
             },

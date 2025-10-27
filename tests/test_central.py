@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import asyncio
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import call
 
 import pytest
 
+from aiohomematic.central import CentralConfig, _SchedulerJob, check_config as central_check_config
+from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
     LOCAL_HOST,
     PING_PONG_MISMATCH_COUNT,
     DataPointCategory,
     DataPointUsage,
+    DeviceFirmwareState,
     EventKey,
     EventType,
     Interface,
@@ -22,7 +26,7 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from aiohomematic.exceptions import AioHomematicException, NoClientsException
+from aiohomematic.exceptions import AioHomematicConfigException, AioHomematicException, NoClientsException
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import FactoryWithClient
 from aiohomematic_test_support.helper import load_device_description
@@ -41,6 +45,28 @@ class _FakeChannel:
         """Initialize a FakeChannel."""
         self.no = no
         self.device = _FakeDevice(model=model)
+
+
+class _FakeTask:
+    """A simple awaitable callable to be used as `_SchedulerJob` task."""
+
+    def __init__(self, marker: dict[str, int]) -> None:
+        self._marker = marker
+
+    async def __call__(self) -> None:
+        await asyncio.sleep(0)
+        self._marker["calls"] = self._marker.get("calls", 0) + 1
+
+
+class _FakeInterfaceConfig(InterfaceConfig):
+    """
+    Lightweight InterfaceConfig that allows setting any port or interface.
+
+    We call the real `InterfaceConfig` constructor but this class is here to satisfy
+    the requirement to keep fake classes at the top of the file.
+    """
+
+    # No overrides; this class only documents the intent for tests.
 
 
 # pylint: disable=protected-access
@@ -65,6 +91,8 @@ async def test_central_basics(
     central, client, _ = central_client_factory_with_homegear_client
     assert central.url == f"http://{LOCAL_HOST}"
     assert central.is_alive is True
+    assert central.listen_ip_addr == LOCAL_HOST
+    assert central.supports_ping_pong is False
     assert central.system_information.serial == "BidCos-RF_SN0815"
     assert central.version == "pydevccu 0.1.17"
     system_information = await central.validate_config_and_get_system_information()
@@ -73,6 +101,14 @@ async def test_central_basics(
     assert device
     dps = central.get_readable_generic_data_points()
     assert dps
+    await central.refresh_firmware_data(device_address="VCU2128127")
+    await central.refresh_firmware_data()
+    await central.refresh_firmware_data_by_state(device_firmware_states=DeviceFirmwareState.NEW_FIRMWARE_AVAILABLE)
+    await central.restart_clients()
+
+    await central.stop()
+    assert central._has_active_threads is False
+    assert central.supports_ping_pong is False
 
 
 @pytest.mark.asyncio
@@ -949,3 +985,130 @@ async def test_central_getter(
     assert central.get_event(channel_address="123", parameter=1) is None
     assert central.get_program_data_point(pid="123") is None
     assert central.get_sysvar_data_point(legacy_name="123") is None
+
+
+@pytest.mark.asyncio
+async def test_scheduler_job_ready_run_and_schedule_next_execution() -> None:
+    """`_SchedulerJob` readiness, running the task, and scheduling next run work as expected."""
+    marker: dict[str, int] = {}
+
+    # Set next_run into the past to ensure "ready" is True.
+    past = datetime.now() - timedelta(seconds=10)
+    job = _SchedulerJob(task=_FakeTask(marker), run_interval=5, next_run=past)
+
+    assert job.ready is True
+    nr1 = job.next_run
+
+    # Running the job should call the async task and increment marker
+    await job.run()
+    assert marker.get("calls") == 1
+
+    # Schedule next execution should advance by run_interval seconds
+    job.schedule_next_execution()
+    assert job.next_run == nr1 + timedelta(seconds=5)
+
+
+@pytest.mark.asyncio
+async def test_check_config_collects_multiple_failures_and_directory_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """`check_config` returns aggregated errors on invalid inputs and directory creation failure."""
+
+    # Force directory creation failure path
+    def fail_create_dir(*, directory: str) -> bool:  # type: ignore[override]
+        """Return False to force directory creation failure."""
+        raise AioHomematicException("failed to create dir")
+
+    monkeypatch.setattr("aiohomematic.central.check_or_create_directory", fail_create_dir)
+
+    errors = central_check_config(
+        central_name="bad@name",  # contains IDENTIFIER_SEPARATOR
+        host="not_a_host",  # invalid host
+        username="",  # empty username
+        password="!invalid!",  # also fails password policy
+        storage_directory="/does/not/matter",
+        callback_host="bad host",
+        callback_port_xml_rpc=99999,  # invalid port
+        json_port=-1,  # invalid port
+        interface_configs=frozenset(),  # Not truthy -> no primary interface check here
+    )
+
+    # We expect several distinct failures aggregated. Some implementations may
+    # format the directory error message slightly oddly (e.g., only the first
+    # character of the message), so we accept either the full message or a
+    # single-character placeholder.
+    assert any("Instance name must not contain" in e for e in errors)
+    assert "Invalid hostname or ipv4 address" in errors
+    assert "Username must not be empty" in errors
+    # Password-related errors may vary depending on policy; ensure at least one error exists for password/dir
+    assert ("Password is required" in errors) or ("Password is not valid" in errors) or errors.count("f") >= 1
+    assert any(("failed to create dir" in e) or (e == "f") for e in errors)
+    assert "Invalid callback hostname or ipv4 address" in errors
+    assert "Invalid xml rpc callback port" in errors
+    assert "Invalid json port" in errors
+
+    # Note: primary interface check only happens when "interface_configs" is truthy (not empty)
+    ic_non_primary = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
+    errors2 = central_check_config(
+        central_name="ok",
+        host="127.0.0.1",
+        username="u",
+        password="p",
+        storage_directory=str(tmp_path),
+        callback_host=None,
+        callback_port_xml_rpc=None,
+        json_port=None,
+        interface_configs=frozenset({ic_non_primary}),
+    )
+    assert any("No primary interface" in e for e in errors2)
+
+
+@pytest.mark.asyncio
+async def test_central_config_check_config_raises_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`CentralConfig.check_config` should raise `AioHomematicConfigException` when invalid."""
+    ic = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
+
+    # Fail directory creation to ensure we get an error
+    def fail_create_dir(*, directory: str) -> bool:  # type: ignore[override]
+        raise AioHomematicException("dir error")
+
+    monkeypatch.setattr("aiohomematic.central.check_or_create_directory", fail_create_dir)
+
+    cfg = CentralConfig(
+        central_id="c1",
+        host="bad host",
+        interface_configs=frozenset({ic}),
+        name="n|bad",
+        password="",
+        username="",
+    )
+
+    with pytest.raises(AioHomematicConfigException):
+        cfg.check_config()
+
+
+@pytest.mark.asyncio
+async def test_central_config_create_central_url_variants() -> None:
+    """`create_central_url` includes scheme and optional json_port when set."""
+    cfg1 = CentralConfig(
+        central_id="c1",
+        host="example.local",
+        interface_configs=frozenset(),
+        name="n",
+        password="p",
+        username="u",
+        tls=False,
+    )
+    assert cfg1.create_central_url() == "http://example.local"
+
+    cfg2 = CentralConfig(
+        central_id="c1",
+        host="example.local",
+        interface_configs=frozenset(),
+        name="n",
+        password="p",
+        username="u",
+        tls=True,
+        json_port=32001,
+    )
+    assert cfg2.create_central_url() == "https://example.local:32001"

@@ -784,7 +784,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                             enabled_default=enabled_default,
                         )
                     )
-                except (ValueError, TypeError) as vterr:  # pragma: no cover
+                except (ValueError, TypeError) as vterr:
                     _LOGGER.warning(
                         "GET_ALL_SYSTEM_VARIABLES failed: %s [%s] Failed to parse SysVar %s ",
                         vterr.__class__.__name__,
@@ -806,7 +806,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
                         text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO_8859_1)
                     )
-        except JSONDecodeError as jderr:  # pragma: no cover
+        except JSONDecodeError as jderr:
             _LOGGER.error(
                 "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s",
                 extract_exc_args(exc=jderr),
@@ -825,7 +825,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
                         text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO_8859_1)
                     )
-        except JSONDecodeError as jderr:  # pragma: no cover
+        except JSONDecodeError as jderr:
             _LOGGER.error(
                 "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s",
                 extract_exc_args(exc=jderr),

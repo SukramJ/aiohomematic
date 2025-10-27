@@ -15,7 +15,7 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient, _get_params, _JsonKey, _JsonRpcMethod
-from aiohomematic.const import UTF_8, Interface, ParamsetKey, RegaScript
+from aiohomematic.const import UTF_8, DescriptionMarker, Interface, ParamsetKey, RegaScript, SysvarType
 from aiohomematic.exceptions import (
     AuthFailure,
     ClientException,
@@ -800,3 +800,116 @@ async def test_properties_and_supported_methods_error(
 
     monkeypatch.setattr(client, "_do_post", raise_ce)
     assert await client._get_supported_methods() == ()
+
+
+@pytest.mark.asyncio
+async def test__get_program_descriptions_handles_jsondecodeerror(
+    aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_get_program_descriptions should swallow JSONDecodeError and return empty mapping."""
+    conn_state = hmcu.CentralConnectionState()
+    client = AioJsonRpcAioHttpClient(
+        username="u",
+        password="p",
+        device_url="http://example",
+        connection_state=conn_state,
+        client_session=aiohttp_session,
+        tls=False,
+    )
+
+    # Cause the helper to raise JSONDecodeError inside the method
+    from json import JSONDecodeError
+
+    async def raise_json_decode(*args: Any, **kwargs: Any):  # noqa: ANN001
+        raise JSONDecodeError("msg", doc="{}", pos=0)
+
+    monkeypatch.setattr(client, "_post_script", raise_json_decode)
+
+    result = await client._get_program_descriptions()
+    assert result == {}
+
+    await client.stop()
+
+
+@pytest.mark.asyncio
+async def test__get_system_variable_descriptions_handles_jsondecodeerror(
+    aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_get_system_variable_descriptions should swallow JSONDecodeError and return empty mapping."""
+    conn_state = hmcu.CentralConnectionState()
+    client = AioJsonRpcAioHttpClient(
+        username="u",
+        password="p",
+        device_url="http://example",
+        connection_state=conn_state,
+        client_session=aiohttp_session,
+        tls=False,
+    )
+
+    from json import JSONDecodeError
+
+    async def raise_json_decode(*args: Any, **kwargs: Any):  # noqa: ANN001
+        raise JSONDecodeError("msg", doc="{}", pos=0)
+
+    monkeypatch.setattr(client, "_post_script", raise_json_decode)
+
+    result = await client._get_system_variable_descriptions()
+    assert result == {}
+
+    await client.stop()
+
+
+@pytest.mark.asyncio
+async def test_get_all_system_variables_parsing_error_is_logged_and_skipped(
+    aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When parse_sys_var raises, the variable is skipped and the warning path is exercised."""
+    conn_state = hmcu.CentralConnectionState()
+    client = AioJsonRpcAioHttpClient(
+        username="u",
+        password="p",
+        device_url="http://example",
+        connection_state=conn_state,
+        client_session=aiohttp_session,
+        tls=False,
+    )
+
+    # Prepare a fake response with one system variable entry
+    fake_result = [
+        {
+            _JsonKey.ID: "1",
+            _JsonKey.NAME: "Var1",
+            _JsonKey.IS_INTERNAL: False,
+            _JsonKey.TYPE: SysvarType.NUMBER,
+            _JsonKey.VALUE: "123",
+            _JsonKey.UNIT: "",
+        }
+    ]
+
+    async def fake_do_post(*, session_id=False, method=None, extra_params=None, use_default_params=True):  # type: ignore[no-untyped-def]
+        # Short-circuit both login and target call
+        if str(method).endswith("Session.login"):
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: {"sessionId": "s"}}
+        return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+    monkeypatch.setattr(client, "_do_post", fake_do_post)
+
+    # Avoid touching _post_script (descriptions) by returning an empty list
+    async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+        return {_JsonKey.ERROR: None, _JsonKey.RESULT: []}
+
+    monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+    # Force parse_sys_var to raise a ValueError
+    from aiohomematic import support as hms
+
+    def raise_value_error(*args: Any, **kwargs: Any):  # noqa: ANN001
+        raise ValueError("bad value")
+
+    monkeypatch.setattr(hms, "parse_sys_var", raise_value_error)
+
+    vars_out = await client.get_all_system_variables(markers=(DescriptionMarker.INTERNAL,))
+    # Should return an empty tuple because the only entry failed to parse
+    assert isinstance(vars_out, tuple) and len(vars_out) == 0
+
+    await client.stop()

@@ -557,7 +557,7 @@ voluptuous = "vol"
 [tool.ruff.lint.per-file-ignores]
 "script/*" = ["T20"]
 "aiohomematic/hmcli.py" = ["T20"]
-"tests/test_hmcli.py" = ["D100", "D102", "D103", "D107"]
+"tests/*.py" = ["D100", "D101", "D102", "D103", "D107", "TRY002"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true

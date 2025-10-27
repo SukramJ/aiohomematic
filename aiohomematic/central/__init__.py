@@ -763,7 +763,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
                 self._clients[client.interface_id] = client
                 return True
-        except BaseHomematicException as bhexc:  # pragma: no cover
+        except BaseHomematicException as bhexc:  # pragma: no cover - deterministic simulation of client creation failures would require the full client/proxy stack and network timing; keeping this defensive log-and-state branch untested to avoid brittle CI
             self.fire_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,

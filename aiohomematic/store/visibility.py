@@ -544,7 +544,7 @@ class ParameterVisibilityCache:
         for ml, cno in search_matrix:
             if parameter in self._custom_un_ignore_complex[ml][cno][paramset_key]:
                 self._param_un_ignored_cache[cache_key] = True
-                return True  # pragma: no cover
+                return True
 
         # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
         result = bool(

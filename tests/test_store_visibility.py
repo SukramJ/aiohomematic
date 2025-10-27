@@ -28,6 +28,11 @@ class _Central:
         self.config = _Cfg(storage_directory=storage_directory, un_ignore_list=un_ignore_list)
 
 
+class _Central2:
+    def __init__(self) -> None:
+        self.config = _Cfg()
+
+
 class _Device:
     def __init__(self, model: str) -> None:
         self.model = model
@@ -38,6 +43,27 @@ class _Channel:
         self.device = _Device(model)
         self.address = address
         self.no = no
+
+
+def test_parameter_is_un_ignored_custom_complex_master_path() -> None:
+    """Custom un_ignore complex entry (MASTER@model:channel) should set early True branch."""
+    central = _Central2()
+    pvc = ParameterVisibilityCache(central=central)
+
+    # Add a complex un_ignore entry targeting a specific model/channel for MASTER
+    line = f"{Parameter.OPERATING_VOLTAGE}:MASTER@HmIP-Any:1"
+    pvc._process_un_ignore_entries(lines=[line])  # type: ignore[attr-defined]
+
+    ch = _Channel(model="HmIP-Any", address="X:1", no=1)
+    assert (
+        pvc.parameter_is_un_ignored(
+            channel=ch,
+            paramset_key=ParamsetKey.MASTER,
+            parameter=Parameter.OPERATING_VOLTAGE,
+            custom_only=True,
+        )
+        is True
+    )
 
 
 def test_model_is_ignored_by_pattern() -> None:

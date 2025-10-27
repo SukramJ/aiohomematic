@@ -155,7 +155,7 @@ class _GenericProperty[GETTER, SETTER](property):
             return cast(GETTER, self)
 
         if (fget := self.fget) is None:
-            raise AttributeError("unreadable attribute")  # pragma: no cover
+            raise AttributeError("unreadable attribute")
 
         if not self._cached:
             return fget(instance)
@@ -194,7 +194,7 @@ class _GenericProperty[GETTER, SETTER](property):
                     delattr(instance, self._cache_attr)
 
         if self.fset is None:
-            raise AttributeError("can't set attribute")  # pragma: no cover
+            raise AttributeError("can't set attribute")
         self.fset(instance, value)
 
     def __delete__(self, instance: Any, /) -> None:
@@ -210,7 +210,7 @@ class _GenericProperty[GETTER, SETTER](property):
                     delattr(instance, self._cache_attr)
 
         if self.fdel is None:
-            raise AttributeError("can't delete attribute")  # pragma: no cover
+            raise AttributeError("can't delete attribute")
         self.fdel(instance)
 
 

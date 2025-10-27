@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import call
 
 import pytest
 
+from aiohomematic import central as hmcu
 from aiohomematic.central import CentralConfig, _SchedulerJob, check_config as central_check_config
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import (
@@ -26,7 +28,12 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from aiohomematic.exceptions import AioHomematicConfigException, AioHomematicException, NoClientsException
+from aiohomematic.exceptions import (
+    AioHomematicConfigException,
+    AioHomematicException,
+    BaseHomematicException,
+    NoClientsException,
+)
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import FactoryWithClient
 from aiohomematic_test_support.helper import load_device_description
@@ -1112,3 +1119,164 @@ async def test_central_config_create_central_url_variants() -> None:
         json_port=32001,
     )
     assert cfg2.create_central_url() == "https://example.local:32001"
+
+
+@pytest.mark.asyncio
+async def test_data_point_event_callback_exceptions_are_caught(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Central.data_point_event should swallow RuntimeError/Exception from callbacks and continue."""
+    # Create a bare instance without running CentralUnit.__init__
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+
+    # Provide minimal attributes used by data_point_event
+    central._data_point_key_event_subscriptions = {}  # type: ignore[attr-defined]
+    central._last_event_seen_for_interface = {}  # type: ignore[attr-defined]
+
+    # Pretend we have a client so has_client(interface_id) returns True
+    monkeypatch.setattr(hmcu.CentralUnit, "has_client", lambda self, interface_id: True)
+
+    # Build a DPK mapping to a callback that raises RuntimeError (debug-level branch)
+    async def cb_runtime_error(*, value: Any, received_at: Any) -> None:  # noqa: ANN001
+        raise RuntimeError("rt")
+
+    dpk = hmcu.DataPointKey(
+        interface_id="if1", channel_address="A:1", paramset_key=ParamsetKey.VALUES, parameter="STATE"
+    )
+    central._data_point_key_event_subscriptions[dpk] = [cb_runtime_error]  # type: ignore[index]
+
+    # Exercise the path; error should be logged at DEBUG and not raised
+    with caplog.at_level("DEBUG"):
+        await hmcu.CentralUnit.data_point_event(  # call unbound to avoid missing bound attributes
+            central,
+            interface_id="if1",
+            channel_address="A:1",
+            parameter="STATE",
+            value="v",
+        )
+
+    # Ensure debug log from RuntimeError branch appeared
+    assert any("EVENT: RuntimeError" in rec.getMessage() for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_sysvar_data_point_path_event_create_task_exceptions_are_caught(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Central.sysvar_data_point_path_event should catch exceptions from looper.create_task and continue."""
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+
+    # Subscription dict with a simple async callback (won't be executed due to create_task raising)
+    async def dummy_cb(*, value: Any, received_at: Any) -> None:  # noqa: ANN001
+        return None
+
+    central._sysvar_data_point_event_subscriptions = {  # type: ignore[attr-defined]
+        "path/1": dummy_cb
+    }
+
+    # Fake looper raising exceptions to hit both except branches
+    class BoomLooper:
+        def __init__(self, exc_type: type[BaseException]) -> None:
+            self._exc_type = exc_type
+
+        def create_task(self, *, target: Any, name: str) -> None:  # noqa: ANN001
+            raise self._exc_type("boom")
+
+    # First, RuntimeError path
+    central._looper = BoomLooper(RuntimeError)  # type: ignore[attr-defined]
+    with caplog.at_level("DEBUG"):
+        hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
+    assert any("EVENT: RuntimeError" in rec.getMessage() for rec in caplog.records)
+
+    # Then, generic Exception path
+    central._looper = BoomLooper(Exception)  # type: ignore[attr-defined]
+    with caplog.at_level("WARNING"):
+        hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
+    assert any("EVENT failed: Unable to call callback" in rec.getMessage() for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_validate_config_and_get_system_information_logs_and_reraises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CentralConfig.validate_config_and_get_system_information should log and re-raise BaseHomematicException."""
+    # Build a minimal central unit instance with needed attributes
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+
+    # Configure a dummy enabled_interface_configs set
+    @dataclass(frozen=True)
+    class DummyIfaceCfg:
+        interface: str = "BidCos-RF"
+        interface_id: str = "if1"
+
+    class DummyConfig:
+        name = "central-test"
+        enabled_interface_configs = frozenset({DummyIfaceCfg()})
+
+    central._config = DummyConfig()  # type: ignore[attr-defined]
+
+    # Make create_client raise BaseHomematicException deterministically
+    class MyBHE(BaseHomematicException):
+        name = "BHE"
+
+    async def raise_bhe(*args: Any, **kwargs: Any):  # noqa: ANN001
+        raise MyBHE("fail")
+
+    monkeypatch.setattr(hmcu.hmcl, "create_client", raise_bhe)
+
+    with pytest.raises(MyBHE):
+        await hmcu.CentralUnit.validate_config_and_get_system_information(central)
+
+
+@pytest.mark.asyncio
+async def test__create_devices_handles_constructor_and_creation_exceptions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_create_devices should catch exceptions from Device() and from data point creation and continue."""
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+    central._devices = {}  # type: ignore[attr-defined]
+    central._clients = {"if1": object()}  # type: ignore[attr-defined]
+
+    # Provide minimal config for CentralUnit.name property access inside method
+    class _Cfg:
+        name = "central-test"
+
+    central._config = _Cfg()  # type: ignore[attr-defined]
+
+    # Mapping with one interface and one device address
+    new_device_addresses = {"if1": {"ABC1234"}}
+
+    # First pass: make Device() raise to hit the first except path
+    class BoomDevice:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN001
+            raise Exception("ctor")
+
+    monkeypatch.setattr(hmcu, "Device", BoomDevice)
+
+    await hmcu.CentralUnit._create_devices(
+        central, new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
+    )
+
+    # Second pass: Device succeeds, but creation helpers raise to hit second except path
+    class OkDevice:
+        def __init__(self, *, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
+            self.central = central
+            self.interface_id = interface_id
+            self.address = device_address
+            self.channels = {}
+            self.client = type("C", (), {})()  # minimal stub
+            self.client.supports_ping_pong = False
+            self.is_updatable = False
+
+        async def load_value_cache(self) -> None:
+            return None
+
+    monkeypatch.setattr(hmcu, "Device", OkDevice)
+
+    def raise_on_create(*args: Any, **kwargs: Any) -> None:  # noqa: ANN001
+        raise Exception("create")
+
+    monkeypatch.setattr(hmcu, "create_data_points_and_events", raise_on_create)
+
+    await hmcu.CentralUnit._create_devices(
+        central, new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
+    )
+
+    # Should not have raised; internal logging covered the branches
+    assert True

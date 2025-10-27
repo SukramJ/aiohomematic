@@ -339,6 +339,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         keep_session: bool = True,
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST_SCRIPT function."""
+        # Load and validate script first to avoid any network when script is missing
+        if (script := await self._get_script(script_name=script_name)) is None:
+            raise ClientException(f"Script file for {script_name} does not exist")
+
+        # Prepare session only after we know we have a script to run
         if keep_session:
             await self._login_or_renew()
             session_id = self._session_id
@@ -350,9 +355,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         if self._supported_methods is None:
             await self._check_supported_methods()
-
-        if (script := await self._get_script(script_name=script_name)) is None:
-            raise ClientException(f"Script file for {script_name} does not exist")
 
         if extra_params:
             for variable, value in extra_params.items():
@@ -384,9 +386,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         def _load_script(script_name: str) -> str | None:
             """Load script from file system."""
             script_file = os.path.join(Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name)
-            if script := Path(script_file).read_text(encoding=UTF_8):
-                self._script_cache[script_name] = script
-                return script
+            try:
+                if script := Path(script_file).read_text(encoding=UTF_8):
+                    self._script_cache[script_name] = script
+                    return script
+            except FileNotFoundError:
+                return None
             return None
 
         return await self._looper.async_add_executor_job(_load_script, script_name, name=f"load_script-{script_name}")

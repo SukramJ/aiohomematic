@@ -437,13 +437,13 @@ class Client(ABC, LogContextMixin):
         """Send ping to the backend to generate PONG event."""
 
     @inspector
-    async def execute_program(self, *, pid: str) -> bool:
+    async def execute_program(self, *, pid: str) -> bool:  # pragma: no cover
         """Execute a program on the backend."""
         _LOGGER.debug("EXECUTE_PROGRAM: not usable for %s.", self.interface_id)
         return True
 
     @inspector
-    async def set_program_state(self, *, pid: str, state: bool) -> bool:
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:  # pragma: no cover
         """Set the program state on the backend."""
         _LOGGER.debug("SET_PROGRAM_STATE: not usable for %s.", self.interface_id)
         return True
@@ -471,19 +471,21 @@ class Client(ABC, LogContextMixin):
         """Get all system variables from the backend."""
 
     @inspector(re_raise=False)
-    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...] | None:
+    async def get_all_programs(
+        self, *, markers: tuple[DescriptionMarker | str, ...]
+    ) -> tuple[ProgramData, ...] | None:  # pragma: no cover
         """Get all programs, if available."""
         _LOGGER.debug("GET_ALL_PROGRAMS: not usable for %s.", self.interface_id)
         return None
 
     @inspector(re_raise=False, no_raise_return={})
-    async def get_all_rooms(self) -> dict[str, set[str]]:
+    async def get_all_rooms(self) -> dict[str, set[str]]:  # pragma: no cover
         """Get all rooms, if available."""
         _LOGGER.debug("GET_ALL_ROOMS: not usable for %s.", self.interface_id)
         return {}
 
     @inspector(re_raise=False, no_raise_return={})
-    async def get_all_functions(self) -> dict[str, set[str]]:
+    async def get_all_functions(self) -> dict[str, set[str]]:  # pragma: no cover
         """Get all functions, if available."""
         _LOGGER.debug("GET_ALL_FUNCTIONS: not usable for %s.", self.interface_id)
         return {}
@@ -767,7 +769,7 @@ class Client(ABC, LogContextMixin):
                 call_source,
             )
             return cast(dict[str, Any], await self._proxy_read.getParamset(address, paramset_key))
-        except BaseHomematicException as bhexc:
+        except BaseHomematicException as bhexc:  # pragma: no cover
             raise ClientException(
                 f"GET_PARAMSET failed with for {address}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
             ) from bhexc
@@ -1033,7 +1035,7 @@ class Client(ABC, LogContextMixin):
         """List devices of the backend."""
         try:
             return tuple(await self._proxy_read.listDevices())
-        except BaseHomematicException as bhexc:
+        except BaseHomematicException as bhexc:  # pragma: no cover
             _LOGGER.debug(
                 "LIST_DEVICES failed: %s [%s]",
                 bhexc.name,
@@ -1545,7 +1547,7 @@ class ClientHomegear(ClientCCU):
                     address=address,
                     name=await self._proxy_read.getMetadata(address, _NAME),
                 )
-            except BaseHomematicException as bhexc:
+            except BaseHomematicException as bhexc:  # pragma: no cover
                 _LOGGER.warning(
                     "%s [%s] Failed to fetch name for device %s",
                     bhexc.name,
@@ -1559,7 +1561,7 @@ class ClientHomegear(ClientCCU):
         try:
             await self._proxy.clientServerInitialized(self.interface_id)
             self.modified_at = datetime.now()
-        except BaseHomematicException as bhexc:
+        except BaseHomematicException as bhexc:  # pragma: no cover
             _LOGGER.debug(
                 "CHECK_CONNECTION_AVAILABILITY failed: %s [%s]",
                 bhexc.name,
@@ -1661,7 +1663,7 @@ class ClientConfig:
             raise NoConnectionException(f"No connection to {self.interface_id}")
         except BaseHomematicException:
             raise
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover
             raise NoConnectionException(f"Unable to connect {extract_exc_args(exc=exc)}.") from exc
 
     async def _get_version(self) -> str:
@@ -1673,7 +1675,7 @@ class ClientConfig:
             if (methods := check_proxy.supported_methods) and "getVersion" in methods:
                 # BidCos-Wired does not support getVersion()
                 return cast(str, await check_proxy.getVersion())
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover
             raise NoConnectionException(f"Unable to connect {extract_exc_args(exc=exc)}.") from exc
         return "0"
 

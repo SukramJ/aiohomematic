@@ -423,8 +423,7 @@ class ParameterVisibilityCache:
         self, *, model_l: TModelName, mapping: Mapping[str, object], cache_dict: dict[TModelName, str | None]
     ) -> str | None:
         """Resolve and memoize the first key in mapping that prefixes model_l."""
-        dt_short_key = cache_dict.get(model_l)
-        if dt_short_key is None and model_l not in cache_dict:
+        if (dt_short_key := cache_dict.get(model_l)) is None and model_l not in cache_dict:
             dt_short_key = next((k for k in mapping if model_l.startswith(k)), None)
             cache_dict[model_l] = dt_short_key
         return dt_short_key
@@ -486,7 +485,7 @@ class ParameterVisibilityCache:
                 return False
 
             if parameter in self._custom_un_ignore_complex[model_l][channel.no][ParamsetKey.MASTER]:
-                return False  # pragma: no cover
+                return False
 
             dt_short_key = self._resolve_prefix_key(
                 model_l=model_l,
@@ -545,7 +544,7 @@ class ParameterVisibilityCache:
         for ml, cno in search_matrix:
             if parameter in self._custom_un_ignore_complex[ml][cno][paramset_key]:
                 self._param_un_ignored_cache[cache_key] = True
-                return True  # pragma: no cover
+                return True
 
         # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
         result = bool(

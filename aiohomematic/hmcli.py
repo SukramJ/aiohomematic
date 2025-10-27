@@ -13,6 +13,7 @@ exposes the 'main' entrypoint for invocation. All other names are internal.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from typing import Any
 from xmlrpc.client import ServerProxy
@@ -124,11 +125,15 @@ def main() -> None:
 
     try:
         if args.paramset_key == ParamsetKey.VALUES and args.value is None:
-            proxy.getValue(args.address, args.parameter)
+            result = proxy.getValue(args.address, args.parameter)
             if args.json:
-                pass
+                print(
+                    json.dumps(
+                        {"address": args.address, "parameter": args.parameter, "value": result}, ensure_ascii=False
+                    )
+                )
             else:
-                pass
+                print(result)
             sys.exit(0)
         elif args.paramset_key == ParamsetKey.VALUES and args.value:
             value: Any
@@ -144,13 +149,22 @@ def main() -> None:
             sys.exit(0)
         elif args.paramset_key == ParamsetKey.MASTER and args.value is None:
             paramset: dict[str, Any] | None
-            if (paramset := proxy.getParamset(args.address, args.paramset_key)) and paramset.get(  # type: ignore[assignment]
-                args.parameter
-            ):
+            if (paramset := proxy.getParamset(args.address, args.paramset_key)) and (args.parameter in paramset):  # type: ignore[assignment]
+                result = paramset[args.parameter]
                 if args.json:
-                    pass
+                    print(
+                        json.dumps(
+                            {
+                                "address": args.address,
+                                "paramset_key": args.paramset_key,
+                                "parameter": args.parameter,
+                                "value": result,
+                            },
+                            ensure_ascii=False,
+                        )
+                    )
                 else:
-                    pass
+                    print(result)
             sys.exit(0)
         elif args.paramset_key == ParamsetKey.MASTER and args.value:
             if args.type == "int":
@@ -163,7 +177,8 @@ def main() -> None:
                 value = args.value
             proxy.putParamset(args.address, args.paramset_key, {args.parameter: value})
             sys.exit(0)
-    except Exception:
+    except Exception as ex:
+        print(str(ex), file=sys.stderr)
         sys.exit(1)
 
 

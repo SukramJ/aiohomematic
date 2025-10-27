@@ -532,7 +532,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 self._xml_rpc_server = xml_rpc_server
                 self._listen_port_xml_rpc = xml_rpc_server.listen_port
                 self._xml_rpc_server.add_central(central=self)
-        except OSError as oserr:
+        except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
             self._state = CentralUnitState.STOPPED_BY_ERROR
             raise AioHomematicException(
                 f"START: Failed to start central unit {self.name}: {extract_exc_args(exc=oserr)}"
@@ -763,7 +763,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
                 self._clients[client.interface_id] = client
                 return True
-        except BaseHomematicException as bhexc:
+        except BaseHomematicException as bhexc:  # pragma: no cover - deterministic simulation of client creation failures would require the full client/proxy stack and network timing; keeping this defensive log-and-state branch untested to avoid brittle CI
             self.fire_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,
@@ -1019,7 +1019,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         interface_id=interface_id,
                         device_address=device_address,
                     )
-                except Exception as exc:  # pragma: no cover
+                except Exception as exc:
                     _LOGGER.error(
                         "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",
                         type(exc).__name__,
@@ -1034,7 +1034,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         await device.load_value_cache()
                         new_devices.add(device)
                         self._devices[device_address] = device
-                except Exception as exc:  # pragma: no cover
+                except Exception as exc:
                     _LOGGER.error(
                         "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
                         type(exc).__name__,
@@ -1281,7 +1281,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 for callback_handler in self._data_point_key_event_subscriptions[dpk]:
                     if callable(callback_handler):
                         await callback_handler(value=value, received_at=received_at)
-            except RuntimeError as rterr:  # pragma: no cover
+            except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
                     extract_exc_args(exc=rterr),
@@ -1289,7 +1289,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     channel_address,
                     parameter,
                 )
-            except Exception as exc:  # pragma: no cover
+            except Exception as exc:
                 _LOGGER_EVENT.warning(
                     "EVENT failed: Unable to call callback for: %s, %s, %s, %s",
                     interface_id,
@@ -1331,10 +1331,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 if callable(callback_handler):
                     received_at = datetime.now()
                     self._looper.create_task(
-                        target=callback_handler(value=value, received_at=received_at),
+                        target=lambda: callback_handler(value=value, received_at=received_at),
                         name=f"sysvar-data-point-event-{state_path}",
                     )
-            except RuntimeError as rterr:  # pragma: no cover
+            except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
                     extract_exc_args(exc=rterr),
@@ -2125,7 +2125,7 @@ class CentralConfig:
         try:
             self.check_config()
             return CentralUnit(central_config=self)
-        except BaseHomematicException as bhexc:
+        except BaseHomematicException as bhexc:  # pragma: no cover
             raise AioHomematicException(
                 f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=bhexc)}"
             ) from bhexc

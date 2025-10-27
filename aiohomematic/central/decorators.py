@@ -52,7 +52,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
                     central = unit.get_central(interface_id=str(args[1]))
                 if central:
                     central.looper.create_task(
-                        target=_exec_backend_system_callback(*args, **kwargs),
+                        target=lambda: _exec_backend_system_callback(*args, **kwargs),
                         name="wrapper_backend_system_callback",
                     )
             except Exception as exc:
@@ -123,7 +123,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable:
             unit = args[0]
             if isinstance(unit, hmcu.CentralUnit):
                 unit.looper.create_task(
-                    target=_async_wrap_sync(_exec_event_callback, *args, **kwargs),
+                    target=lambda: _async_wrap_sync(_exec_event_callback, *args, **kwargs),
                     name="wrapper_event_callback",
                 )
                 return

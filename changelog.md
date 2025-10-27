@@ -1,3 +1,7 @@
+# Version 2025.10.22 (2025-10-26)
+
+- Refactor PingPongCache
+
 # Version 2025.10.21 (2025-10-26)
 
 - Add pong_mismatch_allowed to ping pong event

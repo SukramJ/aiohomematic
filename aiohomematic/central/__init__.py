@@ -862,7 +862,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for interface_config in self._config.enabled_interface_configs:
             try:
                 client = await hmcl.create_client(central=self, interface_config=interface_config)
-            except BaseHomematicException as bhexc:  # pragma: no cover
+            except BaseHomematicException as bhexc:
                 _LOGGER.error(
                     "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client %s: %s",
                     interface_config.interface,
@@ -1019,7 +1019,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         interface_id=interface_id,
                         device_address=device_address,
                     )
-                except Exception as exc:  # pragma: no cover
+                except Exception as exc:
                     _LOGGER.error(
                         "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",
                         type(exc).__name__,
@@ -1034,7 +1034,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         await device.load_value_cache()
                         new_devices.add(device)
                         self._devices[device_address] = device
-                except Exception as exc:  # pragma: no cover
+                except Exception as exc:
                     _LOGGER.error(
                         "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
                         type(exc).__name__,
@@ -1281,7 +1281,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 for callback_handler in self._data_point_key_event_subscriptions[dpk]:
                     if callable(callback_handler):
                         await callback_handler(value=value, received_at=received_at)
-            except RuntimeError as rterr:  # pragma: no cover
+            except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
                     extract_exc_args(exc=rterr),
@@ -1289,7 +1289,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     channel_address,
                     parameter,
                 )
-            except Exception as exc:  # pragma: no cover
+            except Exception as exc:
                 _LOGGER_EVENT.warning(
                     "EVENT failed: Unable to call callback for: %s, %s, %s, %s",
                     interface_id,
@@ -1331,10 +1331,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 if callable(callback_handler):
                     received_at = datetime.now()
                     self._looper.create_task(
-                        target=callback_handler(value=value, received_at=received_at),
+                        target=lambda: callback_handler(value=value, received_at=received_at),
                         name=f"sysvar-data-point-event-{state_path}",
                     )
-            except RuntimeError as rterr:  # pragma: no cover
+            except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
                     "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
                     extract_exc_args(exc=rterr),

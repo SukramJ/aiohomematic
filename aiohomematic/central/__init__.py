@@ -454,7 +454,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     def remove_sysvar_data_point(self, *, vid: str) -> None:
         """Remove a sysvar data_point."""
         if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
-            sysvar_dp.emit_device_removed_callback()
+            sysvar_dp.emit_device_removed_event()
             del self._sysvar_data_points[vid]
             if sysvar_dp.state_path in self._sysvar_data_point_event_subscriptions:
                 del self._sysvar_data_point_event_subscriptions[sysvar_dp.state_path]
@@ -466,8 +466,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
         if (program_dp := self.get_program_data_point(pid=pid)) is not None:
-            program_dp.button.emit_device_removed_callback()
-            program_dp.switch.emit_device_removed_callback()
+            program_dp.button.emit_device_removed_event()
+            program_dp.switch.emit_device_removed_event()
             del self._program_data_points[pid]
 
     def identify_channel(self, *, text: str) -> Channel | None:

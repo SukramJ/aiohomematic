@@ -357,7 +357,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
             self._device_removed_callbacks.remove(cb)
 
     @loop_check
-    def emit_data_point_updated_callback(self, **kwargs: Any) -> None:
+    def emit_data_point_updated_event(self, **kwargs: Any) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_emit_data_point_updated_callback:
             return
@@ -372,7 +372,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 _LOGGER.warning("EMIT_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     @loop_check
-    def emit_device_removed_callback(self) -> None:
+    def emit_device_removed_event(self) -> None:
         """Do what is needed when the data_point has been removed."""
         for callback_handler in self._device_removed_callbacks:
             try:
@@ -895,7 +895,7 @@ class BaseParameterDataPoint[
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
-                self.emit_data_point_updated_callback()
+                self.emit_data_point_updated_event()
             return (old_value, None)  # type: ignore[return-value]
 
         new_value = self._convert_value(value=value)
@@ -906,7 +906,7 @@ class BaseParameterDataPoint[
             self._previous_value = old_value
             self._current_value = new_value
         self._state_uncertain = False
-        self.emit_data_point_updated_callback()
+        self.emit_data_point_updated_event()
         return (old_value, new_value)
 
     def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
@@ -920,7 +920,7 @@ class BaseParameterDataPoint[
             self._set_temporary_modified_at(modified_at=write_at)
             self._temporary_value = temp_value
             self._state_uncertain = True
-        self.emit_data_point_updated_callback()
+        self.emit_data_point_updated_event()
 
     def update_parameter_data(self) -> None:
         """Update parameter data."""

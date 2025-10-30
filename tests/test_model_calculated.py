@@ -263,7 +263,7 @@ def test_calculated_datapoint_misc_properties_and_callbacks(monkeypatch: pytest.
         """Do nothing. Synchronous no-op callback to satisfy the call inside load."""
         return
 
-    monkeypatch.setattr(calc, "emit_data_point_updated_callback", _noop)
+    monkeypatch.setattr(calc, "emit_data_point_updated_event", _noop)
     import asyncio
 
     asyncio.run(

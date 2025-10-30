@@ -598,7 +598,7 @@ class Device(LogContextMixin, PayloadMixin):
         if self._forced_availability != forced_availability:
             self._forced_availability = forced_availability
             for dp in self.generic_data_points:
-                dp.emit_data_point_updated_callback()
+                dp.emit_data_point_updated_event()
 
     @inspector
     async def export_device_definition(self) -> None:
@@ -963,7 +963,7 @@ class Channel(LogContextMixin, PayloadMixin):
             self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
             self._generic_data_points[data_point.dpk] = data_point
-            self._device.register_device_updated_callback(cb=data_point.emit_data_point_updated_callback)
+            self._device.register_device_updated_callback(cb=data_point.emit_data_point_updated_event)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = data_point
         if isinstance(data_point, GenericEvent):
@@ -977,12 +977,12 @@ class Channel(LogContextMixin, PayloadMixin):
             del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):
             del self._generic_data_points[data_point.dpk]
-            self._device.unregister_device_updated_callback(cb=data_point.emit_data_point_updated_callback)
+            self._device.unregister_device_updated_callback(cb=data_point.emit_data_point_updated_event)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = None
         if isinstance(data_point, GenericEvent):
             del self._generic_events[data_point.dpk]
-        data_point.emit_device_removed_callback()
+        data_point.emit_device_removed_event()
 
     def remove(self) -> None:
         """Remove data points from collections and central."""

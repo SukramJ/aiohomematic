@@ -99,9 +99,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
             self._data_points.append(generic_data_point)
             self._unregister_callbacks.append(
-                generic_data_point.register_internal_data_point_updated_callback(
-                    cb=self.emit_data_point_updated_callback
-                )
+                generic_data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(
@@ -123,9 +121,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         ):
             self._data_points.append(generic_data_point)
             self._unregister_callbacks.append(
-                generic_data_point.register_internal_data_point_updated_callback(
-                    cb=self.emit_data_point_updated_callback
-                )
+                generic_data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(
@@ -296,7 +292,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Init the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        self.emit_data_point_updated_callback()
+        self.emit_data_point_updated_event()
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """

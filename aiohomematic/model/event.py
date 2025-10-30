@@ -102,7 +102,7 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
         if self.event_type in DATA_POINT_EVENTS:
-            self.emit_data_point_updated_callback()
+            self.emit_data_point_updated_event()
         self._set_modified_at(modified_at=received_at)
         self.emit_event(value=value)
 

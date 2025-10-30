@@ -33,7 +33,8 @@ body:
         Describe the issue you are experiencing here, to communicate to the
         maintainers. Tell us what you were trying to do and what happened, and show code samples if used.
 
-        Sample code and screenshots are much better then long texts!
+        NO logs here!
+        Sample code and screenshots are much better then long texts!!!
         Provide a clear and concise description of what the problem is.
   - type: markdown
     attributes:
@@ -134,8 +135,8 @@ body:
         It generally allows pinpointing defects and thus resolving issues faster.
   - type: textarea
     attributes:
-      label: The complete Protocol file (very helpful). Anything in the protocols that might be useful for us? The log (Setting/System/Protocols -> load unchanged protocol) is the best source to support trouble shooting!
-      description: For example, error message, or stack traces. Don't switch to DEBUG level if not requested.
+      label: Attach the complete Protocol file (very helpful) here. The log (Setting/System/Protocols -> load unchanged protocol) is the best source to support trouble shooting!
+      description: Log as file!!!. Don't switch to DEBUG level if not requested.
       render: txt
   - type: textarea
     attributes:

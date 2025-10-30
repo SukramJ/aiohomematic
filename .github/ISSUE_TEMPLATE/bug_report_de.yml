@@ -32,7 +32,8 @@ body:
       description: >-
         Beschreiben hier das Problem. Erzähle was Du versucht hast, um das Problem selber zu lösen, und was dabei passiert ist. Zeige ggf. Codebeispiele.
 
-        Beispielcode und Screenshots sind viel besser als lange Texte!
+        Keine Protokolle hier!  
+        Beispielcode und Screenshots sind viel besser als lange Texte!!!
         Beschreibe das Problem klar und eindeutig!
   - type: markdown
     attributes:
@@ -132,8 +133,8 @@ body:
         Dadurch können im Allgemeinen Fehler genauer lokalisiert und Probleme schneller gelöst werden.
   - type: textarea
     attributes:
-      label: Die vollständige Protokolldatei (sehr hilfreich). Gibt es in den Protokollen etwas, das nützlich sein könnte? Das Protokoll (Einstellungen/System/Protokolle -> Unveränderte Protokolle laden) ist die beste Quelle zur Fehlerbehebung!
-      description: Beispielsweise Fehlermeldungen. Wechsele nicht zum DEBUG, wenn das nicht angefordert wurde.
+      label: Die vollständige Protokolldatei (sehr hilfreich) als Datei hier anhängen. Das Protokoll (Einstellungen/System/Protokolle -> Unveränderte Protokolle laden) ist die beste Quelle zur Fehlerbehebung!
+      description: Protokoll als Datei !!! Wechsele nicht zum DEBUG, wenn das nicht angefordert wurde.
       render: txt
   - type: textarea
     attributes:

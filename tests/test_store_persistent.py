@@ -330,7 +330,7 @@ async def test_cleanup_files_helper(tmp_path):
     (session_dir / f"{central_name.lower()}_rec.json").write_text("{}", encoding="utf-8")
 
     # Call helper (uses call_soon_threadsafe), then give loop a cycle to process
-    await cleanup_files(central_name=central_name, storage_directory=str(tmp_path))
+    cleanup_files(central_name=central_name, storage_directory=str(tmp_path))
     await asyncio.sleep(0)
 
     # Files may be deleted depending on glob match; ensure no error path required

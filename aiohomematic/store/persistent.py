@@ -49,6 +49,7 @@ import orjson
 from slugify import slugify
 
 from aiohomematic import central as hmcu
+from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     FILE_DEVICES,
@@ -977,10 +978,11 @@ def _now() -> int:
     return int(datetime.now(tz=UTC).timestamp())
 
 
-async def cleanup_files(*, central_name: str, storage_directory: str) -> None:
+@loop_check
+def cleanup_files(*, central_name: str, storage_directory: str) -> None:
     """Clean up the used files."""
     loop = asyncio.get_running_loop()
     cache_dir = _get_file_path(storage_directory=storage_directory, sub_directory=SUB_DIRECTORY_CACHE)
-    loop.call_soon_threadsafe(delete_file, cache_dir, f"{central_name}*.json".lower())
+    loop.run_in_executor(None, delete_file, cache_dir, f"{central_name}*.json".lower())
     session_dir = _get_file_path(storage_directory=storage_directory, sub_directory=SUB_DIRECTORY_SESSION)
-    loop.call_soon_threadsafe(delete_file, session_dir, f"{central_name}*.json".lower())
+    loop.run_in_executor(None, delete_file, session_dir, f"{central_name}*.json".lower())

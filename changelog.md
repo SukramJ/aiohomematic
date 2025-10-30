@@ -1,3 +1,7 @@
+# Version 2025.10.26 (2025-10-30)
+
+- Run delete_file task in executor
+
 # Version 2025.10.25 (2025-10-30)
 
 - Handle ping after ping success

@@ -598,7 +598,7 @@ class Device(LogContextMixin, PayloadMixin):
         if self._forced_availability != forced_availability:
             self._forced_availability = forced_availability
             for dp in self.generic_data_points:
-                dp.fire_data_point_updated_callback()
+                dp.emit_data_point_updated_callback()
 
     @inspector
     async def export_device_definition(self) -> None:
@@ -674,17 +674,17 @@ class Device(LogContextMixin, PayloadMixin):
         await self._central.save_files(save_paramset_descriptions=True)
         for dp in self.generic_data_points:
             dp.update_parameter_data()
-        self.fire_device_updated_callback()
+        self.emit_device_updated_callback()
 
     @loop_check
-    def fire_device_updated_callback(self) -> None:
+    def emit_device_updated_callback(self) -> None:
         """Do what is needed when the state of the device has been updated."""
         self._set_modified_at()
         for callback_handler in self._device_updated_callbacks:
             try:
                 callback_handler()
             except Exception as exc:
-                _LOGGER.warning("FIRE_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))
+                _LOGGER.warning("EMIT_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -963,7 +963,7 @@ class Channel(LogContextMixin, PayloadMixin):
             self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
             self._generic_data_points[data_point.dpk] = data_point
-            self._device.register_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
+            self._device.register_device_updated_callback(cb=data_point.emit_data_point_updated_callback)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = data_point
         if isinstance(data_point, GenericEvent):
@@ -977,12 +977,12 @@ class Channel(LogContextMixin, PayloadMixin):
             del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):
             del self._generic_data_points[data_point.dpk]
-            self._device.unregister_device_updated_callback(cb=data_point.fire_data_point_updated_callback)
+            self._device.unregister_device_updated_callback(cb=data_point.emit_data_point_updated_callback)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = None
         if isinstance(data_point, GenericEvent):
             del self._generic_events[data_point.dpk]
-        data_point.fire_device_removed_callback()
+        data_point.emit_device_removed_callback()
 
     def remove(self) -> None:
         """Remove data points from collections and central."""

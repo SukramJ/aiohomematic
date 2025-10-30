@@ -82,7 +82,7 @@ class _FakeGenericDP:
         self._refreshed_at = INIT_DATETIME
         self.is_valid = True
         self.state_uncertain = False
-        self.fired_event_recently = True
+        self.emitted_event_recently = True
         self._unregistered: list[bool] = []
 
     # Properties used by CalculatedDataPoint
@@ -104,7 +104,7 @@ class _FakeGenericDP:
         self._refreshed_at = base + timedelta(seconds=refreshed_delta)
 
     def register_internal_data_point_updated_callback(self, *, cb: Callable) -> Callable[[], None]:
-        self.fired_event_recently = False  # simulate change later
+        self.emitted_event_recently = False  # simulate change later
 
         def _unregister() -> None:
             self._unregistered.append(True)
@@ -139,7 +139,7 @@ class _MyCalc(CalculatedDataPoint[float | None]):
     def __init__(self, *, channel: _FakeChannel) -> None:  # type: ignore[override]
         super().__init__(channel=channel)  # type: ignore[arg-type]
 
-    # Make two VALUES data points relevant so _should_fire_data_point_updated_callback checks the branch
+    # Make two VALUES data points relevant so _should_emit_data_point_updated_callback checks the branch
     @property
     def _relevant_values_data_points(self) -> tuple[_FakeGenericDP, ...]:  # type: ignore[override]
         return tuple(dp for dp in self._data_points if dp.paramset_key == ParamsetKey.VALUES)  # type: ignore[attr-defined]
@@ -186,12 +186,12 @@ def test_calculated_datapoint_add_and_properties() -> None:
     assert calc.is_valid is True
     assert calc.state_uncertain is False
 
-    # _should_fire_data_point_updated_callback with >1 VALUES DPs requires all fired_event_recently True
+    # _should_emit_data_point_updated_callback with >1 VALUES DPs requires all emitted_event_recently True
     # We set them via registration to False, so result should be False until we flip them
-    assert calc._should_fire_data_point_updated_callback is False
-    dp1.fired_event_recently = True
-    dp2.fired_event_recently = True
-    assert calc._should_fire_data_point_updated_callback is True
+    assert calc._should_emit_data_point_updated_callback is False
+    dp1.emitted_event_recently = True
+    dp2.emitted_event_recently = True
+    assert calc._should_emit_data_point_updated_callback is True
 
     # is_state_change should be False when not uncertain
     assert calc.is_state_change() is False
@@ -258,12 +258,12 @@ def test_calculated_datapoint_misc_properties_and_callbacks(monkeypatch: pytest.
     dp.state_uncertain = True
     assert calc.is_state_change() is True
 
-    # load_data_point_value should iterate and call fire callback safely
+    # load_data_point_value should iterate and call emit callback safely
     def _noop(**_kwargs: Any) -> None:  # noqa: D401, ANN001
         """Do nothing. Synchronous no-op callback to satisfy the call inside load."""
         return
 
-    monkeypatch.setattr(calc, "fire_data_point_updated_callback", _noop)
+    monkeypatch.setattr(calc, "emit_data_point_updated_callback", _noop)
     import asyncio
 
     asyncio.run(

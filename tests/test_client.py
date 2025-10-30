@@ -319,12 +319,12 @@ class _FakeCentral:
     def save_files(self, *, save_paramset_descriptions: bool = False) -> None:  # noqa: ARG002,D401
         return None
 
-    def fire_interface_event(
+    def emit_interface_event(
         self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, str]
     ):  # noqa: D401,ARG002,E501
         return None
 
-    def fire_homematic_callback(self, *, event_type: Any, event_data: dict[str, Any]) -> None:  # noqa: D401,ARG002,ANN401
+    def emit_homematic_callback(self, *, event_type: Any, event_data: dict[str, Any]) -> None:  # noqa: D401,ARG002,ANN401
         return None
 
 
@@ -473,7 +473,7 @@ class _FakeCentral2:
     def get_last_event_seen_for_interface(self, *, interface_id: str):  # noqa: D401,ARG002
         return self._last_event
 
-    def fire_interface_event(
+    def emit_interface_event(
         self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, Any]
     ):  # noqa: D401,E501
         self._events.append((interface_id, interface_event_type, data))
@@ -616,7 +616,7 @@ async def test_client_init_and_ping_paths(monkeypatch: pytest.MonkeyPatch) -> No
 
 @pytest.mark.asyncio
 async def test_fetch_all_device_data_exception_event(monkeypatch: pytest.MonkeyPatch) -> None:
-    """fetch_all_device_data should fire interface event on ClientException and not raise when decorated with re_raise=False."""
+    """fetch_all_device_data should emit interface event on ClientException and not raise when decorated with re_raise=False."""
     central = _FakeCentral()
     iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
     from aiohomematic.client import ClientCCU as _ClientCCU, ClientConfig as _ClientConfig
@@ -630,13 +630,13 @@ async def test_fetch_all_device_data_exception_event(monkeypatch: pytest.MonkeyP
 
     central.json_rpc_client.get_all_device_data = raise_client_exc  # type: ignore[assignment]
 
-    # Capture fire_interface_event calls
+    # Capture emit_interface_event calls
     called: dict[str, Any] = {}
 
-    def _fire(**kwargs: Any) -> None:  # noqa: ANN001
+    def _emit(**kwargs: Any) -> None:  # noqa: ANN001
         called.update(kwargs)
 
-    central.fire_interface_event = _fire  # type: ignore[assignment]
+    central.emit_interface_event = _emit  # type: ignore[assignment]
 
     # Should not raise due to inspector(re_raise=False)
     await client_ccu.fetch_all_device_data()

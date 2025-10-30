@@ -100,7 +100,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             self._data_points.append(generic_data_point)
             self._unregister_callbacks.append(
                 generic_data_point.register_internal_data_point_updated_callback(
-                    cb=self.fire_data_point_updated_callback
+                    cb=self.emit_data_point_updated_callback
                 )
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
@@ -124,7 +124,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             self._data_points.append(generic_data_point)
             self._unregister_callbacks.append(
                 generic_data_point.register_internal_data_point_updated_callback(
-                    cb=self.fire_data_point_updated_callback
+                    cb=self.emit_data_point_updated_callback
                 )
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
@@ -296,7 +296,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Init the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        self.fire_data_point_updated_callback()
+        self.emit_data_point_updated_callback()
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """
@@ -310,9 +310,9 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         return False
 
     @property
-    def _should_fire_data_point_updated_callback(self) -> bool:
+    def _should_emit_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
-        if self.fired_event_recently:  # pylint: disable=using-constant-test
+        if self.emitted_event_recently:  # pylint: disable=using-constant-test
             return False
 
         if (relevant_values_data_point := self._relevant_values_data_points) is not None and len(
@@ -320,7 +320,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         ) <= 1:
             return True
 
-        return all(dp.fired_event_recently for dp in relevant_values_data_point)
+        return all(dp.emitted_event_recently for dp in relevant_values_data_point)
 
     def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
         """Unregister update callback."""

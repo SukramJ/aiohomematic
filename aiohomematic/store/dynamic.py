@@ -481,6 +481,7 @@ class PingPongCache:
         """Fire an event about the pong status."""
 
         def _fire_event(mismatch_count: int) -> None:
+            """Fire event."""
             self._central.fire_homematic_callback(
                 event_type=EventType.INTERFACE,
                 event_data=cast(
@@ -498,11 +499,17 @@ class PingPongCache:
                     ),
                 ),
             )
+            _LOGGER.debug(
+                "PING PONG CACHE: Emitting event %s for %s with mismatch_count: %i with %i acceptable",
+                event_type,
+                self._interface_id,
+                mismatch_count,
+                self._allowed_delta,
+            )
 
         if event_type == InterfaceEventType.PENDING_PONG:
             self._cleanup_pending_pongs()
-            count = self._pending_pong_count
-            if self._pending_pong_count > self._allowed_delta:
+            if (count := self._pending_pong_count) > self._allowed_delta:
                 # Emit interface event to inform subscribers about high pending pong count.
                 _fire_event(mismatch_count=count)
                 if self._pending_pong_logged is False:

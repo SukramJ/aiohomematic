@@ -1,3 +1,7 @@
+# Version 2025.10.25 (2025-10-30)
+
+- Handle ping after ping success
+
 # Version 2025.10.24 (2025-10-30)
 
 - Fix custom HmIP-WGTC definition

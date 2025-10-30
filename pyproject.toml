@@ -4,7 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "aiohomematic"
-dynamic = ["version", "dependencies"]
 license     = {text = "MIT License"}
 description = "Homematic interface for Home Assistant running on Python 3."
 readme      = "README.md"
@@ -27,9 +26,15 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Framework :: AsyncIO",
     "Typing :: Typed",
-    "Topic :: Home Automation",
+    "Topic :: Homematic",
 ]
 requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.12.0",
+    "orjson>=3.11.0",
+    "python-slugify>=8.0.0",
+    "voluptuous>=0.15.0",
+]
 
 [project.urls]
 "Source Code" = "https://github.com/sukramj/aiohomematic"
@@ -40,13 +45,11 @@ requires-python = ">=3.13"
 [project.scripts]
 aiohomematic = "aiohomematic.hmcli:main"
 
-
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.dynamic]
 version = {attr = "aiohomematic.const.VERSION"}
-dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.packages.find]
 include = ["aiohomematic", "aiohomematic.*"]

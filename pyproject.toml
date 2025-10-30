@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "aiohomematic"
+dynamic = ["version"]
 license     = {text = "MIT License"}
 description = "Homematic interface for Home Assistant running on Python 3."
 readme      = "README.md"

@@ -204,7 +204,7 @@ class Hub:
                 new_programs.append(program_dp.switch)
 
         if new_programs:
-            self._central.fire_backend_system_callback(
+            self._central.emit_backend_system_callback(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_programs),
             )
@@ -240,7 +240,7 @@ class Hub:
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 
         if new_sysvars:
-            self._central.fire_backend_system_callback(
+            self._central.emit_backend_system_callback(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )

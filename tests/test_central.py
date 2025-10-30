@@ -718,7 +718,7 @@ async def test_central_callbacks(
 ) -> None:
     """Test central other methods."""
     central, _, factory = central_client_factory_with_homegear_client
-    central.fire_interface_event(
+    central.emit_interface_event(
         interface_id="SOME_ID",
         interface_event_type=InterfaceEventType.CALLBACK,
         data={EventKey.AVAILABLE: False},

@@ -193,7 +193,7 @@ async def test_cecolordimmereffect(
         "Slow color change",
         "Medium color change",
         "Fast color change",
-        "Campfire",
+        "Campemit",
         "Waterfall",
         "TV simulation",
     )

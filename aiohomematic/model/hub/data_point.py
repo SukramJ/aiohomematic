@@ -230,7 +230,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             self._previous_value = old_value
             self._current_value = new_value
         self._state_uncertain = False
-        self.fire_data_point_updated_callback()
+        self.emit_data_point_updated_event()
 
     def _write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
         """Update the temporary value of the data_point."""
@@ -243,7 +243,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             self._set_temporary_modified_at(modified_at=write_at)
             self._temporary_value = temp_value
             self._state_uncertain = True
-        self.fire_data_point_updated_callback()
+        self.emit_data_point_updated_event()
 
     def _convert_value(self, *, old_value: Any, new_value: Any) -> Any:
         """Convert to value to SYSVAR_TYPE."""
@@ -333,7 +333,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
             self._last_execute_time = data.last_execute_time
             do_update = True
         if do_update:
-            self.fire_data_point_updated_callback()
+            self.emit_data_point_updated_event()
 
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""

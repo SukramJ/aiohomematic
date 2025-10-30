@@ -143,7 +143,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         "_custom_id",
         "_data_point_updated_callbacks",
         "_device_removed_callbacks",
-        "_fired_event_at",
+        "_emitted_event_at",
         "_modified_at",
         "_path_data",
         "_refreshed_at",
@@ -163,7 +163,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._device_removed_callbacks: list[Callable] = []
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
-        self._fired_event_at: datetime = INIT_DATETIME
+        self._emitted_event_at: datetime = INIT_DATETIME
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
         self._signature: Final = self._get_signature()
@@ -191,16 +191,16 @@ class CallbackDataPoint(ABC, LogContextMixin):
         return self._custom_id
 
     @property
-    def fired_event_at(self) -> datetime:
-        """Return the data point updated fired an event at."""
-        return self._fired_event_at
+    def emitted_event_at(self) -> datetime:
+        """Return the data point updated emitted an event at."""
+        return self._emitted_event_at
 
     @state_property
-    def fired_event_recently(self) -> bool:
-        """Return the data point fired an event within 500 milliseconds."""
-        if self._fired_event_at == INIT_DATETIME:
+    def emitted_event_recently(self) -> bool:
+        """Return the data point emitted an event within 500 milliseconds."""
+        if self._emitted_event_at == INIT_DATETIME:
             return False
-        return (datetime.now() - self._fired_event_at).total_seconds() < 0.5
+        return (datetime.now() - self._emitted_event_at).total_seconds() < 0.5
 
     @classmethod
     def default_category(cls) -> DataPointCategory:
@@ -357,11 +357,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
             self._device_removed_callbacks.remove(cb)
 
     @loop_check
-    def fire_data_point_updated_callback(self, **kwargs: Any) -> None:
+    def emit_data_point_updated_event(self, **kwargs: Any) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
-        if not self._should_fire_data_point_updated_callback:
+        if not self._should_emit_data_point_updated_callback:
             return
-        self._fired_event_at = datetime.now()
+        self._emitted_event_at = datetime.now()
         for callback_handler, custom_id in self._data_point_updated_callbacks.items():
             try:
                 # Add the data_point reference once to kwargs to avoid per-callback writes.
@@ -369,19 +369,19 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 kwargs[KWARGS_ARG_CUSTOM_ID] = custom_id
                 callback_handler(**kwargs)
             except Exception as exc:
-                _LOGGER.warning("FIRE_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
+                _LOGGER.warning("EMIT_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     @loop_check
-    def fire_device_removed_callback(self) -> None:
+    def emit_device_removed_event(self) -> None:
         """Do what is needed when the data_point has been removed."""
         for callback_handler in self._device_removed_callbacks:
             try:
                 callback_handler()
             except Exception as exc:
-                _LOGGER.warning("FIRE_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))
+                _LOGGER.warning("EMIT_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     @property
-    def _should_fire_data_point_updated_callback(self) -> bool:
+    def _should_emit_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
         return True
 
@@ -895,7 +895,7 @@ class BaseParameterDataPoint[
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
-                self.fire_data_point_updated_callback()
+                self.emit_data_point_updated_event()
             return (old_value, None)  # type: ignore[return-value]
 
         new_value = self._convert_value(value=value)
@@ -906,7 +906,7 @@ class BaseParameterDataPoint[
             self._previous_value = old_value
             self._current_value = new_value
         self._state_uncertain = False
-        self.fire_data_point_updated_callback()
+        self.emit_data_point_updated_event()
         return (old_value, new_value)
 
     def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
@@ -920,7 +920,7 @@ class BaseParameterDataPoint[
             self._set_temporary_modified_at(modified_at=write_at)
             self._temporary_value = temp_value
             self._state_uncertain = True
-        self.fire_data_point_updated_callback()
+        self.emit_data_point_updated_event()
 
     def update_parameter_data(self) -> None:
         """Update parameter data."""

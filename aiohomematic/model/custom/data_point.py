@@ -188,7 +188,7 @@ class CustomDataPoint(BaseDataPoint):
         """Init the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        self.fire_data_point_updated_callback()
+        self.emit_data_point_updated_event()
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """
@@ -268,7 +268,7 @@ class CustomDataPoint(BaseDataPoint):
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unregister_callbacks.append(
-            data_point.register_internal_data_point_updated_callback(cb=self.fire_data_point_updated_callback)
+            data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
         )
         self._data_points[field] = data_point
 

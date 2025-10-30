@@ -352,7 +352,7 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
         "Slow color change",
         "Medium color change",
         "Fast color change",
-        "Campfire",
+        "Campemit",
         "Waterfall",
         "TV simulation",
     )

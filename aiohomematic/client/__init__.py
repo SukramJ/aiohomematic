@@ -336,7 +336,7 @@ class Client(ABC, LogContextMixin):
                 "available" if available else "unavailable",
                 self.interface_id,
             )
-        self.central.fire_interface_event(
+        self.central.emit_interface_event(
             interface_id=self.interface_id,
             interface_event_type=InterfaceEventType.PROXY,
             data={EventKey.AVAILABLE: available},
@@ -406,7 +406,7 @@ class Client(ABC, LogContextMixin):
         ) is not None:
             if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > CALLBACK_WARN_INTERVAL:
                 if self._is_callback_alive:
-                    self.central.fire_interface_event(
+                    self.central.emit_interface_event(
                         interface_id=self.interface_id,
                         interface_event_type=InterfaceEventType.CALLBACK,
                         data={
@@ -423,7 +423,7 @@ class Client(ABC, LogContextMixin):
                 return False
 
             if not self._is_callback_alive:
-                self.central.fire_interface_event(
+                self.central.emit_interface_event(
                     interface_id=self.interface_id,
                     interface_event_type=InterfaceEventType.CALLBACK,
                     data={EventKey.AVAILABLE: True},
@@ -1147,7 +1147,7 @@ class ClientCCU(Client):
                 self.central.data_cache.add_data(interface=self.interface, all_device_data=all_device_data)
                 return
         except ClientException:
-            self.central.fire_interface_event(
+            self.central.emit_interface_event(
                 interface_id=self.interface_id,
                 interface_event_type=InterfaceEventType.FETCH_DATA,
                 data={EventKey.AVAILABLE: False},

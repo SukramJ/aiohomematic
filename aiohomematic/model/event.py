@@ -8,7 +8,7 @@ button presses, device errors, and impulse notifications to applications.
 
 Included classes:
 - GenericEvent: Base event that integrates with the common data point API
-  (category, usage, names/paths, callbacks) and provides fire_event handling.
+  (category, usage, names/paths, callbacks) and provides emit_event handling.
 - ClickEvent: Represents key press events (EventType.KEYPRESS).
 - DeviceErrorEvent: Represents device error signaling with special value change
   semantics before emitting an event (EventType.DEVICE_ERROR).
@@ -102,14 +102,14 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
         if self.event_type in DATA_POINT_EVENTS:
-            self.fire_data_point_updated_callback()
+            self.emit_data_point_updated_event()
         self._set_modified_at(modified_at=received_at)
-        self.fire_event(value=value)
+        self.emit_event(value=value)
 
     @loop_check
-    def fire_event(self, *, value: Any) -> None:
-        """Do what is needed to fire an event."""
-        self._central.fire_homematic_callback(event_type=self.event_type, event_data=self.get_event_data(value=value))
+    def emit_event(self, *, value: Any) -> None:
+        """Do what is needed to emit an event."""
+        self._central.emit_homematic_callback(event_type=self.event_type, event_data=self.get_event_data(value=value))
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data_point."""
@@ -149,7 +149,7 @@ class DeviceErrorEvent(GenericEvent):
             isinstance(new_value, int)
             and ((old_value is None and new_value > 0) or (isinstance(old_value, int) and old_value != new_value))
         ):
-            self.fire_event(value=new_value)
+            self.emit_event(value=new_value)
 
 
 class ImpulseEvent(GenericEvent):

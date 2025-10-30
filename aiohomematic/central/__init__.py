@@ -251,7 +251,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         # e.g. DEVICES_CREATED, HUB_REFRESHED
         self._backend_system_callbacks: Final[set[Callable]] = set()
         # Signature: (interface_id, channel_address, parameter, value)
-        # Re-Fired events from the backend for parameter updates
+        # Re-emitted events from the backend for parameter updates
         self._backend_parameter_callbacks: Final[set[Callable]] = set()
         # Signature: (event_type, event_data)
         # Events like INTERFACE, KEYPRESS, ...
@@ -454,7 +454,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     def remove_sysvar_data_point(self, *, vid: str) -> None:
         """Remove a sysvar data_point."""
         if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
-            sysvar_dp.fire_device_removed_callback()
+            sysvar_dp.emit_device_removed_event()
             del self._sysvar_data_points[vid]
             if sysvar_dp.state_path in self._sysvar_data_point_event_subscriptions:
                 del self._sysvar_data_point_event_subscriptions[sysvar_dp.state_path]
@@ -466,8 +466,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
         if (program_dp := self.get_program_data_point(pid=pid)) is not None:
-            program_dp.button.fire_device_removed_callback()
-            program_dp.switch.fire_device_removed_callback()
+            program_dp.button.emit_device_removed_event()
+            program_dp.switch.emit_device_removed_event()
             del self._program_data_points[pid]
 
     def identify_channel(self, *, text: str) -> Channel | None:
@@ -764,7 +764,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 self._clients[client.interface_id] = client
                 return True
         except BaseHomematicException as bhexc:  # pragma: no cover - deterministic simulation of client creation failures would require the full client/proxy stack and network timing; keeping this defensive log-and-state branch untested to avoid brittle CI
-            self.fire_interface_event(
+            self.emit_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,
                 data={EventKey.AVAILABLE: False},
@@ -803,14 +803,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         await self._hub.fetch_sysvar_data(scheduled=True)
 
     @loop_check
-    def fire_interface_event(
+    def emit_interface_event(
         self,
         *,
         interface_id: str,
         interface_event_type: InterfaceEventType,
         data: dict[str, Any],
     ) -> None:
-        """Fire an event about the interface status."""
+        """Emit an event about the interface status."""
         data = data or {}
         event_data: dict[str, Any] = {
             EventKey.INTERFACE_ID: interface_id,
@@ -818,7 +818,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             EventKey.DATA: data,
         }
 
-        self.fire_homematic_callback(
+        self.emit_homematic_callback(
             event_type=EventType.INTERFACE,
             event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
@@ -1047,7 +1047,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if new_devices:
             new_dps = _get_new_data_points(new_devices=new_devices)
             new_channel_events = _get_new_channel_events(new_devices=new_devices)
-            self.fire_backend_system_callback(
+            self.emit_backend_system_callback(
                 system_event=BackendSystemEvent.DEVICES_CREATED,
                 new_data_points=new_dps,
                 new_channel_events=new_channel_events,
@@ -1157,7 +1157,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     )
                 )
             ):
-                self.fire_backend_system_callback(
+                self.emit_backend_system_callback(
                     system_event=BackendSystemEvent.DEVICES_DELAYED,
                     new_addresses=new_addresses,
                     interface_id=interface_id,
@@ -1659,9 +1659,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._homematic_callbacks.remove(cb)
 
     @loop_check
-    def fire_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, str]) -> None:
+    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, str]) -> None:
         """
-        Fire homematic_callback in central.
+        Emit homematic_callback in central.
 
         # Events like INTERFACE, KEYPRESS, ...
         """
@@ -1670,7 +1670,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 callback_handler(event_type=event_type, event_data=event_data)
             except Exception as exc:
                 _LOGGER.error(
-                    "FIRE_HOMEMATIC_CALLBACK: Unable to call handler: %s",
+                    "EMIT_HOMEMATIC_CALLBACK: Unable to call handler: %s",
                     extract_exc_args(exc=exc),
                 )
 
@@ -1687,13 +1687,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._backend_parameter_callbacks.remove(cb)
 
     @loop_check
-    def fire_backend_parameter_callback(
+    def emit_backend_parameter_callback(
         self, *, interface_id: str, channel_address: str, parameter: str, value: Any
     ) -> None:
         """
-        Fire backend_parameter callback in central.
+        Emit backend_parameter callback in central.
 
-        Re-Fired events from the backend for parameter updates.
+        Re-emitted events from the backend for parameter updates.
         """
         for callback_handler in self._backend_parameter_callbacks:
             try:
@@ -1702,7 +1702,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
             except Exception as exc:
                 _LOGGER.error(
-                    "FIRE_BACKEND_PARAMETER_CALLBACK: Unable to call handler: %s",
+                    "EMIT_BACKEND_PARAMETER_CALLBACK: Unable to call handler: %s",
                     extract_exc_args(exc=exc),
                 )
 
@@ -1719,9 +1719,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._backend_system_callbacks.remove(cb)
 
     @loop_check
-    def fire_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+    def emit_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
         """
-        Fire system_event callback in central.
+        Emit system_event callback in central.
 
         e.g. DEVICES_CREATED, HUB_REFRESHED
         """
@@ -1730,7 +1730,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 callback_handler(system_event=system_event, **kwargs)
             except Exception as exc:
                 _LOGGER.error(
-                    "FIRE_BACKEND_SYSTEM_CALLBACK: Unable to call handler: %s",
+                    "EMIT_BACKEND_SYSTEM_CALLBACK: Unable to call handler: %s",
                     extract_exc_args(exc=exc),
                 )
 

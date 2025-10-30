@@ -154,7 +154,7 @@ async def test_device_config_pending(
 )
 async def test_forced_availability_and_callbacks(central_client_factory_with_homegear_client, monkeypatch) -> None:
     """
-    Device.set_forced_availability toggles availability and fires dp callbacks once.
+    Device.set_forced_availability toggles availability and emits dp callbacks once.
 
     Also covers available() branches including UNREACH and STICKY_UNREACH precedence.
     """
@@ -219,10 +219,10 @@ async def test_firmware_properties_and_refresh_callbacks(
     device = central.get_device(address="VCU2128127")
 
     # Register firmware callback
-    fired: list[int] = []
+    emitted: list[int] = []
 
     def fw_cb() -> None:
-        fired.append(1)
+        emitted.append(1)
 
     remove_fw = device.register_firmware_update_callback(cb=fw_cb)
     assert callable(remove_fw)
@@ -241,14 +241,14 @@ async def test_firmware_properties_and_refresh_callbacks(
     monkeypatch.setattr(DeviceDescriptionCache, "get_device_description", _patched_get_device_description, raising=True)
 
     device.refresh_firmware_data()
-    assert not fired
+    assert not emitted
 
     # Now change available firmware and state to trigger callback
     current_desc["AVAILABLE_FIRMWARE"] = "99.99"
     current_desc["FIRMWARE_UPDATE_STATE"] = 1  # any int that maps differently
 
     device.refresh_firmware_data()
-    assert fired
+    assert emitted
 
     # Duplicate registration returns None
     assert device.register_firmware_update_callback(cb=fw_cb) is None
@@ -555,12 +555,12 @@ async def test_misc_properties_and_caching(central_client_factory_with_homegear_
         ch_no = next(int(addr.split(":")[1]) for addr, ch in device.channels.items() if ch.custom_data_point)
         assert device.get_custom_data_point(channel_no=ch_no) is not None
 
-    # fire_device_updated_callback handles exception in handler
+    # emit_device_updated_callback handles exception in handler
     def exploding() -> None:
         raise RuntimeError("boom")
 
     device.register_device_updated_callback(cb=exploding)
-    device.fire_device_updated_callback()
+    device.emit_device_updated_callback()
 
     # Channel operation_mode when dp present vs None
     ch = next(iter(device.channels.values()))

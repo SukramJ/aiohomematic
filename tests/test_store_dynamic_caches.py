@@ -27,7 +27,7 @@ class CentralStub:
         self.events: list[dict[str, Any]] = []
 
     # Signature-compatible enough for tests
-    def fire_homematic_callback(self, *, event_type: EventType, event_data: dict[str, Any]) -> None:  # type: ignore[override]
+    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[str, Any]) -> None:  # type: ignore[override]
         """Record a Homematic callback event in the internal list."""
         self.events.append({EventKey.TYPE: event_type, EventKey.DATA: event_data})
 
@@ -107,7 +107,7 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
     assert payload[EventKey.PONG_MISMATCH_ACCEPTABLE] is False
     assert payload[EventKey.PONG_MISMATCH_COUNT] == ppc._pending_pong_count
 
-    # Now resolve one by receiving matching pong — count decreases and another event should fire
+    # Now resolve one by receiving matching pong — count decreases and another event should emit
     last_ts = next(iter(ppc._pending_pongs))  # access for test only
     ppc.handle_received_pong(pong_ts=last_ts)
 
@@ -162,7 +162,7 @@ def test_pingpongcache_unknown_pong_warning_and_event(caplog: pytest.LogCaptureF
     # Warning should be logged
     assert any("Unknown PONG Mismatch" in rec.getMessage() for rec in caplog.records)
 
-    # An UNKNOWN_PONG interface event should have been fired
+    # An UNKNOWN_PONG interface event should have been emitted
     unk_events = [e for e in central.events if e[EventKey.DATA][EventKey.TYPE] == InterfaceEventType.UNKNOWN_PONG]
     assert len(unk_events) >= 1
     payload = _extract_pong_event_payload(unk_events[-1])

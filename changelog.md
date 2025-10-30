@@ -1,4 +1,4 @@
-# Version 2025.10.23 (2025-10-30)
+# Version 2025.10.24 (2025-10-30)
 
 - Fix custom HmIP-WGTC definition
 - Test support: Improve central unit code/test coverage

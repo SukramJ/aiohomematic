@@ -32,7 +32,7 @@ body:
       description: >-
         Beschreiben hier das Problem. Erzähle was Du versucht hast, um das Problem selber zu lösen, und was dabei passiert ist. Zeige ggf. Codebeispiele.
 
-        Keine Protokolle hier!  
+        Keine Protokolle hier!
         Beispielcode und Screenshots sind viel besser als lange Texte!!!
         Beschreibe das Problem klar und eindeutig!
   - type: markdown

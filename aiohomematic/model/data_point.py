@@ -1149,7 +1149,7 @@ class NoneTypeDataPoint:
         """Register a callback for internal updates (no-op for placeholder)."""
 
         def _noop() -> None:
-            """Register a callback for internal updates (no-op for placeholder)."""
+            """Return a no-op callback for unregistered data_point."""
             return
 
         return _noop
@@ -1158,7 +1158,7 @@ class NoneTypeDataPoint:
         """Register a callback for updates (no-op for placeholder)."""
 
         def _noop() -> None:
-            """Register a callback for internal updates (no-op for placeholder)."""
+            """Return a no-op callback for unregistered data_point."""
             return
 
         return _noop

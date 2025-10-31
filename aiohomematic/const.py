@@ -191,31 +191,6 @@ class CalulatedParameter(StrEnum):
     VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
 
 
-class CentralUnitState(StrEnum):
-    """Enum with central unit states."""
-
-    INITIALIZING = "initializing"
-    NEW = "new"
-    RUNNING = "running"
-    STOPPED = "stopped"
-    STOPPED_BY_ERROR = "stopped_by_error"
-    STOPPING = "stopping"
-
-
-class CommandRxMode(StrEnum):
-    """Enum for Homematic rx modes for commands."""
-
-    BURST = "BURST"
-    WAKEUP = "WAKEUP"
-
-
-class InternalCustomID(StrEnum):
-    """Enum for Homematic internal custom IDs."""
-
-    DEFAULT = "cid_default"
-    MANU_TEMP = "cid_manu_temp"
-
-
 class CDPD(StrEnum):
     """Enum for custom data point definitions."""
 
@@ -232,6 +207,24 @@ class CDPD(StrEnum):
     STATE_CHANNEL = "state_channel"
     VISIBLE_FIELDS = "visible_fields"
     VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
+
+
+class CentralUnitState(StrEnum):
+    """Enum with central unit states."""
+
+    INITIALIZING = "initializing"
+    NEW = "new"
+    RUNNING = "running"
+    STOPPED = "stopped"
+    STOPPED_BY_ERROR = "stopped_by_error"
+    STOPPING = "stopping"
+
+
+class CommandRxMode(StrEnum):
+    """Enum for Homematic rx modes for commands."""
+
+    BURST = "BURST"
+    WAKEUP = "WAKEUP"
 
 
 class DataOperationResult(Enum):
@@ -272,6 +265,15 @@ class DataPointCategory(StrEnum):
     UNDEFINED = "undefined"
     UPDATE = "update"
     VALVE = "valve"
+
+
+class DataPointKey(NamedTuple):
+    """Key for data points."""
+
+    interface_id: str
+    channel_address: str
+    paramset_key: ParamsetKey
+    parameter: str
 
 
 class DataPointUsage(StrEnum):
@@ -477,6 +479,13 @@ class ForcedDeviceAvailability(StrEnum):
     FORCE_FALSE = "forced_not_available"
     FORCE_TRUE = "forced_available"
     NOT_SET = "not_set"
+
+
+class InternalCustomID(StrEnum):
+    """Enum for Homematic internal custom IDs."""
+
+    DEFAULT = "cid_default"
+    MANU_TEMP = "cid_manu_temp"
 
 
 class Manufacturer(StrEnum):
@@ -689,6 +698,19 @@ class InterfaceEventType(StrEnum):
     UNKNOWN_PONG = "unknown_pong"
 
 
+class ParameterType(StrEnum):
+    """Enum for Homematic parameter types."""
+
+    ACTION = "ACTION"  # Usually buttons, send Boolean to trigger
+    BOOL = "BOOL"
+    DUMMY = "DUMMY"
+    ENUM = "ENUM"
+    FLOAT = "FLOAT"
+    INTEGER = "INTEGER"
+    STRING = "STRING"
+    EMPTY = ""
+
+
 class ProxyInitState(Enum):
     """Enum with proxy handling results."""
 
@@ -697,6 +719,13 @@ class ProxyInitState(Enum):
     DE_INIT_FAILED = 4
     DE_INIT_SUCCESS = 8
     DE_INIT_SKIPPED = 16
+
+
+class RpcServerType(StrEnum):
+    """Enum for Homematic rpc server types."""
+
+    XML_RPC = "xml_rpc"
+    NONE = "none"
 
 
 class RxMode(IntEnum):
@@ -732,26 +761,6 @@ class SysvarType(StrEnum):
     STRING = "STRING"
 
 
-class ParameterType(StrEnum):
-    """Enum for Homematic parameter types."""
-
-    ACTION = "ACTION"  # Usually buttons, send Boolean to trigger
-    BOOL = "BOOL"
-    DUMMY = "DUMMY"
-    ENUM = "ENUM"
-    FLOAT = "FLOAT"
-    INTEGER = "INTEGER"
-    STRING = "STRING"
-    EMPTY = ""
-
-
-class RpcServerType(StrEnum):
-    """Enum for Homematic rpc server types."""
-
-    XML_RPC = "xml_rpc"
-    NONE = "none"
-
-
 CLICK_EVENTS: Final[frozenset[Parameter]] = frozenset(
     {
         Parameter.PRESS,
@@ -773,15 +782,6 @@ DATA_POINT_EVENTS: Final[frozenset[EventType]] = frozenset(
         EventType.KEYPRESS,
     }
 )
-
-
-class DataPointKey(NamedTuple):
-    """Key for data points."""
-
-    interface_id: str
-    channel_address: str
-    paramset_key: ParamsetKey
-    parameter: str
 
 
 type DP_KEY_VALUE = tuple[DataPointKey, Any]

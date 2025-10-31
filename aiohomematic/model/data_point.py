@@ -1133,23 +1133,54 @@ class NoneTypeDataPoint:
     methods in this class are implemented as safe no-ops.
     """
 
+    # Commonly accessed attributes/properties on GenericDataPoint
+    channel_operation_mode: str | None = None
     default: Any = None
+    full_name: str = "MISSING_DATAPOINT"
     hmtype: Any = None
+    is_forced_sensor: bool = False
+    is_hmtype = False
     is_valid: bool = False
+    is_writeable: bool = False
     max: Any = None
     min: Any = None
+    name: str = "MISSING_DATAPOINT"
+    parameter: str = ""
+    state_uncertain: bool = True
     unit: Any = None
     value: Any = None
     values: tuple[Any, ...] = ()
     visible: Any = None
-    channel_operation_mode: str | None = None
-    is_hmtype = False
+
+    @property
+    def usage(self) -> DataPointUsage:
+        """Placeholder usage is never created/visible."""
+        return DataPointUsage.NO_CREATE
+
+    @property
+    def modified_at(self) -> datetime:
+        """No updates have occurred for a missing data point."""
+        return INIT_DATETIME
+
+    @property
+    def refreshed_at(self) -> datetime:
+        """No refresh has occurred for a missing data point."""
+        return INIT_DATETIME
+
+    @property
+    def dpk(self) -> DataPointKey:
+        """Return a stable placeholder data point key."""
+        return cast(DataPointKey, ("", "", ""))
+
+    def force_usage(self, *, forced_usage: DataPointUsage) -> None:
+        """Accept forced usage without effect (no-op)."""
+        return
 
     def register_internal_data_point_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register a callback for internal updates (no-op for placeholder)."""
 
         def _noop() -> None:
-            """Return a no-op callback for unregistered data_point."""
+            """Unsubscriber placeholder (no-op)."""
             return
 
         return _noop
@@ -1158,7 +1189,7 @@ class NoneTypeDataPoint:
         """Register a callback for updates (no-op for placeholder)."""
 
         def _noop() -> None:
-            """Return a no-op callback for unregistered data_point."""
+            """Unsubscriber placeholder (no-op)."""
             return
 
         return _noop

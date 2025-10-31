@@ -1,4 +1,4 @@
-# Version 2025.10.27 (2025-10-31)
+# Version 2025.11.0 (2025-11-01)
 
 - Use generic DP DpDummy instead of NoneTypeDataPoint replacement
 

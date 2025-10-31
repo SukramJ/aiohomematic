@@ -1124,7 +1124,13 @@ def bind_collector(
 
 
 class NoneTypeDataPoint:
-    """DataPoint to return an empty value."""
+    """
+    DataPoint to return an empty value.
+
+    This placeholder is returned when a requested source GenericDataPoint is missing.
+    that callers may use unconditionally (e.g. registering update callbacks). All such
+    methods in this class are implemented as safe no-ops.
+    """
 
     default: Any = None
     hmtype: Any = None
@@ -1138,6 +1144,24 @@ class NoneTypeDataPoint:
     channel_operation_mode: str | None = None
     is_hmtype = False
 
+    def register_internal_data_point_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+        """Register a callback for internal updates (no-op for placeholder)."""
+
+        def _noop() -> None:
+            """Register a callback for internal updates (no-op for placeholder)."""
+            return
+
+        return _noop
+
+    def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
+        """Register a callback for updates (no-op for placeholder)."""
+
+        def _noop() -> None:
+            """Register a callback for internal updates (no-op for placeholder)."""
+            return
+
+        return _noop
+
     async def send_value(
         self,
         *,
@@ -1145,4 +1169,4 @@ class NoneTypeDataPoint:
         collector: CallParameterCollector | None = None,
         do_validate: bool = True,
     ) -> None:
-        """Send value dummy method."""
+        """Send value dummy method (no-op)."""

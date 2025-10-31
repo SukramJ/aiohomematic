@@ -22,8 +22,8 @@ from aiohomematic.const import (
 )
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.data_point import BaseDataPoint, NoneTypeDataPoint
-from aiohomematic.model.generic import data_point as hmge
+from aiohomematic.model.data_point import BaseDataPoint
+from aiohomematic.model.generic import DpDummy, data_point as hmge
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -104,7 +104,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(
             data_point_type,  # type:ignore[valid-type]
-            NoneTypeDataPoint(),
+            DpDummy(channel=self._channel, param_field=parameter),
         )
 
     def _add_device_data_point[DataPointT: hmge.GenericDataPoint](
@@ -126,7 +126,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(
             data_point_type,  # type:ignore[valid-type]
-            NoneTypeDataPoint(),
+            DpDummy(channel=self._channel, param_field=parameter),
         )
 
     @property

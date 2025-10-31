@@ -67,7 +67,7 @@ Custom device profiles are used when a specific device (model) requires a bespok
 ```python
 # in aiohomematic/model/custom/my_device_profile.py
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.const import Field
+from aiohomematic.const import Field
 
 # Using base CustomDataPoint without subclassing, define mapping in a dict consumed by custom.definition
 MY_DEVICE_PROFILE = {

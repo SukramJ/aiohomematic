@@ -1,3 +1,7 @@
+# Version 2025.10.27 (2025-10-31)
+
+- Use generic DP DpDummy instead of NoneTypeDataPoint replacement
+
 # Version 2025.10.26 (2025-10-30)
 
 - Run delete_file task in executor

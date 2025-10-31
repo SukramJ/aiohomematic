@@ -15,6 +15,8 @@ from aiohomematic.const import (
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     DataPointCategory,
+    DeviceProfile,
+    Field,
     InternalCustomID,
     Parameter,
     ParamsetKey,
@@ -24,7 +26,6 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector

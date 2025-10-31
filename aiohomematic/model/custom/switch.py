@@ -9,10 +9,9 @@ from enum import StrEnum
 import logging
 from typing import Any, Final
 
-from aiohomematic.const import DataPointCategory, Parameter
+from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector

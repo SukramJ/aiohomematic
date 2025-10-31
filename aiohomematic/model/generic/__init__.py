@@ -69,6 +69,7 @@ from aiohomematic.model.generic.action import DpAction
 from aiohomematic.model.generic.binary_sensor import DpBinarySensor
 from aiohomematic.model.generic.button import DpButton
 from aiohomematic.model.generic.data_point import GenericDataPoint
+from aiohomematic.model.generic.dummy import DpDummy
 from aiohomematic.model.generic.number import BaseDpNumber, DpFloat, DpInteger
 from aiohomematic.model.generic.select import DpSelect
 from aiohomematic.model.generic.sensor import DpSensor
@@ -81,6 +82,7 @@ __all__ = [
     "DpAction",
     "DpBinarySensor",
     "DpButton",
+    "DpDummy",
     "DpFloat",
     "DpInteger",
     "DpSelect",

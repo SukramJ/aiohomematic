@@ -9,11 +9,10 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Final, TypedDict, Unpack
 
-from aiohomematic.const import DataPointCategory
+from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector

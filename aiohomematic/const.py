@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.10.26"
+VERSION: Final = "2025.11.0"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -191,6 +191,24 @@ class CalulatedParameter(StrEnum):
     VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
 
 
+class CDPD(StrEnum):
+    """Enum for custom data point definitions."""
+
+    ADDITIONAL_DPS = "additional_dps"
+    ALLOW_UNDEFINED_GENERIC_DPS = "allow_undefined_generic_dps"
+    DEFAULT_DPS = "default_dps"
+    DEVICE_DEFINITIONS = "device_definitions"
+    DEVICE_GROUP = "device_group"
+    FIELDS = "fields"
+    INCLUDE_DEFAULT_DPS = "include_default_dps"
+    PRIMARY_CHANNEL = "primary_channel"
+    REPEATABLE_FIELDS = "repeatable_fields"
+    SECONDARY_CHANNELS = "secondary_channels"
+    STATE_CHANNEL = "state_channel"
+    VISIBLE_FIELDS = "visible_fields"
+    VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
+
+
 class CentralUnitState(StrEnum):
     """Enum with central unit states."""
 
@@ -207,13 +225,6 @@ class CommandRxMode(StrEnum):
 
     BURST = "BURST"
     WAKEUP = "WAKEUP"
-
-
-class InternalCustomID(StrEnum):
-    """Enum for Homematic internal custom IDs."""
-
-    DEFAULT = "cid_default"
-    MANU_TEMP = "cid_manu_temp"
 
 
 class DataOperationResult(Enum):
@@ -256,6 +267,15 @@ class DataPointCategory(StrEnum):
     VALVE = "valve"
 
 
+class DataPointKey(NamedTuple):
+    """Key for data points."""
+
+    interface_id: str
+    channel_address: str
+    paramset_key: ParamsetKey
+    parameter: str
+
+
 class DataPointUsage(StrEnum):
     """Enum with usage information."""
 
@@ -292,6 +312,41 @@ class DeviceFirmwareState(StrEnum):
     BACKGROUND_UPDATE_NOT_SUPPORTED = "BACKGROUND_UPDATE_NOT_SUPPORTED"
 
 
+class DeviceProfile(StrEnum):
+    """Enum for device profiles."""
+
+    IP_BUTTON_LOCK = "IPButtonLock"
+    IP_COVER = "IPCover"
+    IP_DIMMER = "IPDimmer"
+    IP_DRG_DALI = "IPDRGDALI"
+    IP_FIXED_COLOR_LIGHT = "IPFixedColorLight"
+    IP_GARAGE = "IPGarage"
+    IP_HDM = "IPHdm"
+    IP_IRRIGATION_VALVE = "IPIrrigationValve"
+    IP_LOCK = "IPLock"
+    IP_RGBW_LIGHT = "IPRGBW"
+    IP_SIMPLE_FIXED_COLOR_LIGHT = "IPSimpleFixedColorLight"
+    IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED = "IPSimpleFixedColorLightWired"
+    IP_SIREN = "IPSiren"
+    IP_SIREN_SMOKE = "IPSirenSmoke"
+    IP_SWITCH = "IPSwitch"
+    IP_THERMOSTAT = "IPThermostat"
+    IP_THERMOSTAT_GROUP = "IPThermostatGroup"
+    RF_BUTTON_LOCK = "RFButtonLock"
+    RF_COVER = "RfCover"
+    RF_DIMMER = "RfDimmer"
+    RF_DIMMER_COLOR = "RfDimmer_Color"
+    RF_DIMMER_COLOR_FIXED = "RfDimmer_Color_Fixed"
+    RF_DIMMER_COLOR_TEMP = "RfDimmer_Color_Temp"
+    RF_DIMMER_WITH_VIRT_CHANNEL = "RfDimmerWithVirtChannel"
+    RF_LOCK = "RfLock"
+    RF_SIREN = "RfSiren"
+    RF_SWITCH = "RfSwitch"
+    RF_THERMOSTAT = "RfThermostat"
+    RF_THERMOSTAT_GROUP = "RfThermostatGroup"
+    SIMPLE_RF_THERMOSTAT = "SimpleRfThermostat"
+
+
 class EventKey(StrEnum):
     """Enum with aiohomematic event keys."""
 
@@ -320,6 +375,94 @@ class EventType(StrEnum):
     KEYPRESS = "homematic.keypress"
 
 
+class Field(Enum):
+    """Enum for fields."""
+
+    ACOUSTIC_ALARM_ACTIVE = "acoustic_alarm_active"
+    ACOUSTIC_ALARM_SELECTION = "acoustic_alarm_selection"
+    ACTIVE_PROFILE = "active_profile"
+    AUTO_MODE = "auto_mode"
+    BOOST_MODE = "boost_mode"
+    BUTTON_LOCK = "button_lock"
+    CHANNEL_COLOR = "channel_color"
+    COLOR = "color"
+    COLOR_BEHAVIOUR = "color_behaviour"
+    COLOR_LEVEL = "color_temp"
+    COLOR_TEMPERATURE = "color_temperature"
+    COMBINED_PARAMETER = "combined_parameter"
+    COMFORT_MODE = "comfort_mode"
+    CONCENTRATION = "concentration"
+    CONTROL_MODE = "control_mode"
+    CURRENT = "current"
+    DEVICE_OPERATION_MODE = "device_operation_mode"
+    DIRECTION = "direction"
+    DOOR_COMMAND = "door_command"
+    DOOR_STATE = "door_state"
+    DURATION = "duration"
+    DURATION_UNIT = "duration_unit"
+    DUTYCYCLE = "dutycycle"
+    DUTY_CYCLE = "duty_cycle"
+    EFFECT = "effect"
+    ENERGY_COUNTER = "energy_counter"
+    ERROR = "error"
+    FREQUENCY = "frequency"
+    GROUP_LEVEL = "group_level"
+    GROUP_LEVEL_2 = "group_level_2"
+    GROUP_STATE = "group_state"
+    HEATING_COOLING = "heating_cooling"
+    HEATING_VALVE_TYPE = "heating_valve_type"
+    HUE = "hue"
+    HUMIDITY = "humidity"
+    INHIBIT = "inhibit"
+    LEVEL = "level"
+    LEVEL_2 = "level_2"
+    LEVEL_COMBINED = "level_combined"
+    LOCK_STATE = "lock_state"
+    LOCK_TARGET_LEVEL = "lock_target_level"
+    LOWBAT = "lowbat"
+    LOWERING_MODE = "lowering_mode"
+    LOW_BAT = "low_bat"
+    LOW_BAT_LIMIT = "low_bat_limit"
+    MANU_MODE = "manu_mode"
+    MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE = "min_max_value_not_relevant_for_manu_mode"
+    ON_TIME_UNIT = "on_time_unit"
+    ON_TIME_VALUE = "on_time_value"
+    OPEN = "open"
+    OPERATING_VOLTAGE = "operating_voltage"
+    OPERATION_MODE = "channel_operation_mode"
+    OPTICAL_ALARM_ACTIVE = "optical_alarm_active"
+    OPTICAL_ALARM_SELECTION = "optical_alarm_selection"
+    OPTIMUM_START_STOP = "optimum_start_stop"
+    PARTY_MODE = "party_mode"
+    POWER = "power"
+    PROGRAM = "program"
+    RAMP_TIME_TO_OFF_UNIT = "ramp_time_to_off_unit"
+    RAMP_TIME_TO_OFF_VALUE = "ramp_time_to_off_value"
+    RAMP_TIME_UNIT = "ramp_time_unit"
+    RAMP_TIME_VALUE = "ramp_time_value"
+    RSSI_DEVICE = "rssi_device"
+    RSSI_PEER = "rssi_peer"
+    SABOTAGE = "sabotage"
+    SATURATION = "saturation"
+    SECTION = "section"
+    SETPOINT = "setpoint"
+    SET_POINT_MODE = "set_point_mode"
+    SMOKE_DETECTOR_ALARM_STATUS = "smoke_detector_alarm_status"
+    SMOKE_DETECTOR_COMMAND = "smoke_detector_command"
+    STATE = "state"
+    STOP = "stop"
+    SWITCH_MAIN = "switch_main"
+    SWITCH_V1 = "vswitch_1"
+    SWITCH_V2 = "vswitch_2"
+    TEMPERATURE = "temperature"
+    TEMPERATURE_MAXIMUM = "temperature_maximum"
+    TEMPERATURE_MINIMUM = "temperature_minimum"
+    TEMPERATURE_OFFSET = "temperature_offset"
+    VALVE_STATE = "valve_state"
+    VOLTAGE = "voltage"
+    WEEK_PROGRAM_POINTER = "week_program_pointer"
+
+
 class Flag(IntEnum):
     """Enum with Homematic flags."""
 
@@ -336,6 +479,13 @@ class ForcedDeviceAvailability(StrEnum):
     FORCE_FALSE = "forced_not_available"
     FORCE_TRUE = "forced_available"
     NOT_SET = "not_set"
+
+
+class InternalCustomID(StrEnum):
+    """Enum for Homematic internal custom IDs."""
+
+    DEFAULT = "cid_default"
+    MANU_TEMP = "cid_manu_temp"
 
 
 class Manufacturer(StrEnum):
@@ -491,6 +641,7 @@ class ParamsetKey(StrEnum):
     """Enum with paramset keys."""
 
     CALCULATED = "CALCULATED"
+    DUMMY = "DUMMY"
     LINK = "LINK"
     MASTER = "MASTER"
     SERVICE = "SERVICE"
@@ -547,6 +698,19 @@ class InterfaceEventType(StrEnum):
     UNKNOWN_PONG = "unknown_pong"
 
 
+class ParameterType(StrEnum):
+    """Enum for Homematic parameter types."""
+
+    ACTION = "ACTION"  # Usually buttons, send Boolean to trigger
+    BOOL = "BOOL"
+    DUMMY = "DUMMY"
+    ENUM = "ENUM"
+    FLOAT = "FLOAT"
+    INTEGER = "INTEGER"
+    STRING = "STRING"
+    EMPTY = ""
+
+
 class ProxyInitState(Enum):
     """Enum with proxy handling results."""
 
@@ -555,6 +719,13 @@ class ProxyInitState(Enum):
     DE_INIT_FAILED = 4
     DE_INIT_SUCCESS = 8
     DE_INIT_SKIPPED = 16
+
+
+class RpcServerType(StrEnum):
+    """Enum for Homematic rpc server types."""
+
+    XML_RPC = "xml_rpc"
+    NONE = "none"
 
 
 class RxMode(IntEnum):
@@ -590,25 +761,6 @@ class SysvarType(StrEnum):
     STRING = "STRING"
 
 
-class ParameterType(StrEnum):
-    """Enum for Homematic parameter types."""
-
-    ACTION = "ACTION"  # Usually buttons, send Boolean to trigger
-    BOOL = "BOOL"
-    ENUM = "ENUM"
-    FLOAT = "FLOAT"
-    INTEGER = "INTEGER"
-    STRING = "STRING"
-    EMPTY = ""
-
-
-class RpcServerType(StrEnum):
-    """Enum for Homematic rpc server types."""
-
-    XML_RPC = "xml_rpc"
-    NONE = "none"
-
-
 CLICK_EVENTS: Final[frozenset[Parameter]] = frozenset(
     {
         Parameter.PRESS,
@@ -630,15 +782,6 @@ DATA_POINT_EVENTS: Final[frozenset[EventType]] = frozenset(
         EventType.KEYPRESS,
     }
 )
-
-
-class DataPointKey(NamedTuple):
-    """Key for data points."""
-
-    interface_id: str
-    channel_address: str
-    paramset_key: ParamsetKey
-    parameter: str
 
 
 type DP_KEY_VALUE = tuple[DataPointKey, Any]

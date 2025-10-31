@@ -43,11 +43,24 @@ class _FakeCentral:
         self.paramset_descriptions = type("PS", (), {"is_in_multiple_channels": lambda *_args, **_kw: False})()
         self.device_details = type("DD", (), {"get_name": lambda *_args, **_kw: None})()
 
+        # Provide minimal parameter_visibility used by GenericDataPoint init
+        class _PV:
+            def parameter_is_un_ignored(self, *, channel, paramset_key, parameter, custom_only: bool) -> bool:  # noqa: D401, ANN001
+                """In tests, default to False (not un-ignored)."""
+                return False
+
+            def parameter_is_hidden(self, *, channel, paramset_key, parameter) -> bool:  # noqa: D401, ANN001
+                """In tests, nothing is hidden by default."""
+                return False
+
+        self.parameter_visibility = _PV()
+
 
 class _FakeDevice:
     def __init__(self, model: str = "HmIP-XYZ", address: str = "ADDR1") -> None:
         self.interface_id = "ifid"
         self.address = address
+        self.central = _FakeCentral()
         self.model = model
         self.name = "DeviceName"
         self.client = type("Client", (), {"interface": None})()
@@ -211,13 +224,13 @@ def test_calculated_datapoint_add_and_properties() -> None:
     assert any(dp._unregistered for dp in (dp1, dp2, dp3))
 
 
-def test_calculated_datapoint_add_missing_returns_none_type() -> None:
-    """When a requested source DP is missing, a NoneTypeDataPoint is returned and stored."""
+def test_calculated_datapoint_add_missing_returns_placeholder() -> None:
+    """When a requested source DP is missing, a placeholder (DpDummy) is returned and stored."""
     ch = _FakeChannel()
     calc = _MyCalc(channel=ch)
     none_dp = calc._add_data_point(parameter="MISSING", paramset_key=ParamsetKey.VALUES, data_point_type=_FakeGenericDP)  # type: ignore[arg-type]
-    # NoneTypeDataPoint has no attributes; ensure our call returned an object with no is_readable attribute
-    assert not hasattr(none_dp, "is_readable")
+    # DpDummy is a GenericDataPoint-like placeholder; it exposes generic attributes safely
+    assert hasattr(none_dp, "is_readable")
     # And the overall calc still exposes expected operation flags
     assert calc.is_readable is True
     assert calc.supports_events is True

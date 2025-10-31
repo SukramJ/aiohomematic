@@ -14,6 +14,7 @@ from typing import Any, Final
 from aiohomematic import central as hmcu
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
+    CDPD,
     PROGRAM_ADDRESS,
     PROGRAM_SET_PATH_ROOT,
     PROGRAM_STATE_PATH_ROOT,
@@ -32,7 +33,6 @@ from aiohomematic.const import (
     ParameterType,
 )
 from aiohomematic.model import device as hmd
-from aiohomematic.model.custom.const import CDPD
 from aiohomematic.support import to_bool
 
 __all__ = [

@@ -9,10 +9,9 @@ from enum import IntEnum, StrEnum
 import math
 from typing import Any, Final, TypedDict, Unpack
 
-from aiohomematic.const import DataPointCategory, DataPointUsage, Parameter
+from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.custom.const import DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector

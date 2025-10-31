@@ -1121,28 +1121,3 @@ def bind_collector(
         return bind_wrapper  # type: ignore[return-value]
 
     return bind_decorator
-
-
-class NoneTypeDataPoint:
-    """DataPoint to return an empty value."""
-
-    default: Any = None
-    hmtype: Any = None
-    is_valid: bool = False
-    max: Any = None
-    min: Any = None
-    unit: Any = None
-    value: Any = None
-    values: tuple[Any, ...] = ()
-    visible: Any = None
-    channel_operation_mode: str | None = None
-    is_hmtype = False
-
-    async def send_value(
-        self,
-        *,
-        value: Any,
-        collector: CallParameterCollector | None = None,
-        do_validate: bool = True,
-    ) -> None:
-        """Send value dummy method."""

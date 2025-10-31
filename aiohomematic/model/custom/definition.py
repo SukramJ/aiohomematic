@@ -12,10 +12,9 @@ from typing import Any, Final, cast
 import voluptuous as vol
 
 from aiohomematic import support as hms, validator as val
-from aiohomematic.const import DataPointCategory, Parameter
+from aiohomematic.const import CDPD, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.model import device as hmd
-from aiohomematic.model.custom.const import CDPD, DeviceProfile, Field
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.support import generate_unique_id
 from aiohomematic.support import extract_exc_args

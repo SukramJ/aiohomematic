@@ -9,13 +9,21 @@ from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
-from aiohomematic.const import CALLBACK_TYPE, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage
+from aiohomematic.const import (
+    CALLBACK_TYPE,
+    CDPD,
+    INIT_DATETIME,
+    CallSource,
+    DataPointKey,
+    DataPointUsage,
+    DeviceProfile,
+    Field,
+)
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.custom.const import CDPD, DeviceProfile, Field
 from aiohomematic.model.custom.support import CustomConfig
-from aiohomematic.model.data_point import BaseDataPoint, NoneTypeDataPoint
-from aiohomematic.model.generic import data_point as hmge
+from aiohomematic.model.data_point import BaseDataPoint
+from aiohomematic.model.generic import DpDummy, data_point as hmge
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -317,7 +325,7 @@ class CustomDataPoint(BaseDataPoint):
             return cast(data_point_type, dp)  # type: ignore[valid-type]
         return cast(
             data_point_type,  # type:ignore[valid-type]
-            NoneTypeDataPoint(),
+            DpDummy(channel=self._channel, param_field=field),
         )
 
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:

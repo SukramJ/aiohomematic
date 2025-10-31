@@ -7,8 +7,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
-from aiohomematic.const import Parameter
-from aiohomematic.model.custom.const import Field
+from aiohomematic.const import Field, Parameter
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

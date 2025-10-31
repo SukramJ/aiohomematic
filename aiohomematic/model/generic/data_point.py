@@ -34,7 +34,7 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
     __slots__ = ("_cached_usage",)
 
     _validate_state_change: bool = True
-    is_hmtype: Final = True
+    is_hmtype: bool = True
 
     def __init__(
         self,

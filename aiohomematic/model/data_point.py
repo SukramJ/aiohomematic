@@ -1128,6 +1128,7 @@ class NoneTypeDataPoint:
     DataPoint to return an empty value.
 
     This placeholder is returned when a requested source GenericDataPoint is missing.
+    It must be duck-type compatible with the small subset of the GenericDataPoint API
     that callers may use unconditionally (e.g. registering update callbacks). All such
     methods in this class are implemented as safe no-ops.
     """

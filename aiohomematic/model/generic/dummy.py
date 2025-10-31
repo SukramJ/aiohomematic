@@ -6,6 +6,8 @@ Dummy generic data point (backend-detached placeholder).
 This class derives from `GenericDataPoint` but overrides all methods that would
 normally interact with the backend so it behaves like an inert data point that
 uses safe default values only.
+The DpDummy class is intended to be used as a placeholder for custom data
+points that are not implemented in the backend.
 
 Key properties:
 - It never triggers backend I/O (no reads, no writes, no subscriptions).

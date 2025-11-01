@@ -230,6 +230,9 @@ async def test_central_connection_state_issue_tracking_and_logging(caplog: pytes
     # Removing again should be False
     assert ccs.remove_issue(issuer=json_issuer, iid="J1") is False
     assert ccs.remove_issue(issuer=rpc_issuer, iid="if-main") is False
+    # There should be no issues left
+    assert ccs.has_issue(issuer=json_issuer, iid="J1") is False
+    assert ccs.has_issue(issuer=rpc_issuer, iid="if-main") is False
 
 
 @pytest.mark.asyncio

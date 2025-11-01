@@ -1,6 +1,7 @@
 # Version 2025.11.1 (2025-11-01)
 
 - Add link peer channel to channel
+- Add link_peer channels to device
 
 # Version 2025.11.0 (2025-11-01)
 

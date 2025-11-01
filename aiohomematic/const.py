@@ -933,25 +933,27 @@ _IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
 _CLIMATE_TRANSMITTER_RE: Final = re.compile(r"CLIMATE.*(?:TRANSMITTER|TRANSCEIVER)")
 
 
-def channel_is_eligible_for_link_peer_search(channel_type_name: str) -> bool:
-    """Check if a channel type name matches common wildcard patterns."""
-    return bool(_CLIMATE_TRANSMITTER_RE.search(channel_type_name))
+def channel_is_transmitter(channel_type_name: str) -> tuple[DataPointCategory, ...]:
+    """Reck if a channel type name matches common wildcard patterns."""
+    result: list[DataPointCategory] = []
+    if bool(_CLIMATE_TRANSMITTER_RE.search(channel_type_name)) is True:
+        result.append(DataPointCategory.CLIMATE)
+    return tuple(result)
 
 
-_TRANSMITTER_RE: Final = re.compile(r".*(?:TRANSMITTER|TRANSCEIVER)")
+_CLIMATE_RECEIVER_RE: Final = re.compile(r"CLIMATE.*(?:TRANSCEIVER|RECEIVER)")
+_CLIMATE_SWITCH_RECEIVER_CHANNELS: Final = ("SWITCH_VIRTUAL_RECEIVER",)
 
 
-def channel_is_transmitter(channel_type_name: str) -> bool:
-    """Check if a channel type name matches common wildcard patterns."""
-    return bool(_TRANSMITTER_RE.search(channel_type_name))
-
-
-_RECEIVER_RE: Final = re.compile(r".*(?:TRANSCEIVER|RECEIVER)")
-
-
-def channel_is_receiver(channel_type_name: str) -> bool:
-    """Check if a channel type name matches common wildcard patterns."""
-    return bool(_RECEIVER_RE.search(channel_type_name))
+def channel_is_receiver(channel_type_name: str) -> tuple[DataPointCategory, ...]:
+    """Return if a channel type name matches common wildcard patterns."""
+    result: list[DataPointCategory] = []
+    if (
+        bool(_CLIMATE_RECEIVER_RE.search(channel_type_name)) is True
+        or channel_type_name in _CLIMATE_SWITCH_RECEIVER_CHANNELS
+    ):
+        result.append(DataPointCategory.CLIMATE)
+    return tuple(result)
 
 
 RECEIVER_PARAMETERS: Final[frozenset[Parameter]] = frozenset(

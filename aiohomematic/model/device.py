@@ -64,7 +64,6 @@ from aiohomematic.const import (
     ParamsetKey,
     ProductGroup,
     RxMode,
-    channel_is_eligible_for_link_peer_search,
     channel_is_receiver,
     channel_is_transmitter,
     check_ignore_model_on_initial_load,
@@ -364,6 +363,11 @@ class Device(LogContextMixin, PayloadMixin):
     def is_updatable(self) -> bool:
         """Return if the device is updatable."""
         return self._is_updatable
+
+    @property
+    def link_peer_channels(self) -> Mapping[Channel, Channel]:
+        """Return the link peer channels."""
+        return {channel: channel.link_peer_channel for channel in self._channels.values() if channel.link_peer_channel}
 
     @info_property
     def manufacturer(self) -> str:
@@ -718,7 +722,6 @@ class Channel(LogContextMixin, PayloadMixin):
         "_group_master",
         "_group_no",
         "_id",
-        "_is_eligible_for_link_peer_search",
         "_is_in_multi_group",
         "_is_receiver",
         "_is_transmitter",
@@ -752,9 +755,6 @@ class Channel(LogContextMixin, PayloadMixin):
         self._group_no: int | None = None
         self._group_master: Channel | None = None
         self._is_in_multi_group: bool | None = None
-        self._is_eligible_for_link_peer_search: Final = channel_is_eligible_for_link_peer_search(
-            channel_type_name=self._type_name
-        )
         self._is_receiver: Final = channel_is_receiver(channel_type_name=self._type_name)
         self._is_transmitter: Final = channel_is_transmitter(channel_type_name=self._type_name)
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
@@ -774,7 +774,7 @@ class Channel(LogContextMixin, PayloadMixin):
     async def _init_link_peer(self) -> None:
         """Init the link partners."""
         if (
-            self._is_eligible_for_link_peer_search
+            self._is_transmitter
             and self._device.model not in VIRTUAL_REMOTE_MODELS
             and (link_peer_addresses := await self._device.client.get_link_peers(address=self._address))
         ):
@@ -1139,6 +1139,14 @@ class Channel(LogContextMixin, PayloadMixin):
         return tuple(
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
         )
+
+    def is_receiver(self, *, category: DataPointCategory) -> bool:
+        """Return if channel is receiver."""
+        return category in self._is_receiver
+
+    def is_transmitter(self, *, category: DataPointCategory) -> bool:
+        """Return if channel is transmitter."""
+        return category in self._is_transmitter
 
     def __str__(self) -> str:
         """Provide some useful information."""

@@ -2168,7 +2168,7 @@ class CentralConnectionState:
             return True
         if isinstance(issuer, BaseRpcProxy) and iid not in self._rpc_proxy_issues:
             self._rpc_proxy_issues.append(iid)
-            _LOGGER.debug("add_issue: add issue [%s] for %s", iid, issuer.interface_id)
+            _LOGGER.debug("add_issue: add issue [%s] for RpcProxy", iid)
             return True
         return False
 
@@ -2178,9 +2178,9 @@ class CentralConnectionState:
             self._json_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for JsonRpcAioHttpClient", iid)
             return True
-        if isinstance(issuer, BaseRpcProxy) and issuer.interface_id in self._rpc_proxy_issues:
+        if isinstance(issuer, BaseRpcProxy) and iid in self._rpc_proxy_issues:
             self._rpc_proxy_issues.remove(iid)
-            _LOGGER.debug("remove_issue: removing issue [%s] for %s", iid, issuer.interface_id)
+            _LOGGER.debug("remove_issue: removing issue [%s] for RpcProxy", iid)
             return True
         return False
 
@@ -2188,7 +2188,7 @@ class CentralConnectionState:
         """Add issue to collection."""
         if isinstance(issuer, AioJsonRpcAioHttpClient):
             return iid in self._json_issues
-        if isinstance(issuer, (BaseRpcProxy)):
+        if isinstance(issuer, BaseRpcProxy):
             return iid in self._rpc_proxy_issues
 
     def handle_exception_log(

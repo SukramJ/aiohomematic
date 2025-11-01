@@ -562,7 +562,7 @@ class Client(ABC, LogContextMixin):
     async def get_link_peers(self, *, address: str) -> tuple[str, ...] | None:
         """Return a list of link pers."""
         try:
-            return tuple(await self._proxy.getLinkPeers(address))
+            return tuple(links) if (links := await self._proxy.getLinkPeers(address)) else None
         except BaseHomematicException as bhexc:
             raise ClientException(
                 f"GET_LINK_PEERS failed with for: {address}: {extract_exc_args(exc=bhexc)}"

@@ -1,3 +1,7 @@
+# Version 2025.11.1 (2025-11-01)
+
+- Add link peer channel to channel
+
 # Version 2025.11.0 (2025-11-01)
 
 - Fix issue after reconnect

@@ -64,6 +64,9 @@ from aiohomematic.const import (
     ParamsetKey,
     ProductGroup,
     RxMode,
+    channel_is_eligible_for_link_peer_search,
+    channel_is_receiver,
+    channel_is_transmitter,
     check_ignore_model_on_initial_load,
 )
 from aiohomematic.decorators import inspector
@@ -715,7 +718,11 @@ class Channel(LogContextMixin, PayloadMixin):
         "_group_master",
         "_group_no",
         "_id",
+        "_is_eligible_for_link_peer_search",
         "_is_in_multi_group",
+        "_is_receiver",
+        "_is_transmitter",
+        "_link_peer_addresses",
         "_modified_at",
         "_name_data",
         "_no",
@@ -745,13 +752,33 @@ class Channel(LogContextMixin, PayloadMixin):
         self._group_no: int | None = None
         self._group_master: Channel | None = None
         self._is_in_multi_group: bool | None = None
+        self._is_eligible_for_link_peer_search: Final = channel_is_eligible_for_link_peer_search(
+            channel_type_name=self._type_name
+        )
+        self._is_receiver: Final = channel_is_receiver(channel_type_name=self._type_name)
+        self._is_transmitter: Final = channel_is_transmitter(channel_type_name=self._type_name)
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
+        self._link_peer_addresses: tuple[str, ...] | None = None
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
+        self.init_channel()
+
+    def init_channel(self) -> None:
+        """Init the channel."""
+        self._central.looper.create_task(target=self._init_link_peer(), name=f"init_channel_{self._address}")
+
+    async def _init_link_peer(self) -> None:
+        """Init the link partners."""
+        if (
+            self._is_eligible_for_link_peer_search
+            and self._device.model not in VIRTUAL_REMOTE_MODELS
+            and (link_peer_addresses := await self._device.client.get_link_peers(address=self._address))
+        ):
+            self._link_peer_addresses = link_peer_addresses
 
     @info_property
     def address(self) -> str:
@@ -839,6 +866,24 @@ class Channel(LogContextMixin, PayloadMixin):
     def is_group_master(self) -> bool:
         """Return if group master of channel."""
         return self.group_no == self._no
+
+    @property
+    def link_peer_address(self) -> tuple[str, ...] | str | None:
+        """Return the link peer address."""
+        return (
+            self._link_peer_addresses[0]
+            if self._link_peer_addresses and len(self._link_peer_addresses) == 1
+            else self._link_peer_addresses
+        )
+
+    @property
+    def link_peer_channel(self) -> Channel | None:
+        """Return the link peer channel."""
+        return (
+            self._central.get_channel(channel_address=self._link_peer_addresses[0])
+            if self._link_peer_addresses and len(self._link_peer_addresses) == 1
+            else None
+        )
 
     @property
     def name(self) -> str:

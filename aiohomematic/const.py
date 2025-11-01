@@ -930,6 +930,38 @@ _IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
 )
 
 
+_CLIMATE_TRANSMITTER_RE: Final = re.compile(r"CLIMATE.*(?:TRANSMITTER|TRANSCEIVER)")
+
+
+def channel_is_eligible_for_link_peer_search(channel_type_name: str) -> bool:
+    """Check if a channel type name matches common wildcard patterns."""
+    return bool(_CLIMATE_TRANSMITTER_RE.search(channel_type_name))
+
+
+_TRANSMITTER_RE: Final = re.compile(r".*(?:TRANSMITTER|TRANSCEIVER)")
+
+
+def channel_is_transmitter(channel_type_name: str) -> bool:
+    """Check if a channel type name matches common wildcard patterns."""
+    return bool(_TRANSMITTER_RE.search(channel_type_name))
+
+
+_RECEIVER_RE: Final = re.compile(r".*(?:TRANSCEIVER|RECEIVER)")
+
+
+def channel_is_receiver(channel_type_name: str) -> bool:
+    """Check if a channel type name matches common wildcard patterns."""
+    return bool(_RECEIVER_RE.search(channel_type_name))
+
+
+RECEIVER_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
+    {
+        Parameter.LEVEL,
+        Parameter.STATE,
+    }
+)
+
+
 def check_ignore_parameter_on_initial_load(parameter: str) -> bool:
     """Check if a parameter matches common wildcard patterns."""
     return (

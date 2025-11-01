@@ -1,5 +1,6 @@
 # Version 2025.11.0 (2025-11-01)
 
+- Fix issue after reconnect
 - Use generic DP DpDummy instead of NoneTypeDataPoint replacement
 
 # Version 2025.10.26 (2025-10-30)

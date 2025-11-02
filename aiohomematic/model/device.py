@@ -780,14 +780,11 @@ class Channel(LogContextMixin, PayloadMixin):
 
     async def init_link_peer(self) -> None:
         """Init the link partners."""
-        if (
-            self._is_transmitter
-            and self._device.model not in VIRTUAL_REMOTE_MODELS
-            and (link_peer_addresses := await self._device.client.get_link_peers(address=self._address))
-            and self._link_peer_addresses != link_peer_addresses
-        ):
-            self._link_peer_addresses = link_peer_addresses
-            self.emit_link_peer_changed_event()
+        if self._is_transmitter and self._device.model not in VIRTUAL_REMOTE_MODELS:
+            link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
+            if self._link_peer_addresses != link_peer_addresses:
+                self._link_peer_addresses = link_peer_addresses
+                self.emit_link_peer_changed_event()
 
     @info_property
     def address(self) -> str:

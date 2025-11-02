@@ -64,6 +64,8 @@ from aiohomematic.const import (
     ParamsetKey,
     ProductGroup,
     RxMode,
+    channel_is_receiver,
+    channel_is_transmitter,
     check_ignore_model_on_initial_load,
 )
 from aiohomematic.decorators import inspector
@@ -362,6 +364,11 @@ class Device(LogContextMixin, PayloadMixin):
         """Return if the device is updatable."""
         return self._is_updatable
 
+    @property
+    def link_peer_channels(self) -> Mapping[Channel, Channel]:
+        """Return the link peer channels."""
+        return {channel: channel.link_peer_channel for channel in self._channels.values() if channel.link_peer_channel}
+
     @info_property
     def manufacturer(self) -> str:
         """Return the manufacturer of the device."""
@@ -478,6 +485,11 @@ class Device(LogContextMixin, PayloadMixin):
     def get_channel(self, *, channel_address: str) -> Channel | None:
         """Get channel of device."""
         return self._channels.get(channel_address)
+
+    async def re_init_link_peers(self) -> None:
+        """Initiate link peers."""
+        for channel in self._channels.values():
+            await channel.init_link_peer()
 
     def identify_channel(self, *, text: str) -> Channel | None:
         """Identify channel within a text."""
@@ -716,6 +728,10 @@ class Channel(LogContextMixin, PayloadMixin):
         "_group_no",
         "_id",
         "_is_in_multi_group",
+        "_is_receiver",
+        "_is_transmitter",
+        "_link_peer_addresses",
+        "_link_peer_changed_callbacks",
         "_modified_at",
         "_name_data",
         "_no",
@@ -745,13 +761,30 @@ class Channel(LogContextMixin, PayloadMixin):
         self._group_no: int | None = None
         self._group_master: Channel | None = None
         self._is_in_multi_group: bool | None = None
+        self._is_receiver: Final = channel_is_receiver(channel_type_name=self._type_name)
+        self._is_transmitter: Final = channel_is_transmitter(channel_type_name=self._type_name)
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
+        self._link_peer_addresses: tuple[str, ...] | None = None
+        self._link_peer_changed_callbacks: list[Callable] = []
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
+        self.init_channel()
+
+    def init_channel(self) -> None:
+        """Init the channel."""
+        self._central.looper.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
+
+    async def init_link_peer(self) -> None:
+        """Init the link partners."""
+        if self._is_transmitter and self._device.model not in VIRTUAL_REMOTE_MODELS:
+            link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
+            if self._link_peer_addresses != link_peer_addresses:
+                self._link_peer_addresses = link_peer_addresses
+                self.emit_link_peer_changed_event()
 
     @info_property
     def address(self) -> str:
@@ -839,6 +872,24 @@ class Channel(LogContextMixin, PayloadMixin):
     def is_group_master(self) -> bool:
         """Return if group master of channel."""
         return self.group_no == self._no
+
+    @property
+    def link_peer_address(self) -> tuple[str, ...] | str | None:
+        """Return the link peer address."""
+        return (
+            self._link_peer_addresses[0]
+            if self._link_peer_addresses and len(self._link_peer_addresses) == 1
+            else self._link_peer_addresses
+        )
+
+    @property
+    def link_peer_channel(self) -> Channel | None:
+        """Return the link peer channel."""
+        return (
+            self._central.get_channel(channel_address=self._link_peer_addresses[0])
+            if self._link_peer_addresses and len(self._link_peer_addresses) == 1
+            else None
+        )
 
     @property
     def name(self) -> str:
@@ -1004,6 +1055,27 @@ class Channel(LogContextMixin, PayloadMixin):
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
 
+    def register_link_peer_changed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+        """Register the link peer changed callback."""
+        if callable(cb) and cb not in self._link_peer_changed_callbacks:
+            self._link_peer_changed_callbacks.append(cb)
+            return partial(self._unregister_link_peer_changed_callback, cb=cb)
+        return None
+
+    def _unregister_link_peer_changed_callback(self, *, cb: Callable) -> None:
+        """Unregister the link peer changed callback."""
+        if cb in self._link_peer_changed_callbacks:
+            self._link_peer_changed_callbacks.remove(cb)
+
+    @loop_check
+    def emit_link_peer_changed_event(self) -> None:
+        """Do what is needed when the link peer has been changed for the device."""
+        for callback_handler in self._link_peer_changed_callbacks:
+            try:
+                callback_handler()
+            except Exception as exc:
+                _LOGGER.warning("EMIT_LINK_PEER_CHANGED_EVENT failed: %s", extract_exc_args(exc=exc))
+
     def get_data_points(
         self,
         *,
@@ -1094,6 +1166,14 @@ class Channel(LogContextMixin, PayloadMixin):
         return tuple(
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
         )
+
+    def is_receiver(self, *, category: DataPointCategory) -> bool:
+        """Return if channel is receiver."""
+        return category in self._is_receiver
+
+    def is_transmitter(self, *, category: DataPointCategory) -> bool:
+        """Return if channel is transmitter."""
+        return category in self._is_transmitter
 
     def __str__(self) -> str:
         """Provide some useful information."""

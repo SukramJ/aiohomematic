@@ -365,9 +365,11 @@ class Device(LogContextMixin, PayloadMixin):
         return self._is_updatable
 
     @property
-    def link_peer_channels(self) -> Mapping[Channel, Channel]:
+    def link_peer_channels(self) -> Mapping[Channel, tuple[Channel, ...]]:
         """Return the link peer channels."""
-        return {channel: channel.link_peer_channel for channel in self._channels.values() if channel.link_peer_channel}
+        return {
+            channel: channel.link_peer_channels for channel in self._channels.values() if channel.link_peer_channels
+        }
 
     @info_property
     def manufacturer(self) -> str:
@@ -767,7 +769,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
-        self._link_peer_addresses: tuple[str, ...] | None = None
+        self._link_peer_addresses: tuple[str, ...] = ()
         self._link_peer_changed_callbacks: list[Callable] = []
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
@@ -874,21 +876,17 @@ class Channel(LogContextMixin, PayloadMixin):
         return self.group_no == self._no
 
     @property
-    def link_peer_address(self) -> tuple[str, ...] | str | None:
+    def link_peer_addresses(self) -> tuple[str, ...] | None:
         """Return the link peer address."""
-        return (
-            self._link_peer_addresses[0]
-            if self._link_peer_addresses and len(self._link_peer_addresses) == 1
-            else self._link_peer_addresses
-        )
+        return self._link_peer_addresses
 
     @property
-    def link_peer_channel(self) -> Channel | None:
+    def link_peer_channels(self) -> tuple[Channel, ...]:
         """Return the link peer channel."""
-        return (
-            self._central.get_channel(channel_address=self._link_peer_addresses[0])
-            if self._link_peer_addresses and len(self._link_peer_addresses) == 1
-            else None
+        return tuple(
+            channel
+            for address in self._link_peer_addresses
+            if self._link_peer_addresses and (channel := self._central.get_channel(channel_address=address)) is not None
         )
 
     @property

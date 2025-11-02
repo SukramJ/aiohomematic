@@ -516,7 +516,7 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector(re_raise=False)
-    async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...] | None:
+    async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
         """Get all device descriptions from the backend."""
         all_device_description: list[DeviceDescription] = []
         if main_dd := await self.get_device_description(device_address=device_address):
@@ -559,10 +559,10 @@ class Client(ABC, LogContextMixin):
             ) from bhexc
 
     @inspector
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...] | None:
+    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
         """Return a list of link pers."""
         try:
-            return tuple(links) if (links := await self._proxy.getLinkPeers(address)) else None
+            return tuple(links) if (links := await self._proxy.getLinkPeers(address)) else ()
         except BaseHomematicException as bhexc:
             raise ClientException(
                 f"GET_LINK_PEERS failed with for: {address}: {extract_exc_args(exc=bhexc)}"
@@ -1476,10 +1476,10 @@ class ClientJsonCCU(ClientCCU):
         _LOGGER.debug("REMOVE_LINK: not usable for %s.", self.interface_id)
 
     @inspector
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...] | None:
+    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
         """Return a list of link pers."""
         _LOGGER.debug("GET_LINK_PEERS: not usable for %s.", self.interface_id)
-        return None
+        return ()
 
     @inspector
     async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:

@@ -58,10 +58,10 @@ async def test_channel_link_peer_initialization_and_events(
 
     # Ensure callback fired once and addresses are set
     assert calls == ["changed"]
-    assert ch.link_peer_address == peer_addr_single
+    assert ch.link_peer_addresses == (peer_addr_single,)
 
     # Exactly one peer => channel should resolve
-    peer_ch = ch.link_peer_channel
+    peer_ch = ch.link_peer_channels[0]
     assert peer_ch is not None
     assert peer_ch.address == peer_addr_single
 
@@ -123,8 +123,8 @@ async def test_channel_link_peer_change_detection_and_properties(
     # 1st init: should emit
     await ch.init_link_peer()
     assert calls == ["changed"]
-    assert ch.link_peer_address == f"{device.address}:2"
-    assert ch.link_peer_channel is not None  # single peer resolves to a channel
+    assert ch.link_peer_addresses == (f"{device.address}:2",)
+    assert len(ch.link_peer_channels) == 1
 
     # 2nd init with same data: no additional emit
     await ch.init_link_peer()
@@ -135,6 +135,6 @@ async def test_channel_link_peer_change_detection_and_properties(
     assert calls == ["changed", "changed"]
 
     # With multiple peers: property returns a tuple and peer channel cannot be resolved
-    addr = ch.link_peer_address
+    addr = ch.link_peer_addresses
     assert isinstance(addr, tuple) and len(addr) == 2
-    assert ch.link_peer_channel is None
+    assert len(ch.link_peer_channels) == 2

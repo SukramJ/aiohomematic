@@ -486,6 +486,11 @@ class Device(LogContextMixin, PayloadMixin):
         """Get channel of device."""
         return self._channels.get(channel_address)
 
+    async def re_init_link_peers(self) -> None:
+        """Initiate link peers."""
+        for channel in self._channels.values():
+            await channel.init_link_peer()
+
     def identify_channel(self, *, text: str) -> Channel | None:
         """Identify channel within a text."""
         for channel_address, channel in self._channels.items():
@@ -726,6 +731,7 @@ class Channel(LogContextMixin, PayloadMixin):
         "_is_receiver",
         "_is_transmitter",
         "_link_peer_addresses",
+        "_link_peer_changed_callbacks",
         "_modified_at",
         "_name_data",
         "_no",
@@ -762,6 +768,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
         self._link_peer_addresses: tuple[str, ...] | None = None
+        self._link_peer_changed_callbacks: list[Callable] = []
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
@@ -769,16 +776,18 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def init_channel(self) -> None:
         """Init the channel."""
-        self._central.looper.create_task(target=self._init_link_peer(), name=f"init_channel_{self._address}")
+        self._central.looper.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
 
-    async def _init_link_peer(self) -> None:
+    async def init_link_peer(self) -> None:
         """Init the link partners."""
         if (
             self._is_transmitter
             and self._device.model not in VIRTUAL_REMOTE_MODELS
             and (link_peer_addresses := await self._device.client.get_link_peers(address=self._address))
+            and self._link_peer_addresses != link_peer_addresses
         ):
             self._link_peer_addresses = link_peer_addresses
+            self.emit_link_peer_changed_event()
 
     @info_property
     def address(self) -> str:
@@ -1048,6 +1057,27 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
+
+    def register_link_peer_changed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+        """Register the link peer changed callback."""
+        if callable(cb) and cb not in self._link_peer_changed_callbacks:
+            self._link_peer_changed_callbacks.append(cb)
+            return partial(self._unregister_link_peer_changed_callback, cb=cb)
+        return None
+
+    def _unregister_link_peer_changed_callback(self, *, cb: Callable) -> None:
+        """Unregister the link peer changed callback."""
+        if cb in self._link_peer_changed_callbacks:
+            self._link_peer_changed_callbacks.remove(cb)
+
+    @loop_check
+    def emit_link_peer_changed_event(self) -> None:
+        """Do what is needed when the link peer has been changed for the device."""
+        for callback_handler in self._link_peer_changed_callbacks:
+            try:
+                callback_handler()
+            except Exception as exc:
+                _LOGGER.warning("EMIT_LINK_PEER_CHANGED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     def get_data_points(
         self,

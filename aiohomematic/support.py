@@ -493,8 +493,10 @@ def _make_value_hashable(*, value: Any) -> Any:
     return value
 
 
-def get_rx_modes(*, mode: int) -> tuple[RxMode, ...]:
+def get_rx_modes(*, mode: int | None) -> tuple[RxMode, ...]:
     """Convert int to rx modes."""
+    if mode is None:
+        return ()
     rx_modes: set[RxMode] = set()
     if mode & RxMode.LAZY_CONFIG:
         mode -= RxMode.LAZY_CONFIG

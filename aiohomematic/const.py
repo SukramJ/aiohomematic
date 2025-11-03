@@ -929,30 +929,46 @@ _IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
     }
 )
 
-
+_CLIMATE_SOURCE_ROLES: Final[tuple[str, ...]] = ("CLIMATE",)
+_CLIMATE_TARGET_ROLES: Final[tuple[str, ...]] = ("CLIMATE", "SWITCH", "LEVEL")
 _CLIMATE_TRANSMITTER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSMITTER|TRANSCEIVER)")
-
-
-def channel_is_transmitter(channel_type_name: str) -> tuple[DataPointCategory, ...]:
-    """Reck if a channel type name matches common wildcard patterns."""
-    result: list[DataPointCategory] = []
-    if bool(_CLIMATE_TRANSMITTER_RE.search(channel_type_name)) is True:
-        result.append(DataPointCategory.CLIMATE)
-    return tuple(result)
-
-
 _CLIMATE_RECEIVER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSCEIVER|RECEIVER)")
 _CLIMATE_SWITCH_RECEIVER_CHANNELS: Final = ("SWITCH_VIRTUAL_RECEIVER",)
 
 
-def channel_is_receiver(channel_type_name: str) -> tuple[DataPointCategory, ...]:
-    """Return if a channel type name matches common wildcard patterns."""
-    result: list[DataPointCategory] = []
+def get_link_source_categories(
+    *, source_roles: tuple[str, ...], channel_type_name: str
+) -> tuple[DataPointCategory, ...]:
+    """Return the channel sender roles."""
+    result: set[DataPointCategory] = set()
+    has_climate = False
+    if _CLIMATE_TRANSMITTER_RE.search(channel_type_name):
+        result.add(DataPointCategory.CLIMATE)
+        has_climate = True
+
+    if not has_climate and source_roles and any("CLIMATE" in role for role in source_roles):
+        result.add(DataPointCategory.CLIMATE)
+
+    return tuple(result)
+
+
+def get_link_target_categories(
+    *, target_roles: tuple[str, ...], channel_type_name: str
+) -> tuple[DataPointCategory, ...]:
+    """Return the channel receiver roles."""
+    result: set[DataPointCategory] = set()
+    has_climate = False
+    if bool(_CLIMATE_RECEIVER_RE.search(channel_type_name)) or channel_type_name in _CLIMATE_SWITCH_RECEIVER_CHANNELS:
+        result.add(DataPointCategory.CLIMATE)
+        has_climate = True
+
     if (
-        bool(_CLIMATE_RECEIVER_RE.search(channel_type_name)) is True
-        or channel_type_name in _CLIMATE_SWITCH_RECEIVER_CHANNELS
+        not has_climate
+        and target_roles
+        and any(cl_role in role for role in target_roles for cl_role in _CLIMATE_TARGET_ROLES)
     ):
-        result.append(DataPointCategory.CLIMATE)
+        result.add(DataPointCategory.CLIMATE)
+
     return tuple(result)
 
 
@@ -1063,32 +1079,32 @@ class DeviceDescription(TypedDict, total=False):
     """Typed dict for device descriptions."""
 
     TYPE: Required[str]
-    SUBTYPE: str | None
     ADDRESS: Required[str]
-    # RF_ADDRESS: int | None
+    PARAMSETS: Required[list[str]]
+    SUBTYPE: str | None
     CHILDREN: list[str]
     PARENT: str | None
-    # PARENT_TYPE: str | None
-    # INDEX: int | None
-    # AES_ACTIVE: int | None
-    PARAMSETS: list[str]
-    FIRMWARE: str
+    FIRMWARE: str | None
     AVAILABLE_FIRMWARE: str | None
     UPDATABLE: bool
     FIRMWARE_UPDATE_STATE: str | None
     FIRMWARE_UPDATABLE: bool | None
+    INTERFACE: str | None
+    RX_MODE: int | None
+    LINK_SOURCE_ROLES: str | None
+    LINK_TARGET_ROLES: str | None
+    # RF_ADDRESS: int | None
+    # PARENT_TYPE: str | None
+    # INDEX: int | None
+    # AES_ACTIVE: int | None
     # VERSION: Required[int]
     # FLAGS: Required[int]
-    # LINK_SOURCE_ROLES: str | None
-    # LINK_TARGET_ROLES: str | None
     # DIRECTION: int | None
     # GROUP: str | None
     # TEAM: str | None
     # TEAM_TAG: str | None
     # TEAM_CHANNELS: list
-    INTERFACE: str | None
     # ROAMING: int | None
-    RX_MODE: int
 
 
 # Define public API for this module

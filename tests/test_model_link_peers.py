@@ -36,7 +36,7 @@ async def test_channel_link_peer_initialization_and_events(
     ch = device.get_channel(channel_address=f"{device.address}:1")
 
     # Force transmitter condition to ensure init_link_peer tries to fetch peers
-    ch._is_transmitter = True  # type: ignore[attr-defined]
+    ch._link_source_categories = True  # type: ignore[attr-defined]
 
     # Prepare a deterministic get_link_peers implementation
     peer_addr_single = f"{device.address}:2"
@@ -96,7 +96,7 @@ async def test_channel_link_peer_change_detection_and_properties(
     ch = device.get_channel(channel_address=f"{device.address}:1")
 
     # Force transmitter condition
-    ch._is_transmitter = True  # type: ignore[attr-defined]
+    ch._link_source_categories = True  # type: ignore[attr-defined]
 
     # Sequence of returns: first single, then same (no event), then multiple (event)
     seq = [

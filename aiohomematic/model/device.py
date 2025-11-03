@@ -64,9 +64,9 @@ from aiohomematic.const import (
     ParamsetKey,
     ProductGroup,
     RxMode,
-    channel_is_receiver,
-    channel_is_transmitter,
     check_ignore_model_on_initial_load,
+    get_link_source_categories,
+    get_link_target_categories,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
@@ -730,10 +730,12 @@ class Channel(LogContextMixin, PayloadMixin):
         "_group_no",
         "_id",
         "_is_in_multi_group",
-        "_is_receiver",
-        "_is_transmitter",
         "_link_peer_addresses",
         "_link_peer_changed_callbacks",
+        "_link_source_categories",
+        "_link_source_roles",
+        "_link_target_categories",
+        "_link_target_roles",
         "_modified_at",
         "_name_data",
         "_no",
@@ -763,14 +765,24 @@ class Channel(LogContextMixin, PayloadMixin):
         self._group_no: int | None = None
         self._group_master: Channel | None = None
         self._is_in_multi_group: bool | None = None
-        self._is_receiver: Final = channel_is_receiver(channel_type_name=self._type_name)
-        self._is_transmitter: Final = channel_is_transmitter(channel_type_name=self._type_name)
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
         self._link_peer_changed_callbacks: list[Callable] = []
+        self._link_source_roles: tuple[str, ...] = (
+            tuple(source_roles.split(" ")) if (source_roles := self._description.get("LINK_SOURCE_ROLES")) else ()
+        )
+        self._link_source_categories: Final = get_link_source_categories(
+            source_roles=self._link_source_roles, channel_type_name=self._type_name
+        )
+        self._link_target_roles: tuple[str, ...] = (
+            tuple(target_roles.split(" ")) if (target_roles := self._description.get("LINK_TARGET_ROLES")) else ()
+        )
+        self._link_target_categories: Final = get_link_target_categories(
+            target_roles=self._link_target_roles, channel_type_name=self._type_name
+        )
         self._modified_at: datetime = INIT_DATETIME
         self._rooms: Final = self._central.device_details.get_channel_rooms(channel_address=channel_address)
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
@@ -782,7 +794,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     async def init_link_peer(self) -> None:
         """Init the link partners."""
-        if self._is_transmitter and self._device.model not in VIRTUAL_REMOTE_MODELS:
+        if self._link_source_categories and self._device.model not in VIRTUAL_REMOTE_MODELS:
             link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
             if self._link_peer_addresses != link_peer_addresses:
                 self._link_peer_addresses = link_peer_addresses
@@ -876,11 +888,6 @@ class Channel(LogContextMixin, PayloadMixin):
         return self.group_no == self._no
 
     @property
-    def link_peer_addresses(self) -> tuple[str, ...] | None:
-        """Return the link peer address."""
-        return self._link_peer_addresses
-
-    @property
     def link_peer_channels(self) -> tuple[Channel, ...]:
         """Return the link peer channel."""
         return tuple(
@@ -888,6 +895,21 @@ class Channel(LogContextMixin, PayloadMixin):
             for address in self._link_peer_addresses
             if self._link_peer_addresses and (channel := self._central.get_channel(channel_address=address)) is not None
         )
+
+    @property
+    def link_peer_addresses(self) -> tuple[str, ...]:
+        """Return the link peer addresses."""
+        return self._link_peer_addresses
+
+    @property
+    def link_peer_source_categories(self) -> tuple[str, ...]:
+        """Return the link peer source categories."""
+        return self._link_source_categories
+
+    @property
+    def link_peer_target_categories(self) -> tuple[str, ...]:
+        """Return the link peer target categories."""
+        return self._link_target_categories
 
     @property
     def name(self) -> str:
@@ -1165,13 +1187,13 @@ class Channel(LogContextMixin, PayloadMixin):
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
         )
 
-    def is_receiver(self, *, category: DataPointCategory) -> bool:
+    def has_link_source_category(self, *, category: DataPointCategory) -> bool:
         """Return if channel is receiver."""
-        return category in self._is_receiver
+        return category in self._link_source_categories
 
-    def is_transmitter(self, *, category: DataPointCategory) -> bool:
+    def has_link_target_category(self, *, category: DataPointCategory) -> bool:
         """Return if channel is transmitter."""
-        return category in self._is_transmitter
+        return category in self._link_target_categories
 
     def __str__(self) -> str:
         """Provide some useful information."""

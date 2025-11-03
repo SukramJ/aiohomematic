@@ -13,7 +13,7 @@ from aiohttp import ClientSession
 
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.client import Client, ClientConfig, InterfaceConfig
-from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface
+from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, OptionalSettings
 from aiohomematic_test_support import const
 from aiohomematic_test_support.mock import SessionPlayer, get_client_session, get_mock, get_xml_rpc_proxy
 
@@ -109,6 +109,7 @@ class FactoryWithClient:
             un_ignore_list=self._un_ignore_list,
             ignore_custom_device_definition_models=frozenset(self._ignore_custom_device_definition_models or []),
             start_direct=True,
+            optional_settings=(OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
         ).create_central()
 
         central.register_backend_system_callback(cb=self.system_event_mock)

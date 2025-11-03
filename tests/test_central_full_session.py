@@ -162,6 +162,13 @@ async def test_central_full(central_client_factory_with_homegear_client) -> None
     for sv in central.sysvar_data_points:
         assert hasattr(sv, "__dict__") is False
 
+    target_roles: set[str] = set()
+    source_roles: set[str] = set()
+    for dev in central.devices:
+        for ch in dev.channels.values():
+            target_roles.update(ch._link_target_roles)
+            source_roles.update(ch._link_source_roles)
+
     assert usage_types[DataPointUsage.CDP_PRIMARY] == 274
     assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
     assert usage_types[DataPointUsage.CDP_VISIBLE] == 143

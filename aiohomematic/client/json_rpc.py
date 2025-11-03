@@ -896,7 +896,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
     @staticmethod
     def _convert_device_description(*, json_data: dict[str, Any]) -> DeviceDescription:
-        """Convert json data dor device description."""
+        """Convert json data to device description."""
         device_description = DeviceDescription(
             TYPE=json_data["type"],
             ADDRESS=json_data["address"],
@@ -916,6 +916,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             device_description["INTERFACE"] = interface
         if parent := json_data.get("parent"):
             device_description["PARENT"] = parent
+        if link_source_role := json_data.get("linkSourceRole"):
+            device_description["LINK_SOURCE_ROLES"] = link_source_role
+        if link_target_role := json_data.get("linkTargetRole"):
+            device_description["LINK_TARGET_ROLES"] = link_target_role
         if rx_mode := json_data.get("rxMode"):
             device_description["RX_MODE"] = rx_mode
         if subtype := json_data.get("subType"):

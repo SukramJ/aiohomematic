@@ -1,3 +1,7 @@
+# Version 2025.11.3 (2025-11-02)
+
+- Add fallback to climate.activity to use linked channels, if own dps don't exist
+
 # Version 2025.11.2 (2025-11-02)
 
 - Add link peer channel to channel

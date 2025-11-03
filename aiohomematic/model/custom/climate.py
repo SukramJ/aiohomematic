@@ -6,18 +6,21 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Mapping
+import contextlib
 from datetime import datetime, timedelta
 from enum import IntEnum, StrEnum
 import logging
 from typing import Any, Final, cast
 
 from aiohomematic.const import (
+    CALLBACK_TYPE,
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     DataPointCategory,
     DeviceProfile,
     Field,
     InternalCustomID,
+    OptionalSettings,
     Parameter,
     ParamsetKey,
     ProductGroup,
@@ -984,7 +987,7 @@ def _party_mode_code(*, start: datetime, end: datetime, away_temperature: float)
 
 
 class CustomDpIpThermostat(BaseCustomDpClimate):
-    """HomematicIP thermostat like HmIP-eTRV-B."""
+    """HomematicIP thermostat like HmIP-BWTH, HmIP-eTRV-X."""
 
     __slots__ = (
         "_dp_active_profile",
@@ -998,6 +1001,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         "_dp_set_point_mode",
         "_dp_state",
         "_dp_temperature_offset",
+        "_peer_level_dp",
+        "_peer_state_dp",
+        "_peer_unregister_callbacks",
     )
 
     def __init__(
@@ -1012,6 +1018,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         custom_config: CustomConfig,
     ) -> None:
         """Initialize the climate ip thermostat."""
+        self._peer_level_dp: DpFloat | None = None
+        self._peer_state_dp: DpBinarySensor | None = None
+        self._peer_unregister_callbacks: list[CALLBACK_TYPE] = []
         super().__init__(
             channel=channel,
             unique_id=unique_id,
@@ -1046,11 +1055,81 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
+        # register callback for set_point_mode to track manual target temp
         self._unregister_callbacks.append(
             self._dp_set_point_mode.register_data_point_updated_callback(
                 cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
+
+        if OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY not in self._device.central.config.optional_settings:
+            return
+
+        for ch in self._device.channels.values():
+            # register link-peer change callback; store unregister handle
+            if (unreg := ch.register_link_peer_changed_callback(cb=self._on_link_peer_changed)) is not None:
+                self._unregister_callbacks.append(unreg)
+        # pre-populate peer references (if any) once
+        self._refresh_link_peer_activity_sources()
+
+    # --- Link peer support for activity fallback -----------------------------
+    def _on_link_peer_changed(self) -> None:
+        """
+        Handle a change of the link peer channel.
+
+        Refresh references to `STATE`/`LEVEL` on the peer and emit an update so
+        consumers can re-evaluate `activity`.
+        """
+        self._refresh_link_peer_activity_sources()
+        # Inform listeners that relevant inputs may have changed
+        self.emit_data_point_updated_event()
+
+    def _refresh_link_peer_activity_sources(self) -> None:
+        """
+        Refresh peer data point references used for `activity` fallback.
+
+        - Unregister any previously registered peer callbacks.
+        - Grab its `STATE` and `LEVEL` generic data points from any available linked channel (if available).
+        - Subscribe to their updates to keep `activity` current.
+        """
+        # Unsubscribe from previous peer DPs
+        for unreg in self._peer_unregister_callbacks:
+            if unreg is not None:
+                with contextlib.suppress(Exception):
+                    unreg()
+
+        self._peer_unregister_callbacks.clear()
+        self._peer_level_dp = None
+        self._peer_state_dp = None
+
+        try:
+            # Go thru all link peer channels of the device
+            for link_channels in self._device.link_peer_channels.values():
+                # Some channels have multiple link peers
+                for link_channel in link_channels:
+                    # Continue if LEVEL or STATE dp found and ignore the others
+                    if not link_channel.has_link_target_category(category=DataPointCategory.CLIMATE):
+                        continue
+                    if level_dp := link_channel.get_generic_data_point(parameter=Parameter.LEVEL):
+                        self._peer_level_dp = cast(DpFloat, level_dp)
+                        break
+                    if state_dp := link_channel.get_generic_data_point(parameter=Parameter.STATE):
+                        self._peer_state_dp = cast(DpBinarySensor, state_dp)
+                        break
+        except Exception:  # pragma: no cover - defensive
+            self._peer_level_dp = None
+            self._peer_state_dp = None
+            return
+
+        # Subscribe to updates of peer DPs to forward update events
+        for dp in (self._peer_level_dp, self._peer_state_dp):
+            if dp is None:
+                continue
+            unreg = dp.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
+            if unreg is not None:
+                # Track for both refresh-time cleanup and object removal cleanup
+                self._peer_unregister_callbacks.append(unreg)
+                self._unregister_callbacks.append(unreg)
 
     def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
@@ -1077,24 +1156,41 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
     @state_property
     def activity(self) -> ClimateActivity | None:
-        """Return the current activity."""
-        if self._dp_state.value is None and self._dp_level.value is None:
+        """
+        Return the current activity.
+
+        The preferred sources for determining the activity are this channel's `LEVEL` and `STATE` data points.
+        Some devices don't expose one or both; in that case we try to use the same datapoints from the linked peer channels instead.
+        """
+        # Determine effective data point values for LEVEL and STATE.
+        level_dp = self._dp_level if self._dp_level.is_hmtype else None
+        state_dp = self._dp_state if self._dp_state.is_hmtype else None
+
+        eff_level = None
+        eff_state = None
+
+        # Use own DP values as-is when available to preserve legacy behavior.
+        if level_dp is not None and level_dp.value is not None:
+            eff_level = level_dp.value
+        elif self._peer_level_dp is not None and self._peer_level_dp.value is not None:
+            eff_level = self._peer_level_dp.value
+
+        if state_dp is not None and state_dp.value is not None:
+            eff_state = state_dp.value
+        elif self._peer_state_dp is not None and self._peer_state_dp.value is not None:
+            eff_state = self._peer_state_dp.value
+
+        if eff_state is None and eff_level is None:
             return None
         if self.mode == ClimateMode.OFF:
             return ClimateActivity.OFF
-        if self._dp_level.value and self._dp_level.value > _CLOSED_LEVEL:
+        if eff_level is not None and eff_level > _CLOSED_LEVEL:
             return ClimateActivity.HEAT
-        if (self._dp_heating_valve_type.value is None and self._dp_state.value is True) or (
+        if (self._dp_heating_valve_type.value is None and eff_state is True) or (
             self._dp_heating_valve_type.value
             and (
-                (
-                    self._dp_state.value is True
-                    and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_CLOSE
-                )
-                or (
-                    self._dp_state.value is False
-                    and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_OPEN
-                )
+                (eff_state is True and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_CLOSE)
+                or (eff_state is False and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_OPEN)
             )
         ):
             return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL

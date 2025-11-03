@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.11.2"
+VERSION: Final = "2025.11.3"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -508,6 +508,7 @@ class Operations(IntEnum):
 class OptionalSettings(StrEnum):
     """Enum with aiohomematic optional settings."""
 
+    ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY = "ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY"
     SR_DISABLE_RANDOMIZE_OUTPUT = "SR_DISABLE_RANDOMIZED_OUTPUT"
     SR_RECORD_SYSTEM_INIT = "SR_RECORD_SYSTEM_INIT"
 
@@ -933,7 +934,6 @@ _CLIMATE_SOURCE_ROLES: Final[tuple[str, ...]] = ("CLIMATE",)
 _CLIMATE_TARGET_ROLES: Final[tuple[str, ...]] = ("CLIMATE", "SWITCH", "LEVEL")
 _CLIMATE_TRANSMITTER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSMITTER|TRANSCEIVER)")
 _CLIMATE_RECEIVER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSCEIVER|RECEIVER)")
-_CLIMATE_SWITCH_RECEIVER_CHANNELS: Final = ("SWITCH_VIRTUAL_RECEIVER",)
 
 
 def get_link_source_categories(
@@ -958,7 +958,7 @@ def get_link_target_categories(
     """Return the channel receiver roles."""
     result: set[DataPointCategory] = set()
     has_climate = False
-    if bool(_CLIMATE_RECEIVER_RE.search(channel_type_name)) or channel_type_name in _CLIMATE_SWITCH_RECEIVER_CHANNELS:
+    if _CLIMATE_RECEIVER_RE.search(channel_type_name):
         result.add(DataPointCategory.CLIMATE)
         has_climate = True
 

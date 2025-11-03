@@ -2100,6 +2100,11 @@ class CentralConfig:
         return frozenset(ic for ic in self._interface_configs if ic.enabled is True)
 
     @property
+    def optional_settings(self) -> frozenset[OptionalSettings | str]:
+        """Return the optional settings."""
+        return self._optional_settings
+
+    @property
     def use_caches(self) -> bool:
         """Return if store should be used."""
         return self.start_direct is False

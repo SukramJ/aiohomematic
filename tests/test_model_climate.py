@@ -10,7 +10,14 @@ from unittest.mock import call
 from freezegun import freeze_time
 import pytest
 
-from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
+from aiohomematic.const import (  # local import to keep test header minimal
+    WAIT_FOR_CALLBACK,
+    DataPointCategory,
+    DataPointUsage,
+    Field,
+    Parameter,
+    ParamsetKey,
+)
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import (
     BaseCustomDpClimate,
@@ -22,6 +29,7 @@ from aiohomematic.model.custom import (
     CustomDpSimpleRfThermostat,
 )
 from aiohomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
+from aiohomematic.model.generic import DpDummy
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -1428,3 +1436,71 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
 
     with pytest.raises(ValidationException):
         await climate_bwth.copy_schedule(target_climate_data_point=climate_etrv)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        (TEST_DEVICES, True, None, None),
+    ],
+)
+async def test_ceipthermostat_activity_fallback_to_link_peer(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """
+    Activity falls back to a link peer's STATE/LEVEL when own DPs are DpDummy.
+
+    We simulate a device where the thermostat channel has dummy `STATE`/`LEVEL`.
+    We then point its `link_peer_channel` to a channel that exposes `STATE` and
+    verify that `activity` uses the peer values and reacts to changes.
+    """
+    central, _mock_client, _ = central_client_factory_with_homegear_client
+
+    # Use the IP thermostat used above; it has a real STATE on channel 9 in the fixture data
+    climate: CustomDpIpThermostat = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU1769958", 1))
+
+    # Ensure default mode is AUTO and not OFF
+    assert climate.mode in (ClimateMode.AUTO, ClimateMode.HEAT)
+
+    # Force own LEVEL/STATE to be dummy so fallback path is used
+    climate._dp_state = DpDummy(channel=climate._channel, param_field=Field.STATE)
+    climate._dp_level = DpDummy(channel=climate._channel, param_field=Field.LEVEL)
+
+    # Point link peer to channel 9 which exposes a usable STATE
+    device = central.get_device(address="VCU1769958")
+    peer_address = f"{device.address}:9"
+    peer_channel = central.get_channel(channel_address=peer_address)
+    peer_channel._link_target_categories = (DataPointCategory.CLIMATE,)
+    climate._channel._link_peer_addresses = (peer_address,)  # type: ignore[attr-defined]
+    # Emit peer-changed so the thermostat refreshes its peer DP references
+    climate._channel.emit_link_peer_changed_event()
+
+    assert climate.activity == ClimateActivity.IDLE
+
+    # Set peer STATE to ON → activity should be HEAT
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address=peer_address,
+        parameter=Parameter.STATE,
+        value=1,
+    )
+    assert climate.activity == ClimateActivity.HEAT
+
+    # Set peer STATE to OFF → activity should be IDLE (unless target temp forces OFF)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address=peer_address,
+        parameter=Parameter.STATE,
+        value=0,
+    )
+    assert climate.activity == ClimateActivity.IDLE
+
+    # Now set mode OFF (via dedicated method) and ensure OFF overrides peer state
+    await climate.set_mode(mode=ClimateMode.OFF)
+    assert climate.activity == ClimateActivity.OFF

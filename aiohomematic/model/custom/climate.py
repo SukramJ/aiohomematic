@@ -224,8 +224,8 @@ class BaseCustomDpClimate(CustomDataPoint):
         self._dp_humidity: DpSensor[int | None] = self._get_data_point(
             field=Field.HUMIDITY, data_point_type=DpSensor[int | None]
         )
-        self._dp_min_max_value_not_relevant_for_manu_mode: DpBinarySensor = self._get_data_point(
-            field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, data_point_type=DpBinarySensor
+        self._dp_min_max_value_not_relevant_for_manu_mode: DpSwitch = self._get_data_point(
+            field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, data_point_type=DpSwitch
         )
         self._dp_setpoint: DpFloat = self._get_data_point(field=Field.SETPOINT, data_point_type=DpFloat)
         self._dp_temperature: DpSensor[float | None] = self._get_data_point(
@@ -1043,8 +1043,8 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             field=Field.HEATING_VALVE_TYPE, data_point_type=DpSelect
         )
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._dp_optimum_start_stop: DpBinarySensor = self._get_data_point(
-            field=Field.OPTIMUM_START_STOP, data_point_type=DpBinarySensor
+        self._dp_optimum_start_stop: DpSwitch = self._get_data_point(
+            field=Field.OPTIMUM_START_STOP, data_point_type=DpSwitch
         )
         self._dp_party_mode: DpBinarySensor = self._get_data_point(
             field=Field.PARTY_MODE, data_point_type=DpBinarySensor

@@ -1125,7 +1125,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         for dp in (self._peer_level_dp, self._peer_state_dp):
             if dp is None:
                 continue
-            unreg = dp.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
+            unreg = dp.register_data_point_updated_callback(
+                cb=self.emit_data_point_updated_event, custom_id=InternalCustomID.LINK_PEER
+            )
             if unreg is not None:
                 # Track for both refresh-time cleanup and object removal cleanup
                 self._peer_unregister_callbacks.append(unreg)

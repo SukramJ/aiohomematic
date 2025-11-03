@@ -1,4 +1,8 @@
-# Version 2025.11.3 (2025-11-02)
+# Version 2025.11.4 (2025-11-03)
+
+- Fix issue with linked channels for climate activity
+
+# Version 2025.11.3 (2025-11-03)
 
 - Add fallback to climate.activity to use linked channels, if own dps don't exist
 

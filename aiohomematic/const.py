@@ -930,7 +930,7 @@ _IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
 )
 
 
-_CLIMATE_TRANSMITTER_RE: Final = re.compile(r"CLIMATE.*(?:TRANSMITTER|TRANSCEIVER)")
+_CLIMATE_TRANSMITTER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSMITTER|TRANSCEIVER)")
 
 
 def channel_is_transmitter(channel_type_name: str) -> tuple[DataPointCategory, ...]:
@@ -941,7 +941,7 @@ def channel_is_transmitter(channel_type_name: str) -> tuple[DataPointCategory, .
     return tuple(result)
 
 
-_CLIMATE_RECEIVER_RE: Final = re.compile(r"CLIMATE.*(?:TRANSCEIVER|RECEIVER)")
+_CLIMATE_RECEIVER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSCEIVER|RECEIVER)")
 _CLIMATE_SWITCH_RECEIVER_CHANNELS: Final = ("SWITCH_VIRTUAL_RECEIVER",)
 
 

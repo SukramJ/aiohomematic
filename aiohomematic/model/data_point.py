@@ -25,6 +25,7 @@ parameter values across all supported devices.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime, timedelta
@@ -159,7 +160,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Init the callback data_point."""
         self._central: Final = central
         self._unique_id: Final = unique_id
-        self._data_point_updated_callbacks: dict[Callable, str] = {}
+        self._data_point_updated_callbacks: dict[str, set[Callable]] = defaultdict(set)
         self._device_removed_callbacks: list[Callable] = []
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
@@ -319,8 +320,8 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 )
             self._custom_id = custom_id
 
-        if callable(cb) and cb not in self._data_point_updated_callbacks:
-            self._data_point_updated_callbacks[cb] = custom_id
+        if callable(cb) and cb not in self._data_point_updated_callbacks[custom_id]:
+            self._data_point_updated_callbacks[custom_id].add(cb)
             return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
         return None
 
@@ -339,8 +340,8 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
         """Unregister data_point updated callback."""
-        if cb in self._data_point_updated_callbacks:
-            del self._data_point_updated_callbacks[cb]
+        if cb in self._data_point_updated_callbacks[custom_id]:
+            self._data_point_updated_callbacks[custom_id].remove(cb)
         if self.custom_id == custom_id:
             self._custom_id = None
 
@@ -362,14 +363,15 @@ class CallbackDataPoint(ABC, LogContextMixin):
         if not self._should_emit_data_point_updated_callback:
             return
         self._emitted_event_at = datetime.now()
-        for callback_handler, custom_id in self._data_point_updated_callbacks.items():
-            try:
-                # Add the data_point reference once to kwargs to avoid per-callback writes.
-                kwargs[KWARGS_ARG_DATA_POINT] = self
-                kwargs[KWARGS_ARG_CUSTOM_ID] = custom_id
-                callback_handler(**kwargs)
-            except Exception as exc:
-                _LOGGER.warning("EMIT_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
+        for custom_id, callback_handlers in self._data_point_updated_callbacks.items():
+            for callback_handler in callback_handlers:
+                try:
+                    # Add the data_point reference once to kwargs to avoid per-callback writes.
+                    kwargs[KWARGS_ARG_DATA_POINT] = self
+                    kwargs[KWARGS_ARG_CUSTOM_ID] = custom_id
+                    callback_handler(**kwargs)
+                except Exception as exc:
+                    _LOGGER.warning("EMIT_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
 
     @loop_check
     def emit_device_removed_event(self) -> None:

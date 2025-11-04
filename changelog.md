@@ -1,6 +1,7 @@
-# Version 2025.11.4 (2025-11-03)
+# Version 2025.11.4 (2025-11-04)
 
 - Fix issue with linked channels for climate activity
+- Store data_point_updated_callbacks by custom_id
 
 # Version 2025.11.3 (2025-11-03)
 

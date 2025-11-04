@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Mapping
-import contextlib
 from datetime import datetime, timedelta
 from enum import IntEnum, StrEnum
 import logging
@@ -1095,8 +1094,11 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         # Unsubscribe from previous peer DPs
         for unreg in self._peer_unregister_callbacks:
             if unreg is not None:
-                with contextlib.suppress(Exception):
+                try:
                     unreg()
+                finally:
+                    self._peer_unregister_callbacks.remove(unreg)
+                    self._unregister_callbacks.remove(unreg)
 
         self._peer_unregister_callbacks.clear()
         self._peer_level_dp = None

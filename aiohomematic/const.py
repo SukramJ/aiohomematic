@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
-VERSION: Final = "2025.11.3"
+VERSION: Final = "2025.11.4"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -485,6 +485,7 @@ class InternalCustomID(StrEnum):
     """Enum for Homematic internal custom IDs."""
 
     DEFAULT = "cid_default"
+    LINK_PEER = "cid_link_peer"
     MANU_TEMP = "cid_manu_temp"
 
 

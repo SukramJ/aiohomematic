@@ -1822,7 +1822,7 @@ async def _track_single_data_point_state_change_or_timeout(
             )
             return
         if (
-            unsub := dp.register_data_point_updated_callback(
+            unreg := dp.register_data_point_updated_callback(
                 cb=_async_event_changed, custom_id=InternalCustomID.DEFAULT
             )
         ) is None:
@@ -1838,7 +1838,7 @@ async def _track_single_data_point_state_change_or_timeout(
                 dp.value,
             )
         finally:
-            unsub()
+            unreg()
 
 
 def _isclose(*, value1: Any, value2: Any) -> bool:

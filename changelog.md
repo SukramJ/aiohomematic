@@ -1,4 +1,10 @@
-# Version 2025.11.5 (2025-11-05)
+# Version 2025.11.6 (2025-11-05
+
+)
+
+- Move \_on_link_peer_changed/\_refresh_link_peer_activity_sou torces BaseCustomDpClimate
+
+# Version 2025.11.5 (2025-11-04)
 
 - Remove link support for not linkable interfaces
 

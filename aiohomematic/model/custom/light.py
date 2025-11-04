@@ -149,6 +149,7 @@ class CustomDpDimmer(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
         self._dp_group_level: DpSensor[float | None] = self._get_data_point(
             field=Field.GROUP_LEVEL, data_point_type=DpSensor[float | None]
@@ -311,6 +312,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_color: DpInteger = self._get_data_point(field=Field.COLOR, data_point_type=DpInteger)
 
     @state_property
@@ -359,6 +361,7 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_effect: DpInteger = self._get_data_point(field=Field.PROGRAM, data_point_type=DpInteger)
 
     @state_property
@@ -400,6 +403,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_color_level: DpFloat = self._get_data_point(field=Field.COLOR_LEVEL, data_point_type=DpFloat)
 
     @state_property
@@ -440,6 +444,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_activity_state: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]
         )
@@ -613,6 +618,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_color_temperature_kelvin: DpInteger = self._get_data_point(
             field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
         )
@@ -723,6 +729,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_color: DpSelect = self._get_data_point(field=Field.COLOR, data_point_type=DpSelect)
         self._dp_channel_color: DpSensor[str | None] = self._get_data_point(
             field=Field.CHANNEL_COLOR, data_point_type=DpSensor[str | None]

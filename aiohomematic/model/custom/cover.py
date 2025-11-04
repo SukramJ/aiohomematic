@@ -109,6 +109,7 @@ class CustomDpCover(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
+
         self._command_processing_lock = asyncio.Lock()
         self._dp_direction: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]
@@ -275,6 +276,7 @@ class CustomDpBlind(CustomDpCover):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
+
         self._dp_group_level_2: DpSensor[float | None] = self._get_data_point(
             field=Field.GROUP_LEVEL_2, data_point_type=DpSensor[float | None]
         )
@@ -510,6 +512,7 @@ class CustomDpIpBlind(CustomDpBlind):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
+
         self._dp_operation_mode: DpSelect = self._get_data_point(field=Field.OPERATION_MODE, data_point_type=DpSelect)
         self._dp_combined: DpAction = self._get_data_point(field=Field.COMBINED_PARAMETER, data_point_type=DpAction)
 
@@ -546,6 +549,7 @@ class CustomDpGarage(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
+
         self._dp_door_state: DpSensor[str | None] = self._get_data_point(
             field=Field.DOOR_STATE, data_point_type=DpSensor[str | None]
         )

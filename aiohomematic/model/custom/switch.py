@@ -42,6 +42,7 @@ class CustomDpSwitch(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
         self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
         self._dp_group_state: DpBinarySensor = self._get_data_point(

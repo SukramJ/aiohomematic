@@ -84,11 +84,19 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         self._unit: str | None = None
         self._multiplier: float = 1.0
         self._init_data_point_fields()
+        self._post_init_data_point_fields()
 
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         _LOGGER.debug(
             "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
+            self.full_name,
+        )
+
+    def _post_init_data_point_fields(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        _LOGGER.debug(
+            "POST_INIT_DATA_POINT_FIELDS: Post action after initialisation of the data point fields for %s",
             self.full_name,
         )
 

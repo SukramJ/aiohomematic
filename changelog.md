@@ -1,7 +1,7 @@
 # Version 2025.11.6 (2025-11-05)
 
-- Add \_post_init_data_point_fields
-- Move \_on_link_peer_changed and \_refresh_link_peer_activity_sources to BaseCustomDpClimate
+- Add post_init_data_point_fields
+- Move on_link_peer_changed and refresh_link_peer_activity_sources to BaseCustomDpClimate
 
 # Version 2025.11.5 (2025-11-04)
 

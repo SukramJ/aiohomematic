@@ -45,6 +45,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
+
         self._dp_temperature: DpSensor = (
             self._add_data_point(
                 parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
@@ -80,6 +81,7 @@ class ApparentTemperature(BaseClimateSensor):
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
+
         self._dp_wind_speed: DpSensor = self._add_data_point(
             parameter=Parameter.WIND_SPEED, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
         )

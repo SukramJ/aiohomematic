@@ -1,4 +1,9 @@
-# Version 2025.11.5 (2025-11-05)
+# Version 2025.11.6 (2025-11-05)
+
+- Add post_init_data_point_fields
+- Move on_link_peer_changed and refresh_link_peer_activity_sources to BaseCustomDpClimate
+
+# Version 2025.11.5 (2025-11-04)
 
 - Remove link support for not linkable interfaces
 

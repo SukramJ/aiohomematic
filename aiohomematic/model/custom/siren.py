@@ -105,6 +105,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_acoustic_alarm_active: DpBinarySensor = self._get_data_point(
             field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=DpBinarySensor
         )
@@ -193,6 +194,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_smoke_detector_alarm_status: DpSensor[str | None] = self._get_data_point(
             field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=DpSensor[str | None]
         )

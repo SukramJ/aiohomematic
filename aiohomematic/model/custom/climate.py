@@ -189,6 +189,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         "_dp_temperature_maximum",
         "_dp_temperature_minimum",
         "_old_manu_setpoint",
+        "_peer_level_dp",
+        "_peer_state_dp",
+        "_peer_unregister_callbacks",
         "_supports_schedule",
     )
     _category = DataPointCategory.CLIMATE
@@ -205,6 +208,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         custom_config: CustomConfig,
     ) -> None:
         """Initialize base climate data_point."""
+        self._peer_level_dp: DpFloat | None = None
+        self._peer_state_dp: DpBinarySensor | None = None
+        self._peer_unregister_callbacks: list[CALLBACK_TYPE] = []
         super().__init__(
             channel=channel,
             unique_id=unique_id,
@@ -220,6 +226,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_humidity: DpSensor[int | None] = self._get_data_point(
             field=Field.HUMIDITY, data_point_type=DpSensor[int | None]
         )
@@ -236,11 +243,91 @@ class BaseCustomDpClimate(CustomDataPoint):
         self._dp_temperature_minimum: DpFloat = self._get_data_point(
             field=Field.TEMPERATURE_MINIMUM, data_point_type=DpFloat
         )
+
+    def _post_init_data_point_fields(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init_data_point_fields()
+
         self._unregister_callbacks.append(
             self._dp_setpoint.register_data_point_updated_callback(
                 cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
+
+        if OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY not in self._device.central.config.optional_settings:
+            return
+
+        for ch in self._device.channels.values():
+            # register link-peer change callback; store unregister handle
+            if (unreg := ch.register_link_peer_changed_callback(cb=self._on_link_peer_changed)) is not None:
+                self._unregister_callbacks.append(unreg)
+        # pre-populate peer references (if any) once
+        self._refresh_link_peer_activity_sources()
+
+    # --- Link peer support for activity fallback -----------------------------
+    def _on_link_peer_changed(self) -> None:
+        """
+        Handle a change of the link peer channel.
+
+        Refresh references to `STATE`/`LEVEL` on the peer and emit an update so
+        consumers can re-evaluate `activity`.
+        """
+        self._refresh_link_peer_activity_sources()
+        # Inform listeners that relevant inputs may have changed
+        self.emit_data_point_updated_event()
+
+    def _refresh_link_peer_activity_sources(self) -> None:
+        """
+        Refresh peer data point references used for `activity` fallback.
+
+        - Unregister any previously registered peer callbacks.
+        - Grab its `STATE` and `LEVEL` generic data points from any available linked channel (if available).
+        - Subscribe to their updates to keep `activity` current.
+        """
+        # Unsubscribe from previous peer DPs
+        for unreg in self._peer_unregister_callbacks:
+            if unreg is not None:
+                try:
+                    unreg()
+                finally:
+                    self._peer_unregister_callbacks.remove(unreg)
+                    if unreg in self._unregister_callbacks:
+                        self._unregister_callbacks.remove(unreg)
+
+        self._peer_unregister_callbacks.clear()
+        self._peer_level_dp = None
+        self._peer_state_dp = None
+
+        try:
+            # Go thru all link peer channels of the device
+            for link_channels in self._device.link_peer_channels.values():
+                # Some channels have multiple link peers
+                for link_channel in link_channels:
+                    # Continue if LEVEL or STATE dp found and ignore the others
+                    if not link_channel.has_link_target_category(category=DataPointCategory.CLIMATE):
+                        continue
+                    if level_dp := link_channel.get_generic_data_point(parameter=Parameter.LEVEL):
+                        self._peer_level_dp = cast(DpFloat, level_dp)
+                        break
+                    if state_dp := link_channel.get_generic_data_point(parameter=Parameter.STATE):
+                        self._peer_state_dp = cast(DpBinarySensor, state_dp)
+                        break
+        except Exception:  # pragma: no cover - defensive
+            self._peer_level_dp = None
+            self._peer_state_dp = None
+            return
+
+        # Subscribe to updates of peer DPs to forward update events
+        for dp in (self._peer_level_dp, self._peer_state_dp):
+            if dp is None:
+                continue
+            unreg = dp.register_data_point_updated_callback(
+                cb=self.emit_data_point_updated_event, custom_id=InternalCustomID.LINK_PEER
+            )
+            if unreg is not None:
+                # Track for both refresh-time cleanup and object removal cleanup
+                self._peer_unregister_callbacks.append(unreg)
+                self._unregister_callbacks.append(unreg)
 
     @abstractmethod
     def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
@@ -785,6 +872,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_boost_mode: DpAction = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpAction)
         self._dp_auto_mode: DpAction = self._get_data_point(field=Field.AUTO_MODE, data_point_type=DpAction)
         self._dp_manu_mode: DpAction = self._get_data_point(field=Field.MANU_MODE, data_point_type=DpAction)
@@ -803,6 +891,11 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
         )
 
+    def _post_init_data_point_fields(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init_data_point_fields()
+
+        # register callback for control_mode to track manual target temp
         self._unregister_callbacks.append(
             self._dp_control_mode.register_data_point_updated_callback(
                 cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
@@ -1000,9 +1093,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         "_dp_set_point_mode",
         "_dp_state",
         "_dp_temperature_offset",
-        "_peer_level_dp",
-        "_peer_state_dp",
-        "_peer_unregister_callbacks",
     )
 
     def __init__(
@@ -1017,9 +1107,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         custom_config: CustomConfig,
     ) -> None:
         """Initialize the climate ip thermostat."""
-        self._peer_level_dp: DpFloat | None = None
-        self._peer_state_dp: DpBinarySensor | None = None
-        self._peer_unregister_callbacks: list[CALLBACK_TYPE] = []
         super().__init__(
             channel=channel,
             unique_id=unique_id,
@@ -1034,6 +1121,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
+
         self._dp_active_profile: DpInteger = self._get_data_point(field=Field.ACTIVE_PROFILE, data_point_type=DpInteger)
         self._dp_boost_mode: DpSwitch = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpSwitch)
         self._dp_control_mode: DpAction = self._get_data_point(field=Field.CONTROL_MODE, data_point_type=DpAction)
@@ -1054,87 +1142,16 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
+    def _post_init_data_point_fields(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init_data_point_fields()
+
         # register callback for set_point_mode to track manual target temp
         self._unregister_callbacks.append(
             self._dp_set_point_mode.register_data_point_updated_callback(
                 cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
-
-        if OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY not in self._device.central.config.optional_settings:
-            return
-
-        for ch in self._device.channels.values():
-            # register link-peer change callback; store unregister handle
-            if (unreg := ch.register_link_peer_changed_callback(cb=self._on_link_peer_changed)) is not None:
-                self._unregister_callbacks.append(unreg)
-        # pre-populate peer references (if any) once
-        self._refresh_link_peer_activity_sources()
-
-    # --- Link peer support for activity fallback -----------------------------
-    def _on_link_peer_changed(self) -> None:
-        """
-        Handle a change of the link peer channel.
-
-        Refresh references to `STATE`/`LEVEL` on the peer and emit an update so
-        consumers can re-evaluate `activity`.
-        """
-        self._refresh_link_peer_activity_sources()
-        # Inform listeners that relevant inputs may have changed
-        self.emit_data_point_updated_event()
-
-    def _refresh_link_peer_activity_sources(self) -> None:
-        """
-        Refresh peer data point references used for `activity` fallback.
-
-        - Unregister any previously registered peer callbacks.
-        - Grab its `STATE` and `LEVEL` generic data points from any available linked channel (if available).
-        - Subscribe to their updates to keep `activity` current.
-        """
-        # Unsubscribe from previous peer DPs
-        for unreg in self._peer_unregister_callbacks:
-            if unreg is not None:
-                try:
-                    unreg()
-                finally:
-                    self._peer_unregister_callbacks.remove(unreg)
-                    if unreg in self._unregister_callbacks:
-                        self._unregister_callbacks.remove(unreg)
-
-        self._peer_unregister_callbacks.clear()
-        self._peer_level_dp = None
-        self._peer_state_dp = None
-
-        try:
-            # Go thru all link peer channels of the device
-            for link_channels in self._device.link_peer_channels.values():
-                # Some channels have multiple link peers
-                for link_channel in link_channels:
-                    # Continue if LEVEL or STATE dp found and ignore the others
-                    if not link_channel.has_link_target_category(category=DataPointCategory.CLIMATE):
-                        continue
-                    if level_dp := link_channel.get_generic_data_point(parameter=Parameter.LEVEL):
-                        self._peer_level_dp = cast(DpFloat, level_dp)
-                        break
-                    if state_dp := link_channel.get_generic_data_point(parameter=Parameter.STATE):
-                        self._peer_state_dp = cast(DpBinarySensor, state_dp)
-                        break
-        except Exception:  # pragma: no cover - defensive
-            self._peer_level_dp = None
-            self._peer_state_dp = None
-            return
-
-        # Subscribe to updates of peer DPs to forward update events
-        for dp in (self._peer_level_dp, self._peer_state_dp):
-            if dp is None:
-                continue
-            unreg = dp.register_data_point_updated_callback(
-                cb=self.emit_data_point_updated_event, custom_id=InternalCustomID.LINK_PEER
-            )
-            if unreg is not None:
-                # Track for both refresh-time cleanup and object removal cleanup
-                self._peer_unregister_callbacks.append(unreg)
-                self._unregister_callbacks.append(unreg)
 
     def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""

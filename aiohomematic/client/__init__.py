@@ -68,6 +68,7 @@ from aiohomematic.const import (
     INTERFACES_REQUIRING_JSON_RPC_CLIENT,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
+    LINKABLE_INTERFACES,
     RECONNECT_WAIT,
     VIRTUAL_REMOTE_MODELS,
     WAIT_FOR_CALLBACK,
@@ -147,6 +148,7 @@ class Client(ABC, LogContextMixin):
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
         self._is_initialized: bool = False
+        self._is_linkable: bool = client_config.interface in LINKABLE_INTERFACES
         self._ping_pong_cache: Final = PingPongCache(
             central=client_config.central, interface_id=client_config.interface_id
         )
@@ -541,6 +543,9 @@ class Client(ABC, LogContextMixin):
     @inspector
     async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""
+        if not self._is_linkable:
+            _LOGGER.debug("ADD_LINK: interface %s is not linkable", self.interface_id)
+            return
         try:
             await self._proxy.addLink(sender_address, receiver_address, name, description)
         except BaseHomematicException as bhexc:
@@ -551,6 +556,9 @@ class Client(ABC, LogContextMixin):
     @inspector
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Return a list of links."""
+        if not self._is_linkable:
+            _LOGGER.debug("REMOVE_LINK: interface %s is not linkable", self.interface_id)
+            return
         try:
             await self._proxy.removeLink(sender_address, receiver_address)
         except BaseHomematicException as bhexc:
@@ -561,6 +569,9 @@ class Client(ABC, LogContextMixin):
     @inspector
     async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
         """Return a list of link pers."""
+        if not self._is_linkable:
+            _LOGGER.debug("GET_LINK_PEERS: interface %s is not linkable", self.interface_id)
+            return ()
         try:
             return tuple(links) if (links := await self._proxy.getLinkPeers(address)) else ()
         except BaseHomematicException as bhexc:
@@ -571,6 +582,9 @@ class Client(ABC, LogContextMixin):
     @inspector
     async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
+        if not self._is_linkable:
+            _LOGGER.debug("GET_LINKS: interface %s is not linkable", self.interface_id)
+            return {}
         try:
             return cast(dict[str, Any], await self._proxy.getLinks(address, flags))
         except BaseHomematicException as bhexc:

@@ -1,3 +1,7 @@
+# Version 2025.11.5 (2025-11-05)
+
+- Remove link support for not linkable interfaces
+
 # Version 2025.11.4 (2025-11-04)
 
 - Fix issue with linked channels for climate activity

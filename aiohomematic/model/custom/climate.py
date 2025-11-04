@@ -1098,7 +1098,8 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                     unreg()
                 finally:
                     self._peer_unregister_callbacks.remove(unreg)
-                    self._unregister_callbacks.remove(unreg)
+                    if unreg in self._unregister_callbacks:
+                        self._unregister_callbacks.remove(unreg)
 
         self._peer_unregister_callbacks.clear()
         self._peer_level_dp = None

@@ -87,7 +87,6 @@ from aiohomematic.const import (
     CATEGORIES,
     CONNECTION_CHECKER_INTERVAL,
     DATA_POINT_EVENTS,
-    DATETIME_FORMAT_MILLIS,
     DEFAULT_DELAY_NEW_DEVICE_CREATION,
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
     DEFAULT_ENABLE_PROGRAM_SCAN,
@@ -523,15 +522,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         # No need to check the response of a XmlRPC-PING
         if parameter == Parameter.PONG:
             if "#" in value:
-                v_interface_id, v_timestamp = value.split("#")
+                v_interface_id, token = value.split("#")
                 if (
                     v_interface_id == interface_id
                     and (client := self.get_client(interface_id=interface_id))
                     and client.supports_ping_pong
                 ):
-                    client.ping_pong_cache.handle_received_pong(
-                        pong_ts=datetime.strptime(v_timestamp, DATETIME_FORMAT_MILLIS)
-                    )
+                    client.ping_pong_cache.handle_received_pong(pong_token=token)
             return
 
         dpk = DataPointKey(

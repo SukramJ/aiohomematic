@@ -1135,13 +1135,10 @@ class ClientCCU(Client):
         try:
             dt_now = datetime.now()
             if handle_ping_pong and self.supports_ping_pong and self._is_initialized:
-                callerId = (
-                    f"{self.interface_id}#{dt_now.strftime(format=DATETIME_FORMAT_MILLIS)}"
-                    if handle_ping_pong
-                    else self.interface_id
-                )
+                token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
+                callerId = f"{self.interface_id}#{token}" if handle_ping_pong else self.interface_id
                 await self._proxy.ping(callerId)
-                self._ping_pong_cache.handle_send_ping(ping_ts=dt_now)
+                self._ping_pong_cache.handle_send_ping(ping_token=token)
             elif not self._is_initialized:
                 await self._proxy.ping(self.interface_id)
             self.modified_at = dt_now

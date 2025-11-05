@@ -24,8 +24,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime  # for other classes
 import logging
+import time
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu
@@ -362,9 +363,11 @@ class PingPongCache:
         "_interface_id",
         "_pending_pong_logged",
         "_pending_pongs",
+        "_pending_seen_at",
         "_ttl",
         "_unknown_pong_logged",
         "_unknown_pongs",
+        "_unknown_seen_at",
     )
 
     def __init__(
@@ -381,8 +384,10 @@ class PingPongCache:
         self._interface_id: Final = interface_id
         self._allowed_delta: Final = allowed_delta
         self._ttl: Final = ttl
-        self._pending_pongs: Final[set[datetime]] = set()
-        self._unknown_pongs: Final[set[datetime]] = set()
+        self._pending_pongs: Final[set[str]] = set()
+        self._unknown_pongs: Final[set[str]] = set()
+        self._pending_seen_at: Final[dict[str, float]] = {}
+        self._unknown_seen_at: Final[dict[str, float]] = {}
         self._pending_pong_logged: bool = False
         self._unknown_pong_logged: bool = False
 
@@ -405,37 +410,43 @@ class PingPongCache:
         """Clear the cache."""
         self._pending_pongs.clear()
         self._unknown_pongs.clear()
+        self._pending_seen_at.clear()
+        self._unknown_seen_at.clear()
         self._pending_pong_logged = False
         self._unknown_pong_logged = False
 
-    def handle_received_pong(self, *, pong_ts: datetime) -> None:
-        """Handle received pong timestamp."""
-        if pong_ts in self._pending_pongs:
-            self._pending_pongs.remove(pong_ts)
+    def handle_received_pong(self, *, pong_token: str) -> None:
+        """Handle received pong token."""
+        if pong_token in self._pending_pongs:
+            self._pending_pongs.remove(pong_token)
+            self._pending_seen_at.pop(pong_token, None)
             self._cleanup_pending_pongs()
             count = self._pending_pong_count
             self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
             _LOGGER.debug(
-                "PING PONG CACHE: Reduce pending PING count: %s - %i for ts: %s",
+                "PING PONG CACHE: Reduce pending PING count: %s - %i for token: %s",
                 self._interface_id,
                 count,
-                pong_ts,
+                pong_token,
             )
         else:
-            self._unknown_pongs.add(pong_ts)
+            # Track unknown pong with monotonic insertion time for TTL expiry.
+            self._unknown_pongs.add(pong_token)
+            self._unknown_seen_at[pong_token] = time.monotonic()
             self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
             self._check_and_emit_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
             _LOGGER.debug(
-                "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
+                "PING PONG CACHE: Increase unknown PONG count: %s - %i for token: %s",
                 self._interface_id,
                 count,
-                pong_ts,
+                pong_token,
             )
 
-    def handle_send_ping(self, *, ping_ts: datetime) -> None:
-        """Handle send ping timestamp."""
-        self._pending_pongs.add(ping_ts)
+    def handle_send_ping(self, *, ping_token: str) -> None:
+        """Handle send ping token."""
+        self._pending_pongs.add(ping_token)
+        self._pending_seen_at[ping_token] = time.monotonic()
         self._cleanup_pending_pongs()
         # Throttle event emission to every second ping to avoid spamming callbacks,
         # but always emit when crossing the high threshold.
@@ -443,10 +454,10 @@ class PingPongCache:
         if (count > self._allowed_delta) or (count % 2 == 0):
             self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
         _LOGGER.debug(
-            "PING PONG CACHE: Increase pending PING count: %s - %i for ts: %s",
+            "PING PONG CACHE: Increase pending PING count: %s - %i for token: %s",
             self._interface_id,
             count,
-            ping_ts,
+            ping_token,
         )
 
     def _check_and_emit_pong_event(self, *, event_type: InterfaceEventType) -> None:
@@ -523,12 +534,16 @@ class PingPongCache:
                 self._unknown_pong_logged = False
 
     def _cleanup_pending_pongs(self) -> None:
-        """Cleanup too old pending pongs."""
-        dt_now = datetime.now()
+        """Cleanup too old pending pongs, using monotonic time."""
+        now = time.monotonic()
         for pp_pong_ts in list(self._pending_pongs):
-            # Only expire entries that are actually older than the TTL.
-            if (dt_now - pp_pong_ts).total_seconds() > self._ttl:
+            seen_at = self._pending_seen_at.get(pp_pong_ts)
+            expired = False
+            if seen_at is not None:
+                expired = (now - seen_at) > self._ttl
+            if expired:
                 self._pending_pongs.remove(pp_pong_ts)
+                self._pending_seen_at.pop(pp_pong_ts, None)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired pending PONG: %s - %i for ts: %s",
                     self._interface_id,
@@ -537,12 +552,16 @@ class PingPongCache:
                 )
 
     def _cleanup_unknown_pongs(self) -> None:
-        """Cleanup too old unknown pongs."""
-        dt_now = datetime.now()
+        """Cleanup too old unknown pongs, using monotonic time."""
+        now = time.monotonic()
         for up_pong_ts in list(self._unknown_pongs):
-            # Only expire entries that are actually older than the TTL.
-            if (dt_now - up_pong_ts).total_seconds() > self._ttl:
+            seen_at = self._unknown_seen_at.get(up_pong_ts)
+            expired = False
+            if seen_at is not None:
+                expired = (now - seen_at) > self._ttl
+            if expired:
                 self._unknown_pongs.remove(up_pong_ts)
+                self._unknown_seen_at.pop(up_pong_ts, None)
                 _LOGGER.debug(
                     "PING PONG CACHE: Removing expired unknown PONG: %s - %i or ts: %s",
                     self._interface_id,

@@ -2,6 +2,7 @@
 
 - Add code member sorter to pre-commit
 - Add post_init_data_point_fields
+- Make ping pong handling more robust
 - Move on_link_peer_changed and refresh_link_peer_activity_sources to BaseCustomDpClimate
 
 # Version 2025.11.5 (2025-11-04)

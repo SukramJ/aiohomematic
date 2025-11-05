@@ -9,6 +9,7 @@ coverage without touching production logic. It covers:
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
 import time
 from typing import Any
@@ -16,6 +17,7 @@ from typing import Any
 from freezegun import freeze_time
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.const import EventKey, EventType, InterfaceEventType, ParamsetKey
 from aiohomematic.store import CommandCache, PingPongCache
 
@@ -32,6 +34,25 @@ class CentralStub:
     def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[str, Any]) -> None:  # type: ignore[override]
         """Record a Homematic callback event in the internal list."""
         self.events.append({EventKey.TYPE: event_type, EventKey.DATA: event_data})
+
+
+class CentralWithLooperStub(CentralStub):
+    """Central stub that provides a real Looper instance for scheduling tests."""
+
+    def __init__(self, name: str = "central-with-looper") -> None:
+        super().__init__(name=name)
+        self.looper = Looper()
+
+
+class TrackingLooper:
+    """Test looper to verify coalescing: records task creation without running it."""
+
+    def __init__(self) -> None:
+        self.created: list[str] = []
+
+    # Match signature used by PingPongCache
+    def create_task(self, *, target, name: str) -> None:  # type: ignore[no-untyped-def]
+        self.created.append(name)
 
 
 def _extract_pong_event_payload(event: dict[str, Any]) -> dict[str, Any]:
@@ -244,3 +265,70 @@ def test_pingpongcache_emits_single_reset_event_on_drop_from_high() -> None:
     ]
     mismatch_counts_after = [e[EventKey.DATA][EventKey.DATA][EventKey.PONG_MISMATCH_COUNT] for e in pend_events_after]
     assert mismatch_counts_after.count(0) == 1
+
+
+@pytest.mark.asyncio
+async def test_pingpongcache_retry_skips_without_looper() -> None:
+    """When no looper is available, scheduling a retry should be skipped and token reschedulable."""
+    central = CentralStub()
+    ppc = PingPongCache(central=central, interface_id="ifNoLoop", allowed_delta=1, ttl=60)
+
+    # Ensure token not present initially
+    token = "tok-skip"
+    assert token not in ppc._retry_at
+
+    # Attempt to schedule a retry; since central has no looper, it should discard and not retain token
+    ppc._schedule_unknown_pong_retry(token=token, delay=0.01)
+    assert token not in ppc._retry_at
+
+
+@pytest.mark.asyncio
+async def test_pingpongcache_retry_reconciles_with_looper() -> None:
+    """With a looper, the retry should reconcile an unknown pong with a late pending ping and emit events."""
+    central = CentralWithLooperStub()
+    ppc = PingPongCache(central=central, interface_id="ifLoop", allowed_delta=5, ttl=60)
+
+    token = "tok-retry"
+    # Simulate unknown pong state without scheduling the built-in 15s task
+    ppc._unknown_pongs.add(token)
+    ppc._unknown_seen_at[token] = time.monotonic()
+
+    # Schedule retry with a short delay
+    ppc._schedule_unknown_pong_retry(token=token, delay=0.01)
+    assert token in ppc._retry_at
+
+    # Before retry fires, a late PING is sent with same token
+    ppc.handle_send_ping(ping_token=token)
+    assert token in ppc._pending_pongs
+
+    # Allow the retry task to run
+    await asyncio.sleep(0.05)
+    await central.looper.block_till_done(wait_time=1)
+
+    # After retry, pending should be removed and token cleared from tracking sets
+    assert token not in ppc._pending_pongs
+    assert token not in ppc._unknown_pongs
+    assert token not in ppc._retry_at
+
+    # Event emission is throttled in low state; it is not guaranteed here.
+    # Verify that state has been reconciled as expected (no pending/unknown, reschedulable).
+    assert ppc._pending_pong_count == 0
+    assert ppc._unknown_pong_count == 0
+
+
+def test_pingpongcache_retry_coalesces_single_task() -> None:
+    """Ensure multiple schedules for the same token are coalesced into a single task creation."""
+    central = CentralStub()
+    ppc = PingPongCache(central=central, interface_id="ifCoal", allowed_delta=1, ttl=60)
+
+    # Inject a tracking looper
+    tracker = TrackingLooper()
+    central.looper = tracker  # type: ignore[attr-defined]
+
+    token = "tok-coalesce"
+    ppc._schedule_unknown_pong_retry(token=token, delay=10)
+    ppc._schedule_unknown_pong_retry(token=token, delay=10)
+
+    # Only one task should have been created for this token
+    created_for_token = [name for name in tracker.created if token in name]
+    assert len(created_for_token) == 1

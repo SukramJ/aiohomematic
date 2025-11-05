@@ -34,17 +34,13 @@ class RPCFunctions:
         """Init RPCFunctions."""
         self._rpc_server: Final = rpc_server
 
-    def event(self, interface_id: str, channel_address: str, parameter: str, value: Any, /) -> None:
-        """If a device emits some sort event, we will handle it here."""
+    def deleteDevices(self, interface_id: str, addresses: list[str], /) -> None:
+        """Delete devices send from the backend."""
+        central: hmcu.CentralUnit | None
         if central := self.get_central(interface_id=interface_id):
             central.looper.create_task(
-                target=central.data_point_event(
-                    interface_id=interface_id,
-                    channel_address=channel_address,
-                    parameter=parameter,
-                    value=value,
-                ),
-                name=f"event-{interface_id}-{channel_address}-{parameter}",
+                target=central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
+                name=f"deleteDevices-{interface_id}",
             )
 
     @callback_backend_system(system_event=BackendSystemEvent.ERROR)
@@ -69,6 +65,23 @@ class RPCFunctions:
             str(msg),
         )
 
+    def event(self, interface_id: str, channel_address: str, parameter: str, value: Any, /) -> None:
+        """If a device emits some sort event, we will handle it here."""
+        if central := self.get_central(interface_id=interface_id):
+            central.looper.create_task(
+                target=central.data_point_event(
+                    interface_id=interface_id,
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    value=value,
+                ),
+                name=f"event-{interface_id}-{channel_address}-{parameter}",
+            )
+
+    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
+        """Return the central by interface_id."""
+        return self._rpc_server.get_central(interface_id=interface_id)
+
     def listDevices(self, interface_id: str, /) -> list[dict[str, Any]]:
         """Return already existing devices to the backend."""
         if central := self.get_central(interface_id=interface_id):
@@ -86,40 +99,6 @@ class RPCFunctions:
                 name=f"newDevices-{interface_id}",
             )
 
-    def deleteDevices(self, interface_id: str, addresses: list[str], /) -> None:
-        """Delete devices send from the backend."""
-        central: hmcu.CentralUnit | None
-        if central := self.get_central(interface_id=interface_id):
-            central.looper.create_task(
-                target=central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
-                name=f"deleteDevices-{interface_id}",
-            )
-
-    @callback_backend_system(system_event=BackendSystemEvent.UPDATE_DEVICE)
-    def updateDevice(self, interface_id: str, address: str, hint: int, /) -> None:
-        """
-        Update a device.
-
-        Irrelevant, as currently only changes to link
-        partners are reported.
-        """
-        _LOGGER.debug(
-            "UPDATEDEVICE: interface_id = %s, address = %s, hint = %s",
-            interface_id,
-            address,
-            str(hint),
-        )
-
-    @callback_backend_system(system_event=BackendSystemEvent.REPLACE_DEVICE)
-    def replaceDevice(self, interface_id: str, old_device_address: str, new_device_address: str, /) -> None:
-        """Replace a device. Probably irrelevant for us."""
-        _LOGGER.debug(
-            "REPLACEDEVICE: interface_id = %s, oldDeviceAddress = %s, newDeviceAddress = %s",
-            interface_id,
-            old_device_address,
-            new_device_address,
-        )
-
     @callback_backend_system(system_event=BackendSystemEvent.RE_ADDED_DEVICE)
     def readdedDevice(self, interface_id: str, addresses: list[str], /) -> None:
         """
@@ -135,9 +114,30 @@ class RPCFunctions:
             str(addresses),
         )
 
-    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
-        """Return the central by interface_id."""
-        return self._rpc_server.get_central(interface_id=interface_id)
+    @callback_backend_system(system_event=BackendSystemEvent.REPLACE_DEVICE)
+    def replaceDevice(self, interface_id: str, old_device_address: str, new_device_address: str, /) -> None:
+        """Replace a device. Probably irrelevant for us."""
+        _LOGGER.debug(
+            "REPLACEDEVICE: interface_id = %s, oldDeviceAddress = %s, newDeviceAddress = %s",
+            interface_id,
+            old_device_address,
+            new_device_address,
+        )
+
+    @callback_backend_system(system_event=BackendSystemEvent.UPDATE_DEVICE)
+    def updateDevice(self, interface_id: str, address: str, hint: int, /) -> None:
+        """
+        Update a device.
+
+        Irrelevant, as currently only changes to link
+        partners are reported.
+        """
+        _LOGGER.debug(
+            "UPDATEDEVICE: interface_id = %s, address = %s, hint = %s",
+            interface_id,
+            address,
+            str(hint),
+        )
 
 
 # Restrict to specific paths.
@@ -191,6 +191,43 @@ class RpcServer(threading.Thread):
         self._instances[self._address] = self
         threading.Thread.__init__(self, name=f"RpcServer {self._listen_ip_addr}:{self._listen_port}")
 
+    @property
+    def listen_ip_addr(self) -> str:
+        """Return the local ip address."""
+        return self._listen_ip_addr
+
+    @property
+    def listen_port(self) -> int:
+        """Return the local port."""
+        return self._listen_port
+
+    @property
+    def no_central_assigned(self) -> bool:
+        """Return if no central is assigned."""
+        return len(self._centrals) == 0
+
+    @property
+    def started(self) -> bool:
+        """Return if thread is active."""
+        return self._started.is_set() is True  # type: ignore[attr-defined]
+
+    def add_central(self, *, central: hmcu.CentralUnit) -> None:
+        """Register a central in the RPC-Server."""
+        if not self._centrals.get(central.name):
+            self._centrals[central.name] = central
+
+    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
+        """Return a central by interface_id."""
+        for central in self._centrals.values():
+            if central.has_client(interface_id=interface_id):
+                return central
+        return None
+
+    def remove_central(self, *, central: hmcu.CentralUnit) -> None:
+        """Unregister a central from RPC-Server."""
+        if self._centrals.get(central.name):
+            del self._centrals[central.name]
+
     def run(self) -> None:
         """Run the RPC-Server thread."""
         _LOGGER.debug(
@@ -213,43 +250,6 @@ class RpcServer(threading.Thread):
         _LOGGER.debug("STOP: RPC-Server stopped")
         if self._address in self._instances:
             del self._instances[self._address]
-
-    @property
-    def listen_ip_addr(self) -> str:
-        """Return the local ip address."""
-        return self._listen_ip_addr
-
-    @property
-    def listen_port(self) -> int:
-        """Return the local port."""
-        return self._listen_port
-
-    @property
-    def started(self) -> bool:
-        """Return if thread is active."""
-        return self._started.is_set() is True  # type: ignore[attr-defined]
-
-    def add_central(self, *, central: hmcu.CentralUnit) -> None:
-        """Register a central in the RPC-Server."""
-        if not self._centrals.get(central.name):
-            self._centrals[central.name] = central
-
-    def remove_central(self, *, central: hmcu.CentralUnit) -> None:
-        """Unregister a central from RPC-Server."""
-        if self._centrals.get(central.name):
-            del self._centrals[central.name]
-
-    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
-        """Return a central by interface_id."""
-        for central in self._centrals.values():
-            if central.has_client(interface_id=interface_id):
-                return central
-        return None
-
-    @property
-    def no_central_assigned(self) -> bool:
-        """Return if no central is assigned."""
-        return len(self._centrals) == 0
 
 
 class XmlRpcServer(RpcServer):

@@ -83,19 +83,15 @@ class CustomDataPoint(BaseDataPoint):
         self._init_data_point_fields()
         self._post_init_data_point_fields()
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
-        _LOGGER.debug(
-            "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
-            self.full_name,
-        )
+    @property
+    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+        """Returns the list of readable data points."""
+        return tuple(dp for dp in self._data_points.values() if dp.is_readable)
 
-    def _post_init_data_point_fields(self) -> None:
-        """Post action after initialisation of the data point fields."""
-        _LOGGER.debug(
-            "POST_INIT_DATA_POINT_FIELDS: Post action after initialisation of the data point fields for %s",
-            self.full_name,
-        )
+    @property
+    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+        """Returns the list of relevant data points. To be overridden by subclasses."""
+        return self._readable_data_points
 
     @property
     def allow_undefined_generic_data_points(self) -> bool:
@@ -103,9 +99,60 @@ class CustomDataPoint(BaseDataPoint):
         return self._allow_undefined_generic_data_points
 
     @property
+    def data_point_name_postfix(self) -> str:
+        """Return the data point name postfix."""
+        return ""
+
+    @property
     def group_no(self) -> int | None:
         """Return the base channel no of the data point."""
         return self._group_no
+
+    @property
+    def has_data_points(self) -> bool:
+        """Return if there are data points."""
+        return len(self._data_points) > 0
+
+    @property
+    def is_valid(self) -> bool:
+        """Return if the state is valid."""
+        return all(dp.is_valid for dp in self._relevant_data_points)
+
+    @property
+    def state_uncertain(self) -> bool:
+        """Return, if the state is uncertain."""
+        return any(dp.state_uncertain for dp in self._relevant_data_points)
+
+    @property
+    def unconfirmed_last_values_send(self) -> Mapping[Field, Any]:
+        """Return the unconfirmed values send for the data point."""
+        unconfirmed_values: dict[Field, Any] = {}
+        for field, dp in self._data_points.items():
+            if (unconfirmed_value := dp.unconfirmed_last_value_send) is not None:
+                unconfirmed_values[field] = unconfirmed_value
+        return unconfirmed_values
+
+    def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
+        """Return if a data_point with one of the data points is part of this data_point."""
+        result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
+        return len(result) > 0
+
+    def is_state_change(self, **kwargs: Any) -> bool:
+        """
+        Check if the state changes due to kwargs.
+
+        If the state is uncertain, the state should also marked as changed.
+        """
+        if self.state_uncertain:
+            return True
+        _LOGGER.debug("NO_STATE_CHANGE: %s", self.name)
+        return False
+
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
+        """Init the data point values."""
+        for dp in self._readable_data_points:
+            await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        self.emit_data_point_updated_event()
 
     @state_property
     def modified_at(self) -> datetime:
@@ -125,52 +172,54 @@ class CustomDataPoint(BaseDataPoint):
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
-    @property
-    def unconfirmed_last_values_send(self) -> Mapping[Field, Any]:
-        """Return the unconfirmed values send for the data point."""
-        unconfirmed_values: dict[Field, Any] = {}
-        for field, dp in self._data_points.items():
-            if (unconfirmed_value := dp.unconfirmed_last_value_send) is not None:
-                unconfirmed_values[field] = unconfirmed_value
-        return unconfirmed_values
+    def _add_data_point(
+        self,
+        *,
+        field: Field,
+        data_point: hmge.GenericDataPoint | None,
+        is_visible: bool | None = None,
+    ) -> None:
+        """Add data point to collection and register callback."""
+        if not data_point:
+            return
+        if is_visible is True and data_point.is_forced_sensor is False:
+            data_point.force_usage(forced_usage=DataPointUsage.CDP_VISIBLE)
+        elif is_visible is False and data_point.is_forced_sensor is False:
+            data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
-    @property
-    def has_data_points(self) -> bool:
-        """Return if there are data points."""
-        return len(self._data_points) > 0
+        self._unregister_callbacks.append(
+            data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
+        )
+        self._data_points[field] = data_point
 
-    @property
-    def is_valid(self) -> bool:
-        """Return if the state is valid."""
-        return all(dp.is_valid for dp in self._relevant_data_points)
+    def _add_data_points(self, *, field_dict_name: CDPD, is_visible: bool | None = None) -> None:
+        """Add data points to custom data point."""
+        fields = self._device_def.get(field_dict_name, {})
+        for channel_no, channel in fields.items():
+            for field, parameter in channel.items():
+                channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
+                if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
+                    self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
 
-    @property
-    def state_uncertain(self) -> bool:
-        """Return, if the state is uncertain."""
-        return any(dp.state_uncertain for dp in self._relevant_data_points)
-
-    @property
-    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
-        """Returns the list of readable data points."""
-        return tuple(dp for dp in self._data_points.values() if dp.is_readable)
-
-    @property
-    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
-        """Returns the list of relevant data points. To be overridden by subclasses."""
-        return self._readable_data_points
-
-    @property
-    def data_point_name_postfix(self) -> str:
-        """Return the data point name postfix."""
-        return ""
-
-    def _get_path_data(self) -> PathData:
-        """Return the path data of the data_point."""
-        return DataPointPathData(
-            interface=self._device.client.interface,
-            address=self._device.address,
-            channel_no=self._channel.no,
-            kind=self._category,
+    def _get_data_point[DataPointT: hmge.GenericDataPoint](
+        self, *, field: Field, data_point_type: type[DataPointT]
+    ) -> DataPointT:
+        """Get data point."""
+        if dp := self._data_points.get(field):
+            if type(dp).__name__ != data_point_type.__name__:
+                # not isinstance(data_point, data_point_type): # does not work with generic type
+                _LOGGER.debug(  # pragma: no cover
+                    "GET_DATA_POINT: type mismatch for requested sub data_point: "
+                    "expected: %s, but is %s for field name %s of data_point %s",
+                    data_point_type.name,
+                    type(dp),
+                    field,
+                    self.name,
+                )
+            return cast(data_point_type, dp)  # type: ignore[valid-type]
+        return cast(
+            data_point_type,  # type:ignore[valid-type]
+            DpDummy(channel=self._channel, param_field=field),
         )
 
     def _get_data_point_name(self) -> DataPointNameData:
@@ -196,26 +245,25 @@ class CustomDataPoint(BaseDataPoint):
             return DataPointUsage.CDP_PRIMARY
         return DataPointUsage.CDP_SECONDARY
 
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data_point."""
+        return DataPointPathData(
+            interface=self._device.client.interface,
+            address=self._device.address,
+            channel_no=self._channel.no,
+            kind=self._category,
+        )
+
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix}"
 
-    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the data point values."""
-        for dp in self._readable_data_points:
-            await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        self.emit_data_point_updated_event()
-
-    def is_state_change(self, **kwargs: Any) -> bool:
-        """
-        Check if the state changes due to kwargs.
-
-        If the state is uncertain, the state should also marked as changed.
-        """
-        if self.state_uncertain:
-            return True
-        _LOGGER.debug("NO_STATE_CHANGE: %s", self.name)
-        return False
+    def _init_data_point_fields(self) -> None:
+        """Init the data point fields."""
+        _LOGGER.debug(
+            "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
+            self.full_name,
+        )
 
     def _init_data_points(self) -> None:
         """Init data point collection."""
@@ -259,42 +307,13 @@ class CustomDataPoint(BaseDataPoint):
         if hmed.get_include_default_data_points(device_profile=self._device_profile):
             self._mark_data_points(custom_data_point_def=hmed.get_default_data_points())
 
-    def _add_data_points(self, *, field_dict_name: CDPD, is_visible: bool | None = None) -> None:
-        """Add data points to custom data point."""
-        fields = self._device_def.get(field_dict_name, {})
-        for channel_no, channel in fields.items():
-            for field, parameter in channel.items():
-                channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
-                if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
-                    self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
+    def _mark_data_point(self, *, channel_no: int | None, parameters: tuple[str, ...]) -> None:
+        """Mark data point to be created, even though a custom data point is present."""
+        channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
 
-    def _add_data_point(
-        self,
-        *,
-        field: Field,
-        data_point: hmge.GenericDataPoint | None,
-        is_visible: bool | None = None,
-    ) -> None:
-        """Add data point to collection and register callback."""
-        if not data_point:
-            return
-        if is_visible is True and data_point.is_forced_sensor is False:
-            data_point.force_usage(forced_usage=DataPointUsage.CDP_VISIBLE)
-        elif is_visible is False and data_point.is_forced_sensor is False:
-            data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
-
-        self._unregister_callbacks.append(
-            data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
-        )
-        self._data_points[field] = data_point
-
-    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
-        """Unregister update callback."""
-        for unregister in self._unregister_callbacks:
-            if unregister is not None:
-                unregister()
-
-        super()._unregister_data_point_updated_callback(cb=cb, custom_id=custom_id)
+        for parameter in parameters:
+            if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
+                dp.force_usage(forced_usage=DataPointUsage.DATA_POINT)
 
     def _mark_data_points(self, *, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]) -> None:
         """Mark data points to be created, even though a custom data point is present."""
@@ -307,36 +326,17 @@ class CustomDataPoint(BaseDataPoint):
                 for channel_no in channel_nos:
                     self._mark_data_point(channel_no=channel_no, parameters=parameters)
 
-    def _mark_data_point(self, *, channel_no: int | None, parameters: tuple[str, ...]) -> None:
-        """Mark data point to be created, even though a custom data point is present."""
-        channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
-
-        for parameter in parameters:
-            if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
-                dp.force_usage(forced_usage=DataPointUsage.DATA_POINT)
-
-    def _get_data_point[DataPointT: hmge.GenericDataPoint](
-        self, *, field: Field, data_point_type: type[DataPointT]
-    ) -> DataPointT:
-        """Get data point."""
-        if dp := self._data_points.get(field):
-            if type(dp).__name__ != data_point_type.__name__:
-                # not isinstance(data_point, data_point_type): # does not work with generic type
-                _LOGGER.debug(  # pragma: no cover
-                    "GET_DATA_POINT: type mismatch for requested sub data_point: "
-                    "expected: %s, but is %s for field name %s of data_point %s",
-                    data_point_type.name,
-                    type(dp),
-                    field,
-                    self.name,
-                )
-            return cast(data_point_type, dp)  # type: ignore[valid-type]
-        return cast(
-            data_point_type,  # type:ignore[valid-type]
-            DpDummy(channel=self._channel, param_field=field),
+    def _post_init_data_point_fields(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        _LOGGER.debug(
+            "POST_INIT_DATA_POINT_FIELDS: Post action after initialisation of the data point fields for %s",
+            self.full_name,
         )
 
-    def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
-        """Return if a data_point with one of the data points is part of this data_point."""
-        result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
-        return len(result) > 0
+    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
+        """Unregister update callback."""
+        for unregister in self._unregister_callbacks:
+            if unregister is not None:
+                unregister()
+
+        super()._unregister_data_point_updated_callback(cb=cb, custom_id=custom_id)

@@ -82,11 +82,6 @@ class ChannelNameData:
         self.sub_device_name = channel_name if channel_name else device_name
 
     @staticmethod
-    def empty() -> ChannelNameData:
-        """Return an empty DataPointNameData."""
-        return ChannelNameData(device_name="", channel_name="")
-
-    @staticmethod
     def _get_channel_name(*, device_name: str, channel_name: str) -> str:
         """Return the channel_name of the data_point only name."""
         if device_name and channel_name and channel_name.startswith(device_name):
@@ -95,6 +90,11 @@ class ChannelNameData:
                 c_name = c_name[1:]
             return c_name
         return channel_name.strip()
+
+    @staticmethod
+    def empty() -> ChannelNameData:
+        """Return an empty DataPointNameData."""
+        return ChannelNameData(device_name="", channel_name="")
 
 
 class DataPointNameData(ChannelNameData):
@@ -116,16 +116,16 @@ class DataPointNameData(ChannelNameData):
         self.parameter_name = parameter_name
 
     @staticmethod
-    def empty() -> DataPointNameData:
-        """Return an empty DataPointNameData."""
-        return DataPointNameData(device_name="", channel_name="")
-
-    @staticmethod
     def _get_channel_parameter_name(*, channel_name: str, parameter_name: str | None) -> str:
         """Return the channel parameter name of the data_point."""
         if channel_name and parameter_name:
             return f"{channel_name} {parameter_name}".strip()
         return channel_name.strip()
+
+    @staticmethod
+    def empty() -> DataPointNameData:
+        """Return an empty DataPointNameData."""
+        return DataPointNameData(device_name="", channel_name="")
 
     def _get_data_point_name(self, *, device_name: str, channel_name: str, parameter_name: str | None) -> str:
         """Return the name of the data_point only name."""

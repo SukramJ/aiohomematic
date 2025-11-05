@@ -52,6 +52,62 @@ class FactoryWithClient:
         self.system_event_mock = MagicMock()
         self.ha_event_mock = MagicMock()
 
+    async def get_default_central(self, *, start: bool = True) -> CentralUnit:
+        """Return a central based on give address_device_translation."""
+        central = await self.get_raw_central()
+
+        await self._xml_proxy.do_init()
+        patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy).start()
+        patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
+
+        # Optionally patch client creation to return a mocked client
+        if self._do_mock_client:
+            _orig_create_client = ClientConfig.create_client
+
+            async def _mocked_create_client(config: ClientConfig) -> Client | Mock:
+                real_client = await _orig_create_client(config)
+                return cast(
+                    Mock,
+                    get_mock(
+                        instance=real_client,
+                        exclude_methods=self._exclude_methods_from_mocks,
+                        include_properties=self._include_properties_in_mocks,
+                    ),
+                )
+
+            patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
+
+        if start:
+            await central.start()
+            await central._init_hub()
+        assert central
+        return central
+
+    async def get_raw_central(self) -> CentralUnit:
+        """Return a central based on give address_device_translation."""
+        interface_configs = self._interface_configs if self._interface_configs else set()
+        central = CentralConfig(
+            name=const.CENTRAL_NAME,
+            host=const.CCU_HOST,
+            username=const.CCU_USERNAME,
+            password=const.CCU_PASSWORD,
+            central_id="test1234",
+            interface_configs=interface_configs,
+            client_session=self._client_session,
+            un_ignore_list=self._un_ignore_list,
+            ignore_custom_device_definition_models=frozenset(self._ignore_custom_device_definition_models or []),
+            start_direct=True,
+            optional_settings=(OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
+        ).create_central()
+
+        central.register_backend_system_callback(cb=self.system_event_mock)
+        central.register_homematic_callback(cb=self.ha_event_mock)
+
+        assert central
+        self._client_session.set_central(central=central)  # type: ignore[attr-defined]
+        self._xml_proxy.set_central(central=central)
+        return central
+
     def init(
         self,
         *,
@@ -94,62 +150,6 @@ class FactoryWithClient:
             ignore_devices_on_create=self._ignore_devices_on_create,
         )
         return self
-
-    async def get_raw_central(self) -> CentralUnit:
-        """Return a central based on give address_device_translation."""
-        interface_configs = self._interface_configs if self._interface_configs else set()
-        central = CentralConfig(
-            name=const.CENTRAL_NAME,
-            host=const.CCU_HOST,
-            username=const.CCU_USERNAME,
-            password=const.CCU_PASSWORD,
-            central_id="test1234",
-            interface_configs=interface_configs,
-            client_session=self._client_session,
-            un_ignore_list=self._un_ignore_list,
-            ignore_custom_device_definition_models=frozenset(self._ignore_custom_device_definition_models or []),
-            start_direct=True,
-            optional_settings=(OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
-        ).create_central()
-
-        central.register_backend_system_callback(cb=self.system_event_mock)
-        central.register_homematic_callback(cb=self.ha_event_mock)
-
-        assert central
-        self._client_session.set_central(central=central)  # type: ignore[attr-defined]
-        self._xml_proxy.set_central(central=central)
-        return central
-
-    async def get_default_central(self, *, start: bool = True) -> CentralUnit:
-        """Return a central based on give address_device_translation."""
-        central = await self.get_raw_central()
-
-        await self._xml_proxy.do_init()
-        patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy).start()
-        patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
-
-        # Optionally patch client creation to return a mocked client
-        if self._do_mock_client:
-            _orig_create_client = ClientConfig.create_client
-
-            async def _mocked_create_client(config: ClientConfig) -> Client | Mock:
-                real_client = await _orig_create_client(config)
-                return cast(
-                    Mock,
-                    get_mock(
-                        instance=real_client,
-                        exclude_methods=self._exclude_methods_from_mocks,
-                        include_properties=self._include_properties_in_mocks,
-                    ),
-                )
-
-            patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
-
-        if start:
-            await central.start()
-            await central._init_hub()
-        assert central
-        return central
 
 
 async def get_central_client_factory(

@@ -78,21 +78,11 @@ class DpDummy(GenericDataPoint[Any, Any]):
             ),
         )
 
-    # --- Metadata and identity -------------------------------------------
     @property
-    def usage(self) -> DataPointUsage:
-        """Never create/ expose this data point as a real entity."""
-        return DataPointUsage.NO_CREATE
-
-    @property
-    def requires_polling(self) -> bool:
-        """Never poll from this data point."""
-        return False
-
-    @property
-    def state_uncertain(self) -> bool:
-        """Never report state uncertainty for this data point."""
-        return True
+    def dpk(self) -> DataPointKey:
+        """Return a stable placeholder data point key."""
+        # Return a stable placeholder key so equality/set operations are safe.
+        return cast(DataPointKey, ("", "", ""))
 
     @property
     def modified_at(self) -> datetime:
@@ -105,28 +95,25 @@ class DpDummy(GenericDataPoint[Any, Any]):
         return INIT_DATETIME
 
     @property
-    def dpk(self) -> DataPointKey:
-        """Return a stable placeholder data point key."""
-        # Return a stable placeholder key so equality/set operations are safe.
-        return cast(DataPointKey, ("", "", ""))
+    def requires_polling(self) -> bool:
+        """Never poll from this data point."""
+        return False
+
+    @property
+    def state_uncertain(self) -> bool:
+        """Never report state uncertainty for this data point."""
+        return True
+
+    @property
+    def usage(self) -> DataPointUsage:
+        """Never create/ expose this data point as a real entity."""
+        return DataPointUsage.NO_CREATE
 
     @property
     def value(self) -> Any:
         """Return the value of the data_point."""
         return None
 
-    # Optional: provide a stable, recognizable name to aid debugging
-    def _get_data_point_name(self) -> DataPointNameData:
-        """Return a stable, recognizable name to aid debugging."""
-        name = super()._get_data_point_name()
-        # Replace parameter part with a dummy marker without touching address
-        return DataPointNameData(
-            device_name=f"DUMMY_{name.name}",
-            channel_name=f"DUMMY_{name.full_name}",
-            parameter_name=f"DUMMY_{name.parameter_name}",
-        )
-
-    # --- Backend interactions (all no-ops) --------------------------------
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Ignore backend events entirely."""
         return
@@ -145,3 +132,13 @@ class DpDummy(GenericDataPoint[Any, Any]):
     ) -> set[DP_KEY_VALUE]:
         """Do not write to backend; accept but perform no operation."""
         return set()
+
+    def _get_data_point_name(self) -> DataPointNameData:
+        """Return a stable, recognizable name to aid debugging."""
+        name = super()._get_data_point_name()
+        # Replace parameter part with a dummy marker without touching address
+        return DataPointNameData(
+            device_name=f"DUMMY_{name.name}",
+            channel_name=f"DUMMY_{name.full_name}",
+            parameter_name=f"DUMMY_{name.parameter_name}",
+        )

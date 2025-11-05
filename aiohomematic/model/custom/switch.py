@@ -39,25 +39,30 @@ class CustomDpSwitch(CustomDataPoint):
 
     _category = DataPointCategory.SWITCH
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
-        self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
-        self._dp_group_state: DpBinarySensor = self._get_data_point(
-            field=Field.GROUP_STATE, data_point_type=DpBinarySensor
-        )
-
     @property
     def group_value(self) -> bool | None:
         """Return the current group value of the switch."""
         return self._dp_group_state.value
 
-    @state_property
-    def value(self) -> bool | None:
-        """Return the current channel value of the switch."""
-        return self._dp_state.value
+    def is_state_change(self, **kwargs: Any) -> bool:
+        """Check if the state changes due to kwargs."""
+        if (on_time_running := self.timer_on_time_running) is not None and on_time_running is True:
+            return True
+        if self.timer_on_time is not None:
+            return True
+        if kwargs.get(_StateChangeArg.ON) is not None and self.value is not True:
+            return True
+        if kwargs.get(_StateChangeArg.OFF) is not None and self.value is not False:
+            return True
+        return super().is_state_change(**kwargs)
+
+    @bind_collector()
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
+        """Turn the switch off."""
+        self.reset_timer_on_time()
+        if not self.is_state_change(off=True):
+            return
+        await self._dp_state.turn_off(collector=collector)
 
     @bind_collector()
     async def turn_on(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
@@ -71,25 +76,20 @@ class CustomDpSwitch(CustomDataPoint):
             await self._dp_on_time_value.send_value(value=timer, collector=collector, do_validate=False)
         await self._dp_state.turn_on(collector=collector)
 
-    @bind_collector()
-    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Turn the switch off."""
-        self.reset_timer_on_time()
-        if not self.is_state_change(off=True):
-            return
-        await self._dp_state.turn_off(collector=collector)
+    @state_property
+    def value(self) -> bool | None:
+        """Return the current channel value of the switch."""
+        return self._dp_state.value
 
-    def is_state_change(self, **kwargs: Any) -> bool:
-        """Check if the state changes due to kwargs."""
-        if (on_time_running := self.timer_on_time_running) is not None and on_time_running is True:
-            return True
-        if self.timer_on_time is not None:
-            return True
-        if kwargs.get(_StateChangeArg.ON) is not None and self.value is not True:
-            return True
-        if kwargs.get(_StateChangeArg.OFF) is not None and self.value is not False:
-            return True
-        return super().is_state_change(**kwargs)
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+
+        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
+        self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
+        self._dp_group_state: DpBinarySensor = self._get_data_point(
+            field=Field.GROUP_STATE, data_point_type=DpBinarySensor
+        )
 
 
 def make_ip_switch(

@@ -47,6 +47,80 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         self._type = ParameterType.FLOAT
         self._unit = "%"
 
+    @staticmethod
+    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+        """Return if this calculated data point is relevant for the model."""
+        if element_matches_key(
+            search_elements=_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS, compare_with=channel.device.model
+        ):
+            return False
+        return element_matches_key(
+            search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
+        ) and (
+            (
+                channel.get_generic_data_point(
+                    parameter=Parameter.OPERATING_VOLTAGE,
+                    paramset_key=ParamsetKey.VALUES,
+                )
+                and channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
+            )
+            is not None
+            or (
+                channel.get_generic_data_point(
+                    parameter=Parameter.BATTERY_STATE,
+                    paramset_key=ParamsetKey.VALUES,
+                )
+                and channel.device.get_generic_data_point(
+                    channel_address=channel.device.address,
+                    parameter=Parameter.LOW_BAT_LIMIT,
+                    paramset_key=ParamsetKey.MASTER,
+                )
+            )
+            is not None
+        )
+
+    @property
+    def _low_bat_limit(self) -> float | None:
+        """Return the min value."""
+        return (
+            float(self._dp_low_bat_limit.value)
+            if self._dp_low_bat_limit is not None and self._dp_low_bat_limit.value is not None
+            else None
+        )
+
+    @state_property
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information about the entity."""
+        ainfo = super().additional_information
+        if self._battery_data is not None:
+            ainfo.update(
+                {
+                    _BATTERY_QTY: self._battery_data.quantity,
+                    _BATTERY_TYPE: self._battery_data.battery,
+                    _LOW_BAT_LIMIT: f"{self._low_bat_limit}V",
+                    _LOW_BAT_LIMIT_DEFAULT: f"{self._low_bat_limit_default}V",
+                    _VOLTAGE_MAX: f"{self._voltage_max}V",
+                }
+            )
+        return ainfo
+
+    @state_property
+    def value(self) -> float | None:
+        """Return the value."""
+        try:
+            return calculate_operating_voltage_level(
+                operating_voltage=self._dp_operating_voltage.value,
+                low_bat_limit=self._low_bat_limit_default,
+                voltage_max=self._voltage_max,
+            )
+        except Exception as exc:
+            _LOGGER.debug(
+                "OperatingVoltageLevel: Failed to calculate sensor for %s: %s",
+                self._channel.name,
+                extract_exc_args(exc=exc),
+            )
+        return None
+
     def _init_data_point_fields(self) -> None:
         """Init the data point fields."""
         super()._init_data_point_fields()
@@ -86,80 +160,6 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         self._voltage_max = (
             float(_BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity)  # type: ignore[operator]
             if self._battery_data is not None
-            else None
-        )
-
-    @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
-        """Return if this calculated data point is relevant for the model."""
-        if element_matches_key(
-            search_elements=_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS, compare_with=channel.device.model
-        ):
-            return False
-        return element_matches_key(
-            search_elements=_OPERATING_VOLTAGE_LEVEL_MODELS.keys(), compare_with=channel.device.model
-        ) and (
-            (
-                channel.get_generic_data_point(
-                    parameter=Parameter.OPERATING_VOLTAGE,
-                    paramset_key=ParamsetKey.VALUES,
-                )
-                and channel.get_generic_data_point(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER)
-            )
-            is not None
-            or (
-                channel.get_generic_data_point(
-                    parameter=Parameter.BATTERY_STATE,
-                    paramset_key=ParamsetKey.VALUES,
-                )
-                and channel.device.get_generic_data_point(
-                    channel_address=channel.device.address,
-                    parameter=Parameter.LOW_BAT_LIMIT,
-                    paramset_key=ParamsetKey.MASTER,
-                )
-            )
-            is not None
-        )
-
-    @state_property
-    def additional_information(self) -> dict[str, Any]:
-        """Return additional information about the entity."""
-        ainfo = super().additional_information
-        if self._battery_data is not None:
-            ainfo.update(
-                {
-                    _BATTERY_QTY: self._battery_data.quantity,
-                    _BATTERY_TYPE: self._battery_data.battery,
-                    _LOW_BAT_LIMIT: f"{self._low_bat_limit}V",
-                    _LOW_BAT_LIMIT_DEFAULT: f"{self._low_bat_limit_default}V",
-                    _VOLTAGE_MAX: f"{self._voltage_max}V",
-                }
-            )
-        return ainfo
-
-    @state_property
-    def value(self) -> float | None:
-        """Return the value."""
-        try:
-            return calculate_operating_voltage_level(
-                operating_voltage=self._dp_operating_voltage.value,
-                low_bat_limit=self._low_bat_limit_default,
-                voltage_max=self._voltage_max,
-            )
-        except Exception as exc:
-            _LOGGER.debug(
-                "OperatingVoltageLevel: Failed to calculate sensor for %s: %s",
-                self._channel.name,
-                extract_exc_args(exc=exc),
-            )
-        return None
-
-    @property
-    def _low_bat_limit(self) -> float | None:
-        """Return the min value."""
-        return (
-            float(self._dp_low_bat_limit.value)
-            if self._dp_low_bat_limit is not None and self._dp_low_bat_limit.value is not None
             else None
         )
 

@@ -26,10 +26,11 @@ class ProgramDpSwitch(GenericProgramDataPoint):
 
     _category = DataPointCategory.HUB_SWITCH
 
-    @state_property
-    def value(self) -> bool | None:
-        """Get the value of the data_point."""
-        return self._is_active
+    @inspector
+    async def turn_off(self) -> None:
+        """Turn the program off."""
+        await self.central.set_program_state(pid=self._pid, state=False)
+        await self._central.fetch_program_data(scheduled=False)
 
     @inspector
     async def turn_on(self) -> None:
@@ -37,8 +38,7 @@ class ProgramDpSwitch(GenericProgramDataPoint):
         await self.central.set_program_state(pid=self._pid, state=True)
         await self._central.fetch_program_data(scheduled=False)
 
-    @inspector
-    async def turn_off(self) -> None:
-        """Turn the program off."""
-        await self.central.set_program_state(pid=self._pid, state=False)
-        await self._central.fetch_program_data(scheduled=False)
+    @state_property
+    def value(self) -> bool | None:
+        """Get the value of the data_point."""
+        return self._is_active

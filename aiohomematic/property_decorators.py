@@ -107,41 +107,21 @@ class _GenericProperty[GETTER, SETTER](property):
                 func_name = "prop"
             self._cache_attr = f"_cached_{func_name}"
 
-    def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty:
-        """Return generic getter."""
-        return type(self)(
-            fget=fget,
-            fset=self.fset,
-            fdel=self.fdel,
-            doc=self.__doc__,
-            kind=self.kind,
-            cached=self._cached,
-            log_context=self.log_context,
-        )
+    def __delete__(self, instance: Any, /) -> None:
+        """Delete the attribute and invalidate cache if enabled."""
 
-    def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty:
-        """Return generic setter."""
-        return type(self)(
-            fget=self.fget,
-            fset=fset,
-            fdel=self.fdel,
-            doc=self.__doc__,
-            kind=self.kind,
-            cached=self._cached,
-            log_context=self.log_context,
-        )
+        # Delete the cached value so it can be recomputed on next access.
+        if self._cached:
+            try:
+                instance.__dict__.pop(self._cache_attr, None)
+            except AttributeError:
+                # Object uses __slots__, fall back to delattr
+                if hasattr(instance, self._cache_attr):
+                    delattr(instance, self._cache_attr)
 
-    def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty:
-        """Return generic deleter."""
-        return type(self)(
-            fget=self.fget,
-            fset=self.fset,
-            fdel=fdel,
-            doc=self.__doc__,
-            kind=self.kind,
-            cached=self._cached,
-            log_context=self.log_context,
-        )
+        if self.fdel is None:
+            raise AttributeError("can't delete attribute")
+        self.fdel(instance)
 
     def __get__(self, instance: Any, gtype: type | None = None, /) -> GETTER:  # type: ignore[override]
         """
@@ -197,21 +177,41 @@ class _GenericProperty[GETTER, SETTER](property):
             raise AttributeError("can't set attribute")
         self.fset(instance, value)
 
-    def __delete__(self, instance: Any, /) -> None:
-        """Delete the attribute and invalidate cache if enabled."""
+    def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty:
+        """Return generic deleter."""
+        return type(self)(
+            fget=self.fget,
+            fset=self.fset,
+            fdel=fdel,
+            doc=self.__doc__,
+            kind=self.kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )
 
-        # Delete the cached value so it can be recomputed on next access.
-        if self._cached:
-            try:
-                instance.__dict__.pop(self._cache_attr, None)
-            except AttributeError:
-                # Object uses __slots__, fall back to delattr
-                if hasattr(instance, self._cache_attr):
-                    delattr(instance, self._cache_attr)
+    def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty:
+        """Return generic getter."""
+        return type(self)(
+            fget=fget,
+            fset=self.fset,
+            fdel=self.fdel,
+            doc=self.__doc__,
+            kind=self.kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )
 
-        if self.fdel is None:
-            raise AttributeError("can't delete attribute")
-        self.fdel(instance)
+    def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty:
+        """Return generic setter."""
+        return type(self)(
+            fget=self.fget,
+            fset=fset,
+            fdel=self.fdel,
+            doc=self.__doc__,
+            kind=self.kind,
+            cached=self._cached,
+            log_context=self.log_context,
+        )
 
 
 # ----- hm_property -----

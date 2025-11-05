@@ -116,6 +116,16 @@ class BasePersistentFile(ABC):
         self.last_hash_saved = hash_sha256(value=persistent_content)
 
     @property
+    def _should_save(self) -> bool:
+        """Determine if save operation should proceed."""
+        self.last_save_triggered = datetime.now()
+        return (
+            check_or_create_directory(directory=self._directory)
+            and self._central.config.use_caches
+            and self.content_hash != self.last_hash_saved
+        )
+
+    @property
     def content_hash(self) -> str:
         """Return the hash of the content."""
         return hash_sha256(value=self._persistent_content)
@@ -125,79 +135,15 @@ class BasePersistentFile(ABC):
         """Return if the data has changed."""
         return self.content_hash != self.last_hash_saved
 
-    def _get_file_name(
-        self,
-        *,
-        use_ts_in_file_name: bool = False,
-    ) -> str:
-        """Return the file name."""
-        return _get_file_name(
-            central_name=self._central.name,
-            file_name=self._file_postfix,
-            ts=datetime.now() if use_ts_in_file_name else None,
-        )
+    async def clear(self) -> None:
+        """Remove stored file from disk."""
 
-    def _get_file_path(
-        self,
-        *,
-        use_ts_in_file_name: bool = False,
-    ) -> str:
-        """Return the full file path."""
-        return os.path.join(self._directory, self._get_file_name(use_ts_in_file_name=use_ts_in_file_name))
-
-    async def save(self, *, randomize_output: bool = False, use_ts_in_file_name: bool = False) -> DataOperationResult:
-        """Save current data to disk."""
-        if not self._should_save:
-            return DataOperationResult.NO_SAVE
-
-        if not check_or_create_directory(directory=self._directory):
-            return DataOperationResult.NO_SAVE
-
-        def _perform_save() -> DataOperationResult:
-            try:
-                with open(
-                    file=self._get_file_path(use_ts_in_file_name=use_ts_in_file_name),
-                    mode="wb",
-                ) as file_pointer:
-                    file_pointer.write(
-                        self._manipulate_content(
-                            content=orjson.dumps(
-                                self._persistent_content,
-                                option=orjson.OPT_NON_STR_KEYS,
-                            ),
-                            randomize_output=randomize_output,
-                        )
-                    )
-                self.last_hash_saved = self.content_hash
-            except json.JSONDecodeError:
-                return DataOperationResult.SAVE_FAIL
-            return DataOperationResult.SAVE_SUCCESS
+        def _perform_clear() -> None:
+            delete_file(directory=self._directory, file_name=f"{self._central.name}*.json".lower())
+            self._persistent_content.clear()
 
         async with self._save_load_semaphore:
-            return await self._central.looper.async_add_executor_job(
-                _perform_save, name=f"save-persistent-content-{self._get_file_name()}"
-            )
-
-    def _manipulate_content(self, *, content: bytes, randomize_output: bool = False) -> bytes:
-        """Manipulate the content of the file. Optionally randomize addresses."""
-        if not randomize_output:
-            return content
-
-        addresses = [device.address for device in self._central.devices]
-        text = content.decode(encoding=UTF_8)
-        for device_address, rnd_address in create_random_device_addresses(addresses=addresses).items():
-            text = text.replace(device_address, rnd_address)
-        return text.encode(encoding=UTF_8)
-
-    @property
-    def _should_save(self) -> bool:
-        """Determine if save operation should proceed."""
-        self.last_save_triggered = datetime.now()
-        return (
-            check_or_create_directory(directory=self._directory)
-            and self._central.config.use_caches
-            and self.content_hash != self.last_hash_saved
-        )
+            await self._central.looper.async_add_executor_job(_perform_clear, name="clear-persistent-content")
 
     async def load(self, *, file_path: str | None = None) -> DataOperationResult:
         """
@@ -240,15 +186,69 @@ class BasePersistentFile(ABC):
                 _perform_load, name=f"load-persistent-content-{self._get_file_name()}"
             )
 
-    async def clear(self) -> None:
-        """Remove stored file from disk."""
+    async def save(self, *, randomize_output: bool = False, use_ts_in_file_name: bool = False) -> DataOperationResult:
+        """Save current data to disk."""
+        if not self._should_save:
+            return DataOperationResult.NO_SAVE
 
-        def _perform_clear() -> None:
-            delete_file(directory=self._directory, file_name=f"{self._central.name}*.json".lower())
-            self._persistent_content.clear()
+        if not check_or_create_directory(directory=self._directory):
+            return DataOperationResult.NO_SAVE
+
+        def _perform_save() -> DataOperationResult:
+            try:
+                with open(
+                    file=self._get_file_path(use_ts_in_file_name=use_ts_in_file_name),
+                    mode="wb",
+                ) as file_pointer:
+                    file_pointer.write(
+                        self._manipulate_content(
+                            content=orjson.dumps(
+                                self._persistent_content,
+                                option=orjson.OPT_NON_STR_KEYS,
+                            ),
+                            randomize_output=randomize_output,
+                        )
+                    )
+                self.last_hash_saved = self.content_hash
+            except json.JSONDecodeError:
+                return DataOperationResult.SAVE_FAIL
+            return DataOperationResult.SAVE_SUCCESS
 
         async with self._save_load_semaphore:
-            await self._central.looper.async_add_executor_job(_perform_clear, name="clear-persistent-content")
+            return await self._central.looper.async_add_executor_job(
+                _perform_save, name=f"save-persistent-content-{self._get_file_name()}"
+            )
+
+    def _get_file_name(
+        self,
+        *,
+        use_ts_in_file_name: bool = False,
+    ) -> str:
+        """Return the file name."""
+        return _get_file_name(
+            central_name=self._central.name,
+            file_name=self._file_postfix,
+            ts=datetime.now() if use_ts_in_file_name else None,
+        )
+
+    def _get_file_path(
+        self,
+        *,
+        use_ts_in_file_name: bool = False,
+    ) -> str:
+        """Return the full file path."""
+        return os.path.join(self._directory, self._get_file_name(use_ts_in_file_name=use_ts_in_file_name))
+
+    def _manipulate_content(self, *, content: bytes, randomize_output: bool = False) -> bytes:
+        """Manipulate the content of the file. Optionally randomize addresses."""
+        if not randomize_output:
+            return content
+
+        addresses = [device.address for device in self._central.devices]
+        text = content.decode(encoding=UTF_8)
+        for device_address, rnd_address in create_random_device_addresses(addresses=addresses).items():
+            text = text.replace(device_address, rnd_address)
+        return text.encode(encoding=UTF_8)
 
 
 class DeviceDescriptionCache(BasePersistentFile):
@@ -291,31 +291,9 @@ class DeviceDescriptionCache(BasePersistentFile):
         self._raw_device_descriptions[interface_id].append(device_description)
         self._process_device_description(interface_id=interface_id, device_description=device_description)
 
-    def get_raw_device_descriptions(self, *, interface_id: str) -> list[DeviceDescription]:
-        """Retrieve raw device descriptions from the cache."""
-        return self._raw_device_descriptions[interface_id]
-
-    def remove_device(self, *, device: Device) -> None:
-        """Remove device from cache."""
-        self._remove_device(
-            interface_id=device.interface_id,
-            addresses_to_remove=[device.address, *device.channels.keys()],
-        )
-
-    def _remove_device(self, *, interface_id: str, addresses_to_remove: list[str]) -> None:
-        """Remove a device from the cache."""
-        # Use a set for faster membership checks
-        addresses_set = set(addresses_to_remove)
-        self._raw_device_descriptions[interface_id] = [
-            device for device in self._raw_device_descriptions[interface_id] if device["ADDRESS"] not in addresses_set
-        ]
-        addr_map = self._addresses[interface_id]
-        desc_map = self._device_descriptions[interface_id]
-        for address in addresses_set:
-            # Pop with default to avoid KeyError and try/except overhead
-            if ADDRESS_SEPARATOR not in address:
-                addr_map.pop(address, None)
-            desc_map.pop(address, None)
+    def find_device_description(self, *, interface_id: str, device_address: str) -> DeviceDescription | None:
+        """Return the device description by interface and device_address."""
+        return self._device_descriptions[interface_id].get(device_address)
 
     def get_addresses(self, *, interface_id: str | None = None) -> frozenset[str]:
         """Return the addresses by interface as a set."""
@@ -323,25 +301,13 @@ class DeviceDescriptionCache(BasePersistentFile):
             return frozenset(self._addresses[interface_id])
         return frozenset(addr for interface_id in self.get_interface_ids() for addr in self._addresses[interface_id])
 
-    def get_device_descriptions(self, *, interface_id: str) -> Mapping[str, DeviceDescription]:
-        """Return the devices by interface."""
-        return self._device_descriptions[interface_id]
-
-    def get_interface_ids(self) -> tuple[str, ...]:
-        """Return the interface ids."""
-        return tuple(self._raw_device_descriptions.keys())
-
-    def has_device_descriptions(self, *, interface_id: str) -> bool:
-        """Return the devices by interface."""
-        return interface_id in self._device_descriptions
-
-    def find_device_description(self, *, interface_id: str, device_address: str) -> DeviceDescription | None:
-        """Return the device description by interface and device_address."""
-        return self._device_descriptions[interface_id].get(device_address)
-
     def get_device_description(self, *, interface_id: str, address: str) -> DeviceDescription:
         """Return the device description by interface and device_address."""
         return self._device_descriptions[interface_id][address]
+
+    def get_device_descriptions(self, *, interface_id: str) -> Mapping[str, DeviceDescription]:
+        """Return the devices by interface."""
+        return self._device_descriptions[interface_id]
 
     def get_device_with_channels(self, *, interface_id: str, device_address: str) -> Mapping[str, DeviceDescription]:
         """Return the device dict by interface and device_address."""
@@ -355,12 +321,44 @@ class DeviceDescriptionCache(BasePersistentFile):
             )
         return device_descriptions
 
+    def get_interface_ids(self) -> tuple[str, ...]:
+        """Return the interface ids."""
+        return tuple(self._raw_device_descriptions.keys())
+
     def get_model(self, *, device_address: str) -> str | None:
         """Return the device type."""
         for data in self._device_descriptions.values():
             if items := data.get(device_address):
                 return items["TYPE"]
         return None
+
+    def get_raw_device_descriptions(self, *, interface_id: str) -> list[DeviceDescription]:
+        """Retrieve raw device descriptions from the cache."""
+        return self._raw_device_descriptions[interface_id]
+
+    def has_device_descriptions(self, *, interface_id: str) -> bool:
+        """Return the devices by interface."""
+        return interface_id in self._device_descriptions
+
+    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
+        """Load device data from disk into _device_description_cache."""
+        if not self._central.config.use_caches:
+            _LOGGER.debug("load: not caching paramset descriptions for %s", self._central.name)
+            return DataOperationResult.NO_LOAD
+        if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
+            for (
+                interface_id,
+                device_descriptions,
+            ) in self._raw_device_descriptions.items():
+                self._convert_device_descriptions(interface_id=interface_id, device_descriptions=device_descriptions)
+        return result
+
+    def remove_device(self, *, device: Device) -> None:
+        """Remove device from cache."""
+        self._remove_device(
+            interface_id=device.interface_id,
+            addresses_to_remove=[device.address, *device.channels.keys()],
+        )
 
     def _convert_device_descriptions(self, *, interface_id: str, device_descriptions: list[DeviceDescription]) -> None:
         """Convert provided list of device descriptions."""
@@ -378,18 +376,20 @@ class DeviceDescriptionCache(BasePersistentFile):
         addr_set.add(device_address)
         addr_set.add(address)
 
-    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
-        """Load device data from disk into _device_description_cache."""
-        if not self._central.config.use_caches:
-            _LOGGER.debug("load: not caching paramset descriptions for %s", self._central.name)
-            return DataOperationResult.NO_LOAD
-        if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
-            for (
-                interface_id,
-                device_descriptions,
-            ) in self._raw_device_descriptions.items():
-                self._convert_device_descriptions(interface_id=interface_id, device_descriptions=device_descriptions)
-        return result
+    def _remove_device(self, *, interface_id: str, addresses_to_remove: list[str]) -> None:
+        """Remove a device from the cache."""
+        # Use a set for faster membership checks
+        addresses_set = set(addresses_to_remove)
+        self._raw_device_descriptions[interface_id] = [
+            device for device in self._raw_device_descriptions[interface_id] if device["ADDRESS"] not in addresses_set
+        ]
+        addr_map = self._addresses[interface_id]
+        desc_map = self._device_descriptions[interface_id]
+        for address in addresses_set:
+            # Pop with default to avoid KeyError and try/except overhead
+            if ADDRESS_SEPARATOR not in address:
+                addr_map.pop(address, None)
+            desc_map.pop(address, None)
 
 
 class ParamsetDescriptionCache(BasePersistentFile):
@@ -436,47 +436,6 @@ class ParamsetDescriptionCache(BasePersistentFile):
         self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
         self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
 
-    def remove_device(self, *, device: Device) -> None:
-        """Remove device paramset descriptions from cache."""
-        if interface := self._raw_paramset_descriptions.get(device.interface_id):
-            for channel_address in device.channels:
-                if channel_address in interface:
-                    del self._raw_paramset_descriptions[device.interface_id][channel_address]
-
-    def has_interface_id(self, *, interface_id: str) -> bool:
-        """Return if interface is in paramset_descriptions cache."""
-        return interface_id in self._raw_paramset_descriptions
-
-    def get_paramset_keys(self, *, interface_id: str, channel_address: str) -> tuple[ParamsetKey, ...]:
-        """Get paramset_keys from paramset descriptions cache."""
-        return tuple(self._raw_paramset_descriptions[interface_id][channel_address])
-
-    def get_channel_paramset_descriptions(
-        self, *, interface_id: str, channel_address: str
-    ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
-        """Get paramset descriptions for a channelfrom cache."""
-        return self._raw_paramset_descriptions[interface_id].get(channel_address, {})
-
-    def get_paramset_descriptions(
-        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey
-    ) -> Mapping[str, ParameterData]:
-        """Get paramset descriptions from cache."""
-        return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
-
-    def get_parameter_data(
-        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
-    ) -> ParameterData | None:
-        """Get parameter_data  from cache."""
-        return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].get(parameter)
-
-    def is_in_multiple_channels(self, *, channel_address: str, parameter: str) -> bool:
-        """Check if parameter is in multiple channels per device."""
-        if ADDRESS_SEPARATOR not in channel_address:
-            return False
-        if channels := self._address_parameter_cache.get((get_device_address(address=channel_address), parameter)):
-            return len(channels) > 1
-        return False
-
     def get_channel_addresses_by_paramset_key(
         self, *, interface_id: str, device_address: str
     ) -> Mapping[ParamsetKey, list[str]]:
@@ -495,15 +454,55 @@ class ParamsetDescriptionCache(BasePersistentFile):
 
         return channel_addresses
 
-    def _init_address_parameter_list(self) -> None:
-        """
-        Initialize a device_address/parameter list.
+    def get_channel_paramset_descriptions(
+        self, *, interface_id: str, channel_address: str
+    ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
+        """Get paramset descriptions for a channelfrom cache."""
+        return self._raw_paramset_descriptions[interface_id].get(channel_address, {})
 
-        Used to identify, if a parameter name exists is in multiple channels.
-        """
-        for channel_paramsets in self._raw_paramset_descriptions.values():
-            for channel_address, paramsets in channel_paramsets.items():
-                self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
+    def get_parameter_data(
+        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+    ) -> ParameterData | None:
+        """Get parameter_data  from cache."""
+        return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].get(parameter)
+
+    def get_paramset_descriptions(
+        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey
+    ) -> Mapping[str, ParameterData]:
+        """Get paramset descriptions from cache."""
+        return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
+
+    def get_paramset_keys(self, *, interface_id: str, channel_address: str) -> tuple[ParamsetKey, ...]:
+        """Get paramset_keys from paramset descriptions cache."""
+        return tuple(self._raw_paramset_descriptions[interface_id][channel_address])
+
+    def has_interface_id(self, *, interface_id: str) -> bool:
+        """Return if interface is in paramset_descriptions cache."""
+        return interface_id in self._raw_paramset_descriptions
+
+    def is_in_multiple_channels(self, *, channel_address: str, parameter: str) -> bool:
+        """Check if parameter is in multiple channels per device."""
+        if ADDRESS_SEPARATOR not in channel_address:
+            return False
+        if channels := self._address_parameter_cache.get((get_device_address(address=channel_address), parameter)):
+            return len(channels) > 1
+        return False
+
+    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
+        """Load paramset descriptions from disk into paramset cache."""
+        if not self._central.config.use_caches:
+            _LOGGER.debug("load: not caching device descriptions for %s", self._central.name)
+            return DataOperationResult.NO_LOAD
+        if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
+            self._init_address_parameter_list()
+        return result
+
+    def remove_device(self, *, device: Device) -> None:
+        """Remove device paramset descriptions from cache."""
+        if interface := self._raw_paramset_descriptions.get(device.interface_id):
+            for channel_address in device.channels:
+                if channel_address in interface:
+                    del self._raw_paramset_descriptions[device.interface_id][channel_address]
 
     def _add_address_parameter(self, *, channel_address: str, paramsets: list[dict[str, Any]]) -> None:
         """Add address parameter to cache."""
@@ -515,14 +514,15 @@ class ParamsetDescriptionCache(BasePersistentFile):
             for parameter in paramset:
                 cache.setdefault((device_address, parameter), set()).add(channel_no)
 
-    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
-        """Load paramset descriptions from disk into paramset cache."""
-        if not self._central.config.use_caches:
-            _LOGGER.debug("load: not caching device descriptions for %s", self._central.name)
-            return DataOperationResult.NO_LOAD
-        if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
-            self._init_address_parameter_list()
-        return result
+    def _init_address_parameter_list(self) -> None:
+        """
+        Initialize a device_address/parameter list.
+
+        Used to identify, if a parameter name exists is in multiple channels.
+        """
+        for channel_paramsets in self._raw_paramset_descriptions.values():
+            for channel_address, paramsets in channel_paramsets.items():
+                self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
 
 
 class SessionRecorder(BasePersistentFile):
@@ -573,65 +573,21 @@ class SessionRecorder(BasePersistentFile):
             persistent_content=self._store,
         )
 
-    # ---------- internal helpers ----------
+    def __repr__(self) -> str:
+        """Return the representation."""
+        self.cleanup()
+        return f"{self.__class__.__name__}({self._store})"
 
-    def _is_expired(self, *, ts: int, now: int | None = None) -> bool:
-        """Check whether an entry has expired given epoch seconds."""
-        if self._ttl == 0:
-            return False
-        now = now if now is not None else _now()
-        return (now - ts) > self._ttl
-
-    def _purge_expired_at(
-        self,
-        *,
-        rpc_type: str,
-        method: str,
-    ) -> None:
-        """Remove expired entries for a given (rpc_type, method) bucket without creating new ones."""
-        if self._ttl == 0:
-            return
-        if not (bucket_by_method := self._store.get(rpc_type)):
-            return
-        if not (bucket_by_parameter := bucket_by_method.get(method)):
-            return
-        now = _now()
-        empty_params: list[str] = []
-        for p, bucket_by_ts in bucket_by_parameter.items():
-            expired_ts = [ts for ts, _r in list(bucket_by_ts.items()) if self._is_expired(ts=ts, now=now)]
-            for ts in expired_ts:
-                del bucket_by_ts[ts]
-            if not bucket_by_ts:
-                empty_params.append(p)
-        for p in empty_params:
-            bucket_by_parameter.pop(p, None)
-        if not bucket_by_parameter:
-            bucket_by_method.pop(method, None)
-            if not bucket_by_method:
-                self._store.pop(rpc_type, None)
-
-    def _bucket(self, *, rpc_type: str, method: str) -> dict[str, dict[int, tuple[Any, float]]]:
-        """Ensure and return the innermost bucket."""
-        return self._store[rpc_type][method]
-
-    # ---------- public API ----------
+    @property
+    def _should_save(self) -> bool:
+        """Determine if save operation should proceed."""
+        self.cleanup()
+        return len(self._store.items()) > 0
 
     @property
     def active(self) -> bool:
         """Return if session recorder is active."""
         return self._active
-
-    async def _deactivate_after_delay(
-        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
-    ) -> None:
-        """Change the state of the session recorder after a delay."""
-        self._is_recording = True
-        await asyncio.sleep(delay)
-        self._active = False
-        self._is_recording = False
-        if auto_save:
-            await self.save(randomize_output=randomize_output, use_ts_in_file_name=use_ts_in_file_name)
-        _LOGGER.debug("Deactivated session recorder after %s seconds", {delay})
 
     async def activate(
         self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
@@ -652,28 +608,6 @@ class SessionRecorder(BasePersistentFile):
                 ),
                 name=f"session_recorder_{self._central.name}",
             )
-        return True
-
-    async def deactivate(
-        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
-    ) -> bool:
-        """Deactivate the session recorder. Optionally after a delay(seconds)."""
-        if self._is_recording:
-            _LOGGER.info("DEACTIVATE: Recording session is already running.")
-            return False
-        if delay > 0:
-            self._central.looper.create_task(
-                target=self._deactivate_after_delay(
-                    delay=delay,
-                    auto_save=auto_save,
-                    randomize_output=randomize_output,
-                    use_ts_in_file_name=use_ts_in_file_name,
-                ),
-                name=f"session_recorder_{self._central.name}",
-            )
-        else:
-            self._active = False
-            self._is_recording = False
         return True
 
     def add_json_rpc_session(
@@ -715,27 +649,54 @@ class SessionRecorder(BasePersistentFile):
         except Exception as exc:
             _LOGGER.debug("ADD_XML_RPC_SESSION: failed with %s", extract_exc_args(exc=exc))
 
-    def set(
-        self,
-        *,
-        rpc_type: str,
-        method: str,
-        params: Any,
-        response: Any,
-        ts: int | datetime | None = None,
-    ) -> Self:
-        """Insert or update an entry."""
-        self._purge_expired_at(rpc_type=rpc_type, method=method)
-        frozen_param = _freeze_params(params)
-        # Normalize timestamp to int epoch seconds
-        if isinstance(ts, datetime):
-            ts_int = int(ts.timestamp())
-        elif isinstance(ts, int):
-            ts_int = ts
+    def cleanup(self) -> None:
+        """Purge all expired entries globally."""
+        for rpc_type in list(self._store.keys()):
+            for method in list(self._store[rpc_type].keys()):
+                self._purge_expired_at(rpc_type=rpc_type, method=method)
+
+    async def deactivate(
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
+    ) -> bool:
+        """Deactivate the session recorder. Optionally after a delay(seconds)."""
+        if self._is_recording:
+            _LOGGER.info("DEACTIVATE: Recording session is already running.")
+            return False
+        if delay > 0:
+            self._central.looper.create_task(
+                target=self._deactivate_after_delay(
+                    delay=delay,
+                    auto_save=auto_save,
+                    randomize_output=randomize_output,
+                    use_ts_in_file_name=use_ts_in_file_name,
+                ),
+                name=f"session_recorder_{self._central.name}",
+            )
         else:
-            ts_int = _now()
-        self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = response
-        return self
+            self._active = False
+            self._is_recording = False
+        return True
+
+    def delete(self, *, rpc_type: str, method: str, params: Any) -> bool:
+        """
+        Delete an entry if it exists. Returns True if removed.
+
+        Avoid creating buckets when the target does not exist.
+        Clean up empty parent buckets on successful deletion.
+        """
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return False
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return False
+        if (frozen_param := _freeze_params(params)) not in bucket_by_parameter:
+            return False
+        # Perform deletion
+        bucket_by_parameter.pop(frozen_param, None)
+        if not bucket_by_parameter:
+            bucket_by_method.pop(method, None)
+            if not bucket_by_method:
+                self._store.pop(rpc_type, None)
+        return True
 
     def get(
         self,
@@ -770,27 +731,6 @@ class SessionRecorder(BasePersistentFile):
         if self._refresh_on_get:
             bucket_by_ts[_now()] = resp
         return resp
-
-    def delete(self, *, rpc_type: str, method: str, params: Any) -> bool:
-        """
-        Delete an entry if it exists. Returns True if removed.
-
-        Avoid creating buckets when the target does not exist.
-        Clean up empty parent buckets on successful deletion.
-        """
-        if not (bucket_by_method := self._store.get(rpc_type)):
-            return False
-        if not (bucket_by_parameter := bucket_by_method.get(method)):
-            return False
-        if (frozen_param := _freeze_params(params)) not in bucket_by_parameter:
-            return False
-        # Perform deletion
-        bucket_by_parameter.pop(frozen_param, None)
-        if not bucket_by_parameter:
-            bucket_by_method.pop(method, None)
-            if not bucket_by_method:
-                self._store.pop(rpc_type, None)
-        return True
 
     def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
         """Return latest non-expired responses for a given (rpc_type, method)."""
@@ -844,12 +784,6 @@ class SessionRecorder(BasePersistentFile):
         except ValueError:
             return None
 
-    def cleanup(self) -> None:
-        """Purge all expired entries globally."""
-        for rpc_type in list(self._store.keys()):
-            for method in list(self._store[rpc_type].keys()):
-                self._purge_expired_at(rpc_type=rpc_type, method=method)
-
     def peek_ts(self, *, rpc_type: str, method: str, params: Any) -> datetime | None:
         """
         Return the most recent timestamp for a live entry, else None.
@@ -875,16 +809,78 @@ class SessionRecorder(BasePersistentFile):
             return None
         return datetime.fromtimestamp(latest_ts_int, tz=UTC)
 
-    @property
-    def _should_save(self) -> bool:
-        """Determine if save operation should proceed."""
-        self.cleanup()
-        return len(self._store.items()) > 0
+    def set(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+        response: Any,
+        ts: int | datetime | None = None,
+    ) -> Self:
+        """Insert or update an entry."""
+        self._purge_expired_at(rpc_type=rpc_type, method=method)
+        frozen_param = _freeze_params(params)
+        # Normalize timestamp to int epoch seconds
+        if isinstance(ts, datetime):
+            ts_int = int(ts.timestamp())
+        elif isinstance(ts, int):
+            ts_int = ts
+        else:
+            ts_int = _now()
+        self._bucket(rpc_type=rpc_type, method=method)[frozen_param][ts_int] = response
+        return self
 
-    def __repr__(self) -> str:
-        """Return the representation."""
-        self.cleanup()
-        return f"{self.__class__.__name__}({self._store})"
+    def _bucket(self, *, rpc_type: str, method: str) -> dict[str, dict[int, tuple[Any, float]]]:
+        """Ensure and return the innermost bucket."""
+        return self._store[rpc_type][method]
+
+    async def _deactivate_after_delay(
+        self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
+    ) -> None:
+        """Change the state of the session recorder after a delay."""
+        self._is_recording = True
+        await asyncio.sleep(delay)
+        self._active = False
+        self._is_recording = False
+        if auto_save:
+            await self.save(randomize_output=randomize_output, use_ts_in_file_name=use_ts_in_file_name)
+        _LOGGER.debug("Deactivated session recorder after %s seconds", {delay})
+
+    def _is_expired(self, *, ts: int, now: int | None = None) -> bool:
+        """Check whether an entry has expired given epoch seconds."""
+        if self._ttl == 0:
+            return False
+        now = now if now is not None else _now()
+        return (now - ts) > self._ttl
+
+    def _purge_expired_at(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+    ) -> None:
+        """Remove expired entries for a given (rpc_type, method) bucket without creating new ones."""
+        if self._ttl == 0:
+            return
+        if not (bucket_by_method := self._store.get(rpc_type)):
+            return
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return
+        now = _now()
+        empty_params: list[str] = []
+        for p, bucket_by_ts in bucket_by_parameter.items():
+            expired_ts = [ts for ts, _r in list(bucket_by_ts.items()) if self._is_expired(ts=ts, now=now)]
+            for ts in expired_ts:
+                del bucket_by_ts[ts]
+            if not bucket_by_ts:
+                empty_params.append(p)
+        for p in empty_params:
+            bucket_by_parameter.pop(p, None)
+        if not bucket_by_parameter:
+            bucket_by_method.pop(method, None)
+            if not bucket_by_method:
+                self._store.pop(rpc_type, None)
 
 
 def _freeze_params(params: Any) -> str:

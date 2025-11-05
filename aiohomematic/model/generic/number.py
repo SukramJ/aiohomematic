@@ -47,14 +47,14 @@ class DpFloat(BaseDpNumber[float | None]):
 
     __slots__ = ()
 
-    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> float | None:
-        """Prepare value before sending."""
-        return self._prepare_number_for_sending(value=value, type_converter=float, do_validate=do_validate)
-
     @state_property
     def value(self) -> float | None:
         """Return the value of the data_point."""
         return cast(float | None, self._value)
+
+    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> float | None:
+        """Prepare value before sending."""
+        return self._prepare_number_for_sending(value=value, type_converter=float, do_validate=do_validate)
 
 
 class DpInteger(BaseDpNumber[int | None]):
@@ -66,11 +66,11 @@ class DpInteger(BaseDpNumber[int | None]):
 
     __slots__ = ()
 
-    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int | None:
-        """Prepare value before sending."""
-        return self._prepare_number_for_sending(value=value, type_converter=int, do_validate=do_validate)
-
     @state_property
     def value(self) -> int | None:
         """Return the value of the data_point."""
         return cast(int | None, self._value)
+
+    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int | None:
+        """Prepare value before sending."""
+        return self._prepare_number_for_sending(value=value, type_converter=int, do_validate=do_validate)

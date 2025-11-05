@@ -39,37 +39,10 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
 
     _category = DataPointCategory.VALVE
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
-        self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
-        self._dp_group_state: DpBinarySensor = self._get_data_point(
-            field=Field.GROUP_STATE, data_point_type=DpBinarySensor
-        )
-
     @property
     def group_value(self) -> bool | None:
         """Return the current channel value of the valve."""
         return self._dp_group_state.value
-
-    @state_property
-    def value(self) -> bool | None:
-        """Return the current value of the valve."""
-        return self._dp_state.value
-
-    @bind_collector()
-    async def open(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
-        """Turn the valve on."""
-        if on_time is not None:
-            self.set_timer_on_time(on_time=on_time)
-        if not self.is_state_change(on=True):
-            return
-
-        if (timer := self.get_and_start_timer()) is not None:
-            await self._dp_on_time_value.send_value(value=timer, collector=collector, do_validate=False)
-        await self._dp_state.turn_on(collector=collector)
 
     @bind_collector()
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
@@ -90,6 +63,33 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
         if kwargs.get(_StateChangeArg.OFF) is not None and self.value is not False:
             return True
         return super().is_state_change(**kwargs)
+
+    @bind_collector()
+    async def open(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
+        """Turn the valve on."""
+        if on_time is not None:
+            self.set_timer_on_time(on_time=on_time)
+        if not self.is_state_change(on=True):
+            return
+
+        if (timer := self.get_and_start_timer()) is not None:
+            await self._dp_on_time_value.send_value(value=timer, collector=collector, do_validate=False)
+        await self._dp_state.turn_on(collector=collector)
+
+    @state_property
+    def value(self) -> bool | None:
+        """Return the current value of the valve."""
+        return self._dp_state.value
+
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+
+        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
+        self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
+        self._dp_group_state: DpBinarySensor = self._get_data_point(
+            field=Field.GROUP_STATE, data_point_type=DpBinarySensor
+        )
 
 
 def make_ip_irrigation_valve(

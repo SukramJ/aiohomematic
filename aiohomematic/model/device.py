@@ -193,25 +193,32 @@ class Device(LogContextMixin, PayloadMixin):
             self._name,
         )
 
-    async def finalize_init(self) -> None:
-        """Finalize the device init action after model setup."""
+    def __str__(self) -> str:
+        """Provide some useful information."""
+        return (
+            f"address: {self._address}, "
+            f"model: {self._model}, "
+            f"name: {self._name}, "
+            f"generic dps: {len(self.generic_data_points)}, "
+            f"calculated dps: {len(self.calculated_data_points)}, "
+            f"custom dps: {len(self.custom_data_points)}, "
+            f"events: {len(self.generic_events)}"
+        )
 
-        await self.load_value_cache()
-        for channel in self._channels.values():
-            await channel.finalize_init()
+    @property
+    def _dp_config_pending(self) -> GenericDataPoint | None:
+        """Return th CONFIG_PENDING data_point."""
+        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING)
 
-    def _identify_manufacturer(self) -> Manufacturer:
-        """Identify the manufacturer of a device."""
-        if self._model.lower().startswith("hb"):
-            return Manufacturer.HB
-        if self._model.lower().startswith("alpha"):
-            return Manufacturer.MOEHLENHOFF
-        return Manufacturer.EQ3
+    @property
+    def _dp_sticky_un_reach(self) -> GenericDataPoint | None:
+        """Return th STICKY_UN_REACH data_point."""
+        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH)
 
-    @info_property(log_context=True)
-    def address(self) -> str:
-        """Return the address of the device."""
-        return self._address
+    @property
+    def _dp_un_reach(self) -> GenericDataPoint | None:
+        """Return th UN REACH data_point."""
+        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH)
 
     @property
     def allow_undefined_generic_data_points(self) -> bool:
@@ -223,17 +230,6 @@ class Device(LogContextMixin, PayloadMixin):
                 if channel.custom_data_point is not None
             )
         )
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
-            return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
-        if (un_reach := self._dp_un_reach) is None:
-            un_reach = self._dp_sticky_un_reach
-        if un_reach is not None and un_reach.value is not None:
-            return not un_reach.value
-        return True
 
     @property
     def available_firmware(self) -> str | None:
@@ -277,11 +273,6 @@ class Device(LogContextMixin, PayloadMixin):
             channel.custom_data_point for channel in self._channels.values() if channel.custom_data_point is not None
         )
 
-    @info_property
-    def firmware(self) -> str:
-        """Return the firmware of the device."""
-        return self._description.get("FIRMWARE") or "0.0"
-
     @property
     def firmware_updatable(self) -> bool:
         """Return the firmware update state of the device."""
@@ -293,20 +284,20 @@ class Device(LogContextMixin, PayloadMixin):
         return DeviceFirmwareState(self._description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
 
     @property
-    def generic_events(self) -> tuple[GenericEvent, ...]:
-        """Return the generic events."""
-        events: list[GenericEvent] = []
-        for channel in self._channels.values():
-            events.extend(channel.generic_events)
-        return tuple(events)
-
-    @property
     def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
         """Return the generic data points."""
         data_points: list[GenericDataPoint] = []
         for channel in self._channels.values():
             data_points.extend(channel.generic_data_points)
         return tuple(data_points)
+
+    @property
+    def generic_events(self) -> tuple[GenericEvent, ...]:
+        """Return the generic events."""
+        events: list[GenericEvent] = []
+        for channel in self._channels.values():
+            events.extend(channel.generic_events)
+        return tuple(events)
 
     @property
     def has_custom_data_point_definition(self) -> bool:
@@ -334,10 +325,10 @@ class Device(LogContextMixin, PayloadMixin):
         """Return the id of the device."""
         return self._id
 
-    @info_property
-    def identifier(self) -> str:
-        """Return the identifier of the device."""
-        return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
+    @property
+    def ignore_for_custom_data_point(self) -> bool:
+        """Return if device should be ignored for custom data_point."""
+        return self._ignore_for_custom_data_point
 
     @property
     def ignore_on_initial_load(self) -> bool:
@@ -345,26 +336,16 @@ class Device(LogContextMixin, PayloadMixin):
         return self._ignore_on_initial_load
 
     @property
-    def interface(self) -> Interface:
-        """Return the interface of the device."""
-        return self._interface
-
-    @hm_property(log_context=True)
-    def interface_id(self) -> str:
-        """Return the interface_id of the device."""
-        return self._interface_id
-
-    @property
-    def ignore_for_custom_data_point(self) -> bool:
-        """Return if device should be ignored for custom data_point."""
-        return self._ignore_for_custom_data_point
-
-    @property
     def info(self) -> Mapping[str, Any]:
         """Return the device info."""
         device_info = dict(self.info_payload)
         device_info["central"] = self._central.info_payload
         return device_info
+
+    @property
+    def interface(self) -> Interface:
+        """Return the interface of the device."""
+        return self._interface
 
     @property
     def is_updatable(self) -> bool:
@@ -378,34 +359,10 @@ class Device(LogContextMixin, PayloadMixin):
             channel: channel.link_peer_channels for channel in self._channels.values() if channel.link_peer_channels
         }
 
-    @info_property
-    def manufacturer(self) -> str:
-        """Return the manufacturer of the device."""
-        return self._manufacturer
-
-    @info_property(log_context=True)
-    def model(self) -> str:
-        """Return the model of the device."""
-        return self._model
-
-    @info_property
-    def name(self) -> str:
-        """Return the name of the device."""
-        return self._name
-
     @property
     def product_group(self) -> ProductGroup:
         """Return the product group of the device."""
         return self._product_group
-
-    @info_property
-    def room(self) -> str | None:
-        """Return the room of the device, if only one assigned in the backend."""
-        if self._rooms and len(self._rooms) == 1:
-            return list(self._rooms)[0]
-        if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
-            return maintenance_channel.room
-        return None
 
     @property
     def rooms(self) -> set[str]:
@@ -432,21 +389,6 @@ class Device(LogContextMixin, PayloadMixin):
         """Return the value_cache of the device."""
         return self._value_cache
 
-    @property
-    def _dp_un_reach(self) -> GenericDataPoint | None:
-        """Return th UN REACH data_point."""
-        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH)
-
-    @property
-    def _dp_sticky_un_reach(self) -> GenericDataPoint | None:
-        """Return th STICKY_UN_REACH data_point."""
-        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH)
-
-    @property
-    def _dp_config_pending(self) -> GenericDataPoint | None:
-        """Return th CONFIG_PENDING data_point."""
-        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING)
-
     def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:
         """Add channel to group."""
         if group_no not in self._group_channels:
@@ -458,6 +400,22 @@ class Device(LogContextMixin, PayloadMixin):
         if channel_no not in self._channel_group:
             self._channel_group[channel_no] = group_no
 
+    @info_property(log_context=True)
+    def address(self) -> str:
+        """Return the address of the device."""
+        return self._address
+
+    @state_property
+    def available(self) -> bool:
+        """Return the availability of the device."""
+        if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
+            return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
+        if (un_reach := self._dp_un_reach) is None:
+            un_reach = self._dp_sticky_un_reach
+        if un_reach is not None and un_reach.value is not None:
+            return not un_reach.value
+        return True
+
     @inspector
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
@@ -465,84 +423,58 @@ class Device(LogContextMixin, PayloadMixin):
             for channel in self._channels.values():
                 await channel.create_central_link()
 
+    @loop_check
+    def emit_device_updated_callback(self) -> None:
+        """Do what is needed when the state of the device has been updated."""
+        self._set_modified_at()
+        for callback_handler in self._device_updated_callbacks:
+            try:
+                callback_handler()
+            except Exception as exc:
+                _LOGGER.warning("EMIT_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))
+
     @inspector
-    async def remove_central_links(self) -> None:
-        """Remove central links."""
-        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
-            for channel in self._channels.values():
-                await channel.remove_central_link()
+    async def export_device_definition(self) -> None:
+        """Export the device definition for current device."""
+        try:
+            device_exporter = _DefinitionExporter(device=self)
+            await device_exporter.export_data()
+        except Exception as exc:
+            raise AioHomematicException(f"EXPORT_DEVICE_DEFINITION failed: {extract_exc_args(exc=exc)}") from exc
 
-    @hm_property(cached=True)
-    def relevant_for_central_link_management(self) -> bool:
-        """Return if channel is relevant for central link management."""
-        return (
-            self._interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED, Interface.HMIP_RF)
-            and self._model not in VIRTUAL_REMOTE_MODELS
-        )
+    async def finalize_init(self) -> None:
+        """Finalize the device init action after model setup."""
 
-    def get_channel_group_no(self, *, channel_no: int | None) -> int | None:
-        """Return the group no of the channel."""
-        return self._channel_group.get(channel_no)
+        await self.load_value_cache()
+        for channel in self._channels.values():
+            await channel.finalize_init()
 
-    def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:
-        """Return if multiple channels are in the group."""
-        if channel_no is None:
-            return False
+    @info_property
+    def firmware(self) -> str:
+        """Return the firmware of the device."""
+        return self._description.get("FIRMWARE") or "0.0"
 
-        return len([s for s, m in self._channel_group.items() if m == self._channel_group.get(channel_no)]) > 1
+    def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPoint | None:
+        """Return a calculated data_point from device."""
+        if channel := self.get_channel(channel_address=channel_address):
+            return channel.get_calculated_data_point(parameter=parameter)
+        return None
 
     def get_channel(self, *, channel_address: str) -> Channel | None:
         """Get channel of device."""
         return self._channels.get(channel_address)
 
-    async def re_init_link_peers(self) -> None:
-        """Initiate link peers."""
-        for channel in self._channels.values():
-            await channel.init_link_peer()
+    def get_channel_group_no(self, *, channel_no: int | None) -> int | None:
+        """Return the group no of the channel."""
+        return self._channel_group.get(channel_no)
 
-    def identify_channel(self, *, text: str) -> Channel | None:
-        """Identify channel within a text."""
-        for channel_address, channel in self._channels.items():
-            if text.endswith(channel_address):
-                return channel
-            if channel.id in text:
-                return channel
-            if channel.device.id in text:
-                return channel
-
+    def get_custom_data_point(self, *, channel_no: int) -> hmce.CustomDataPoint | None:
+        """Return a custom data_point from device."""
+        if channel := self.get_channel(
+            channel_address=get_channel_address(device_address=self._address, channel_no=channel_no)
+        ):
+            return channel.custom_data_point
         return None
-
-    def remove(self) -> None:
-        """Remove data points from collections and central."""
-        for channel in self._channels.values():
-            channel.remove()
-
-    def register_device_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
-        """Register update callback."""
-        if callable(cb) and cb not in self._device_updated_callbacks:
-            self._device_updated_callbacks.append(cb)
-            return partial(self.unregister_device_updated_callback, cb=cb)
-        return None
-
-    def unregister_device_updated_callback(self, *, cb: Callable) -> None:
-        """Remove update callback."""
-        if cb in self._device_updated_callbacks:
-            self._device_updated_callbacks.remove(cb)
-
-    def register_firmware_update_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
-        """Register firmware update callback."""
-        if callable(cb) and cb not in self._firmware_update_callbacks:
-            self._firmware_update_callbacks.append(cb)
-            return partial(self.unregister_firmware_update_callback, cb=cb)
-        return None
-
-    def unregister_firmware_update_callback(self, *, cb: Callable) -> None:
-        """Remove firmware update callback."""
-        if cb in self._firmware_update_callbacks:
-            self._firmware_update_callbacks.remove(cb)
-
-    def _set_modified_at(self) -> None:
-        self._modified_at = datetime.now()
 
     def get_data_points(
         self,
@@ -579,20 +511,6 @@ class Device(LogContextMixin, PayloadMixin):
                 events[channel.no] = values
         return events
 
-    def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPoint | None:
-        """Return a calculated data_point from device."""
-        if channel := self.get_channel(channel_address=channel_address):
-            return channel.get_calculated_data_point(parameter=parameter)
-        return None
-
-    def get_custom_data_point(self, *, channel_no: int) -> hmce.CustomDataPoint | None:
-        """Return a custom data_point from device."""
-        if channel := self.get_channel(
-            channel_address=get_channel_address(device_address=self._address, channel_no=channel_no)
-        ):
-            return channel.custom_data_point
-        return None
-
     def get_generic_data_point(
         self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
     ) -> GenericDataPoint | None:
@@ -614,21 +532,62 @@ class Device(LogContextMixin, PayloadMixin):
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
 
-    def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
-        """Set the availability of the device."""
-        if self._forced_availability != forced_availability:
-            self._forced_availability = forced_availability
-            for dp in self.generic_data_points:
-                dp.emit_data_point_updated_event()
+    @info_property
+    def identifier(self) -> str:
+        """Return the identifier of the device."""
+        return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
+
+    def identify_channel(self, *, text: str) -> Channel | None:
+        """Identify channel within a text."""
+        for channel_address, channel in self._channels.items():
+            if text.endswith(channel_address):
+                return channel
+            if channel.id in text:
+                return channel
+            if channel.device.id in text:
+                return channel
+
+        return None
+
+    @hm_property(log_context=True)
+    def interface_id(self) -> str:
+        """Return the interface_id of the device."""
+        return self._interface_id
+
+    def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:
+        """Return if multiple channels are in the group."""
+        if channel_no is None:
+            return False
+
+        return len([s for s, m in self._channel_group.items() if m == self._channel_group.get(channel_no)]) > 1
 
     @inspector
-    async def export_device_definition(self) -> None:
-        """Export the device definition for current device."""
-        try:
-            device_exporter = _DefinitionExporter(device=self)
-            await device_exporter.export_data()
-        except Exception as exc:
-            raise AioHomematicException(f"EXPORT_DEVICE_DEFINITION failed: {extract_exc_args(exc=exc)}") from exc
+    async def load_value_cache(self) -> None:
+        """Init the parameter cache."""
+        if len(self.generic_data_points) > 0:
+            await self._value_cache.init_base_data_points()
+        if len(self.generic_events) > 0:
+            await self._value_cache.init_readable_events()
+
+    @info_property
+    def manufacturer(self) -> str:
+        """Return the manufacturer of the device."""
+        return self._manufacturer
+
+    @info_property(log_context=True)
+    def model(self) -> str:
+        """Return the model of the device."""
+        return self._model
+
+    @info_property
+    def name(self) -> str:
+        """Return the name of the device."""
+        return self._name
+
+    async def re_init_link_peers(self) -> None:
+        """Initiate link peers."""
+        for channel in self._channels.values():
+            await channel.init_link_peer()
 
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
@@ -650,28 +609,27 @@ class Device(LogContextMixin, PayloadMixin):
             for callback_handler in self._firmware_update_callbacks:
                 callback_handler()
 
-    @inspector
-    async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
-        """Update the firmware of the Homematic device."""
-        update_result = await self._client.update_device_firmware(device_address=self._address)
+    def register_device_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+        """Register update callback."""
+        if callable(cb) and cb not in self._device_updated_callbacks:
+            self._device_updated_callbacks.append(cb)
+            return partial(self.unregister_device_updated_callback, cb=cb)
+        return None
 
-        async def refresh_data() -> None:
-            for refresh_interval in refresh_after_update_intervals:
-                await asyncio.sleep(refresh_interval)
-                await self._central.refresh_firmware_data(device_address=self._address)
+    def register_firmware_update_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+        """Register firmware update callback."""
+        if callable(cb) and cb not in self._firmware_update_callbacks:
+            self._firmware_update_callbacks.append(cb)
+            return partial(self.unregister_firmware_update_callback, cb=cb)
+        return None
 
-        if refresh_after_update_intervals:
-            self._central.looper.create_task(target=refresh_data, name="refresh_firmware_data")
-
-        return update_result
-
-    @inspector
-    async def load_value_cache(self) -> None:
-        """Init the parameter cache."""
-        if len(self.generic_data_points) > 0:
-            await self._value_cache.init_base_data_points()
-        if len(self.generic_events) > 0:
-            await self._value_cache.init_readable_events()
+    @hm_property(cached=True)
+    def relevant_for_central_link_management(self) -> bool:
+        """Return if channel is relevant for central link management."""
+        return (
+            self._interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED, Interface.HMIP_RF)
+            and self._model not in VIRTUAL_REMOTE_MODELS
+        )
 
     @inspector
     async def reload_paramset_descriptions(self) -> None:
@@ -693,27 +651,69 @@ class Device(LogContextMixin, PayloadMixin):
             dp.update_parameter_data()
         self.emit_device_updated_callback()
 
-    @loop_check
-    def emit_device_updated_callback(self) -> None:
-        """Do what is needed when the state of the device has been updated."""
-        self._set_modified_at()
-        for callback_handler in self._device_updated_callbacks:
-            try:
-                callback_handler()
-            except Exception as exc:
-                _LOGGER.warning("EMIT_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))
+    def remove(self) -> None:
+        """Remove data points from collections and central."""
+        for channel in self._channels.values():
+            channel.remove()
 
-    def __str__(self) -> str:
-        """Provide some useful information."""
-        return (
-            f"address: {self._address}, "
-            f"model: {self._model}, "
-            f"name: {self._name}, "
-            f"generic dps: {len(self.generic_data_points)}, "
-            f"calculated dps: {len(self.calculated_data_points)}, "
-            f"custom dps: {len(self.custom_data_points)}, "
-            f"events: {len(self.generic_events)}"
-        )
+    @inspector
+    async def remove_central_links(self) -> None:
+        """Remove central links."""
+        if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
+            for channel in self._channels.values():
+                await channel.remove_central_link()
+
+    @info_property
+    def room(self) -> str | None:
+        """Return the room of the device, if only one assigned in the backend."""
+        if self._rooms and len(self._rooms) == 1:
+            return list(self._rooms)[0]
+        if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
+            return maintenance_channel.room
+        return None
+
+    def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
+        """Set the availability of the device."""
+        if self._forced_availability != forced_availability:
+            self._forced_availability = forced_availability
+            for dp in self.generic_data_points:
+                dp.emit_data_point_updated_event()
+
+    def unregister_device_updated_callback(self, *, cb: Callable) -> None:
+        """Remove update callback."""
+        if cb in self._device_updated_callbacks:
+            self._device_updated_callbacks.remove(cb)
+
+    def unregister_firmware_update_callback(self, *, cb: Callable) -> None:
+        """Remove firmware update callback."""
+        if cb in self._firmware_update_callbacks:
+            self._firmware_update_callbacks.remove(cb)
+
+    @inspector
+    async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
+        """Update the firmware of the Homematic device."""
+        update_result = await self._client.update_device_firmware(device_address=self._address)
+
+        async def refresh_data() -> None:
+            for refresh_interval in refresh_after_update_intervals:
+                await asyncio.sleep(refresh_interval)
+                await self._central.refresh_firmware_data(device_address=self._address)
+
+        if refresh_after_update_intervals:
+            self._central.looper.create_task(target=refresh_data, name="refresh_firmware_data")
+
+        return update_result
+
+    def _identify_manufacturer(self) -> Manufacturer:
+        """Identify the manufacturer of a device."""
+        if self._model.lower().startswith("hb"):
+            return Manufacturer.HB
+        if self._model.lower().startswith("alpha"):
+            return Manufacturer.MOEHLENHOFF
+        return Manufacturer.EQ3
+
+    def _set_modified_at(self) -> None:
+        self._modified_at = datetime.now()
 
 
 class Channel(LogContextMixin, PayloadMixin):
@@ -791,44 +791,21 @@ class Channel(LogContextMixin, PayloadMixin):
         self._function: Final = self._central.device_details.get_function_text(address=self._address)
         self.init_channel()
 
-    def init_channel(self) -> None:
-        """Init the channel."""
-        self._central.looper.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
+    def __str__(self) -> str:
+        """Provide some useful information."""
+        return (
+            f"address: {self._address}, "
+            f"type: {self._type_name}, "
+            f"generic dps: {len(self._generic_data_points)}, "
+            f"calculated dps: {len(self._calculated_data_points)}, "
+            f"custom dp: {self._custom_data_point is not None}, "
+            f"events: {len(self._generic_events)}"
+        )
 
-    async def init_link_peer(self) -> None:
-        """Init the link partners."""
-        if self._link_source_categories and self._device.model not in VIRTUAL_REMOTE_MODELS:
-            link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
-            if self._link_peer_addresses != link_peer_addresses:
-                self._link_peer_addresses = link_peer_addresses
-                self.emit_link_peer_changed_event()
-
-    async def load_values(self, *, call_source: CallSource, direct_call: bool = False) -> None:
-        """Load data for the channel."""
-        for ge in self._generic_data_points.values():
-            await ge.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        for gev in self._generic_events.values():
-            await gev.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        for cdp in self._calculated_data_points.values():
-            await cdp.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        if self._custom_data_point:
-            await self._custom_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
-
-    async def finalize_init(self) -> None:
-        """Finalize the channel init action after model setup."""
-        for ge in self._generic_data_points.values():
-            await ge.finalize_init()
-        for gev in self._generic_events.values():
-            await gev.finalize_init()
-        for cdp in self._calculated_data_points.values():
-            await cdp.finalize_init()
-        if self._custom_data_point:
-            await self._custom_data_point.finalize_init()
-
-    @info_property
-    def address(self) -> str:
-        """Return the address of the channel."""
-        return self._address
+    @property
+    def _has_key_press_events(self) -> bool:
+        """Return if channel has KEYPRESS events."""
+        return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPoint, ...]:
@@ -850,20 +827,15 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the device description for the channel."""
         return self._description
 
-    @hm_property(log_context=True)
-    def device(self) -> Device:
-        """Return the device of the channel."""
-        return self._device
+    @property
+    def full_name(self) -> str:
+        """Return the full name of the channel."""
+        return self._name_data.full_name
 
     @property
     def function(self) -> str | None:
         """Return the function of the channel."""
         return self._function
-
-    @property
-    def full_name(self) -> str:
-        """Return the full name of the channel."""
-        return self._name_data.full_name
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
@@ -901,6 +873,11 @@ class Channel(LogContextMixin, PayloadMixin):
         return self._id
 
     @property
+    def is_group_master(self) -> bool:
+        """Return if group master of channel."""
+        return self.group_no == self._no
+
+    @property
     def is_in_multi_group(self) -> bool:
         """Return if multiple channels are in the group."""
         if self._is_in_multi_group is None:
@@ -908,9 +885,9 @@ class Channel(LogContextMixin, PayloadMixin):
         return self._is_in_multi_group
 
     @property
-    def is_group_master(self) -> bool:
-        """Return if group master of channel."""
-        return self.group_no == self._no
+    def link_peer_addresses(self) -> tuple[str, ...]:
+        """Return the link peer addresses."""
+        return self._link_peer_addresses
 
     @property
     def link_peer_channels(self) -> tuple[Channel, ...]:
@@ -920,11 +897,6 @@ class Channel(LogContextMixin, PayloadMixin):
             for address in self._link_peer_addresses
             if self._link_peer_addresses and (channel := self._central.get_channel(channel_address=address)) is not None
         )
-
-    @property
-    def link_peer_addresses(self) -> tuple[str, ...]:
-        """Return the link peer addresses."""
-        return self._link_peer_addresses
 
     @property
     def link_peer_source_categories(self) -> tuple[str, ...]:
@@ -946,11 +918,6 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the name data of the channel."""
         return self._name_data
 
-    @hm_property(log_context=True)
-    def no(self) -> int | None:
-        """Return the channel_no of the channel."""
-        return self._no
-
     @property
     def operation_mode(self) -> str | None:
         """Return the channel operation mode if available."""
@@ -961,27 +928,16 @@ class Channel(LogContextMixin, PayloadMixin):
         return None
 
     @property
-    def paramset_keys(self) -> tuple[ParamsetKey, ...]:
-        """Return the paramset_keys of the channel."""
-        return self._paramset_keys
-
-    @property
     def paramset_descriptions(self) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Return the paramset descriptions of the channel."""
         return self._central.paramset_descriptions.get_channel_paramset_descriptions(
             interface_id=self._device.interface_id, channel_address=self._address
         )
 
-    @info_property
-    def room(self) -> str | None:
-        """Return the room of the device, if only one assigned in the backend."""
-        if self._rooms and len(self._rooms) == 1:
-            return list(self._rooms)[0]
-        if self.is_group_master:
-            return None
-        if (master_channel := self.group_master) is not None:
-            return master_channel.room
-        return None
+    @property
+    def paramset_keys(self) -> tuple[ParamsetKey, ...]:
+        """Return the paramset_keys of the channel."""
+        return self._paramset_keys
 
     @property
     def rooms(self) -> set[str]:
@@ -998,59 +954,6 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the unique_id of the channel."""
         return self._unique_id
 
-    @inspector
-    async def create_central_link(self) -> None:
-        """Create a central link to support press events."""
-        if self._has_key_press_events and not await self._has_central_link():
-            await self._device.client.report_value_usage(
-                address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
-            )
-
-    @inspector
-    async def remove_central_link(self) -> None:
-        """Remove a central link."""
-        if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
-            await self._device.client.report_value_usage(
-                address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
-            )
-
-    @inspector
-    async def cleanup_central_link_metadata(self) -> None:
-        """Cleanup the metadata for central links."""
-        if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
-            await self._device.client.set_metadata(
-                address=self._address,
-                data_id=REPORT_VALUE_USAGE_DATA,
-                value={key: value for key, value in metadata.items() if key in CLICK_EVENTS},
-            )
-
-    async def _has_central_link(self) -> bool:
-        """Check if central link exists."""
-        try:
-            if metadata := await self._device.client.get_metadata(
-                address=self._address, data_id=REPORT_VALUE_USAGE_DATA
-            ):
-                return any(
-                    key
-                    for key, value in metadata.items()
-                    if isinstance(key, str)
-                    and isinstance(value, int)
-                    and key == REPORT_VALUE_USAGE_VALUE_ID
-                    and value > 0
-                )
-        except BaseHomematicException as bhexc:
-            _LOGGER.debug("HAS_CENTRAL_LINK failed: %s", extract_exc_args(exc=bhexc))
-        return False
-
-    async def _has_program_ids(self) -> bool:
-        """Return if a channel has program ids."""
-        return bool(await self._device.client.has_program_ids(channel_hmid=self._id))
-
-    @property
-    def _has_key_press_events(self) -> bool:
-        """Return if channel has KEYPRESS events."""
-        return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
-
     def add_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
@@ -1065,52 +968,33 @@ class Channel(LogContextMixin, PayloadMixin):
         if isinstance(data_point, GenericEvent):
             self._generic_events[data_point.dpk] = data_point
 
-    def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
-        """Remove a data_point from a channel."""
-        if isinstance(data_point, BaseParameterDataPoint):
-            self._central.remove_event_subscription(data_point=data_point)
-        if isinstance(data_point, CalculatedDataPoint):
-            del self._calculated_data_points[data_point.dpk]
-        if isinstance(data_point, GenericDataPoint):
-            del self._generic_data_points[data_point.dpk]
-            self._device.unregister_device_updated_callback(cb=data_point.emit_data_point_updated_event)
-        if isinstance(data_point, hmce.CustomDataPoint):
-            self._custom_data_point = None
-        if isinstance(data_point, GenericEvent):
-            del self._generic_events[data_point.dpk]
-        data_point.emit_device_removed_event()
+    @info_property
+    def address(self) -> str:
+        """Return the address of the channel."""
+        return self._address
 
-    def remove(self) -> None:
-        """Remove data points from collections and central."""
-        for event in self.generic_events:
-            self._remove_data_point(data_point=event)
-        self._generic_events.clear()
+    @inspector
+    async def cleanup_central_link_metadata(self) -> None:
+        """Cleanup the metadata for central links."""
+        if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
+            await self._device.client.set_metadata(
+                address=self._address,
+                data_id=REPORT_VALUE_USAGE_DATA,
+                value={key: value for key, value in metadata.items() if key in CLICK_EVENTS},
+            )
 
-        for ccdp in self.calculated_data_points:
-            self._remove_data_point(data_point=ccdp)
-        self._calculated_data_points.clear()
+    @inspector
+    async def create_central_link(self) -> None:
+        """Create a central link to support press events."""
+        if self._has_key_press_events and not await self._has_central_link():
+            await self._device.client.report_value_usage(
+                address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
+            )
 
-        for gdp in self.generic_data_points:
-            self._remove_data_point(data_point=gdp)
-        self._generic_data_points.clear()
-
-        if self._custom_data_point:
-            self._remove_data_point(data_point=self._custom_data_point)
-
-    def _set_modified_at(self) -> None:
-        self._modified_at = datetime.now()
-
-    def register_link_peer_changed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
-        """Register the link peer changed callback."""
-        if callable(cb) and cb not in self._link_peer_changed_callbacks:
-            self._link_peer_changed_callbacks.append(cb)
-            return partial(self._unregister_link_peer_changed_callback, cb=cb)
-        return None
-
-    def _unregister_link_peer_changed_callback(self, *, cb: Callable) -> None:
-        """Unregister the link peer changed callback."""
-        if cb in self._link_peer_changed_callbacks:
-            self._link_peer_changed_callbacks.remove(cb)
+    @hm_property(log_context=True)
+    def device(self) -> Device:
+        """Return the device of the channel."""
+        return self._device
 
     @loop_check
     def emit_link_peer_changed_event(self) -> None:
@@ -1120,6 +1004,28 @@ class Channel(LogContextMixin, PayloadMixin):
                 callback_handler()
             except Exception as exc:
                 _LOGGER.warning("EMIT_LINK_PEER_CHANGED_EVENT failed: %s", extract_exc_args(exc=exc))
+
+    async def finalize_init(self) -> None:
+        """Finalize the channel init action after model setup."""
+        for ge in self._generic_data_points.values():
+            await ge.finalize_init()
+        for gev in self._generic_events.values():
+            await gev.finalize_init()
+        for cdp in self._calculated_data_points.values():
+            await cdp.finalize_init()
+        if self._custom_data_point:
+            await self._custom_data_point.finalize_init()
+
+    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPoint | None:
+        """Return a calculated data_point from device."""
+        return self._calculated_data_points.get(
+            DataPointKey(
+                interface_id=self._device.interface_id,
+                channel_address=self._address,
+                paramset_key=ParamsetKey.CALCULATED,
+                parameter=parameter,
+            )
+        )
 
     def get_data_points(
         self,
@@ -1150,17 +1056,6 @@ class Channel(LogContextMixin, PayloadMixin):
             event
             for event in self._generic_events.values()
             if (event.event_type == event_type and (registered is None or event.is_registered == registered))
-        )
-
-    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPoint | None:
-        """Return a calculated data_point from device."""
-        return self._calculated_data_points.get(
-            DataPointKey(
-                interface_id=self._device.interface_id,
-                channel_address=self._address,
-                paramset_key=ParamsetKey.CALCULATED,
-                parameter=parameter,
-            )
         )
 
     def get_generic_data_point(
@@ -1220,16 +1115,121 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return if channel is transmitter."""
         return category in self._link_target_categories
 
-    def __str__(self) -> str:
-        """Provide some useful information."""
-        return (
-            f"address: {self._address}, "
-            f"type: {self._type_name}, "
-            f"generic dps: {len(self._generic_data_points)}, "
-            f"calculated dps: {len(self._calculated_data_points)}, "
-            f"custom dp: {self._custom_data_point is not None}, "
-            f"events: {len(self._generic_events)}"
-        )
+    def init_channel(self) -> None:
+        """Init the channel."""
+        self._central.looper.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
+
+    async def init_link_peer(self) -> None:
+        """Init the link partners."""
+        if self._link_source_categories and self._device.model not in VIRTUAL_REMOTE_MODELS:
+            link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
+            if self._link_peer_addresses != link_peer_addresses:
+                self._link_peer_addresses = link_peer_addresses
+                self.emit_link_peer_changed_event()
+
+    async def load_values(self, *, call_source: CallSource, direct_call: bool = False) -> None:
+        """Load data for the channel."""
+        for ge in self._generic_data_points.values():
+            await ge.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        for gev in self._generic_events.values():
+            await gev.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        for cdp in self._calculated_data_points.values():
+            await cdp.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        if self._custom_data_point:
+            await self._custom_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
+
+    @hm_property(log_context=True)
+    def no(self) -> int | None:
+        """Return the channel_no of the channel."""
+        return self._no
+
+    def register_link_peer_changed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+        """Register the link peer changed callback."""
+        if callable(cb) and cb not in self._link_peer_changed_callbacks:
+            self._link_peer_changed_callbacks.append(cb)
+            return partial(self._unregister_link_peer_changed_callback, cb=cb)
+        return None
+
+    def remove(self) -> None:
+        """Remove data points from collections and central."""
+        for event in self.generic_events:
+            self._remove_data_point(data_point=event)
+        self._generic_events.clear()
+
+        for ccdp in self.calculated_data_points:
+            self._remove_data_point(data_point=ccdp)
+        self._calculated_data_points.clear()
+
+        for gdp in self.generic_data_points:
+            self._remove_data_point(data_point=gdp)
+        self._generic_data_points.clear()
+
+        if self._custom_data_point:
+            self._remove_data_point(data_point=self._custom_data_point)
+
+    @inspector
+    async def remove_central_link(self) -> None:
+        """Remove a central link."""
+        if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
+            await self._device.client.report_value_usage(
+                address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
+            )
+
+    @info_property
+    def room(self) -> str | None:
+        """Return the room of the device, if only one assigned in the backend."""
+        if self._rooms and len(self._rooms) == 1:
+            return list(self._rooms)[0]
+        if self.is_group_master:
+            return None
+        if (master_channel := self.group_master) is not None:
+            return master_channel.room
+        return None
+
+    async def _has_central_link(self) -> bool:
+        """Check if central link exists."""
+        try:
+            if metadata := await self._device.client.get_metadata(
+                address=self._address, data_id=REPORT_VALUE_USAGE_DATA
+            ):
+                return any(
+                    key
+                    for key, value in metadata.items()
+                    if isinstance(key, str)
+                    and isinstance(value, int)
+                    and key == REPORT_VALUE_USAGE_VALUE_ID
+                    and value > 0
+                )
+        except BaseHomematicException as bhexc:
+            _LOGGER.debug("HAS_CENTRAL_LINK failed: %s", extract_exc_args(exc=bhexc))
+        return False
+
+    async def _has_program_ids(self) -> bool:
+        """Return if a channel has program ids."""
+        return bool(await self._device.client.has_program_ids(channel_hmid=self._id))
+
+    def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
+        """Remove a data_point from a channel."""
+        if isinstance(data_point, BaseParameterDataPoint):
+            self._central.remove_event_subscription(data_point=data_point)
+        if isinstance(data_point, CalculatedDataPoint):
+            del self._calculated_data_points[data_point.dpk]
+        if isinstance(data_point, GenericDataPoint):
+            del self._generic_data_points[data_point.dpk]
+            self._device.unregister_device_updated_callback(cb=data_point.emit_data_point_updated_event)
+        if isinstance(data_point, hmce.CustomDataPoint):
+            self._custom_data_point = None
+        if isinstance(data_point, GenericEvent):
+            del self._generic_events[data_point.dpk]
+        data_point.emit_device_removed_event()
+
+    def _set_modified_at(self) -> None:
+        self._modified_at = datetime.now()
+
+    def _unregister_link_peer_changed_callback(self, *, cb: Callable) -> None:
+        """Unregister the link peer changed callback."""
+        if cb in self._link_peer_changed_callbacks:
+            self._link_peer_changed_callbacks.remove(cb)
 
 
 class _ValueCache:
@@ -1249,49 +1249,6 @@ class _ValueCache:
         self._device: Final = device
         # {key, CacheEntry}
         self._device_cache: Final[dict[DataPointKey, CacheEntry]] = {}
-
-    async def init_base_data_points(self) -> None:
-        """Load data by get_value."""
-        try:
-            for dp in self._get_base_data_points():
-                await dp.load_data_point_value(call_source=CallSource.HM_INIT)
-        except BaseHomematicException as bhexc:
-            _LOGGER.debug(
-                "init_base_data_points: Failed to init cache for channel0 %s, %s [%s]",
-                self._device.model,
-                self._device.address,
-                extract_exc_args(exc=bhexc),
-            )
-
-    def _get_base_data_points(self) -> set[GenericDataPoint]:
-        """Get data points of channel 0 and master."""
-        return {
-            dp
-            for dp in self._device.generic_data_points
-            if (
-                dp.channel.no == 0
-                and dp.paramset_key == ParamsetKey.VALUES
-                and dp.parameter in RELEVANT_INIT_PARAMETERS
-            )
-            or dp.paramset_key == ParamsetKey.MASTER
-        }
-
-    async def init_readable_events(self) -> None:
-        """Load data by get_value."""
-        try:
-            for event in self._get_readable_events():
-                await event.load_data_point_value(call_source=CallSource.HM_INIT)
-        except BaseHomematicException as bhexc:
-            _LOGGER.debug(
-                "init_base_events: Failed to init cache for channel0 %s, %s [%s]",
-                self._device.model,
-                self._device.address,
-                extract_exc_args(exc=bhexc),
-            )
-
-    def _get_readable_events(self) -> set[GenericEvent]:
-        """Get readable events."""
-        return {event for event in self._device.generic_events if event.is_readable}
 
     async def get_value(
         self,
@@ -1334,31 +1291,54 @@ class _ValueCache:
                 else value
             )
 
-    async def _get_values_for_cache(self, *, dpk: DataPointKey) -> dict[str, Any]:
-        """Return a value from the backend to store in cache."""
-        if not self._device.available:
+    async def init_base_data_points(self) -> None:
+        """Load data by get_value."""
+        try:
+            for dp in self._get_base_data_points():
+                await dp.load_data_point_value(call_source=CallSource.HM_INIT)
+        except BaseHomematicException as bhexc:
             _LOGGER.debug(
-                "GET_VALUES_FOR_CACHE failed: device %s (%s) is not available", self._device.name, self._device.address
+                "init_base_data_points: Failed to init cache for channel0 %s, %s [%s]",
+                self._device.model,
+                self._device.address,
+                extract_exc_args(exc=bhexc),
             )
-            return {}
-        if dpk.paramset_key == ParamsetKey.VALUES:
-            return {
-                dpk.parameter: await self._device.client.get_value(
-                    channel_address=dpk.channel_address,
-                    paramset_key=dpk.paramset_key,
-                    parameter=dpk.parameter,
-                    call_source=CallSource.HM_INIT,
-                )
-            }
-        return await self._device.client.get_paramset(
-            address=dpk.channel_address, paramset_key=dpk.paramset_key, call_source=CallSource.HM_INIT
-        )
+
+    async def init_readable_events(self) -> None:
+        """Load data by get_value."""
+        try:
+            for event in self._get_readable_events():
+                await event.load_data_point_value(call_source=CallSource.HM_INIT)
+        except BaseHomematicException as bhexc:
+            _LOGGER.debug(
+                "init_base_events: Failed to init cache for channel0 %s, %s [%s]",
+                self._device.model,
+                self._device.address,
+                extract_exc_args(exc=bhexc),
+            )
 
     def _add_entry_to_device_cache(self, *, dpk: DataPointKey, value: Any) -> None:
         """Add value to cache."""
         # write value to cache even if an exception has occurred
         # to avoid repetitive calls to the backend within max_age
         self._device_cache[dpk] = CacheEntry(value=value, refresh_at=datetime.now())
+
+    def _get_base_data_points(self) -> set[GenericDataPoint]:
+        """Get data points of channel 0 and master."""
+        return {
+            dp
+            for dp in self._device.generic_data_points
+            if (
+                dp.channel.no == 0
+                and dp.paramset_key == ParamsetKey.VALUES
+                and dp.parameter in RELEVANT_INIT_PARAMETERS
+            )
+            or dp.paramset_key == ParamsetKey.MASTER
+        }
+
+    def _get_readable_events(self) -> set[GenericEvent]:
+        """Get readable events."""
+        return {event for event in self._device.generic_events if event.is_readable}
 
     def _get_value_from_cache(
         self,
@@ -1383,6 +1363,26 @@ class _ValueCache:
         if (cache_entry := self._device_cache.get(dpk, CacheEntry.empty())) and cache_entry.is_valid:
             return cache_entry.value
         return NO_CACHE_ENTRY
+
+    async def _get_values_for_cache(self, *, dpk: DataPointKey) -> dict[str, Any]:
+        """Return a value from the backend to store in cache."""
+        if not self._device.available:
+            _LOGGER.debug(
+                "GET_VALUES_FOR_CACHE failed: device %s (%s) is not available", self._device.name, self._device.address
+            )
+            return {}
+        if dpk.paramset_key == ParamsetKey.VALUES:
+            return {
+                dpk.parameter: await self._device.client.get_value(
+                    channel_address=dpk.channel_address,
+                    paramset_key=dpk.paramset_key,
+                    parameter=dpk.parameter,
+                    call_source=CallSource.HM_INIT,
+                )
+            }
+        return await self._device.client.get_paramset(
+            address=dpk.channel_address, paramset_key=dpk.paramset_key, call_source=CallSource.HM_INIT
+        )
 
 
 class _DefinitionExporter:

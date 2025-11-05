@@ -26,6 +26,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
 import logging
+import time
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu
@@ -66,6 +67,35 @@ class CommandCache:
         # (paramset_key, device_address, channel_no, parameter)
         self._last_send_command: Final[dict[DataPointKey, tuple[Any, datetime]]] = {}
 
+    def add_combined_parameter(
+        self, *, parameter: str, channel_address: str, combined_parameter: str
+    ) -> set[DP_KEY_VALUE]:
+        """Add data from combined parameter."""
+        if values := convert_combined_parameter_to_paramset(parameter=parameter, value=combined_parameter):
+            return self.add_put_paramset(
+                channel_address=channel_address,
+                paramset_key=ParamsetKey.VALUES,
+                values=values,
+            )
+        return set()
+
+    def add_put_paramset(
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+    ) -> set[DP_KEY_VALUE]:
+        """Add data from put paramset command."""
+        dpk_values: set[DP_KEY_VALUE] = set()
+        now_ts = datetime.now()
+        for parameter, value in values.items():
+            dpk = DataPointKey(
+                interface_id=self._interface_id,
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=parameter,
+            )
+            self._last_send_command[dpk] = (value, now_ts)
+            dpk_values.add((dpk, value))
+        return dpk_values
+
     def add_set_value(
         self,
         *,
@@ -88,35 +118,6 @@ class CommandCache:
         )
         self._last_send_command[dpk] = (value, now_ts)
         return {(dpk, value)}
-
-    def add_put_paramset(
-        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
-    ) -> set[DP_KEY_VALUE]:
-        """Add data from put paramset command."""
-        dpk_values: set[DP_KEY_VALUE] = set()
-        now_ts = datetime.now()
-        for parameter, value in values.items():
-            dpk = DataPointKey(
-                interface_id=self._interface_id,
-                channel_address=channel_address,
-                paramset_key=paramset_key,
-                parameter=parameter,
-            )
-            self._last_send_command[dpk] = (value, now_ts)
-            dpk_values.add((dpk, value))
-        return dpk_values
-
-    def add_combined_parameter(
-        self, *, parameter: str, channel_address: str, combined_parameter: str
-    ) -> set[DP_KEY_VALUE]:
-        """Add data from combined parameter."""
-        if values := convert_combined_parameter_to_paramset(parameter=parameter, value=combined_parameter):
-            return self.add_put_paramset(
-                channel_address=channel_address,
-                paramset_key=ParamsetKey.VALUES,
-                values=values,
-            )
-        return set()
 
     def get_last_value_send(self, *, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
         """Return the last send values."""
@@ -171,6 +172,57 @@ class DeviceDetailsCache:
         self._names_cache: Final[dict[str, str]] = {}
         self._refreshed_at = INIT_DATETIME
 
+    @property
+    def device_channel_ids(self) -> Mapping[str, str]:
+        """Return device channel ids."""
+        return self._device_channel_ids
+
+    def add_address_id(self, *, address: str, hmid: str) -> None:
+        """Add channel id for a channel."""
+        self._device_channel_ids[address] = hmid
+
+    def add_interface(self, *, address: str, interface: Interface) -> None:
+        """Add interface to cache."""
+        self._interface_cache[address] = interface
+
+    def add_name(self, *, address: str, name: str) -> None:
+        """Add name to cache."""
+        self._names_cache[address] = name
+
+    def clear(self) -> None:
+        """Clear the cache."""
+        self._names_cache.clear()
+        self._channel_rooms.clear()
+        self._device_rooms.clear()
+        self._functions.clear()
+        self._refreshed_at = INIT_DATETIME
+
+    def get_address_id(self, *, address: str) -> str:
+        """Get id for address."""
+        return self._device_channel_ids.get(address) or "0"
+
+    def get_channel_rooms(self, *, channel_address: str) -> set[str]:
+        """Return rooms by channel_address."""
+        return self._channel_rooms[channel_address]
+
+    def get_device_rooms(self, *, device_address: str) -> set[str]:
+        """Return all rooms by device_address."""
+        return set(self._device_rooms.get(device_address, ()))
+
+    def get_function_text(self, *, address: str) -> str | None:
+        """Return function by address."""
+        if functions := self._functions.get(address):
+            return ",".join(functions)
+        return None
+
+    def get_interface(self, *, address: str) -> Interface:
+        """Get interface from cache."""
+        return self._interface_cache.get(address) or Interface.BIDCOS_RF
+
+    def get_name(self, *, address: str) -> str | None:
+        """Get name from cache."""
+        return self._names_cache.get(address)
+
     async def load(self, *, direct_call: bool = False) -> None:
         """Fetch names from the backend."""
         if direct_call is False and changed_within_seconds(
@@ -191,34 +243,19 @@ class DeviceDetailsCache:
         self._functions.update(await self._get_all_functions())
         self._refreshed_at = datetime.now()
 
-    @property
-    def device_channel_ids(self) -> Mapping[str, str]:
-        """Return device channel ids."""
-        return self._device_channel_ids
+    def remove_device(self, *, device: Device) -> None:
+        """Remove name from cache."""
+        if device.address in self._names_cache:
+            del self._names_cache[device.address]
+        for channel_address in device.channels:
+            if channel_address in self._names_cache:
+                del self._names_cache[channel_address]
 
-    def add_name(self, *, address: str, name: str) -> None:
-        """Add name to cache."""
-        self._names_cache[address] = name
-
-    def get_name(self, *, address: str) -> str | None:
-        """Get name from cache."""
-        return self._names_cache.get(address)
-
-    def add_interface(self, *, address: str, interface: Interface) -> None:
-        """Add interface to cache."""
-        self._interface_cache[address] = interface
-
-    def get_interface(self, *, address: str) -> Interface:
-        """Get interface from cache."""
-        return self._interface_cache.get(address) or Interface.BIDCOS_RF
-
-    def add_address_id(self, *, address: str, hmid: str) -> None:
-        """Add channel id for a channel."""
-        self._device_channel_ids[address] = hmid
-
-    def get_address_id(self, *, address: str) -> str:
-        """Get id for address."""
-        return self._device_channel_ids.get(address) or "0"
+    async def _get_all_functions(self) -> Mapping[str, set[str]]:
+        """Get all functions, if available."""
+        if client := self._central.primary_client:
+            return await client.get_all_functions()
+        return {}
 
     async def _get_all_rooms(self) -> Mapping[str, set[str]]:
         """Get all rooms, if available."""
@@ -233,42 +270,6 @@ class DeviceDetailsCache:
             if rooms:
                 _device_rooms[get_device_address(address=channel_address)].update(rooms)
         return _device_rooms
-
-    def get_device_rooms(self, *, device_address: str) -> set[str]:
-        """Return all rooms by device_address."""
-        return set(self._device_rooms.get(device_address, ()))
-
-    def get_channel_rooms(self, *, channel_address: str) -> set[str]:
-        """Return rooms by channel_address."""
-        return self._channel_rooms[channel_address]
-
-    async def _get_all_functions(self) -> Mapping[str, set[str]]:
-        """Get all functions, if available."""
-        if client := self._central.primary_client:
-            return await client.get_all_functions()
-        return {}
-
-    def get_function_text(self, *, address: str) -> str | None:
-        """Return function by address."""
-        if functions := self._functions.get(address):
-            return ",".join(functions)
-        return None
-
-    def remove_device(self, *, device: Device) -> None:
-        """Remove name from cache."""
-        if device.address in self._names_cache:
-            del self._names_cache[device.address]
-        for channel_address in device.channels:
-            if channel_address in self._names_cache:
-                del self._names_cache[channel_address]
-
-    def clear(self) -> None:
-        """Clear the cache."""
-        self._names_cache.clear()
-        self._channel_rooms.clear()
-        self._device_rooms.clear()
-        self._functions.clear()
-        self._refreshed_at = INIT_DATETIME
 
 
 class CentralDataCache:
@@ -286,6 +287,32 @@ class CentralDataCache:
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
+
+    def add_data(self, *, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
+        """Add data to cache."""
+        self._value_cache[interface] = all_device_data
+        self._refreshed_at[interface] = datetime.now()
+
+    def clear(self, *, interface: Interface | None = None) -> None:
+        """Clear the cache."""
+        if interface:
+            self._value_cache[interface] = {}
+            self._refreshed_at[interface] = INIT_DATETIME
+        else:
+            for _interface in self._central.interfaces:
+                self.clear(interface=_interface)
+
+    def get_data(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+        parameter: str,
+    ) -> Any:
+        """Get data from cache."""
+        if not self._is_empty(interface=interface) and (iface_cache := self._value_cache.get(interface)) is not None:
+            return iface_cache.get(f"{interface}.{channel_address}.{parameter}", NO_CACHE_ENTRY)
+        return NO_CACHE_ENTRY
 
     async def load(self, *, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from the backend."""
@@ -310,32 +337,6 @@ class CentralDataCache:
         """Refresh data_point data."""
         for dp in self._central.get_readable_generic_data_points(paramset_key=paramset_key, interface=interface):
             await dp.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
-
-    def add_data(self, *, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
-        """Add data to cache."""
-        self._value_cache[interface] = all_device_data
-        self._refreshed_at[interface] = datetime.now()
-
-    def get_data(
-        self,
-        *,
-        interface: Interface,
-        channel_address: str,
-        parameter: str,
-    ) -> Any:
-        """Get data from cache."""
-        if not self._is_empty(interface=interface) and (iface_cache := self._value_cache.get(interface)) is not None:
-            return iface_cache.get(f"{interface}.{channel_address}.{parameter}", NO_CACHE_ENTRY)
-        return NO_CACHE_ENTRY
-
-    def clear(self, *, interface: Interface | None = None) -> None:
-        """Clear the cache."""
-        if interface:
-            self._value_cache[interface] = {}
-            self._refreshed_at[interface] = INIT_DATETIME
-        else:
-            for _interface in self._central.interfaces:
-                self.clear(interface=_interface)
 
     def _get_refreshed_at(self, *, interface: Interface) -> datetime:
         """Return when cache has been refreshed."""
@@ -362,9 +363,11 @@ class PingPongCache:
         "_interface_id",
         "_pending_pong_logged",
         "_pending_pongs",
+        "_pending_seen_at",
         "_ttl",
         "_unknown_pong_logged",
         "_unknown_pongs",
+        "_unknown_seen_at",
     )
 
     def __init__(
@@ -381,15 +384,12 @@ class PingPongCache:
         self._interface_id: Final = interface_id
         self._allowed_delta: Final = allowed_delta
         self._ttl: Final = ttl
-        self._pending_pongs: Final[set[datetime]] = set()
-        self._unknown_pongs: Final[set[datetime]] = set()
         self._pending_pong_logged: bool = False
+        self._pending_pongs: Final[set[str]] = set()
+        self._pending_seen_at: Final[dict[str, float]] = {}
         self._unknown_pong_logged: bool = False
-
-    @property
-    def allowed_delta(self) -> int:
-        """Return the allowed delta."""
-        return self._allowed_delta
+        self._unknown_pongs: Final[set[str]] = set()
+        self._unknown_seen_at: Final[dict[str, float]] = {}
 
     @property
     def _pending_pong_count(self) -> int:
@@ -401,16 +401,52 @@ class PingPongCache:
         """Return the unknown pong count."""
         return len(self._unknown_pongs)
 
+    @property
+    def allowed_delta(self) -> int:
+        """Return the allowed delta."""
+        return self._allowed_delta
+
     def clear(self) -> None:
         """Clear the cache."""
         self._pending_pongs.clear()
         self._unknown_pongs.clear()
+        self._pending_seen_at.clear()
+        self._unknown_seen_at.clear()
         self._pending_pong_logged = False
         self._unknown_pong_logged = False
 
-    def handle_send_ping(self, *, ping_ts: datetime) -> None:
-        """Handle send ping timestamp."""
-        self._pending_pongs.add(ping_ts)
+    def handle_received_pong(self, *, pong_token: str) -> None:
+        """Handle received pong token."""
+        if pong_token in self._pending_pongs:
+            self._pending_pongs.remove(pong_token)
+            self._pending_seen_at.pop(pong_token, None)
+            self._cleanup_pending_pongs()
+            count = self._pending_pong_count
+            self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+            _LOGGER.debug(
+                "PING PONG CACHE: Reduce pending PING count: %s - %i for token: %s",
+                self._interface_id,
+                count,
+                pong_token,
+            )
+        else:
+            # Track unknown pong with monotonic insertion time for TTL expiry.
+            self._unknown_pongs.add(pong_token)
+            self._unknown_seen_at[pong_token] = time.monotonic()
+            self._cleanup_unknown_pongs()
+            count = self._unknown_pong_count
+            self._check_and_emit_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
+            _LOGGER.debug(
+                "PING PONG CACHE: Increase unknown PONG count: %s - %i for token: %s",
+                self._interface_id,
+                count,
+                pong_token,
+            )
+
+    def handle_send_ping(self, *, ping_token: str) -> None:
+        """Handle send ping token."""
+        self._pending_pongs.add(ping_token)
+        self._pending_seen_at[ping_token] = time.monotonic()
         self._cleanup_pending_pongs()
         # Throttle event emission to every second ping to avoid spamming callbacks,
         # but always emit when crossing the high threshold.
@@ -418,64 +454,11 @@ class PingPongCache:
         if (count > self._allowed_delta) or (count % 2 == 0):
             self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
         _LOGGER.debug(
-            "PING PONG CACHE: Increase pending PING count: %s - %i for ts: %s",
+            "PING PONG CACHE: Increase pending PING count: %s - %i for token: %s",
             self._interface_id,
             count,
-            ping_ts,
+            ping_token,
         )
-
-    def handle_received_pong(self, *, pong_ts: datetime) -> None:
-        """Handle received pong timestamp."""
-        if pong_ts in self._pending_pongs:
-            self._pending_pongs.remove(pong_ts)
-            self._cleanup_pending_pongs()
-            count = self._pending_pong_count
-            self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
-            _LOGGER.debug(
-                "PING PONG CACHE: Reduce pending PING count: %s - %i for ts: %s",
-                self._interface_id,
-                count,
-                pong_ts,
-            )
-        else:
-            self._unknown_pongs.add(pong_ts)
-            self._cleanup_unknown_pongs()
-            count = self._unknown_pong_count
-            self._check_and_emit_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
-            _LOGGER.debug(
-                "PING PONG CACHE: Increase unknown PONG count: %s - %i for ts: %s",
-                self._interface_id,
-                count,
-                pong_ts,
-            )
-
-    def _cleanup_pending_pongs(self) -> None:
-        """Cleanup too old pending pongs."""
-        dt_now = datetime.now()
-        for pp_pong_ts in list(self._pending_pongs):
-            # Only expire entries that are actually older than the TTL.
-            if (dt_now - pp_pong_ts).total_seconds() > self._ttl:
-                self._pending_pongs.remove(pp_pong_ts)
-                _LOGGER.debug(
-                    "PING PONG CACHE: Removing expired pending PONG: %s - %i for ts: %s",
-                    self._interface_id,
-                    self._pending_pong_count,
-                    pp_pong_ts,
-                )
-
-    def _cleanup_unknown_pongs(self) -> None:
-        """Cleanup too old unknown pongs."""
-        dt_now = datetime.now()
-        for up_pong_ts in list(self._unknown_pongs):
-            # Only expire entries that are actually older than the TTL.
-            if (dt_now - up_pong_ts).total_seconds() > self._ttl:
-                self._unknown_pongs.remove(up_pong_ts)
-                _LOGGER.debug(
-                    "PING PONG CACHE: Removing expired unknown PONG: %s - %i or ts: %s",
-                    self._interface_id,
-                    self._unknown_pong_count,
-                    up_pong_ts,
-                )
 
     def _check_and_emit_pong_event(self, *, event_type: InterfaceEventType) -> None:
         """Emit an event about the pong status."""
@@ -549,3 +532,39 @@ class PingPongCache:
                 # For unknown pongs, only reset the logged flag when we drop below the threshold.
                 # We do not emit an event here since there is no explicit expectation for a reset notification.
                 self._unknown_pong_logged = False
+
+    def _cleanup_pending_pongs(self) -> None:
+        """Cleanup too old pending pongs, using monotonic time."""
+        now = time.monotonic()
+        for pp_pong_ts in list(self._pending_pongs):
+            seen_at = self._pending_seen_at.get(pp_pong_ts)
+            expired = False
+            if seen_at is not None:
+                expired = (now - seen_at) > self._ttl
+            if expired:
+                self._pending_pongs.remove(pp_pong_ts)
+                self._pending_seen_at.pop(pp_pong_ts, None)
+                _LOGGER.debug(
+                    "PING PONG CACHE: Removing expired pending PONG: %s - %i for ts: %s",
+                    self._interface_id,
+                    self._pending_pong_count,
+                    pp_pong_ts,
+                )
+
+    def _cleanup_unknown_pongs(self) -> None:
+        """Cleanup too old unknown pongs, using monotonic time."""
+        now = time.monotonic()
+        for up_pong_ts in list(self._unknown_pongs):
+            seen_at = self._unknown_seen_at.get(up_pong_ts)
+            expired = False
+            if seen_at is not None:
+                expired = (now - seen_at) > self._ttl
+            if expired:
+                self._unknown_pongs.remove(up_pong_ts)
+                self._unknown_seen_at.pop(up_pong_ts, None)
+                _LOGGER.debug(
+                    "PING PONG CACHE: Removing expired unknown PONG: %s - %i or ts: %s",
+                    self._interface_id,
+                    self._unknown_pong_count,
+                    up_pong_ts,
+                )

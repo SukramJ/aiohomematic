@@ -78,14 +78,6 @@ class ApparentTemperature(BaseClimateSensor):
         super().__init__(channel=channel)
         self._unit = "°C"
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_wind_speed: DpSensor = self._add_data_point(
-            parameter=Parameter.WIND_SPEED, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-        )
-
     @staticmethod
     def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
         """Return if this calculated data point is relevant for the model."""
@@ -115,6 +107,14 @@ class ApparentTemperature(BaseClimateSensor):
                 wind_speed=self._dp_wind_speed.value,
             )
         return None
+
+    def _init_data_point_fields(self) -> None:
+        """Init the data point fields."""
+        super()._init_data_point_fields()
+
+        self._dp_wind_speed: DpSensor = self._add_data_point(
+            parameter=Parameter.WIND_SPEED, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
+        )
 
 
 class DewPoint(BaseClimateSensor):

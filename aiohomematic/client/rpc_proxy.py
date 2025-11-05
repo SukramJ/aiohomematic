@@ -116,14 +116,18 @@ class BaseRpcProxy(ABC):
         # Due to magic method the log_context must be defined manually.
         self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": tls}
 
-    @abstractmethod
-    async def do_init(self) -> None:
-        """Init the rpc proxy."""
+    def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        """Magic method dispatcher."""
+        return self._magic_method(self._async_request, *args, **kwargs)
 
     @property
     def supported_methods(self) -> tuple[str, ...]:
         """Return the supported methods."""
         return self._supported_methods
+
+    @abstractmethod
+    async def do_init(self) -> None:
+        """Init the rpc proxy."""
 
     async def stop(self) -> None:
         """Stop depending services."""
@@ -134,10 +138,6 @@ class BaseRpcProxy(ABC):
     @abstractmethod
     async def _async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Call method on server side."""
-
-    def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-        """Magic method dispatcher."""
-        return self._magic_method(self._async_request, *args, **kwargs)
 
     def _record_session(
         self, *, method: str, params: tuple[Any, ...], response: Any | None = None, exc: Exception | None = None
@@ -185,6 +185,13 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             headers=headers,
             **self._kwargs,
         )
+
+    async def do_init(self) -> None:
+        """Init the xml rpc proxy."""
+        if supported_methods := await self.system.listMethods():
+            # ping is missing in VirtualDevices interface but can be used.
+            supported_methods.append(_RpcMethod.PING)
+            self._supported_methods = tuple(supported_methods)
 
     async def _async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Call method on server side."""
@@ -267,13 +274,6 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 raise NoConnectionException(f"No connection to {self.log_context} ({perr.errmsg})") from perr
         except Exception as exc:
             raise ClientException(exc) from exc
-
-    async def do_init(self) -> None:
-        """Init the xml rpc proxy."""
-        if supported_methods := await self.system.listMethods():
-            # ping is missing in VirtualDevices interface but can be used.
-            supported_methods.append(_RpcMethod.PING)
-            self._supported_methods = tuple(supported_methods)
 
 
 def _cleanup_args(*args: Any) -> Any:

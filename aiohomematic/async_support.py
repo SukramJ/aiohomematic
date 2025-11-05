@@ -31,6 +31,24 @@ class Looper:
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         self._loop = asyncio.get_event_loop()
 
+    def async_add_executor_job[T](
+        self,
+        target: Callable[..., T],
+        *args: Any,
+        name: str,
+        executor: ThreadPoolExecutor | None = None,
+    ) -> asyncio.Future[T]:
+        """Add an executor job from within the event_loop."""
+        try:
+            task = self._loop.run_in_executor(executor, target, *args)
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.remove)
+        except (TimeoutError, CancelledError) as err:  # pragma: no cover
+            message = f"async_add_executor_job: task cancelled for {name} [{extract_exc_args(exc=err)}]"
+            _LOGGER.debug(message)
+            raise AioHomematicException(message) from err
+        return task
+
     async def block_till_done(self, *, wait_time: float | None = None) -> None:
         """
         Block until all pending work is done.
@@ -72,6 +90,56 @@ class Looper:
                 for task in tasks:
                     _LOGGER.debug("Waiting for task: %s", task)
 
+    def cancel_tasks(self) -> None:
+        """Cancel running tasks."""
+        for task in self._tasks.copy():
+            if not task.cancelled():
+                task.cancel()
+
+    def create_task(
+        self, *, target: Coroutine[Any, Any, Any] | Callable[[], Coroutine[Any, Any, Any]], name: str
+    ) -> None:
+        """
+        Schedule a coroutine to run in the loop.
+
+        Accepts either an already-created coroutine object or a zero-argument
+        callable that returns a coroutine. The callable form defers coroutine
+        creation until inside the event loop, which avoids "was never awaited"
+        warnings if callers only inspect the parameters (e.g. in tests).
+        """
+        try:
+            self._loop.call_soon_threadsafe(self._async_create_task, target, name)
+        except CancelledError:
+            # Scheduling failed; if a coroutine object was provided, close it to
+            # avoid 'was never awaited' warnings.
+            if asyncio.iscoroutine(target):
+                with contextlib.suppress(Exception):
+                    cast(CoroutineType, target).close()
+            _LOGGER.debug("create_task: task cancelled for %s", name)
+            return
+
+    def run_coroutine(self, *, coro: Coroutine, name: str) -> Any:
+        """Call coroutine from sync."""
+        try:
+            return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
+        except CancelledError:  # pragma: no cover
+            _LOGGER.debug(
+                "run_coroutine: coroutine interrupted for %s",
+                name,
+            )
+            return None
+
+    def _async_create_task[R](  # kwonly: disable
+        self, target: Coroutine[Any, Any, R] | Callable[[], Coroutine[Any, Any, R]], name: str
+    ) -> asyncio.Task[R]:
+        """Create a task from within the event loop. Must be run in the event loop."""
+        # If target is a callable, call it here to create the coroutine inside the loop
+        coro: Coroutine[Any, Any, R] = target if asyncio.iscoroutine(target) else target()
+        task = self._loop.create_task(coro, name=name)
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.remove)
+        return task
+
     async def _await_and_log_pending(
         self, *, pending: Collection[asyncio.Future[Any]], deadline: float | None
     ) -> set[asyncio.Future[Any]]:
@@ -101,74 +169,6 @@ class Looper:
             if deadline is not None and monotonic() >= deadline:
                 return pending_set
         return set()
-
-    def create_task(
-        self, *, target: Coroutine[Any, Any, Any] | Callable[[], Coroutine[Any, Any, Any]], name: str
-    ) -> None:
-        """
-        Schedule a coroutine to run in the loop.
-
-        Accepts either an already-created coroutine object or a zero-argument
-        callable that returns a coroutine. The callable form defers coroutine
-        creation until inside the event loop, which avoids "was never awaited"
-        warnings if callers only inspect the parameters (e.g. in tests).
-        """
-        try:
-            self._loop.call_soon_threadsafe(self._async_create_task, target, name)
-        except CancelledError:
-            # Scheduling failed; if a coroutine object was provided, close it to
-            # avoid 'was never awaited' warnings.
-            if asyncio.iscoroutine(target):
-                with contextlib.suppress(Exception):
-                    cast(CoroutineType, target).close()
-            _LOGGER.debug("create_task: task cancelled for %s", name)
-            return
-
-    def _async_create_task[R](  # kwonly: disable
-        self, target: Coroutine[Any, Any, R] | Callable[[], Coroutine[Any, Any, R]], name: str
-    ) -> asyncio.Task[R]:
-        """Create a task from within the event loop. Must be run in the event loop."""
-        # If target is a callable, call it here to create the coroutine inside the loop
-        coro: Coroutine[Any, Any, R] = target if asyncio.iscoroutine(target) else target()
-        task = self._loop.create_task(coro, name=name)
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.remove)
-        return task
-
-    def run_coroutine(self, *, coro: Coroutine, name: str) -> Any:
-        """Call coroutine from sync."""
-        try:
-            return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
-        except CancelledError:  # pragma: no cover
-            _LOGGER.debug(
-                "run_coroutine: coroutine interrupted for %s",
-                name,
-            )
-            return None
-
-    def async_add_executor_job[T](
-        self,
-        target: Callable[..., T],
-        *args: Any,
-        name: str,
-        executor: ThreadPoolExecutor | None = None,
-    ) -> asyncio.Future[T]:
-        """Add an executor job from within the event_loop."""
-        try:
-            task = self._loop.run_in_executor(executor, target, *args)
-            self._tasks.add(task)
-            task.add_done_callback(self._tasks.remove)
-        except (TimeoutError, CancelledError) as err:  # pragma: no cover
-            message = f"async_add_executor_job: task cancelled for {name} [{extract_exc_args(exc=err)}]"
-            _LOGGER.debug(message)
-            raise AioHomematicException(message) from err
-        return task
-
-    def cancel_tasks(self) -> None:
-        """Cancel running tasks."""
-        for task in self._tasks.copy():
-            if not task.cancelled():
-                task.cancel()
 
 
 def cancelling(*, task: asyncio.Future[Any]) -> bool:

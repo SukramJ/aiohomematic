@@ -83,9 +83,8 @@ def get_client_session(  # noqa: C901
             """Initialize the mock client session."""
             self._central: CentralUnit | None = None
 
-        def set_central(self, *, central: CentralUnit) -> None:
-            """Set the central."""
-            self._central = central
+        async def close(self) -> None:  # compatibility
+            return None
 
         async def post(
             self,
@@ -187,8 +186,9 @@ def get_client_session(  # noqa: C901
                 json_data[_JsonKey.RESULT] = new_devices
             return _MockResponse(json_data=json_data)
 
-        async def close(self) -> None:  # compatibility
-            return None
+        def set_central(self, *, central: CentralUnit) -> None:
+            """Set the central."""
+            self._central = central
 
     return cast(ClientSession, _MockClientSession())
 
@@ -212,13 +212,13 @@ def get_xml_rpc_proxy(  # noqa: C901
             self._name = full_name
             self._caller = caller
 
-        def __getattr__(self, sub: str) -> _Method:
-            # Allow chaining like proxy.system.listMethods
-            return _Method(f"{self._name}.{sub}", self._caller)
-
         async def __call__(self, *args: Any) -> Any:
             # Forward to caller with collected method name and positional params
             return await self._caller(self._name, *args)
+
+        def __getattr__(self, sub: str) -> _Method:
+            # Allow chaining like proxy.system.listMethods
+            return _Method(f"{self._name}.{sub}", self._caller)
 
     class _AioXmlRpcProxyFromSession:
         def __init__(self) -> None:
@@ -226,14 +226,25 @@ def get_xml_rpc_proxy(  # noqa: C901
             self._supported_methods: tuple[str, ...] = ()
             self._central: CentralUnit | None = None
 
-        def set_central(self, *, central: CentralUnit) -> None:
-            """Set the central."""
-            self._central = central
+        def __getattr__(self, name: str) -> Any:
+            # Start of method chain
+            return _Method(name, self._invoke)
 
         @property
         def supported_methods(self) -> tuple[str, ...]:
             """Return the supported methods."""
             return self._supported_methods
+
+        async def clientServerInitialized(self, interface_id: str) -> None:
+            """Answer clientServerInitialized with pong."""
+            await self.ping(callerId=interface_id)
+
+        async def do_init(self) -> None:
+            """Init the xml rpc proxy."""
+            if supported_methods := await self.system.listMethods():
+                # ping is missing in VirtualDevices interface but can be used.
+                supported_methods.append(_RpcMethod.PING)
+                self._supported_methods = tuple(supported_methods)
 
         async def getAllSystemVariables(self) -> dict[str, Any]:
             """Return all system variables."""
@@ -248,41 +259,6 @@ def get_xml_rpc_proxy(  # noqa: C901
                     params=(channel_address, paramset),
                 )
                 return result if result else {}
-
-        async def setValue(self, channel_address: str, parameter: str, value: Any, rx_mode: Any | None = None) -> None:
-            """Set a value."""
-            if self._central:
-                await self._central.data_point_event(
-                    interface_id=self._central.primary_client.interface_id,  # type: ignore[union-attr]
-                    channel_address=channel_address,
-                    parameter=parameter,
-                    value=value,
-                )
-
-        async def putParamset(
-            self, channel_address: str, paramset_key: str, values: Any, rx_mode: Any | None = None
-        ) -> None:
-            """Set a paramset."""
-            if self._central and paramset_key == ParamsetKey.VALUES:
-                interface_id = self._central.primary_client.interface_id  # type: ignore[union-attr]
-                for param, value in values.items():
-                    await self._central.data_point_event(
-                        interface_id=interface_id, channel_address=channel_address, parameter=param, value=value
-                    )
-
-        async def ping(self, callerId: str) -> None:
-            """Answer ping with pong."""
-            if self._central:
-                await self._central.data_point_event(
-                    interface_id=callerId,
-                    channel_address="",
-                    parameter=Parameter.PONG,
-                    value=callerId,
-                )
-
-        async def clientServerInitialized(self, interface_id: str) -> None:
-            """Answer clientServerInitialized with pong."""
-            await self.ping(callerId=interface_id)
 
         async def listDevices(self) -> list[Any]:
             """Return a list of devices."""
@@ -309,9 +285,43 @@ def get_xml_rpc_proxy(  # noqa: C901
 
             return new_devices
 
-        def __getattr__(self, name: str) -> Any:
-            # Start of method chain
-            return _Method(name, self._invoke)
+        async def ping(self, callerId: str) -> None:
+            """Answer ping with pong."""
+            if self._central:
+                await self._central.data_point_event(
+                    interface_id=callerId,
+                    channel_address="",
+                    parameter=Parameter.PONG,
+                    value=callerId,
+                )
+
+        async def putParamset(
+            self, channel_address: str, paramset_key: str, values: Any, rx_mode: Any | None = None
+        ) -> None:
+            """Set a paramset."""
+            if self._central and paramset_key == ParamsetKey.VALUES:
+                interface_id = self._central.primary_client.interface_id  # type: ignore[union-attr]
+                for param, value in values.items():
+                    await self._central.data_point_event(
+                        interface_id=interface_id, channel_address=channel_address, parameter=param, value=value
+                    )
+
+        async def setValue(self, channel_address: str, parameter: str, value: Any, rx_mode: Any | None = None) -> None:
+            """Set a value."""
+            if self._central:
+                await self._central.data_point_event(
+                    interface_id=self._central.primary_client.interface_id,  # type: ignore[union-attr]
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    value=value,
+                )
+
+        def set_central(self, *, central: CentralUnit) -> None:
+            """Set the central."""
+            self._central = central
+
+        async def stop(self) -> None:  # compatibility with AioXmlRpcProxy.stop
+            return None
 
         async def _invoke(self, method: str, *args: Any) -> Any:
             params = tuple(args)
@@ -320,16 +330,6 @@ def get_xml_rpc_proxy(  # noqa: C901
                 method=method,
                 params=params,
             )
-
-        async def stop(self) -> None:  # compatibility with AioXmlRpcProxy.stop
-            return None
-
-        async def do_init(self) -> None:
-            """Init the xml rpc proxy."""
-            if supported_methods := await self.system.listMethods():
-                # ping is missing in VirtualDevices interface but can be used.
-                supported_methods.append(_RpcMethod.PING)
-                self._supported_methods = tuple(supported_methods)
 
     return cast(BaseRpcProxy, _AioXmlRpcProxyFromSession())
 
@@ -389,9 +389,99 @@ class SessionPlayer:
         """Return the secondary store for the given file_id."""
         return [fid for fid in self._store if fid != self._file_id]
 
-    def supports_file_id(self, *, file_id: str) -> bool:
-        """Return whether the session player supports the given file_id."""
-        return file_id in self._store
+    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
+        """Return latest non-expired responses for a given (rpc_type, method)."""
+        if pri_result := self.get_latest_response_by_method_for_file_id(
+            file_id=self._file_id,
+            rpc_type=rpc_type,
+            method=method,
+        ):
+            return pri_result
+
+        for secondary_file_id in self._secondary_file_ids:
+            if sec_result := self.get_latest_response_by_method_for_file_id(
+                file_id=secondary_file_id,
+                rpc_type=rpc_type,
+                method=method,
+            ):
+                return sec_result
+        return pri_result
+
+    def get_latest_response_by_method_for_file_id(
+        self, *, file_id: str, rpc_type: str, method: str
+    ) -> list[tuple[Any, Any]]:
+        """Return latest non-expired responses for a given (rpc_type, method)."""
+        result: list[Any] = []
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
+            return result
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return result
+        # For each parameter, choose the response at the latest timestamp.
+        for frozen_params, bucket_by_ts in bucket_by_parameter.items():
+            if not bucket_by_ts:
+                continue
+            try:
+                latest_ts = max(bucket_by_ts.keys())
+            except ValueError:
+                continue
+            resp = bucket_by_ts[latest_ts]
+            params = _unfreeze_params(frozen_params=frozen_params)
+
+            result.append((params, resp))
+        return result
+
+    def get_latest_response_by_params(
+        self,
+        *,
+        rpc_type: str,
+        method: str,
+        params: Any,
+    ) -> Any:
+        """Return latest non-expired responses for a given (rpc_type, method, params)."""
+        if pri_result := self.get_latest_response_by_params_for_file_id(
+            file_id=self._file_id,
+            rpc_type=rpc_type,
+            method=method,
+            params=params,
+        ):
+            return pri_result
+
+        for secondary_file_id in self._secondary_file_ids:
+            if sec_result := self.get_latest_response_by_params_for_file_id(
+                file_id=secondary_file_id,
+                rpc_type=rpc_type,
+                method=method,
+                params=params,
+            ):
+                return sec_result
+        return pri_result
+
+    def get_latest_response_by_params_for_file_id(
+        self,
+        *,
+        file_id: str,
+        rpc_type: str,
+        method: str,
+        params: Any,
+    ) -> Any:
+        """Return latest non-expired responses for a given (rpc_type, method, params)."""
+        # Access store safely to avoid side effects from creating buckets.
+        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
+            return None
+        if not (bucket_by_parameter := bucket_by_method.get(method)):
+            return None
+        frozen_params = _freeze_params(params=params)
+
+        # For each parameter, choose the response at the latest timestamp.
+        if (bucket_by_ts := bucket_by_parameter.get(frozen_params)) is None:
+            return None
+
+        try:
+            latest_ts = max(bucket_by_ts.keys())
+            return bucket_by_ts[latest_ts]
+        except ValueError:
+            return None
 
     async def load(self, *, file_path: str, file_id: str) -> DataOperationResult:
         """
@@ -429,96 +519,6 @@ class SessionPlayer:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _perform_load)
 
-    def get_latest_response_by_method_for_file_id(
-        self, *, file_id: str, rpc_type: str, method: str
-    ) -> list[tuple[Any, Any]]:
-        """Return latest non-expired responses for a given (rpc_type, method)."""
-        result: list[Any] = []
-        # Access store safely to avoid side effects from creating buckets.
-        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
-            return result
-        if not (bucket_by_parameter := bucket_by_method.get(method)):
-            return result
-        # For each parameter, choose the response at the latest timestamp.
-        for frozen_params, bucket_by_ts in bucket_by_parameter.items():
-            if not bucket_by_ts:
-                continue
-            try:
-                latest_ts = max(bucket_by_ts.keys())
-            except ValueError:
-                continue
-            resp = bucket_by_ts[latest_ts]
-            params = _unfreeze_params(frozen_params=frozen_params)
-
-            result.append((params, resp))
-        return result
-
-    def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
-        """Return latest non-expired responses for a given (rpc_type, method)."""
-        if pri_result := self.get_latest_response_by_method_for_file_id(
-            file_id=self._file_id,
-            rpc_type=rpc_type,
-            method=method,
-        ):
-            return pri_result
-
-        for secondary_file_id in self._secondary_file_ids:
-            if sec_result := self.get_latest_response_by_method_for_file_id(
-                file_id=secondary_file_id,
-                rpc_type=rpc_type,
-                method=method,
-            ):
-                return sec_result
-        return pri_result
-
-    def get_latest_response_by_params_for_file_id(
-        self,
-        *,
-        file_id: str,
-        rpc_type: str,
-        method: str,
-        params: Any,
-    ) -> Any:
-        """Return latest non-expired responses for a given (rpc_type, method, params)."""
-        # Access store safely to avoid side effects from creating buckets.
-        if not (bucket_by_method := self._store[file_id].get(rpc_type)):
-            return None
-        if not (bucket_by_parameter := bucket_by_method.get(method)):
-            return None
-        frozen_params = _freeze_params(params=params)
-
-        # For each parameter, choose the response at the latest timestamp.
-        if (bucket_by_ts := bucket_by_parameter.get(frozen_params)) is None:
-            return None
-
-        try:
-            latest_ts = max(bucket_by_ts.keys())
-            return bucket_by_ts[latest_ts]
-        except ValueError:
-            return None
-
-    def get_latest_response_by_params(
-        self,
-        *,
-        rpc_type: str,
-        method: str,
-        params: Any,
-    ) -> Any:
-        """Return latest non-expired responses for a given (rpc_type, method, params)."""
-        if pri_result := self.get_latest_response_by_params_for_file_id(
-            file_id=self._file_id,
-            rpc_type=rpc_type,
-            method=method,
-            params=params,
-        ):
-            return pri_result
-
-        for secondary_file_id in self._secondary_file_ids:
-            if sec_result := self.get_latest_response_by_params_for_file_id(
-                file_id=secondary_file_id,
-                rpc_type=rpc_type,
-                method=method,
-                params=params,
-            ):
-                return sec_result
-        return pri_result
+    def supports_file_id(self, *, file_id: str) -> bool:
+        """Return whether the session player supports the given file_id."""
+        return file_id in self._store

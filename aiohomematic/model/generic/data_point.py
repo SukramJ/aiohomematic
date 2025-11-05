@@ -52,15 +52,6 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             parameter_data=parameter_data,
         )
 
-    @hm_property(cached=True)
-    def usage(self) -> DataPointUsage:
-        """Return the data_point usage."""
-        if self._is_forced_sensor or self._is_un_ignored:
-            return DataPointUsage.DATA_POINT
-        if (force_enabled := self._enabled_by_channel_operation_mode) is None:
-            return self._get_data_point_usage()
-        return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
-
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
         self._device.client.last_value_send_cache.remove_last_value_send(
@@ -92,6 +83,19 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
                 event_type=EventType.DEVICE_AVAILABILITY,
                 event_data=self.get_event_data(value=new_value),
             )
+
+    def is_state_change(self, *, value: ParameterT) -> bool:
+        """
+        Check if the state/value changes.
+
+        If the state is uncertain, the state should also marked as changed.
+        """
+        if value != self._value:
+            return True
+        if self.state_uncertain:
+            return True
+        _LOGGER.debug("NO_STATE_CHANGE: %s", self.name)
+        return False
 
     @inspector
     async def send_value(
@@ -129,9 +133,14 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             value=converted_value,
         )
 
-    def _prepare_value_for_sending(self, *, value: InputParameterT, do_validate: bool = True) -> ParameterT:
-        """Prepare value, if required, before send."""
-        return value  # type: ignore[return-value]
+    @hm_property(cached=True)
+    def usage(self) -> DataPointUsage:
+        """Return the data_point usage."""
+        if self._is_forced_sensor or self._is_un_ignored:
+            return DataPointUsage.DATA_POINT
+        if (force_enabled := self._enabled_by_channel_operation_mode) is None:
+            return self._get_data_point_usage()
+        return DataPointUsage.DATA_POINT if force_enabled else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data_point."""
@@ -157,15 +166,6 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
             else DataPointUsage.DATA_POINT
         )
 
-    def is_state_change(self, *, value: ParameterT) -> bool:
-        """
-        Check if the state/value changes.
-
-        If the state is uncertain, the state should also marked as changed.
-        """
-        if value != self._value:
-            return True
-        if self.state_uncertain:
-            return True
-        _LOGGER.debug("NO_STATE_CHANGE: %s", self.name)
-        return False
+    def _prepare_value_for_sending(self, *, value: InputParameterT, do_validate: bool = True) -> ParameterT:
+        """Prepare value, if required, before send."""
+        return value  # type: ignore[return-value]

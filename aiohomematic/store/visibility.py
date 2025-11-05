@@ -398,41 +398,57 @@ class ParameterVisibilityCache:
         self._param_un_ignored_cache: dict[tuple[TModelName, TChannelNo, ParamsetKey, TParameterName, bool], bool] = {}
         self._init()
 
-    def _init(self) -> None:
-        """Process cache initialisation."""
-        for (
-            model,
-            channels_parameter,
-        ) in _RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items():
-            model_l = model.lower()
-            channel_nos, parameters = channels_parameter
+    def is_relevant_paramset(
+        self,
+        *,
+        channel: hmd.Channel,
+        paramset_key: ParamsetKey,
+    ) -> bool:
+        """
+        Return if a paramset is relevant.
 
-            def _add_channel(dt_l: str, params: frozenset[Parameter], ch_no: TChannelNo) -> None:
-                self._relevant_master_paramsets_by_device[dt_l].add(ch_no)
-                self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][ParamsetKey.MASTER].update(params)
-
-            if channel_nos:
-                for channel_no in channel_nos:
-                    _add_channel(dt_l=model_l, params=parameters, ch_no=channel_no)
-            else:
-                _add_channel(dt_l=model_l, params=parameters, ch_no=None)
-
-        self._process_un_ignore_entries(lines=self._raw_un_ignores)
-
-    def _resolve_prefix_key(
-        self, *, model_l: TModelName, mapping: Mapping[str, object], cache_dict: dict[TModelName, str | None]
-    ) -> str | None:
-        """Resolve and memoize the first key in mapping that prefixes model_l."""
-        if (dt_short_key := cache_dict.get(model_l)) is None and model_l not in cache_dict:
-            dt_short_key = next((k for k in mapping if model_l.startswith(k)), None)
-            cache_dict[model_l] = dt_short_key
-        return dt_short_key
+        Required to load MASTER paramsets, which are not initialized by default.
+        """
+        if paramset_key == ParamsetKey.VALUES:
+            return True
+        if paramset_key == ParamsetKey.MASTER:
+            if channel.no in _RELEVANT_MASTER_PARAMSETS_BY_CHANNEL:
+                return True
+            model_l = channel.device.model.lower()
+            # Resolve matching device type prefix once and cache per model
+            dt_short_key = self._resolve_prefix_key(
+                model_l=model_l,
+                mapping=self._relevant_master_paramsets_by_device,
+                cache_dict=self._relevant_prefix_cache,
+            )
+            if dt_short_key is not None and channel.no in self._relevant_master_paramsets_by_device[dt_short_key]:
+                return True
+        return False
 
     def model_is_ignored(self, *, model: TModelName) -> bool:
         """Check if a model should be ignored for custom data points."""
         return element_matches_key(
             search_elements=self._ignore_custom_device_definition_models,
             compare_with=model,
+        )
+
+    def parameter_is_hidden(
+        self,
+        *,
+        channel: hmd.Channel,
+        paramset_key: ParamsetKey,
+        parameter: TParameterName,
+    ) -> bool:
+        """
+        Return if parameter should be hidden.
+
+        This is required to determine the data_point usage.
+        Return only hidden parameters, that are no defined in the un_ignore file.
+        """
+        return parameter in _HIDDEN_PARAMETERS and not self._parameter_is_un_ignored(
+            channel=channel,
+            paramset_key=paramset_key,
+            parameter=parameter,
         )
 
     def parameter_is_ignored(
@@ -505,56 +521,6 @@ class ParameterVisibilityCache:
         self._param_ignored_cache[cache_key] = result
         return result
 
-    def _parameter_is_un_ignored(
-        self,
-        *,
-        channel: hmd.Channel,
-        paramset_key: ParamsetKey,
-        parameter: TParameterName,
-        custom_only: bool = False,
-    ) -> bool:
-        """
-        Return if parameter is on an un_ignore list.
-
-        This can be either be the users un_ignore file, or in the
-        predefined _UN_IGNORE_PARAMETERS_BY_DEVICE.
-        """
-
-        # check if parameter is in custom_un_ignore
-        if paramset_key == ParamsetKey.VALUES and parameter in self._custom_un_ignore_values_parameters:
-            return True
-
-        # check if parameter is in custom_un_ignore with paramset_key
-        model_l = channel.device.model.lower()
-        # Fast path via per-instance memoization
-        if (cache_key := (model_l, channel.no, paramset_key, parameter, custom_only)) in self._param_un_ignored_cache:
-            return self._param_un_ignored_cache[cache_key]
-
-        search_matrix = (
-            (
-                (model_l, channel.no),
-                (model_l, UN_IGNORE_WILDCARD),
-                (UN_IGNORE_WILDCARD, channel.no),
-                (UN_IGNORE_WILDCARD, UN_IGNORE_WILDCARD),
-            )
-            if paramset_key == ParamsetKey.VALUES
-            else ((model_l, channel.no),)
-        )
-
-        for ml, cno in search_matrix:
-            if parameter in self._custom_un_ignore_complex[ml][cno][paramset_key]:
-                self._param_un_ignored_cache[cache_key] = True
-                return True
-
-        # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
-        result = bool(
-            not custom_only
-            and (un_ignore_parameters := _get_parameters_for_model_prefix(model_prefix=model_l))
-            and parameter in un_ignore_parameters
-        )
-        self._param_un_ignored_cache[cache_key] = result
-        return result
-
     def parameter_is_un_ignored(
         self,
         *,
@@ -621,28 +587,30 @@ class ParameterVisibilityCache:
 
         return paramset_key == ParamsetKey.MASTER and not parameter_is_un_ignored
 
-    def _process_un_ignore_entries(self, *, lines: Iterable[str]) -> None:
-        """Batch process un_ignore entries into cache."""
-        for line in lines:
-            # ignore empty line
-            if not line.strip():
-                continue
-
-            if line_details := self._get_un_ignore_line_details(line=line):
-                if isinstance(line_details, str):
-                    self._custom_un_ignore_values_parameters.add(line_details)
-                else:
-                    self._add_complex_un_ignore_entry(
-                        model=line_details[0],
-                        channel_no=line_details[1],
-                        parameter=line_details[2],
-                        paramset_key=line_details[3],
-                    )
+    def _add_complex_un_ignore_entry(
+        self,
+        *,
+        model: TModelName,
+        channel_no: TUnIgnoreChannelNo,
+        paramset_key: ParamsetKey,
+        parameter: TParameterName,
+    ) -> None:
+        """Add line to un ignore cache."""
+        if paramset_key == ParamsetKey.MASTER:
+            if isinstance(channel_no, int) or channel_no is None:
+                # add master channel for a device to fetch paramset descriptions
+                self._relevant_master_paramsets_by_device[model].add(channel_no)
             else:
                 _LOGGER.warning(
-                    "PROCESS_UN_IGNORE_ENTRY failed: No supported format detected for un ignore line '%s'. ",
-                    line,
+                    "ADD_UN_IGNORE_ENTRY: channel_no '%s' must be an integer or None for paramset_key MASTER.",
+                    channel_no,
                 )
+                return
+            if model == UN_IGNORE_WILDCARD:
+                _LOGGER.warning("ADD_UN_IGNORE_ENTRY: model must be set for paramset_key MASTER.")
+                return
+
+        self._custom_un_ignore_complex[model][channel_no][paramset_key].add(parameter)
 
     def _get_un_ignore_line_details(
         self, *, line: str
@@ -721,76 +689,108 @@ class ParameterVisibilityCache:
             return model, channel_no, parameter, paramset_key
         return line
 
-    def _add_complex_un_ignore_entry(
-        self,
-        *,
-        model: TModelName,
-        channel_no: TUnIgnoreChannelNo,
-        paramset_key: ParamsetKey,
-        parameter: TParameterName,
-    ) -> None:
-        """Add line to un ignore cache."""
-        if paramset_key == ParamsetKey.MASTER:
-            if isinstance(channel_no, int) or channel_no is None:
-                # add master channel for a device to fetch paramset descriptions
-                self._relevant_master_paramsets_by_device[model].add(channel_no)
+    def _init(self) -> None:
+        """Process cache initialisation."""
+        for (
+            model,
+            channels_parameter,
+        ) in _RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items():
+            model_l = model.lower()
+            channel_nos, parameters = channels_parameter
+
+            def _add_channel(dt_l: str, params: frozenset[Parameter], ch_no: TChannelNo) -> None:
+                self._relevant_master_paramsets_by_device[dt_l].add(ch_no)
+                self._un_ignore_parameters_by_device_paramset_key[dt_l][ch_no][ParamsetKey.MASTER].update(params)
+
+            if channel_nos:
+                for channel_no in channel_nos:
+                    _add_channel(dt_l=model_l, params=parameters, ch_no=channel_no)
             else:
-                _LOGGER.warning(
-                    "ADD_UN_IGNORE_ENTRY: channel_no '%s' must be an integer or None for paramset_key MASTER.",
-                    channel_no,
-                )
-                return
-            if model == UN_IGNORE_WILDCARD:
-                _LOGGER.warning("ADD_UN_IGNORE_ENTRY: model must be set for paramset_key MASTER.")
-                return
+                _add_channel(dt_l=model_l, params=parameters, ch_no=None)
 
-        self._custom_un_ignore_complex[model][channel_no][paramset_key].add(parameter)
+        self._process_un_ignore_entries(lines=self._raw_un_ignores)
 
-    def parameter_is_hidden(
+    def _parameter_is_un_ignored(
         self,
         *,
         channel: hmd.Channel,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
+        custom_only: bool = False,
     ) -> bool:
         """
-        Return if parameter should be hidden.
+        Return if parameter is on an un_ignore list.
 
-        This is required to determine the data_point usage.
-        Return only hidden parameters, that are no defined in the un_ignore file.
+        This can be either be the users un_ignore file, or in the
+        predefined _UN_IGNORE_PARAMETERS_BY_DEVICE.
         """
-        return parameter in _HIDDEN_PARAMETERS and not self._parameter_is_un_ignored(
-            channel=channel,
-            paramset_key=paramset_key,
-            parameter=parameter,
+
+        # check if parameter is in custom_un_ignore
+        if paramset_key == ParamsetKey.VALUES and parameter in self._custom_un_ignore_values_parameters:
+            return True
+
+        # check if parameter is in custom_un_ignore with paramset_key
+        model_l = channel.device.model.lower()
+        # Fast path via per-instance memoization
+        if (cache_key := (model_l, channel.no, paramset_key, parameter, custom_only)) in self._param_un_ignored_cache:
+            return self._param_un_ignored_cache[cache_key]
+
+        search_matrix = (
+            (
+                (model_l, channel.no),
+                (model_l, UN_IGNORE_WILDCARD),
+                (UN_IGNORE_WILDCARD, channel.no),
+                (UN_IGNORE_WILDCARD, UN_IGNORE_WILDCARD),
+            )
+            if paramset_key == ParamsetKey.VALUES
+            else ((model_l, channel.no),)
         )
 
-    def is_relevant_paramset(
-        self,
-        *,
-        channel: hmd.Channel,
-        paramset_key: ParamsetKey,
-    ) -> bool:
-        """
-        Return if a paramset is relevant.
+        for ml, cno in search_matrix:
+            if parameter in self._custom_un_ignore_complex[ml][cno][paramset_key]:
+                self._param_un_ignored_cache[cache_key] = True
+                return True
 
-        Required to load MASTER paramsets, which are not initialized by default.
-        """
-        if paramset_key == ParamsetKey.VALUES:
-            return True
-        if paramset_key == ParamsetKey.MASTER:
-            if channel.no in _RELEVANT_MASTER_PARAMSETS_BY_CHANNEL:
-                return True
-            model_l = channel.device.model.lower()
-            # Resolve matching device type prefix once and cache per model
-            dt_short_key = self._resolve_prefix_key(
-                model_l=model_l,
-                mapping=self._relevant_master_paramsets_by_device,
-                cache_dict=self._relevant_prefix_cache,
-            )
-            if dt_short_key is not None and channel.no in self._relevant_master_paramsets_by_device[dt_short_key]:
-                return True
-        return False
+        # check if parameter is in _UN_IGNORE_PARAMETERS_BY_DEVICE
+        result = bool(
+            not custom_only
+            and (un_ignore_parameters := _get_parameters_for_model_prefix(model_prefix=model_l))
+            and parameter in un_ignore_parameters
+        )
+        self._param_un_ignored_cache[cache_key] = result
+        return result
+
+    def _process_un_ignore_entries(self, *, lines: Iterable[str]) -> None:
+        """Batch process un_ignore entries into cache."""
+        for line in lines:
+            # ignore empty line
+            if not line.strip():
+                continue
+
+            if line_details := self._get_un_ignore_line_details(line=line):
+                if isinstance(line_details, str):
+                    self._custom_un_ignore_values_parameters.add(line_details)
+                else:
+                    self._add_complex_un_ignore_entry(
+                        model=line_details[0],
+                        channel_no=line_details[1],
+                        parameter=line_details[2],
+                        paramset_key=line_details[3],
+                    )
+            else:
+                _LOGGER.warning(
+                    "PROCESS_UN_IGNORE_ENTRY failed: No supported format detected for un ignore line '%s'. ",
+                    line,
+                )
+
+    def _resolve_prefix_key(
+        self, *, model_l: TModelName, mapping: Mapping[str, object], cache_dict: dict[TModelName, str | None]
+    ) -> str | None:
+        """Resolve and memoize the first key in mapping that prefixes model_l."""
+        if (dt_short_key := cache_dict.get(model_l)) is None and model_l not in cache_dict:
+            dt_short_key = next((k for k in mapping if model_l.startswith(k)), None)
+            cache_dict[model_l] = dt_short_key
+        return dt_short_key
 
 
 def check_ignore_parameters_is_clean() -> bool:

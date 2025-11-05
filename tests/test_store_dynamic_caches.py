@@ -10,8 +10,10 @@ coverage without touching production logic. It covers:
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import time
 from typing import Any
 
+from freezegun import freeze_time
 import pytest
 
 from aiohomematic.const import EventKey, EventType, InterfaceEventType, ParamsetKey
@@ -91,7 +93,7 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
     # Add pending pings beyond threshold to trigger high and a warning/event
     with caplog.at_level("WARNING"):
         for i in range(allowed_delta + 1):
-            ppc.handle_send_ping(ping_ts=datetime.now() + timedelta(seconds=i))
+            ppc.handle_send_ping(ping_token=f"t{i}")
     assert (ppc._pending_pong_count > ppc.allowed_delta) is True
 
     # One warning logged for pending pong mismatch
@@ -108,8 +110,8 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
     assert payload[EventKey.PONG_MISMATCH_COUNT] == ppc._pending_pong_count
 
     # Now resolve one by receiving matching pong — count decreases and another event should emit
-    last_ts = next(iter(ppc._pending_pongs))  # access for test only
-    ppc.handle_received_pong(pong_ts=last_ts)
+    last_token = next(iter(ppc._pending_pongs))  # access for test only
+    ppc.handle_received_pong(pong_token=last_token)
 
     # When counts drop to low, an event with mismatch 0 should be emitted
     pend_events = [e for e in central.events if e[EventKey.DATA][EventKey.TYPE] == InterfaceEventType.PENDING_PONG]
@@ -117,7 +119,7 @@ def test_pingpongcache_thresholds_and_events(allowed_delta: int, caplog: pytest.
 
     # Unknown pong path: send a pong we never pinged
     with caplog.at_level("WARNING"):
-        ppc.handle_received_pong(pong_ts=datetime.now() + timedelta(seconds=999))
+        ppc.handle_received_pong(pong_token="u999")
     assert ppc._unknown_pong_count == 1
     # For a single unknown, may or may not exceed high depending on delta; ensure property access ok
     _ = ppc._pending_pong_count > ppc.allowed_delta
@@ -128,23 +130,28 @@ def test_pingpongcache_cleanup_by_ttl() -> None:
     central = CentralStub()
     ppc = PingPongCache(central=central, interface_id="ifTTL", allowed_delta=1, ttl=1)
 
-    ts_old = datetime.now() - timedelta(seconds=5)
-    ts_new = datetime.now()
+    with freeze_time("2020-01-01 12:00:00"):
+        ts_old = str(datetime.now() - timedelta(seconds=5))
+        ts_new = str(datetime.now())
 
-    # Add old and new for both sets
-    ppc.handle_send_ping(ping_ts=ts_old)
-    ppc.handle_send_ping(ping_ts=ts_new)
-    ppc.handle_received_pong(pong_ts=datetime.now() + timedelta(seconds=999))  # unknown
-    # Manually insert an old unknown ts to simulate aging
+    # Add old and new for both sets using public methods
+    ppc.handle_send_ping(ping_token=ts_old)
+    ppc.handle_send_ping(ping_token=ts_new)
+    # Make the first pending entry appear old to the monotonic TTL logic
+    ppc._pending_seen_at[ts_old] = time.monotonic() - 5  # test-only direct dict access
+
+    # Add an unknown pong to populate the set, then inject an old one and mark it old
+    ppc.handle_received_pong(pong_token=str(datetime.now() + timedelta(seconds=999)))  # unknown (fresh)
     ppc._unknown_pongs.add(ts_old)  # test-only direct set access
+    ppc._unknown_seen_at[ts_old] = time.monotonic() - 5  # simulate age for TTL expiry
 
-    # Trigger cleanup via property access
+    # Sanity: counts reflect inserts
     assert ppc._pending_pong_count >= 1
     assert ppc._unknown_pong_count >= 1
 
+    # Trigger cleanup and verify old tokens are purged while newer remain
     ppc._cleanup_pending_pongs()
     ppc._cleanup_unknown_pongs()
-    # After cleanup with small TTL, old timestamps should have been purged
     assert ts_old not in ppc._pending_pongs
     assert ts_old not in ppc._unknown_pongs
 
@@ -156,8 +163,8 @@ def test_pingpongcache_unknown_pong_warning_and_event(caplog: pytest.LogCaptureF
 
     # Add two unknown pongs to exceed allowed_delta
     with caplog.at_level("WARNING"):
-        ppc.handle_received_pong(pong_ts=datetime.now() + timedelta(seconds=1000))
-        ppc.handle_received_pong(pong_ts=datetime.now() + timedelta(seconds=1001))
+        ppc.handle_received_pong(pong_token=str(datetime.now() + timedelta(seconds=1000)))
+        ppc.handle_received_pong(pong_token=str(datetime.now() + timedelta(seconds=1001)))
 
     # Warning should be logged
     assert any("Unknown PONG Mismatch" in rec.getMessage() for rec in caplog.records)
@@ -179,8 +186,8 @@ def test_pingpongcache_clear_resets_state() -> None:
     ppc = PingPongCache(central=central, interface_id="ifC", allowed_delta=1, ttl=60)
 
     # Create some state and cause a high pending condition to ensure internal flags may be set
-    ppc.handle_send_ping(ping_ts=datetime.now())
-    ppc.handle_send_ping(ping_ts=datetime.now() + timedelta(seconds=1))  # now count=2 (> delta)
+    ppc.handle_send_ping(ping_token=str(datetime.now()))
+    ppc.handle_send_ping(ping_token=str(datetime.now() + timedelta(seconds=1)))  # now count=2 (> delta)
     events_before_clear = len(central.events)
 
     # Clear should reset internal sets and flags
@@ -189,7 +196,7 @@ def test_pingpongcache_clear_resets_state() -> None:
     assert ppc._unknown_pong_count == 0
 
     # After clear, sending a single ping (count=1) should not emit an event (still low and odd count)
-    ppc.handle_send_ping(ping_ts=datetime.now() + timedelta(seconds=2))
+    ppc.handle_send_ping(ping_token=str(datetime.now() + timedelta(seconds=2)))
     assert len(central.events) == events_before_clear
 
 
@@ -200,7 +207,7 @@ def test_pingpongcache_throttles_low_state_pending_events() -> None:
 
     # Stay in low state and send 5 pings
     for i in range(1, 6):
-        ppc.handle_send_ping(ping_ts=datetime.now() + timedelta(seconds=i))
+        ppc.handle_send_ping(ping_token=str(datetime.now() + timedelta(seconds=i)))
 
     pend_events = [e for e in central.events if e[EventKey.DATA][EventKey.TYPE] == InterfaceEventType.PENDING_PONG]
     # Extract the mismatch counts for these events
@@ -215,13 +222,13 @@ def test_pingpongcache_emits_single_reset_event_on_drop_from_high() -> None:
     ppc = PingPongCache(central=central, interface_id="ifR", allowed_delta=1, ttl=60)
 
     # Cause high pending (count becomes 2)
-    ts1 = datetime.now()
-    ts2 = datetime.now() + timedelta(seconds=1)
-    ppc.handle_send_ping(ping_ts=ts1)
-    ppc.handle_send_ping(ping_ts=ts2)
+    ts1 = str(datetime.now())
+    ts2 = str(datetime.now() + timedelta(seconds=1))
+    ppc.handle_send_ping(ping_token=ts1)
+    ppc.handle_send_ping(ping_token=ts2)
 
     # Drop to low by acknowledging one pong
-    ppc.handle_received_pong(pong_ts=ts1)
+    ppc.handle_received_pong(pong_token=ts1)
 
     pend_events = [e for e in central.events if e[EventKey.DATA][EventKey.TYPE] == InterfaceEventType.PENDING_PONG]
     mismatch_counts = [e[EventKey.DATA][EventKey.DATA][EventKey.PONG_MISMATCH_COUNT] for e in pend_events]
@@ -231,7 +238,7 @@ def test_pingpongcache_emits_single_reset_event_on_drop_from_high() -> None:
     assert mismatch_counts.count(0) == 1
 
     # Reducing further to 0 should not emit another reset event
-    ppc.handle_received_pong(pong_ts=ts2)
+    ppc.handle_received_pong(pong_token=ts2)
     pend_events_after = [
         e for e in central.events if e[EventKey.DATA][EventKey.TYPE] == InterfaceEventType.PENDING_PONG
     ]

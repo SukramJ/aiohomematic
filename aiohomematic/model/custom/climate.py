@@ -223,6 +223,352 @@ class BaseCustomDpClimate(CustomDataPoint):
         self._supports_schedule = False
         self._old_manu_setpoint: float | None = None
 
+    @property
+    def _temperature_for_heat_mode(self) -> float:
+        """
+        Return a safe temperature to use when setting mode to HEAT.
+
+        If the current target temperature is None or represents the special OFF value,
+        fall back to the device's minimum valid temperature. Otherwise, return the
+        current target temperature clipped to the valid [min, max] range.
+        """
+        temp = self._old_manu_setpoint or self.target_temperature
+        # Treat None or OFF sentinel as invalid/unsafe to restore.
+        if temp is None or temp <= _OFF_TEMPERATURE or temp < self.min_temp:
+            return self.min_temp if self.min_temp > _OFF_TEMPERATURE else _OFF_TEMPERATURE + 0.5
+        if temp > self.max_temp:
+            return self.max_temp
+        return temp
+
+    @property
+    def schedule_channel_address(self) -> str:
+        """Return schedule channel address."""
+        return (
+            self._channel.address
+            if self._channel.device.product_group in (ProductGroup.HMIP, ProductGroup.HMIPW)
+            else self._device.address
+        )
+
+    @property
+    def schedule_profile_nos(self) -> int:
+        """Return the number of supported profiles."""
+        return 0
+
+    @property
+    def supports_profiles(self) -> bool:
+        """Flag if climate supports profiles."""
+        return False
+
+    @state_property
+    def activity(self) -> ClimateActivity | None:
+        """Return the current activity."""
+        return None
+
+    @inspector
+    async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
+        """Copy schedule to target device."""
+
+        if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
+            raise ValidationException("Copy schedule profile is only: No of schedule profile must be identical")
+        raw_schedule = await self._get_raw_schedule()
+        await self._client.put_paramset(
+            channel_address=target_climate_data_point.schedule_channel_address,
+            paramset_key_or_link_address=ParamsetKey.MASTER,
+            values=raw_schedule,
+        )
+
+    @inspector
+    async def copy_schedule_profile(
+        self,
+        *,
+        source_profile: ScheduleProfile,
+        target_profile: ScheduleProfile,
+        target_climate_data_point: BaseCustomDpClimate | None = None,
+    ) -> None:
+        """Copy schedule profile to target device."""
+        same_device = False
+        if not self._supports_schedule:
+            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
+        if target_climate_data_point is None:
+            target_climate_data_point = self
+        if self is target_climate_data_point:
+            same_device = True
+
+        if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
+            raise ValidationException(
+                "Copy schedule profile on same device is only possible with defined and different source/target profiles"
+            )
+
+        if (source_profile_data := await self.get_schedule_profile(profile=source_profile)) is None:
+            raise ValidationException(f"Source profile {source_profile} could not be loaded.")
+        await self._set_schedule_profile(
+            target_channel_address=target_climate_data_point.schedule_channel_address,
+            profile=target_profile,
+            profile_data=source_profile_data,
+            do_validate=False,
+        )
+
+    @state_property
+    def current_humidity(self) -> int | None:
+        """Return the current humidity."""
+        return self._dp_humidity.value
+
+    @state_property
+    def current_temperature(self) -> float | None:
+        """Return current temperature."""
+        return self._dp_temperature.value
+
+    @inspector
+    async def disable_away_mode(self) -> None:
+        """Disable the away mode on thermostat."""
+
+    @inspector
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
+        """Enable the away mode by calendar on thermostat."""
+
+    @inspector
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
+        """Enable the away mode by duration on thermostat."""
+
+    async def finalize_init(self) -> None:
+        """Finalize the climate data point init action after model setup."""
+        await super().finalize_init()
+
+        if OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY not in self._device.central.config.optional_settings:
+            return
+
+        self._refresh_link_peer_activity_sources()
+
+    @inspector
+    async def get_schedule_profile(self, *, profile: ScheduleProfile) -> PROFILE_DICT:
+        """Return a schedule by climate profile."""
+        if not self._supports_schedule:
+            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
+        schedule_data = await self._get_schedule_profile(profile=profile)
+        return schedule_data.get(profile, {})
+
+    @inspector
+    async def get_schedule_profile_weekday(self, *, profile: ScheduleProfile, weekday: ScheduleWeekday) -> WEEKDAY_DICT:
+        """Return a schedule by climate profile."""
+        if not self._supports_schedule:
+            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
+        schedule_data = await self._get_schedule_profile(profile=profile, weekday=weekday)
+        return schedule_data.get(profile, {}).get(weekday, {})
+
+    def is_state_change(self, **kwargs: Any) -> bool:
+        """Check if the state changes due to kwargs."""
+        if (
+            temperature := kwargs.get(_StateChangeArg.TEMPERATURE)
+        ) is not None and temperature != self.target_temperature:
+            return True
+        if (mode := kwargs.get(_StateChangeArg.MODE)) is not None and mode != self.mode:
+            return True
+        if (profile := kwargs.get(_StateChangeArg.PROFILE)) is not None and profile != self.profile:
+            return True
+        return super().is_state_change(**kwargs)
+
+    @state_property
+    def max_temp(self) -> float:
+        """Return the maximum temperature."""
+        if self._dp_temperature_maximum.value is not None:
+            return float(self._dp_temperature_maximum.value)
+        return cast(float, self._dp_setpoint.max)
+
+    @state_property
+    def min_max_value_not_relevant_for_manu_mode(self) -> bool:
+        """Return the maximum temperature."""
+        if self._dp_min_max_value_not_relevant_for_manu_mode.value is not None:
+            return self._dp_min_max_value_not_relevant_for_manu_mode.value
+        return False
+
+    @state_property
+    def min_temp(self) -> float:
+        """Return the minimum temperature."""
+        if self._dp_temperature_minimum.value is not None:
+            min_temp = float(self._dp_temperature_minimum.value)
+        else:
+            min_temp = self._dp_setpoint.min
+
+        if min_temp == _OFF_TEMPERATURE:
+            return min_temp + _DEFAULT_TEMPERATURE_STEP
+        return min_temp
+
+    @state_property
+    def mode(self) -> ClimateMode:
+        """Return current operation mode."""
+        return ClimateMode.HEAT
+
+    @state_property
+    def modes(self) -> tuple[ClimateMode, ...]:
+        """Return the available operation modes."""
+        return (ClimateMode.HEAT,)
+
+    @state_property
+    def profile(self) -> ClimateProfile:
+        """Return the current profile."""
+        return ClimateProfile.NONE
+
+    @state_property
+    def profiles(self) -> tuple[ClimateProfile, ...]:
+        """Return available profiles."""
+        return (ClimateProfile.NONE,)
+
+    @bind_collector()
+    async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
+        """Set new target mode."""
+
+    @bind_collector()
+    async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
+        """Set new profile."""
+
+    @inspector
+    async def set_schedule_profile(
+        self, *, profile: ScheduleProfile, profile_data: PROFILE_DICT, do_validate: bool = True
+    ) -> None:
+        """Set a profile to device."""
+        await self._set_schedule_profile(
+            target_channel_address=self.schedule_channel_address,
+            profile=profile,
+            profile_data=profile_data,
+            do_validate=do_validate,
+        )
+
+    @inspector
+    async def set_schedule_profile_weekday(
+        self,
+        *,
+        profile: ScheduleProfile,
+        weekday: ScheduleWeekday,
+        weekday_data: WEEKDAY_DICT,
+        do_validate: bool = True,
+    ) -> None:
+        """Store a profile to device."""
+        if do_validate:
+            self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
+        schedule_data: _SCHEDULE_DICT = {}
+        for slot_no, slot in weekday_data.items():
+            for slot_type, slot_value in slot.items():
+                _add_to_schedule_data(
+                    schedule_data=schedule_data,
+                    profile=profile,
+                    weekday=weekday,
+                    slot_no=slot_no,
+                    slot_type=slot_type,
+                    slot_value=slot_value,
+                )
+        await self._client.put_paramset(
+            channel_address=self.schedule_channel_address,
+            paramset_key_or_link_address=ParamsetKey.MASTER,
+            values=_get_raw_schedule_paramset(schedule_data=schedule_data),
+        )
+
+    @inspector
+    async def set_simple_schedule_profile(
+        self,
+        *,
+        profile: ScheduleProfile,
+        base_temperature: float,
+        simple_profile_data: SIMPLE_PROFILE_DICT,
+    ) -> None:
+        """Set a profile to device."""
+        profile_data = self._validate_and_convert_simple_to_profile(
+            base_temperature=base_temperature, simple_profile_data=simple_profile_data
+        )
+        await self.set_schedule_profile(profile=profile, profile_data=profile_data)
+
+    @inspector
+    async def set_simple_schedule_profile_weekday(
+        self,
+        *,
+        profile: ScheduleProfile,
+        weekday: ScheduleWeekday,
+        base_temperature: float,
+        simple_weekday_list: SIMPLE_WEEKDAY_LIST,
+    ) -> None:
+        """Store a simple weekday profile to device."""
+        weekday_data = self._validate_and_convert_simple_to_profile_weekday(
+            base_temperature=base_temperature, simple_weekday_list=simple_weekday_list
+        )
+        await self.set_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
+
+    @bind_collector()
+    async def set_temperature(
+        self,
+        *,
+        temperature: float,
+        collector: CallParameterCollector | None = None,
+        do_validate: bool = True,
+    ) -> None:
+        """Set new target temperature. The temperature must be set in all cases, even if the values are identical."""
+        if do_validate and self.mode == ClimateMode.HEAT and self.min_max_value_not_relevant_for_manu_mode:
+            do_validate = False
+
+        if do_validate and not (self.min_temp <= temperature <= self.max_temp):
+            raise ValidationException(
+                f"SET_TEMPERATURE failed: Invalid temperature: {temperature} (min: {self.min_temp}, max: {self.max_temp})"
+            )
+
+        await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
+
+    @state_property
+    def target_temperature(self) -> float | None:
+        """Return target temperature."""
+        return self._dp_setpoint.value
+
+    @config_property
+    def target_temperature_step(self) -> float:
+        """Return the supported step of target temperature."""
+        return _DEFAULT_TEMPERATURE_STEP
+
+    @config_property
+    def temperature_unit(self) -> str:
+        """Return temperature unit."""
+        return _TEMP_CELSIUS
+
+    async def _get_raw_schedule(self) -> _RAW_SCHEDULE_DICT:
+        """Return the raw schedule."""
+        try:
+            raw_data = await self._client.get_paramset(
+                address=self.schedule_channel_address,
+                paramset_key=ParamsetKey.MASTER,
+            )
+            raw_schedule = {key: value for key, value in raw_data.items() if SCHEDULER_PROFILE_PATTERN.match(key)}
+        except ClientException as cex:
+            self._supports_schedule = False
+            raise ValidationException(f"Schedule is not supported by device {self._device.name}") from cex
+        return raw_schedule
+
+    async def _get_schedule_profile(
+        self, *, profile: ScheduleProfile | None = None, weekday: ScheduleWeekday | None = None
+    ) -> _SCHEDULE_DICT:
+        """Get the schedule."""
+        schedule_data: _SCHEDULE_DICT = {}
+        raw_schedule = await self._get_raw_schedule()
+        for slot_name, slot_value in raw_schedule.items():
+            slot_name_tuple = slot_name.split("_")
+            if len(slot_name_tuple) != 4:
+                continue
+            profile_name, slot_type, slot_weekday, slot_no = slot_name_tuple
+            _profile = ScheduleProfile(profile_name)
+            if profile and profile != _profile:
+                continue
+            _slot_type = ScheduleSlotType(slot_type)
+            _weekday = ScheduleWeekday(slot_weekday)
+            if weekday and weekday != _weekday:
+                continue
+            _slot_no = int(slot_no)
+
+            _add_to_schedule_data(
+                schedule_data=schedule_data,
+                profile=_profile,
+                weekday=_weekday,
+                slot_no=_slot_no,
+                slot_type=_slot_type,
+                slot_value=slot_value,
+            )
+
+        return schedule_data
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()
@@ -244,6 +590,21 @@ class BaseCustomDpClimate(CustomDataPoint):
             field=Field.TEMPERATURE_MINIMUM, data_point_type=DpFloat
         )
 
+    @abstractmethod
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
+        """Handle device state changes."""
+
+    def _on_link_peer_changed(self) -> None:
+        """
+        Handle a change of the link peer channel.
+
+        Refresh references to `STATE`/`LEVEL` on the peer and emit an update so
+        consumers can re-evaluate `activity`.
+        """
+        self._refresh_link_peer_activity_sources()
+        # Inform listeners that relevant inputs may have changed
+        self.emit_data_point_updated_event()
+
     def _post_init_data_point_fields(self) -> None:
         """Post action after initialisation of the data point fields."""
         super()._post_init_data_point_fields()
@@ -263,18 +624,6 @@ class BaseCustomDpClimate(CustomDataPoint):
                 self._unregister_callbacks.append(unreg)
         # pre-populate peer references (if any) once
         self._refresh_link_peer_activity_sources()
-
-    # --- Link peer support for activity fallback -----------------------------
-    def _on_link_peer_changed(self) -> None:
-        """
-        Handle a change of the link peer channel.
-
-        Refresh references to `STATE`/`LEVEL` on the peer and emit an update so
-        consumers can re-evaluate `activity`.
-        """
-        self._refresh_link_peer_activity_sources()
-        # Inform listeners that relevant inputs may have changed
-        self.emit_data_point_updated_event()
 
     def _refresh_link_peer_activity_sources(self) -> None:
         """
@@ -329,289 +678,6 @@ class BaseCustomDpClimate(CustomDataPoint):
                 self._peer_unregister_callbacks.append(unreg)
                 self._unregister_callbacks.append(unreg)
 
-    @abstractmethod
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
-        """Handle device state changes."""
-
-    @state_property
-    def current_humidity(self) -> int | None:
-        """Return the current humidity."""
-        return self._dp_humidity.value
-
-    @state_property
-    def current_temperature(self) -> float | None:
-        """Return current temperature."""
-        return self._dp_temperature.value
-
-    @state_property
-    def activity(self) -> ClimateActivity | None:
-        """Return the current activity."""
-        return None
-
-    @state_property
-    def mode(self) -> ClimateMode:
-        """Return current operation mode."""
-        return ClimateMode.HEAT
-
-    @state_property
-    def modes(self) -> tuple[ClimateMode, ...]:
-        """Return the available operation modes."""
-        return (ClimateMode.HEAT,)
-
-    @state_property
-    def min_max_value_not_relevant_for_manu_mode(self) -> bool:
-        """Return the maximum temperature."""
-        if self._dp_min_max_value_not_relevant_for_manu_mode.value is not None:
-            return self._dp_min_max_value_not_relevant_for_manu_mode.value
-        return False
-
-    @state_property
-    def min_temp(self) -> float:
-        """Return the minimum temperature."""
-        if self._dp_temperature_minimum.value is not None:
-            min_temp = float(self._dp_temperature_minimum.value)
-        else:
-            min_temp = self._dp_setpoint.min
-
-        if min_temp == _OFF_TEMPERATURE:
-            return min_temp + _DEFAULT_TEMPERATURE_STEP
-        return min_temp
-
-    @state_property
-    def max_temp(self) -> float:
-        """Return the maximum temperature."""
-        if self._dp_temperature_maximum.value is not None:
-            return float(self._dp_temperature_maximum.value)
-        return cast(float, self._dp_setpoint.max)
-
-    @state_property
-    def profile(self) -> ClimateProfile:
-        """Return the current profile."""
-        return ClimateProfile.NONE
-
-    @state_property
-    def profiles(self) -> tuple[ClimateProfile, ...]:
-        """Return available profiles."""
-        return (ClimateProfile.NONE,)
-
-    @state_property
-    def target_temperature(self) -> float | None:
-        """Return target temperature."""
-        return self._dp_setpoint.value
-
-    @config_property
-    def target_temperature_step(self) -> float:
-        """Return the supported step of target temperature."""
-        return _DEFAULT_TEMPERATURE_STEP
-
-    @property
-    def schedule_channel_address(self) -> str:
-        """Return schedule channel address."""
-        return (
-            self._channel.address
-            if self._channel.device.product_group in (ProductGroup.HMIP, ProductGroup.HMIPW)
-            else self._device.address
-        )
-
-    @property
-    def supports_profiles(self) -> bool:
-        """Flag if climate supports profiles."""
-        return False
-
-    @config_property
-    def temperature_unit(self) -> str:
-        """Return temperature unit."""
-        return _TEMP_CELSIUS
-
-    @property
-    def _temperature_for_heat_mode(self) -> float:
-        """
-        Return a safe temperature to use when setting mode to HEAT.
-
-        If the current target temperature is None or represents the special OFF value,
-        fall back to the device's minimum valid temperature. Otherwise, return the
-        current target temperature clipped to the valid [min, max] range.
-        """
-        temp = self._old_manu_setpoint or self.target_temperature
-        # Treat None or OFF sentinel as invalid/unsafe to restore.
-        if temp is None or temp <= _OFF_TEMPERATURE or temp < self.min_temp:
-            return self.min_temp if self.min_temp > _OFF_TEMPERATURE else _OFF_TEMPERATURE + 0.5
-        if temp > self.max_temp:
-            return self.max_temp
-        return temp
-
-    @property
-    def schedule_profile_nos(self) -> int:
-        """Return the number of supported profiles."""
-        return 0
-
-    @bind_collector()
-    async def set_temperature(
-        self,
-        *,
-        temperature: float,
-        collector: CallParameterCollector | None = None,
-        do_validate: bool = True,
-    ) -> None:
-        """Set new target temperature. The temperature must be set in all cases, even if the values are identical."""
-        if do_validate and self.mode == ClimateMode.HEAT and self.min_max_value_not_relevant_for_manu_mode:
-            do_validate = False
-
-        if do_validate and not (self.min_temp <= temperature <= self.max_temp):
-            raise ValidationException(
-                f"SET_TEMPERATURE failed: Invalid temperature: {temperature} (min: {self.min_temp}, max: {self.max_temp})"
-            )
-
-        await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
-
-    @bind_collector()
-    async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
-        """Set new target mode."""
-
-    @bind_collector()
-    async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
-        """Set new profile."""
-
-    @inspector
-    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
-        """Enable the away mode by calendar on thermostat."""
-
-    @inspector
-    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
-        """Enable the away mode by duration on thermostat."""
-
-    @inspector
-    async def disable_away_mode(self) -> None:
-        """Disable the away mode on thermostat."""
-
-    def is_state_change(self, **kwargs: Any) -> bool:
-        """Check if the state changes due to kwargs."""
-        if (
-            temperature := kwargs.get(_StateChangeArg.TEMPERATURE)
-        ) is not None and temperature != self.target_temperature:
-            return True
-        if (mode := kwargs.get(_StateChangeArg.MODE)) is not None and mode != self.mode:
-            return True
-        if (profile := kwargs.get(_StateChangeArg.PROFILE)) is not None and profile != self.profile:
-            return True
-        return super().is_state_change(**kwargs)
-
-    @inspector
-    async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
-        """Copy schedule to target device."""
-
-        if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
-            raise ValidationException("Copy schedule profile is only: No of schedule profile must be identical")
-        raw_schedule = await self._get_raw_schedule()
-        await self._client.put_paramset(
-            channel_address=target_climate_data_point.schedule_channel_address,
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=raw_schedule,
-        )
-
-    @inspector
-    async def copy_schedule_profile(
-        self,
-        *,
-        source_profile: ScheduleProfile,
-        target_profile: ScheduleProfile,
-        target_climate_data_point: BaseCustomDpClimate | None = None,
-    ) -> None:
-        """Copy schedule profile to target device."""
-        same_device = False
-        if not self._supports_schedule:
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
-        if target_climate_data_point is None:
-            target_climate_data_point = self
-        if self is target_climate_data_point:
-            same_device = True
-
-        if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
-            raise ValidationException(
-                "Copy schedule profile on same device is only possible with defined and different source/target profiles"
-            )
-
-        if (source_profile_data := await self.get_schedule_profile(profile=source_profile)) is None:
-            raise ValidationException(f"Source profile {source_profile} could not be loaded.")
-        await self._set_schedule_profile(
-            target_channel_address=target_climate_data_point.schedule_channel_address,
-            profile=target_profile,
-            profile_data=source_profile_data,
-            do_validate=False,
-        )
-
-    @inspector
-    async def get_schedule_profile(self, *, profile: ScheduleProfile) -> PROFILE_DICT:
-        """Return a schedule by climate profile."""
-        if not self._supports_schedule:
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
-        schedule_data = await self._get_schedule_profile(profile=profile)
-        return schedule_data.get(profile, {})
-
-    @inspector
-    async def get_schedule_profile_weekday(self, *, profile: ScheduleProfile, weekday: ScheduleWeekday) -> WEEKDAY_DICT:
-        """Return a schedule by climate profile."""
-        if not self._supports_schedule:
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
-        schedule_data = await self._get_schedule_profile(profile=profile, weekday=weekday)
-        return schedule_data.get(profile, {}).get(weekday, {})
-
-    async def _get_raw_schedule(self) -> _RAW_SCHEDULE_DICT:
-        """Return the raw schedule."""
-        try:
-            raw_data = await self._client.get_paramset(
-                address=self.schedule_channel_address,
-                paramset_key=ParamsetKey.MASTER,
-            )
-            raw_schedule = {key: value for key, value in raw_data.items() if SCHEDULER_PROFILE_PATTERN.match(key)}
-        except ClientException as cex:
-            self._supports_schedule = False
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}") from cex
-        return raw_schedule
-
-    async def _get_schedule_profile(
-        self, *, profile: ScheduleProfile | None = None, weekday: ScheduleWeekday | None = None
-    ) -> _SCHEDULE_DICT:
-        """Get the schedule."""
-        schedule_data: _SCHEDULE_DICT = {}
-        raw_schedule = await self._get_raw_schedule()
-        for slot_name, slot_value in raw_schedule.items():
-            slot_name_tuple = slot_name.split("_")
-            if len(slot_name_tuple) != 4:
-                continue
-            profile_name, slot_type, slot_weekday, slot_no = slot_name_tuple
-            _profile = ScheduleProfile(profile_name)
-            if profile and profile != _profile:
-                continue
-            _slot_type = ScheduleSlotType(slot_type)
-            _weekday = ScheduleWeekday(slot_weekday)
-            if weekday and weekday != _weekday:
-                continue
-            _slot_no = int(slot_no)
-
-            _add_to_schedule_data(
-                schedule_data=schedule_data,
-                profile=_profile,
-                weekday=_weekday,
-                slot_no=_slot_no,
-                slot_type=_slot_type,
-                slot_value=slot_value,
-            )
-
-        return schedule_data
-
-    @inspector
-    async def set_schedule_profile(
-        self, *, profile: ScheduleProfile, profile_data: PROFILE_DICT, do_validate: bool = True
-    ) -> None:
-        """Set a profile to device."""
-        await self._set_schedule_profile(
-            target_channel_address=self.schedule_channel_address,
-            profile=profile,
-            profile_data=profile_data,
-            do_validate=do_validate,
-        )
-
     async def _set_schedule_profile(
         self,
         *,
@@ -640,64 +706,6 @@ class BaseCustomDpClimate(CustomDataPoint):
             paramset_key_or_link_address=ParamsetKey.MASTER,
             values=_get_raw_schedule_paramset(schedule_data=schedule_data),
         )
-
-    @inspector
-    async def set_simple_schedule_profile(
-        self,
-        *,
-        profile: ScheduleProfile,
-        base_temperature: float,
-        simple_profile_data: SIMPLE_PROFILE_DICT,
-    ) -> None:
-        """Set a profile to device."""
-        profile_data = self._validate_and_convert_simple_to_profile(
-            base_temperature=base_temperature, simple_profile_data=simple_profile_data
-        )
-        await self.set_schedule_profile(profile=profile, profile_data=profile_data)
-
-    @inspector
-    async def set_schedule_profile_weekday(
-        self,
-        *,
-        profile: ScheduleProfile,
-        weekday: ScheduleWeekday,
-        weekday_data: WEEKDAY_DICT,
-        do_validate: bool = True,
-    ) -> None:
-        """Store a profile to device."""
-        if do_validate:
-            self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
-        schedule_data: _SCHEDULE_DICT = {}
-        for slot_no, slot in weekday_data.items():
-            for slot_type, slot_value in slot.items():
-                _add_to_schedule_data(
-                    schedule_data=schedule_data,
-                    profile=profile,
-                    weekday=weekday,
-                    slot_no=slot_no,
-                    slot_type=slot_type,
-                    slot_value=slot_value,
-                )
-        await self._client.put_paramset(
-            channel_address=self.schedule_channel_address,
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=_get_raw_schedule_paramset(schedule_data=schedule_data),
-        )
-
-    @inspector
-    async def set_simple_schedule_profile_weekday(
-        self,
-        *,
-        profile: ScheduleProfile,
-        weekday: ScheduleWeekday,
-        base_temperature: float,
-        simple_weekday_list: SIMPLE_WEEKDAY_LIST,
-    ) -> None:
-        """Store a simple weekday profile to device."""
-        weekday_data = self._validate_and_convert_simple_to_profile_weekday(
-            base_temperature=base_temperature, simple_weekday_list=simple_weekday_list
-        )
-        await self.set_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
     def _validate_and_convert_simple_to_profile(
         self, *, base_temperature: float, simple_profile_data: SIMPLE_PROFILE_DICT
@@ -869,54 +877,38 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         )
         self._supports_schedule = True
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_boost_mode: DpAction = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpAction)
-        self._dp_auto_mode: DpAction = self._get_data_point(field=Field.AUTO_MODE, data_point_type=DpAction)
-        self._dp_manu_mode: DpAction = self._get_data_point(field=Field.MANU_MODE, data_point_type=DpAction)
-        self._dp_comfort_mode: DpAction = self._get_data_point(field=Field.COMFORT_MODE, data_point_type=DpAction)
-        self._dp_lowering_mode: DpAction = self._get_data_point(field=Field.LOWERING_MODE, data_point_type=DpAction)
-        self._dp_control_mode: DpSensor[str | None] = self._get_data_point(
-            field=Field.CONTROL_MODE, data_point_type=DpSensor[str | None]
-        )
-        self._dp_temperature_offset: DpSelect = self._get_data_point(
-            field=Field.TEMPERATURE_OFFSET, data_point_type=DpSelect
-        )
-        self._dp_valve_state: DpSensor[int | None] = self._get_data_point(
-            field=Field.VALVE_STATE, data_point_type=DpSensor[int | None]
-        )
-        self._dp_week_program_pointer: DpSelect = self._get_data_point(
-            field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
-        )
-
-    def _post_init_data_point_fields(self) -> None:
-        """Post action after initialisation of the data point fields."""
-        super()._post_init_data_point_fields()
-
-        # register callback for control_mode to track manual target temp
-        self._unregister_callbacks.append(
-            self._dp_control_mode.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+    @property
+    def _current_profile_name(self) -> ClimateProfile | None:
+        """Return a profile index by name."""
+        inv_profiles = {v: k for k, v in self._profiles.items()}
+        if self._dp_week_program_pointer.value is not None:
+            idx = (
+                int(self._dp_week_program_pointer.value)
+                if self._dp_week_program_pointer.value.isnumeric()
+                else _HM_WEEK_PROFILE_POINTERS_TO_IDX[self._dp_week_program_pointer.value]
             )
-        )
+            return inv_profiles.get(idx)
+        return None
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
-        """Handle device state changes."""
-        if (
-            data_point == self._dp_control_mode
-            and self.mode == ClimateMode.HEAT
-            and self._dp_setpoint.refreshed_recently
-        ):
-            self._old_manu_setpoint = self.target_temperature
+    @property
+    def _profile_names(self) -> tuple[ClimateProfile, ...]:
+        """Return a collection of profile names."""
+        return tuple(self._profiles.keys())
 
-        if (
-            data_point == self._dp_setpoint
-            and self.mode == ClimateMode.HEAT
-            and self._dp_control_mode.refreshed_recently
-        ):
-            self._old_manu_setpoint = self.target_temperature
+    @property
+    def _profiles(self) -> Mapping[ClimateProfile, int]:
+        """Return the profile groups."""
+        profiles: dict[ClimateProfile, int] = {}
+        if self._dp_week_program_pointer.min is not None and self._dp_week_program_pointer.max is not None:
+            for i in range(int(self._dp_week_program_pointer.min) + 1, int(self._dp_week_program_pointer.max) + 2):
+                profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i - 1
+
+        return profiles
+
+    @property
+    def supports_profiles(self) -> bool:
+        """Flag if climate supports profiles."""
+        return True
 
     @state_property
     def activity(self) -> ClimateActivity | None:
@@ -928,6 +920,36 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         if self._dp_valve_state.value and self._dp_valve_state.value > 0:
             return ClimateActivity.HEAT
         return ClimateActivity.IDLE
+
+    @inspector
+    async def disable_away_mode(self) -> None:
+        """Disable the away mode on thermostat."""
+        start = datetime.now() - timedelta(hours=11)
+        end = datetime.now() - timedelta(hours=10)
+
+        await self._client.set_value(
+            channel_address=self._channel.address,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=Parameter.PARTY_MODE_SUBMIT,
+            value=_party_mode_code(start=start, end=end, away_temperature=12.0),
+        )
+
+    @inspector
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
+        """Enable the away mode by calendar on thermostat."""
+        await self._client.set_value(
+            channel_address=self._channel.address,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=Parameter.PARTY_MODE_SUBMIT,
+            value=_party_mode_code(start=start, end=end, away_temperature=away_temperature),
+        )
+
+    @inspector
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
+        """Enable the away mode by duration on thermostat."""
+        start = datetime.now() - timedelta(minutes=10)
+        end = datetime.now() + timedelta(hours=hours)
+        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
 
     @state_property
     def mode(self) -> ClimateMode:
@@ -964,16 +986,6 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             control_modes.extend(self._profile_names)
         return tuple(control_modes)
 
-    @property
-    def supports_profiles(self) -> bool:
-        """Flag if climate supports profiles."""
-        return True
-
-    @state_property
-    def temperature_offset(self) -> str | None:
-        """Return the maximum temperature."""
-        return self._dp_temperature_offset.value
-
     @bind_collector()
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new mode."""
@@ -1009,63 +1021,59 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                     value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector
                 )
 
-    @inspector
-    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
-        """Enable the away mode by calendar on thermostat."""
-        await self._client.set_value(
-            channel_address=self._channel.address,
-            paramset_key=ParamsetKey.VALUES,
-            parameter=Parameter.PARTY_MODE_SUBMIT,
-            value=_party_mode_code(start=start, end=end, away_temperature=away_temperature),
+    @state_property
+    def temperature_offset(self) -> str | None:
+        """Return the maximum temperature."""
+        return self._dp_temperature_offset.value
+
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+
+        self._dp_boost_mode: DpAction = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpAction)
+        self._dp_auto_mode: DpAction = self._get_data_point(field=Field.AUTO_MODE, data_point_type=DpAction)
+        self._dp_manu_mode: DpAction = self._get_data_point(field=Field.MANU_MODE, data_point_type=DpAction)
+        self._dp_comfort_mode: DpAction = self._get_data_point(field=Field.COMFORT_MODE, data_point_type=DpAction)
+        self._dp_lowering_mode: DpAction = self._get_data_point(field=Field.LOWERING_MODE, data_point_type=DpAction)
+        self._dp_control_mode: DpSensor[str | None] = self._get_data_point(
+            field=Field.CONTROL_MODE, data_point_type=DpSensor[str | None]
+        )
+        self._dp_temperature_offset: DpSelect = self._get_data_point(
+            field=Field.TEMPERATURE_OFFSET, data_point_type=DpSelect
+        )
+        self._dp_valve_state: DpSensor[int | None] = self._get_data_point(
+            field=Field.VALVE_STATE, data_point_type=DpSensor[int | None]
+        )
+        self._dp_week_program_pointer: DpSelect = self._get_data_point(
+            field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
         )
 
-    @inspector
-    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
-        """Enable the away mode by duration on thermostat."""
-        start = datetime.now() - timedelta(minutes=10)
-        end = datetime.now() + timedelta(hours=hours)
-        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
+        """Handle device state changes."""
+        if (
+            data_point == self._dp_control_mode
+            and self.mode == ClimateMode.HEAT
+            and self._dp_setpoint.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
 
-    @inspector
-    async def disable_away_mode(self) -> None:
-        """Disable the away mode on thermostat."""
-        start = datetime.now() - timedelta(hours=11)
-        end = datetime.now() - timedelta(hours=10)
+        if (
+            data_point == self._dp_setpoint
+            and self.mode == ClimateMode.HEAT
+            and self._dp_control_mode.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
 
-        await self._client.set_value(
-            channel_address=self._channel.address,
-            paramset_key=ParamsetKey.VALUES,
-            parameter=Parameter.PARTY_MODE_SUBMIT,
-            value=_party_mode_code(start=start, end=end, away_temperature=12.0),
-        )
+    def _post_init_data_point_fields(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init_data_point_fields()
 
-    @property
-    def _profile_names(self) -> tuple[ClimateProfile, ...]:
-        """Return a collection of profile names."""
-        return tuple(self._profiles.keys())
-
-    @property
-    def _current_profile_name(self) -> ClimateProfile | None:
-        """Return a profile index by name."""
-        inv_profiles = {v: k for k, v in self._profiles.items()}
-        if self._dp_week_program_pointer.value is not None:
-            idx = (
-                int(self._dp_week_program_pointer.value)
-                if self._dp_week_program_pointer.value.isnumeric()
-                else _HM_WEEK_PROFILE_POINTERS_TO_IDX[self._dp_week_program_pointer.value]
+        # register callback for control_mode to track manual target temp
+        self._unregister_callbacks.append(
+            self._dp_control_mode.register_data_point_updated_callback(
+                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
-            return inv_profiles.get(idx)
-        return None
-
-    @property
-    def _profiles(self) -> Mapping[ClimateProfile, int]:
-        """Return the profile groups."""
-        profiles: dict[ClimateProfile, int] = {}
-        if self._dp_week_program_pointer.min is not None and self._dp_week_program_pointer.max is not None:
-            for i in range(int(self._dp_week_program_pointer.min) + 1, int(self._dp_week_program_pointer.max) + 2):
-                profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i - 1
-
-        return profiles
+        )
 
 
 def _party_mode_code(*, start: datetime, end: datetime, away_temperature: float) -> str:
@@ -1118,62 +1126,49 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         )
         self._supports_schedule = True
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_active_profile: DpInteger = self._get_data_point(field=Field.ACTIVE_PROFILE, data_point_type=DpInteger)
-        self._dp_boost_mode: DpSwitch = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpSwitch)
-        self._dp_control_mode: DpAction = self._get_data_point(field=Field.CONTROL_MODE, data_point_type=DpAction)
-        self._dp_heating_mode: DpSelect = self._get_data_point(field=Field.HEATING_COOLING, data_point_type=DpSelect)
-        self._dp_heating_valve_type: DpSelect = self._get_data_point(
-            field=Field.HEATING_VALVE_TYPE, data_point_type=DpSelect
-        )
-        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._dp_optimum_start_stop: DpSwitch = self._get_data_point(
-            field=Field.OPTIMUM_START_STOP, data_point_type=DpSwitch
-        )
-        self._dp_party_mode: DpBinarySensor = self._get_data_point(
-            field=Field.PARTY_MODE, data_point_type=DpBinarySensor
-        )
-        self._dp_set_point_mode: DpInteger = self._get_data_point(field=Field.SET_POINT_MODE, data_point_type=DpInteger)
-        self._dp_state: DpBinarySensor = self._get_data_point(field=Field.STATE, data_point_type=DpBinarySensor)
-        self._dp_temperature_offset: DpFloat = self._get_data_point(
-            field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
-        )
-
-    def _post_init_data_point_fields(self) -> None:
-        """Post action after initialisation of the data point fields."""
-        super()._post_init_data_point_fields()
-
-        # register callback for set_point_mode to track manual target temp
-        self._unregister_callbacks.append(
-            self._dp_set_point_mode.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
-            )
-        )
-
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
-        """Handle device state changes."""
-        if (
-            data_point == self._dp_set_point_mode
-            and self.mode == ClimateMode.HEAT
-            and self._dp_setpoint.refreshed_recently
-        ):
-            self._old_manu_setpoint = self.target_temperature
-
-        if (
-            data_point == self._dp_setpoint
-            and self.mode == ClimateMode.HEAT
-            and self._dp_set_point_mode.refreshed_recently
-        ):
-            self._old_manu_setpoint = self.target_temperature
+    @property
+    def _current_profile_name(self) -> ClimateProfile | None:
+        """Return a profile index by name."""
+        inv_profiles = {v: k for k, v in self._profiles.items()}
+        if self._dp_active_profile.value is not None:
+            return inv_profiles.get(int(self._dp_active_profile.value))
+        return None
 
     @property
     def _is_heating_mode(self) -> bool:
         """Return the heating_mode of the device."""
         if self._dp_heating_mode.value is not None:
             return str(self._dp_heating_mode.value) == "HEATING"
+        return True
+
+    @property
+    def _profile_names(self) -> tuple[ClimateProfile, ...]:
+        """Return a collection of profile names."""
+        return tuple(self._profiles.keys())
+
+    @property
+    def _profiles(self) -> Mapping[ClimateProfile, int]:
+        """Return the profile groups."""
+        profiles: dict[ClimateProfile, int] = {}
+        if self._dp_active_profile.min and self._dp_active_profile.max:
+            for i in range(self._dp_active_profile.min, self._dp_active_profile.max + 1):
+                profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i
+
+        return profiles
+
+    @property
+    def optimum_start_stop(self) -> bool | None:
+        """Return if optimum_start_stop is enabled."""
+        return self._dp_optimum_start_stop.value
+
+    @property
+    def schedule_profile_nos(self) -> int:
+        """Return the number of supported profiles."""
+        return len(self._profiles)
+
+    @property
+    def supports_profiles(self) -> bool:
+        """Flag if climate supports control modes."""
         return True
 
     @state_property
@@ -1218,6 +1213,40 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL
         return ClimateActivity.IDLE
 
+    @inspector
+    async def disable_away_mode(self) -> None:
+        """Disable the away mode on thermostat."""
+        await self._client.put_paramset(
+            channel_address=self._channel.address,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
+                Parameter.PARTY_TIME_START: _PARTY_INIT_DATE,
+                Parameter.PARTY_TIME_END: _PARTY_INIT_DATE,
+            },
+        )
+
+    @inspector
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
+        """Enable the away mode by calendar on thermostat."""
+        await self._client.put_paramset(
+            channel_address=self._channel.address,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
+                Parameter.SET_POINT_TEMPERATURE: away_temperature,
+                Parameter.PARTY_TIME_START: start.strftime(_PARTY_DATE_FORMAT),
+                Parameter.PARTY_TIME_END: end.strftime(_PARTY_DATE_FORMAT),
+            },
+        )
+
+    @inspector
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
+        """Enable the away mode by duration on thermostat."""
+        start = datetime.now() - timedelta(minutes=10)
+        end = datetime.now() + timedelta(hours=hours)
+        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
+
     @state_property
     def mode(self) -> ClimateMode:
         """Return current operation mode."""
@@ -1257,21 +1286,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             control_modes.extend(self._profile_names)
         return tuple(control_modes)
 
-    @property
-    def optimum_start_stop(self) -> bool | None:
-        """Return if optimum_start_stop is enabled."""
-        return self._dp_optimum_start_stop.value
-
-    @property
-    def supports_profiles(self) -> bool:
-        """Flag if climate supports control modes."""
-        return True
-
-    @state_property
-    def temperature_offset(self) -> float | None:
-        """Return the maximum temperature."""
-        return self._dp_temperature_offset.value
-
     @bind_collector()
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
@@ -1306,67 +1320,61 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             if profile_idx := self._profiles.get(profile):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
 
-    @inspector
-    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
-        """Enable the away mode by calendar on thermostat."""
-        await self._client.put_paramset(
-            channel_address=self._channel.address,
-            paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={
-                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
-                Parameter.SET_POINT_TEMPERATURE: away_temperature,
-                Parameter.PARTY_TIME_START: start.strftime(_PARTY_DATE_FORMAT),
-                Parameter.PARTY_TIME_END: end.strftime(_PARTY_DATE_FORMAT),
-            },
+    @state_property
+    def temperature_offset(self) -> float | None:
+        """Return the maximum temperature."""
+        return self._dp_temperature_offset.value
+
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+
+        self._dp_active_profile: DpInteger = self._get_data_point(field=Field.ACTIVE_PROFILE, data_point_type=DpInteger)
+        self._dp_boost_mode: DpSwitch = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpSwitch)
+        self._dp_control_mode: DpAction = self._get_data_point(field=Field.CONTROL_MODE, data_point_type=DpAction)
+        self._dp_heating_mode: DpSelect = self._get_data_point(field=Field.HEATING_COOLING, data_point_type=DpSelect)
+        self._dp_heating_valve_type: DpSelect = self._get_data_point(
+            field=Field.HEATING_VALVE_TYPE, data_point_type=DpSelect
+        )
+        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
+        self._dp_optimum_start_stop: DpSwitch = self._get_data_point(
+            field=Field.OPTIMUM_START_STOP, data_point_type=DpSwitch
+        )
+        self._dp_party_mode: DpBinarySensor = self._get_data_point(
+            field=Field.PARTY_MODE, data_point_type=DpBinarySensor
+        )
+        self._dp_set_point_mode: DpInteger = self._get_data_point(field=Field.SET_POINT_MODE, data_point_type=DpInteger)
+        self._dp_state: DpBinarySensor = self._get_data_point(field=Field.STATE, data_point_type=DpBinarySensor)
+        self._dp_temperature_offset: DpFloat = self._get_data_point(
+            field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
-    @inspector
-    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
-        """Enable the away mode by duration on thermostat."""
-        start = datetime.now() - timedelta(minutes=10)
-        end = datetime.now() + timedelta(hours=hours)
-        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
+        """Handle device state changes."""
+        if (
+            data_point == self._dp_set_point_mode
+            and self.mode == ClimateMode.HEAT
+            and self._dp_setpoint.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
 
-    @inspector
-    async def disable_away_mode(self) -> None:
-        """Disable the away mode on thermostat."""
-        await self._client.put_paramset(
-            channel_address=self._channel.address,
-            paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={
-                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
-                Parameter.PARTY_TIME_START: _PARTY_INIT_DATE,
-                Parameter.PARTY_TIME_END: _PARTY_INIT_DATE,
-            },
+        if (
+            data_point == self._dp_setpoint
+            and self.mode == ClimateMode.HEAT
+            and self._dp_set_point_mode.refreshed_recently
+        ):
+            self._old_manu_setpoint = self.target_temperature
+
+    def _post_init_data_point_fields(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init_data_point_fields()
+
+        # register callback for set_point_mode to track manual target temp
+        self._unregister_callbacks.append(
+            self._dp_set_point_mode.register_data_point_updated_callback(
+                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+            )
         )
-
-    @property
-    def _profile_names(self) -> tuple[ClimateProfile, ...]:
-        """Return a collection of profile names."""
-        return tuple(self._profiles.keys())
-
-    @property
-    def _current_profile_name(self) -> ClimateProfile | None:
-        """Return a profile index by name."""
-        inv_profiles = {v: k for k, v in self._profiles.items()}
-        if self._dp_active_profile.value is not None:
-            return inv_profiles.get(int(self._dp_active_profile.value))
-        return None
-
-    @property
-    def _profiles(self) -> Mapping[ClimateProfile, int]:
-        """Return the profile groups."""
-        profiles: dict[ClimateProfile, int] = {}
-        if self._dp_active_profile.min and self._dp_active_profile.max:
-            for i in range(self._dp_active_profile.min, self._dp_active_profile.max + 1):
-                profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i
-
-        return profiles
-
-    @property
-    def schedule_profile_nos(self) -> int:
-        """Return the number of supported profiles."""
-        return len(self._profiles)
 
 
 def _convert_minutes_to_time_str(minutes: Any) -> str:

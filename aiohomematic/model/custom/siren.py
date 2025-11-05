@@ -44,10 +44,25 @@ class BaseCustomDpSiren(CustomDataPoint):
 
     _category = DataPointCategory.SIREN
 
+    @property
+    @abstractmethod
+    def supports_duration(self) -> bool:
+        """Flag if siren supports duration."""
+
+    @property
+    def supports_lights(self) -> bool:
+        """Flag if siren supports lights."""
+        return self.available_lights is not None
+
+    @property
+    def supports_tones(self) -> bool:
+        """Flag if siren supports tones."""
+        return self.available_tones is not None
+
     @state_property
     @abstractmethod
-    def is_on(self) -> bool:
-        """Return true if siren is on."""
+    def available_lights(self) -> tuple[str, ...] | None:
+        """Return available lights."""
 
     @state_property
     @abstractmethod
@@ -56,23 +71,13 @@ class BaseCustomDpSiren(CustomDataPoint):
 
     @state_property
     @abstractmethod
-    def available_lights(self) -> tuple[str, ...] | None:
-        """Return available lights."""
+    def is_on(self) -> bool:
+        """Return true if siren is on."""
 
-    @property
     @abstractmethod
-    def supports_duration(self) -> bool:
-        """Flag if siren supports duration."""
-
-    @property
-    def supports_tones(self) -> bool:
-        """Flag if siren supports tones."""
-        return self.available_tones is not None
-
-    @property
-    def supports_lights(self) -> bool:
-        """Flag if siren supports lights."""
-        return self.available_lights is not None
+    @bind_collector()
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
+        """Turn the device off."""
 
     @abstractmethod
     @bind_collector()
@@ -83,11 +88,6 @@ class BaseCustomDpSiren(CustomDataPoint):
         **kwargs: Unpack[SirenOnArgs],
     ) -> None:
         """Turn the device on."""
-
-    @abstractmethod
-    @bind_collector()
-    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Turn the device off."""
 
 
 class CustomDpIpSiren(BaseCustomDpSiren):
@@ -102,29 +102,15 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         "_dp_optical_alarm_selection",
     )
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_acoustic_alarm_active: DpBinarySensor = self._get_data_point(
-            field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=DpBinarySensor
-        )
-        self._dp_acoustic_alarm_selection: DpAction = self._get_data_point(
-            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=DpAction
-        )
-        self._dp_optical_alarm_active: DpBinarySensor = self._get_data_point(
-            field=Field.OPTICAL_ALARM_ACTIVE, data_point_type=DpBinarySensor
-        )
-        self._dp_optical_alarm_selection: DpAction = self._get_data_point(
-            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=DpAction
-        )
-        self._dp_duration: DpAction = self._get_data_point(field=Field.DURATION, data_point_type=DpAction)
-        self._dp_duration_unit: DpAction = self._get_data_point(field=Field.DURATION_UNIT, data_point_type=DpAction)
+    @property
+    def supports_duration(self) -> bool:
+        """Flag if siren supports duration."""
+        return True
 
     @state_property
-    def is_on(self) -> bool:
-        """Return true if siren is on."""
-        return self._dp_acoustic_alarm_active.value is True or self._dp_optical_alarm_active.value is True
+    def available_lights(self) -> tuple[str, ...] | None:
+        """Return available lights."""
+        return self._dp_optical_alarm_selection.values
 
     @state_property
     def available_tones(self) -> tuple[str, ...] | None:
@@ -132,14 +118,21 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         return self._dp_acoustic_alarm_selection.values
 
     @state_property
-    def available_lights(self) -> tuple[str, ...] | None:
-        """Return available lights."""
-        return self._dp_optical_alarm_selection.values
+    def is_on(self) -> bool:
+        """Return true if siren is on."""
+        return self._dp_acoustic_alarm_active.value is True or self._dp_optical_alarm_active.value is True
 
-    @property
-    def supports_duration(self) -> bool:
-        """Flag if siren supports duration."""
-        return True
+    @bind_collector()
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
+        """Turn the device off."""
+        await self._dp_acoustic_alarm_selection.send_value(
+            value=self._dp_acoustic_alarm_selection.default, collector=collector
+        )
+        await self._dp_optical_alarm_selection.send_value(
+            value=self._dp_optical_alarm_selection.default, collector=collector
+        )
+        await self._dp_duration_unit.send_value(value=self._dp_duration_unit.default, collector=collector)
+        await self._dp_duration.send_value(value=self._dp_duration.default, collector=collector)
 
     @bind_collector()
     async def turn_on(
@@ -170,17 +163,24 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         duration = kwargs.get("duration", self._dp_duration.default)
         await self._dp_duration.send_value(value=duration, collector=collector)
 
-    @bind_collector()
-    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Turn the device off."""
-        await self._dp_acoustic_alarm_selection.send_value(
-            value=self._dp_acoustic_alarm_selection.default, collector=collector
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+
+        self._dp_acoustic_alarm_active: DpBinarySensor = self._get_data_point(
+            field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=DpBinarySensor
         )
-        await self._dp_optical_alarm_selection.send_value(
-            value=self._dp_optical_alarm_selection.default, collector=collector
+        self._dp_acoustic_alarm_selection: DpAction = self._get_data_point(
+            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=DpAction
         )
-        await self._dp_duration_unit.send_value(value=self._dp_duration_unit.default, collector=collector)
-        await self._dp_duration.send_value(value=self._dp_duration.default, collector=collector)
+        self._dp_optical_alarm_active: DpBinarySensor = self._get_data_point(
+            field=Field.OPTICAL_ALARM_ACTIVE, data_point_type=DpBinarySensor
+        )
+        self._dp_optical_alarm_selection: DpAction = self._get_data_point(
+            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=DpAction
+        )
+        self._dp_duration: DpAction = self._get_data_point(field=Field.DURATION, data_point_type=DpAction)
+        self._dp_duration_unit: DpAction = self._get_data_point(field=Field.DURATION_UNIT, data_point_type=DpAction)
 
 
 class CustomDpIpSirenSmoke(BaseCustomDpSiren):
@@ -191,16 +191,20 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         "_dp_smoke_detector_command",
     )
 
-    def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
-        super()._init_data_point_fields()
+    @property
+    def supports_duration(self) -> bool:
+        """Flag if siren supports duration."""
+        return False
 
-        self._dp_smoke_detector_alarm_status: DpSensor[str | None] = self._get_data_point(
-            field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=DpSensor[str | None]
-        )
-        self._dp_smoke_detector_command: DpAction = self._get_data_point(
-            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=DpAction
-        )
+    @state_property
+    def available_lights(self) -> tuple[str, ...] | None:
+        """Return available lights."""
+        return None
+
+    @state_property
+    def available_tones(self) -> tuple[str, ...] | None:
+        """Return available tones."""
+        return None
 
     @state_property
     def is_on(self) -> bool:
@@ -209,20 +213,10 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
             return False
         return bool(self._dp_smoke_detector_alarm_status.value != _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF)
 
-    @state_property
-    def available_tones(self) -> tuple[str, ...] | None:
-        """Return available tones."""
-        return None
-
-    @state_property
-    def available_lights(self) -> tuple[str, ...] | None:
-        """Return available lights."""
-        return None
-
-    @property
-    def supports_duration(self) -> bool:
-        """Flag if siren supports duration."""
-        return False
+    @bind_collector()
+    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
+        """Turn the device off."""
+        await self._dp_smoke_detector_command.send_value(value=_SirenCommand.OFF, collector=collector)
 
     @bind_collector()
     async def turn_on(
@@ -234,10 +228,16 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         """Turn the device on."""
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.ON, collector=collector)
 
-    @bind_collector()
-    async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Turn the device off."""
-        await self._dp_smoke_detector_command.send_value(value=_SirenCommand.OFF, collector=collector)
+    def _init_data_point_fields(self) -> None:
+        """Init the data_point fields."""
+        super()._init_data_point_fields()
+
+        self._dp_smoke_detector_alarm_status: DpSensor[str | None] = self._get_data_point(
+            field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=DpSensor[str | None]
+        )
+        self._dp_smoke_detector_command: DpAction = self._get_data_point(
+            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=DpAction
+        )
 
 
 def make_ip_siren(

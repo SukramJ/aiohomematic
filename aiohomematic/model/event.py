@@ -88,16 +88,21 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
         )
 
     @property
+    def event_type(self) -> EventType:
+        """Return the event_type of the event."""
+        return self._event_type
+
+    @property
     def usage(self) -> DataPointUsage:
         """Return the data_point usage."""
         if (forced_by_com := self._enabled_by_channel_operation_mode) is None:
             return self._get_data_point_usage()
         return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
-    @property
-    def event_type(self) -> EventType:
-        """Return the event_type of the event."""
-        return self._event_type
+    @loop_check
+    def emit_event(self, *, value: Any) -> None:
+        """Do what is needed to emit an event."""
+        self._central.emit_homematic_callback(event_type=self.event_type, event_data=self.get_event_data(value=value))
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
@@ -105,11 +110,6 @@ class GenericEvent(BaseParameterDataPoint[Any, Any]):
             self.emit_data_point_updated_event()
         self._set_modified_at(modified_at=received_at)
         self.emit_event(value=value)
-
-    @loop_check
-    def emit_event(self, *, value: Any) -> None:
-        """Do what is needed to emit an event."""
-        self._central.emit_homematic_callback(event_type=self.event_type, event_data=self.get_event_data(value=value))
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data_point."""

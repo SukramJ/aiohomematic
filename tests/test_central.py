@@ -864,12 +864,12 @@ async def test_ping_pong(central_client_factory_with_ccu_client) -> None:
     interface_id = client.interface_id
     await client.check_connection_availability(handle_ping_pong=True)
     assert client.ping_pong_cache._pending_pong_count == 1
-    for ts_stored in list(client.ping_pong_cache._pending_pongs):
+    for token_stored in list(client.ping_pong_cache._pending_pongs):
         await central.data_point_event(
             interface_id=interface_id,
             channel_address="",
             parameter=Parameter.PONG,
-            value=f"{interface_id}#{ts_stored.strftime(DATETIME_FORMAT_MILLIS)}",
+            value=f"{interface_id}#{token_stored}",
         )
     assert client.ping_pong_cache._pending_pong_count == 0
 

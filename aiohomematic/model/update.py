@@ -49,11 +49,6 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         )
         self._set_modified_at(modified_at=datetime.now())
 
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self._device.available
-
     @property
     def device(self) -> hmd.Device:
         """Return the device of the data_point."""
@@ -64,10 +59,10 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         """Return the full name of the data_point."""
         return f"{self._device.name} Update"
 
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return "Update"
+    @state_property
+    def available(self) -> bool:
+        """Return the availability of the device."""
+        return self._device.available
 
     @state_property
     def firmware(self) -> str | None:
@@ -99,18 +94,16 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             return self._device.available_firmware
         return self._device.firmware
 
-    def _get_signature(self) -> str:
-        """Return the signature of the data_point."""
-        return f"{self._category}/{self._device.model}"
+    @config_property
+    def name(self) -> str:
+        """Return the name of the data_point."""
+        return "Update"
 
-    def _get_path_data(self) -> DataPointPathData:
-        """Return the path data of the data_point."""
-        return DataPointPathData(
-            interface=None,
-            address=self._device.address,
-            channel_no=None,
-            kind=DataPointCategory.UPDATE,
-        )
+    @inspector
+    async def refresh_firmware_data(self) -> None:
+        """Refresh device firmware data."""
+        await self._device.central.refresh_firmware_data(device_address=self._device.address)
+        self._set_modified_at(modified_at=datetime.now())
 
     def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register update callback."""
@@ -125,19 +118,26 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
         return None
 
-    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
-        """Unregister update callback."""
-        if custom_id is not None:
-            self._custom_id = None
-        self._device.unregister_firmware_update_callback(cb=cb)
-
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Turn the update on."""
         return await self._device.update_firmware(refresh_after_update_intervals=refresh_after_update_intervals)
 
-    @inspector
-    async def refresh_firmware_data(self) -> None:
-        """Refresh device firmware data."""
-        await self._device.central.refresh_firmware_data(device_address=self._device.address)
-        self._set_modified_at(modified_at=datetime.now())
+    def _get_path_data(self) -> DataPointPathData:
+        """Return the path data of the data_point."""
+        return DataPointPathData(
+            interface=None,
+            address=self._device.address,
+            channel_no=None,
+            kind=DataPointCategory.UPDATE,
+        )
+
+    def _get_signature(self) -> str:
+        """Return the signature of the data_point."""
+        return f"{self._category}/{self._device.model}"
+
+    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
+        """Unregister update callback."""
+        if custom_id is not None:
+            self._custom_id = None
+        self._device.unregister_firmware_update_callback(cb=cb)

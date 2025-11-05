@@ -1,3 +1,7 @@
+# Version 2025.11.7 (2025-11-05)
+
+- Handle early arrival of pong events
+
 # Version 2025.11.6 (2025-11-05)
 
 - Add code member sorter to pre-commit

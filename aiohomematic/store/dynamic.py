@@ -22,6 +22,7 @@ constants to keep memory footprint predictable while improving responsiveness.
 
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
@@ -364,6 +365,7 @@ class PingPongCache:
         "_pending_pong_logged",
         "_pending_pongs",
         "_pending_seen_at",
+        "_retry_at",
         "_ttl",
         "_unknown_pong_logged",
         "_unknown_pongs",
@@ -387,6 +389,7 @@ class PingPongCache:
         self._pending_pong_logged: bool = False
         self._pending_pongs: Final[set[str]] = set()
         self._pending_seen_at: Final[dict[str, float]] = {}
+        self._retry_at: Final[set[str]] = set()
         self._unknown_pong_logged: bool = False
         self._unknown_pongs: Final[set[str]] = set()
         self._unknown_seen_at: Final[dict[str, float]] = {}
@@ -442,9 +445,11 @@ class PingPongCache:
                 count,
                 pong_token,
             )
+            # Schedule a single retry after 15s to try reconciling this PONG with a possible late PING.
+            self._schedule_unknown_pong_retry(token=pong_token, delay=15.0)
 
     def handle_send_ping(self, *, ping_token: str) -> None:
-        """Handle send ping token."""
+        """Handle send ping token by tracking it as pending and emitting events."""
         self._pending_pongs.add(ping_token)
         self._pending_seen_at[ping_token] = time.monotonic()
         self._cleanup_pending_pongs()
@@ -568,3 +573,82 @@ class PingPongCache:
                     self._unknown_pong_count,
                     up_pong_ts,
                 )
+
+    async def _retry_reconcile_pong(self, *, token: str) -> None:
+        """Attempt to reconcile a previously-unknown PONG with a late pending PING."""
+        # Always allow another schedule after the retry completes
+        try:
+            # Cleanup any expired entries first to avoid outdated counts
+            self._cleanup_pending_pongs()
+            self._cleanup_unknown_pongs()
+
+            if token in self._pending_pongs:
+                # Remove from pending
+                self._pending_pongs.remove(token)
+                self._pending_seen_at.pop(token, None)
+
+                # If still marked unknown, clear it
+                unknown_before = self._unknown_pong_count
+                if token in self._unknown_pongs:
+                    self._unknown_pongs.remove(token)
+                    self._unknown_seen_at.pop(token, None)
+
+                # Re-emit events to reflect new counts (respecting existing throttling)
+                self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+                if self._unknown_pong_count != unknown_before:
+                    self._check_and_emit_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
+
+                _LOGGER.debug(
+                    "PING PONG CACHE: Retry reconciled PONG on %s for token: %s (pending now: %i, unknown now: %i)",
+                    self._interface_id,
+                    token,
+                    self._pending_pong_count,
+                    self._unknown_pong_count,
+                )
+            else:
+                _LOGGER.debug(
+                    "PING PONG CACHE: Retry found no pending PING on %s for token: %s (unknown: %s)",
+                    self._interface_id,
+                    token,
+                    token in self._unknown_pongs,
+                )
+        finally:
+            self._retry_at.discard(token)
+
+    def _schedule_unknown_pong_retry(self, *, token: str, delay: float) -> None:
+        """
+        Schedule a one-shot retry to reconcile an unknown PONG after delay seconds.
+
+        If no looper is available on the central (e.g. in unit tests), skip scheduling.
+        """
+        # Coalesce multiple schedules for the same token
+        if token in self._retry_at:
+            return
+        self._retry_at.add(token)
+
+        if (looper := getattr(self._central, "looper", None)) is None:
+            # In testing contexts without a looper, we cannot schedule — leave to TTL expiry.
+            _LOGGER.debug(
+                "PING PONG CACHE: Skip scheduling retry for token %s on %s (no looper)",
+                token,
+                self._interface_id,
+            )
+            # Allow a future attempt to schedule if environment changes
+            self._retry_at.discard(token)
+            return
+
+        async def _retry() -> None:
+            try:
+                await asyncio.sleep(delay)
+                await self._retry_reconcile_pong(token=token)
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug(
+                    "PING PONG CACHE: Retry task error for token %s on %s: %s",
+                    token,
+                    self._interface_id,
+                    err,
+                )
+                # Ensure token can be rescheduled if needed
+                self._retry_at.discard(token)
+
+        looper.create_task(target=_retry, name=f"ppc_retry_{self._interface_id}_{token}")

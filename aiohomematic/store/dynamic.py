@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from datetime import datetime  # for other classes
+from datetime import datetime
 import logging
 import time
 from typing import Any, Final, cast
@@ -384,12 +384,12 @@ class PingPongCache:
         self._interface_id: Final = interface_id
         self._allowed_delta: Final = allowed_delta
         self._ttl: Final = ttl
-        self._pending_pongs: Final[set[str]] = set()
-        self._unknown_pongs: Final[set[str]] = set()
-        self._pending_seen_at: Final[dict[str, float]] = {}
-        self._unknown_seen_at: Final[dict[str, float]] = {}
         self._pending_pong_logged: bool = False
+        self._pending_pongs: Final[set[str]] = set()
+        self._pending_seen_at: Final[dict[str, float]] = {}
         self._unknown_pong_logged: bool = False
+        self._unknown_pongs: Final[set[str]] = set()
+        self._unknown_seen_at: Final[dict[str, float]] = {}
 
     @property
     def _pending_pong_count(self) -> int:

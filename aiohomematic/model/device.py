@@ -193,6 +193,13 @@ class Device(LogContextMixin, PayloadMixin):
             self._name,
         )
 
+    async def finalize_init(self) -> None:
+        """Finalize the device init action after model setup."""
+
+        await self.load_value_cache()
+        for channel in self._channels.values():
+            await channel.finalize_init()
+
     def _identify_manufacturer(self) -> Manufacturer:
         """Identify the manufacturer of a device."""
         if self._model.lower().startswith("hb"):
@@ -665,10 +672,6 @@ class Device(LogContextMixin, PayloadMixin):
             await self._value_cache.init_base_data_points()
         if len(self.generic_events) > 0:
             await self._value_cache.init_readable_events()
-        _LOGGER.debug(
-            "INIT_DATA: Skipping load_data, missing data points for %s",
-            self._address,
-        )
 
     @inspector
     async def reload_paramset_descriptions(self) -> None:
@@ -799,6 +802,28 @@ class Channel(LogContextMixin, PayloadMixin):
             if self._link_peer_addresses != link_peer_addresses:
                 self._link_peer_addresses = link_peer_addresses
                 self.emit_link_peer_changed_event()
+
+    async def load_values(self, *, call_source: CallSource, direct_call: bool = False) -> None:
+        """Load data for the channel."""
+        for ge in self._generic_data_points.values():
+            await ge.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        for gev in self._generic_events.values():
+            await gev.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        for cdp in self._calculated_data_points.values():
+            await cdp.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        if self._custom_data_point:
+            await self._custom_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
+
+    async def finalize_init(self) -> None:
+        """Finalize the channel init action after model setup."""
+        for ge in self._generic_data_points.values():
+            await ge.finalize_init()
+        for gev in self._generic_events.values():
+            await gev.finalize_init()
+        for cdp in self._calculated_data_points.values():
+            await cdp.finalize_init()
+        if self._custom_data_point:
+            await self._custom_data_point.finalize_init()
 
     @info_property
     def address(self) -> str:

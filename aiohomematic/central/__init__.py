@@ -1031,7 +1031,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     if device:
                         create_data_points_and_events(device=device)
                         create_custom_data_points(device=device)
-                        await device.load_value_cache()
                         new_devices.add(device)
                         self._devices[device_address] = device
                 except Exception as exc:
@@ -1045,6 +1044,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         _LOGGER.debug("CREATE_DEVICES: Finished creating devices for %s", self.name)
 
         if new_devices:
+            for device in new_devices:
+                await device.finalize_init()
             new_dps = _get_new_data_points(new_devices=new_devices)
             new_channel_events = _get_new_channel_events(new_devices=new_devices)
             self.emit_backend_system_callback(

@@ -171,6 +171,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._temporary_modified_at: datetime = INIT_DATETIME
         self._temporary_refreshed_at: datetime = INIT_DATETIME
 
+    async def finalize_init(self) -> None:
+        """Finalize the data point init action after model setup."""
+
     @state_property
     def additional_information(self) -> dict[str, Any]:
         """Return additional information about the entity."""

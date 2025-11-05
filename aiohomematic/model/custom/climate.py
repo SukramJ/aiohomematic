@@ -223,6 +223,15 @@ class BaseCustomDpClimate(CustomDataPoint):
         self._supports_schedule = False
         self._old_manu_setpoint: float | None = None
 
+    async def finalize_init(self) -> None:
+        """Finalize the climate data point init action after model setup."""
+        await super().finalize_init()
+
+        if OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY not in self._device.central.config.optional_settings:
+            return
+
+        self._refresh_link_peer_activity_sources()
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()

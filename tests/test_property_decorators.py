@@ -64,21 +64,6 @@ class PropertyTestClazz:
         self._config: str = "test_config"
         self._info: str = "test_info"
 
-    @state_property
-    def value(self) -> str:
-        """Return value."""
-        return self._value
-
-    @value.setter
-    def value(self, value: str) -> None:
-        """Set value."""
-        self._value = value
-
-    @value.deleter
-    def value(self) -> None:
-        """Delete value."""
-        self._value = ""
-
     @config_property
     def config(self) -> str:
         """Return config."""
@@ -93,6 +78,21 @@ class PropertyTestClazz:
     def config(self) -> None:
         """Delete config."""
         self._config = ""
+
+    @state_property
+    def value(self) -> str:
+        """Return value."""
+        return self._value
+
+    @value.setter
+    def value(self, value: str) -> None:
+        """Set value."""
+        self._value = value
+
+    @value.deleter
+    def value(self) -> None:
+        """Delete value."""
+        self._value = ""
 
     @info_property
     def info(self) -> str:

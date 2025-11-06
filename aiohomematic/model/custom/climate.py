@@ -259,10 +259,81 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Flag if climate supports profiles."""
         return False
 
+    @config_property
+    def target_temperature_step(self) -> float:
+        """Return the supported step of target temperature."""
+        return _DEFAULT_TEMPERATURE_STEP
+
+    @config_property
+    def temperature_unit(self) -> str:
+        """Return temperature unit."""
+        return _TEMP_CELSIUS
+
     @state_property
     def activity(self) -> ClimateActivity | None:
         """Return the current activity."""
         return None
+
+    @state_property
+    def current_humidity(self) -> int | None:
+        """Return the current humidity."""
+        return self._dp_humidity.value
+
+    @state_property
+    def current_temperature(self) -> float | None:
+        """Return current temperature."""
+        return self._dp_temperature.value
+
+    @state_property
+    def max_temp(self) -> float:
+        """Return the maximum temperature."""
+        if self._dp_temperature_maximum.value is not None:
+            return float(self._dp_temperature_maximum.value)
+        return cast(float, self._dp_setpoint.max)
+
+    @state_property
+    def min_max_value_not_relevant_for_manu_mode(self) -> bool:
+        """Return the maximum temperature."""
+        if self._dp_min_max_value_not_relevant_for_manu_mode.value is not None:
+            return self._dp_min_max_value_not_relevant_for_manu_mode.value
+        return False
+
+    @state_property
+    def min_temp(self) -> float:
+        """Return the minimum temperature."""
+        if self._dp_temperature_minimum.value is not None:
+            min_temp = float(self._dp_temperature_minimum.value)
+        else:
+            min_temp = self._dp_setpoint.min
+
+        if min_temp == _OFF_TEMPERATURE:
+            return min_temp + _DEFAULT_TEMPERATURE_STEP
+        return min_temp
+
+    @state_property
+    def mode(self) -> ClimateMode:
+        """Return current operation mode."""
+        return ClimateMode.HEAT
+
+    @state_property
+    def modes(self) -> tuple[ClimateMode, ...]:
+        """Return the available operation modes."""
+        return (ClimateMode.HEAT,)
+
+    @state_property
+    def profile(self) -> ClimateProfile:
+        """Return the current profile."""
+        return ClimateProfile.NONE
+
+    @state_property
+    def profiles(self) -> tuple[ClimateProfile, ...]:
+        """Return available profiles."""
+        return (ClimateProfile.NONE,)
+
+    @state_property
+    def target_temperature(self) -> float | None:
+        """Return target temperature."""
+        return self._dp_setpoint.value
 
     @inspector
     async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
@@ -307,16 +378,6 @@ class BaseCustomDpClimate(CustomDataPoint):
             profile_data=source_profile_data,
             do_validate=False,
         )
-
-    @state_property
-    def current_humidity(self) -> int | None:
-        """Return the current humidity."""
-        return self._dp_humidity.value
-
-    @state_property
-    def current_temperature(self) -> float | None:
-        """Return current temperature."""
-        return self._dp_temperature.value
 
     @inspector
     async def disable_away_mode(self) -> None:
@@ -366,52 +427,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         if (profile := kwargs.get(_StateChangeArg.PROFILE)) is not None and profile != self.profile:
             return True
         return super().is_state_change(**kwargs)
-
-    @state_property
-    def max_temp(self) -> float:
-        """Return the maximum temperature."""
-        if self._dp_temperature_maximum.value is not None:
-            return float(self._dp_temperature_maximum.value)
-        return cast(float, self._dp_setpoint.max)
-
-    @state_property
-    def min_max_value_not_relevant_for_manu_mode(self) -> bool:
-        """Return the maximum temperature."""
-        if self._dp_min_max_value_not_relevant_for_manu_mode.value is not None:
-            return self._dp_min_max_value_not_relevant_for_manu_mode.value
-        return False
-
-    @state_property
-    def min_temp(self) -> float:
-        """Return the minimum temperature."""
-        if self._dp_temperature_minimum.value is not None:
-            min_temp = float(self._dp_temperature_minimum.value)
-        else:
-            min_temp = self._dp_setpoint.min
-
-        if min_temp == _OFF_TEMPERATURE:
-            return min_temp + _DEFAULT_TEMPERATURE_STEP
-        return min_temp
-
-    @state_property
-    def mode(self) -> ClimateMode:
-        """Return current operation mode."""
-        return ClimateMode.HEAT
-
-    @state_property
-    def modes(self) -> tuple[ClimateMode, ...]:
-        """Return the available operation modes."""
-        return (ClimateMode.HEAT,)
-
-    @state_property
-    def profile(self) -> ClimateProfile:
-        """Return the current profile."""
-        return ClimateProfile.NONE
-
-    @state_property
-    def profiles(self) -> tuple[ClimateProfile, ...]:
-        """Return available profiles."""
-        return (ClimateProfile.NONE,)
 
     @bind_collector()
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
@@ -509,21 +524,6 @@ class BaseCustomDpClimate(CustomDataPoint):
             )
 
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
-
-    @state_property
-    def target_temperature(self) -> float | None:
-        """Return target temperature."""
-        return self._dp_setpoint.value
-
-    @config_property
-    def target_temperature_step(self) -> float:
-        """Return the supported step of target temperature."""
-        return _DEFAULT_TEMPERATURE_STEP
-
-    @config_property
-    def temperature_unit(self) -> str:
-        """Return temperature unit."""
-        return _TEMP_CELSIUS
 
     async def _get_raw_schedule(self) -> _RAW_SCHEDULE_DICT:
         """Return the raw schedule."""
@@ -921,36 +921,6 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             return ClimateActivity.HEAT
         return ClimateActivity.IDLE
 
-    @inspector
-    async def disable_away_mode(self) -> None:
-        """Disable the away mode on thermostat."""
-        start = datetime.now() - timedelta(hours=11)
-        end = datetime.now() - timedelta(hours=10)
-
-        await self._client.set_value(
-            channel_address=self._channel.address,
-            paramset_key=ParamsetKey.VALUES,
-            parameter=Parameter.PARTY_MODE_SUBMIT,
-            value=_party_mode_code(start=start, end=end, away_temperature=12.0),
-        )
-
-    @inspector
-    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
-        """Enable the away mode by calendar on thermostat."""
-        await self._client.set_value(
-            channel_address=self._channel.address,
-            paramset_key=ParamsetKey.VALUES,
-            parameter=Parameter.PARTY_MODE_SUBMIT,
-            value=_party_mode_code(start=start, end=end, away_temperature=away_temperature),
-        )
-
-    @inspector
-    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
-        """Enable the away mode by duration on thermostat."""
-        start = datetime.now() - timedelta(minutes=10)
-        end = datetime.now() + timedelta(hours=hours)
-        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
-
     @state_property
     def mode(self) -> ClimateMode:
         """Return current operation mode."""
@@ -986,6 +956,41 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             control_modes.extend(self._profile_names)
         return tuple(control_modes)
 
+    @state_property
+    def temperature_offset(self) -> str | None:
+        """Return the maximum temperature."""
+        return self._dp_temperature_offset.value
+
+    @inspector
+    async def disable_away_mode(self) -> None:
+        """Disable the away mode on thermostat."""
+        start = datetime.now() - timedelta(hours=11)
+        end = datetime.now() - timedelta(hours=10)
+
+        await self._client.set_value(
+            channel_address=self._channel.address,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=Parameter.PARTY_MODE_SUBMIT,
+            value=_party_mode_code(start=start, end=end, away_temperature=12.0),
+        )
+
+    @inspector
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
+        """Enable the away mode by calendar on thermostat."""
+        await self._client.set_value(
+            channel_address=self._channel.address,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=Parameter.PARTY_MODE_SUBMIT,
+            value=_party_mode_code(start=start, end=end, away_temperature=away_temperature),
+        )
+
+    @inspector
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
+        """Enable the away mode by duration on thermostat."""
+        start = datetime.now() - timedelta(minutes=10)
+        end = datetime.now() + timedelta(hours=hours)
+        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
+
     @bind_collector()
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new mode."""
@@ -1020,11 +1025,6 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                 await self._dp_week_program_pointer.send_value(
                     value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector
                 )
-
-    @state_property
-    def temperature_offset(self) -> str | None:
-        """Return the maximum temperature."""
-        return self._dp_temperature_offset.value
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -1213,40 +1213,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL
         return ClimateActivity.IDLE
 
-    @inspector
-    async def disable_away_mode(self) -> None:
-        """Disable the away mode on thermostat."""
-        await self._client.put_paramset(
-            channel_address=self._channel.address,
-            paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={
-                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
-                Parameter.PARTY_TIME_START: _PARTY_INIT_DATE,
-                Parameter.PARTY_TIME_END: _PARTY_INIT_DATE,
-            },
-        )
-
-    @inspector
-    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
-        """Enable the away mode by calendar on thermostat."""
-        await self._client.put_paramset(
-            channel_address=self._channel.address,
-            paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={
-                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
-                Parameter.SET_POINT_TEMPERATURE: away_temperature,
-                Parameter.PARTY_TIME_START: start.strftime(_PARTY_DATE_FORMAT),
-                Parameter.PARTY_TIME_END: end.strftime(_PARTY_DATE_FORMAT),
-            },
-        )
-
-    @inspector
-    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
-        """Enable the away mode by duration on thermostat."""
-        start = datetime.now() - timedelta(minutes=10)
-        end = datetime.now() + timedelta(hours=hours)
-        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
-
     @state_property
     def mode(self) -> ClimateMode:
         """Return current operation mode."""
@@ -1286,6 +1252,45 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             control_modes.extend(self._profile_names)
         return tuple(control_modes)
 
+    @state_property
+    def temperature_offset(self) -> float | None:
+        """Return the maximum temperature."""
+        return self._dp_temperature_offset.value
+
+    @inspector
+    async def disable_away_mode(self) -> None:
+        """Disable the away mode on thermostat."""
+        await self._client.put_paramset(
+            channel_address=self._channel.address,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
+                Parameter.PARTY_TIME_START: _PARTY_INIT_DATE,
+                Parameter.PARTY_TIME_END: _PARTY_INIT_DATE,
+            },
+        )
+
+    @inspector
+    async def enable_away_mode_by_calendar(self, *, start: datetime, end: datetime, away_temperature: float) -> None:
+        """Enable the away mode by calendar on thermostat."""
+        await self._client.put_paramset(
+            channel_address=self._channel.address,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                Parameter.SET_POINT_MODE: _ModeHmIP.AWAY,
+                Parameter.SET_POINT_TEMPERATURE: away_temperature,
+                Parameter.PARTY_TIME_START: start.strftime(_PARTY_DATE_FORMAT),
+                Parameter.PARTY_TIME_END: end.strftime(_PARTY_DATE_FORMAT),
+            },
+        )
+
+    @inspector
+    async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
+        """Enable the away mode by duration on thermostat."""
+        start = datetime.now() - timedelta(minutes=10)
+        end = datetime.now() + timedelta(hours=hours)
+        await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
+
     @bind_collector()
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
@@ -1319,11 +1324,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                 await self._dp_boost_mode.send_value(value=False, collector=collector)
             if profile_idx := self._profiles.get(profile):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
-
-    @state_property
-    def temperature_offset(self) -> float | None:
-        """Return the maximum temperature."""
-        return self._dp_temperature_offset.value
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""

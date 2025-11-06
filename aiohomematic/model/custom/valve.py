@@ -44,6 +44,11 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
         """Return the current channel value of the valve."""
         return self._dp_group_state.value
 
+    @state_property
+    def value(self) -> bool | None:
+        """Return the current value of the valve."""
+        return self._dp_state.value
+
     @bind_collector()
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the valve off."""
@@ -75,11 +80,6 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
         if (timer := self.get_and_start_timer()) is not None:
             await self._dp_on_time_value.send_value(value=timer, collector=collector, do_validate=False)
         await self._dp_state.turn_on(collector=collector)
-
-    @state_property
-    def value(self) -> bool | None:
-        """Return the current value of the valve."""
-        return self._dp_state.value
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""

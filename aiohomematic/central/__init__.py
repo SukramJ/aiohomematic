@@ -433,6 +433,31 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Return the sysvar data points."""
         return tuple(self._sysvar_data_points.values())
 
+    @info_property(log_context=True)
+    def model(self) -> str | None:
+        """Return the model of the backend."""
+        if not self._model and (client := self.primary_client):
+            self._model = client.model
+        return self._model
+
+    @info_property(log_context=True)
+    def name(self) -> str:
+        """Return the name of the backend."""
+        return self._config.name
+
+    @info_property(log_context=True)
+    def url(self) -> str:
+        """Return the central url."""
+        return self._url
+
+    @info_property
+    def version(self) -> str | None:
+        """Return the version of the backend."""
+        if self._version is None:
+            versions = [client.version for client in self._clients.values() if client.version]
+            self._version = max(versions) if versions else None
+        return self._version
+
     def add_event_subscription(self, *, data_point: BaseParameterDataPoint) -> None:
         """Add data_point to central event subscription."""
         if isinstance(data_point, GenericDataPoint | GenericEvent) and (
@@ -993,18 +1018,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
-    @info_property(log_context=True)
-    def model(self) -> str | None:
-        """Return the model of the backend."""
-        if not self._model and (client := self.primary_client):
-            self._model = client.model
-        return self._model
-
-    @info_property(log_context=True)
-    def name(self) -> str:
-        """Return the name of the backend."""
-        return self._config.name
-
     @inspector(re_raise=False)
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
         """Refresh device firmware data."""
@@ -1276,11 +1289,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     extract_exc_args(exc=exc),
                 )
 
-    @info_property(log_context=True)
-    def url(self) -> str:
-        """Return the central url."""
-        return self._url
-
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
         if len(self._config.enabled_interface_configs) == 0:
@@ -1300,14 +1308,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and not system_information.serial:
                 system_information = client.system_information
         return system_information
-
-    @info_property
-    def version(self) -> str | None:
-        """Return the version of the backend."""
-        if self._version is None:
-            versions = [client.version for client in self._clients.values() if client.version]
-            self._version = max(versions) if versions else None
-        return self._version
 
     @inspector(measure_performance=True)
     async def _add_new_devices(

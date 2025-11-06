@@ -20,11 +20,11 @@ class SysvarDpText(GenericSysvarDataPoint):
     _category = DataPointCategory.HUB_TEXT
     _is_extended = True
 
-    async def send_variable(self, *, value: str | None) -> None:
-        """Set the value of the data_point."""
-        await super().send_variable(value=value)
-
     @state_property
     def value(self) -> str | None:
         """Get the value of the data_point."""
         return cast(str | None, check_length_and_log(name=self._legacy_name, value=self._value))
+
+    async def send_variable(self, *, value: str | None) -> None:
+        """Set the value of the data_point."""
+        await super().send_variable(value=value)

@@ -23,18 +23,17 @@ class FakeServerProxy:
         self.set_calls: list[tuple[str, str, Any]] = []
         self.put_calls: list[tuple[str, hmcli.ParamsetKey, dict[str, Any]]] = []
 
-    # XML-RPC methods used by CLI
-    def getValue(self, address: str, param: str) -> Any:  # noqa: N802 - xmlrpc style
-        return self.values.get((address, param), None)
-
-    def setValue(self, address: str, param: str, value: Any) -> None:  # noqa: N802 - xmlrpc style
-        self.set_calls.append((address, param, value))
-
     def getParamset(self, address: str, paramset_key: hmcli.ParamsetKey) -> dict[str, Any] | None:  # noqa: N802
         return self.paramsets.get((address, paramset_key), None)
 
+    def getValue(self, address: str, param: str) -> Any:  # noqa: N802 - xmlrpc style
+        return self.values.get((address, param), None)
+
     def putParamset(self, address: str, paramset_key: hmcli.ParamsetKey, values: dict[str, Any]) -> None:  # noqa: N802
         self.put_calls.append((address, paramset_key, values))
+
+    def setValue(self, address: str, param: str, value: Any) -> None:  # noqa: N802 - xmlrpc style
+        self.set_calls.append((address, param, value))
 
 
 @pytest.fixture(autouse=True)

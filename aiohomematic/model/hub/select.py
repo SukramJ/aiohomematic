@@ -24,6 +24,13 @@ class SysvarDpSelect(GenericSysvarDataPoint):
     _category = DataPointCategory.HUB_SELECT
     _is_extended = True
 
+    @state_property
+    def value(self) -> str | None:
+        """Get the value of the data_point."""
+        if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
+            return value
+        return None
+
     @inspector
     async def send_variable(self, *, value: int | str) -> None:
         """Set the value of the data_point."""
@@ -40,10 +47,3 @@ class SysvarDpSelect(GenericSysvarDataPoint):
                 self.name,
                 self.unique_id,
             )
-
-    @state_property
-    def value(self) -> str | None:
-        """Get the value of the data_point."""
-        if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
-            return value
-        return None

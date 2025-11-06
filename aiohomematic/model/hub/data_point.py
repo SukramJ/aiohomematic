@@ -94,11 +94,6 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         """Return, if the state is uncertain."""
         return self._state_uncertain
 
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self.central.available
-
     @config_property
     def description(self) -> str | None:
         """Return sysvar description."""
@@ -108,6 +103,11 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     def name(self) -> str:
         """Return the name of the data_point."""
         return self._name_data.name
+
+    @state_property
+    def available(self) -> bool:
+        """Return the availability of the device."""
+        return self.central.available
 
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
@@ -174,10 +174,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the previous value."""
         return self._previous_value
 
-    async def event(self, *, value: Any, received_at: datetime) -> None:
-        """Handle event for which this data_point has subscribed."""
-        self.write_value(value=value, write_at=received_at)
-
     @config_property
     def max(self) -> float | int | None:
         """Return the max value."""
@@ -188,19 +184,15 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the min value."""
         return self._min
 
-    @inspector
-    async def send_variable(self, *, value: Any) -> None:
-        """Set variable value on the backend."""
-        if client := self.central.primary_client:
-            await client.set_system_variable(
-                legacy_name=self._legacy_name, value=parse_sys_var(data_type=self._data_type, raw_value=value)
-            )
-        self._write_temporary_value(value=value, write_at=datetime.now())
-
     @config_property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return self._unit
+
+    @config_property
+    def vid(self) -> str:
+        """Return sysvar id."""
+        return self._vid
 
     @state_property
     def value(self) -> Any | None:
@@ -212,10 +204,18 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         """Return the value_list."""
         return self._values
 
-    @config_property
-    def vid(self) -> str:
-        """Return sysvar id."""
-        return self._vid
+    async def event(self, *, value: Any, received_at: datetime) -> None:
+        """Handle event for which this data_point has subscribed."""
+        self.write_value(value=value, write_at=received_at)
+
+    @inspector
+    async def send_variable(self, *, value: Any) -> None:
+        """Set variable value on the backend."""
+        if client := self.central.primary_client:
+            await client.set_system_variable(
+                legacy_name=self._legacy_name, value=parse_sys_var(data_type=self._data_type, raw_value=value)
+            )
+        self._write_temporary_value(value=value, write_at=datetime.now())
 
     def write_value(self, *, value: Any, write_at: datetime) -> None:
         """Set variable value on the backend."""
@@ -300,25 +300,25 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         self._last_execute_time: str = data.last_execute_time
         self._state_uncertain: bool = True
 
-    @state_property
-    def is_active(self) -> bool:
-        """Return the program is active."""
-        return self._is_active
-
     @config_property
     def is_internal(self) -> bool:
         """Return the program is internal."""
         return self._is_internal
 
-    @state_property
-    def last_execute_time(self) -> str:
-        """Return the last execute time."""
-        return self._last_execute_time
-
     @config_property
     def pid(self) -> str:
         """Return the program id."""
         return self._pid
+
+    @state_property
+    def is_active(self) -> bool:
+        """Return the program is active."""
+        return self._is_active
+
+    @state_property
+    def last_execute_time(self) -> str:
+        """Return the last execute time."""
+        return self._last_execute_time
 
     def update_data(self, *, data: ProgramData) -> None:
         """Set variable value on the backend."""

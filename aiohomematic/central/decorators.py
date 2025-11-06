@@ -16,6 +16,7 @@ from aiohomematic.central import rpc_server as rpc
 from aiohomematic.const import BackendSystemEvent
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.support import extract_exc_args
+from aiohomematic.types import VoidCallable
 
 _LOGGER: Final = logging.getLogger(__name__)
 _INTERFACE_ID: Final = "interface_id"
@@ -147,7 +148,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
         return return_value
 
     # Helper to create a trivial coroutine from a sync callable
-    async def _async_wrap_sync(cb: Callable[..., None], *a: Any, **kw: Any) -> None:
+    async def _async_wrap_sync(cb: VoidCallable, *a: Any, **kw: Any) -> None:
         cb(*a, **kw)
 
     if inspect.iscoroutinefunction(func):

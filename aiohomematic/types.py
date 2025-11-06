@@ -42,11 +42,19 @@ class BackendParameterCallback(Protocol):
 
 
 # Common async/sync callable shapes
+# Factory that returns a coroutine that resolves to None
 AsyncTaskFactory: TypeAlias = Callable[[], Coroutine[Any, Any, None]]
+# Factory that returns a coroutine with arbitrary result type
+AsyncTaskFactoryAny: TypeAlias = Callable[[], Coroutine[Any, Any, Any]]
+# Coroutine with any send/throw types and arbitrary result
+CoroutineAny: TypeAlias = Coroutine[Any, Any, Any]
 
 # Service method callable and mapping used by DataPoints and decorators
 ServiceMethod: TypeAlias = Callable[..., Any]
 ServiceMethodMap: TypeAlias = Mapping[str, ServiceMethod]
+
+# Generic sync callable that returns None
+VoidCallable: TypeAlias = Callable[..., None]
 
 # Factory used by custom data point creation (make_ce_func)
 CustomDataPointFactory: TypeAlias = Callable[..., None]
@@ -66,6 +74,7 @@ class HomematicCallback(Protocol):
 
 # System callbacks receive different kwargs depending on the system event
 BackendSystemCallback: TypeAlias = Callable[..., None]
+
 
 # Sysvar event callbacks (hub/sysvar) vary by implementation; keep variadic
 SysvarEventCallback: TypeAlias = Callable[..., Coroutine[Any, Any, None]]

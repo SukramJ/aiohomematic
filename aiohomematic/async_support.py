@@ -18,6 +18,7 @@ from aiohomematic.const import BLOCK_LOG_TIMEOUT
 from aiohomematic.exceptions import AioHomematicException
 import aiohomematic.support as hms
 from aiohomematic.support import extract_exc_args
+from aiohomematic.types import AsyncTaskFactoryAny, CoroutineAny
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -95,9 +96,7 @@ class Looper:
             if not task.cancelled():
                 task.cancel()
 
-    def create_task(
-        self, *, target: Coroutine[Any, Any, Any] | Callable[[], Coroutine[Any, Any, Any]], name: str
-    ) -> None:
+    def create_task(self, *, target: CoroutineAny | AsyncTaskFactoryAny, name: str) -> None:
         """
         Schedule a coroutine to run in the loop.
 
@@ -128,12 +127,12 @@ class Looper:
             )
             return None
 
-    def _async_create_task[R](  # kwonly: disable
-        self, target: Coroutine[Any, Any, R] | Callable[[], Coroutine[Any, Any, R]], name: str
-    ) -> asyncio.Task[R]:
+    def _async_create_task(  # kwonly: disable
+        self, target: CoroutineAny | AsyncTaskFactoryAny, name: str
+    ) -> asyncio.Task[Any]:
         """Create a task from within the event loop. Must be run in the event loop."""
         # If target is a callable, call it here to create the coroutine inside the loop
-        coro: Coroutine[Any, Any, R] = target if asyncio.iscoroutine(target) else target()
+        coro: CoroutineAny = target if asyncio.iscoroutine(target) else target()
         task = self._loop.create_task(coro, name=name)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.remove)

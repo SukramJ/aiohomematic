@@ -24,6 +24,13 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
 
     _category = DataPointCategory.SWITCH
 
+    @state_property
+    def value(self) -> bool | None:
+        """Get the value of the data_point."""
+        if self._type == ParameterType.ACTION:
+            return False
+        return cast(bool | None, self._value)
+
     @inspector
     async def set_on_time(self, *, on_time: float) -> None:
         """Set the on time value in seconds."""
@@ -45,10 +52,3 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
         if on_time is not None:
             await self.set_on_time(on_time=on_time)
         await self.send_value(value=True, collector=collector)
-
-    @state_property
-    def value(self) -> bool | None:
-        """Get the value of the data_point."""
-        if self._type == ParameterType.ACTION:
-            return False
-        return cast(bool | None, self._value)

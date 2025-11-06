@@ -132,6 +132,24 @@ class CustomDataPoint(BaseDataPoint):
                 unconfirmed_values[field] = unconfirmed_value
         return unconfirmed_values
 
+    @state_property
+    def modified_at(self) -> datetime:
+        """Return the latest last update timestamp."""
+        modified_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
+                modified_at = data_point_modified_at
+        return modified_at
+
+    @state_property
+    def refreshed_at(self) -> datetime:
+        """Return the latest last refresh timestamp."""
+        refreshed_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
+                refreshed_at = data_point_refreshed_at
+        return refreshed_at
+
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
         result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
@@ -153,24 +171,6 @@ class CustomDataPoint(BaseDataPoint):
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.emit_data_point_updated_event()
-
-    @state_property
-    def modified_at(self) -> datetime:
-        """Return the latest last update timestamp."""
-        modified_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
-                modified_at = data_point_modified_at
-        return modified_at
-
-    @state_property
-    def refreshed_at(self) -> datetime:
-        """Return the latest last refresh timestamp."""
-        refreshed_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
-                refreshed_at = data_point_refreshed_at
-        return refreshed_at
 
     def _add_data_point(
         self,

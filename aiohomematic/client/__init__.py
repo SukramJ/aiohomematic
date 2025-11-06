@@ -226,6 +226,11 @@ class Client(ABC, LogContextMixin):
         """Return the version id of the client."""
         return self._config.version
 
+    @hm_property(log_context=True)
+    def interface_id(self) -> str:
+        """Return the interface id of the client."""
+        return self._config.interface_id
+
     @inspector
     async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Return a list of links."""
@@ -579,11 +584,6 @@ class Client(ABC, LogContextMixin):
             return ProxyInitState.INIT_FAILED
         self.modified_at = datetime.now()
         return ProxyInitState.INIT_SUCCESS
-
-    @hm_property(log_context=True)
-    def interface_id(self) -> str:
-        """Return the interface id of the client."""
-        return self._config.interface_id
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""

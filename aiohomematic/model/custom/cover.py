@@ -117,13 +117,6 @@ class CustomDpCover(CustomDataPoint):
             return float(self._dp_group_level.value)
         return self._dp_level.value if self._dp_level.value is not None else self._closed_level
 
-    @bind_collector()
-    async def close(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Close the cover."""
-        if not self.is_state_change(close=True):
-            return
-        await self._set_level(level=self._closed_level, collector=collector)
-
     @state_property
     def current_channel_position(self) -> int:
         """Return current channel position of cover."""
@@ -156,6 +149,13 @@ class CustomDpCover(CustomDataPoint):
         if self._dp_direction.value is not None:
             return str(self._dp_direction.value) == _CoverActivity.OPENING
         return None
+
+    @bind_collector()
+    async def close(self, *, collector: CallParameterCollector | None = None) -> None:
+        """Close the cover."""
+        if not self.is_state_change(close=True):
+            return
+        await self._set_level(level=self._closed_level, collector=collector)
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
@@ -298,6 +298,20 @@ class CustomDpBlind(CustomDpCover):
             return float(last_value_send)
         return None
 
+    @state_property
+    def current_channel_tilt_position(self) -> int:
+        """Return current channel_tilt position of cover."""
+        return (
+            int(self._dp_level_2.value * _LEVEL_TO_POSITION_MULTIPLIER)
+            if self._dp_level_2.value is not None
+            else self._closed_position
+        )
+
+    @state_property
+    def current_tilt_position(self) -> int:
+        """Return current tilt position of cover."""
+        return int(self._group_tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)
+
     @bind_collector(enabled=False)
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
         """Close the cover and close the tilt."""
@@ -315,20 +329,6 @@ class CustomDpBlind(CustomDpCover):
         if not self.is_state_change(tilt_close=True):
             return
         await self._set_level(tilt_level=self._closed_level, collector=collector)
-
-    @state_property
-    def current_channel_tilt_position(self) -> int:
-        """Return current channel_tilt position of cover."""
-        return (
-            int(self._dp_level_2.value * _LEVEL_TO_POSITION_MULTIPLIER)
-            if self._dp_level_2.value is not None
-            else self._closed_position
-        )
-
-    @state_property
-    def current_tilt_position(self) -> int:
-        """Return current tilt position of cover."""
-        return int(self._group_tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
@@ -546,13 +546,6 @@ class CustomDpGarage(CustomDataPoint):
     )
     _category = DataPointCategory.COVER
 
-    @bind_collector()
-    async def close(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Close the garage door."""
-        if not self.is_state_change(close=True):
-            return
-        await self._dp_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
-
     @state_property
     def current_position(self) -> int | None:
         """Return current position of the garage door ."""
@@ -584,6 +577,13 @@ class CustomDpGarage(CustomDataPoint):
         if self._dp_section.value is not None:
             return int(self._dp_section.value) == _GarageDoorActivity.OPENING
         return None
+
+    @bind_collector()
+    async def close(self, *, collector: CallParameterCollector | None = None) -> None:
+        """Close the garage door."""
+        if not self.is_state_change(close=True):
+            return
+        await self._dp_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""

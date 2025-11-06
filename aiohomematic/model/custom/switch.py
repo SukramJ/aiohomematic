@@ -44,6 +44,11 @@ class CustomDpSwitch(CustomDataPoint):
         """Return the current group value of the switch."""
         return self._dp_group_state.value
 
+    @state_property
+    def value(self) -> bool | None:
+        """Return the current channel value of the switch."""
+        return self._dp_state.value
+
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
         if (on_time_running := self.timer_on_time_running) is not None and on_time_running is True:
@@ -75,11 +80,6 @@ class CustomDpSwitch(CustomDataPoint):
         if (timer := self.get_and_start_timer()) is not None:
             await self._dp_on_time_value.send_value(value=timer, collector=collector, do_validate=False)
         await self._dp_state.turn_on(collector=collector)
-
-    @state_property
-    def value(self) -> bool | None:
-        """Return the current channel value of the switch."""
-        return self._dp_state.value
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""

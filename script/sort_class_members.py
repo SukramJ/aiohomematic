@@ -10,9 +10,8 @@ Order according to the requested convention:
 2. Class methods (@classmethod)
 3. Static methods (@staticmethod)
 4. Properties
-   - Getter (@property)
-   - Setter (@<name>.setter)
-   - Deleter (@<name>.deleter)
+   - Getter decorators define cross-property sort order: property, config_property, state_property, info_property, hm_property.
+   - For each property, place its Setter (@<name>.setter) and Deleter (@<name>.deleter) immediately after its Getter.
 5. Public methods (no leading underscore)
 6. Protected methods (single leading underscore)
 7. Private methods (double leading underscore, but not dunder)
@@ -61,6 +60,8 @@ class MethodSeg:
     subgroup: str  # for properties: getter/setter/deleter
     # property base name if applicable
     propname: str | None = None
+    # for getter: the decorator base that defines the property kind (e.g., "property", "config_property", ...)
+    prop_kind: str | None = None
 
 
 DUUNDER = "dunder"
@@ -105,8 +106,26 @@ def _decorator_name(dec: ast.expr) -> tuple[str | None, str | None]:
       @property -> ("property", None)
       @classmethod -> ("classmethod", None)
       @name.setter -> ("name", "setter")
+      @config_property -> ("config_property", None)
+      @info_property(log_context=True) -> ("info_property", None)
+
+    The first value is either the decorator name (for Name/Call) or the left-hand
+    base of an attribute decorator (e.g. for @name.setter the base is "name").
+    The second value is the attribute part for attribute decorators, such as
+    "setter" or "deleter".
 
     """
+    # Unwrap calls like @decorator(...)
+    if isinstance(dec, ast.Call):
+        func = dec.func
+        if isinstance(func, ast.Name):
+            return func.id, None
+        if isinstance(func, ast.Attribute):
+            base = None
+            if isinstance(func.value, ast.Name):
+                base = func.value.id
+            return base, func.attr
+        return None, None
     if isinstance(dec, ast.Name):
         return dec.id, None
     if isinstance(dec, ast.Attribute):
@@ -144,11 +163,20 @@ def _collect_methods(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]
             propname: str | None = None
             subgroup = ""
             group = ""
-            if any(base == "property" for base, attr in deco_pairs):
+            prop_kind: str | None = None
+            getter_names = {"property", "config_property", "state_property", "info_property", "hm_property"}
+            # Determine if this is a property getter and capture its kind (decorator base)
+            getter_base: str | None = None
+            for base, attr in deco_pairs:
+                if base and attr is None and (base in getter_names or base.endswith("_property")):
+                    getter_base = base
+                    break
+            if getter_base is not None:
                 group = PROPERTY
                 subgroup = "getter"
                 # getter function name is the property name
                 propname = name
+                prop_kind = getter_base
             else:
                 # setter/deleter like @name.setter
                 for base, attr in deco_pairs:
@@ -186,6 +214,7 @@ def _collect_methods(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]
                     group=group,
                     subgroup=subgroup,
                     propname=propname,
+                    prop_kind=prop_kind,
                 )
             )
     return methods
@@ -201,23 +230,34 @@ def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
         if m.group == PROPERTY and m.propname:
             props.setdefault(m.propname, []).append(m)
 
-    # Build ordered list
+    # Build ordered list for non-property groups
     dunder_init = [m for m in methods if m.group == DUUNDER_INIT]
     dunder_other = [m for m in methods if m.group == DUUNDER]
     classmethods = [m for m in methods if m.group == CLASSMETHOD]
     staticmethods = [m for m in methods if m.group == STATICMETHOD]
-    # Properties assembled: getter, setter, deleter order
-    prop_groups: list[list[MethodSeg]] = []
-    for pname in sorted(props):
-        grp = props[pname]
-        getter = [m for m in grp if m.subgroup == "getter"]
-        setter = [m for m in grp if m.subgroup == "setter"]
-        deleter = [m for m in grp if m.subgroup == "deleter"]
-        # There should be at most one each; if multiple, keep alphabetical by function name
-        ordered = sorted(getter, key=lambda m: m.name)
-        ordered += sorted(setter, key=lambda m: m.name)
-        ordered += sorted(deleter, key=lambda m: m.name)
-        prop_groups.append(ordered)
+
+    # Properties assembled with priority by getter decorator kind and adjacency of setter/deleter
+    PRIORITY = ["property", "config_property", "state_property", "info_property", "hm_property"]
+    PRIORITY_INDEX = {k: i for i, k in enumerate(PRIORITY)}
+
+    prop_groups: list[tuple[int, str, list[MethodSeg]]] = []
+    for pname, grp in props.items():
+        getters = [m for m in grp if m.subgroup == "getter"]
+        setters = [m for m in grp if m.subgroup == "setter"]
+        deleters = [m for m in grp if m.subgroup == "deleter"]
+        # Determine the kind from the primary getter (if multiple, choose first by name for stability)
+        primary_getter = sorted(getters, key=lambda m: m.name)[0] if getters else None
+        kind = primary_getter.prop_kind if primary_getter else None
+        prio = PRIORITY_INDEX.get(kind or "", len(PRIORITY))
+        # Strict order within a property group: getter(s) -> setter(s) -> deleter(s)
+        ordered_group: list[MethodSeg] = []
+        ordered_group += sorted(getters, key=lambda m: m.name)
+        ordered_group += sorted(setters, key=lambda m: m.name)
+        ordered_group += sorted(deleters, key=lambda m: m.name)
+        prop_groups.append((prio, pname, ordered_group))
+
+    # Sort property groups by (priority, property name)
+    prop_groups.sort(key=lambda t: (t[0], t[1]))
 
     # Add any stray property methods that didn't get a propname (edge cases)
     stray_props = [m for m in methods if m.group == PROPERTY and not m.propname]
@@ -234,7 +274,7 @@ def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
     ordered += alpha(dunder_other)
     ordered += alpha(classmethods)
     ordered += alpha(staticmethods)
-    for grp in prop_groups:
+    for _prio, _pname, grp in prop_groups:
         ordered += grp
     ordered += alpha(stray_props)
     ordered += alpha(public)

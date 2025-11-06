@@ -45,12 +45,12 @@ class _FakeCentral:
 
         # Provide minimal parameter_visibility used by GenericDataPoint init
         class _PV:
-            def parameter_is_un_ignored(self, *, channel, paramset_key, parameter, custom_only: bool) -> bool:  # noqa: D401, ANN001
-                """In tests, default to False (not un-ignored)."""
-                return False
-
             def parameter_is_hidden(self, *, channel, paramset_key, parameter) -> bool:  # noqa: D401, ANN001
                 """In tests, nothing is hidden by default."""
+                return False
+
+            def parameter_is_un_ignored(self, *, channel, paramset_key, parameter, custom_only: bool) -> bool:  # noqa: D401, ANN001
+                """In tests, default to False (not un-ignored)."""
                 return False
 
         self.parameter_visibility = _PV()
@@ -66,14 +66,13 @@ class _FakeDevice:
         self.client = type("Client", (), {"interface": None})()
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
 
-    # Device-level generic DP getter (used by OperatingVoltageLevel fallback)
+    def add_dp(self, dp: _FakeGenericDP) -> None:
+        self._store[(dp.parameter, dp.paramset_key)] = dp
+
     def get_generic_data_point(
         self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None
     ) -> _FakeGenericDP | None:
         return self._store.get((parameter, paramset_key))
-
-    def add_dp(self, dp: _FakeGenericDP) -> None:
-        self._store[(dp.parameter, dp.paramset_key)] = dp
 
 
 class _FakeGenericDP:
@@ -98,7 +97,6 @@ class _FakeGenericDP:
         self.emitted_event_recently = True
         self._unregistered: list[bool] = []
 
-    # Properties used by CalculatedDataPoint
     @property
     def is_readable(self) -> bool:
         return self._readable
@@ -111,11 +109,6 @@ class _FakeGenericDP:
     def refreshed_at(self) -> datetime:
         return self._refreshed_at
 
-    def set_times(self, *, modified_delta: int, refreshed_delta: int) -> None:
-        base = datetime.now()
-        self._modified_at = base + timedelta(seconds=modified_delta)
-        self._refreshed_at = base + timedelta(seconds=refreshed_delta)
-
     def register_internal_data_point_updated_callback(self, *, cb: Callable) -> Callable[[], None]:
         self.emitted_event_recently = False  # simulate change later
 
@@ -123,6 +116,11 @@ class _FakeGenericDP:
             self._unregistered.append(True)
 
         return _unregister
+
+    def set_times(self, *, modified_delta: int, refreshed_delta: int) -> None:
+        base = datetime.now()
+        self._modified_at = base + timedelta(seconds=modified_delta)
+        self._refreshed_at = base + timedelta(seconds=refreshed_delta)
 
 
 class _FakeChannel:

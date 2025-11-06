@@ -189,6 +189,44 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         """Return the if data_point is visible in ccu."""
         return self._visible
 
+    @config_property
+    def max(self) -> ParameterT:
+        """Return max value."""
+        return self._max
+
+    @config_property
+    def min(self) -> ParameterT:
+        """Return min value."""
+        return self._min
+
+    @config_property
+    def unit(self) -> str | None:
+        """Return unit value."""
+        return self._unit
+
+    @config_property
+    def values(self) -> tuple[str, ...] | None:
+        """Return the values."""
+        return self._values
+
+    @state_property
+    def modified_at(self) -> datetime:
+        """Return the latest last update timestamp."""
+        modified_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
+                modified_at = data_point_modified_at
+        return modified_at
+
+    @state_property
+    def refreshed_at(self) -> datetime:
+        """Return the latest last refresh timestamp."""
+        refreshed_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
+                refreshed_at = data_point_refreshed_at
+        return refreshed_at
+
     @hm_property(cached=True)
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
@@ -215,44 +253,6 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.emit_data_point_updated_event()
-
-    @config_property
-    def max(self) -> ParameterT:
-        """Return max value."""
-        return self._max
-
-    @config_property
-    def min(self) -> ParameterT:
-        """Return min value."""
-        return self._min
-
-    @state_property
-    def modified_at(self) -> datetime:
-        """Return the latest last update timestamp."""
-        modified_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
-                modified_at = data_point_modified_at
-        return modified_at
-
-    @state_property
-    def refreshed_at(self) -> datetime:
-        """Return the latest last refresh timestamp."""
-        refreshed_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
-                refreshed_at = data_point_refreshed_at
-        return refreshed_at
-
-    @config_property
-    def unit(self) -> str | None:
-        """Return unit value."""
-        return self._unit
-
-    @config_property
-    def values(self) -> tuple[str, ...] | None:
-        """Return the values."""
-        return self._values
 
     def _add_data_point[DataPointT: hmge.GenericDataPoint](
         self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]

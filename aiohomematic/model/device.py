@@ -389,22 +389,6 @@ class Device(LogContextMixin, PayloadMixin):
         """Return the value_cache of the device."""
         return self._value_cache
 
-    def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:
-        """Add channel to group."""
-        if group_no not in self._group_channels:
-            self._group_channels[group_no] = set()
-        self._group_channels[group_no].add(channel_no)
-
-        if group_no not in self._channel_group:
-            self._channel_group[group_no] = group_no
-        if channel_no not in self._channel_group:
-            self._channel_group[channel_no] = group_no
-
-    @info_property(log_context=True)
-    def address(self) -> str:
-        """Return the address of the device."""
-        return self._address
-
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
@@ -415,6 +399,69 @@ class Device(LogContextMixin, PayloadMixin):
         if un_reach is not None and un_reach.value is not None:
             return not un_reach.value
         return True
+
+    @info_property(log_context=True)
+    def address(self) -> str:
+        """Return the address of the device."""
+        return self._address
+
+    @info_property
+    def firmware(self) -> str:
+        """Return the firmware of the device."""
+        return self._description.get("FIRMWARE") or "0.0"
+
+    @info_property
+    def identifier(self) -> str:
+        """Return the identifier of the device."""
+        return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
+
+    @info_property
+    def manufacturer(self) -> str:
+        """Return the manufacturer of the device."""
+        return self._manufacturer
+
+    @info_property(log_context=True)
+    def model(self) -> str:
+        """Return the model of the device."""
+        return self._model
+
+    @info_property
+    def name(self) -> str:
+        """Return the name of the device."""
+        return self._name
+
+    @info_property
+    def room(self) -> str | None:
+        """Return the room of the device, if only one assigned in the backend."""
+        if self._rooms and len(self._rooms) == 1:
+            return list(self._rooms)[0]
+        if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
+            return maintenance_channel.room
+        return None
+
+    @hm_property(log_context=True)
+    def interface_id(self) -> str:
+        """Return the interface_id of the device."""
+        return self._interface_id
+
+    @hm_property(cached=True)
+    def relevant_for_central_link_management(self) -> bool:
+        """Return if channel is relevant for central link management."""
+        return (
+            self._interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED, Interface.HMIP_RF)
+            and self._model not in VIRTUAL_REMOTE_MODELS
+        )
+
+    def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:
+        """Add channel to group."""
+        if group_no not in self._group_channels:
+            self._group_channels[group_no] = set()
+        self._group_channels[group_no].add(channel_no)
+
+        if group_no not in self._channel_group:
+            self._channel_group[group_no] = group_no
+        if channel_no not in self._channel_group:
+            self._channel_group[channel_no] = group_no
 
     @inspector
     async def create_central_links(self) -> None:
@@ -448,11 +495,6 @@ class Device(LogContextMixin, PayloadMixin):
         await self.load_value_cache()
         for channel in self._channels.values():
             await channel.finalize_init()
-
-    @info_property
-    def firmware(self) -> str:
-        """Return the firmware of the device."""
-        return self._description.get("FIRMWARE") or "0.0"
 
     def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPoint | None:
         """Return a calculated data_point from device."""
@@ -532,11 +574,6 @@ class Device(LogContextMixin, PayloadMixin):
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
 
-    @info_property
-    def identifier(self) -> str:
-        """Return the identifier of the device."""
-        return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
-
     def identify_channel(self, *, text: str) -> Channel | None:
         """Identify channel within a text."""
         for channel_address, channel in self._channels.items():
@@ -548,11 +585,6 @@ class Device(LogContextMixin, PayloadMixin):
                 return channel
 
         return None
-
-    @hm_property(log_context=True)
-    def interface_id(self) -> str:
-        """Return the interface_id of the device."""
-        return self._interface_id
 
     def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:
         """Return if multiple channels are in the group."""
@@ -568,21 +600,6 @@ class Device(LogContextMixin, PayloadMixin):
             await self._value_cache.init_base_data_points()
         if len(self.generic_events) > 0:
             await self._value_cache.init_readable_events()
-
-    @info_property
-    def manufacturer(self) -> str:
-        """Return the manufacturer of the device."""
-        return self._manufacturer
-
-    @info_property(log_context=True)
-    def model(self) -> str:
-        """Return the model of the device."""
-        return self._model
-
-    @info_property
-    def name(self) -> str:
-        """Return the name of the device."""
-        return self._name
 
     async def re_init_link_peers(self) -> None:
         """Initiate link peers."""
@@ -623,14 +640,6 @@ class Device(LogContextMixin, PayloadMixin):
             return partial(self.unregister_firmware_update_callback, cb=cb)
         return None
 
-    @hm_property(cached=True)
-    def relevant_for_central_link_management(self) -> bool:
-        """Return if channel is relevant for central link management."""
-        return (
-            self._interface in (Interface.BIDCOS_RF, Interface.BIDCOS_WIRED, Interface.HMIP_RF)
-            and self._model not in VIRTUAL_REMOTE_MODELS
-        )
-
     @inspector
     async def reload_paramset_descriptions(self) -> None:
         """Reload paramset for device."""
@@ -662,15 +671,6 @@ class Device(LogContextMixin, PayloadMixin):
         if self.relevant_for_central_link_management:  # pylint: disable=using-constant-test
             for channel in self._channels.values():
                 await channel.remove_central_link()
-
-    @info_property
-    def room(self) -> str | None:
-        """Return the room of the device, if only one assigned in the backend."""
-        if self._rooms and len(self._rooms) == 1:
-            return list(self._rooms)[0]
-        if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
-            return maintenance_channel.room
-        return None
 
     def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Set the availability of the device."""
@@ -954,6 +954,32 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the unique_id of the channel."""
         return self._unique_id
 
+    @info_property
+    def address(self) -> str:
+        """Return the address of the channel."""
+        return self._address
+
+    @info_property
+    def room(self) -> str | None:
+        """Return the room of the device, if only one assigned in the backend."""
+        if self._rooms and len(self._rooms) == 1:
+            return list(self._rooms)[0]
+        if self.is_group_master:
+            return None
+        if (master_channel := self.group_master) is not None:
+            return master_channel.room
+        return None
+
+    @hm_property(log_context=True)
+    def device(self) -> Device:
+        """Return the device of the channel."""
+        return self._device
+
+    @hm_property(log_context=True)
+    def no(self) -> int | None:
+        """Return the channel_no of the channel."""
+        return self._no
+
     def add_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
@@ -967,11 +993,6 @@ class Channel(LogContextMixin, PayloadMixin):
             self._custom_data_point = data_point
         if isinstance(data_point, GenericEvent):
             self._generic_events[data_point.dpk] = data_point
-
-    @info_property
-    def address(self) -> str:
-        """Return the address of the channel."""
-        return self._address
 
     @inspector
     async def cleanup_central_link_metadata(self) -> None:
@@ -990,11 +1011,6 @@ class Channel(LogContextMixin, PayloadMixin):
             await self._device.client.report_value_usage(
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
             )
-
-    @hm_property(log_context=True)
-    def device(self) -> Device:
-        """Return the device of the channel."""
-        return self._device
 
     @loop_check
     def emit_link_peer_changed_event(self) -> None:
@@ -1138,11 +1154,6 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._custom_data_point:
             await self._custom_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
-    @hm_property(log_context=True)
-    def no(self) -> int | None:
-        """Return the channel_no of the channel."""
-        return self._no
-
     def register_link_peer_changed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register the link peer changed callback."""
         if callable(cb) and cb not in self._link_peer_changed_callbacks:
@@ -1174,17 +1185,6 @@ class Channel(LogContextMixin, PayloadMixin):
             await self._device.client.report_value_usage(
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
-
-    @info_property
-    def room(self) -> str | None:
-        """Return the room of the device, if only one assigned in the backend."""
-        if self._rooms and len(self._rooms) == 1:
-            return list(self._rooms)[0]
-        if self.is_group_master:
-            return None
-        if (master_channel := self.group_master) is not None:
-            return master_channel.room
-        return None
 
     async def _has_central_link(self) -> bool:
         """Check if central link exists."""

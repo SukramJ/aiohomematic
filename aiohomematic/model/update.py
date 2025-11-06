@@ -59,6 +59,11 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         """Return the full name of the data_point."""
         return f"{self._device.name} Update"
 
+    @config_property
+    def name(self) -> str:
+        """Return the name of the data_point."""
+        return "Update"
+
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
@@ -93,11 +98,6 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         ):
             return self._device.available_firmware
         return self._device.firmware
-
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return "Update"
 
     @inspector
     async def refresh_firmware_data(self) -> None:

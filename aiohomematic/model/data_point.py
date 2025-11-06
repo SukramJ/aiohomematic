@@ -240,6 +240,16 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Return the data_point usage."""
         return DataPointUsage.DATA_POINT
 
+    @config_property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the name of the data_point."""
+
+    @config_property
+    def unique_id(self) -> str:
+        """Return the unique_id."""
+        return self._unique_id
+
     @state_property
     def additional_information(self) -> dict[str, Any]:
         """Return additional information about the entity."""
@@ -249,6 +259,61 @@ class CallbackDataPoint(ABC, LogContextMixin):
     @abstractmethod
     def available(self) -> bool:
         """Return the availability of the device."""
+
+    @state_property
+    def emitted_event_recently(self) -> bool:
+        """Return the data point emitted an event within 500 milliseconds."""
+        if self._emitted_event_at == INIT_DATETIME:
+            return False
+        return (datetime.now() - self._emitted_event_at).total_seconds() < 0.5
+
+    @state_property
+    def modified_at(self) -> datetime:
+        """Return the last update datetime value."""
+        if self._temporary_modified_at > self._modified_at:
+            return self._temporary_modified_at
+        return self._modified_at
+
+    @state_property
+    def modified_recently(self) -> bool:
+        """Return the data point modified within 500 milliseconds."""
+        if self._modified_at == INIT_DATETIME:
+            return False
+        return (datetime.now() - self._modified_at).total_seconds() < 0.5
+
+    @state_property
+    def refreshed_at(self) -> datetime:
+        """Return the last refresh datetime value."""
+        if self._temporary_refreshed_at > self._refreshed_at:
+            return self._temporary_refreshed_at
+        return self._refreshed_at
+
+    @state_property
+    def refreshed_recently(self) -> bool:
+        """Return the data point refreshed within 500 milliseconds."""
+        if self._refreshed_at == INIT_DATETIME:
+            return False
+        return (datetime.now() - self._refreshed_at).total_seconds() < 0.5
+
+    @hm_property(cached=True)
+    def enabled_default(self) -> bool:
+        """Return, if data_point should be enabled based on usage attribute."""
+        return self.usage in (
+            DataPointUsage.CDP_PRIMARY,
+            DataPointUsage.CDP_VISIBLE,
+            DataPointUsage.DATA_POINT,
+            DataPointUsage.EVENT,
+        )
+
+    @hm_property(cached=True)
+    def service_method_names(self) -> tuple[str, ...]:
+        """Return all service methods."""
+        return tuple(self.service_methods.keys())
+
+    @hm_property(cached=True)
+    def service_methods(self) -> Mapping[str, Callable]:
+        """Return all service methods."""
+        return get_service_calls(obj=self)
 
     @loop_check
     def emit_data_point_updated_event(self, **kwargs: Any) -> None:
@@ -275,58 +340,8 @@ class CallbackDataPoint(ABC, LogContextMixin):
             except Exception as exc:
                 _LOGGER.warning("EMIT_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))
 
-    @state_property
-    def emitted_event_recently(self) -> bool:
-        """Return the data point emitted an event within 500 milliseconds."""
-        if self._emitted_event_at == INIT_DATETIME:
-            return False
-        return (datetime.now() - self._emitted_event_at).total_seconds() < 0.5
-
-    @hm_property(cached=True)
-    def enabled_default(self) -> bool:
-        """Return, if data_point should be enabled based on usage attribute."""
-        return self.usage in (
-            DataPointUsage.CDP_PRIMARY,
-            DataPointUsage.CDP_VISIBLE,
-            DataPointUsage.DATA_POINT,
-            DataPointUsage.EVENT,
-        )
-
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""
-
-    @state_property
-    def modified_at(self) -> datetime:
-        """Return the last update datetime value."""
-        if self._temporary_modified_at > self._modified_at:
-            return self._temporary_modified_at
-        return self._modified_at
-
-    @state_property
-    def modified_recently(self) -> bool:
-        """Return the data point modified within 500 milliseconds."""
-        if self._modified_at == INIT_DATETIME:
-            return False
-        return (datetime.now() - self._modified_at).total_seconds() < 0.5
-
-    @config_property
-    @abstractmethod
-    def name(self) -> str:
-        """Return the name of the data_point."""
-
-    @state_property
-    def refreshed_at(self) -> datetime:
-        """Return the last refresh datetime value."""
-        if self._temporary_refreshed_at > self._refreshed_at:
-            return self._temporary_refreshed_at
-        return self._refreshed_at
-
-    @state_property
-    def refreshed_recently(self) -> bool:
-        """Return the data point refreshed within 500 milliseconds."""
-        if self._refreshed_at == INIT_DATETIME:
-            return False
-        return (datetime.now() - self._refreshed_at).total_seconds() < 0.5
 
     def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
         """Register data_point updated callback."""
@@ -352,21 +367,6 @@ class CallbackDataPoint(ABC, LogContextMixin):
     def register_internal_data_point_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
         """Register internal data_point updated callback."""
         return self.register_data_point_updated_callback(cb=cb, custom_id=InternalCustomID.DEFAULT)
-
-    @hm_property(cached=True)
-    def service_method_names(self) -> tuple[str, ...]:
-        """Return all service methods."""
-        return tuple(self.service_methods.keys())
-
-    @hm_property(cached=True)
-    def service_methods(self) -> Mapping[str, Callable]:
-        """Return all service methods."""
-        return get_service_calls(obj=self)
-
-    @config_property
-    def unique_id(self) -> str:
-        """Return the unique_id."""
-        return self._unique_id
 
     @abstractmethod
     def _get_path_data(self) -> PathData:
@@ -499,6 +499,11 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         """Return the data_point usage."""
         return self._get_data_point_usage()
 
+    @config_property
+    def name(self) -> str:
+        """Return the name of the data_point."""
+        return self._data_point_name_data.name
+
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
@@ -529,11 +534,6 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     @abstractmethod
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data_point data."""
-
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return self._data_point_name_data.name
 
     def reset_timer_on_time(self) -> None:
         """Set the on_time."""
@@ -724,6 +724,47 @@ class BaseParameterDataPoint[
         """Return the if data_point is visible in the backend."""
         return self._visible
 
+    @config_property
+    def max(self) -> ParameterT:
+        """Return max value."""
+        return self._max
+
+    @config_property
+    def min(self) -> ParameterT:
+        """Return min value."""
+        return self._min
+
+    @config_property
+    def unique_id(self) -> str:
+        """Return the unique_id."""
+        return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
+
+    @config_property
+    def unit(self) -> str | None:
+        """Return unit value."""
+        return self._unit
+
+    @config_property
+    def values(self) -> tuple[str, ...] | None:
+        """Return the values."""
+        return self._values
+
+    @state_property
+    def value(self) -> ParameterT:
+        """Return the value of the data_point."""
+        return self._value
+
+    @hm_property(cached=True)
+    def _enabled_by_channel_operation_mode(self) -> bool | None:
+        """Return, if the data_point/event must be enabled."""
+        if self._channel.type_name not in _CONFIGURABLE_CHANNEL:
+            return None
+        if self._parameter not in KEY_CHANNEL_OPERATION_MODE_VISIBILITY:
+            return None
+        if (cop := self._channel.operation_mode) is None:
+            return None
+        return cop in KEY_CHANNEL_OPERATION_MODE_VISIBILITY[self._parameter]
+
     @hm_property(cached=True)
     def dpk(self) -> DataPointKey:
         """Return data_point key value."""
@@ -732,6 +773,19 @@ class BaseParameterDataPoint[
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
             parameter=self._parameter,
+        )
+
+    @hm_property(log_context=True)
+    def parameter(self) -> str:
+        """Return parameter name."""
+        return self._parameter
+
+    @hm_property(cached=True)
+    def requires_polling(self) -> bool:
+        """Return whether the data_point requires polling."""
+        return not self._channel.device.client.supports_push_updates or (
+            self._channel.device.product_group in (ProductGroup.HM, ProductGroup.HMW)
+            and self._paramset_key == ParamsetKey.MASTER
         )
 
     @abstractmethod
@@ -802,39 +856,6 @@ class BaseParameterDataPoint[
             write_at=datetime.now(),
         )
 
-    @config_property
-    def max(self) -> ParameterT:
-        """Return max value."""
-        return self._max
-
-    @config_property
-    def min(self) -> ParameterT:
-        """Return min value."""
-        return self._min
-
-    @hm_property(log_context=True)
-    def parameter(self) -> str:
-        """Return parameter name."""
-        return self._parameter
-
-    @hm_property(cached=True)
-    def requires_polling(self) -> bool:
-        """Return whether the data_point requires polling."""
-        return not self._channel.device.client.supports_push_updates or (
-            self._channel.device.product_group in (ProductGroup.HM, ProductGroup.HMW)
-            and self._paramset_key == ParamsetKey.MASTER
-        )
-
-    @config_property
-    def unique_id(self) -> str:
-        """Return the unique_id."""
-        return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
-
-    @config_property
-    def unit(self) -> str | None:
-        """Return unit value."""
-        return self._unit
-
     def update_parameter_data(self) -> None:
         """Update parameter data."""
         if parameter_data := self._central.paramset_descriptions.get_parameter_data(
@@ -844,16 +865,6 @@ class BaseParameterDataPoint[
             parameter=self._parameter,
         ):
             self._assign_parameter_data(parameter_data=parameter_data)
-
-    @state_property
-    def value(self) -> ParameterT:
-        """Return the value of the data_point."""
-        return self._value
-
-    @config_property
-    def values(self) -> tuple[str, ...] | None:
-        """Return the values."""
-        return self._values
 
     def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
         """Update the temporary value of the data_point."""
@@ -946,17 +957,6 @@ class BaseParameterDataPoint[
                 value,
             )
             return None  # type: ignore[return-value]
-
-    @hm_property(cached=True)
-    def _enabled_by_channel_operation_mode(self) -> bool | None:
-        """Return, if the data_point/event must be enabled."""
-        if self._channel.type_name not in _CONFIGURABLE_CHANNEL:
-            return None
-        if self._parameter not in KEY_CHANNEL_OPERATION_MODE_VISIBILITY:
-            return None
-        if (cop := self._channel.operation_mode) is None:
-            return None
-        return cop in KEY_CHANNEL_OPERATION_MODE_VISIBILITY[self._parameter]
 
     def _get_multiplier(self, *, raw_unit: str | None) -> float:
         """Replace given unit."""

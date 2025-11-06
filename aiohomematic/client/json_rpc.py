@@ -293,6 +293,16 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """If session exists, then it is activated."""
         return self._session_id is not None
 
+    @hm_property(log_context=True)
+    def tls(self) -> bool:
+        """Return tls."""
+        return self._tls
+
+    @hm_property(log_context=True)
+    def url(self) -> str | None:
+        """Return url."""
+        return self._url
+
     def clear_session(self) -> None:
         """Clear the current session."""
         self._session_id = None
@@ -818,16 +828,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Stop the json rpc client."""
         if self._is_internal_session:
             await self._client_session.close()
-
-    @hm_property(log_context=True)
-    def tls(self) -> bool:
-        """Return tls."""
-        return self._tls
-
-    @hm_property(log_context=True)
-    def url(self) -> str | None:
-        """Return url."""
-        return self._url
 
     async def _check_supported_methods(self) -> bool:
         """Check, if all required api methods are supported by the backend."""

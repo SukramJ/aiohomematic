@@ -44,6 +44,29 @@ class MockJsonRpc:
         self._site: web.TCPSite | None = None
         self._session_id: str = "sess-1234"
 
+    async def start(self, host: str = "127.0.0.1", port: int = 0) -> str:
+        """Start the aiohttp server on a host/port and return the base URL."""
+        self._runner = web.AppRunner(self._app)
+        await self._runner.setup()
+        self._site = web.TCPSite(self._runner, host=host, port=port)
+        await self._site.start()
+        # Retrieve bound port
+        assert self._runner.addresses
+        bound = self._runner.addresses[0]
+        if isinstance(bound, tuple):
+            h, p = bound[0], bound[1]
+        else:
+            # aiohttp 3.9 provides sockaddr as tuple as well; keep fallback
+            h, p = host, port
+        return f"http://{h}:{p}"
+
+    async def stop(self) -> None:
+        """Stop and cleanup the aiohttp server runner/site if running."""
+        if self._site:
+            await self._site.stop()
+        if self._runner:
+            await self._runner.cleanup()
+
     async def _handle(self, request: web.Request) -> web.StreamResponse:
         payload = await request.json()
         method: str = payload.get("method")
@@ -86,29 +109,6 @@ class MockJsonRpc:
             response = {"error": {"message": f"method not implemented: {method}"}, "result": None}
 
         return web.json_response(response)
-
-    async def start(self, host: str = "127.0.0.1", port: int = 0) -> str:
-        """Start the aiohttp server on a host/port and return the base URL."""
-        self._runner = web.AppRunner(self._app)
-        await self._runner.setup()
-        self._site = web.TCPSite(self._runner, host=host, port=port)
-        await self._site.start()
-        # Retrieve bound port
-        assert self._runner.addresses
-        bound = self._runner.addresses[0]
-        if isinstance(bound, tuple):
-            h, p = bound[0], bound[1]
-        else:
-            # aiohttp 3.9 provides sockaddr as tuple as well; keep fallback
-            h, p = host, port
-        return f"http://{h}:{p}"
-
-    async def stop(self) -> None:
-        """Stop and cleanup the aiohttp server runner/site if running."""
-        if self._site:
-            await self._site.stop()
-        if self._runner:
-            await self._runner.cleanup()
 
 
 async def create_running_mock_json_rpc() -> tuple[MockJsonRpc, str]:

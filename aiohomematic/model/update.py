@@ -22,7 +22,7 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin
-from aiohomematic.types import DataPointUpdatedCallback, UnregisterCallback
+from aiohomematic.type_aliases import DataPointUpdatedCallback, UnregisterCallback
 
 __all__ = ["DpUpdate"]
 

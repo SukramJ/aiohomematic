@@ -38,7 +38,6 @@ from aiohomematic.support import to_bool
 __all__ = [
     "ChannelNameData",
     "DataPointNameData",
-    "GenericParameterType",
     "check_channel_is_the_only_primary_channel",
     "convert_value",
     "generate_channel_unique_id",
@@ -53,8 +52,6 @@ __all__ = [
     "is_binary_sensor",
 ]
 _LOGGER: Final = logging.getLogger(__name__)
-
-type GenericParameterType = bool | int | float | str | None
 
 # dict with binary_sensor relevant value lists and the corresponding TRUE value
 _BINARY_SENSOR_TRUE_VALUE_DICT_FOR_VALUE_LIST: Final[Mapping[tuple[str, ...], str]] = {

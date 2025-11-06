@@ -92,7 +92,7 @@ from aiohomematic.support import (
     get_channel_no,
     get_rx_modes,
 )
-from aiohomematic.types import (
+from aiohomematic.type_aliases import (
     DeviceUpdatedCallback,
     FirmwareUpdateCallback,
     LinkPeerChangedCallback,

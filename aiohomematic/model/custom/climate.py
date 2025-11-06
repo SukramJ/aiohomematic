@@ -41,7 +41,7 @@ from aiohomematic.model.generic import (
     GenericDataPoint,
 )
 from aiohomematic.property_decorators import config_property, state_property
-from aiohomematic.types import UnregisterCallback
+from aiohomematic.type_aliases import UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 

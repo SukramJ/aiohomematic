@@ -19,7 +19,7 @@ from weakref import WeakKeyDictionary
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.support import LogContextMixin, log_boundary_error
-from aiohomematic.types import ServiceMethodMap
+from aiohomematic.type_aliases import ServiceMethodMap
 
 _LOGGER_PERFORMANCE: Final = logging.getLogger(f"{__package__}.performance")
 

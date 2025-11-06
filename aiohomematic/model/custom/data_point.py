@@ -24,7 +24,7 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.property_decorators import state_property
 from aiohomematic.support import get_channel_address
-from aiohomematic.types import DataPointUpdatedCallback, UnregisterCallback
+from aiohomematic.type_aliases import DataPointUpdatedCallback, UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 

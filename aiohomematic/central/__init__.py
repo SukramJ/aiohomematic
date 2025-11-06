@@ -183,7 +183,7 @@ from aiohomematic.support import (
     is_ipv4_address,
     is_port,
 )
-from aiohomematic.types import (
+from aiohomematic.type_aliases import (
     AsyncTaskFactory,
     BackendParameterCallback,
     BackendSystemCallback,

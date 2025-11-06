@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from aiohomematic.const import Field, Parameter
-from aiohomematic.types import CustomDataPointFactory
+from aiohomematic.type_aliases import CustomDataPointFactory
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

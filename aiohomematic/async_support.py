@@ -18,7 +18,7 @@ from aiohomematic.const import BLOCK_LOG_TIMEOUT
 from aiohomematic.exceptions import AioHomematicException
 import aiohomematic.support as hms
 from aiohomematic.support import extract_exc_args
-from aiohomematic.types import AsyncTaskFactoryAny, CoroutineAny
+from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
 _LOGGER: Final = logging.getLogger(__name__)
 

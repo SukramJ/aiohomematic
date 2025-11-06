@@ -25,13 +25,12 @@ from aiohomematic.model.generic import DpDummy, data_point as hmge
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
-    GenericParameterType,
     PathData,
     generate_unique_id,
     get_data_point_name_data,
 )
 from aiohomematic.property_decorators import config_property, hm_property, state_property
-from aiohomematic.types import DataPointUpdatedCallback, UnregisterCallback
+from aiohomematic.type_aliases import DataPointUpdatedCallback, GenericParameterType, UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 

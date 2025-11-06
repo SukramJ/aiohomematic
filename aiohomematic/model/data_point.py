@@ -66,17 +66,16 @@ from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.model import device as hmd
-from aiohomematic.model.support import (
-    DataPointNameData,
-    DataPointPathData,
-    GenericParameterType,
-    PathData,
-    convert_value,
-    generate_unique_id,
-)
+from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
 from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args, log_boundary_error
-from aiohomematic.types import DataPointUpdatedCallback, DeviceRemovedCallback, ServiceMethodMap, UnregisterCallback
+from aiohomematic.type_aliases import (
+    DataPointUpdatedCallback,
+    DeviceRemovedCallback,
+    GenericParameterType,
+    ServiceMethodMap,
+    UnregisterCallback,
+)
 
 __all__ = [
     "BaseDataPoint",

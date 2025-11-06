@@ -16,7 +16,7 @@ from aiohomematic.central import rpc_server as rpc
 from aiohomematic.const import BackendSystemEvent
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.support import extract_exc_args
-from aiohomematic.types import VoidCallable
+from aiohomematic.type_aliases import VoidCallable
 
 _LOGGER: Final = logging.getLogger(__name__)
 _INTERFACE_ID: Final = "interface_id"

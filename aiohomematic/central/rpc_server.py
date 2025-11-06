@@ -19,7 +19,7 @@ from aiohomematic import central as hmcu
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
 from aiohomematic.support import log_boundary_error
-from aiohomematic.types import AsyncTaskFactory
+from aiohomematic.type_aliases import AsyncTaskFactory
 
 _LOGGER: Final = logging.getLogger(__name__)
 

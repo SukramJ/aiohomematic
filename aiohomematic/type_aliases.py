@@ -15,6 +15,8 @@ from typing import Any, Protocol, TypeAlias
 
 from aiohomematic.const import EventType
 
+type GenericParameterType = bool | int | float | str | None
+
 # Generic zero-argument callback that returns nothing
 ZeroArgCallback: TypeAlias = Callable[[], None]
 

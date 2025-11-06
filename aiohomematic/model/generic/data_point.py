@@ -27,7 +27,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: GenericParameterType](
-    hme.BaseParameterDataPoint
+    hme.BaseParameterDataPoint[ParameterT, InputParameterT]
 ):
     """Base class for generic data point."""
 

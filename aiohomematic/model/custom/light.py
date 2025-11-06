@@ -444,12 +444,14 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     @property
     def _device_operation_mode(self) -> _DeviceOperationMode:
         """Return the device operation mode."""
-        if (mode := self._dp_device_operation_mode.value) is None:
+        try:
+            return _DeviceOperationMode(str(self._dp_device_operation_mode.value))
+        except Exception:
+            # Fallback to a sensible default if the value is not set or unexpected
             return _DeviceOperationMode.RGBW
-        return _DeviceOperationMode(mode)
 
     @property
-    def _relevant_data_points(self) -> tuple[GenericDataPoint, ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         if self._device_operation_mode == _DeviceOperationMode.RGBW:
             return (
@@ -616,7 +618,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     )
 
     @property
-    def _relevant_data_points(self) -> tuple[GenericDataPoint, ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return (self._dp_level,)
 
@@ -731,13 +733,14 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
     @state_property
     def color_name(self) -> str | None:
         """Return the name of the color."""
-        return self._dp_color.value
+        val = self._dp_color.value
+        return val if isinstance(val, str) else None
 
     @state_property
     def effect(self) -> str | None:
         """Return the current effect."""
         if (effect := self._dp_effect.value) is not None and effect in self._effect_list:
-            return effect
+            return effect if isinstance(effect, str) else None
         return None
 
     @state_property
@@ -750,6 +753,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
         """Return the hue and saturation color value [float, float]."""
         if (
             self._dp_color.value is not None
+            and isinstance(self._dp_color.value, str)
             and (hs_color := _FIXED_COLOR_SWITCHER.get(self._dp_color.value)) is not None
         ):
             return hs_color

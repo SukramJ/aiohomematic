@@ -12,7 +12,6 @@ import contextlib
 from functools import wraps
 import logging
 from time import monotonic
-from types import CoroutineType
 from typing import Any, Final, cast
 
 from aiohomematic.const import BLOCK_LOG_TIMEOUT
@@ -114,11 +113,11 @@ class Looper:
             # avoid 'was never awaited' warnings.
             if asyncio.iscoroutine(target):
                 with contextlib.suppress(Exception):
-                    cast(CoroutineType, target).close()
+                    getattr(target, "close", lambda: None)()
             _LOGGER.debug("create_task: task cancelled for %s", name)
             return
 
-    def run_coroutine(self, *, coro: Coroutine, name: str) -> Any:
+    def run_coroutine(self, *, coro: Coroutine[Any, Any, Any], name: str) -> Any:
         """Call coroutine from sync."""
         try:
             return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
@@ -184,7 +183,7 @@ def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     This allows tests to monkeypatch aiohomematic.support.debug_enabled at runtime.
     """
 
-    _with_loop: set = set()
+    _with_loop: set[Callable[..., Any]] = set()
 
     @wraps(func)
     def wrapper_loop_check(*args: P.args, **kwargs: P.kwargs) -> R:

@@ -24,6 +24,8 @@ class DpText(GenericDataPoint[str, str]):
     _category = DataPointCategory.TEXT
 
     @state_property
-    def value(self) -> str | None:
+    def value(self) -> str:
         """Get the value of the data_point."""
-        return cast(str | None, check_length_and_log(name=self.name, value=self._value))
+        if (val := check_length_and_log(name=self.name, value=self._value)) is not None:
+            return cast(str, val)
+        return self._default

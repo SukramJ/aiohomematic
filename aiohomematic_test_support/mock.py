@@ -63,9 +63,9 @@ def get_client_session(  # noqa: C901
     """
 
     class _MockResponse:
-        def __init__(self, *, json_data: dict | None) -> None:
+        def __init__(self, *, json_data: dict[str, Any] | None) -> None:
             # If no match is found, emulate backend error payload
-            self._json = json_data or {
+            self._json: dict[str, Any] = json_data or {
                 _JsonKey.RESULT: None,
                 _JsonKey.ERROR: {"name": "-1", "code": -1, "message": "Not found in session player"},
                 _JsonKey.ID: 0,

@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.generic.data_point import GenericDataPoint
 from aiohomematic.property_decorators import state_property
@@ -26,5 +24,5 @@ class DpBinarySensor(GenericDataPoint[bool | None, bool]):
     def value(self) -> bool | None:
         """Return the value of the data_point."""
         if self._value is not None:
-            return cast(bool | None, self._value)
-        return cast(bool | None, self._default)
+            return self._value
+        return self._default

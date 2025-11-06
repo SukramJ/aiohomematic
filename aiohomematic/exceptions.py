@@ -115,7 +115,7 @@ def log_exception[**P, R](
     extra_msg: str = "",
     re_raise: bool = False,
     exc_return: Any = None,
-) -> Callable:
+) -> Callable[[Callable[P, R | Awaitable[R]]], Callable[P, R | Awaitable[R]]]:
     """Decorate methods for exception logging."""
 
     def decorator_log_exception(

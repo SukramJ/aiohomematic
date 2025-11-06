@@ -127,11 +127,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
 
         self._battery_data = _get_battery_data(model=self._channel.device.model)
 
-        operating_voltage: DpSensor = self._add_data_point(
+        operating_voltage: DpSensor[float | None] = self._add_data_point(
             parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
         )
 
-        self._dp_operating_voltage: DpSensor = (
+        self._dp_operating_voltage: DpSensor[float | None] = (
             operating_voltage
             if isinstance(operating_voltage, DpSensor)
             else self._add_data_point(
@@ -139,7 +139,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             )
         )
 
-        low_bat_limit: DpSensor = self._add_data_point(
+        low_bat_limit: DpSensor[float | None] = self._add_data_point(
             parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, data_point_type=DpSensor
         )
 
@@ -155,10 +155,12 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         )
 
         self._low_bat_limit_default = (
-            float(self._dp_low_bat_limit.default) if isinstance(self._dp_low_bat_limit, DpFloat) else None
+            float(self._dp_low_bat_limit.default)
+            if isinstance(self._dp_low_bat_limit, DpFloat) and self._dp_low_bat_limit.default is not None
+            else None
         )
         self._voltage_max = (
-            float(_BatteryVoltage.get(self._battery_data.battery) * self._battery_data.quantity)  # type: ignore[operator]
+            float(_BatteryVoltage[self._battery_data.battery] * self._battery_data.quantity)
             if self._battery_data is not None
             else None
         )

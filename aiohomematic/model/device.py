@@ -23,13 +23,13 @@ The Device/Channel classes are the anchor used by generic, custom, calculated,
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from datetime import datetime
 from functools import partial
 import logging
 import os
 import random
-from typing import Any, Final
+from typing import Any, Final, cast
 
 import orjson
 
@@ -37,7 +37,6 @@ from aiohomematic import central as hmcu, client as hmcl
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
-    CALLBACK_TYPE,
     CLICK_EVENTS,
     DEVICE_DESCRIPTIONS_DIR,
     IDENTIFIER_SEPARATOR,
@@ -74,7 +73,7 @@ from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
 from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.generic import GenericDataPoint
+from aiohomematic.model.generic import DpBinarySensor, GenericDataPoint
 from aiohomematic.model.support import (
     ChannelNameData,
     generate_channel_unique_id,
@@ -92,6 +91,12 @@ from aiohomematic.support import (
     get_channel_address,
     get_channel_no,
     get_rx_modes,
+)
+from aiohomematic.types import (
+    DeviceUpdatedCallback,
+    FirmwareUpdateCallback,
+    LinkPeerChangedCallback,
+    UnregisterCallback,
 )
 
 __all__ = ["Channel", "Device"]
@@ -155,8 +160,8 @@ class Device(LogContextMixin, PayloadMixin):
 
         self._modified_at: datetime = INIT_DATETIME
         self._forced_availability: ForcedDeviceAvailability = ForcedDeviceAvailability.NOT_SET
-        self._device_updated_callbacks: Final[list[Callable]] = []
-        self._firmware_update_callbacks: Final[list[Callable]] = []
+        self._device_updated_callbacks: Final[list[DeviceUpdatedCallback]] = []
+        self._firmware_update_callbacks: Final[list[FirmwareUpdateCallback]] = []
         self._model: Final[str] = self._description["TYPE"]
         self._ignore_on_initial_load: Final[bool] = check_ignore_model_on_initial_load(model=self._model)
         self._is_updatable: Final = self._description.get("UPDATABLE") or False
@@ -206,19 +211,28 @@ class Device(LogContextMixin, PayloadMixin):
         )
 
     @property
-    def _dp_config_pending(self) -> GenericDataPoint | None:
+    def _dp_config_pending(self) -> DpBinarySensor | None:
         """Return th CONFIG_PENDING data_point."""
-        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING)
+        return cast(
+            DpBinarySensor | None,
+            self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING),
+        )
 
     @property
-    def _dp_sticky_un_reach(self) -> GenericDataPoint | None:
+    def _dp_sticky_un_reach(self) -> DpBinarySensor | None:
         """Return th STICKY_UN_REACH data_point."""
-        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH)
+        return cast(
+            DpBinarySensor | None,
+            self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH),
+        )
 
     @property
-    def _dp_un_reach(self) -> GenericDataPoint | None:
+    def _dp_un_reach(self) -> DpBinarySensor | None:
         """Return th UN REACH data_point."""
-        return self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH)
+        return cast(
+            DpBinarySensor | None,
+            self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH),
+        )
 
     @property
     def allow_undefined_generic_data_points(self) -> bool:
@@ -237,9 +251,9 @@ class Device(LogContextMixin, PayloadMixin):
         return str(self._description.get("AVAILABLE_FIRMWARE", ""))
 
     @property
-    def calculated_data_points(self) -> tuple[CalculatedDataPoint, ...]:
+    def calculated_data_points(self) -> tuple[CalculatedDataPoint[Any], ...]:
         """Return the generic data points."""
-        data_points: list[CalculatedDataPoint] = []
+        data_points: list[CalculatedDataPoint[Any]] = []
         for channel in self._channels.values():
             data_points.extend(channel.calculated_data_points)
         return tuple(data_points)
@@ -284,9 +298,9 @@ class Device(LogContextMixin, PayloadMixin):
         return DeviceFirmwareState(self._description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
         """Return the generic data points."""
-        data_points: list[GenericDataPoint] = []
+        data_points: list[GenericDataPoint[Any, Any]] = []
         for channel in self._channels.values():
             data_points.extend(channel.generic_data_points)
         return tuple(data_points)
@@ -496,7 +510,7 @@ class Device(LogContextMixin, PayloadMixin):
         for channel in self._channels.values():
             await channel.finalize_init()
 
-    def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPoint | None:
+    def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPoint[Any] | None:
         """Return a calculated data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
             return channel.get_calculated_data_point(parameter=parameter)
@@ -555,7 +569,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericDataPoint | None:
+    ) -> GenericDataPoint[Any, Any] | None:
         """Return a generic data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
             return channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key)
@@ -567,9 +581,9 @@ class Device(LogContextMixin, PayloadMixin):
             return channel.get_generic_event(parameter=parameter)
         return None
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint[Any, Any], ...]:
         """Return the list of readable master data points."""
-        data_points: list[GenericDataPoint] = []
+        data_points: list[GenericDataPoint[Any, Any]] = []
         for channel in self._channels.values():
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
@@ -626,14 +640,14 @@ class Device(LogContextMixin, PayloadMixin):
             for callback_handler in self._firmware_update_callbacks:
                 callback_handler()
 
-    def register_device_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> UnregisterCallback:
         """Register update callback."""
         if callable(cb) and cb not in self._device_updated_callbacks:
             self._device_updated_callbacks.append(cb)
             return partial(self.unregister_device_updated_callback, cb=cb)
         return None
 
-    def register_firmware_update_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
         """Register firmware update callback."""
         if callable(cb) and cb not in self._firmware_update_callbacks:
             self._firmware_update_callbacks.append(cb)
@@ -679,12 +693,12 @@ class Device(LogContextMixin, PayloadMixin):
             for dp in self.generic_data_points:
                 dp.emit_data_point_updated_event()
 
-    def unregister_device_updated_callback(self, *, cb: Callable) -> None:
+    def unregister_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> None:
         """Remove update callback."""
         if cb in self._device_updated_callbacks:
             self._device_updated_callbacks.remove(cb)
 
-    def unregister_firmware_update_callback(self, *, cb: Callable) -> None:
+    def unregister_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> None:
         """Remove firmware update callback."""
         if cb in self._firmware_update_callbacks:
             self._firmware_update_callbacks.remove(cb)
@@ -768,12 +782,12 @@ class Channel(LogContextMixin, PayloadMixin):
         self._group_no: int | None = None
         self._group_master: Channel | None = None
         self._is_in_multi_group: bool | None = None
-        self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint]] = {}
+        self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint[Any]]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
-        self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint]] = {}
+        self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint[Any, Any]]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
-        self._link_peer_changed_callbacks: list[Callable] = []
+        self._link_peer_changed_callbacks: list[LinkPeerChangedCallback] = []
         self._link_source_roles: tuple[str, ...] = (
             tuple(source_roles.split(" ")) if (source_roles := self._description.get("LINK_SOURCE_ROLES")) else ()
         )
@@ -808,7 +822,7 @@ class Channel(LogContextMixin, PayloadMixin):
         return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
 
     @property
-    def calculated_data_points(self) -> tuple[CalculatedDataPoint, ...]:
+    def calculated_data_points(self) -> tuple[CalculatedDataPoint[Any], ...]:
         """Return the generic data points."""
         return tuple(self._calculated_data_points.values())
 
@@ -838,7 +852,7 @@ class Channel(LogContextMixin, PayloadMixin):
         return self._function
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPoint, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
         """Return the generic data points."""
         return tuple(self._generic_data_points.values())
 
@@ -1032,7 +1046,7 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._custom_data_point:
             await self._custom_data_point.finalize_init()
 
-    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPoint | None:
+    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPoint[Any] | None:
         """Return a calculated data_point from device."""
         return self._calculated_data_points.get(
             DataPointKey(
@@ -1076,7 +1090,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericDataPoint | None:
+    ) -> GenericDataPoint[Any, Any] | None:
         """Return a generic data_point from device."""
         if paramset_key:
             return self._generic_data_points.get(
@@ -1117,7 +1131,7 @@ class Channel(LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint[Any, Any], ...]:
         """Return the list of readable master data points."""
         return tuple(
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
@@ -1154,7 +1168,7 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._custom_data_point:
             await self._custom_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
-    def register_link_peer_changed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_link_peer_changed_callback(self, *, cb: LinkPeerChangedCallback) -> UnregisterCallback:
         """Register the link peer changed callback."""
         if callable(cb) and cb not in self._link_peer_changed_callbacks:
             self._link_peer_changed_callbacks.append(cb)
@@ -1226,7 +1240,7 @@ class Channel(LogContextMixin, PayloadMixin):
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
 
-    def _unregister_link_peer_changed_callback(self, *, cb: Callable) -> None:
+    def _unregister_link_peer_changed_callback(self, *, cb: LinkPeerChangedCallback) -> None:
         """Unregister the link peer changed callback."""
         if cb in self._link_peer_changed_callbacks:
             self._link_peer_changed_callbacks.remove(cb)
@@ -1323,7 +1337,7 @@ class _ValueCache:
         # to avoid repetitive calls to the backend within max_age
         self._device_cache[dpk] = CacheEntry(value=value, refresh_at=datetime.now())
 
-    def _get_base_data_points(self) -> set[GenericDataPoint]:
+    def _get_base_data_points(self) -> set[GenericDataPoint[Any, Any]]:
         """Get data points of channel 0 and master."""
         return {
             dp

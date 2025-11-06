@@ -19,6 +19,7 @@ from aiohomematic import central as hmcu
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
 from aiohomematic.support import log_boundary_error
+from aiohomematic.types import AsyncTaskFactory
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class RPCFunctions:
         central: hmcu.CentralUnit | None
         if central := self.get_central(interface_id=interface_id):
             central.looper.create_task(
-                target=central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
+                target=lambda: central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
                 name=f"deleteDevices-{interface_id}",
             )
 
@@ -69,11 +70,14 @@ class RPCFunctions:
         """If a device emits some sort event, we will handle it here."""
         if central := self.get_central(interface_id=interface_id):
             central.looper.create_task(
-                target=central.data_point_event(
-                    interface_id=interface_id,
-                    channel_address=channel_address,
-                    parameter=parameter,
-                    value=value,
+                target=cast(
+                    AsyncTaskFactory,
+                    lambda: central.data_point_event(
+                        interface_id=interface_id,
+                        channel_address=channel_address,
+                        parameter=parameter,
+                        value=value,
+                    ),
                 ),
                 name=f"event-{interface_id}-{channel_address}-{parameter}",
             )

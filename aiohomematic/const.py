@@ -8,7 +8,7 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, IntEnum, StrEnum
@@ -17,7 +17,7 @@ import os
 import re
 import sys
 from types import MappingProxyType
-from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
+from typing import Any, Final, NamedTuple, Required, TypedDict
 
 VERSION: Final = "2025.11.7"
 
@@ -144,8 +144,6 @@ SYSVAR_SET_PATH_ROOT: Final = "sysvar/set"
 SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
 VIRTDEV_SET_PATH_ROOT: Final = "virtdev/set"
 VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
-
-CALLBACK_TYPE: TypeAlias = Callable[[], None] | None
 
 
 class Backend(StrEnum):

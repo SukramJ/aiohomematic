@@ -4,21 +4,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
-from aiohomematic.const import (
-    CALLBACK_TYPE,
-    CDPD,
-    INIT_DATETIME,
-    CallSource,
-    DataPointKey,
-    DataPointUsage,
-    DeviceProfile,
-    Field,
-)
+from aiohomematic.const import CDPD, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.support import CustomConfig
@@ -33,6 +24,7 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.property_decorators import state_property
 from aiohomematic.support import get_channel_address
+from aiohomematic.types import DataPointUpdatedCallback, UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -64,7 +56,7 @@ class CustomDataPoint(BaseDataPoint):
         custom_config: CustomConfig,
     ) -> None:
         """Initialize the data point."""
-        self._unregister_callbacks: list[CALLBACK_TYPE] = []
+        self._unregister_callbacks: list[UnregisterCallback] = []
         self._device_profile: Final = device_profile
         # required for name in BaseDataPoint
         self._device_def: Final = device_def
@@ -78,18 +70,18 @@ class CustomDataPoint(BaseDataPoint):
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
         self._allow_undefined_generic_data_points: Final[bool] = self._device_def[CDPD.ALLOW_UNDEFINED_GENERIC_DPS]
-        self._data_points: Final[dict[Field, hmge.GenericDataPoint]] = {}
+        self._data_points: Final[dict[Field, hmge.GenericDataPoint[Any, Any]]] = {}
         self._init_data_points()
         self._init_data_point_fields()
         self._post_init_data_point_fields()
 
     @property
-    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points.values() if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
@@ -176,7 +168,7 @@ class CustomDataPoint(BaseDataPoint):
         self,
         *,
         field: Field,
-        data_point: hmge.GenericDataPoint | None,
+        data_point: hmge.GenericDataPoint[Any, Any] | None,
         is_visible: bool | None = None,
     ) -> None:
         """Add data point to collection and register callback."""
@@ -201,7 +193,7 @@ class CustomDataPoint(BaseDataPoint):
                 if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                     self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
 
-    def _get_data_point[DataPointT: hmge.GenericDataPoint](
+    def _get_data_point[DataPointT: hmge.GenericDataPoint[Any, Any]](
         self, *, field: Field, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Get data point."""
@@ -333,7 +325,7 @@ class CustomDataPoint(BaseDataPoint):
             self.full_name,
         )
 
-    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:

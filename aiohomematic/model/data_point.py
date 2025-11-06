@@ -32,14 +32,13 @@ from datetime import datetime, timedelta
 from functools import partial, wraps
 from inspect import getfullargspec
 import logging
-from typing import Any, Final, cast
+from typing import Any, Final, TypeVar, cast
 
 import voluptuous as vol
 
 from aiohomematic import central as hmcu, client as hmcl, support as hms, validator as val
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
-    CALLBACK_TYPE,
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
     INIT_DATETIME,
@@ -77,6 +76,7 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args, log_boundary_error
+from aiohomematic.types import DataPointUpdatedCallback, DeviceRemovedCallback, ServiceMethodMap, UnregisterCallback
 
 __all__ = [
     "BaseDataPoint",
@@ -85,6 +85,8 @@ __all__ = [
     "CallbackDataPoint",
     "bind_collector",
 ]
+# Type variable used for decorator typing
+CallableT = TypeVar("CallableT", bound=Callable[..., Any])
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -160,8 +162,8 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Init the callback data_point."""
         self._central: Final = central
         self._unique_id: Final = unique_id
-        self._data_point_updated_callbacks: dict[str, set[Callable]] = defaultdict(set)
-        self._device_removed_callbacks: list[Callable] = []
+        self._data_point_updated_callbacks: dict[str, set[DataPointUpdatedCallback]] = defaultdict(set)
+        self._device_removed_callbacks: list[DeviceRemovedCallback] = []
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
         self._emitted_event_at: datetime = INIT_DATETIME
@@ -311,7 +313,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         return tuple(self.service_methods.keys())
 
     @hm_property(cached=True)
-    def service_methods(self) -> Mapping[str, Callable]:
+    def service_methods(self) -> ServiceMethodMap:
         """Return all service methods."""
         return get_service_calls(obj=self)
 
@@ -343,7 +345,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""
 
-    def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
+    def register_data_point_updated_callback(
+        self, *, cb: DataPointUpdatedCallback, custom_id: str
+    ) -> UnregisterCallback:
         """Register data_point updated callback."""
         if custom_id not in InternalCustomID:
             if self._custom_id is not None and self._custom_id != custom_id:
@@ -357,14 +361,14 @@ class CallbackDataPoint(ABC, LogContextMixin):
             return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
         return None
 
-    def register_device_removed_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> UnregisterCallback:
         """Register the device removed callback."""
         if callable(cb) and cb not in self._device_removed_callbacks:
             self._device_removed_callbacks.append(cb)
             return partial(self._unregister_device_removed_callback, cb=cb)
         return None
 
-    def register_internal_data_point_updated_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_internal_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback) -> UnregisterCallback:
         """Register internal data_point updated callback."""
         return self.register_data_point_updated_callback(cb=cb, custom_id=InternalCustomID.DEFAULT)
 
@@ -399,14 +403,14 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Set temporary_refreshed_at to current datetime."""
         self._temporary_refreshed_at = refreshed_at
 
-    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
         """Unregister data_point updated callback."""
         if cb in self._data_point_updated_callbacks[custom_id]:
             self._data_point_updated_callbacks[custom_id].remove(cb)
         if self.custom_id == custom_id:
             self._custom_id = None
 
-    def _unregister_device_removed_callback(self, *, cb: Callable) -> None:
+    def _unregister_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> None:
         """Unregister the device removed callback."""
         if cb in self._device_removed_callbacks:
             self._device_removed_callbacks.remove(cb)
@@ -1004,7 +1008,7 @@ class CallParameterCollector:
     def add_data_point(
         self,
         *,
-        data_point: BaseParameterDataPoint,
+        data_point: BaseParameterDataPoint[Any, Any],
         value: Any,
         collector_order: int,
     ) -> None:
@@ -1053,14 +1057,14 @@ def bind_collector(
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
     log_level: int = logging.ERROR,
-) -> Callable:
+) -> Callable[[CallableT], CallableT]:
     """
     Decorate function to automatically add collector if not set.
 
     Additionally, thrown exceptions are logged.
     """
 
-    def bind_decorator[CallableT: Callable[..., Any]](func: CallableT) -> CallableT:
+    def bind_decorator[FuncT: Callable[..., Any]](func: FuncT) -> FuncT:
         """Decorate function to automatically add collector if not set."""
         spec = getfullargspec(func)
         # Support both positional and keyword-only 'collector' parameters
@@ -1072,7 +1076,7 @@ def bind_collector(
         @wraps(func)
         async def bind_wrapper(*args: Any, **kwargs: Any) -> Any:
             """Wrap method to add collector."""
-            token: Token | None = None
+            token: Token[bool] | None = None
             if not IN_SERVICE_VAR.get():
                 token = IN_SERVICE_VAR.set(True)
             try:

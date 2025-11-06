@@ -23,11 +23,11 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
     _category = DataPointCategory.SELECT
 
     @state_property
-    def value(self) -> str | None:
+    def value(self) -> int | str:
         """Get the value of the data_point."""
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value
-        return str(self._default)
+        return self._default
 
     def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int:
         """Prepare value before sending."""

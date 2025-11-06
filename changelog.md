@@ -1,3 +1,7 @@
+# Version 2025.11.8 (2025-11-06)
+
+- Switch mypy to strict
+
 # Version 2025.11.7 (2025-11-05)
 
 - Handle early arrival of pong events

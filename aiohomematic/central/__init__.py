@@ -66,7 +66,7 @@ Notes
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine, Mapping, Set as AbstractSet
+from collections.abc import Mapping, Set as AbstractSet
 from datetime import datetime, timedelta
 from functools import partial
 import logging
@@ -83,7 +83,6 @@ from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import (
-    CALLBACK_TYPE,
     CATEGORIES,
     CONNECTION_CHECKER_INTERVAL,
     DATA_POINT_EVENTS,
@@ -184,6 +183,15 @@ from aiohomematic.support import (
     is_ipv4_address,
     is_port,
 )
+from aiohomematic.types import (
+    AsyncTaskFactory,
+    BackendParameterCallback,
+    BackendSystemCallback,
+    DataPointEventCallback,
+    HomematicCallback,
+    SysvarEventCallback,
+    UnregisterCallback,
+)
 
 __all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
 
@@ -235,11 +243,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
-        self._data_point_key_event_subscriptions: Final[
-            dict[DataPointKey, list[Callable[..., Coroutine[Any, Any, None]]]]
-        ] = {}
+        self._data_point_key_event_subscriptions: Final[dict[DataPointKey, list[DataPointEventCallback]]] = {}
         self._data_point_path_event_subscriptions: Final[dict[str, DataPointKey]] = {}
-        self._sysvar_data_point_event_subscriptions: Final[dict[str, Callable]] = {}
+        self._sysvar_data_point_event_subscriptions: Final[dict[str, SysvarEventCallback]] = {}
         # {device_address, device}
         self._devices: Final[dict[str, Device]] = {}
         # {sysvar_name, sysvar_data_point}
@@ -248,13 +254,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._program_data_points: Final[dict[str, ProgramDpType]] = {}
         # Signature: (system_event, new_data_points, new_channel_events, **kwargs)
         # e.g. DEVICES_CREATED, HUB_REFRESHED
-        self._backend_system_callbacks: Final[set[Callable]] = set()
+        self._backend_system_callbacks: Final[set[BackendSystemCallback]] = set()
         # Signature: (interface_id, channel_address, parameter, value)
         # Re-emitted events from the backend for parameter updates
-        self._backend_parameter_callbacks: Final[set[Callable]] = set()
+        self._backend_parameter_callbacks: Final[set[BackendParameterCallback]] = set()
         # Signature: (event_type, event_data)
         # Events like INTERFACE, KEYPRESS, ...
-        self._homematic_callbacks: Final[set[Callable]] = set()
+        self._homematic_callbacks: Final[set[HomematicCallback]] = set()
 
         CENTRAL_INSTANCES[self.name] = self
         self._scheduler: Final = _Scheduler(central=self)
@@ -458,7 +464,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._version = max(versions) if versions else None
         return self._version
 
-    def add_event_subscription(self, *, data_point: BaseParameterDataPoint) -> None:
+    def add_event_subscription(self, *, data_point: BaseParameterDataPoint[Any, Any]) -> None:
         """Add data_point to central event subscription."""
         if isinstance(data_point, GenericDataPoint | GenericEvent) and (
             data_point.is_readable or data_point.supports_events
@@ -596,11 +602,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         if (dpk := self._data_point_path_event_subscriptions.get(state_path)) is not None:
             self._looper.create_task(
-                target=self.data_point_event(
-                    interface_id=dpk.interface_id,
-                    channel_address=dpk.channel_address,
-                    parameter=dpk.parameter,
-                    value=value,
+                target=cast(
+                    AsyncTaskFactory,
+                    lambda: self.data_point_event(
+                        interface_id=dpk.interface_id,
+                        channel_address=dpk.channel_address,
+                        parameter=dpk.parameter,
+                        value=value,
+                    ),
                 ),
                 name=f"device-data-point-event-{dpk.interface_id}-{dpk.channel_address}-{dpk.parameter}",
             )
@@ -674,9 +683,18 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         # Events like INTERFACE, KEYPRESS, ...
         """
+        # Normalize payload: ensure plain string event_type and dict keys are strings
+        try:
+            normalized: dict[str, Any] = {str(k): v for k, v in event_data.items()}  # shallow copy
+            if isinstance(normalized.get(str(EventKey.DATA)), dict):
+                normalized[str(EventKey.DATA)] = {str(k): v for k, v in normalized[str(EventKey.DATA)].items()}
+        except Exception:  # Fallback to original if normalization fails
+            normalized = {str(k): v for k, v in event_data.items()}
+
         for callback_handler in self._homematic_callbacks:
             try:
-                callback_handler(event_type=event_type, event_data=event_data)
+                # Call with keyword arguments as expected by tests and integrations
+                callback_handler(event_type=event_type, event_data=normalized)
             except Exception as exc:
                 _LOGGER.error(
                     "EMIT_HOMEMATIC_CALLBACK: Unable to call handler: %s",
@@ -792,7 +810,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericDataPoint | None:
+    ) -> GenericDataPoint[Any, Any] | None:
         """Get data_point by channel_address and parameter."""
         if device := self.get_device(address=channel_address):
             return device.get_generic_data_point(
@@ -906,7 +924,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_readable_generic_data_points(
         self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
-    ) -> tuple[GenericDataPoint, ...]:
+    ) -> tuple[GenericDataPoint[Any, Any], ...]:
         """Return the readable generic data points."""
         return tuple(
             ge
@@ -1045,21 +1063,21 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         ]:
             await self.refresh_firmware_data(device_address=device.address)
 
-    def register_backend_parameter_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_backend_parameter_callback(self, *, cb: BackendParameterCallback) -> UnregisterCallback:
         """Register backend_parameter callback in central."""
         if callable(cb) and cb not in self._backend_parameter_callbacks:
             self._backend_parameter_callbacks.add(cb)
             return partial(self._unregister_backend_parameter_callback, cb=cb)
         return None
 
-    def register_backend_system_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_backend_system_callback(self, *, cb: BackendSystemCallback) -> UnregisterCallback:
         """Register system_event callback in central."""
         if callable(cb) and cb not in self._backend_parameter_callbacks:
             self._backend_system_callbacks.add(cb)
             return partial(self._unregister_backend_system_callback, cb=cb)
         return None
 
-    def register_homematic_callback(self, *, cb: Callable) -> CALLBACK_TYPE:
+    def register_homematic_callback(self, *, cb: HomematicCallback) -> UnregisterCallback:
         """Register ha_event callback in central."""
         if callable(cb) and cb not in self._homematic_callbacks:
             self._homematic_callbacks.add(cb)
@@ -1087,7 +1105,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_details.remove_device(device=device)
         del self._devices[device.address]
 
-    def remove_event_subscription(self, *, data_point: BaseParameterDataPoint) -> None:
+    def remove_event_subscription(self, *, data_point: BaseParameterDataPoint[Any, Any]) -> None:
         """Remove event subscription from central collections."""
         if isinstance(data_point, GenericDataPoint | GenericEvent) and data_point.supports_events:
             if data_point.dpk in self._data_point_key_event_subscriptions:
@@ -1721,17 +1739,17 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self.name,
         )
 
-    def _unregister_backend_parameter_callback(self, *, cb: Callable) -> None:
+    def _unregister_backend_parameter_callback(self, *, cb: BackendParameterCallback) -> None:
         """Un register backend_parameter callback in central."""
         if cb in self._backend_parameter_callbacks:
             self._backend_parameter_callbacks.remove(cb)
 
-    def _unregister_backend_system_callback(self, *, cb: Callable) -> None:
+    def _unregister_backend_system_callback(self, *, cb: BackendSystemCallback) -> None:
         """Un register system_event callback in central."""
         if cb in self._backend_system_callbacks:
             self._backend_system_callbacks.remove(cb)
 
-    def _unregister_homematic_callback(self, *, cb: Callable) -> None:
+    def _unregister_homematic_callback(self, *, cb: HomematicCallback) -> None:
         """RUn register ha_event callback in central."""
         if cb in self._homematic_callbacks:
             self._homematic_callbacks.remove(cb)
@@ -1960,7 +1978,7 @@ class _SchedulerJob:
     def __init__(
         self,
         *,
-        task: Callable,
+        task: AsyncTaskFactory,
         run_interval: int,
         next_run: datetime | None = None,
     ):

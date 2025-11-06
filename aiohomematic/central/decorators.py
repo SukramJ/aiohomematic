@@ -24,7 +24,7 @@ _PARAMETER: Final = "parameter"
 _VALUE: Final = "value"
 
 
-def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
+def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Check if backend_system_callback is set and call it AFTER original function."""
 
     def decorator_backend_system_callback[**P, R](
@@ -88,7 +88,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable:
     return decorator_backend_system_callback
 
 
-def callback_event[**P, R](func: Callable[P, R]) -> Callable:
+def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]]:
     """Check if event_callback is set and call it AFTER original function."""
 
     def _exec_event_callback(*args: Any, **kwargs: Any) -> None:

@@ -19,6 +19,7 @@ from weakref import WeakKeyDictionary
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.support import LogContextMixin, log_boundary_error
+from aiohomematic.type_aliases import ServiceMethodMap
 
 _LOGGER_PERFORMANCE: Final = logging.getLogger(f"{__package__}.performance")
 
@@ -96,7 +97,11 @@ def inspector[**P, R](  # noqa: C901
         """
 
         def handle_exception(
-            exc: Exception, func: Callable, is_sub_service_call: bool, is_homematic: bool, context_obj: Any | None
+            exc: Exception,
+            func: Callable[..., Any],
+            is_sub_service_call: bool,
+            is_homematic: bool,
+            context_obj: Any | None,
         ) -> R:
             """Handle exceptions for decorated functions with structured logging."""
             if not is_sub_service_call and log_level > logging.NOTSET:
@@ -229,7 +234,7 @@ def _log_performance_message[**P](func: Callable[P, Any], start: float, *args: P
     _LOGGER_PERFORMANCE.info(message)
 
 
-def get_service_calls(obj: object) -> dict[str, Callable]:
+def get_service_calls(obj: object) -> ServiceMethodMap:
     """
     Get all methods decorated with the service decorator (ha_service attribute).
 

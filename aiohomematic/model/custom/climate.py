@@ -12,7 +12,6 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic.const import (
-    CALLBACK_TYPE,
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     DataPointCategory,
@@ -42,6 +41,7 @@ from aiohomematic.model.generic import (
     GenericDataPoint,
 )
 from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.type_aliases import UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -210,7 +210,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Initialize base climate data_point."""
         self._peer_level_dp: DpFloat | None = None
         self._peer_state_dp: DpBinarySensor | None = None
-        self._peer_unregister_callbacks: list[CALLBACK_TYPE] = []
+        self._peer_unregister_callbacks: list[UnregisterCallback] = []
         super().__init__(
             channel=channel,
             unique_id=unique_id,
@@ -304,7 +304,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         if self._dp_temperature_minimum.value is not None:
             min_temp = float(self._dp_temperature_minimum.value)
         else:
-            min_temp = self._dp_setpoint.min
+            min_temp = float(self._dp_setpoint.min) if self._dp_setpoint.min is not None else 0.0
 
         if min_temp == _OFF_TEMPERATURE:
             return min_temp + _DEFAULT_TEMPERATURE_STEP
@@ -591,7 +591,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
 
     @abstractmethod
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
     def _on_link_peer_changed(self) -> None:
@@ -835,7 +835,7 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
 
@@ -881,14 +881,9 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     def _current_profile_name(self) -> ClimateProfile | None:
         """Return a profile index by name."""
         inv_profiles = {v: k for k, v in self._profiles.items()}
-        if self._dp_week_program_pointer.value is not None:
-            idx = (
-                int(self._dp_week_program_pointer.value)
-                if self._dp_week_program_pointer.value.isnumeric()
-                else _HM_WEEK_PROFILE_POINTERS_TO_IDX[self._dp_week_program_pointer.value]
-            )
-            return inv_profiles.get(idx)
-        return None
+        sp = str(self._dp_week_program_pointer.value)
+        idx = int(sp) if sp.isnumeric() else _HM_WEEK_PROFILE_POINTERS_TO_IDX.get(sp)
+        return inv_profiles.get(idx) if idx is not None else None
 
     @property
     def _profile_names(self) -> tuple[ClimateProfile, ...]:
@@ -959,7 +954,8 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     @state_property
     def temperature_offset(self) -> str | None:
         """Return the maximum temperature."""
-        return self._dp_temperature_offset.value
+        val = self._dp_temperature_offset.value
+        return val if isinstance(val, str) else None
 
     @inspector
     async def disable_away_mode(self) -> None:
@@ -1048,7 +1044,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_control_mode
@@ -1137,9 +1133,8 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     @property
     def _is_heating_mode(self) -> bool:
         """Return the heating_mode of the device."""
-        if self._dp_heating_mode.value is not None:
-            return str(self._dp_heating_mode.value) == "HEATING"
-        return True
+        val = self._dp_heating_mode.value
+        return True if val is None else str(val) == "HEATING"
 
     @property
     def _profile_names(self) -> tuple[ClimateProfile, ...]:
@@ -1203,13 +1198,16 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return ClimateActivity.OFF
         if eff_level is not None and eff_level > _CLOSED_LEVEL:
             return ClimateActivity.HEAT
-        if (self._dp_heating_valve_type.value is None and eff_state is True) or (
-            self._dp_heating_valve_type.value
-            and (
-                (eff_state is True and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_CLOSE)
-                or (eff_state is False and self._dp_heating_valve_type.value == ClimateHeatingValveType.NORMALLY_OPEN)
-            )
-        ):
+        valve = self._dp_heating_valve_type.value
+        # Determine heating/cooling based on valve type and state
+        is_active = False
+        if eff_state is True:
+            # Valve open means active when NC or valve type unknown
+            is_active = valve is None or valve == ClimateHeatingValveType.NORMALLY_CLOSE
+        elif eff_state is False:
+            # Valve closed means active for NO type
+            is_active = valve == ClimateHeatingValveType.NORMALLY_OPEN
+        if is_active:
             return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL
         return ClimateActivity.IDLE
 
@@ -1349,7 +1347,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_set_point_mode

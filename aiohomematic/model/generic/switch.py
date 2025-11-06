@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from aiohomematic.const import DataPointCategory, Parameter, ParameterType
 from aiohomematic.decorators import inspector
 from aiohomematic.model.data_point import CallParameterCollector
@@ -29,7 +27,7 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
         """Get the value of the data_point."""
         if self._type == ParameterType.ACTION:
             return False
-        return cast(bool | None, self._value)
+        return self._value
 
     @inspector
     async def set_on_time(self, *, on_time: float) -> None:

@@ -102,6 +102,7 @@ from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from aiohomematic.model.hub.text import SysvarDpText
 
 __all__ = [
+    "GenericHubDataPoint",
     "GenericProgramDataPoint",
     "GenericSysvarDataPoint",
     "Hub",

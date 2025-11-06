@@ -4,13 +4,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
 from aiohomematic.const import (
-    CALLBACK_TYPE,
     INIT_DATETIME,
     CallSource,
     CalulatedParameter,
@@ -27,12 +25,12 @@ from aiohomematic.model.generic import DpDummy, data_point as hmge
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
-    GenericParameterType,
     PathData,
     generate_unique_id,
     get_data_point_name_data,
 )
 from aiohomematic.property_decorators import config_property, hm_property, state_property
+from aiohomematic.type_aliases import DataPointUpdatedCallback, GenericParameterType, UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -63,7 +61,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         channel: hmd.Channel,
     ) -> None:
         """Initialize the data point."""
-        self._unregister_callbacks: list[CALLBACK_TYPE] = []
+        self._unregister_callbacks: list[UnregisterCallback] = []
         unique_id = generate_unique_id(
             central=channel.central, address=channel.address, parameter=self._calculated_parameter, prefix="calculated"
         )
@@ -72,7 +70,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             unique_id=unique_id,
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
-        self._data_points: Final[list[hmge.GenericDataPoint]] = []
+        self._data_points: Final[list[hmge.GenericDataPoint[Any, Any]]] = []
         self._type: ParameterType = None  # type: ignore[assignment]
         self._values: tuple[str, ...] | None = None
         self._max: ParameterT = None  # type: ignore[assignment]
@@ -92,17 +90,17 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
         return False
 
     @property
-    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
     @property
-    def _relevant_values_data_points(self) -> tuple[hmge.GenericDataPoint, ...]:
+    def _relevant_values_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
         """Returns the list of relevant VALUES data points. To be overridden by subclasses."""
         return tuple(dp for dp in self._readable_data_points if dp.paramset_key == ParamsetKey.VALUES)
 
@@ -254,7 +252,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.emit_data_point_updated_event()
 
-    def _add_data_point[DataPointT: hmge.GenericDataPoint](
+    def _add_data_point[DataPointT: hmge.GenericDataPoint[Any, Any]](
         self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Add a new data point."""
@@ -269,7 +267,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             DpDummy(channel=self._channel, param_field=parameter),
         )
 
-    def _add_device_data_point[DataPointT: hmge.GenericDataPoint](
+    def _add_device_data_point[DataPointT: hmge.GenericDataPoint[Any, Any]](
         self,
         *,
         channel_address: str,
@@ -326,7 +324,7 @@ class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
             self.full_name,
         )
 
-    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:

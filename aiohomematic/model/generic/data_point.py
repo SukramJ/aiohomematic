@@ -20,14 +20,15 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import data_point as hme, device as hmd
-from aiohomematic.model.support import DataPointNameData, GenericParameterType, get_data_point_name_data
+from aiohomematic.model.support import DataPointNameData, get_data_point_name_data
 from aiohomematic.property_decorators import hm_property
+from aiohomematic.type_aliases import GenericParameterType
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
 class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: GenericParameterType](
-    hme.BaseParameterDataPoint
+    hme.BaseParameterDataPoint[ParameterT, InputParameterT]
 ):
     """Base class for generic data point."""
 

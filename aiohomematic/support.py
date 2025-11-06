@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import base64
 from collections import defaultdict
-from collections.abc import Callable, Collection, Mapping
+from collections.abc import Collection, Mapping
 import contextlib
 from dataclasses import dataclass
 from datetime import datetime
@@ -26,7 +26,7 @@ import re
 import socket
 import ssl
 import sys
-from typing import Any, Final, cast
+from typing import Any, Final
 
 import orjson
 
@@ -165,12 +165,15 @@ def check_password(*, password: str | None) -> bool:
     return True
 
 
-def regular_to_default_dict_hook(origin: dict, /) -> defaultdict[Any, Any]:
+def regular_to_default_dict_hook(origin: dict[str, Any], /) -> defaultdict[Any, Any]:
     """Use defaultdict in json.loads object_hook."""
-    new_dict: Callable = lambda: defaultdict(new_dict)
-    new_instance = new_dict()
+
+    def new_dict() -> defaultdict[Any, Any]:
+        return defaultdict(new_dict)
+
+    new_instance: defaultdict[Any, Any] = new_dict()
     new_instance.update(origin)
-    return cast(defaultdict[Any, Any], new_instance)
+    return new_instance
 
 
 def _create_tls_context(*, verify_tls: bool) -> ssl.SSLContext:

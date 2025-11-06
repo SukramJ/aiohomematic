@@ -94,7 +94,7 @@ class BaseRpcProxy(ABC):
         max_workers: int,
         interface_id: str,
         connection_state: hmcu.CentralConnectionState,
-        magic_method: Callable,
+        magic_method: Callable[..., Any],
         tls: bool = False,
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,

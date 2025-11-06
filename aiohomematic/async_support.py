@@ -12,13 +12,13 @@ import contextlib
 from functools import wraps
 import logging
 from time import monotonic
-from types import CoroutineType
 from typing import Any, Final, cast
 
 from aiohomematic.const import BLOCK_LOG_TIMEOUT
 from aiohomematic.exceptions import AioHomematicException
 import aiohomematic.support as hms
 from aiohomematic.support import extract_exc_args
+from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -96,9 +96,7 @@ class Looper:
             if not task.cancelled():
                 task.cancel()
 
-    def create_task(
-        self, *, target: Coroutine[Any, Any, Any] | Callable[[], Coroutine[Any, Any, Any]], name: str
-    ) -> None:
+    def create_task(self, *, target: CoroutineAny | AsyncTaskFactoryAny, name: str) -> None:
         """
         Schedule a coroutine to run in the loop.
 
@@ -114,11 +112,11 @@ class Looper:
             # avoid 'was never awaited' warnings.
             if asyncio.iscoroutine(target):
                 with contextlib.suppress(Exception):
-                    cast(CoroutineType, target).close()
+                    getattr(target, "close", lambda: None)()
             _LOGGER.debug("create_task: task cancelled for %s", name)
             return
 
-    def run_coroutine(self, *, coro: Coroutine, name: str) -> Any:
+    def run_coroutine(self, *, coro: Coroutine[Any, Any, Any], name: str) -> Any:
         """Call coroutine from sync."""
         try:
             return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
@@ -129,12 +127,12 @@ class Looper:
             )
             return None
 
-    def _async_create_task[R](  # kwonly: disable
-        self, target: Coroutine[Any, Any, R] | Callable[[], Coroutine[Any, Any, R]], name: str
-    ) -> asyncio.Task[R]:
+    def _async_create_task(  # kwonly: disable
+        self, target: CoroutineAny | AsyncTaskFactoryAny, name: str
+    ) -> asyncio.Task[Any]:
         """Create a task from within the event loop. Must be run in the event loop."""
         # If target is a callable, call it here to create the coroutine inside the loop
-        coro: Coroutine[Any, Any, R] = target if asyncio.iscoroutine(target) else target()
+        coro: CoroutineAny = target if asyncio.iscoroutine(target) else target()
         task = self._loop.create_task(coro, name=name)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.remove)
@@ -184,7 +182,7 @@ def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     This allows tests to monkeypatch aiohomematic.support.debug_enabled at runtime.
     """
 
-    _with_loop: set = set()
+    _with_loop: set[Callable[..., Any]] = set()
 
     @wraps(func)
     def wrapper_loop_check(*args: P.args, **kwargs: P.kwargs) -> R:

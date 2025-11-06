@@ -4,13 +4,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import datetime
 from functools import partial
 from typing import Final
 
 from aiohomematic.const import (
-    CALLBACK_TYPE,
     HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES,
     HMIP_FIRMWARE_UPDATE_READY_STATES,
     DataPointCategory,
@@ -24,6 +22,7 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin
+from aiohomematic.type_aliases import DataPointUpdatedCallback, UnregisterCallback
 
 __all__ = ["DpUpdate"]
 
@@ -105,7 +104,9 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         await self._device.central.refresh_firmware_data(device_address=self._device.address)
         self._set_modified_at(modified_at=datetime.now())
 
-    def register_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> CALLBACK_TYPE:
+    def register_data_point_updated_callback(
+        self, *, cb: DataPointUpdatedCallback, custom_id: str
+    ) -> UnregisterCallback:
         """Register update callback."""
         if custom_id != InternalCustomID.DEFAULT:
             if self._custom_id is not None:
@@ -136,7 +137,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         """Return the signature of the data_point."""
         return f"{self._category}/{self._device.model}"
 
-    def _unregister_data_point_updated_callback(self, *, cb: Callable, custom_id: str) -> None:
+    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
         """Unregister update callback."""
         if custom_id is not None:
             self._custom_id = None

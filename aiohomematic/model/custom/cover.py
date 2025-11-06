@@ -512,7 +512,8 @@ class CustomDpIpBlind(CustomDpBlind):
     @property
     def operation_mode(self) -> str | None:
         """Return operation mode of cover."""
-        return self._dp_operation_mode.value
+        val = self._dp_operation_mode.value
+        return val if isinstance(val, str) else None
 
     def _get_combined_value(self, *, level: float | None = None, tilt_level: float | None = None) -> str | None:
         """Return the combined parameter."""

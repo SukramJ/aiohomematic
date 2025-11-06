@@ -50,7 +50,7 @@ class DpFloat(BaseDpNumber[float | None]):
     @state_property
     def value(self) -> float | None:
         """Return the value of the data_point."""
-        return cast(float | None, self._value)
+        return self._value
 
     def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> float | None:
         """Prepare value before sending."""
@@ -69,7 +69,7 @@ class DpInteger(BaseDpNumber[int | None]):
     @state_property
     def value(self) -> int | None:
         """Return the value of the data_point."""
-        return cast(int | None, self._value)
+        return self._value
 
     def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int | None:
         """Prepare value before sending."""

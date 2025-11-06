@@ -50,7 +50,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import logging
-from typing import Final
+from typing import Any, Final
 
 from aiohomematic import support as hms
 from aiohomematic.const import (
@@ -136,11 +136,11 @@ def create_data_point_and_append_to_channel(
 
 def _determine_data_point_type(
     *, channel: hmd.Channel, parameter: str, parameter_data: ParameterData
-) -> type[GenericDataPoint] | None:
+) -> type[GenericDataPoint[Any, Any]] | None:
     """Determine the type of data point based on parameter and operations."""
     p_type = parameter_data["TYPE"]
     p_operations = parameter_data["OPERATIONS"]
-    dp_t: type[GenericDataPoint] | None = None
+    dp_t: type[GenericDataPoint[Any, Any]] | None = None
     if p_operations & Operations.WRITE:
         if p_type == ParameterType.ACTION:
             if p_operations == Operations.WRITE:
@@ -177,12 +177,12 @@ def _determine_data_point_type(
 
 def _safe_create_data_point(
     *,
-    dp_t: type[GenericDataPoint],
+    dp_t: type[GenericDataPoint[Any, Any]],
     channel: hmd.Channel,
     paramset_key: ParamsetKey,
     parameter: str,
     parameter_data: ParameterData,
-) -> GenericDataPoint:
+) -> GenericDataPoint[Any, Any]:
     """Safely create a data point and handle exceptions."""
     try:
         return dp_t(
@@ -197,7 +197,7 @@ def _safe_create_data_point(
         ) from exc
 
 
-def _check_switch_to_sensor(*, data_point: GenericDataPoint) -> bool:
+def _check_switch_to_sensor(*, data_point: GenericDataPoint[Any, Any]) -> bool:
     """Check if parameter of a device should be wrapped to a different category."""
     if data_point.device.central.parameter_visibility.parameter_is_un_ignored(
         channel=data_point.channel,

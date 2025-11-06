@@ -604,6 +604,7 @@ exclude_lines = [
 
 [tool.mypy]
 python_version = "3.13" # Target Python version used for type checking
+strict = true  # Enable mypy strict mode (enables a suite of rigorous checks)
 show_error_codes = true  # Include error codes in messages
 follow_imports = "normal"  # Follow imports normally (type-check imported modules as needed)
 local_partial_types = true  # Allow partial type inference for local variables (e.g., None placeholders)
@@ -613,6 +614,8 @@ warn_incomplete_stub = true  # Warn about incomplete type stubs (.pyi)
 warn_redundant_casts = true  # Flag unnecessary type casts
 warn_unused_configs = true  # Warn about unused [mypy-*] config sections or options
 warn_unused_ignores = true  # Warn when a `# type: ignore` is unnecessary
+# Exclude generated or non-source directories
+exclude = "(?x)(^build/|^dist/|^htmlcov/|^.*\\.egg-info/|^venv/|^script/)"
 # Turn on specific extra checks
 enable_error_code = [
     "ignore-without-code",

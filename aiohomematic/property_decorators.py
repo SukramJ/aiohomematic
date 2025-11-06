@@ -177,7 +177,7 @@ class _GenericProperty[GETTER, SETTER](property):
             raise AttributeError("can't set attribute")
         self.fset(instance, value)
 
-    def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty:
+    def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty[GETTER, SETTER]:
         """Return generic deleter."""
         return type(self)(
             fget=self.fget,
@@ -189,7 +189,7 @@ class _GenericProperty[GETTER, SETTER](property):
             log_context=self.log_context,
         )
 
-    def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty:
+    def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty[GETTER, SETTER]:
         """Return generic getter."""
         return type(self)(
             fget=fget,
@@ -201,7 +201,7 @@ class _GenericProperty[GETTER, SETTER](property):
             log_context=self.log_context,
         )
 
-    def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty:
+    def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty[GETTER, SETTER]:
         """Return generic setter."""
         return type(self)(
             fget=self.fget,

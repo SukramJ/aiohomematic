@@ -4,17 +4,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from aiohomematic.const import Field, Parameter
+from aiohomematic.type_aliases import CustomDataPointFactory
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class CustomConfig:
     """Data for custom data_point creation."""
 
-    make_ce_func: Callable
+    make_ce_func: CustomDataPointFactory
     channels: tuple[int | None, ...] = (1,)
     extended: ExtendedConfig | None = None
 

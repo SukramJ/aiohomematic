@@ -46,7 +46,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
         """Init the data point fields."""
         super()._init_data_point_fields()
 
-        self._dp_temperature: DpSensor = (
+        self._dp_temperature: DpSensor[float | None] = (
             self._add_data_point(
                 parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
             )
@@ -55,7 +55,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
                 parameter=Parameter.ACTUAL_TEMPERATURE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
             )
         )
-        self._dp_humidity: DpSensor = (
+        self._dp_humidity: DpSensor[int | None] = (
             self._add_data_point(
                 parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
             )
@@ -66,7 +66,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
         )
 
 
-class ApparentTemperature(BaseClimateSensor):
+class ApparentTemperature(BaseClimateSensor[float | None]):
     """Implementation of a calculated sensor for apparent temperature."""
 
     __slots__ = ()
@@ -112,12 +112,12 @@ class ApparentTemperature(BaseClimateSensor):
         """Init the data point fields."""
         super()._init_data_point_fields()
 
-        self._dp_wind_speed: DpSensor = self._add_data_point(
+        self._dp_wind_speed: DpSensor[float | None] = self._add_data_point(
             parameter=Parameter.WIND_SPEED, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
         )
 
 
-class DewPoint(BaseClimateSensor):
+class DewPoint(BaseClimateSensor[float | None]):
     """Implementation of a calculated sensor for dew point."""
 
     __slots__ = ()
@@ -145,7 +145,7 @@ class DewPoint(BaseClimateSensor):
         return None
 
 
-class DewPointSpread(BaseClimateSensor):
+class DewPointSpread(BaseClimateSensor[float | None]):
     """Implementation of a calculated sensor for dew point spread."""
 
     __slots__ = ()
@@ -173,7 +173,7 @@ class DewPointSpread(BaseClimateSensor):
         return None
 
 
-class Enthalpy(BaseClimateSensor):
+class Enthalpy(BaseClimateSensor[float | None]):
     """Implementation of a calculated sensor for enthalpy."""
 
     __slots__ = ()
@@ -201,7 +201,7 @@ class Enthalpy(BaseClimateSensor):
         return None
 
 
-class FrostPoint(BaseClimateSensor):
+class FrostPoint(BaseClimateSensor[float | None]):
     """Implementation of a calculated sensor for frost point."""
 
     __slots__ = ()
@@ -231,7 +231,7 @@ class FrostPoint(BaseClimateSensor):
         return None
 
 
-class VaporConcentration(BaseClimateSensor):
+class VaporConcentration(BaseClimateSensor[float | None]):
     """Implementation of a calculated sensor for vapor concentration."""
 
     __slots__ = ()

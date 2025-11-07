@@ -70,6 +70,7 @@ from aiohomematic.model.support import DataPointNameData, DataPointPathData, Pat
 from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args, log_boundary_error
 from aiohomematic.type_aliases import (
+    CallableAny,
     DataPointUpdatedCallback,
     DeviceRemovedCallback,
     ParamType,
@@ -85,7 +86,7 @@ __all__ = [
     "bind_collector",
 ]
 # Type variable used for decorator typing
-CallableT = TypeVar("CallableT", bound=Callable[..., Any])
+CallableT = TypeVar("CallableT", bound=CallableAny)
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -1055,7 +1056,7 @@ class CallParameterCollector:
 
 
 @overload
-def bind_collector[CallableBC: Callable[..., Any]](
+def bind_collector[CallableBC: CallableAny](
     func: CallableBC,
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
@@ -1065,7 +1066,7 @@ def bind_collector[CallableBC: Callable[..., Any]](
 
 
 @overload
-def bind_collector[CallableBC: Callable[..., Any]](
+def bind_collector[CallableBC: CallableAny](
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
@@ -1073,7 +1074,7 @@ def bind_collector[CallableBC: Callable[..., Any]](
 ) -> Callable[[CallableBC], CallableBC]: ...
 
 
-def bind_collector[CallableBC: Callable[..., Any]](
+def bind_collector[CallableBC: CallableAny](
     func: CallableBC | None = None,
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,

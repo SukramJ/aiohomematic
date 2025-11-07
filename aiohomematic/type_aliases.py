@@ -50,13 +50,14 @@ AsyncTaskFactory: TypeAlias = Callable[[], Coroutine[Any, Any, None]]
 AsyncTaskFactoryAny: TypeAlias = Callable[[], Coroutine[Any, Any, Any]]
 # Coroutine with any send/throw types and arbitrary result
 CoroutineAny: TypeAlias = Coroutine[Any, Any, Any]
+# Generic sync callable that returns Any
+CallableAny: TypeAlias = Callable[..., Any]
+# Generic sync callable that returns None
+CallableNone: TypeAlias = Callable[..., None]
 
 # Service method callable and mapping used by DataPoints and decorators
 ServiceMethod: TypeAlias = Callable[..., Any]
 ServiceMethodMap: TypeAlias = Mapping[str, ServiceMethod]
-
-# Generic sync callable that returns None
-VoidCallable: TypeAlias = Callable[..., None]
 
 # Factory used by custom data point creation (make_ce_func)
 CustomDataPointFactory: TypeAlias = Callable[..., None]

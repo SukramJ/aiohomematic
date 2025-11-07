@@ -19,7 +19,7 @@ from weakref import WeakKeyDictionary
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.support import LogContextMixin, log_boundary_error
-from aiohomematic.type_aliases import ServiceMethodMap
+from aiohomematic.type_aliases import CallableAny, ServiceMethodMap
 
 _LOGGER_PERFORMANCE: Final = logging.getLogger(f"{__package__}.performance")
 
@@ -98,7 +98,7 @@ def inspector[**P, R](  # noqa: C901
 
         def handle_exception(
             exc: Exception,
-            func: Callable[..., Any],
+            func: CallableAny,
             is_sub_service_call: bool,
             is_homematic: bool,
             context_obj: Any | None,
@@ -265,7 +265,7 @@ def get_service_calls(obj: object) -> ServiceMethodMap:
     return {name: getattr(obj, name) for name in names}
 
 
-def measure_execution_time[CallableT: Callable[..., Any]](func: CallableT) -> CallableT:
+def measure_execution_time[CallableT: CallableAny](func: CallableT) -> CallableT:
     """Decorate function to measure the function execution time."""
 
     @wraps(func)

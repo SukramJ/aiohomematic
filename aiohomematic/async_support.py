@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Collection, Coroutine
+from collections.abc import Callable, Collection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures._base import CancelledError
 import contextlib
@@ -18,7 +18,7 @@ from aiohomematic.const import BLOCK_LOG_TIMEOUT
 from aiohomematic.exceptions import AioHomematicException
 import aiohomematic.support as hms
 from aiohomematic.support import extract_exc_args
-from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
+from aiohomematic.type_aliases import AsyncTaskFactoryAny, CallableAny, CoroutineAny
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -116,7 +116,7 @@ class Looper:
             _LOGGER.debug("create_task: task cancelled for %s", name)
             return
 
-    def run_coroutine(self, *, coro: Coroutine[Any, Any, Any], name: str) -> Any:
+    def run_coroutine(self, *, coro: CoroutineAny, name: str) -> Any:
         """Call coroutine from sync."""
         try:
             return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
@@ -182,7 +182,7 @@ def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     This allows tests to monkeypatch aiohomematic.support.debug_enabled at runtime.
     """
 
-    _with_loop: set[Callable[..., Any]] = set()
+    _with_loop: set[CallableAny] = set()
 
     @wraps(func)
     def wrapper_loop_check(*args: P.args, **kwargs: P.kwargs) -> R:

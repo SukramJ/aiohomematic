@@ -7,11 +7,11 @@ of callbacks, and refresh/update methods.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 from aiohomematic.const import HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES, HMIP_FIRMWARE_UPDATE_READY_STATES, Interface
 from aiohomematic.model.update import DpUpdate
+from aiohomematic.type_aliases import FirmwareUpdateCallback, UnregisterCallback
 
 
 class _FakeCentral:
@@ -35,9 +35,9 @@ class _FakeDevice:
         self.firmware_update_state = None
         self.available_firmware = None
         self.interface = Interface.BIDCOS_RF
-        self._callbacks: list[Callable[..., Any]] = []
+        self._callbacks: list[FirmwareUpdateCallback] = []
 
-    def register_firmware_update_callback(self, *, cb: Callable[..., Any]) -> Callable[[], None] | None:
+    def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
         self._callbacks.append(cb)
 
         def _unregister() -> None:
@@ -45,7 +45,7 @@ class _FakeDevice:
 
         return _unregister
 
-    def unregister_firmware_update_callback(self, *, cb: Callable[..., Any]) -> None:
+    def unregister_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> None:
         if cb in self._callbacks:
             self._callbacks.remove(cb)
 

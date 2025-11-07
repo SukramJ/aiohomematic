@@ -1072,7 +1072,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def register_backend_system_callback(self, *, cb: BackendSystemCallback) -> UnregisterCallback:
         """Register system_event callback in central."""
-        if callable(cb) and cb not in self._backend_parameter_callbacks:
+        if callable(cb) and cb not in self._backend_system_callbacks:
             self._backend_system_callbacks.add(cb)
             return partial(self._unregister_backend_system_callback, cb=cb)
         return None

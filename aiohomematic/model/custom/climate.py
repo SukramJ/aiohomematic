@@ -428,11 +428,11 @@ class BaseCustomDpClimate(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
-    @bind_collector()
+    @bind_collector
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
 
-    @bind_collector()
+    @bind_collector
     async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new profile."""
 
@@ -506,7 +506,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
         await self.set_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
-    @bind_collector()
+    @bind_collector
     async def set_temperature(
         self,
         *,
@@ -987,7 +987,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         end = datetime.now() + timedelta(hours=hours)
         await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
 
-    @bind_collector()
+    @bind_collector
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new mode."""
         if not self.is_state_change(mode=mode):
@@ -1002,7 +1002,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             # that is out of the validation range.
             await self.set_temperature(temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False)
 
-    @bind_collector()
+    @bind_collector
     async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new profile."""
         if not self.is_state_change(profile=profile):
@@ -1289,7 +1289,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         end = datetime.now() + timedelta(hours=hours)
         await self.enable_away_mode_by_calendar(start=start, end=end, away_temperature=away_temperature)
 
-    @bind_collector()
+    @bind_collector
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
         if not self.is_state_change(mode=mode):
@@ -1307,7 +1307,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             await self._dp_control_mode.send_value(value=_ModeHmIP.MANU, collector=collector)
             await self.set_temperature(temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False)
 
-    @bind_collector()
+    @bind_collector
     async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new control mode."""
         if not self.is_state_change(profile=profile):

@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 from functools import partial, wraps
 from inspect import getfullargspec
 import logging
-from typing import Any, Final, TypeAlias, TypeVar, cast
+from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
 import voluptuous as vol
 
@@ -1054,19 +1054,43 @@ class CallParameterCollector:
         return dpk_values
 
 
-def bind_collector(
+@overload
+def bind_collector[CallableBC: Callable[..., Any]](
+    func: CallableBC,
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
     log_level: int = logging.ERROR,
-) -> Callable[[CallableT], CallableT]:
+) -> CallableBC: ...
+
+
+@overload
+def bind_collector[CallableBC: Callable[..., Any]](
+    *,
+    wait_for_callback: int | None = WAIT_FOR_CALLBACK,
+    enabled: bool = True,
+    log_level: int = logging.ERROR,
+) -> Callable[[CallableBC], CallableBC]: ...
+
+
+def bind_collector[CallableBC: Callable[..., Any]](
+    func: CallableBC | None = None,
+    *,
+    wait_for_callback: int | None = WAIT_FOR_CALLBACK,
+    enabled: bool = True,
+    log_level: int = logging.ERROR,
+) -> Callable[[CallableBC], CallableBC] | CallableBC:
     """
     Decorate function to automatically add collector if not set.
+
+    Usage:
+    - With parentheses: `@bind_collector()`
+    - Without parentheses: `@bind_collector`
 
     Additionally, thrown exceptions are logged.
     """
 
-    def bind_decorator[FuncT: Callable[..., Any]](func: FuncT) -> FuncT:
+    def bind_decorator(func: CallableBC) -> CallableBC:
         """Decorate function to automatically add collector if not set."""
         spec = getfullargspec(func)
         # Support both positional and keyword-only 'collector' parameters
@@ -1128,6 +1152,10 @@ def bind_collector(
                 return return_value
 
         setattr(bind_wrapper, "ha_service", True)
-        return bind_wrapper  # type: ignore[return-value]
+        return cast(CallableBC, bind_wrapper)
 
+    # If used without parentheses: @bind_collector
+    if func is not None:
+        return bind_decorator(func)
+    # If used with parentheses: @bind_collector(...)
     return bind_decorator

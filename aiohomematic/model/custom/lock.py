@@ -83,17 +83,17 @@ class BaseCustomDpLock(CustomDataPoint):
         return None
 
     @abstractmethod
-    @bind_collector()
+    @bind_collector
     async def lock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
 
     @abstractmethod
-    @bind_collector()
+    @bind_collector
     async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the lock."""
 
     @abstractmethod
-    @bind_collector()
+    @bind_collector
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
 
@@ -131,17 +131,17 @@ class CustomDpIpLock(BaseCustomDpLock):
             return str(self._dp_direction.value) == _LockActivity.UNLOCKING
         return None
 
-    @bind_collector()
+    @bind_collector
     async def lock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
         await self._dp_lock_target_level.send_value(value=_LockTargetLevel.LOCKED, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the lock."""
         await self._dp_lock_target_level.send_value(value=_LockTargetLevel.OPEN, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
         await self._dp_lock_target_level.send_value(value=_LockTargetLevel.UNLOCKED, collector=collector)
@@ -181,17 +181,17 @@ class CustomDpButtonLock(BaseCustomDpLock):
         """Return true if lock is on."""
         return self._dp_button_lock.value is True
 
-    @bind_collector()
+    @bind_collector
     async def lock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
         await self._dp_button_lock.turn_on(collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the lock."""
         return
 
-    @bind_collector()
+    @bind_collector
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
         await self._dp_button_lock.turn_off(collector=collector)
@@ -242,17 +242,17 @@ class CustomDpRfLock(BaseCustomDpLock):
             return str(self._dp_direction.value) == _LockActivity.UNLOCKING
         return None
 
-    @bind_collector()
+    @bind_collector
     async def lock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Lock the lock."""
         await self._dp_state.send_value(value=False, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the lock."""
         await self._dp_open.send_value(value=True, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
         await self._dp_state.send_value(value=True, collector=collector)

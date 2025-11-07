@@ -30,12 +30,12 @@ from aiohomematic.model.support import (
     get_data_point_name_data,
 )
 from aiohomematic.property_decorators import config_property, hm_property, state_property
-from aiohomematic.type_aliases import DataPointUpdatedCallback, GenericParameterType, UnregisterCallback
+from aiohomematic.type_aliases import DataPointUpdatedCallback, ParamType, UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CalculatedDataPoint[ParameterT: GenericParameterType](BaseDataPoint):
+class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
     """Base class for calculated data point."""
 
     __slots__ = (

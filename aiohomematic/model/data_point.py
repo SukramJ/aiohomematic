@@ -72,7 +72,7 @@ from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args
 from aiohomematic.type_aliases import (
     DataPointUpdatedCallback,
     DeviceRemovedCallback,
-    GenericParameterType,
+    ParamType,
     ServiceMethodMap,
     UnregisterCallback,
 )
@@ -558,8 +558,8 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
 
 class BaseParameterDataPoint[
-    ParameterT: GenericParameterType,
-    InputParameterT: GenericParameterType,
+    ParameterT: ParamType,
+    InputParameterT: ParamType,
 ](BaseDataPoint):
     """Base class for stateless data point."""
 

@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import asyncio
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, IntEnum, StrEnum
 import errno
@@ -45,6 +45,7 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.store import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
+from aiohomematic.type_aliases import CallableAny
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ class BaseRpcProxy(ABC):
         max_workers: int,
         interface_id: str,
         connection_state: hmcu.CentralConnectionState,
-        magic_method: Callable[..., Any],
+        magic_method: CallableAny,
         tls: bool = False,
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,

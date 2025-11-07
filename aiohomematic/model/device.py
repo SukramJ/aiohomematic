@@ -73,7 +73,7 @@ from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
 from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.generic import DpBinarySensor, GenericDataPoint
+from aiohomematic.model.generic import DpBinarySensor, GenericDataPoint, GenericDataPointAny
 from aiohomematic.model.support import (
     ChannelNameData,
     generate_channel_unique_id,
@@ -298,9 +298,9 @@ class Device(LogContextMixin, PayloadMixin):
         return DeviceFirmwareState(self._description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointAny, ...]:
         """Return the generic data points."""
-        data_points: list[GenericDataPoint[Any, Any]] = []
+        data_points: list[GenericDataPointAny] = []
         for channel in self._channels.values():
             data_points.extend(channel.generic_data_points)
         return tuple(data_points)
@@ -569,7 +569,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericDataPoint[Any, Any] | None:
+    ) -> GenericDataPointAny | None:
         """Return a generic data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
             return channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key)
@@ -581,9 +581,9 @@ class Device(LogContextMixin, PayloadMixin):
             return channel.get_generic_event(parameter=parameter)
         return None
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint[Any, Any], ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointAny, ...]:
         """Return the list of readable master data points."""
-        data_points: list[GenericDataPoint[Any, Any]] = []
+        data_points: list[GenericDataPointAny] = []
         for channel in self._channels.values():
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
@@ -784,7 +784,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._is_in_multi_group: bool | None = None
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint[Any]]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
-        self._generic_data_points: Final[dict[DataPointKey, GenericDataPoint[Any, Any]]] = {}
+        self._generic_data_points: Final[dict[DataPointKey, GenericDataPointAny]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
         self._link_peer_changed_callbacks: list[LinkPeerChangedCallback] = []
@@ -852,7 +852,7 @@ class Channel(LogContextMixin, PayloadMixin):
         return self._function
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointAny, ...]:
         """Return the generic data points."""
         return tuple(self._generic_data_points.values())
 
@@ -1090,7 +1090,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericDataPoint[Any, Any] | None:
+    ) -> GenericDataPointAny | None:
         """Return a generic data_point from device."""
         if paramset_key:
             return self._generic_data_points.get(
@@ -1131,7 +1131,7 @@ class Channel(LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPoint[Any, Any], ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointAny, ...]:
         """Return the list of readable master data points."""
         return tuple(
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
@@ -1337,7 +1337,7 @@ class _ValueCache:
         # to avoid repetitive calls to the backend within max_age
         self._device_cache[dpk] = CacheEntry(value=value, refresh_at=datetime.now())
 
-    def _get_base_data_points(self) -> set[GenericDataPoint[Any, Any]]:
+    def _get_base_data_points(self) -> set[GenericDataPointAny]:
         """Get data points of channel 0 and master."""
         return {
             dp

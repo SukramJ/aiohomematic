@@ -70,18 +70,18 @@ class CustomDataPoint(BaseDataPoint):
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
         self._allow_undefined_generic_data_points: Final[bool] = self._device_def[CDPD.ALLOW_UNDEFINED_GENERIC_DPS]
-        self._data_points: Final[dict[Field, hmge.GenericDataPoint[Any, Any]]] = {}
+        self._data_points: Final[dict[Field, hmge.GenericDataPointAny]] = {}
         self._init_data_points()
         self._init_data_point_fields()
         self._post_init_data_point_fields()
 
     @property
-    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
+    def _readable_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points.values() if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
+    def _relevant_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
@@ -168,7 +168,7 @@ class CustomDataPoint(BaseDataPoint):
         self,
         *,
         field: Field,
-        data_point: hmge.GenericDataPoint[Any, Any] | None,
+        data_point: hmge.GenericDataPointAny | None,
         is_visible: bool | None = None,
     ) -> None:
         """Add data point to collection and register callback."""
@@ -193,7 +193,7 @@ class CustomDataPoint(BaseDataPoint):
                 if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                     self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
 
-    def _get_data_point[DataPointT: hmge.GenericDataPoint[Any, Any]](
+    def _get_data_point[DataPointT: hmge.GenericDataPointAny](
         self, *, field: Field, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Get data point."""

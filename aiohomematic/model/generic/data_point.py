@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import Any, Final
+from typing import Any, Final, TypeAlias
 
 from aiohomematic.const import (
     DP_KEY_VALUE,
@@ -22,12 +22,12 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import data_point as hme, device as hmd
 from aiohomematic.model.support import DataPointNameData, get_data_point_name_data
 from aiohomematic.property_decorators import hm_property
-from aiohomematic.type_aliases import GenericParameterType
+from aiohomematic.type_aliases import ParamType
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: GenericParameterType](
+class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
     hme.BaseParameterDataPoint[ParameterT, InputParameterT]
 ):
     """Base class for generic data point."""
@@ -170,3 +170,6 @@ class GenericDataPoint[ParameterT: GenericParameterType, InputParameterT: Generi
     def _prepare_value_for_sending(self, *, value: InputParameterT, do_validate: bool = True) -> ParameterT:
         """Prepare value, if required, before send."""
         return value  # type: ignore[return-value]
+
+
+GenericDataPointAny: TypeAlias = GenericDataPoint[Any, Any]

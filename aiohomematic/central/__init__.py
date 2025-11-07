@@ -149,10 +149,10 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import CustomDataPoint, create_custom_data_points
-from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
+from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
 from aiohomematic.model.device import Channel, Device
 from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.generic import GenericDataPoint
+from aiohomematic.model.generic import GenericDataPoint, GenericDataPointAny
 from aiohomematic.model.hub import (
     GenericHubDataPoint,
     GenericProgramDataPoint,
@@ -464,7 +464,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._version = max(versions) if versions else None
         return self._version
 
-    def add_event_subscription(self, *, data_point: BaseParameterDataPoint[Any, Any]) -> None:
+    def add_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """Add data_point to central event subscription."""
         if isinstance(data_point, GenericDataPoint | GenericEvent) and (
             data_point.is_readable or data_point.supports_events
@@ -810,7 +810,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
-    ) -> GenericDataPoint[Any, Any] | None:
+    ) -> GenericDataPointAny | None:
         """Get data_point by channel_address and parameter."""
         if device := self.get_device(address=channel_address):
             return device.get_generic_data_point(
@@ -924,7 +924,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_readable_generic_data_points(
         self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
-    ) -> tuple[GenericDataPoint[Any, Any], ...]:
+    ) -> tuple[GenericDataPointAny, ...]:
         """Return the readable generic data points."""
         return tuple(
             ge
@@ -1105,7 +1105,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_details.remove_device(device=device)
         del self._devices[device.address]
 
-    def remove_event_subscription(self, *, data_point: BaseParameterDataPoint[Any, Any]) -> None:
+    def remove_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """Remove event subscription from central collections."""
         if isinstance(data_point, GenericDataPoint | GenericEvent) and data_point.supports_events:
             if data_point.dpk in self._data_point_key_event_subscriptions:

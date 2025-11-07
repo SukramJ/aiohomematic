@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 from functools import partial, wraps
 from inspect import getfullargspec
 import logging
-from typing import Any, Final, TypeVar, cast
+from typing import Any, Final, TypeAlias, TypeVar, cast
 
 import voluptuous as vol
 
@@ -72,7 +72,7 @@ from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args
 from aiohomematic.type_aliases import (
     DataPointUpdatedCallback,
     DeviceRemovedCallback,
-    GenericParameterType,
+    ParamType,
     ServiceMethodMap,
     UnregisterCallback,
 )
@@ -558,8 +558,8 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
 
 class BaseParameterDataPoint[
-    ParameterT: GenericParameterType,
-    InputParameterT: GenericParameterType,
+    ParameterT: ParamType,
+    InputParameterT: ParamType,
 ](BaseDataPoint):
     """Base class for stateless data point."""
 
@@ -988,6 +988,9 @@ class BaseParameterDataPoint[
         self._reset_temporary_timestamps()
 
 
+BaseParameterDataPointAny: TypeAlias = BaseParameterDataPoint[Any, Any]
+
+
 class CallParameterCollector:
     """Create a Paramset based on given generic data point."""
 
@@ -1007,7 +1010,7 @@ class CallParameterCollector:
     def add_data_point(
         self,
         *,
-        data_point: BaseParameterDataPoint[Any, Any],
+        data_point: BaseParameterDataPointAny,
         value: Any,
         collector_order: int,
     ) -> None:

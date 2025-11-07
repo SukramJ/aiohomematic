@@ -36,11 +36,11 @@ from aiohomematic.const import (
 )
 from aiohomematic.model import device as hmd
 from aiohomematic.model.data_point import CallParameterCollector
-from aiohomematic.model.generic.data_point import GenericDataPoint
+from aiohomematic.model.generic import GenericDataPointAny
 from aiohomematic.model.support import DataPointNameData
 
 
-class DpDummy(GenericDataPoint[Any, Any]):
+class DpDummy(GenericDataPointAny):
     """
     Backend-detached `GenericDataPoint` using only default values.
 

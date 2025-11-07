@@ -1,3 +1,7 @@
+# Version 2025.11.9) (2025-11-07)
+
+- Do not normalize homematic event data
+
 # Version 2025.11.8 (2025-11-07)
 
 - Remove need for empty parentheses for bind_collector

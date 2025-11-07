@@ -1,5 +1,6 @@
 # Version 2025.11.8 (2025-11-06)
 
+- Remove need for empty parentheses for bind_collector
 - Switch mypy to strict
 
 # Version 2025.11.7 (2025-11-05)

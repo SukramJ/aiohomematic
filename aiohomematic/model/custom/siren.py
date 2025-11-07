@@ -75,12 +75,12 @@ class BaseCustomDpSiren(CustomDataPoint):
         """Return true if siren is on."""
 
     @abstractmethod
-    @bind_collector()
+    @bind_collector
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
 
     @abstractmethod
-    @bind_collector()
+    @bind_collector
     async def turn_on(
         self,
         *,
@@ -122,7 +122,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         """Return true if siren is on."""
         return self._dp_acoustic_alarm_active.value is True or self._dp_optical_alarm_active.value is True
 
-    @bind_collector()
+    @bind_collector
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
         await self._dp_acoustic_alarm_selection.send_value(
@@ -134,7 +134,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         await self._dp_duration_unit.send_value(value=self._dp_duration_unit.default, collector=collector)
         await self._dp_duration.send_value(value=self._dp_duration.default, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(
         self,
         *,
@@ -213,12 +213,12 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
             return False
         return bool(self._dp_smoke_detector_alarm_status.value != _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF)
 
-    @bind_collector()
+    @bind_collector
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.OFF, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(
         self,
         *,

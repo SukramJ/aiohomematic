@@ -61,7 +61,7 @@ class CustomDpSwitch(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
-    @bind_collector()
+    @bind_collector
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch off."""
         self.reset_timer_on_time()
@@ -69,7 +69,7 @@ class CustomDpSwitch(CustomDataPoint):
             return
         await self._dp_state.turn_off(collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
         """Turn the switch on."""
         if on_time is not None:

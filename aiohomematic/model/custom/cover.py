@@ -150,7 +150,7 @@ class CustomDpCover(CustomDataPoint):
             return str(self._dp_direction.value) == _CoverActivity.OPENING
         return None
 
-    @bind_collector()
+    @bind_collector
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
         """Close the cover."""
         if not self.is_state_change(close=True):
@@ -167,14 +167,14 @@ class CustomDpCover(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
-    @bind_collector()
+    @bind_collector
     async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the cover."""
         if not self.is_state_change(open=True):
             return
         await self._set_level(level=self._open_level, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def set_position(
         self,
         *,
@@ -429,7 +429,7 @@ class CustomDpBlind(CustomDpCover):
         self._dp_level_2: DpFloat = self._get_data_point(field=Field.LEVEL_2, data_point_type=DpFloat)
         self._dp_combined: DpAction = self._get_data_point(field=Field.LEVEL_COMBINED, data_point_type=DpAction)
 
-    @bind_collector()
+    @bind_collector
     async def _send_level(
         self,
         *,
@@ -579,7 +579,7 @@ class CustomDpGarage(CustomDataPoint):
             return int(self._dp_section.value) == _GarageDoorActivity.OPENING
         return None
 
-    @bind_collector()
+    @bind_collector
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
         """Close the garage door."""
         if not self.is_state_change(close=True):
@@ -596,14 +596,14 @@ class CustomDpGarage(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
-    @bind_collector()
+    @bind_collector
     async def open(self, *, collector: CallParameterCollector | None = None) -> None:
         """Open the garage door."""
         if not self.is_state_change(open=True):
             return
         await self._dp_door_command.send_value(value=_GarageDoorCommand.OPEN, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def set_position(
         self,
         *,
@@ -626,7 +626,7 @@ class CustomDpGarage(CustomDataPoint):
         """Stop the device if in motion."""
         await self._dp_door_command.send_value(value=_GarageDoorCommand.STOP, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def vent(self, *, collector: CallParameterCollector | None = None) -> None:
         """Move the garage door to vent position."""
         if not self.is_state_change(vent=True):

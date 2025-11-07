@@ -246,7 +246,7 @@ class CustomDpDimmer(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
-    @bind_collector()
+    @bind_collector
     async def turn_off(
         self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOffArgs]
     ) -> None:
@@ -258,7 +258,7 @@ class CustomDpDimmer(CustomDataPoint):
             await self._set_ramp_time_off_value(ramp_time=ramp_time, collector=collector)
         await self._dp_level.send_value(value=_DIMMER_OFF, collector=collector)
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if (on_time := kwargs.get("on_time")) is not None:
@@ -286,7 +286,7 @@ class CustomDpDimmer(CustomDataPoint):
         self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
         self._dp_ramp_time_value: DpAction = self._get_data_point(field=Field.RAMP_TIME_VALUE, data_point_type=DpAction)
 
-    @bind_collector()
+    @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value in seconds."""
         await self._dp_on_time_value.send_value(value=on_time, collector=collector, do_validate=False)
@@ -323,7 +323,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
             return color / 200 * 360, _MAX_SATURATION
         return _MIN_HUE, _MIN_SATURATION
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if not self.is_state_change(on=True, **kwargs):
@@ -370,7 +370,7 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
         """Return the supported effects."""
         return self._effects
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if not self.is_state_change(on=True, **kwargs):
@@ -407,7 +407,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
             _MAX_KELVIN / int(_MAX_MIREDS - (_MAX_MIREDS - _MIN_MIREDS) * (self._dp_color_level.value or _DIMMER_OFF))
         )
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if not self.is_state_change(on=True, **kwargs):
@@ -521,7 +521,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
             return self._dp_hue.value, self._dp_saturation.value * _SATURATION_MULTIPLIER
         return None
 
-    @bind_collector()
+    @bind_collector
     async def turn_off(
         self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOffArgs]
     ) -> None:
@@ -530,7 +530,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
             await self._set_on_time_value(on_time=_NOT_USED, collector=collector)
         await super().turn_off(collector=collector, **kwargs)
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if on_time := (kwargs.get("on_time") or self.get_and_start_timer()):
@@ -576,7 +576,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         self._dp_ramp_time_unit: DpAction = self._get_data_point(field=Field.RAMP_TIME_UNIT, data_point_type=DpAction)
         self._dp_saturation: DpFloat = self._get_data_point(field=Field.SATURATION, data_point_type=DpFloat)
 
-    @bind_collector()
+    @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value in seconds."""
         on_time, on_time_unit = _recalc_unit_timer(time=on_time)
@@ -641,7 +641,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
             return self._dp_hue.value, self._dp_saturation.value * _SATURATION_MULTIPLIER
         return None
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if not self.is_state_change(on=True, **kwargs):
@@ -679,7 +679,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         self._dp_ramp_time_unit: DpAction = self._get_data_point(field=Field.RAMP_TIME_UNIT, data_point_type=DpAction)
         self._dp_saturation: DpFloat = self._get_data_point(field=Field.SATURATION, data_point_type=DpFloat)
 
-    @bind_collector()
+    @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value in seconds."""
         on_time, on_time_unit = _recalc_unit_timer(time=on_time)
@@ -759,7 +759,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
             return hs_color
         return _MIN_HUE, _MIN_SATURATION
 
-    @bind_collector()
+    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if not self.is_state_change(on=True, **kwargs):
@@ -795,7 +795,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
             else ()
         )
 
-    @bind_collector()
+    @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value in seconds."""
         on_time, on_time_unit = _recalc_unit_timer(time=on_time)

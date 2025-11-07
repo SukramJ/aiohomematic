@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import Any, Final
+from typing import Any, Final, TypeAlias
 
 from aiohomematic.const import (
     DP_KEY_VALUE,
@@ -170,3 +170,6 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
     def _prepare_value_for_sending(self, *, value: InputParameterT, do_validate: bool = True) -> ParameterT:
         """Prepare value, if required, before send."""
         return value  # type: ignore[return-value]
+
+
+GenericDataPointAny: TypeAlias = GenericDataPoint[Any, Any]

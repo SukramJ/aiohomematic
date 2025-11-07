@@ -70,7 +70,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
             unique_id=unique_id,
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
-        self._data_points: Final[list[hmge.GenericDataPoint[Any, Any]]] = []
+        self._data_points: Final[list[hmge.GenericDataPointAny]] = []
         self._type: ParameterType = None  # type: ignore[assignment]
         self._values: tuple[str, ...] | None = None
         self._max: ParameterT = None  # type: ignore[assignment]
@@ -90,17 +90,17 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         return False
 
     @property
-    def _readable_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
+    def _readable_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
+    def _relevant_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
     @property
-    def _relevant_values_data_points(self) -> tuple[hmge.GenericDataPoint[Any, Any], ...]:
+    def _relevant_values_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
         """Returns the list of relevant VALUES data points. To be overridden by subclasses."""
         return tuple(dp for dp in self._readable_data_points if dp.paramset_key == ParamsetKey.VALUES)
 
@@ -252,7 +252,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.emit_data_point_updated_event()
 
-    def _add_data_point[DataPointT: hmge.GenericDataPoint[Any, Any]](
+    def _add_data_point[DataPointT: hmge.GenericDataPointAny](
         self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Add a new data point."""
@@ -267,7 +267,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
             DpDummy(channel=self._channel, param_field=parameter),
         )
 
-    def _add_device_data_point[DataPointT: hmge.GenericDataPoint[Any, Any]](
+    def _add_device_data_point[DataPointT: hmge.GenericDataPointAny](
         self,
         *,
         channel_address: str,

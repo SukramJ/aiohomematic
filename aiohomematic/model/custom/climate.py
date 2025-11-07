@@ -38,7 +38,7 @@ from aiohomematic.model.generic import (
     DpSelect,
     DpSensor,
     DpSwitch,
-    GenericDataPoint,
+    GenericDataPointAny,
 )
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.type_aliases import UnregisterCallback
@@ -591,7 +591,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
 
     @abstractmethod
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
     def _on_link_peer_changed(self) -> None:
@@ -835,7 +835,7 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
 
@@ -1044,7 +1044,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_control_mode
@@ -1347,7 +1347,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPoint[Any, Any] | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_set_point_mode

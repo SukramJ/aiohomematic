@@ -15,7 +15,7 @@ from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPoint
+from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
 from aiohomematic.property_decorators import state_property
 
 _DIMMER_OFF: Final = 0.0
@@ -451,7 +451,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
             return _DeviceOperationMode.RGBW
 
     @property
-    def _relevant_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPointAny, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         if self._device_operation_mode == _DeviceOperationMode.RGBW:
             return (
@@ -618,7 +618,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     )
 
     @property
-    def _relevant_data_points(self) -> tuple[GenericDataPoint[Any, Any], ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPointAny, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return (self._dp_level,)
 

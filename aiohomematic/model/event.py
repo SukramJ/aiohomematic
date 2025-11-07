@@ -49,7 +49,7 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.model import device as hmd
-from aiohomematic.model.data_point import BaseParameterDataPoint
+from aiohomematic.model.data_point import BaseParameterDataPointAny
 from aiohomematic.model.support import DataPointNameData, get_event_name
 
 __all__ = [
@@ -63,7 +63,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class GenericEvent(BaseParameterDataPoint[Any, Any]):
+class GenericEvent(BaseParameterDataPointAny):
     """Base class for events."""
 
     __slots__ = ("_event_type",)

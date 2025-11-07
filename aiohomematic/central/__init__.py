@@ -677,24 +677,17 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
 
     @loop_check
-    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, str]) -> None:
+    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
         """
         Emit homematic_callback in central.
 
         # Events like INTERFACE, KEYPRESS, ...
         """
-        # Normalize payload: ensure plain string event_type and dict keys are strings
-        try:
-            normalized: dict[str, Any] = {str(k): v for k, v in event_data.items()}  # shallow copy
-            if isinstance(normalized.get(str(EventKey.DATA)), dict):
-                normalized[str(EventKey.DATA)] = {str(k): v for k, v in normalized[str(EventKey.DATA)].items()}
-        except Exception:  # Fallback to original if normalization fails
-            normalized = {str(k): v for k, v in event_data.items()}
 
         for callback_handler in self._homematic_callbacks:
             try:
                 # Call with keyword arguments as expected by tests and integrations
-                callback_handler(event_type=event_type, event_data=normalized)
+                callback_handler(event_type=event_type, event_data=event_data)
             except Exception as exc:
                 _LOGGER.error(
                     "EMIT_HOMEMATIC_CALLBACK: Unable to call handler: %s",

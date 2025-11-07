@@ -13,7 +13,7 @@ from collections.abc import Callable, Coroutine, Mapping
 from datetime import datetime
 from typing import Any, Protocol, TypeAlias
 
-from aiohomematic.const import BackendSystemEvent, EventType
+from aiohomematic.const import BackendSystemEvent, EventKey, EventType
 
 type ParamType = bool | int | float | str | None
 
@@ -70,7 +70,7 @@ class DataPointEventCallback(Protocol):
 class HomematicCallback(Protocol):
     """Protocol for Homematic callback."""
 
-    def __call__(self, *, event_type: EventType, event_data: dict[str, Any]) -> None: ...  # noqa: D102
+    def __call__(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None: ...  # noqa: D102
 
 
 # System callbacks receive different kwargs depending on the system event

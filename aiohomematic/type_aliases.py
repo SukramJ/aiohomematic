@@ -13,7 +13,7 @@ from collections.abc import Callable, Coroutine, Mapping
 from datetime import datetime
 from typing import Any, Protocol, TypeAlias
 
-from aiohomematic.const import EventType
+from aiohomematic.const import BackendSystemEvent, EventType
 
 type ParamType = bool | int | float | str | None
 
@@ -33,15 +33,6 @@ LinkPeerChangedCallback: TypeAlias = ZeroArgCallback
 # Data point update callbacks may accept various keyword arguments depending on
 # the data point type, hence we keep them variadic.
 DataPointUpdatedCallback: TypeAlias = Callable[..., None]
-
-
-# Central-level callbacks
-# BackendParameterCallback: TypeAlias = Callable[[str, str, str, Any], None]
-class BackendParameterCallback(Protocol):
-    """Protocol for backend parameter callback."""
-
-    def __call__(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None: ...  # noqa: D102
-
 
 # Common async/sync callable shapes
 # Factory that returns a coroutine that resolves to None
@@ -63,6 +54,13 @@ ServiceMethodMap: TypeAlias = Mapping[str, ServiceMethod]
 CustomDataPointFactory: TypeAlias = Callable[..., None]
 
 
+# BackendParameterCallback: TypeAlias = Callable[[str, str, str, Any], None]
+class BackendParameterCallback(Protocol):
+    """Protocol for backend parameter callback."""
+
+    def __call__(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None: ...  # noqa: D102
+
+
 class DataPointEventCallback(Protocol):
     """Protocol for backend parameter callback."""
 
@@ -76,7 +74,10 @@ class HomematicCallback(Protocol):
 
 
 # System callbacks receive different kwargs depending on the system event
-BackendSystemCallback: TypeAlias = Callable[..., None]
+class BackendSystemCallback(Protocol):
+    """Protocol for backend system callback."""
+
+    def __call__(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None: ...  # noqa: D102
 
 
 # Sysvar event callbacks (hub/sysvar) vary by implementation; keep variadic

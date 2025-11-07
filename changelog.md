@@ -1,7 +1,8 @@
-# Version 2025.11.8 (2025-11-06)
+# Version 2025.11.8 (2025-11-07)
 
 - Remove need for empty parentheses for bind_collector
 - Switch mypy to strict
+- Use Protocol for callback with parameters
 
 # Version 2025.11.7 (2025-11-05)
 

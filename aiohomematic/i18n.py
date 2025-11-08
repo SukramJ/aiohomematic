@@ -24,11 +24,11 @@ import orjson
 
 from aiohomematic.const import DEFAULT_LOCALE
 
+_ACTIVE_CATALOG: dict[str, str] = {}
+_ACTIVE_LOCALE: str = DEFAULT_LOCALE
 _BASE_CACHE_LOADED: bool = False
 _BASE_CATALOG: dict[str, str] = {}
 _CACHE: dict[str, dict[str, str]] = {}
-_ACTIVE_CATALOG: dict[str, str] = {}
-_ACTIVE_LOCALE: str = DEFAULT_LOCALE
 _CURRENT_LOCALE: str = DEFAULT_LOCALE
 _LOCK: Final = RLock()
 _TRANSLATIONS_PKG = "aiohomematic"

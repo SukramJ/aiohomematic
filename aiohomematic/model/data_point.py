@@ -36,7 +36,7 @@ from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
 import voluptuous as vol
 
-from aiohomematic import central as hmcu, client as hmcl, support as hms, validator as val
+from aiohomematic import central as hmcu, client as hmcl, i18n, support as hms, validator as val
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     DEFAULT_MULTIPLIER,
@@ -352,7 +352,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
         if custom_id not in InternalCustomID:
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise AioHomematicException(
-                    f"REGISTER_data_point_updated_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
+                    i18n.tr(
+                        "exception.model.data_point.register_callback.already_registered",
+                        full_name=self.full_name,
+                        custom_id=self._custom_id,
+                    )
                 )
             self._custom_id = custom_id
 

@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Final, TypedDict, Unpack
 
+from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import device as hmd
@@ -146,15 +147,21 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         acoustic_alarm = kwargs.get("acoustic_alarm", self._dp_acoustic_alarm_selection.default)
         if self.available_tones and acoustic_alarm and acoustic_alarm not in self.available_tones:
             raise ValidationException(
-                f"Invalid tone specified for data_point {self.full_name}: {acoustic_alarm}, "
-                "check the available_tones attribute for valid tones to pass in"
+                i18n.tr(
+                    "exception.model.custom.siren.invalid_tone",
+                    full_name=self.full_name,
+                    value=acoustic_alarm,
+                )
             )
 
         optical_alarm = kwargs.get("optical_alarm", self._dp_optical_alarm_selection.default)
         if self.available_lights and optical_alarm and optical_alarm not in self.available_lights:
             raise ValidationException(
-                f"Invalid light specified for data_point {self.full_name}: {optical_alarm}, "
-                "check the available_lights attribute for valid tones to pass in"
+                i18n.tr(
+                    "exception.model.custom.siren.invalid_light",
+                    full_name=self.full_name,
+                    value=optical_alarm,
+                )
             )
 
         await self._dp_acoustic_alarm_selection.send_value(value=acoustic_alarm, collector=collector)

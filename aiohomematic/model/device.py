@@ -33,7 +33,7 @@ from typing import Any, Final, cast
 
 import orjson
 
-from aiohomematic import central as hmcu, client as hmcl
+from aiohomematic import central as hmcu, client as hmcl, i18n
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
@@ -501,7 +501,12 @@ class Device(LogContextMixin, PayloadMixin):
             device_exporter = _DefinitionExporter(device=self)
             await device_exporter.export_data()
         except Exception as exc:
-            raise AioHomematicException(f"EXPORT_DEVICE_DEFINITION failed: {extract_exc_args(exc=exc)}") from exc
+            raise AioHomematicException(
+                i18n.tr(
+                    "exception.model.device.export_device_definition.failed",
+                    reason=extract_exc_args(exc=exc),
+                )
+            ) from exc
 
     async def finalize_init(self) -> None:
         """Finalize the device init action after model setup."""

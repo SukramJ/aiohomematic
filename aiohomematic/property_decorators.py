@@ -120,7 +120,7 @@ class _GenericProperty[GETTER, SETTER](property):
                     delattr(instance, self._cache_attr)
 
         if self.fdel is None:
-            raise AttributeError("can't delete attribute")
+            raise AttributeError("can't delete attribute")  # i18n-exc: ignore
         self.fdel(instance)
 
     def __get__(self, instance: Any, gtype: type | None = None, /) -> GETTER:  # type: ignore[override]
@@ -135,7 +135,7 @@ class _GenericProperty[GETTER, SETTER](property):
             return cast(GETTER, self)
 
         if (fget := self.fget) is None:
-            raise AttributeError("unreadable attribute")
+            raise AttributeError("unreadable attribute")  # i18n-exc: ignore
 
         if not self._cached:
             return fget(instance)
@@ -174,7 +174,7 @@ class _GenericProperty[GETTER, SETTER](property):
                     delattr(instance, self._cache_attr)
 
         if self.fset is None:
-            raise AttributeError("can't set attribute")
+            raise AttributeError("can't set attribute")  # i18n-exc: ignore
         self.fset(instance, value)
 
     def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty[GETTER, SETTER]:

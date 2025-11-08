@@ -27,7 +27,7 @@ import sys
 import threading
 from typing import Final
 
-from aiohomematic import central as hmcu, validator as _ahm_validator
+from aiohomematic import central as hmcu, i18n, validator as _ahm_validator
 from aiohomematic.const import VERSION
 
 if sys.stdout.isatty():
@@ -52,7 +52,7 @@ try:
     _ahm_validator.validate_startup()
 except Exception as _exc:  # pragma: no cover
     # Fail-fast with a clear message if validation fails during import
-    raise RuntimeError(f"AioHomematic startup validation failed: {_exc}") from _exc
+    raise RuntimeError(i18n.tr("exception.startup.validation_failed", reason=_exc)) from _exc
 
 if threading.current_thread() is threading.main_thread() and sys.stdout.isatty():
     signal.signal(signal.SIGINT, signal_handler)

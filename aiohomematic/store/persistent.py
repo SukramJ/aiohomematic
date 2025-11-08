@@ -48,7 +48,7 @@ import zipfile
 import orjson
 from slugify import slugify
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
@@ -559,7 +559,7 @@ class SessionRecorder(BasePersistentFile):
         """Init the cache."""
         self._active = active
         if ttl_seconds < 0:
-            raise ValueError("default_ttl_seconds must be positive")
+            raise ValueError(i18n.tr("exception.store.session_recorder.ttl_positive"))
         self._ttl: Final = float(ttl_seconds)
         self._is_recording: bool = False
         self._refresh_on_get: Final = refresh_on_get

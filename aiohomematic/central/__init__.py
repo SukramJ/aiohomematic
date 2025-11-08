@@ -745,7 +745,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     def get_client(self, *, interface_id: str) -> hmcl.Client:
         """Return a client by interface_id."""
         if not self.has_client(interface_id=interface_id):
-            raise AioHomematicException(f"get_client: interface_id {interface_id} does not exist on {self.name}")
+            raise AioHomematicException(
+                i18n.tr(
+                    "exception.central.get_client.interface_missing",
+                    interface_id=interface_id,
+                    name=self.name,
+                )
+            )
         return self._clients[interface_id]
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPoint | None:
@@ -1207,7 +1213,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
             self._state = CentralUnitState.STOPPED_BY_ERROR
             raise AioHomematicException(
-                f"START: Failed to start central unit {self.name}: {extract_exc_args(exc=oserr)}"
+                i18n.tr(
+                    "exception.central.start.failed",
+                    name=self.name,
+                    reason=extract_exc_args(exc=oserr),
+                )
             ) from oserr
 
         if self._config.start_direct:
@@ -1308,7 +1318,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
         if len(self._config.enabled_interface_configs) == 0:
-            raise NoClientsException("validate_config: No clients defined.")
+            raise NoClientsException(i18n.tr("exception.central.validate_config.no_clients"))
 
         system_information = SystemInformation()
         for interface_config in self._config.enabled_interface_configs:
@@ -1525,7 +1535,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Trigger creation of the objects that expose the functionality."""
         if not self._clients:
             raise AioHomematicException(
-                f"CREATE_DEVICES failed: No clients initialized. Not starting central {self.name}."
+                i18n.tr(
+                    "exception.central.create_devices.no_clients",
+                    name=self.name,
+                )
             )
         _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self.name)
 
@@ -2150,7 +2163,10 @@ class CentralConfig:
             return CentralUnit(central_config=self)
         except BaseHomematicException as bhexc:  # pragma: no cover
             raise AioHomematicException(
-                f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.create_central.failed",
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     def create_central_url(self) -> str:

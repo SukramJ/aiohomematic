@@ -30,6 +30,7 @@ from typing import Any, Final
 
 import orjson
 
+from aiohomematic import i18n
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     ALLOWED_HOSTNAME_PATTERN,
@@ -109,7 +110,11 @@ def check_or_create_directory(*, directory: str) -> bool:
             os.makedirs(directory)
         except OSError as oserr:
             raise AioHomematicException(
-                f"CHECK_OR_CREATE_DIRECTORY failed: Unable to create directory {directory} ('{oserr.strerror}')"
+                i18n.tr(
+                    "exception.support.check_or_create_directory.failed",
+                    directory=directory,
+                    reason=oserr.strerror,
+                )
             ) from oserr
     return True
 
@@ -146,7 +151,7 @@ def to_bool(*, value: Any) -> bool:
         return value
 
     if not isinstance(value, str):
-        raise TypeError("invalid literal for boolean. Not a string.")
+        raise TypeError(i18n.tr("exception.support.boolean.invalid_type"))
 
     return value.lower() in ["y", "yes", "t", "true", "on", "1"]
 
@@ -271,7 +276,12 @@ def get_ip_addr(host: str, port: int, /) -> str | None:
         socket.gethostbyname(host)
     except Exception as exc:
         raise AioHomematicException(
-            f"GET_LOCAL_IP: Can't resolve host for {host}:{port}: {extract_exc_args(exc=exc)}"
+            i18n.tr(
+                "exception.support.get_local_ip.resolve_failed",
+                host=host,
+                port=port,
+                reason=extract_exc_args(exc=exc),
+            )
         ) from exc
     tmp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     tmp_socket.settimeout(TIMEOUT)

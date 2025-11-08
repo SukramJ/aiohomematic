@@ -11,7 +11,7 @@ import inspect
 import logging
 from typing import Any, Final, cast
 
-from aiohomematic import central as hmcu, client as hmcl
+from aiohomematic import central as hmcu, client as hmcl, i18n
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.const import BackendSystemEvent
 from aiohomematic.exceptions import AioHomematicException
@@ -58,8 +58,10 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
                     )
             except Exception as exc:
                 _LOGGER.warning(
-                    "EXEC_BACKEND_SYSTEM_CALLBACK failed: Problem with identifying central: %s",
-                    extract_exc_args(exc=exc),
+                    i18n.tr(
+                        "exception.central.decorators.backend_system_callback.identify_central_failed",
+                        reason=extract_exc_args(exc=exc),
+                    )
                 )
             return return_value
 
@@ -79,7 +81,10 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Unable to reduce kwargs for backend_system_callback"
                 )
                 raise AioHomematicException(
-                    f"args-exception backend_system_callback [{extract_exc_args(exc=exc)}]"
+                    i18n.tr(
+                        "exception.central.decorators.backend_system_callback.args_exception",
+                        reason=extract_exc_args(exc=exc),
+                    )
                 ) from exc
 
         if inspect.iscoroutinefunction(func):
@@ -115,7 +120,12 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
                 )
         except Exception as exc:  # pragma: no cover
             _LOGGER.warning("EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to process args/kwargs for event_callback")
-            raise AioHomematicException(f"args-exception event_callback [{extract_exc_args(exc=exc)}]") from exc
+            raise AioHomematicException(
+                i18n.tr(
+                    "exception.central.decorators.event_callback.args_exception",
+                    reason=extract_exc_args(exc=exc),
+                )
+            ) from exc
 
     def _schedule_or_exec(*args: Any, **kwargs: Any) -> None:
         """Schedule event callback on central looper when possible, else execute inline."""

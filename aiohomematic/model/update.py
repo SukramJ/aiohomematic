@@ -110,7 +110,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         """Register update callback."""
         if custom_id != InternalCustomID.DEFAULT:
             if self._custom_id is not None:
-                raise AioHomematicException(
+                raise AioHomematicException(  # i18n-exc: ignore
                     f"REGISTER_UPDATE_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
                 )
             self._custom_id = custom_id

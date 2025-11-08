@@ -12,6 +12,7 @@ import inspect
 
 import voluptuous as vol
 
+from aiohomematic import i18n
 from aiohomematic.const import BLOCKED_CATEGORIES, CATEGORIES, HUB_CATEGORIES, MAX_WAIT_FOR_CALLBACK, DataPointCategory
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.support import (
@@ -32,42 +33,42 @@ def channel_address(value: str, /) -> str:
     """Validate channel_address."""
     if is_channel_address(address=value):
         return value
-    raise vol.Invalid("channel_address is invalid")
+    raise vol.Invalid(i18n.tr("exception.validator.channel_address.invalid"))
 
 
 def device_address(value: str, /) -> str:
     """Validate channel_address."""
     if is_device_address(address=value):
         return value
-    raise vol.Invalid("device_address is invalid")
+    raise vol.Invalid(i18n.tr("exception.validator.device_address.invalid"))
 
 
 def hostname(value: str, /) -> str:
     """Validate hostname."""
     if is_hostname(hostname=value):
         return value
-    raise vol.Invalid("hostname is invalid")
+    raise vol.Invalid(i18n.tr("exception.validator.hostname.invalid"))
 
 
 def ipv4_address(value: str, /) -> str:
     """Validate ipv4_address."""
     if is_ipv4_address(address=value):
         return value
-    raise vol.Invalid("ipv4_address is invalid")
+    raise vol.Invalid(i18n.tr("exception.validator.ipv4_address.invalid"))
 
 
 def password(value: str, /) -> str:
     """Validate password."""
     if check_password(password=value):
         return value
-    raise vol.Invalid("password is invalid")
+    raise vol.Invalid(i18n.tr("exception.validator.password.invalid"))
 
 
 def paramset_key(value: str, /) -> str:
     """Validate paramset_key."""
     if is_paramset_key(paramset_key=value):
         return value
-    raise vol.Invalid("paramset_key is invalid")
+    raise vol.Invalid(i18n.tr("exception.validator.paramset_key.invalid"))
 
 
 address = vol.All(vol.Coerce(str), vol.Any(device_address, channel_address))
@@ -85,19 +86,24 @@ def validate_startup() -> None:
     all_categories = set(DataPointCategory)
     if DataPointCategory.UNDEFINED in categories_in_lists:
         raise vol.Invalid(
-            "DataPointCategory.UNDEFINED must not be present in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES"
+            i18n.tr(
+                "exception.validator.undefined_in_lists",
+            )
         )
 
     if missing := all_categories - {DataPointCategory.UNDEFINED} - categories_in_lists:
         missing_str = ", ".join(sorted(c.value for c in missing))
         raise vol.Invalid(
-            f"BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES are not exhaustive. Missing categories: {missing_str}"
+            i18n.tr(
+                "exception.validator.categories.not_exhaustive",
+                missing=missing_str,
+            )
         )
 
     # Validate custom definition mapping schema (Field <-> Parameter mappings)
     # This ensures Field mappings are valid and consistent at startup.
     if hmed.validate_custom_data_point_definition() is None:
-        raise vol.Invalid("Custom data point definition schema is invalid")
+        raise vol.Invalid(i18n.tr("exception.validator.custom_definition.invalid"))
 
 
 # Define public API for this module

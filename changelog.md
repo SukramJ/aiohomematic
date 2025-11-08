@@ -1,4 +1,8 @@
-# Version 2025.11.9) (2025-11-07)
+# Version 2025.11.10 (2025-11-08)
+
+- Make exceptions translatable
+
+# Version 2025.11.9 (2025-11-07)
 
 - Do not normalize homematic event data
 

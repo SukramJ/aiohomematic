@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.11.9"
+VERSION: Final = "2025.11.10"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -35,6 +35,7 @@ DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS: Final = (5,)
 DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS: Final[frozenset[str]] = frozenset()
 DEFAULT_INCLUDE_INTERNAL_PROGRAMS: Final = False
 DEFAULT_INCLUDE_INTERNAL_SYSVARS: Final = True
+DEFAULT_LOCALE: Final = "en"
 DEFAULT_MAX_READ_WORKERS: Final = 1
 DEFAULT_MAX_WORKERS: Final = 1
 DEFAULT_MULTIPLIER: Final = 1.0

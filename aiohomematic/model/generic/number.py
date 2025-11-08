@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import cast
 
+from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.generic.data_point import GenericDataPoint
@@ -34,7 +35,13 @@ class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[Number
         if self._special and isinstance(value, str) and value in self._special:
             return cast(NumberParameterT, type_converter(self._special[value]))
         raise ValidationException(
-            f"NUMBER failed: Invalid value: {value} (min: {self._min}, max: {self._max}, special:{self._special})"
+            i18n.tr(
+                "exception.model.number.invalid_value",
+                value=value,
+                min=self._min,
+                max=self._max,
+                special=self._special,
+            )
         )
 
 

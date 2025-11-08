@@ -54,7 +54,7 @@ from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, i18n
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.const import (
@@ -241,7 +241,14 @@ class Client(ABC, LogContextMixin):
             await self._proxy.addLink(sender_address, receiver_address, name, description)
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"ADD_LINK failed with for: {sender_address}/{receiver_address}/{name}/{description}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.add_link.failed",
+                    sender=sender_address,
+                    receiver=receiver_address,
+                    name=name,
+                    description=description,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @abstractmethod
@@ -409,7 +416,7 @@ class Client(ABC, LogContextMixin):
             return tuple(links) if (links := await self._proxy.getLinkPeers(address)) else ()
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_LINK_PEERS failed with for: {address}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr("exception.client.get_link_peers.failed", address=address, reason=extract_exc_args(exc=bhexc))
             ) from bhexc
 
     @inspector
@@ -421,7 +428,9 @@ class Client(ABC, LogContextMixin):
         try:
             return cast(dict[str, Any], await self._proxy.getLinks(address, flags))
         except BaseHomematicException as bhexc:
-            raise ClientException(f"GET_LINKS failed with for: {address}: {extract_exc_args(exc=bhexc)}") from bhexc
+            raise ClientException(
+                i18n.tr("exception.client.get_links.failed", address=address, reason=extract_exc_args(exc=bhexc))
+            ) from bhexc
 
     @inspector
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
@@ -430,7 +439,12 @@ class Client(ABC, LogContextMixin):
             return cast(dict[str, Any], await self._proxy.getMetadata(address, data_id))
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_METADATA failed with for: {address}/{data_id}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.get_metadata.failed",
+                    address=address,
+                    data_id=data_id,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @inspector
@@ -457,7 +471,12 @@ class Client(ABC, LogContextMixin):
             return cast(dict[str, Any], await self._proxy_read.getParamset(address, paramset_key))
         except BaseHomematicException as bhexc:  # pragma: no cover
             raise ClientException(
-                f"GET_PARAMSET failed with for {address}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.get_paramset.failed",
+                    address=address,
+                    paramset_key=paramset_key,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @inspector(re_raise=False, no_raise_return={})
@@ -525,7 +544,13 @@ class Client(ABC, LogContextMixin):
             return paramset.get(parameter)
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.get_value.failed",
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    paramset_key=paramset_key,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     def get_virtual_remote(self) -> Device | None:
@@ -688,9 +713,7 @@ class Client(ABC, LogContextMixin):
                         values=values,
                     )
                 else:
-                    raise ClientException(
-                        "Parameter paramset_key is neither a valid ParamsetKey nor a channel address."
-                    )
+                    raise ClientException(i18n.tr("exception.client.paramset_key.invalid"))
 
             _LOGGER.debug("PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key_or_link_address, checked_values)
             if rx_mode and (device := self.central.get_device(address=channel_address)):
@@ -702,7 +725,7 @@ class Client(ABC, LogContextMixin):
                         rx_mode=rx_mode,
                     )
                 else:
-                    raise ClientException(f"Unsupported rx_mode: {rx_mode}")
+                    raise ClientException(i18n.tr("exception.client.rx_mode.unsupported", rx_mode=rx_mode))
             else:
                 await self._exec_put_paramset(
                     channel_address=channel_address,
@@ -751,7 +774,13 @@ class Client(ABC, LogContextMixin):
                 )
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"PUT_PARAMSET failed for {channel_address}/{paramset_key_or_link_address}/{values}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.put_paramset.failed",
+                    channel_address=channel_address,
+                    paramset_key=paramset_key_or_link_address,
+                    values=values,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
         else:
             return dpk_values
@@ -790,7 +819,12 @@ class Client(ABC, LogContextMixin):
             await self._proxy.removeLink(sender_address, receiver_address)
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"REMOVE_LINK failed with for: {sender_address}/{receiver_address}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.remove_link.failed",
+                    sender=sender_address,
+                    receiver=receiver_address,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @inspector
@@ -805,7 +839,13 @@ class Client(ABC, LogContextMixin):
             return cast(dict[str, Any], await self._proxy.setMetadata(address, data_id, value))
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"SET_METADATA failed with for: {address}/{data_id}/{value}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.set_metadata.failed",
+                    address=address,
+                    data_id=data_id,
+                    value=value,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @inspector
@@ -878,7 +918,9 @@ class Client(ABC, LogContextMixin):
                     "success" if result else "failed",
                 )
             except BaseHomematicException as bhexc:
-                raise ClientException(f"UPDATE_DEVICE_FIRMWARE failed]: {extract_exc_args(exc=bhexc)}") from bhexc
+                raise ClientException(
+                    i18n.tr("exception.client.update_device_firmware.failed", reason=extract_exc_args(exc=bhexc))
+                ) from bhexc
             return result
         return False
 
@@ -951,13 +993,23 @@ class Client(ABC, LogContextMixin):
             op_mask = int(operation)
             if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
                 raise ClientException(
-                    f"Parameter {parameter} does not support the requested operation {operation.value}"
+                    i18n.tr(
+                        "exception.client.parameter.operation_unsupported",
+                        parameter=parameter,
+                        operation=operation.value,
+                    )
                 )
             # Only build a tuple if a value list exists
             pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
             return convert_value(value=value, target_type=pd_type, value_list=pd_value_list)
         raise ClientException(
-            f"Parameter {parameter} could not be found: {self.interface_id}/{channel_address}/{paramset_key}"
+            i18n.tr(
+                "exception.client.parameter.not_found",
+                parameter=parameter,
+                interface_id=self.interface_id,
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+            )
         )
 
     async def _exec_put_paramset(
@@ -1079,7 +1131,7 @@ class Client(ABC, LogContextMixin):
                         rx_mode=rx_mode,
                     )
                 else:
-                    raise ClientException(f"Unsupported rx_mode: {rx_mode}")
+                    raise ClientException(i18n.tr("exception.client.rx_mode.unsupported", rx_mode=rx_mode))
             else:
                 await self._exec_set_value(channel_address=channel_address, parameter=parameter, value=value)
             # store the send value in the last_value_send_cache
@@ -1098,7 +1150,13 @@ class Client(ABC, LogContextMixin):
                 )
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"SET_VALUE failed for {channel_address}/{parameter}/{value}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.set_value.failed",
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    value=value,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
         else:
             return dpk_values
@@ -1260,7 +1318,13 @@ class ClientCCU(Client):
             return bool(await self._proxy.reportValueUsage(address, value_id, ref_counter))
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"REPORT_VALUE_USAGE failed with: {address}/{value_id}/{ref_counter}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.report_value_usage.failed",
+                    address=address,
+                    value_id=value_id,
+                    ref_counter=ref_counter,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @inspector
@@ -1350,7 +1414,12 @@ class ClientJsonCCU(ClientCCU):
             )
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_PARAMSET failed with for {address}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.json_ccu.get_paramset.failed",
+                    address=address,
+                    paramset_key=paramset_key,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @inspector(log_level=logging.NOTSET)
@@ -1389,7 +1458,13 @@ class ClientJsonCCU(ClientCCU):
             return paramset.get(parameter)
         except BaseHomematicException as bhexc:
             raise ClientException(
-                f"GET_VALUE failed with for: {channel_address}/{parameter}/{paramset_key}: {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.client.json_ccu.get_value.failed",
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    paramset_key=paramset_key,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     @inspector(re_raise=False, measure_performance=True)
@@ -1460,7 +1535,12 @@ class ClientJsonCCU(ClientCCU):
             )
         ) is None:
             raise ClientException(
-                f"SET_VALUE failed: Unable to identify parameter type {channel_address}/{ParamsetKey.VALUES}/{parameter}"
+                i18n.tr(
+                    "exception.client.json_ccu.set_value.unknown_type",
+                    channel_address=channel_address,
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter=parameter,
+                )
             )
 
         _type = _CCU_JSON_VALUE_TYPE.get(value_type, "string")
@@ -1649,11 +1729,18 @@ class ClientConfig:
                 await client.init_client()
                 if await client.check_connection_availability(handle_ping_pong=False):
                     return client
-            raise NoConnectionException(f"No connection to {self.interface_id}")
+            raise NoConnectionException(
+                i18n.tr("exception.client.client_config.no_connection", interface_id=self.interface_id)
+            )
         except BaseHomematicException:
             raise
         except Exception as exc:  # pragma: no cover
-            raise NoConnectionException(f"Unable to connect {extract_exc_args(exc=exc)}.") from exc
+            raise NoConnectionException(
+                i18n.tr(
+                    "exception.client.client_config.unable_to_connect",
+                    reason=extract_exc_args(exc=exc),
+                )
+            ) from exc
 
     async def create_rpc_proxy(
         self, *, interface: Interface, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
@@ -1701,7 +1788,12 @@ class ClientConfig:
                 # BidCos-Wired does not support getVersion()
                 return cast(str, await check_proxy.getVersion())
         except Exception as exc:  # pragma: no cover
-            raise NoConnectionException(f"Unable to connect {extract_exc_args(exc=exc)}.") from exc
+            raise NoConnectionException(
+                i18n.tr(
+                    "exception.client.client_config.unable_to_connect",
+                    reason=extract_exc_args(exc=exc),
+                )
+            ) from exc
         return "0"
 
 
@@ -1738,7 +1830,12 @@ class InterfaceConfig:
     def _init_validate(self) -> None:
         """Validate the client_config."""
         if not self.port and self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK:
-            raise ClientException(f"VALIDATE interface config failed: Port must defined for interface{self.interface}")
+            raise ClientException(
+                i18n.tr(
+                    "exception.client.interface_config.port_required",
+                    interface=self.interface,
+                )
+            )
 
 
 async def create_client(

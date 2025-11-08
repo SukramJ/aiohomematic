@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.generic.data_point import GenericDataPoint
@@ -36,4 +37,10 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
             return int(value)
         if self._values and value in self._values:
             return self._values.index(value)
-        raise ValidationException(f"Value not in value_list for {self.name}/{self.unique_id}")
+        raise ValidationException(
+            i18n.tr(
+                "exception.model.select.value_not_in_value_list",
+                name=self.name,
+                unique_id=self.unique_id,
+            )
+        )

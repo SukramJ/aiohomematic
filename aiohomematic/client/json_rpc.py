@@ -57,7 +57,7 @@ from aiohttp import (
 )
 import orjson
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
 from aiohomematic.const import (
@@ -405,7 +405,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         except (ContentTypeError, JSONDecodeError) as cerr:
             raise ClientException(
-                f"GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface {interface}"
+                i18n.tr(
+                    "exception.client.get_all_device_data.failed",
+                    interface=interface,
+                )
             ) from cerr
 
         return all_device_data
@@ -896,11 +899,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST function."""
         if not self._client_session:
-            raise ClientException("ClientSession not initialized")
+            raise ClientException(i18n.tr("exception.client.json_post.no_session"))
         if not self._has_credentials:
-            raise ClientException("No credentials set")
+            raise ClientException(i18n.tr("exception.client.json_post.no_credentials"))
         if self._supported_methods and method not in self._supported_methods:
-            raise UnsupportedException(f"POST: method '{method} not supported by the backend.")
+            raise UnsupportedException(i18n.tr("exception.client.json_post.method_unsupported", method=method))
 
         params = _get_params(session_id=session_id, extra_params=extra_params, use_default_params=use_default_params)
 
@@ -923,9 +926,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
                 async with self._sema:
                     if (response := await asyncio.shield(post_call())) is None:
-                        raise ClientException("POST method failed with no response")
+                        raise ClientException(i18n.tr("exception.client.json_post.no_response"))
             elif (response := await asyncio.shield(post_call())) is None:
-                raise ClientException("POST method failed with no response")
+                raise ClientException(i18n.tr("exception.client.json_post.no_response"))
 
             if response.status == 200:
                 json_response = await asyncio.shield(self._get_json_reponse(response=response))
@@ -948,7 +951,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
                 return json_response
 
-            message = f"Status: {response.status}"
+            message = i18n.tr("exception.client.json_post.http_status", status=response.status)
             json_response = await asyncio.shield(self._get_json_reponse(response=response))
             if error := json_response[_JsonKey.ERROR]:
                 ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
@@ -994,7 +997,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 level=logging.ERROR,
                 log_context=self.log_context,
             )
-            raise ClientException(message) from cccerr
+            raise ClientException(
+                i18n.tr("exception.client.json_post.connector_certificate_error", reason=message)
+            ) from cccerr
         except ClientConnectorError as cceerr:
             self.clear_session()
             message = f"ClientConnectorError[{cceerr}]"
@@ -1006,7 +1011,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 level=logging.ERROR,
                 log_context=self.log_context,
             )
-            raise ClientException(message) from cceerr
+            raise ClientException(i18n.tr("exception.client.json_post.connector_error", reason=message)) from cceerr
         except (ClientError, OSError) as err:
             self.clear_session()
             log_boundary_error(
@@ -1148,7 +1153,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         try:
             await self._login_or_renew()
             if not (session_id := self._session_id):
-                raise ClientException("Error while logging in")
+                raise ClientException(i18n.tr("exception.client.json_post.login_failed"))
 
             response = await self._do_post(
                 session_id=session_id,
@@ -1220,7 +1225,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             session_id = await self._do_login()
 
         if not session_id:
-            raise ClientException("Error while logging in")
+            raise ClientException(i18n.tr("exception.client.json_post.login_failed"))
 
         if self._supported_methods is None:
             await self._check_supported_methods()
@@ -1252,7 +1257,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Reusable JSON-RPC POST_SCRIPT function."""
         # Load and validate script first to avoid any network when script is missing
         if (script := await self._get_script(script_name=script_name)) is None:
-            raise ClientException(f"Script file for {script_name} does not exist")
+            raise ClientException(i18n.tr("exception.client.script.missing", script=script_name))
 
         # Prepare session only after we know we have a script to run
         if keep_session:
@@ -1262,7 +1267,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             session_id = await self._do_login()
 
         if not session_id:
-            raise ClientException("Error while logging in")
+            raise ClientException(i18n.tr("exception.client.json_post.login_failed"))
 
         if self._supported_methods is None:
             await self._check_supported_methods()

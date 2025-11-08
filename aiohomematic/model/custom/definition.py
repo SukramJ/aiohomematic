@@ -11,7 +11,7 @@ from typing import Any, Final, cast
 
 import voluptuous as vol
 
-from aiohomematic import support as hms, validator as val
+from aiohomematic import i18n, support as hms, validator as val
 from aiohomematic.const import CDPD, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.model import device as hmd
@@ -650,7 +650,10 @@ def _create_custom_data_point(
             channel.add_data_point(data_point=dp)
     except Exception as exc:
         raise AioHomematicException(
-            f"_CREATE_CUSTOM_DATA_POINT: unable to create custom data point: {extract_exc_args(exc=exc)}"
+            i18n.tr(
+                "exception.model.custom.definition.create_custom_data_point.failed",
+                reason=extract_exc_args(exc=exc),
+            )
         ) from exc
 
 

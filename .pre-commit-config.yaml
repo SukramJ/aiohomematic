@@ -7,6 +7,18 @@ repos:
         language: script
         types_or: [python]
         files: ^(aiohomematic|aiohomematic_test_support|tests)/.+\.py$
+      - id: check-i18n
+        name: check-i18n
+        entry: script/run-in-env.sh python script/check_i18n.py
+        language: script
+        types_or: [python]
+        files: ^(aiohomematic)/.+\.py$
+      - id: check-i18n-catalogs
+        name: check-i18n-catalogs
+        entry: script/run-in-env.sh python script/check_i18n_catalogs.py --fix
+        language: script
+        always_run: true
+        pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.14.4
     hooks:

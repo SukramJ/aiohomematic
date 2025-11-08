@@ -77,7 +77,7 @@ from typing import Any, Final, cast
 from aiohttp import ClientSession
 import voluptuous as vol
 
-from aiohomematic import client as hmcl
+from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper, loop_check
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
@@ -93,6 +93,7 @@ from aiohomematic.const import (
     DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
     DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
     DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
+    DEFAULT_LOCALE,
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_OPTIONAL_SETTINGS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
@@ -225,6 +226,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         # Keep the config for the central
         self._config: Final = central_config
+        # Apply locale for translations
+        try:
+            i18n.set_locale(locale=self._config.locale)
+        except Exception:  # pragma: no cover - keep init robust
+            i18n.set_locale(locale=DEFAULT_LOCALE)
         self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()
@@ -740,7 +746,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     def get_client(self, *, interface_id: str) -> hmcl.Client:
         """Return a client by interface_id."""
         if not self.has_client(interface_id=interface_id):
-            raise AioHomematicException(f"get_client: interface_id {interface_id} does not exist on {self.name}")
+            raise AioHomematicException(
+                i18n.tr(
+                    "exception.central.get_client.interface_missing",
+                    interface_id=interface_id,
+                    name=self.name,
+                )
+            )
         return self._clients[interface_id]
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPoint | None:
@@ -1202,7 +1214,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
             self._state = CentralUnitState.STOPPED_BY_ERROR
             raise AioHomematicException(
-                f"START: Failed to start central unit {self.name}: {extract_exc_args(exc=oserr)}"
+                i18n.tr(
+                    "exception.central.start.failed",
+                    name=self.name,
+                    reason=extract_exc_args(exc=oserr),
+                )
             ) from oserr
 
         if self._config.start_direct:
@@ -1303,7 +1319,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
         if len(self._config.enabled_interface_configs) == 0:
-            raise NoClientsException("validate_config: No clients defined.")
+            raise NoClientsException(i18n.tr("exception.central.validate_config.no_clients"))
 
         system_information = SystemInformation()
         for interface_config in self._config.enabled_interface_configs:
@@ -1520,7 +1536,10 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Trigger creation of the objects that expose the functionality."""
         if not self._clients:
             raise AioHomematicException(
-                f"CREATE_DEVICES failed: No clients initialized. Not starting central {self.name}."
+                i18n.tr(
+                    "exception.central.create_devices.no_clients",
+                    name=self.name,
+                )
             )
         _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self.name)
 
@@ -2037,6 +2056,7 @@ class CentralConfig:
         un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES,
         use_group_channel_for_cover_state: bool = DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE,
         verify_tls: bool = DEFAULT_VERIFY_TLS,
+        locale: str = DEFAULT_LOCALE,
     ) -> None:
         """Init the client config."""
         self._interface_configs: Final = interface_configs
@@ -2083,6 +2103,7 @@ class CentralConfig:
         self.use_group_channel_for_cover_state: Final = use_group_channel_for_cover_state
         self.username: Final = username
         self.verify_tls: Final = verify_tls
+        self.locale: Final = locale
 
     @property
     def connection_check_port(self) -> int:
@@ -2132,7 +2153,9 @@ class CentralConfig:
             interface_configs=self._interface_configs,
         ):
             failures = ", ".join(config_failures)
-            raise AioHomematicConfigException(failures)
+            # Localized exception message
+            msg = i18n.tr("exception.config.invalid", failures=failures)
+            raise AioHomematicConfigException(msg)
 
     def create_central(self) -> CentralUnit:
         """Create the central. Throws BaseHomematicException on validation failure."""
@@ -2141,7 +2164,10 @@ class CentralConfig:
             return CentralUnit(central_config=self)
         except BaseHomematicException as bhexc:  # pragma: no cover
             raise AioHomematicException(
-                f"CREATE_CENTRAL: Not able to create a central: : {extract_exc_args(exc=bhexc)}"
+                i18n.tr(
+                    "exception.create_central.failed",
+                    reason=extract_exc_args(exc=bhexc),
+                )
             ) from bhexc
 
     def create_central_url(self) -> str:
@@ -2253,28 +2279,33 @@ def check_config(
     """Check config. Throws BaseHomematicException on failure."""
     config_failures: list[str] = []
     if central_name and IDENTIFIER_SEPARATOR in central_name:
-        config_failures.append(f"Instance name must not contain {IDENTIFIER_SEPARATOR}")
+        config_failures.append(i18n.tr("exception.config.check.instance_name.separator", sep=IDENTIFIER_SEPARATOR))
 
     if not (is_hostname(hostname=host) or is_ipv4_address(address=host)):
-        config_failures.append("Invalid hostname or ipv4 address")
+        config_failures.append(i18n.tr("exception.config.check.host.invalid"))
     if not username:
-        config_failures.append("Username must not be empty")
+        config_failures.append(i18n.tr("exception.config.check.username.empty"))
     if not password:
-        config_failures.append("Password is required")
+        config_failures.append(i18n.tr("exception.config.check.password.required"))
     if not check_password(password=password):
-        config_failures.append("Password is not valid")
+        config_failures.append(i18n.tr("exception.config.check.password.invalid"))
     try:
         check_or_create_directory(directory=storage_directory)
     except BaseHomematicException as bhexc:
         config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
-        config_failures.append("Invalid callback hostname or ipv4 address")
+        config_failures.append(i18n.tr("exception.config.check.callback_host.invalid"))
     if callback_port_xml_rpc and not is_port(port=callback_port_xml_rpc):
-        config_failures.append("Invalid xml rpc callback port")
+        config_failures.append(i18n.tr("exception.config.check.callback_port_xml_rpc.invalid"))
     if json_port and not is_port(port=json_port):
-        config_failures.append("Invalid json port")
+        config_failures.append(i18n.tr("exception.config.check.json_port.invalid"))
     if interface_configs and not _has_primary_client(interface_configs=interface_configs):
-        config_failures.append(f"No primary interface ({', '.join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined")
+        config_failures.append(
+            i18n.tr(
+                "exception.config.check.primary_interface.missing",
+                interfaces=", ".join(PRIMARY_CLIENT_CANDIDATE_INTERFACES),
+            )
+        )
 
     return config_failures
 

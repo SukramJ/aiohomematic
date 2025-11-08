@@ -52,7 +52,7 @@ from collections.abc import Mapping
 import logging
 from typing import Final
 
-from aiohomematic import support as hms
+from aiohomematic import i18n, support as hms
 from aiohomematic.const import (
     CLICK_EVENTS,
     VIRTUAL_REMOTE_MODELS,
@@ -194,7 +194,10 @@ def _safe_create_data_point(
         )
     except Exception as exc:
         raise AioHomematicException(
-            f"CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: Unable to create data_point:{hms.extract_exc_args(exc=exc)}"
+            i18n.tr(
+                "exception.model.generic.create_data_point.failed",
+                reason=hms.extract_exc_args(exc=exc),
+            )
         ) from exc
 
 

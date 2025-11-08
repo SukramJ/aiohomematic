@@ -11,6 +11,7 @@ from enum import IntEnum, StrEnum
 import logging
 from typing import Any, Final, cast
 
+from aiohomematic import i18n
 from aiohomematic.const import (
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
@@ -340,7 +341,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Copy schedule to target device."""
 
         if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
-            raise ValidationException("Copy schedule profile is only: No of schedule profile must be identical")
+            raise ValidationException(i18n.tr("exception.model.custom.climate.copy_schedule.profile_count_mismatch"))
         raw_schedule = await self._get_raw_schedule()
         await self._client.put_paramset(
             channel_address=target_climate_data_point.schedule_channel_address,
@@ -359,19 +360,27 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Copy schedule profile to target device."""
         same_device = False
         if not self._supports_schedule:
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.climate.schedule.unsupported",
+                    name=self._device.name,
+                )
+            )
         if target_climate_data_point is None:
             target_climate_data_point = self
         if self is target_climate_data_point:
             same_device = True
 
         if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
-            raise ValidationException(
-                "Copy schedule profile on same device is only possible with defined and different source/target profiles"
-            )
+            raise ValidationException(i18n.tr("exception.model.custom.climate.copy_schedule.same_device_invalid"))
 
         if (source_profile_data := await self.get_schedule_profile(profile=source_profile)) is None:
-            raise ValidationException(f"Source profile {source_profile} could not be loaded.")
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.climate.source_profile.not_loaded",
+                    source_profile=source_profile,
+                )
+            )
         await self._set_schedule_profile(
             target_channel_address=target_climate_data_point.schedule_channel_address,
             profile=target_profile,
@@ -404,7 +413,12 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def get_schedule_profile(self, *, profile: ScheduleProfile) -> PROFILE_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.climate.schedule.unsupported",
+                    name=self._device.name,
+                )
+            )
         schedule_data = await self._get_schedule_profile(profile=profile)
         return schedule_data.get(profile, {})
 
@@ -412,7 +426,12 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def get_schedule_profile_weekday(self, *, profile: ScheduleProfile, weekday: ScheduleWeekday) -> WEEKDAY_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}")
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.climate.schedule.unsupported",
+                    name=self._device.name,
+                )
+            )
         schedule_data = await self._get_schedule_profile(profile=profile, weekday=weekday)
         return schedule_data.get(profile, {}).get(weekday, {})
 
@@ -520,7 +539,12 @@ class BaseCustomDpClimate(CustomDataPoint):
 
         if do_validate and not (self.min_temp <= temperature <= self.max_temp):
             raise ValidationException(
-                f"SET_TEMPERATURE failed: Invalid temperature: {temperature} (min: {self.min_temp}, max: {self.max_temp})"
+                i18n.tr(
+                    "exception.model.custom.climate.set_temperature.invalid",
+                    temperature=temperature,
+                    min=self.min_temp,
+                    max=self.max_temp,
+                )
             )
 
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
@@ -535,7 +559,12 @@ class BaseCustomDpClimate(CustomDataPoint):
             raw_schedule = {key: value for key, value in raw_data.items() if SCHEDULER_PROFILE_PATTERN.match(key)}
         except ClientException as cex:
             self._supports_schedule = False
-            raise ValidationException(f"Schedule is not supported by device {self._device.name}") from cex
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.climate.schedule.unsupported",
+                    name=self._device.name,
+                )
+            ) from cex
         return raw_schedule
 
     async def _get_schedule_profile(
@@ -724,8 +753,12 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Convert simple weekday list to weekday dict."""
         if not self.min_temp <= base_temperature <= self.max_temp:
             raise ValidationException(
-                f"VALIDATE_PROFILE: Base temperature {base_temperature} not in valid range (min: {self.min_temp}, "
-                f"max: {self.max_temp})"
+                i18n.tr(
+                    "exception.model.custom.climate.validate.base_temperature_out_of_range",
+                    base_temperature=base_temperature,
+                    min=self.min_temp,
+                    max=self.max_temp,
+                )
             )
 
         weekday_data: WEEKDAY_DICT = {}
@@ -734,30 +767,44 @@ class BaseCustomDpClimate(CustomDataPoint):
         slot_no = 1
         for slot in sorted_simple_weekday_list:
             if (starttime := slot.get(ScheduleSlotType.STARTTIME)) is None:
-                raise ValidationException("VALIDATE_PROFILE: STARTTIME is missing.")
+                raise ValidationException(i18n.tr("exception.model.custom.climate.validate.starttime_missing"))
             if (endtime := slot.get(ScheduleSlotType.ENDTIME)) is None:
-                raise ValidationException("VALIDATE_PROFILE: ENDTIME is missing.")
+                raise ValidationException(i18n.tr("exception.model.custom.climate.validate.endtime_missing"))
             if (temperature := slot.get(ScheduleSlotType.TEMPERATURE)) is None:
-                raise ValidationException("VALIDATE_PROFILE: TEMPERATURE is missing.")
+                raise ValidationException(i18n.tr("exception.model.custom.climate.validate.temperature_missing"))
 
             if _convert_time_str_to_minutes(time_str=str(starttime)) >= _convert_time_str_to_minutes(
                 time_str=str(endtime)
             ):
                 raise ValidationException(
-                    f"VALIDATE_PROFILE: Start time {starttime} must lower than end time {endtime}"
+                    i18n.tr(
+                        "exception.model.custom.climate.validate.start_before_end",
+                        start=starttime,
+                        end=endtime,
+                    )
                 )
 
             if _convert_time_str_to_minutes(time_str=str(starttime)) < _convert_time_str_to_minutes(
                 time_str=previous_endtime
             ):
                 raise ValidationException(
-                    f"VALIDATE_PROFILE: Timespans are overlapping with a previous slot for start time: {starttime} / end time: {endtime}"
+                    i18n.tr(
+                        "exception.model.custom.climate.validate.overlap",
+                        start=starttime,
+                        end=endtime,
+                    )
                 )
 
             if not self.min_temp <= float(temperature) <= self.max_temp:
                 raise ValidationException(
-                    f"VALIDATE_PROFILE: Temperature {temperature} not in valid range (min: {self.min_temp}, "
-                    f"max: {self.max_temp}) for start time: {starttime} / end time: {endtime}"
+                    i18n.tr(
+                        "exception.model.custom.climate.validate.temperature_out_of_range_for_times",
+                        temperature=temperature,
+                        min=self.min_temp,
+                        max=self.max_temp,
+                        start=starttime,
+                        end=endtime,
+                    )
                 )
 
             if _convert_time_str_to_minutes(time_str=str(starttime)) > _convert_time_str_to_minutes(
@@ -793,39 +840,81 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Validate the profile weekday."""
         previous_endtime = 0
         if len(weekday_data) != 13:
+            if len(weekday_data) > 13:
+                raise ValidationException(
+                    i18n.tr(
+                        "exception.model.custom.climate.validate.too_many_slots",
+                        profile=profile,
+                        weekday=weekday,
+                    )
+                )
             raise ValidationException(
-                f"VALIDATE_PROFILE: {'Too many' if len(weekday_data) > 13 else 'Too few'} slots in profile: {profile} / week day: {weekday}"
+                i18n.tr(
+                    "exception.model.custom.climate.validate.too_few_slots",
+                    profile=profile,
+                    weekday=weekday,
+                )
             )
         for no in SCHEDULE_SLOT_RANGE:
             if no not in weekday_data:
                 raise ValidationException(
-                    f"VALIDATE_PROFILE: slot no {no} is missing in profile: {profile} / week day: {weekday}"
+                    i18n.tr(
+                        "exception.model.custom.climate.validate.slot_missing",
+                        no=no,
+                        profile=profile,
+                        weekday=weekday,
+                    )
                 )
             slot = weekday_data[no]
             for slot_type in RELEVANT_SLOT_TYPES:
                 if slot_type not in slot:
                     raise ValidationException(
-                        f"VALIDATE_PROFILE: slot type {slot_type} is missing in profile: "
-                        f"{profile} / week day: {weekday} / slot no: {no}"
+                        i18n.tr(
+                            "exception.model.custom.climate.validate.slot_type_missing",
+                            slot_type=slot_type,
+                            profile=profile,
+                            weekday=weekday,
+                            no=no,
+                        )
                     )
                 temperature = float(weekday_data[no][ScheduleSlotType.TEMPERATURE])
                 if not self.min_temp <= temperature <= self.max_temp:
                     raise ValidationException(
-                        f"VALIDATE_PROFILE: Temperature {temperature} not in valid range (min: {self.min_temp}, "
-                        f"max: {self.max_temp}) for profile: {profile} / week day: {weekday} / slot no: {no}"
+                        i18n.tr(
+                            "exception.model.custom.climate.validate.temperature_out_of_range_for_profile_slot",
+                            temperature=temperature,
+                            min=self.min_temp,
+                            max=self.max_temp,
+                            profile=profile,
+                            weekday=weekday,
+                            no=no,
+                        )
                     )
 
                 endtime_str = str(weekday_data[no][ScheduleSlotType.ENDTIME])
                 if endtime := _convert_time_str_to_minutes(time_str=endtime_str):
                     if endtime not in SCHEDULE_TIME_RANGE:
                         raise ValidationException(
-                            f"VALIDATE_PROFILE: Time {endtime_str} must be between {_convert_minutes_to_time_str(minutes=SCHEDULE_TIME_RANGE.start)} and "
-                            f"{_convert_minutes_to_time_str(minutes=SCHEDULE_TIME_RANGE.stop - 1)} for profile: {profile} / week day: {weekday} / slot no: {no}"
+                            i18n.tr(
+                                "exception.model.custom.climate.validate.time_out_of_bounds_profile_slot",
+                                time=endtime_str,
+                                min_time=_convert_minutes_to_time_str(minutes=SCHEDULE_TIME_RANGE.start),
+                                max_time=_convert_minutes_to_time_str(minutes=SCHEDULE_TIME_RANGE.stop - 1),
+                                profile=profile,
+                                weekday=weekday,
+                                no=no,
+                            )
                         )
                     if endtime < previous_endtime:
                         raise ValidationException(
-                            f"VALIDATE_PROFILE: Time sequence must be rising. {endtime_str} is lower than the previous "
-                            f"value {_convert_minutes_to_time_str(minutes=previous_endtime)} for profile: {profile} / week day: {weekday} / slot no: {no}"
+                            i18n.tr(
+                                "exception.model.custom.climate.validate.sequence_rising",
+                                time=endtime_str,
+                                previous=_convert_minutes_to_time_str(minutes=previous_endtime),
+                                profile=profile,
+                                weekday=weekday,
+                                no=no,
+                            )
                         )
                 previous_endtime = endtime
 
@@ -1382,7 +1471,12 @@ def _convert_minutes_to_time_str(minutes: Any) -> str:
     time_str = f"{minutes // 60:0=2}:{minutes % 60:0=2}"
     if SCHEDULER_TIME_PATTERN.match(time_str) is None:
         raise ValidationException(
-            f"Time {time_str} is not valid. Format must be hh:mm with min: {_MIN_SCHEDULER_TIME} and max: {_MAX_SCHEDULER_TIME}"
+            i18n.tr(
+                "exception.model.custom.climate.validate.time_invalid_format",
+                time=time_str,
+                min=_MIN_SCHEDULER_TIME,
+                max=_MAX_SCHEDULER_TIME,
+            )
         )
     return time_str
 
@@ -1391,13 +1485,23 @@ def _convert_time_str_to_minutes(*, time_str: str) -> int:
     """Convert minutes to a time string."""
     if SCHEDULER_TIME_PATTERN.match(time_str) is None:
         raise ValidationException(
-            f"Time {time_str} is not valid. Format must be hh:mm with min: {_MIN_SCHEDULER_TIME} and max: {_MAX_SCHEDULER_TIME}"
+            i18n.tr(
+                "exception.model.custom.climate.validate.time_invalid_format",
+                time=time_str,
+                min=_MIN_SCHEDULER_TIME,
+                max=_MAX_SCHEDULER_TIME,
+            )
         )
     try:
         h, m = time_str.split(":")
         return (int(h) * 60) + int(m)
     except Exception as exc:
-        raise ValidationException(f"Failed to convert time {time_str}. Format must be hh:mm.") from exc
+        raise ValidationException(
+            i18n.tr(
+                "exception.model.custom.climate.validate.time_convert_failed",
+                time=time_str,
+            )
+        ) from exc
 
 
 def _sort_simple_weekday_list(*, simple_weekday_list: SIMPLE_WEEKDAY_LIST) -> SIMPLE_WEEKDAY_LIST:
@@ -1432,7 +1536,12 @@ def _get_raw_schedule_paramset(*, schedule_data: _SCHEDULE_DICT) -> _RAW_SCHEDUL
                 for slot_type, slot_value in slot.items():
                     raw_profile_name = f"{str(profile)}_{str(slot_type)}_{str(weekday)}_{slot_no}"
                     if SCHEDULER_PROFILE_PATTERN.match(raw_profile_name) is None:
-                        raise ValidationException(f"Not a valid profile name: {raw_profile_name}")
+                        raise ValidationException(
+                            i18n.tr(
+                                "exception.model.custom.climate.validate.profile_name_invalid",
+                                profile_name=raw_profile_name,
+                            )
+                        )
                     raw_value: float | int = cast(float | int, slot_value)
                     if slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, str):
                         raw_value = _convert_time_str_to_minutes(time_str=slot_value)

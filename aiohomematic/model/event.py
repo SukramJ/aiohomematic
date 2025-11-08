@@ -32,7 +32,7 @@ from datetime import datetime
 import logging
 from typing import Any, Final
 
-from aiohomematic import support as hms
+from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     CLICK_EVENTS,
@@ -204,5 +204,8 @@ def _safe_create_event(
         )
     except Exception as exc:
         raise AioHomematicException(
-            f"CREATE_EVENT_AND_APPEND_TO_CHANNEL: Unable to create event:{hms.extract_exc_args(exc=exc)}"
+            i18n.tr(
+                "exception.model.event.create_event.failed",
+                reason=hms.extract_exc_args(exc=exc),
+            )
         ) from exc

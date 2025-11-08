@@ -32,7 +32,7 @@ from ssl import SSLContext, SSLError
 from typing import Any, Final
 import xmlrpc.client
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
 from aiohomematic.const import ISO_8859_1
@@ -200,7 +200,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         try:
             method = args[0]
             if self._supported_methods and method not in self._supported_methods:
-                raise UnsupportedException(f"XmlRPC.__ASYNC_REQUEST: method '{method} not supported by the backend.")
+                raise UnsupportedException(i18n.tr("exception.client.xmlrpc.method_unsupported", method=method))
 
             if method in _VALID_RPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
                 issuer=self, iid=self._interface_id
@@ -220,7 +220,9 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 self._record_session(method=method, params=args[1], response=result)
                 self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
                 return result
-            raise NoConnectionException(f"No connection to {self._interface_id}")
+            raise NoConnectionException(
+                i18n.tr("exception.client.xmlrpc.no_connection", interface_id=self._interface_id)
+            )
         except BaseHomematicException as bhe:
             self._record_session(method=args[0], params=args[1:], exc=bhe)
             raise
@@ -244,9 +246,10 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 message=message,
                 log_context=self.log_context,
             )
-            raise NoConnectionException(message) from sslerr
+            raise NoConnectionException(
+                i18n.tr("exception.client.xmlrpc.ssl_error", interface_id=self._interface_id, reason=message)
+            ) from sslerr
         except OSError as oserr:  # pragma: no cover - Network/socket errno differences are platform/environment specific; simulating reliably in CI would be flaky
-            message = f"OSError on {self._interface_id}: {extract_exc_args(exc=oserr)}"
             level = (
                 logging.ERROR
                 if oserr.args[0] in _OS_ERROR_CODES
@@ -262,7 +265,13 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 level=level,
                 log_context=self.log_context,
             )
-            raise NoConnectionException(message) from oserr
+            raise NoConnectionException(
+                i18n.tr(
+                    "exception.client.xmlrpc.os_error",
+                    interface_id=self._interface_id,
+                    reason=extract_exc_args(exc=oserr),
+                )
+            ) from oserr
         except xmlrpc.client.Fault as flt:
             ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self._interface_id)
             raise map_xmlrpc_fault(code=flt.faultCode, fault_string=flt.faultString, ctx=ctx) from flt
@@ -272,7 +281,13 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             if not self._connection_state.has_issue(issuer=self, iid=self._interface_id):
                 if perr.errmsg == "Unauthorized":
                     raise AuthFailure(perr) from perr
-                raise NoConnectionException(f"No connection to {self.log_context} ({perr.errmsg})") from perr
+                raise NoConnectionException(
+                    i18n.tr(
+                        "exception.client.xmlrpc.no_connection_with_reason",
+                        context=str(self.log_context),
+                        reason=perr.errmsg,
+                    )
+                ) from perr
         except Exception as exc:
             raise ClientException(exc) from exc
 

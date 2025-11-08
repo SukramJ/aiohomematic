@@ -89,5 +89,7 @@
   "exception.validator.ipv4_address.invalid": "ipv4_address ist ungültig",
   "exception.validator.paramset_key.invalid": "paramset_key ist ungültig",
   "exception.validator.password.invalid": "password ist ungültig",
-  "exception.validator.undefined_in_lists": "DataPointCategory.UNDEFINED darf nicht in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES enthalten sein"
+  "exception.validator.undefined_in_lists": "DataPointCategory.UNDEFINED darf nicht in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES enthalten sein",
+  "log.store.dynamic.pending_pong_mismatch": "Ausstehende PONG-Abweichung: Es besteht eine Abweichung zwischen gesendeten Ping-Ereignissen und empfangenen Pong-Ereignissen für Instanz {interface_id}. Möglicher Grund 1: Es laufen mehrere Instanzen mit demselben Instanznamen für diese Integration. Fügen Sie eine Instanz erneut hinzu! Andernfalls erhält diese Instanz keine Update-Ereignisse von Ihrer CCU. Möglicher Grund 2: Auf der CCU hängt etwas oder wurde nicht bereinigt. Versuchen Sie daher einen Neustart der CCU. Möglicher Grund 3: Ihre Einrichtung ist falsch konfiguriert und diese Instanz kann keine Ereignisse von der CCU empfangen.",
+  "log.store.dynamic.unknown_pong_mismatch": "Unbekannte PONG-Abweichung: Ihre Instanz {interface_id} erhält PONG-Ereignisse, die sie nicht gesendet hat. Möglicher Grund 1: Es laufen mehrere Instanzen mit demselben Instanznamen für diese Integration. Fügen Sie eine Instanz erneut hinzu! Andernfalls erhält die andere Instanz keine Update-Ereignisse von Ihrer CCU. Möglicher Grund 2: Auf der CCU hängt etwas oder wurde nicht bereinigt. Versuchen Sie daher einen Neustart der CCU."
 }

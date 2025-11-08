@@ -89,5 +89,7 @@
   "exception.validator.ipv4_address.invalid": "ipv4_address is invalid",
   "exception.validator.paramset_key.invalid": "paramset_key is invalid",
   "exception.validator.password.invalid": "password is invalid",
-  "exception.validator.undefined_in_lists": "DataPointCategory.UNDEFINED must not be present in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES"
+  "exception.validator.undefined_in_lists": "DataPointCategory.UNDEFINED must not be present in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES",
+  "log.store.dynamic.pending_pong_mismatch": "Pending PONG mismatch: There is a mismatch between send ping events and received pong events for instance {interface_id}. Possible reason 1: You are running multiple instances with the same instance name configured for this integration. Re-add one instance! Otherwise this instance will not receive update events from your CCU. Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart. Possible reason 3: Your setup is misconfigured and this instance is not able to receive events from the CCU.",
+  "log.store.dynamic.unknown_pong_mismatch": "Unknown PONG Mismatch: Your instance {interface_id} receives PONG events, that it hasn't send. Possible reason 1: You are running multiple instances with the same instance name configured for this integration. Re-add one instance! Otherwise the other instance will not receive update events from your CCU. Possible reason 2: Something is stuck on the CCU or hasn't been cleaned up. Therefore, try a CCU restart."
 }

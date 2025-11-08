@@ -7,9 +7,9 @@ repos:
         language: script
         types_or: [python]
         files: ^(aiohomematic|aiohomematic_test_support|tests)/.+\.py$
-      - id: check-exception-i18n
-        name: check-exception-i18n
-        entry: script/run-in-env.sh python script/check_exception_i18n.py
+      - id: check-i18n
+        name: check-i18n
+        entry: script/run-in-env.sh python script/check_i18n.py
         language: script
         types_or: [python]
         files: ^(aiohomematic)/.+\.py$

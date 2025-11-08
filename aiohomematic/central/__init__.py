@@ -228,9 +228,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._config: Final = central_config
         # Apply locale for translations
         try:
-            i18n.set_locale(self._config.locale)
+            i18n.set_locale(locale=self._config.locale)
         except Exception:  # pragma: no cover - keep init robust
-            i18n.set_locale(DEFAULT_LOCALE)
+            i18n.set_locale(locale=DEFAULT_LOCALE)
         self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()

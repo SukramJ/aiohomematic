@@ -93,6 +93,7 @@ from aiohomematic.const import (
     DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
     DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
     DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
+    DEFAULT_LOCALE,
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_OPTIONAL_SETTINGS,
     DEFAULT_PERIODIC_REFRESH_INTERVAL,
@@ -229,7 +230,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         try:
             i18n.set_locale(self._config.locale)
         except Exception:  # pragma: no cover - keep init robust
-            i18n.set_locale("en")
+            i18n.set_locale(DEFAULT_LOCALE)
         self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()
@@ -2055,7 +2056,7 @@ class CentralConfig:
         un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES,
         use_group_channel_for_cover_state: bool = DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE,
         verify_tls: bool = DEFAULT_VERIFY_TLS,
-        locale: str = "en",
+        locale: str = DEFAULT_LOCALE,
     ) -> None:
         """Init the client config."""
         self._interface_configs: Final = interface_configs
@@ -2278,28 +2279,33 @@ def check_config(
     """Check config. Throws BaseHomematicException on failure."""
     config_failures: list[str] = []
     if central_name and IDENTIFIER_SEPARATOR in central_name:
-        config_failures.append(f"Instance name must not contain {IDENTIFIER_SEPARATOR}")
+        config_failures.append(i18n.tr("exception.config.check.instance_name.separator", sep=IDENTIFIER_SEPARATOR))
 
     if not (is_hostname(hostname=host) or is_ipv4_address(address=host)):
-        config_failures.append("Invalid hostname or ipv4 address")
+        config_failures.append(i18n.tr("exception.config.check.host.invalid"))
     if not username:
-        config_failures.append("Username must not be empty")
+        config_failures.append(i18n.tr("exception.config.check.username.empty"))
     if not password:
-        config_failures.append("Password is required")
+        config_failures.append(i18n.tr("exception.config.check.password.required"))
     if not check_password(password=password):
-        config_failures.append("Password is not valid")
+        config_failures.append(i18n.tr("exception.config.check.password.invalid"))
     try:
         check_or_create_directory(directory=storage_directory)
     except BaseHomematicException as bhexc:
         config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
-        config_failures.append("Invalid callback hostname or ipv4 address")
+        config_failures.append(i18n.tr("exception.config.check.callback_host.invalid"))
     if callback_port_xml_rpc and not is_port(port=callback_port_xml_rpc):
-        config_failures.append("Invalid xml rpc callback port")
+        config_failures.append(i18n.tr("exception.config.check.callback_port_xml_rpc.invalid"))
     if json_port and not is_port(port=json_port):
-        config_failures.append("Invalid json port")
+        config_failures.append(i18n.tr("exception.config.check.json_port.invalid"))
     if interface_configs and not _has_primary_client(interface_configs=interface_configs):
-        config_failures.append(f"No primary interface ({', '.join(PRIMARY_CLIENT_CANDIDATE_INTERFACES)}) defined")
+        config_failures.append(
+            i18n.tr(
+                "exception.config.check.primary_interface.missing",
+                interfaces=", ".join(PRIMARY_CLIENT_CANDIDATE_INTERFACES),
+            )
+        )
 
     return config_failures
 

@@ -46,12 +46,11 @@ async def test_localized_exception_message_from_check_config(locale: str, expect
     msg = str(excinfo.value)
     assert expected_substr in msg
     # It should include at least one original failure detail joined in
-    assert any(
-        substr in msg
-        for substr in (
-            "Invalid hostname or ipv4 address",
-            "Username must not be empty",
-            "Password is required",
-            "Password is not valid",
-        )
+    # Build expected localized failure messages for current locale
+    expected_failures = (
+        i18n.tr("exception.config.check.host.invalid"),
+        i18n.tr("exception.config.check.username.empty"),
+        i18n.tr("exception.config.check.password.required"),
+        i18n.tr("exception.config.check.password.invalid"),
     )
+    assert any(substr in msg for substr in expected_failures)

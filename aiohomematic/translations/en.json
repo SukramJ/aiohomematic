@@ -1,0 +1,4 @@
+{
+  "exception.config.invalid": "Invalid configuration: {failures}",
+  "exception.create_central.failed": "Not able to create a central: {reason}"
+}

@@ -77,7 +77,7 @@ from typing import Any, Final, cast
 from aiohttp import ClientSession
 import voluptuous as vol
 
-from aiohomematic import client as hmcl
+from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper, loop_check
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
@@ -225,6 +225,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         # Keep the config for the central
         self._config: Final = central_config
+        # Apply locale for translations
+        try:
+            i18n.set_locale(self._config.locale)
+        except Exception:  # pragma: no cover - keep init robust
+            i18n.set_locale("en")
         self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()
@@ -2037,6 +2042,7 @@ class CentralConfig:
         un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES,
         use_group_channel_for_cover_state: bool = DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE,
         verify_tls: bool = DEFAULT_VERIFY_TLS,
+        locale: str = "en",
     ) -> None:
         """Init the client config."""
         self._interface_configs: Final = interface_configs
@@ -2083,6 +2089,7 @@ class CentralConfig:
         self.use_group_channel_for_cover_state: Final = use_group_channel_for_cover_state
         self.username: Final = username
         self.verify_tls: Final = verify_tls
+        self.locale: Final = locale
 
     @property
     def connection_check_port(self) -> int:
@@ -2132,7 +2139,9 @@ class CentralConfig:
             interface_configs=self._interface_configs,
         ):
             failures = ", ".join(config_failures)
-            raise AioHomematicConfigException(failures)
+            # Localized exception message
+            msg = i18n.tr("exception.config.invalid", failures=failures)
+            raise AioHomematicConfigException(msg)
 
     def create_central(self) -> CentralUnit:
         """Create the central. Throws BaseHomematicException on validation failure."""

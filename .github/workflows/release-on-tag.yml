@@ -24,7 +24,7 @@ jobs:
           VERSION="${TAG_NAME#v}"
           echo "TAG_NAME=${TAG_NAME}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
-          echo "Tag: $TAG_NAME -> Version: $VERSION"
+          echo "Tag: $TAG_NAME -> $VERSION"
 
       - name: Extract release notes from changelog.md
         id: notes
@@ -60,9 +60,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: Version ${{ env.TAG_NAME }}
+          name: ${{ env.TAG_NAME }}
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger python-publish workflow via repository_dispatch
+        run: |
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY}"
+          API="https://api.github.com/repos/${REPO}/dispatches"
+          echo "Dispatching event 'release-on-tag-succeeded' for tag ${TAG_NAME}"
+          curl -sSf -X POST "${API}" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -d "{\"event_type\":\"release-on-tag-succeeded\",\"client_payload\":{\"tag\":\"${TAG_NAME}\",\"version\":\"${VERSION}\"}}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1337,10 +1337,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             try:
                 client = await hmcl.create_client(central=self, interface_config=interface_config)
             except BaseHomematicException as bhexc:
-                _LOGGER.error(  # i18n-log: ignore
-                    "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client %s: %s",
-                    interface_config.interface,
-                    extract_exc_args(exc=bhexc),
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.central.validate_config_and_get_system_information.client_failed",
+                        interface=str(interface_config.interface),
+                        reason=extract_exc_args(exc=bhexc),
+                    )
                 )
                 raise
             if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and not system_information.serial:
@@ -1495,15 +1497,19 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     async def _create_clients(self) -> bool:
         """Create clients for the central unit. Start connection checker afterwards."""
         if len(self._clients) > 0:
-            _LOGGER.warning(
-                "CREATE_CLIENTS: Clients for %s are already created",
-                self.name,
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.create_clients.already_created",
+                    name=self.name,
+                )
             )
             return False
         if len(self._config.enabled_interface_configs) == 0:
-            _LOGGER.error(  # i18n-log: ignore
-                "CREATE_CLIENTS failed: No Interfaces for %s defined",
-                self.name,
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.create_clients.no_interfaces",
+                    name=self.name,
+                )
             )
             return False
 
@@ -1532,14 +1538,21 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         if not self.all_clients_active:
             _LOGGER.warning(
-                "CREATE_CLIENTS failed: Created %i of %i clients",
-                len(self._clients),
-                len(self._config.enabled_interface_configs),
+                i18n.tr(
+                    "log.central.create_clients.created_count_failed",
+                    created=len(self._clients),
+                    total=len(self._config.enabled_interface_configs),
+                )
             )
             return False
 
         if self.primary_client is None:
-            _LOGGER.warning("CREATE_CLIENTS failed: No primary client identified for %s", self.name)
+            _LOGGER.warning(
+                i18n.tr(
+                    "log.central.create_clients.no_primary_identified",
+                    name=self.name,
+                )
+            )
             return True
 
         _LOGGER.debug("CREATE_CLIENTS successful for %s", self.name)
@@ -1640,7 +1653,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             except AioHomematicException:
                 ip_addr = LOCAL_HOST
             if ip_addr is None:
-                _LOGGER.warning("GET_IP_ADDR: Waiting for %i s,", CONNECTION_CHECKER_INTERVAL)
+                _LOGGER.warning(  # i18n-log: ignore
+                    "GET_IP_ADDR: Waiting for %i s,", CONNECTION_CHECKER_INTERVAL
+                )
                 await asyncio.sleep(TIMEOUT / 10)
         return ip_addr
 
@@ -1681,7 +1696,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             await self._device_descriptions.load(),
             await self._paramset_descriptions.load(),
         ):
-            _LOGGER.warning("LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name)
+            _LOGGER.warning(  # i18n-log: ignore
+                "LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name
+            )
             await self.clear_files()
             return False
         await self._device_details.load()

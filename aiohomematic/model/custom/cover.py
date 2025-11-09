@@ -392,7 +392,9 @@ class CustomDpBlind(CustomDpCover):
             )
         except TimeoutError:
             acquired = False
-            _LOGGER.warning("%s: command lock acquisition timed out; proceeding without lock", self)
+            _LOGGER.warning(  # i18n-log: ignore
+                "%s: command lock acquisition timed out; proceeding without lock", self
+            )
         try:
             await self._stop(collector=collector)
         finally:
@@ -468,7 +470,9 @@ class CustomDpBlind(CustomDpCover):
             )
         except TimeoutError:
             acquired = False
-            _LOGGER.warning("%s: command lock acquisition timed out; proceeding without lock", self)
+            _LOGGER.warning(  # i18n-log: ignore
+                "%s: command lock acquisition timed out; proceeding without lock", self
+            )
 
         try:
             if level is not None:

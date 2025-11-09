@@ -64,7 +64,9 @@ class Looper:
             # If we have a deadline and have exceeded it, log remaining tasks and break
             if deadline is not None and monotonic() >= deadline:
                 for task in tasks:
-                    _LOGGER.warning("Shutdown timeout reached; task still pending: %s", task)
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "Shutdown timeout reached; task still pending: %s", task
+                    )
                 break
 
             pending_after_wait = await self._await_and_log_pending(pending=tasks, deadline=deadline)
@@ -72,7 +74,9 @@ class Looper:
             # If deadline has been reached and tasks are still pending, log and break
             if deadline is not None and monotonic() >= deadline and pending_after_wait:
                 for task in pending_after_wait:
-                    _LOGGER.warning("Shutdown timeout reached; task still pending: %s", task)
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "Shutdown timeout reached; task still pending: %s", task
+                    )
                 break
 
             if start_time is None:
@@ -199,7 +203,7 @@ def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
 
             if not loop_running and func not in _with_loop:
                 _with_loop.add(func)
-                _LOGGER.warning(
+                _LOGGER.error(  # i18n-log: ignore
                     "Method %s must run in the event_loop. No loop detected.",
                     func.__name__,
                 )

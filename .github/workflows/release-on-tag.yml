@@ -1,5 +1,5 @@
 name: Release on tag
-
+# yamllint disable-line rule:truthy
 on:
   push:
     tags:
@@ -38,10 +38,11 @@ jobs:
 
           # Extract the section that starts at the matching header and ends before the next header
           # Header format expected: "# Version <version> (YYYY-MM-DD)"
+          # NOTE: We intentionally skip the header line itself from the release notes.
           awk -v ver="${VERSION}" '
             /^# Version / {
               if (insec) exit
-              if ($0 ~ "^# Version " ver " ") insec=1
+              if ($0 ~ "^# Version " ver " ") { insec=1; next }
             }
             insec { print }
           ' changelog.md > RELEASE_NOTES.md || true

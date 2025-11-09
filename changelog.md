@@ -1,3 +1,7 @@
+# Version 2025.11.11 (2025-11-09)
+
+- Move strings.json to root
+
 # Version 2025.11.10 (2025-11-08)
 
 - Make exceptions translatable

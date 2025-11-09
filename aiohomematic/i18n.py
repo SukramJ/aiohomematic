@@ -8,7 +8,7 @@ Usage:
 
 Lookup order:
 1) translations/<locale>.json
-2) translations/strings.json (base)
+2) strings.json (base) in package root `aiohomematic/`
 3) Fallback to the key itself
 """
 
@@ -58,19 +58,20 @@ class _SafeDict(dict[str, str]):
         return "{" + k + "}"
 
 
-def _load_json_resource(*, package: str, resource: str) -> dict[str, str]:
+def _load_json_resource(*, package: str, resource: str, in_translations: bool = True) -> dict[str, str]:
     """
-    Load a JSON resource from the package's translations directory without builtins.open.
+    Load a JSON resource from the package. By default from `translations/` subdir.
 
     Uses pkgutil.get_data to read packaged data (works in editable installs and wheels).
     """
     try:
-        if not (data_bytes := pkgutil.get_data(package=package, resource=f"translations/{resource}")):
+        resource_path = f"translations/{resource}" if in_translations else resource
+        if not (data_bytes := pkgutil.get_data(package=package, resource=resource_path)):
             return {}
         data = orjson.loads(data_bytes)
         return {str(k): str(v) for k, v in data.items()}
     except Exception as exc:  # pragma: no cover - defensive
-        _LOGGER.debug("Failed to load translation resource %s/translations/%s: %s", package, resource, exc)
+        _LOGGER.debug("Failed to load translation resource %s/%s: %s", package, resource_path, exc)
         return {}
 
 
@@ -80,7 +81,7 @@ def _load_base_catalog() -> None:
     with _LOCK:
         if _BASE_CACHE_LOADED:
             return
-        _BASE_CATALOG = _load_json_resource(package=_TRANSLATIONS_PKG, resource="strings.json")
+        _BASE_CATALOG = _load_json_resource(package=_TRANSLATIONS_PKG, resource="strings.json", in_translations=False)
         # Initialize active catalog with whatever we have for the current locale (likely base on first import)
         _ACTIVE_CATALOG = {**_BASE_CATALOG, **(_CACHE.get(_CURRENT_LOCALE) or {})}
         _BASE_CACHE_LOADED = True

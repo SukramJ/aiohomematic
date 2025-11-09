@@ -4,7 +4,7 @@ Pre-commit hook to validate i18n catalogs and usage.
 
 Checks performed:
 1) Ensure that every translation key used in code via i18n.tr("key")/tr("key")
-   exists in the base catalog `translations/strings.json`.
+   exists in the base catalog `aiohomematic/strings.json`.
 2) Ensure `translations/en.json` is always an exact copy of `strings.json`.
    With --fix, overwrite `en.json` accordingly.
 3) For `translations/de.json`, report which entries are missing (compared to
@@ -31,7 +31,7 @@ from pathlib import Path
 # Project paths
 ROOT = Path(__file__).resolve().parents[1]
 TRANSLATIONS_DIR = ROOT / "aiohomematic" / "translations"
-STRINGS_JSON = TRANSLATIONS_DIR / "strings.json"
+STRINGS_JSON = ROOT / "aiohomematic" / "strings.json"
 EN_JSON = TRANSLATIONS_DIR / "en.json"
 DE_JSON = TRANSLATIONS_DIR / "de.json"
 

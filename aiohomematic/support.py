@@ -161,10 +161,11 @@ def check_password(*, password: str | None) -> bool:
     if password is None:
         return False
     if CCU_PASSWORD_PATTERN.fullmatch(password) is None:
-        _LOGGER.warning(
-            "CHECK_CONFIG: password contains not allowed characters. "
-            "Use only allowed characters. See password regex: %s",
-            CCU_PASSWORD_PATTERN.pattern,
+        _LOGGER.error(
+            i18n.tr(
+                "log.support.check_password.invalid_chars",
+                pattern=CCU_PASSWORD_PATTERN.pattern,
+            )
         )
         return False
     return True

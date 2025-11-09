@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
+from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
@@ -29,11 +30,13 @@ class SysvarDpNumber(GenericSysvarDataPoint):
             if self.min <= float(value) <= self.max:
                 await super().send_variable(value=value)
             else:
-                _LOGGER.warning(
-                    "SYSVAR.NUMBER failed: Invalid value: %s (min: %s, max: %s)",
-                    value,
-                    self.min,
-                    self.max,
+                _LOGGER.error(
+                    i18n.tr(
+                        "exception.model.hub.number.invalid_value",
+                        value=value,
+                        min=self.min,
+                        max=self.max,
+                    )
                 )
             return
         await super().send_variable(value=value)

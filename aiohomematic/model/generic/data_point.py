@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 from typing import Any, Final, TypeAlias
 
+from aiohomematic import i18n
 from aiohomematic.const import (
     DP_KEY_VALUE,
     CallSource,
@@ -118,7 +119,12 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
     ) -> set[DP_KEY_VALUE]:
         """Send value to ccu, or use collector if set."""
         if not self.is_writeable:
-            _LOGGER.error("SEND_VALUE: writing to non-writable data_point %s is not possible", self.full_name)
+            _LOGGER.error(
+                i18n.tr(
+                    "log.model.generic_data_point.send_value.not_writable",
+                    full_name=self.full_name,
+                )
+            )
             return set()
         try:
             prepared_value = self._prepare_value_for_sending(value=value, do_validate=do_validate)

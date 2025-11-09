@@ -304,7 +304,7 @@ def _cleanup_args(*args: Any) -> Any:
             else:
                 new_args.append(_cleanup_item(item=data))
         return (args[0], tuple(new_args))
-    _LOGGER.error("XmlRpcProxy command: Too many arguments")
+    _LOGGER.error("XmlRpcProxy command: Too many arguments")  # i18n-log: ignore
     return args
 
 
@@ -315,7 +315,7 @@ def _cleanup_item(*, item: Any) -> Any:
     if isinstance(item, IntEnum):
         return int(item)
     if isinstance(item, Enum):
-        _LOGGER.error("XmlRpcProxy command: Enum is not supported as parameter value")
+        _LOGGER.error("XmlRpcProxy command: Enum is not supported as parameter value")  # i18n-log: ignore
     return item
 
 

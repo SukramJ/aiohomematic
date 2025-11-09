@@ -628,10 +628,12 @@ class Client(ABC, LogContextMixin):
                         },
                     )
                     self._is_callback_alive = False
-                _LOGGER.warning(
-                    "IS_CALLBACK_ALIVE: Callback for %s has not received events for %is",
-                    self.interface_id,
-                    seconds_since_last_event,
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.client.is_callback_alive.no_events",
+                        interface_id=self.interface_id,
+                        seconds=int(seconds_since_last_event),
+                    )
                 )
                 return False
 

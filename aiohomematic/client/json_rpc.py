@@ -552,11 +552,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                         )
                     )
                 except (ValueError, TypeError) as vterr:
-                    _LOGGER.warning(
-                        "GET_ALL_SYSTEM_VARIABLES failed: %s [%s] Failed to parse SysVar %s ",
-                        vterr.__class__.__name__,
-                        extract_exc_args(exc=vterr),
-                        legacy_name,
+                    _LOGGER.error(
+                        i18n.tr(
+                            "log.client.json_rpc.get_all_system_variables.parse_failed",
+                            exc_type=vterr.__class__.__name__,
+                            reason=extract_exc_args(exc=vterr),
+                            legacy_name=legacy_name,
+                        )
                     )
 
         return tuple(variables)
@@ -786,9 +788,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         elif isinstance(value, str):
             if (clean_text := cleanup_text_from_html_tags(text=value)) != value:
                 params[_JsonKey.VALUE] = clean_text
-                _LOGGER.warning(
-                    "SET_SYSTEM_VARIABLE: Value (%s) contains html tags. These are filtered out when writing.",
-                    value,
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.client.json_rpc.set_system_variable.value_contains_html",
+                        value=value,
+                    )
                 )
             response = await self._post_script(script_name=RegaScript.SET_SYSTEM_VARIABLE, extra_params=params)
         else:
@@ -837,7 +841,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         if self._supported_methods is None:
             self._supported_methods = await self._get_supported_methods()
         if unsupport_methods := tuple(method for method in _JsonRpcMethod if method not in self._supported_methods):
-            _LOGGER.warning(
+            _LOGGER.error(  # i18n-log: ignore
                 "CHECK_SUPPORTED_METHODS: methods not supported by the backend: %s",
                 ", ".join(unsupport_methods),
             )
@@ -847,7 +851,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     async def _do_login(self) -> str | None:
         """Login to the backend and return session."""
         if not self._has_credentials:
-            _LOGGER.warning("DO_LOGIN failed: No credentials set")
+            _LOGGER.error(i18n.tr("log.client.json_rpc.do_login.no_credentials"))
             return None
 
         session_id: str | None = None
@@ -1099,8 +1103,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     )
         except JSONDecodeError as jderr:
             _LOGGER.error(
-                "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: %s",
-                extract_exc_args(exc=jderr),
+                i18n.tr(
+                    "log.client.json_rpc.get_program_descriptions.decode_failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
             )
         return descriptions
 
@@ -1182,8 +1188,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     )
         except JSONDecodeError as jderr:
             _LOGGER.error(
-                "GET_SYSTEM_VARIABLE_DESCRIPTIONS failed: Unable to decode json: %s",
-                extract_exc_args(exc=jderr),
+                i18n.tr(
+                    "log.client.json_rpc.get_system_variable_descriptions.decode_failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
             )
         return descriptions
 

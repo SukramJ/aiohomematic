@@ -331,7 +331,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
                     kwargs[KWARGS_ARG_CUSTOM_ID] = custom_id
                     callback_handler(**kwargs)
                 except Exception as exc:
-                    _LOGGER.warning("EMIT_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc))
+                    _LOGGER.error(  # i18n-log: ignore
+                        "EMIT_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc)
+                    )
 
     @loop_check
     def emit_device_removed_event(self) -> None:
@@ -340,7 +342,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
             try:
                 callback_handler()
             except Exception as exc:
-                _LOGGER.warning("EMIT_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))
+                _LOGGER.error("EMIT_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))  # i18n-log: ignore
 
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""

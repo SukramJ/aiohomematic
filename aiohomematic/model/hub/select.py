@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
+from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
@@ -42,8 +43,10 @@ class SysvarDpSelect(GenericSysvarDataPoint):
             if value in self._values:
                 await super().send_variable(value=self._values.index(value))
         else:
-            _LOGGER.warning(
-                "Value not in value_list for %s/%s",
-                self.name,
-                self.unique_id,
+            _LOGGER.error(
+                i18n.tr(
+                    "exception.model.select.value_not_in_value_list",
+                    name=self.name,
+                    unique_id=self.unique_id,
+                )
             )

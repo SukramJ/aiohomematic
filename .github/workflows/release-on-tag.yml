@@ -54,6 +54,28 @@ jobs:
             exit 1
           fi
 
+          # Determine previous version as the next header following the current version section start
+          awk -v ver="${VERSION}" '
+            $0 ~ "^# Version " ver " " { insec=1; next }
+            insec && /^# Version / {
+              if (match($0, /^# Version ([^ ]+)/, m)) { print m[1]; exit }
+            }
+          ' changelog.md > PREV_VERSION.txt || true
+
+          if [ ! -s PREV_VERSION.txt ]; then
+            echo "Could not determine previous version from changelog.md following '${VERSION}'." >&2
+            exit 1
+          fi
+          PREV_VERSION="$(cat PREV_VERSION.txt)"
+
+          # Append Full Changelog link as the last line of the release notes
+          REPO="${GITHUB_REPOSITORY}"
+          FULL_LINK="**Full Changelog**: https://github.com/${REPO}/compare/${PREV_VERSION}...${VERSION}"
+          # Avoid duplicates if rerun
+          if ! grep -Fxq "$FULL_LINK" RELEASE_NOTES.md; then
+            printf "\n%s\n" "$FULL_LINK" >> RELEASE_NOTES.md
+          fi
+
           echo "Extracted release notes:" >&2
           sed -n '1,40p' RELEASE_NOTES.md >&2
 

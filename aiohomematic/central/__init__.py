@@ -583,7 +583,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         await callback_handler(value=value, received_at=received_at)
             except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
+                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s, %s, %s",
                     extract_exc_args(exc=rterr),
                     interface_id,
                     channel_address,
@@ -591,7 +591,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 )
             except Exception as exc:
                 _LOGGER_EVENT.error(  # i18n-log: ignore
-                    "EVENT failed: Unable to call callback for: %s, %s, %s, %s",
+                    "EVENT failed: Unable to call handler for: %s, %s, %s, %s",
                     interface_id,
                     channel_address,
                     parameter,
@@ -1316,13 +1316,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     )
             except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
+                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s",
                     extract_exc_args(exc=rterr),
                     state_path,
                 )
             except Exception as exc:  # pragma: no cover
                 _LOGGER_EVENT.error(  # i18n-log: ignore
-                    "EVENT failed: Unable to call callback for: %s, %s",
+                    "EVENT failed: Unable to call handler for: %s, %s",
                     state_path,
                     extract_exc_args(exc=exc),
                 )

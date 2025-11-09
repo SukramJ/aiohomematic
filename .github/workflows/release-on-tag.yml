@@ -1,0 +1,68 @@
+name: Release on tag
+
+on:
+  push:
+    tags:
+      - '**'
+
+permissions:
+  contents: write
+
+jobs:
+  create_release:
+    name: Create GitHub Release from changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine version from tag
+        id: vars
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          # Strip a leading 'v' to map tags like v1.2.3 -> 1.2.3
+          VERSION="${TAG_NAME#v}"
+          echo "TAG_NAME=${TAG_NAME}" >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "Tag: $TAG_NAME -> Version: $VERSION"
+
+      - name: Extract release notes from changelog.md
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f changelog.md ]; then
+            echo "changelog.md not found at repo root" >&2
+            exit 1
+          fi
+
+          # Extract the section that starts at the matching header and ends before the next header
+          # Header format expected: "# Version <version> (YYYY-MM-DD)"
+          awk -v ver="${VERSION}" '
+            /^# Version / {
+              if (insec) exit
+              if ($0 ~ "^# Version " ver " ") insec=1
+            }
+            insec { print }
+          ' changelog.md > RELEASE_NOTES.md || true
+
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "No matching section found in changelog.md for version '${VERSION}'." >&2
+            echo "Expected a line starting with: '# Version ${VERSION} '" >&2
+            echo "Aborting release creation." >&2
+            exit 1
+          fi
+
+          echo "Extracted release notes:" >&2
+          sed -n '1,40p' RELEASE_NOTES.md >&2
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: Version ${{ env.TAG_NAME }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

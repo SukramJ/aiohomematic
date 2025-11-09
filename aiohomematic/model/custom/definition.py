@@ -591,7 +591,13 @@ def validate_custom_data_point_definition() -> Any:
     try:
         return _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
     except vol.Invalid as err:  # pragma: no cover
-        _LOGGER.error("The custom data point definition could not be validated. %s, %s", err.path, err.msg)
+        _LOGGER.error(
+            i18n.tr(
+                "log.model.custom.definition.validate_failed",
+                path=str(err.path),
+                msg=str(err.msg),
+            )
+        )
         return None
 
 

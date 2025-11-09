@@ -272,7 +272,7 @@ class Client(ABC, LogContextMixin):
             await self._proxy.init(self._config.init_url)
             self._is_initialized = False
         except BaseHomematicException as bhexc:
-            _LOGGER.warning(
+            _LOGGER.warning(  # i18n-log: ignore
                 "PROXY_DE_INIT failed: %s [%s] Unable to de-initialize proxy for %s",
                 bhexc.name,
                 extract_exc_args(exc=bhexc),
@@ -340,7 +340,7 @@ class Client(ABC, LogContextMixin):
         if main_dd := await self.get_device_description(device_address=device_address):
             all_device_description.append(main_dd)
         else:
-            _LOGGER.warning(
+            _LOGGER.warning(  # i18n-log: ignore
                 "GET_ALL_DEVICE_DESCRIPTIONS: No device description for %s",
                 device_address,
             )
@@ -350,7 +350,7 @@ class Client(ABC, LogContextMixin):
                 if channel_dd := await self.get_device_description(device_address=channel_address):
                     all_device_description.append(channel_dd)
                 else:
-                    _LOGGER.warning(
+                    _LOGGER.warning(  # i18n-log: ignore
                         "GET_ALL_DEVICE_DESCRIPTIONS: No channel description for %s",
                         channel_address,
                     )
@@ -403,7 +403,9 @@ class Client(ABC, LogContextMixin):
             ):
                 return device_description
         except BaseHomematicException as bhexc:
-            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc))
+            _LOGGER.warning(  # i18n-log: ignore
+                "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc)
+            )
         return None
 
     @inspector
@@ -599,7 +601,7 @@ class Client(ABC, LogContextMixin):
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
             _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
         except BaseHomematicException as bhexc:
-            _LOGGER.warning(
+            _LOGGER.error(  # i18n-log: ignore
                 "PROXY_INIT failed: %s [%s] Unable to initialize proxy for %s",
                 bhexc.name,
                 extract_exc_args(exc=bhexc),
@@ -628,10 +630,12 @@ class Client(ABC, LogContextMixin):
                         },
                     )
                     self._is_callback_alive = False
-                _LOGGER.warning(
-                    "IS_CALLBACK_ALIVE: Callback for %s has not received events for %is",
-                    self.interface_id,
-                    seconds_since_last_event,
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.client.is_callback_alive.no_events",
+                        interface_id=self.interface_id,
+                        seconds=int(seconds_since_last_event),
+                    )
                 )
                 return False
 
@@ -797,8 +801,10 @@ class Client(ABC, LogContextMixin):
 
             await self.reinitialize_proxy()
             _LOGGER.info(
-                "RECONNECT: re-connected client %s",
-                self.interface_id,
+                i18n.tr(
+                    "log.client.reconnect.reconnected",
+                    interface_id=self.interface_id,
+                )
             )
             return True
         return False
@@ -902,8 +908,10 @@ class Client(ABC, LogContextMixin):
         """Update the firmware of a Homematic device."""
         if device := self.central.get_device(address=device_address):
             _LOGGER.info(
-                "UPDATE_DEVICE_FIRMWARE: Trying firmware update for %s",
-                device_address,
+                i18n.tr(
+                    "log.client.update_device_firmware.try",
+                    device_address=device_address,
+                )
             )
             try:
                 update_result = (
@@ -913,9 +921,11 @@ class Client(ABC, LogContextMixin):
                 )
                 result = bool(update_result) if isinstance(update_result, bool) else bool(update_result[0])
                 _LOGGER.info(
-                    "UPDATE_DEVICE_FIRMWARE: Executed firmware update for %s with result '%s'",
-                    device_address,
-                    "success" if result else "failed",
+                    i18n.tr(
+                        "log.client.update_device_firmware.result",
+                        device_address=device_address,
+                        result=("success" if result else "failed"),
+                    )
                 )
             except BaseHomematicException as bhexc:
                 raise ClientException(
@@ -928,10 +938,8 @@ class Client(ABC, LogContextMixin):
     async def update_paramset_descriptions(self, *, device_address: str) -> None:
         """Update paramsets descriptions for provided device_address."""
         if not self.central.device_descriptions.get_device_descriptions(interface_id=self.interface_id):
-            _LOGGER.warning(
-                "UPDATE_PARAMSET_DESCRIPTIONS failed: "
-                "Interface missing in central cache. "
-                "Not updating paramsets for %s",
+            _LOGGER.warning(  # i18n-log: ignore
+                "UPDATE_PARAMSET_DESCRIPTIONS failed: Interface missing in central cache. Not updating paramsets for %s",
                 device_address,
             )
             return
@@ -941,7 +949,7 @@ class Client(ABC, LogContextMixin):
         ):
             await self.fetch_paramset_descriptions(device_description=device_description)
         else:
-            _LOGGER.warning(
+            _LOGGER.warning(  # i18n-log: ignore
                 "UPDATE_PARAMSET_DESCRIPTIONS failed: Channel missing in central.cache. Not updating paramsets for %s",
                 device_address,
             )
@@ -1364,7 +1372,9 @@ class ClientJsonCCU(ClientCCU):
             ):
                 return device_description
         except BaseHomematicException as bhexc:
-            _LOGGER.warning("GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc))
+            _LOGGER.warning(  # i18n-log: ignore
+                "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc)
+            )
         return None
 
     @inspector
@@ -1640,7 +1650,7 @@ class ClientHomegear(ClientCCU):
                     name=await self._proxy_read.getMetadata(address, _NAME),
                 )
             except BaseHomematicException as bhexc:  # pragma: no cover
-                _LOGGER.warning(
+                _LOGGER.warning(  # i18n-log: ignore
                     "%s [%s] Failed to fetch name for device %s",
                     bhexc.name,
                     extract_exc_args(exc=bhexc),

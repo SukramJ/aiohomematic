@@ -601,13 +601,15 @@ class ParameterVisibilityCache:
                 # add master channel for a device to fetch paramset descriptions
                 self._relevant_master_paramsets_by_device[model].add(channel_no)
             else:
-                _LOGGER.warning(
+                _LOGGER.error(  # i18n-log: ignore
                     "ADD_UN_IGNORE_ENTRY: channel_no '%s' must be an integer or None for paramset_key MASTER.",
                     channel_no,
                 )
                 return
             if model == UN_IGNORE_WILDCARD:
-                _LOGGER.warning("ADD_UN_IGNORE_ENTRY: model must be set for paramset_key MASTER.")
+                _LOGGER.error(  # i18n-log: ignore
+                    "ADD_UN_IGNORE_ENTRY: model must be set for paramset_key MASTER."
+                )
                 return
 
         self._custom_un_ignore_complex[model][channel_no][paramset_key].add(parameter)
@@ -635,14 +637,14 @@ class ParameterVisibilityCache:
                         parameter = param_data[0]
                         paramset_key = ParamsetKey(param_data[1])
                     else:
-                        _LOGGER.warning(
+                        _LOGGER.error(  # i18n-log: ignore
                             "GET_UN_IGNORE_LINE_DETAILS failed: Could not add line '%s' to un ignore cache. "
                             "Only one ':' expected in param_data",
                             line,
                         )
                         return None
                 else:
-                    _LOGGER.warning(
+                    _LOGGER.error(  # i18n-log: ignore
                         "GET_UN_IGNORE_LINE_DETAILS failed: Could not add line '%s' to un ignore cache. "
                         "No ':' before '@'",
                         line,
@@ -657,28 +659,28 @@ class ParameterVisibilityCache:
                             int(_channel_no) if _channel_no.isnumeric() else None if _channel_no == "" else _channel_no
                         )
                     else:
-                        _LOGGER.warning(
+                        _LOGGER.error(  # i18n-log: ignore
                             "GET_UN_IGNORE_LINE_DETAILS failed: Could not add line '%s' to un ignore cache. "
                             "Only one ':' expected in channel_data",
                             line,
                         )
                         return None
                 else:
-                    _LOGGER.warning(
+                    _LOGGER.error(  # i18n-log: ignore
                         "GET_UN_IGNORE_LINE_DETAILS failed: Could not add line '%s' to un ignore cache. "
                         "No ':' after '@'",
                         line,
                     )
                     return None
             else:
-                _LOGGER.warning(
+                _LOGGER.error(  # i18n-log: ignore
                     "GET_UN_IGNORE_LINE_DETAILS failed: Could not add line '%s' to un ignore cache. "
                     "Only one @ expected",
                     line,
                 )
                 return None
         elif ADDRESS_SEPARATOR in line:
-            _LOGGER.warning(
+            _LOGGER.error(  # i18n-log: ignore
                 "GET_UN_IGNORE_LINE_DETAILS failed: No supported format detected for un ignore line '%s'. ",
                 line,
             )
@@ -778,7 +780,7 @@ class ParameterVisibilityCache:
                         paramset_key=line_details[3],
                     )
             else:
-                _LOGGER.warning(
+                _LOGGER.error(  # i18n-log: ignore
                     "PROCESS_UN_IGNORE_ENTRY failed: No supported format detected for un ignore line '%s'. ",
                     line,
                 )

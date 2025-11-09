@@ -69,7 +69,9 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
             """Execute the callback for a system event."""
 
             if not ((len(args) > 1 and not kwargs) or (len(args) == 1 and kwargs)):
-                _LOGGER.warning("EXEC_BACKEND_SYSTEM_CALLBACK failed: *args not supported for callback_system_event")
+                _LOGGER.error(  # i18n-log: ignore
+                    "EXEC_BACKEND_SYSTEM_CALLBACK failed: *args not supported for callback_system_event"
+                )
             try:
                 args = args[1:]
                 interface_id: str = args[0] if len(args) > 0 else str(kwargs[_INTERFACE_ID])
@@ -77,7 +79,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
                     client.modified_at = datetime.now()
                     client.central.emit_backend_system_callback(system_event=system_event, **kwargs)
             except Exception as exc:  # pragma: no cover
-                _LOGGER.warning(
+                _LOGGER.error(  # i18n-log: ignore
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Unable to reduce kwargs for backend_system_callback"
                 )
                 raise AioHomematicException(
@@ -119,7 +121,9 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
                     interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
                 )
         except Exception as exc:  # pragma: no cover
-            _LOGGER.warning("EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to process args/kwargs for event_callback")
+            _LOGGER.error(  # i18n-log: ignore
+                "EXEC_DATA_POINT_EVENT_CALLBACK failed: Unable to process args/kwargs for event_callback"
+            )
             raise AioHomematicException(
                 i18n.tr(
                     "exception.central.decorators.event_callback.args_exception",

@@ -492,7 +492,7 @@ class Device(LogContextMixin, PayloadMixin):
             try:
                 callback_handler()
             except Exception as exc:
-                _LOGGER.warning("EMIT_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))
+                _LOGGER.error("EMIT_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))  # i18n-log: ignore
 
     @inspector
     async def export_device_definition(self) -> None:
@@ -1038,7 +1038,7 @@ class Channel(LogContextMixin, PayloadMixin):
             try:
                 callback_handler()
             except Exception as exc:
-                _LOGGER.warning("EMIT_LINK_PEER_CHANGED_EVENT failed: %s", extract_exc_args(exc=exc))
+                _LOGGER.error("EMIT_LINK_PEER_CHANGED_EVENT failed: %s", extract_exc_args(exc=exc))  # i18n-log: ignore
 
     async def finalize_init(self) -> None:
         """Finalize the channel init action after model setup."""

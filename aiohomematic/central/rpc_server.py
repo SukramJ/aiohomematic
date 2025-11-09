@@ -15,7 +15,7 @@ import threading
 from typing import Any, Final, cast
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, i18n
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
 from aiohomematic.support import log_boundary_error
@@ -59,11 +59,13 @@ class RPCFunctions:
                 level=logging.WARNING,
                 log_context={"interface_id": interface_id, "error_code": int(error_code)},
             )
-        _LOGGER.warning(
-            "ERROR failed: interface_id = %s, error_code = %i, message = %s",
-            interface_id,
-            int(error_code),
-            str(msg),
+        _LOGGER.error(
+            i18n.tr(
+                "log.central.rpc_server.error",
+                interface_id=interface_id,
+                error_code=int(error_code),
+                msg=str(msg),
+            )
         )
 
     def event(self, interface_id: str, channel_address: str, parameter: str, value: Any, /) -> None:

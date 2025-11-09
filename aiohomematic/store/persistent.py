@@ -594,7 +594,7 @@ class SessionRecorder(BasePersistentFile):
     ) -> bool:
         """Activate the session recorder. Disable after on_time(seconds)."""
         if self._is_recording:
-            _LOGGER.info("ACTIVATE: Recording session is already running.")
+            _LOGGER.info(i18n.tr("log.store.session_recorder.activate.already_running"))
             return False
         self._store.clear()
         self._active = True
@@ -660,7 +660,7 @@ class SessionRecorder(BasePersistentFile):
     ) -> bool:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
         if self._is_recording:
-            _LOGGER.info("DEACTIVATE: Recording session is already running.")
+            _LOGGER.info(i18n.tr("log.store.session_recorder.deactivate.already_running"))
             return False
         if delay > 0:
             self._central.looper.create_task(

@@ -487,14 +487,14 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     async def add_new_device_manually(self, *, interface_id: str, address: str) -> None:
         """Add new devices manually triggered to central unit."""
         if interface_id not in self._clients:
-            _LOGGER.warning(
+            _LOGGER.error(  # i18n-log: ignore
                 "ADD_NEW_DEVICES_MANUALLY failed: Missing client for interface_id %s",
                 interface_id,
             )
             return
         client = self._clients[interface_id]
         if not (device_descriptions := await client.get_all_device_descriptions(device_address=address)):
-            _LOGGER.warning(
+            _LOGGER.error(  # i18n-log: ignore
                 "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
                 address,
                 interface_id,
@@ -583,15 +583,15 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         await callback_handler(value=value, received_at=received_at)
             except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call callback for: %s, %s, %s",
+                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s, %s, %s",
                     extract_exc_args(exc=rterr),
                     interface_id,
                     channel_address,
                     parameter,
                 )
             except Exception as exc:
-                _LOGGER_EVENT.warning(
-                    "EVENT failed: Unable to call callback for: %s, %s, %s, %s",
+                _LOGGER_EVENT.error(  # i18n-log: ignore
+                    "EVENT failed: Unable to call handler for: %s, %s, %s, %s",
                     interface_id,
                     channel_address,
                     parameter,
@@ -661,7 +661,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
                 )
             except Exception as exc:
-                _LOGGER.error(
+                _LOGGER.error(  # i18n-log: ignore
                     "EMIT_BACKEND_PARAMETER_CALLBACK: Unable to call handler: %s",
                     extract_exc_args(exc=exc),
                 )
@@ -677,7 +677,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             try:
                 callback_handler(system_event=system_event, **kwargs)
             except Exception as exc:
-                _LOGGER.error(
+                _LOGGER.error(  # i18n-log: ignore
                     "EMIT_BACKEND_SYSTEM_CALLBACK: Unable to call handler: %s",
                     extract_exc_args(exc=exc),
                 )
@@ -695,7 +695,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 # Call with keyword arguments as expected by tests and integrations
                 callback_handler(event_type=event_type, event_data=event_data)
             except Exception as exc:
-                _LOGGER.error(
+                _LOGGER.error(  # i18n-log: ignore
                     "EMIT_HOMEMATIC_CALLBACK: Unable to call handler: %s",
                     extract_exc_args(exc=exc),
                 )
@@ -1137,7 +1137,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Restart clients."""
         await self._stop_clients()
         if await self._start_clients():
-            _LOGGER.info("RESTART_CLIENTS: Central %s restarted clients", self.name)
+            _LOGGER.info(
+                i18n.tr(
+                    "log.central.restart_clients.restarted",
+                    name=self.name,
+                )
+            )
 
     async def save_files(
         self,
@@ -1166,7 +1171,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if dp := self.get_sysvar_data_point(legacy_name=legacy_name):
             await dp.send_variable(value=value)
         else:
-            _LOGGER.warning("Variable %s not found on %s", legacy_name, self.name)
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.set_system_variable.not_found",
+                    legacy_name=legacy_name,
+                    name=self.name,
+                )
+            )
 
     async def start(self) -> None:
         """Start processing of the central unit."""
@@ -1305,13 +1316,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     )
             except RuntimeError as rterr:
                 _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call callback for: %s",
+                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s",
                     extract_exc_args(exc=rterr),
                     state_path,
                 )
             except Exception as exc:  # pragma: no cover
-                _LOGGER_EVENT.warning(
-                    "EVENT failed: Unable to call callback for: %s, %s",
+                _LOGGER_EVENT.error(  # i18n-log: ignore
+                    "EVENT failed: Unable to call handler for: %s, %s",
                     state_path,
                     extract_exc_args(exc=exc),
                 )
@@ -1327,9 +1338,11 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 client = await hmcl.create_client(central=self, interface_config=interface_config)
             except BaseHomematicException as bhexc:
                 _LOGGER.error(
-                    "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client %s: %s",
-                    interface_config.interface,
-                    extract_exc_args(exc=bhexc),
+                    i18n.tr(
+                        "log.central.validate_config_and_get_system_information.client_failed",
+                        interface=str(interface_config.interface),
+                        reason=extract_exc_args(exc=bhexc),
+                    )
                 )
                 raise
             if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and not system_information.serial:
@@ -1355,7 +1368,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         )
 
         if interface_id not in self._clients:
-            _LOGGER.warning(
+            _LOGGER.error(  # i18n-log: ignore
                 "ADD_NEW_DEVICES failed: Missing client for interface_id %s",
                 interface_id,
             )
@@ -1397,7 +1410,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     save_descriptions = True
                 except Exception as exc:  # pragma: no cover
                     save_descriptions = False
-                    _LOGGER.error(
+                    _LOGGER.error(  # i18n-log: ignore
                         "UPDATE_CACHES_WITH_NEW_DEVICES failed: %s [%s]",
                         type(exc).__name__,
                         extract_exc_args(exc=exc),
@@ -1472,25 +1485,31 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 data={EventKey.AVAILABLE: False},
             )
 
-            _LOGGER.warning(
-                "CREATE_CLIENT failed: No connection to interface %s [%s]",
-                interface_config.interface_id,
-                extract_exc_args(exc=bhexc),
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.create_client.no_connection",
+                    interface_id=interface_config.interface_id,
+                    reason=extract_exc_args(exc=bhexc),
+                )
             )
         return False
 
     async def _create_clients(self) -> bool:
         """Create clients for the central unit. Start connection checker afterwards."""
         if len(self._clients) > 0:
-            _LOGGER.warning(
-                "CREATE_CLIENTS: Clients for %s are already created",
-                self.name,
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.create_clients.already_created",
+                    name=self.name,
+                )
             )
             return False
         if len(self._config.enabled_interface_configs) == 0:
-            _LOGGER.warning(
-                "CREATE_CLIENTS failed: No Interfaces for %s defined",
-                self.name,
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.create_clients.no_interfaces",
+                    name=self.name,
+                )
             )
             return False
 
@@ -1506,10 +1525,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     self.primary_client is not None
                     and interface_config.interface not in self.primary_client.system_information.available_interfaces
                 ):
-                    _LOGGER.warning(
-                        "CREATE_CLIENTS failed: Interface: %s is not available for the backend %s",
-                        interface_config.interface,
-                        self.name,
+                    _LOGGER.error(
+                        i18n.tr(
+                            "log.central.create_clients.interface_not_available",
+                            interface=interface_config.interface,
+                            name=self.name,
+                        )
                     )
                     interface_config.disable()
                     continue
@@ -1517,14 +1538,21 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
         if not self.all_clients_active:
             _LOGGER.warning(
-                "CREATE_CLIENTS failed: Created %i of %i clients",
-                len(self._clients),
-                len(self._config.enabled_interface_configs),
+                i18n.tr(
+                    "log.central.create_clients.created_count_failed",
+                    created=len(self._clients),
+                    total=len(self._config.enabled_interface_configs),
+                )
             )
             return False
 
         if self.primary_client is None:
-            _LOGGER.warning("CREATE_CLIENTS failed: No primary client identified for %s", self.name)
+            _LOGGER.warning(
+                i18n.tr(
+                    "log.central.create_clients.no_primary_identified",
+                    name=self.name,
+                )
+            )
             return True
 
         _LOGGER.debug("CREATE_CLIENTS successful for %s", self.name)
@@ -1558,7 +1586,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         device_address=device_address,
                     )
                 except Exception as exc:
-                    _LOGGER.error(
+                    _LOGGER.error(  # i18n-log: ignore
                         "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",
                         type(exc).__name__,
                         extract_exc_args(exc=exc),
@@ -1572,7 +1600,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         new_devices.add(device)
                         self._devices[device_address] = device
                 except Exception as exc:
-                    _LOGGER.error(
+                    _LOGGER.error(  # i18n-log: ignore
                         "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
                         type(exc).__name__,
                         extract_exc_args(exc=exc),
@@ -1625,7 +1653,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             except AioHomematicException:
                 ip_addr = LOCAL_HOST
             if ip_addr is None:
-                _LOGGER.warning("GET_IP_ADDR: Waiting for %i s,", CONNECTION_CHECKER_INTERVAL)
+                _LOGGER.warning(  # i18n-log: ignore
+                    "GET_IP_ADDR: Waiting for %i s,", CONNECTION_CHECKER_INTERVAL
+                )
                 await asyncio.sleep(TIMEOUT / 10)
         return ip_addr
 
@@ -1666,7 +1696,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             await self._device_descriptions.load(),
             await self._paramset_descriptions.load(),
         ):
-            _LOGGER.warning("LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name)
+            _LOGGER.warning(  # i18n-log: ignore
+                "LOAD_CACHES failed: Unable to load store for %s. Clearing files", self.name
+            )
             await self.clear_files()
             return False
         await self._device_details.load()
@@ -1830,9 +1862,11 @@ class _Scheduler(threading.Thread):
         _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central.name)
         try:
             if not self._central.all_clients_active:
-                _LOGGER.warning(
-                    "CHECK_CONNECTION failed: No clients exist. Trying to create clients for server %s",
-                    self._central.name,
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.central.scheduler.check_connection.no_clients",
+                        name=self._central.name,
+                    )
                 )
                 await self._central.restart_clients()
             else:
@@ -1852,12 +1886,19 @@ class _Scheduler(threading.Thread):
                     if self._central.available:
                         await asyncio.gather(*reloads)
         except NoConnectionException as nex:
-            _LOGGER.error("CHECK_CONNECTION failed: no connection: %s", extract_exc_args(exc=nex))
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.scheduler.check_connection.no_connection",
+                    reason=extract_exc_args(exc=nex),
+                )
+            )
         except Exception as exc:
             _LOGGER.error(
-                "CHECK_CONNECTION failed: %s [%s]",
-                type(exc).__name__,
-                extract_exc_args(exc=exc),
+                i18n.tr(
+                    "log.central.scheduler.check_connection.failed",
+                    exc_type=type(exc).__name__,
+                    reason=extract_exc_args(exc=exc),
+                )
             )
 
     @inspector(re_raise=False)

@@ -210,7 +210,7 @@ def check_file(path: Path, *, log_levels: set[str]) -> list[Finding]:
 def _parse_levels(value: str | None) -> set[str]:
     if not value:
         # Default: require translation for ERROR and above
-        return {"error", "exception", "critical"}
+        return {"info", "error", "exception", "critical"}
     levels = {v.strip().lower() for v in value.split(",") if v.strip()}
     allowed = {"debug", "info", "warning", "error", "exception", "critical"}
     unknown = levels - allowed

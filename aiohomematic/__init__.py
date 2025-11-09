@@ -41,7 +41,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 # noinspection PyUnusedLocal
 def signal_handler(sig, frame):  # type: ignore[no-untyped-def]
     """Handle signal to shut down central."""
-    _LOGGER.info("Got signal: %s. Shutting down central", str(sig))
+    _LOGGER.info(i18n.tr("log.core.signal.shutdown", sig=str(sig)))
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     for central in hmcu.CENTRAL_INSTANCES.values():
         asyncio.run_coroutine_threadsafe(central.stop(), asyncio.get_running_loop())

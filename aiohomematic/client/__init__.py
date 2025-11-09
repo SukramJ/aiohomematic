@@ -799,8 +799,10 @@ class Client(ABC, LogContextMixin):
 
             await self.reinitialize_proxy()
             _LOGGER.info(
-                "RECONNECT: re-connected client %s",
-                self.interface_id,
+                i18n.tr(
+                    "log.client.reconnect.reconnected",
+                    interface_id=self.interface_id,
+                )
             )
             return True
         return False
@@ -904,8 +906,10 @@ class Client(ABC, LogContextMixin):
         """Update the firmware of a Homematic device."""
         if device := self.central.get_device(address=device_address):
             _LOGGER.info(
-                "UPDATE_DEVICE_FIRMWARE: Trying firmware update for %s",
-                device_address,
+                i18n.tr(
+                    "log.client.update_device_firmware.try",
+                    device_address=device_address,
+                )
             )
             try:
                 update_result = (
@@ -915,9 +919,11 @@ class Client(ABC, LogContextMixin):
                 )
                 result = bool(update_result) if isinstance(update_result, bool) else bool(update_result[0])
                 _LOGGER.info(
-                    "UPDATE_DEVICE_FIRMWARE: Executed firmware update for %s with result '%s'",
-                    device_address,
-                    "success" if result else "failed",
+                    i18n.tr(
+                        "log.client.update_device_firmware.result",
+                        device_address=device_address,
+                        result=("success" if result else "failed"),
+                    )
                 )
             except BaseHomematicException as bhexc:
                 raise ClientException(

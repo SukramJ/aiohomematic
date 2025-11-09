@@ -1137,7 +1137,12 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Restart clients."""
         await self._stop_clients()
         if await self._start_clients():
-            _LOGGER.info("RESTART_CLIENTS: Central %s restarted clients", self.name)
+            _LOGGER.info(
+                i18n.tr(
+                    "log.central.restart_clients.restarted",
+                    name=self.name,
+                )
+            )
 
     async def save_files(
         self,

@@ -1192,7 +1192,7 @@ async def test_sysvar_data_point_path_event_create_task_exceptions_are_caught(
     central._looper = BoomLooper(Exception)  # type: ignore[attr-defined]
     with caplog.at_level("WARNING"):
         hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
-    assert any("EVENT failed: Unable to call callback" in rec.getMessage() for rec in caplog.records)
+    assert any("EVENT failed: Unable to call handler" in rec.getMessage() for rec in caplog.records)
 
 
 @pytest.mark.asyncio

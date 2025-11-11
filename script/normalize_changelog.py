@@ -1,7 +1,10 @@
+"""Normalize changelog.md."""
+
 #!/usr/bin/env python3
 from __future__ import annotations
-import re
+
 from pathlib import Path
+import re
 
 FILE = Path(__file__).resolve().parents[1] / "changelog.md"
 
@@ -10,10 +13,10 @@ WHATS_CHANGED = "## What's Changed"
 
 
 def normalize(lines: list[str]) -> list[str]:
+    """Normalize the changelog."""
     out: list[str] = []
     i = 0
     n = len(lines)
-    changed = False
 
     while i < n:
         line = lines[i]
@@ -29,7 +32,7 @@ def normalize(lines: list[str]) -> list[str]:
                 k += 1
 
             # Determine if the next non-blank line is already the desired header
-            next_is_wc = (k < n and lines[k].startswith(WHATS_CHANGED))
+            next_is_wc = k < n and lines[k].startswith(WHATS_CHANGED)
 
             # We will reconstruct the block after the version header:
             # 1) exactly one blank line
@@ -43,7 +46,6 @@ def normalize(lines: list[str]) -> list[str]:
             # Ensure at least one blank line immediately after header
             if j >= n or lines[j].strip() != "":
                 to_insert.append("\n")
-                changed = True
             else:
                 # Keep a single blank line; if there are multiple, we'll collapse to one
                 # by skipping extras below
@@ -53,7 +55,6 @@ def normalize(lines: list[str]) -> list[str]:
                 to_insert.append(f"{WHATS_CHANGED}\n")
                 # Add a blank line after the newly inserted header to match existing style
                 to_insert.append("\n")
-                changed = True
             else:
                 # Ensure there is at most one blank line between header and WHATS_CHANGED
                 # If there were multiple blank lines, collapse them to one
@@ -69,8 +70,7 @@ def normalize(lines: list[str]) -> list[str]:
                     to_insert.append("__ADD_BLANK_AFTER_WC__\n")
 
             # Append any planned insertions
-            for ins in to_insert:
-                out.append(ins)
+            out.extend(to_insert)
 
             # Now skip over the original excess blank lines we've replaced
             # Skip all blank lines we already accounted for
@@ -84,18 +84,15 @@ def normalize(lines: list[str]) -> list[str]:
                 out.append(lines[k])
                 j = k + 1
                 # After WC, ensure single blank line exists; collapse multiples
-                had_blank_after = False
                 if j < n and lines[j].strip() == "":
-                    had_blank_after = True
                     # Keep exactly one blank line
                     out.append("\n")
                     j += 1
                     while j < n and lines[j].strip() == "":
                         j += 1
-                else:
-                    # No blank after; check if we queued a blank to add
-                    if any(x == "__ADD_BLANK_AFTER_WC__\n" for x in to_insert):
-                        out.append("\n")
+                # No blank after; check if we queued a blank to add
+                elif any(x == "__ADD_BLANK_AFTER_WC__\n" for x in to_insert):
+                    out.append("\n")
 
             # Continue from j (we've already handled the post-header area)
             i = j
@@ -103,7 +100,7 @@ def normalize(lines: list[str]) -> list[str]:
         i += 1
 
     # Remove any sentinels if any made it through (shouldn't)
-    out = [l for l in out if l != "__ADD_BLANK_AFTER_WC__\n"]
+    out = [line for line in out if line != "__ADD_BLANK_AFTER_WC__\n"]
 
     # Ensure file ends with a newline
     if out and out[-1] != "\n":
@@ -113,6 +110,7 @@ def normalize(lines: list[str]) -> list[str]:
 
 
 def main() -> int:
+    """CLI entry point."""
     original = FILE.read_text(encoding="utf-8").splitlines(keepends=True)
     normalized = normalize(original)
     if normalized != original:

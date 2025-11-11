@@ -294,16 +294,22 @@ class _FakeCentral:
             password = None
             max_read_workers = 0
             callback_host = "127.0.0.1"
+            callback_port_bin_rpc = 0
             callback_port_xml_rpc = 0
             interfaces_requiring_periodic_refresh = frozenset()
 
         self.config = Cfg()
+        self._listen_port_bin_rpc = 8701
         self._listen_port_xml_rpc = 32001
         self._callback_ip_addr = "127.0.0.1"
 
     @property
     def callback_ip_addr(self) -> str:  # noqa: D401
         return self._callback_ip_addr
+
+    @property
+    def listen_port_bin_rpc(self) -> int:  # noqa: D401
+        return self._listen_port_bin_rpc
 
     @property
     def listen_port_xml_rpc(self) -> int:  # noqa: D401
@@ -865,7 +871,7 @@ def test_support_flags_from_config() -> None:
     assert c1.supports_firmware_updates is True
 
     c2 = _make_client_with_interface(Interface.CUXD, push=False, fw=False)
-    assert c2.supports_ping_pong is False
+    assert c2.supports_ping_pong is True
     assert c2.supports_push_updates is False
     assert c2.supports_firmware_updates is False
 

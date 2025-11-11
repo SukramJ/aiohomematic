@@ -1035,6 +1035,7 @@ async def test_check_config_collects_multiple_failures_and_directory_error(
         password="!invalid!",  # also fails password policy
         storage_directory="/does/not/matter",
         callback_host="bad host",
+        callback_port_bin_rpc=12345,
         callback_port_xml_rpc=99999,  # invalid port
         json_port=-1,  # invalid port
         interface_configs=frozenset(),  # Not truthy -> no primary interface check here
@@ -1055,7 +1056,7 @@ async def test_check_config_collects_multiple_failures_and_directory_error(
     assert "Invalid json port" in errors
 
     # Note: primary interface check only happens when "interface_configs" is truthy (not empty)
-    ic_non_primary = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
+    ic_non_primary = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=1)
     errors2 = central_check_config(
         central_name="ok",
         host="127.0.0.1",
@@ -1063,6 +1064,7 @@ async def test_check_config_collects_multiple_failures_and_directory_error(
         password="p",
         storage_directory=str(tmp_path),
         callback_host=None,
+        callback_port_bin_rpc=None,
         callback_port_xml_rpc=None,
         json_port=None,
         interface_configs=frozenset({ic_non_primary}),
@@ -1073,7 +1075,7 @@ async def test_check_config_collects_multiple_failures_and_directory_error(
 @pytest.mark.asyncio
 async def test_central_config_check_config_raises_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """`CentralConfig.check_config` should raise `AioHomematicConfigException` when invalid."""
-    ic = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
+    ic = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=1)
 
     # Fail directory creation to ensure we get an error
     def fail_create_dir(*, directory: str) -> bool:  # type: ignore[override]
@@ -1280,3 +1282,197 @@ async def test__create_devices_handles_constructor_and_creation_exceptions(monke
 
     # Should not have raised; internal logging covered the branches
     assert True
+
+
+@pytest.mark.asyncio
+async def test_emit_backend_parameter_callback_exception_handling(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """emit_backend_parameter_callback should catch exceptions from callbacks and continue."""
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+    central._backend_parameter_callbacks = []  # type: ignore[attr-defined]
+
+    # Track which callbacks were called
+    calls: list[str] = []
+
+    def good_callback(*, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
+        calls.append("good")
+
+    def bad_callback(*, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
+        calls.append("bad_attempt")
+        raise ValueError("test error from callback")
+
+    def another_good_callback(*, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
+        calls.append("another_good")
+
+    # Register callbacks in order: good, bad, another_good
+    central._backend_parameter_callbacks.extend([good_callback, bad_callback, another_good_callback])  # type: ignore[attr-defined]
+
+    with caplog.at_level("ERROR"):
+        hmcu.CentralUnit.emit_backend_parameter_callback(
+            central, interface_id="if1", channel_address="addr:1", parameter="STATE", value=True
+        )
+
+    # All callbacks should be attempted
+    assert calls == ["good", "bad_attempt", "another_good"]
+    # Error should be logged
+    assert any("EMIT_BACKEND_PARAMETER_CALLBACK: Unable to call handler" in rec.getMessage() for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_emit_backend_system_callback_exception_handling(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """emit_backend_system_callback should catch exceptions and continue calling other callbacks."""
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+    central._backend_system_callbacks = []  # type: ignore[attr-defined]
+
+    calls: list[str] = []
+
+    def good_callback(*, system_event: hmcu.BackendSystemEvent, **kwargs: Any) -> None:
+        calls.append(f"good:{system_event}")
+
+    def bad_callback(*, system_event: hmcu.BackendSystemEvent, **kwargs: Any) -> None:
+        calls.append(f"bad:{system_event}")
+        raise RuntimeError("callback error")
+
+    central._backend_system_callbacks.extend([good_callback, bad_callback, good_callback])  # type: ignore[attr-defined]
+
+    with caplog.at_level("ERROR"):
+        hmcu.CentralUnit.emit_backend_system_callback(
+            central, system_event=hmcu.BackendSystemEvent.DEVICES_CREATED, device_count=5
+        )
+
+    # All callbacks attempted
+    assert len(calls) == 3
+    assert "good:" in calls[0]
+    assert "bad:" in calls[1]
+    assert "good:" in calls[2]
+    # Error logged
+    assert any("EMIT_BACKEND_SYSTEM_CALLBACK: Unable to call handler" in rec.getMessage() for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_emit_homematic_callback_exception_handling(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """emit_homematic_callback should catch exceptions from callbacks and continue."""
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+    central._homematic_callbacks = []  # type: ignore[attr-defined]
+
+    calls: list[tuple[str, EventType]] = []
+
+    def good_callback(*, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+        calls.append(("good", event_type))
+
+    def bad_callback(*, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+        calls.append(("bad", event_type))
+        raise TypeError("bad callback error")
+
+    central._homematic_callbacks.extend([good_callback, bad_callback, good_callback])  # type: ignore[attr-defined]
+
+    event_data = {EventKey.TYPE: "test"}
+
+    with caplog.at_level("ERROR"):
+        hmcu.CentralUnit.emit_homematic_callback(central, event_type=EventType.IMPULSE, event_data=event_data)
+
+    # All callbacks attempted
+    assert len(calls) == 3
+    assert all(et == EventType.IMPULSE for _, et in calls)
+    # Error logged
+    assert any("EMIT_HOMEMATIC_CALLBACK: Unable to call handler" in rec.getMessage() for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_emit_interface_event_with_valid_data() -> None:
+    """emit_interface_event should properly format and emit interface events."""
+    central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+    central._homematic_callbacks = []  # type: ignore[attr-defined]
+
+    called_with: list[dict[str, Any]] = []
+
+    def capture_callback(*, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+        called_with.append(dict(event_data))
+
+    central._homematic_callbacks.append(capture_callback)  # type: ignore[attr-defined]
+
+    # Call with valid data
+    hmcu.CentralUnit.emit_interface_event(
+        central,
+        interface_id="if1",
+        interface_event_type=InterfaceEventType.CALLBACK,
+        data={EventKey.AVAILABLE: True},
+    )
+
+    assert len(called_with) == 1
+    assert called_with[0][EventKey.INTERFACE_ID] == "if1"
+    assert called_with[0][EventKey.TYPE] == InterfaceEventType.CALLBACK
+    assert called_with[0][EventKey.DATA] == {EventKey.AVAILABLE: True}
+
+
+# Note: Tests for start() and stop() error handling require complex setup
+# and are better suited for integration tests with full central initialization
+
+
+# Note: add_event_subscription tests are covered by existing integration tests
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        ({"VCU3609622"}, True, None, None),
+    ],
+)
+async def test_get_un_ignore_candidates_with_include_master(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """get_un_ignore_candidates should filter by include_master parameter."""
+    central, _, _ = central_client_factory_with_homegear_client
+
+    # Get candidates with include_master=True
+    candidates_with_master = central.get_un_ignore_candidates(include_master=True)
+    assert candidates_with_master
+    assert len(candidates_with_master) > 0
+
+    # Check if any MASTER paramset_key is included
+    assert any(ParamsetKey.MASTER in candidate for candidate in candidates_with_master)
+
+    # Get candidates with include_master=False (default)
+    candidates_without_master = central.get_un_ignore_candidates(include_master=False)
+    assert candidates_without_master
+
+    # Verify MASTER params are excluded when include_master=False
+    has_master_excluded = all(ParamsetKey.MASTER not in candidate for candidate in candidates_without_master)
+    assert has_master_excluded
+
+    # With include_master=True we should get more or equal candidates
+    assert len(candidates_with_master) >= len(candidates_without_master)
+
+
+# Note: get_un_ignore_candidates with empty devices is an edge case
+# better suited for integration tests with proper central setup
+
+
+# Note: CentralConnectionState.handle_exception_log tests require complex issuer setup
+# and are better tested through integration tests
+
+
+@pytest.mark.asyncio
+async def test_scheduler_job_ready_when_next_run_in_future() -> None:
+    """_SchedulerJob should report ready=False when next_run is in the future."""
+    marker: dict[str, int] = {}
+    future = datetime.now() + timedelta(seconds=3600)  # 1 hour in future
+    job = _SchedulerJob(task=_FakeTask(marker), run_interval=60, next_run=future)
+
+    # Should not be ready
+    assert job.ready is False
+
+    # Running should still work (if forced)
+    await job.run()
+    assert marker.get("calls") == 1

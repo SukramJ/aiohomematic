@@ -15,6 +15,8 @@ import threading
 from typing import Any, Final, cast
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
+from pybinrpc.server import SimpleBINRPCServer
+
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
@@ -183,11 +185,11 @@ class RpcServer(threading.Thread):
     _initialized: bool = False
     _instances: Final[dict[tuple[str, int], RpcServer]] = {}
 
-    def __init__(self, *, server: SimpleXMLRPCServer) -> None:
+    def __init__(self, *, server: SimpleBINRPCServer | SimpleXMLRPCServer) -> None:
         """Init XmlRPC server."""
         self._server = server
         self._server.register_introspection_functions()
-        self._server.register_multicall_functions()
+        # self._server.register_multicall_functions()
         self._server.register_instance(RPCFunctions(rpc_server=self), allow_dotted_names=True)
         self._initialized = True
         self._address: Final[tuple[str, int]] = cast(tuple[str, int], server.server_address)
@@ -258,6 +260,30 @@ class RpcServer(threading.Thread):
             del self._instances[self._address]
 
 
+class BinRpcServer(RpcServer):
+    """Bin-RPC server thread to handle messages from the backend."""
+
+    def __init__(
+        self,
+        *,
+        ip_addr: str,
+        port: int,
+    ) -> None:
+        """Init BinRPC server."""
+        if self._initialized:
+            return
+        super().__init__(server=SimpleBINRPCServer(addr=(ip_addr, port), allow_none=True))
+        self._server.register_introspection_functions()
+        self._server.register_instance(RPCFunctions(rpc_server=self), allow_dotted_names=True)
+
+    def __new__(cls, ip_addr: str, port: int) -> BinRpcServer:  # noqa: PYI034  # kwonly: disable
+        """Create new RPC server."""
+        if (rpc := cls._instances.get((ip_addr, port))) is None:
+            _LOGGER.debug("Creating BinRPC server")
+            return super().__new__(cls)
+        return cast(BinRpcServer, rpc)
+
+
 class XmlRpcServer(RpcServer):
     """XML-RPC server thread to handle messages from the backend."""
 
@@ -268,7 +294,6 @@ class XmlRpcServer(RpcServer):
         port: int,
     ) -> None:
         """Init XmlRPC server."""
-
         if self._initialized:
             return
         super().__init__(
@@ -288,7 +313,20 @@ class XmlRpcServer(RpcServer):
         return cast(XmlRpcServer, rpc)
 
 
-def create_xml_rpc_server(*, ip_addr: str = IP_ANY_V4, port: int = PORT_ANY) -> XmlRpcServer:
+def create_bin_rpc_server(*, ip_addr: str = IP_ANY_V4, port: int = PORT_ANY) -> RpcServer:
+    """Register the rpc server."""
+    rpc = BinRpcServer(ip_addr=ip_addr, port=port)
+    if not rpc.started:
+        rpc.start()
+        _LOGGER.debug(
+            "CREATE_BIN_RPC_SERVER: Starting BinRPC-Server listening on %s:%i",
+            rpc.listen_ip_addr,
+            rpc.listen_port,
+        )
+    return rpc
+
+
+def create_xml_rpc_server(*, ip_addr: str = IP_ANY_V4, port: int = PORT_ANY) -> RpcServer:
     """Register the rpc server."""
     rpc = XmlRpcServer(ip_addr=ip_addr, port=port)
     if not rpc.started:

@@ -725,6 +725,7 @@ class ProxyInitState(Enum):
 class RpcServerType(StrEnum):
     """Enum for Homematic rpc server types."""
 
+    BIN_RPC = "bin_rpc"
     XML_RPC = "xml_rpc"
     NONE = "none"
 
@@ -879,7 +880,11 @@ INTERFACES_REQUIRING_XML_RPC: Final[frozenset[Interface]] = frozenset(
 )
 
 
-INTERFACES_SUPPORTING_RPC_CALLBACK: Final[frozenset[Interface]] = frozenset(INTERFACES_REQUIRING_XML_RPC)
+INTERFACES_REQUIRING_BIN_RPC: Final[frozenset[Interface]] = frozenset({Interface.CUXD})
+
+INTERFACES_SUPPORTING_RPC_CALLBACK: Final[frozenset[Interface]] = frozenset(
+    INTERFACES_REQUIRING_XML_RPC | INTERFACES_REQUIRING_BIN_RPC
+)
 
 
 INTERFACES_REQUIRING_JSON_RPC_CLIENT: Final[frozenset[Interface]] = frozenset(
@@ -890,7 +895,7 @@ INTERFACES_REQUIRING_JSON_RPC_CLIENT: Final[frozenset[Interface]] = frozenset(
 )
 
 DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[frozenset[Interface]] = frozenset(
-    INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC
+    INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_BIN_RPC - INTERFACES_REQUIRING_XML_RPC
 )
 
 INTERFACE_RPC_SERVER_TYPE: Final[Mapping[Interface, RpcServerType]] = MappingProxyType(
@@ -899,7 +904,7 @@ INTERFACE_RPC_SERVER_TYPE: Final[Mapping[Interface, RpcServerType]] = MappingPro
         Interface.BIDCOS_WIRED: RpcServerType.XML_RPC,
         Interface.HMIP_RF: RpcServerType.XML_RPC,
         Interface.VIRTUAL_DEVICES: RpcServerType.XML_RPC,
-        Interface.CUXD: RpcServerType.NONE,
+        Interface.CUXD: RpcServerType.BIN_RPC,
         Interface.CCU_JACK: RpcServerType.NONE,
     }
 )

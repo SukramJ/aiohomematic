@@ -15,7 +15,7 @@ from aiohttp import ClientSession
 import orjson
 
 from aiohomematic.central import CentralUnit
-from aiohomematic.client import BaseRpcProxy
+from aiohomematic.client import AioRpcProxy
 from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
 from aiohomematic.client.rpc_proxy import _RpcMethod
 from aiohomematic.const import UTF_8, DataOperationResult, Parameter, ParamsetKey, RPCType
@@ -198,9 +198,9 @@ def get_xml_rpc_proxy(  # noqa: C901
     player: SessionPlayer,
     address_device_translation: set[str] | None = None,
     ignore_devices_on_create: list[str] | None = None,
-) -> BaseRpcProxy:
+) -> AioRpcProxy:
     """
-    Provide an BaseRpcProxy-like fixture that answers via SessionPlayer (XML-RPC).
+    Provide an AioRpcProxy-like fixture that answers via SessionPlayer (XML-RPC).
 
     Any method call like: await proxy.system.listMethods(...)
     will be answered by looking up the latest recorded XML-RPC response
@@ -331,7 +331,7 @@ def get_xml_rpc_proxy(  # noqa: C901
                 params=params,
             )
 
-    return cast(BaseRpcProxy, _AioXmlRpcProxyFromSession())
+    return cast(AioRpcProxy, _AioXmlRpcProxyFromSession())
 
 
 def get_mock(

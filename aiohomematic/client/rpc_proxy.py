@@ -29,13 +29,16 @@ from enum import Enum, IntEnum, StrEnum
 import errno
 import logging
 from ssl import SSLContext, SSLError
+import struct
 from typing import Any, Final
 import xmlrpc.client
+
+import pybinrpc.client
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
-from aiohomematic.const import ISO_8859_1
+from aiohomematic.const import ISO_8859_1, UTF_8
 from aiohomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
@@ -86,7 +89,7 @@ _OS_ERROR_CODES: Final[dict[int, str]] = {
 
 
 # noinspection PyProtectedMember,PyUnresolvedReferences
-class BaseRpcProxy(ABC):
+class AioRpcProxy(ABC):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
 
     def __init__(
@@ -153,7 +156,7 @@ class BaseRpcProxy(ABC):
 
 
 # noinspection PyProtectedMember,PyUnresolvedReferences
-class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
+class AioXmlRpcProxy(AioRpcProxy, xmlrpc.client.ServerProxy):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
 
     def __init__(
@@ -200,13 +203,13 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         try:
             method = args[0]
             if self._supported_methods and method not in self._supported_methods:
-                raise UnsupportedException(i18n.tr("exception.client.xmlrpc.method_unsupported", method=method))
+                raise UnsupportedException(i18n.tr("exception.client.rpc.method_unsupported", method=method))
 
             if method in _VALID_RPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
                 issuer=self, iid=self._interface_id
             ):
                 args = _cleanup_args(*args)
-                _LOGGER.debug("XmlRPC.__ASYNC_REQUEST: %s", args)
+                _LOGGER.debug("RPC.__ASYNC_REQUEST: %s", args)
                 result = await asyncio.shield(
                     self._looper.async_add_executor_job(
                         # pylint: disable=protected-access
@@ -220,9 +223,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 self._record_session(method=method, params=args[1], response=result)
                 self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
                 return result
-            raise NoConnectionException(
-                i18n.tr("exception.client.xmlrpc.no_connection", interface_id=self._interface_id)
-            )
+            raise NoConnectionException(i18n.tr("exception.client.rpc.no_connection", interface_id=self._interface_id))
         except BaseHomematicException as bhe:
             self._record_session(method=args[0], params=args[1:], exc=bhe)
             raise
@@ -247,7 +248,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 log_context=self.log_context,
             )
             raise NoConnectionException(
-                i18n.tr("exception.client.xmlrpc.ssl_error", interface_id=self._interface_id, reason=message)
+                i18n.tr("exception.client.rpc.ssl_error", interface_id=self._interface_id, reason=message)
             ) from sslerr
         except OSError as oserr:  # pragma: no cover - Network/socket errno differences are platform/environment specific; simulating reliably in CI would be flaky
             level = (
@@ -267,7 +268,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             )
             raise NoConnectionException(
                 i18n.tr(
-                    "exception.client.xmlrpc.os_error",
+                    "exception.client.rpc.os_error",
                     interface_id=self._interface_id,
                     reason=extract_exc_args(exc=oserr),
                 )
@@ -283,11 +284,141 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                     raise AuthFailure(perr) from perr
                 raise NoConnectionException(
                     i18n.tr(
-                        "exception.client.xmlrpc.no_connection_with_reason",
+                        "exception.client.rpc.no_connection_with_reason",
                         context=str(self.log_context),
                         reason=perr.errmsg,
                     )
                 ) from perr
+        except Exception as exc:
+            raise ClientException(exc) from exc
+
+
+# noinspection PyProtectedMember,PyUnresolvedReferences
+class AioBinRpcProxy(AioRpcProxy, pybinrpc.client.BinRpcServerProxy):
+    """
+    ServerProxy implementation with ThreadPoolExecutor when request is executing.
+
+    TLS is not supported for CUxD.
+    """
+
+    def __init__(
+        self,
+        *,
+        host: str,
+        port: int,
+        max_workers: int,
+        interface_id: str,
+        connection_state: hmcu.CentralConnectionState,
+    ) -> None:
+        """Initialize new proxy for server and get local ip."""
+        super().__init__(
+            max_workers=max_workers,
+            interface_id=interface_id,
+            connection_state=connection_state,
+            magic_method=xmlrpc.client._Method,
+        )
+
+        pybinrpc.client.BinRpcServerProxy.__init__(
+            self,
+            host=host,
+            port=port,
+            encoding=UTF_8,
+        )
+
+    async def do_init(self) -> None:
+        """Init the xml rpc proxy."""
+        self._supported_methods = ("init", "getValue", "setValue", "listDevices")
+
+    async def _async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        """Call method on server side."""
+        try:
+            method = args[0]
+            if self._supported_methods and method not in self._supported_methods:
+                raise UnsupportedException(i18n.tr("exception.client.rpc.method_unsupported", method=method))
+
+            if method in _VALID_RPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
+                issuer=self, iid=self._interface_id
+            ):
+                args = _cleanup_args(*args)
+                _LOGGER.debug("BinRPC.__ASYNC_REQUEST: %s", args)
+                method = args[0]
+                params = list(args[1]) if len(args) > 1 else []
+                result = await asyncio.shield(
+                    self._looper.async_add_executor_job(
+                        self._t.call,
+                        method,
+                        params,
+                        name="bin_rpc_proxy",
+                        executor=self._proxy_executor,
+                    )
+                )
+                self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
+                return result
+            raise NoConnectionException(i18n.tr("exception.client.rpc.no_connection", interface_id=self._interface_id))
+        except ValueError:
+            raise
+        except SSLError as sslerr:
+            message = f"SSLError on {self._interface_id}: {extract_exc_args(exc=sslerr)}"
+            level = logging.ERROR
+            if sslerr.args[0] in _SSL_ERROR_CODES:
+                message = (
+                    f"{message} - {sslerr.args[0]}: {sslerr.args[1]}. "
+                    f"Please check your configuration for {self._interface_id}."
+                )
+                if not self._connection_state.add_issue(issuer=self, iid=self._interface_id):
+                    level = logging.DEBUG
+
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="bin-rpc",
+                action=str(args[0]),
+                err=sslerr,
+                level=level,
+                message=message,
+                log_context=self.log_context,
+            )
+            raise NoConnectionException(message) from sslerr
+        except OSError as oserr:
+            message = f"OSError on {self._interface_id}: {extract_exc_args(exc=oserr)}"
+            level = (
+                logging.ERROR
+                if oserr.args[0] in _OS_ERROR_CODES
+                and not self._connection_state.add_issue(issuer=self, iid=self._interface_id)
+                else logging.DEBUG
+            )
+
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="bin-rpc",
+                action=str(args[0]),
+                err=oserr,
+                level=level,
+                log_context=self.log_context,
+            )
+            raise NoConnectionException(message) from oserr
+        except struct.error as sterr:
+            # pybinrpc may raise struct.error when receiving an empty/invalid response (e.g., CUxD on init)
+            message = (
+                f"BinRPC struct.error on {self._interface_id}: {extract_exc_args(exc=sterr)}. "
+                "Likely received an empty or invalid response."
+            )
+            # Treat as connection issue similar to OSError
+            if not self._connection_state.add_issue(issuer=self, iid=self._interface_id):
+                level = logging.DEBUG
+            else:
+                level = logging.ERROR
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="bin-rpc",
+                action=str(args[0]),
+                err=sterr,
+                level=level,
+                message=message,
+                log_context=self.log_context,
+            )
+            raise NoConnectionException(message) from sterr
+        except TypeError as terr:
+            raise ClientException(terr) from terr
         except Exception as exc:
             raise ClientException(exc) from exc
 

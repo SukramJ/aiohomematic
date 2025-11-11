@@ -56,7 +56,7 @@ from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
-from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
+from aiohomematic.client.rpc_proxy import AioBinRpcProxy, AioRpcProxy, AioXmlRpcProxy
 from aiohomematic.const import (
     CALLBACK_WARN_INTERVAL,
     DATETIME_FORMAT_MILLIS,
@@ -65,6 +65,7 @@ from aiohomematic.const import (
     DUMMY_SERIAL,
     INIT_DATETIME,
     INTERFACE_RPC_SERVER_TYPE,
+    INTERFACES_REQUIRING_BIN_RPC,
     INTERFACES_REQUIRING_JSON_RPC_CLIENT,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
@@ -112,7 +113,7 @@ from aiohomematic.support import (
 
 __all__ = [
     "AioJsonRpcAioHttpClient",
-    "BaseRpcProxy",
+    "AioRpcProxy",
     "Client",
     "InterfaceConfig",
     "ClientConfig",
@@ -152,8 +153,8 @@ class Client(ABC, LogContextMixin):
         self._ping_pong_cache: Final = PingPongCache(
             central=client_config.central, interface_id=client_config.interface_id
         )
-        self._proxy: BaseRpcProxy
-        self._proxy_read: BaseRpcProxy
+        self._proxy: AioRpcProxy
+        self._proxy_read: AioRpcProxy
         self._system_information: SystemInformation
         self.modified_at: datetime = INIT_DATETIME
 
@@ -1709,12 +1710,22 @@ class ClientConfig:
             central.config.callback_host if central.config.callback_host else central.callback_ip_addr
         )
         callback_port = (
-            central.config.callback_port_xml_rpc
-            if central.config.callback_port_xml_rpc
-            else central.listen_port_xml_rpc
+            (
+                central.config.callback_port_bin_rpc
+                if central.config.callback_port_bin_rpc
+                else central.listen_port_bin_rpc
+            )
+            if self.interface in INTERFACES_REQUIRING_BIN_RPC
+            else (
+                central.config.callback_port_xml_rpc
+                if central.config.callback_port_xml_rpc
+                else central.listen_port_xml_rpc
+            )
         )
         init_url = f"{callback_host}:{callback_port}"
-        self.init_url: Final = f"http://{init_url}"
+        self.init_url: Final = (
+            f"xmlrpc_bin://{init_url}" if self.interface in INTERFACES_REQUIRING_BIN_RPC else f"http://{init_url}"
+        )
 
         self.xml_rpc_uri: Final = build_xml_rpc_uri(
             host=central.config.host,
@@ -1754,12 +1765,32 @@ class ClientConfig:
 
     async def create_rpc_proxy(
         self, *, interface: Interface, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
-    ) -> BaseRpcProxy:
+    ) -> AioRpcProxy:
         """Return a RPC proxy for the backend communication."""
+        if interface in INTERFACES_REQUIRING_BIN_RPC:
+            return await self._create_bin_rpc_proxy(auth_enabled=auth_enabled, max_workers=max_workers)
         return await self._create_xml_rpc_proxy(auth_enabled=auth_enabled, max_workers=max_workers)
 
-    async def _create_simple_rpc_proxy(self, *, interface: Interface) -> BaseRpcProxy:
-        """Return a RPC proxy for the backend communication."""
+    async def _create_bin_rpc_proxy(
+        self, *, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
+    ) -> AioBinRpcProxy:
+        """Return a BinRPC proxy for the backend communication."""
+        config = self.central.config
+
+        bin_proxy = AioBinRpcProxy(
+            host=config.host,
+            port=self.interface_config.port,
+            max_workers=max_workers,
+            interface_id=self.interface_id,
+            connection_state=self.central.connection_state,
+        )
+        await bin_proxy.do_init()
+        return bin_proxy
+
+    async def _create_simple_rpc_proxy(self, *, interface: Interface) -> AioRpcProxy:
+        """Return a BinRPC proxy for the backend communication."""
+        if interface in INTERFACES_REQUIRING_BIN_RPC:
+            return await self._create_bin_rpc_proxy(auth_enabled=True, max_workers=0)
         return await self._create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
 
     async def _create_xml_rpc_proxy(

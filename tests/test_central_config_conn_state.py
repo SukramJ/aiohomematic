@@ -12,7 +12,7 @@ import logging
 import pytest
 
 from aiohomematic.central import CentralConfig, CentralConnectionState
-from aiohomematic.client import BaseRpcProxy, InterfaceConfig
+from aiohomematic.client import AioRpcProxy, InterfaceConfig
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 from aiohomematic.const import Interface
 
@@ -25,7 +25,7 @@ class _DummyJson(AioJsonRpcAioHttpClient):
         pass
 
 
-class _DummyRpc(BaseRpcProxy):
+class _DummyRpc(AioRpcProxy):
     """Lightweight subclass used only for isinstance checks in tests."""
 
     def __init__(self, interface_id: str) -> None:  # noqa: D401 (docstring inherited)

@@ -5,9 +5,12 @@ on:
   schedule:
     - cron: "0 1 * * *"
   workflow_dispatch:
+
 permissions:
   issues: write
   pull-requests: write
+  discussions: write
+
 jobs:
   lock:
     if: github.repository_owner == 'SukramJ'
@@ -15,8 +18,9 @@ jobs:
     steps:
       - uses: dessant/lock-threads@v5.0.1
         with:
-          github-token: ${{ github.token }}
-          issue-inactive-days: "7"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-inactive-days: "5"
           issue-lock-reason: ""
-          pr-inactive-days: "3"
+          pr-inactive-days: "1"
           pr-lock-reason: ""
+          discussion-inactive-days: "360"

@@ -189,7 +189,7 @@ class RpcServer(threading.Thread):
         """Init XmlRPC server."""
         self._server = server
         self._server.register_introspection_functions()
-        # self._server.register_multicall_functions()
+        self._server.register_multicall_functions()
         self._server.register_instance(RPCFunctions(rpc_server=self), allow_dotted_names=True)
         self._initialized = True
         self._address: Final[tuple[str, int]] = cast(tuple[str, int], server.server_address)

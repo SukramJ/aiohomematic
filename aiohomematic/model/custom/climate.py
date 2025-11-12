@@ -244,6 +244,11 @@ class BaseCustomDpClimate(CustomDataPoint):
         return temp
 
     @property
+    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
+        """Return the available schedule profiles."""
+        return tuple(self._schedule_cache.keys())
+
+    @property
     def schedule(self) -> SCHEDULE_DICT:
         """Return the schedule cache."""
         return self._schedule_cache

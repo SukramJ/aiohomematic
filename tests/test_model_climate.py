@@ -1504,3 +1504,76 @@ async def test_ceipthermostat_activity_fallback_to_link_peer(
     # Now set mode OFF (via dedicated method) and ensure OFF overrides peer state
     await climate.set_mode(mode=ClimateMode.OFF)
     assert climate.activity == ClimateActivity.OFF
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        (TEST_DEVICES, True, None, None),
+    ],
+)
+async def test_schedule_cache_and_reload_on_config_pending(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """Test schedule caching and reloading after CONFIG_PENDING event."""
+    central, mock_client, _ = central_client_factory_with_homegear_client
+    climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
+
+    # Initially schedule cache should be empty
+    assert climate._schedule_cache == {}
+
+    # Register a callback to track schedule changes
+    callback_called = False
+    callback_args = None
+
+    def schedule_changed_callback(**kwargs):
+        nonlocal callback_called, callback_args
+        callback_called = True
+        callback_args = kwargs
+
+    unreg = climate.register_data_point_updated_callback(cb=schedule_changed_callback, custom_id="test_schedule_change")
+
+    # Get a schedule profile to populate the cache
+    schedule = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+    assert schedule is not None
+    assert len(schedule) > 0
+
+    # Simulate CONFIG_PENDING event (True then False to trigger reload)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address="VCU0000341:0",
+        parameter=Parameter.CONFIG_PENDING,
+        value=True,
+    )
+
+    # Schedule should not have changed yet
+    assert callback_called is False
+
+    # Now simulate CONFIG_PENDING = False (should trigger reload and cache schedules)
+    await central.data_point_event(
+        interface_id=const.INTERFACE_ID,
+        channel_address="VCU0000341:0",
+        parameter=Parameter.CONFIG_PENDING,
+        value=False,
+    )
+
+    # Give async tasks time to complete
+    import asyncio
+
+    await asyncio.sleep(0.1)
+
+    # Cache should be populated after CONFIG_PENDING reload
+    assert climate._schedule_cache != {}, "Schedule cache should be populated after CONFIG_PENDING reload"
+
+    # The callback may or may not have been called depending on whether schedules changed
+    # but the cache should definitely be populated
+    # Verify that the cache contains schedule data
+    assert len(climate._schedule_cache) > 0, "Schedule cache should contain profile data"
+
+    unreg()

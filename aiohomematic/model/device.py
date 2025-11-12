@@ -620,10 +620,16 @@ class Device(LogContextMixin, PayloadMixin):
         if len(self.generic_events) > 0:
             await self._value_cache.init_readable_events()
 
-    async def re_init_link_peers(self) -> None:
-        """Initiate link peers."""
+    async def on_config_changed(self) -> None:
+        """Do what is needed on device config change."""
+
         for channel in self._channels.values():
-            await channel.init_link_peer()
+            await channel.on_config_changed()
+        if self._update_data_point:
+            await self._update_data_point.on_config_changed()
+
+        await self._central.save_files(save_paramset_descriptions=True)
+        self.emit_device_updated_callback()
 
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
@@ -658,26 +664,6 @@ class Device(LogContextMixin, PayloadMixin):
             self._firmware_update_callbacks.append(cb)
             return partial(self.unregister_firmware_update_callback, cb=cb)
         return None
-
-    @inspector
-    async def reload_paramset_descriptions(self) -> None:
-        """Reload paramset for device."""
-        for (
-            paramset_key,
-            channel_addresses,
-        ) in self._central.paramset_descriptions.get_channel_addresses_by_paramset_key(
-            interface_id=self._interface_id,
-            device_address=self._address,
-        ).items():
-            for channel_address in channel_addresses:
-                await self._client.fetch_paramset_description(
-                    channel_address=channel_address,
-                    paramset_key=paramset_key,
-                )
-        await self._central.save_files(save_paramset_descriptions=True)
-        for dp in self.generic_data_points:
-            dp.update_parameter_data()
-        self.emit_device_updated_callback()
 
     def remove(self) -> None:
         """Remove data points from collections and central."""
@@ -1173,6 +1159,23 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._custom_data_point:
             await self._custom_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
+    async def on_config_changed(self) -> None:
+        """Do what is needed on device config change."""
+        # reload paramset_descriptions
+        await self._reload_paramset_descriptions()
+
+        # re init link peers
+        await self.init_link_peer()
+
+        for ge in self._generic_data_points.values():
+            await ge.on_config_changed()
+        for gev in self._generic_events.values():
+            await gev.on_config_changed()
+        for cdp in self._calculated_data_points.values():
+            await cdp.on_config_changed()
+        if self._custom_data_point:
+            await self._custom_data_point.on_config_changed()
+
     def register_link_peer_changed_callback(self, *, cb: LinkPeerChangedCallback) -> UnregisterCallback:
         """Register the link peer changed callback."""
         if callable(cb) and cb not in self._link_peer_changed_callbacks:
@@ -1226,6 +1229,15 @@ class Channel(LogContextMixin, PayloadMixin):
     async def _has_program_ids(self) -> bool:
         """Return if a channel has program ids."""
         return bool(await self._device.client.has_program_ids(channel_hmid=self._id))
+
+    @inspector
+    async def _reload_paramset_descriptions(self) -> None:
+        """Reload paramset for channel."""
+        for paramset_key in self._paramset_keys:
+            await self._device.client.fetch_paramset_description(
+                channel_address=self._address,
+                paramset_key=paramset_key,
+            )
 
     def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""

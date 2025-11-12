@@ -1,8 +1,8 @@
-# Version 2025.11.12 (2025-11-09)
+# Version 2025.11.12 (2025-11-12)
 
 ## What's Changed
 
--
+- Add climate schedule cache
 
 # Version 2025.11.11 (2025-11-09)
 

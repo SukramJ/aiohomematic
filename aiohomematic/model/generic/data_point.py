@@ -9,15 +9,7 @@ import logging
 from typing import Any, Final, TypeAlias
 
 from aiohomematic import i18n
-from aiohomematic.const import (
-    DP_KEY_VALUE,
-    CallSource,
-    DataPointUsage,
-    EventType,
-    Parameter,
-    ParameterData,
-    ParamsetKey,
-)
+from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, EventType, Parameter, ParameterData, ParamsetKey
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model import data_point as hme, device as hmd
@@ -74,15 +66,8 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             return
 
         if self._parameter == Parameter.CONFIG_PENDING and new_value is False and old_value is True:
-            # reload paramset_descriptions
-            await self._device.reload_paramset_descriptions()
-
-            # reload master data
-            for dp in self._device.get_readable_data_points(paramset_key=ParamsetKey.MASTER):
-                await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
-
-            # re init link peers
-            await self._device.re_init_link_peers()
+            # do what is needed on device config change.
+            await self._device.on_config_changed()
 
         # send device availability events
         if self._parameter in (

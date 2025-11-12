@@ -430,7 +430,7 @@ async def test_getters_filters_and_reload(central_client_factory_with_homegear_c
 
     monkeypatch.setattr(client, "fetch_paramset_description", fake_fetch_paramset_description)
     monkeypatch.setattr(central, "save_files", fake_save_files)
-    await device.reload_paramset_descriptions()
+    await device.on_config_changed()
     assert called["fetch"] > 0 and called["save"] == 1
 
 

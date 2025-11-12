@@ -1525,7 +1525,11 @@ async def test_schedule_cache_and_reload_on_config_pending(
     central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
-    # Initially schedule cache should be empty
+    # Initially schedule cache should not be empty
+    assert climate._schedule_cache
+
+    climate._schedule_cache = {}
+
     assert climate._schedule_cache == {}
 
     # Register a callback to track schedule changes

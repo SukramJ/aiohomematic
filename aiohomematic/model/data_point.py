@@ -545,6 +545,9 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Init the data_point data."""
 
+    async def on_config_changed(self) -> None:
+        """Do what is needed on device config change."""
+
     def reset_timer_on_time(self) -> None:
         """Set the on_time."""
         self._timer_on_time = None
@@ -865,6 +868,16 @@ class BaseParameterDataPoint[
             ),
             write_at=datetime.now(),
         )
+
+    async def on_config_changed(self) -> None:
+        """Do what is needed on device config change."""
+        await super().on_config_changed()
+
+        # update parameter_data
+        self.update_parameter_data()
+        # reload master data
+        if self.is_readable and self._paramset_key == ParamsetKey.MASTER:
+            await self.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
     def update_parameter_data(self) -> None:
         """Update parameter data."""

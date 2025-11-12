@@ -176,7 +176,7 @@ SIMPLE_WEEKDAY_LIST = list[dict[ScheduleSlotType, str | float]]
 SIMPLE_PROFILE_DICT = dict[ScheduleWeekday, SIMPLE_WEEKDAY_LIST]
 WEEKDAY_DICT = dict[int, dict[ScheduleSlotType, str | float]]
 PROFILE_DICT = dict[ScheduleWeekday, WEEKDAY_DICT]
-_SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
+SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
 
 
 class BaseCustomDpClimate(CustomDataPoint):
@@ -193,6 +193,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         "_peer_level_dp",
         "_peer_state_dp",
         "_peer_unregister_callbacks",
+        "_schedule_cache",
         "_supports_schedule",
     )
     _category = DataPointCategory.CLIMATE
@@ -223,6 +224,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
         self._supports_schedule = False
         self._old_manu_setpoint: float | None = None
+        self._schedule_cache: SCHEDULE_DICT = {}
 
     @property
     def _temperature_for_heat_mode(self) -> float:
@@ -242,6 +244,11 @@ class BaseCustomDpClimate(CustomDataPoint):
         return temp
 
     @property
+    def schedule(self) -> SCHEDULE_DICT:
+        """Return the schedule cache."""
+        return self._schedule_cache
+
+    @property
     def schedule_channel_address(self) -> str:
         """Return schedule channel address."""
         return (
@@ -259,6 +266,11 @@ class BaseCustomDpClimate(CustomDataPoint):
     def supports_profiles(self) -> bool:
         """Flag if climate supports profiles."""
         return False
+
+    @property
+    def supports_schedule(self) -> bool:
+        """Flag if climate supports schedule."""
+        return self._supports_schedule
 
     @config_property
     def target_temperature_step(self) -> float:
@@ -447,6 +459,39 @@ class BaseCustomDpClimate(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
+    async def on_config_changed(self) -> None:
+        """Do what is needed on device config change."""
+        await super().on_config_changed()
+
+        await self.reload_and_cache_schedules()
+
+    async def reload_and_cache_schedules(self) -> None:
+        """Reload schedules from CCU and update cache, emit callbacks if changed."""
+        if not self._supports_schedule:
+            return
+
+        try:
+            new_schedule = await self._get_schedule_profile()
+        except ValidationException:
+            _LOGGER.debug(
+                "RELOAD_AND_CACHE_SCHEDULES: Failed to reload schedules for %s",
+                self._device.name,
+            )
+            return
+
+        # Compare old and new schedules
+        old_schedule = self._schedule_cache
+        # Update cache with new schedules
+        self._schedule_cache = new_schedule
+
+        if old_schedule != new_schedule:
+            _LOGGER.debug(
+                "RELOAD_AND_CACHE_SCHEDULES: Schedule changed for %s, emitting callbacks",
+                self._device.name,
+            )
+            # Emit data point updated event to trigger callbacks
+            self.emit_data_point_updated_event()
+
     @bind_collector
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
@@ -479,7 +524,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Store a profile to device."""
         if do_validate:
             self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
-        schedule_data: _SCHEDULE_DICT = {}
+        schedule_data: SCHEDULE_DICT = {}
         for slot_no, slot in weekday_data.items():
             for slot_type, slot_value in slot.items():
                 _add_to_schedule_data(
@@ -569,9 +614,9 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     async def _get_schedule_profile(
         self, *, profile: ScheduleProfile | None = None, weekday: ScheduleWeekday | None = None
-    ) -> _SCHEDULE_DICT:
+    ) -> SCHEDULE_DICT:
         """Get the schedule."""
-        schedule_data: _SCHEDULE_DICT = {}
+        schedule_data: SCHEDULE_DICT = {}
         raw_schedule = await self._get_raw_schedule()
         for slot_name, slot_value in raw_schedule.items():
             slot_name_tuple = slot_name.split("_")
@@ -653,6 +698,9 @@ class BaseCustomDpClimate(CustomDataPoint):
                 self._unregister_callbacks.append(unreg)
         # pre-populate peer references (if any) once
         self._refresh_link_peer_activity_sources()
+        self._device.central.looper.create_task(
+            target=self.reload_and_cache_schedules, name="reload_and_cache_schedules"
+        )
 
     def _refresh_link_peer_activity_sources(self) -> None:
         """
@@ -718,7 +766,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Set a profile to device."""
         if do_validate:
             self._validate_schedule_profile(profile=profile, profile_data=profile_data)
-        schedule_data: _SCHEDULE_DICT = {}
+        schedule_data: SCHEDULE_DICT = {}
         for weekday, weekday_data in profile_data.items():
             for slot_no, slot in weekday_data.items():
                 for slot_type, slot_value in slot.items():
@@ -1527,7 +1575,7 @@ def _fillup_weekday_data(*, base_temperature: float, weekday_data: WEEKDAY_DICT)
     return weekday_data
 
 
-def _get_raw_schedule_paramset(*, schedule_data: _SCHEDULE_DICT) -> _RAW_SCHEDULE_DICT:
+def _get_raw_schedule_paramset(*, schedule_data: SCHEDULE_DICT) -> _RAW_SCHEDULE_DICT:
     """Return the raw paramset."""
     raw_paramset: _RAW_SCHEDULE_DICT = {}
     for profile, profile_data in schedule_data.items():
@@ -1551,7 +1599,7 @@ def _get_raw_schedule_paramset(*, schedule_data: _SCHEDULE_DICT) -> _RAW_SCHEDUL
 
 def _add_to_schedule_data(
     *,
-    schedule_data: _SCHEDULE_DICT,
+    schedule_data: SCHEDULE_DICT,
     profile: ScheduleProfile,
     weekday: ScheduleWeekday,
     slot_no: int,

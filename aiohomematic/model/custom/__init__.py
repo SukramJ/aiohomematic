@@ -51,6 +51,7 @@ from aiohomematic.model import device as hmd
 from aiohomematic.model.custom.climate import (
     PROFILE_DICT,
     PROFILE_PREFIX,
+    SCHEDULE_DICT,
     SIMPLE_PROFILE_DICT,
     SIMPLE_WEEKDAY_LIST,
     WEEKDAY_DICT,
@@ -135,6 +136,7 @@ __all__ = [
     "LockState",
     "PROFILE_DICT",
     "PROFILE_PREFIX",
+    "SCHEDULE_DICT",
     "SIMPLE_PROFILE_DICT",
     "SIMPLE_WEEKDAY_LIST",
     "ScheduleProfile",

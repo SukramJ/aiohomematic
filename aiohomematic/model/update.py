@@ -98,6 +98,9 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             return self._device.available_firmware
         return self._device.firmware
 
+    async def on_config_changed(self) -> None:
+        """Do what is needed on device config change."""
+
     @inspector
     async def refresh_firmware_data(self) -> None:
         """Refresh device firmware data."""

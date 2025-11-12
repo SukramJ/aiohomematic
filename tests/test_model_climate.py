@@ -1166,7 +1166,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
         central_unit_pydevccu_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
     )
     assert climate_bwth
-    profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)
+    profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
     assert len(profile_data) == 7
     weekday_data = await climate_bwth.get_schedule_profile_weekday(
         profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY
@@ -1544,9 +1544,12 @@ async def test_schedule_cache_and_reload_on_config_pending(
     unreg = climate.register_data_point_updated_callback(cb=schedule_changed_callback, custom_id="test_schedule_change")
 
     # Get a schedule profile to populate the cache
-    schedule = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+    schedule = await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
     assert schedule is not None
     assert len(schedule) > 0
+
+    # reset callback_called
+    callback_called = False
 
     # Simulate CONFIG_PENDING event (True then False to trigger reload)
     await central.data_point_event(

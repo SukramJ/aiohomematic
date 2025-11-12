@@ -422,7 +422,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         self._refresh_link_peer_activity_sources()
 
     @inspector
-    async def get_schedule_profile(self, *, profile: ScheduleProfile) -> PROFILE_DICT:
+    async def get_schedule_profile(self, *, profile: ScheduleProfile, do_load: bool = False) -> PROFILE_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
             raise ValidationException(
@@ -431,11 +431,14 @@ class BaseCustomDpClimate(CustomDataPoint):
                     name=self._device.name,
                 )
             )
-        schedule_data = await self._get_schedule_profile(profile=profile)
-        return schedule_data.get(profile, {})
+        if do_load:
+            await self.reload_and_cache_schedules()
+        return self._schedule_cache.get(profile, {})
 
     @inspector
-    async def get_schedule_profile_weekday(self, *, profile: ScheduleProfile, weekday: ScheduleWeekday) -> WEEKDAY_DICT:
+    async def get_schedule_profile_weekday(
+        self, *, profile: ScheduleProfile, weekday: ScheduleWeekday, do_load: bool = False
+    ) -> WEEKDAY_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
             raise ValidationException(
@@ -444,8 +447,9 @@ class BaseCustomDpClimate(CustomDataPoint):
                     name=self._device.name,
                 )
             )
-        schedule_data = await self._get_schedule_profile(profile=profile, weekday=weekday)
-        return schedule_data.get(profile, {}).get(weekday, {})
+        if do_load:
+            await self.reload_and_cache_schedules()
+        return self._schedule_cache.get(profile, {}).get(weekday, {})
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
@@ -524,6 +528,13 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Store a profile to device."""
         if do_validate:
             self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
+
+        if weekday_data != self._schedule_cache.get(profile, {}).get(weekday, {}):
+            if profile not in self._schedule_cache:
+                self._schedule_cache[profile] = {}
+            self._schedule_cache[profile][weekday] = weekday_data
+            self.emit_data_point_updated_event()
+
         schedule_data: SCHEDULE_DICT = {}
         for slot_no, slot in weekday_data.items():
             for slot_type, slot_value in slot.items():
@@ -766,6 +777,10 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Set a profile to device."""
         if do_validate:
             self._validate_schedule_profile(profile=profile, profile_data=profile_data)
+        if profile_data != self._schedule_cache.get(profile, {}):
+            self._schedule_cache[profile] = profile_data
+            self.emit_data_point_updated_event()
+
         schedule_data: SCHEDULE_DICT = {}
         for weekday, weekday_data in profile_data.items():
             for slot_no, slot in weekday_data.items():

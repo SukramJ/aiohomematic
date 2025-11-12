@@ -1,3 +1,9 @@
+# Version 2025.11.13 (2025-11-12)
+
+## What's Changed
+
+- Use schedule cache for climate get/set schedule operations
+
 # Version 2025.11.12 (2025-11-12)
 
 ## What's Changed

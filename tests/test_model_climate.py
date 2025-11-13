@@ -1166,7 +1166,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
         central_unit_pydevccu_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
     )
     assert climate_bwth
-    profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)
     assert len(profile_data) == 7
     weekday_data = await climate_bwth.get_schedule_profile_weekday(
         profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY
@@ -1527,11 +1527,6 @@ async def test_schedule_cache_and_reload_on_config_pending(
     central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
-    # Initially schedule cache should not be empty
-    assert climate._schedule_cache
-
-    climate._schedule_cache = {}
-
     assert climate._schedule_cache == {}
 
     # Register a callback to track schedule changes
@@ -1546,7 +1541,7 @@ async def test_schedule_cache_and_reload_on_config_pending(
     unreg = climate.register_data_point_updated_callback(cb=schedule_changed_callback, custom_id="test_schedule_change")
 
     # Get a schedule profile to populate the cache
-    schedule = await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    schedule = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert schedule is not None
     assert len(schedule) > 0
 
@@ -1613,7 +1608,7 @@ async def test_schedule_cache_read_operations(
 
     # Test 1: get_schedule_profile with do_load=True should fetch from API and cache
     # Note: reload_and_cache_schedules() loads ALL available profiles, not just the requested one
-    profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert profile_data is not None
     assert len(profile_data) > 0
     assert ScheduleProfile.P1 in climate._schedule_cache
@@ -1625,13 +1620,13 @@ async def test_schedule_cache_read_operations(
     initial_call_count = len(mock_client.method_calls)
 
     # Test 2: get_schedule_profile without do_load should return from cache without API call
-    cached_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=False)
+    cached_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert cached_profile_data == profile_data
     assert len(mock_client.method_calls) == initial_call_count  # No new API calls
 
     # Test 3: get_schedule_profile_weekday should return from cache
     weekday_data = await climate.get_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, do_load=False
+        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY
     )
     assert weekday_data is not None
     assert len(weekday_data) > 0
@@ -1640,10 +1635,10 @@ async def test_schedule_cache_read_operations(
 
     # Test 4: get_schedule_profile_weekday with do_load=True should fetch from API
     weekday_data_reloaded = await climate.get_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, do_load=True
+        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, force_load=True
     )
     assert weekday_data_reloaded == weekday_data
-    assert len(mock_client.method_calls) > initial_call_count  # New API call made
+    assert len(mock_client.method_calls) > initial_call_count  # new API call made
 
     # Test 5: get_schedule_profile for non-cached profile should return empty dict
     # Note: After loading P1, other profiles may also be cached, so we check for a definitely non-existent one
@@ -1657,12 +1652,12 @@ async def test_schedule_cache_read_operations(
             break
 
     if non_cached_profile:
-        empty_profile = await climate.get_schedule_profile(profile=non_cached_profile, do_load=False)
+        empty_profile = await climate.get_schedule_profile(profile=non_cached_profile)
         assert empty_profile == {}
     else:
         # If all profiles are cached (which can happen), just verify that accessing cache doesn't cause errors
         for profile in cached_profiles:
-            assert await climate.get_schedule_profile(profile=profile, do_load=False) != {}
+            assert await climate.get_schedule_profile(profile=profile) != {}
 
 
 @pytest.mark.asyncio
@@ -1685,7 +1680,7 @@ async def test_schedule_cache_write_operations(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Load initial schedule to cache
-    initial_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    initial_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert len(initial_profile_data) > 0
 
     # Register callback to track cache updates
@@ -1765,7 +1760,7 @@ async def test_schedule_cache_consistency(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Load initial schedules
-    profile1_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    profile1_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert len(profile1_data) > 0
     assert ScheduleProfile.P1 in climate._schedule_cache
 
@@ -1900,11 +1895,11 @@ async def test_schedule_cache_available_profiles(
     assert climate.available_schedule_profiles == ()
 
     # Test 2: After loading profiles, available_schedule_profiles should reflect cache
-    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert ScheduleProfile.P1 in climate.available_schedule_profiles
 
     # Test 3: After loading multiple profiles, all should be available
-    await climate.get_schedule_profile(profile=ScheduleProfile.P2, do_load=True)
+    await climate.get_schedule_profile(profile=ScheduleProfile.P2)
     available_profiles = climate.available_schedule_profiles
     assert ScheduleProfile.P1 in available_profiles
     assert ScheduleProfile.P2 in available_profiles
@@ -1937,7 +1932,7 @@ async def test_schedule_normalization_string_keys_to_int(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Load valid schedule first
-    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
     # Create weekday data with string keys (as might come from JSON)
     weekday_data_with_string_keys = {
@@ -1987,7 +1982,7 @@ async def test_schedule_normalization_sorting_by_endtime(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Load valid schedule first
-    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
     # Create weekday data with unsorted ENDTIME values
     unsorted_weekday_data = {
@@ -2056,7 +2051,7 @@ async def test_schedule_normalization_complete_example(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Load valid schedule first
-    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
     # Exact example from user request
     user_example_data = {
@@ -2136,7 +2131,7 @@ async def test_schedule_normalization_preserves_validation(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Load valid schedule first
-    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
     # Test that validation still catches invalid temperature ranges
     invalid_temp_data = {

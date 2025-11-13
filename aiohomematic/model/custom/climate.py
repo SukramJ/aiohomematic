@@ -15,6 +15,7 @@ from aiohomematic import i18n
 from aiohomematic.const import (
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
+    CallSource,
     DataPointCategory,
     DeviceProfile,
     Field,
@@ -417,15 +418,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
 
-    async def finalize_init(self) -> None:
-        """Finalize the climate data point init action after model setup."""
-        await super().finalize_init()
-
-        if OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY not in self._device.central.config.optional_settings:
-            return
-
-        self._refresh_link_peer_activity_sources()
-
     @inspector
     async def get_schedule_profile(self, *, profile: ScheduleProfile, do_load: bool = False) -> PROFILE_DICT:
         """Return a schedule by climate profile."""
@@ -436,7 +428,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                     name=self._device.name,
                 )
             )
-        if do_load:
+        if do_load or self._schedule_cache == {}:
             await self.reload_and_cache_schedules()
         return self._schedule_cache.get(profile, {})
 
@@ -452,7 +444,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                     name=self._device.name,
                 )
             )
-        if do_load:
+        if do_load or self._schedule_cache == {}:
             await self.reload_and_cache_schedules()
         return self._schedule_cache.get(profile, {}).get(weekday, {})
 
@@ -467,6 +459,11 @@ class BaseCustomDpClimate(CustomDataPoint):
         if (profile := kwargs.get(_StateChangeArg.PROFILE)) is not None and profile != self.profile:
             return True
         return super().is_state_change(**kwargs)
+
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
+        """Init the data point values."""
+        await super().load_data_point_value(call_source=call_source, direct_call=direct_call)
+        await self.reload_and_cache_schedules()
 
     async def on_config_changed(self) -> None:
         """Do what is needed on device config change."""
@@ -717,9 +714,6 @@ class BaseCustomDpClimate(CustomDataPoint):
                 self._unregister_callbacks.append(unreg)
         # pre-populate peer references (if any) once
         self._refresh_link_peer_activity_sources()
-        self._device.central.looper.create_task(
-            target=self.reload_and_cache_schedules, name="reload_and_cache_schedules"
-        )
 
     def _refresh_link_peer_activity_sources(self) -> None:
         """

@@ -1,3 +1,9 @@
+# Version 2025.11.15 (2025-11-13)
+
+## What's Changed
+
+- Move reload_and_cache_schedules to load_data_point_value
+
 # Version 2025.11.14 (2025-11-13)
 
 ## What's Changed

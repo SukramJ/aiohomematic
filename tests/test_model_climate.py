@@ -1185,8 +1185,10 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
             weekday_data=copy_weekday_data,
         )
 
+    # After normalization, "1:40" is valid and will be sorted correctly
+    # Test with an actually invalid time format
     copy_weekday_data2 = deepcopy(weekday_data)
-    copy_weekday_data2[4][ScheduleSlotType.ENDTIME] = "1:40"
+    copy_weekday_data2[4][ScheduleSlotType.ENDTIME] = "25:40"  # Invalid: hour > 24
     with pytest.raises(ValidationException):
         await climate_bwth.set_schedule_profile_weekday(
             profile=ScheduleProfile.P1,
@@ -1913,3 +1915,248 @@ async def test_schedule_cache_available_profiles(
     assert full_schedule == climate._schedule_cache
     assert ScheduleProfile.P1 in full_schedule
     assert ScheduleProfile.P2 in full_schedule
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        (TEST_DEVICES, True, None, None),
+    ],
+)
+async def test_schedule_normalization_string_keys_to_int(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """Test that string keys are converted to integers."""
+    central, mock_client, _ = central_client_factory_with_homegear_client
+    climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
+
+    # Load valid schedule first
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+
+    # Create weekday data with string keys (as might come from JSON)
+    weekday_data_with_string_keys = {
+        "1": {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 17.0},
+        "2": {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
+        "3": {ScheduleSlotType.ENDTIME: "10:00", ScheduleSlotType.TEMPERATURE: 17.0},
+        "4": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
+        "5": {ScheduleSlotType.ENDTIME: "14:00", ScheduleSlotType.TEMPERATURE: 17.0},
+        "6": {ScheduleSlotType.ENDTIME: "16:00", ScheduleSlotType.TEMPERATURE: 21.0},
+        "7": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 17.0},
+        "8": {ScheduleSlotType.ENDTIME: "20:00", ScheduleSlotType.TEMPERATURE: 21.0},
+        "9": {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 17.0},
+        "10": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "11": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "12": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "13": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+    }
+
+    # Should not raise an exception - string keys should be converted to int
+    await climate.set_schedule_profile_weekday(
+        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=weekday_data_with_string_keys
+    )
+
+    # Verify data was cached with integer keys
+    cached_data = climate._schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY]
+    assert all(isinstance(key, int) for key in cached_data)
+    assert len(cached_data) == 13
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        (TEST_DEVICES, True, None, None),
+    ],
+)
+async def test_schedule_normalization_sorting_by_endtime(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """Test that slots are sorted by ENDTIME and slot numbers are reassigned."""
+    central, mock_client, _ = central_client_factory_with_homegear_client
+    climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
+
+    # Load valid schedule first
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+
+    # Create weekday data with unsorted ENDTIME values
+    unsorted_weekday_data = {
+        "1": {ScheduleSlotType.ENDTIME: "10:00", ScheduleSlotType.TEMPERATURE: 15.0},
+        "2": {ScheduleSlotType.ENDTIME: "11:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "3": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 22.0},
+        "4": {ScheduleSlotType.ENDTIME: "15:00", ScheduleSlotType.TEMPERATURE: 15.0},
+        "5": {ScheduleSlotType.ENDTIME: "19:00", ScheduleSlotType.TEMPERATURE: 12.0},
+        "6": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 14.0},  # Out of order!
+        "7": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "8": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "9": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "10": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "11": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "12": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "13": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+    }
+
+    # Should not raise an exception - data should be sorted and slot numbers reassigned
+    await climate.set_schedule_profile_weekday(
+        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=unsorted_weekday_data
+    )
+
+    # Verify data was sorted correctly in cache
+    cached_data = climate._schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY]
+
+    # Check that slot numbers are 1-13
+    assert list(cached_data.keys()) == list(range(1, 14))
+
+    # Check that times are in ascending order
+    previous_endtime_minutes = 0
+    for slot_no in range(1, 14):
+        endtime_str = cached_data[slot_no][ScheduleSlotType.ENDTIME]
+        h, m = endtime_str.split(":")
+        endtime_minutes = int(h) * 60 + int(m)
+        assert endtime_minutes >= previous_endtime_minutes, f"Slot {slot_no} has non-ascending ENDTIME"
+        previous_endtime_minutes = endtime_minutes
+
+    # Verify specific slot contents after sorting
+    # Original slot 6 (18:00, 14.0) should now be slot 5 (after 15:00, before 19:00)
+    assert cached_data[5][ScheduleSlotType.ENDTIME] == "18:00"
+    assert cached_data[5][ScheduleSlotType.TEMPERATURE] == 14.0
+
+    # Original slot 5 (19:00, 12.0) should now be slot 6
+    assert cached_data[6][ScheduleSlotType.ENDTIME] == "19:00"
+    assert cached_data[6][ScheduleSlotType.TEMPERATURE] == 12.0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        (TEST_DEVICES, True, None, None),
+    ],
+)
+async def test_schedule_normalization_complete_example(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """Test the exact example from the user with string keys and unsorted times."""
+    central, mock_client, _ = central_client_factory_with_homegear_client
+    climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
+
+    # Load valid schedule first
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+
+    # Exact example from user request
+    user_example_data = {
+        "1": {"ENDTIME": "10:00", "TEMPERATURE": 15},
+        "10": {"ENDTIME": "24:00", "TEMPERATURE": 16},
+        "11": {"ENDTIME": "24:00", "TEMPERATURE": 16},
+        "12": {"ENDTIME": "24:00", "TEMPERATURE": 16},
+        "13": {"ENDTIME": "24:00", "TEMPERATURE": 16},
+        "2": {"ENDTIME": "11:00", "TEMPERATURE": 16},
+        "3": {"ENDTIME": "12:00", "TEMPERATURE": 22},
+        "4": {"ENDTIME": "15:00", "TEMPERATURE": 15},
+        "5": {"ENDTIME": "19:00", "TEMPERATURE": 12},
+        "6": {"ENDTIME": "18:00", "TEMPERATURE": 14},  # Out of order!
+        "7": {"ENDTIME": "24:00", "TEMPERATURE": 16},
+        "8": {"ENDTIME": "24:00", "TEMPERATURE": 16},
+        "9": {"ENDTIME": "24:00", "TEMPERATURE": 16},
+    }
+
+    # Convert string slot types to ScheduleSlotType enums
+    normalized_input = {}
+    for key, value in user_example_data.items():
+        normalized_input[key] = {
+            ScheduleSlotType.ENDTIME: value["ENDTIME"],
+            ScheduleSlotType.TEMPERATURE: float(value["TEMPERATURE"]),
+        }
+
+    # Should not raise an exception
+    await climate.set_schedule_profile_weekday(
+        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=normalized_input
+    )
+
+    # Verify normalization worked correctly
+    cached_data = climate._schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY]
+
+    # All keys should be integers 1-13
+    assert list(cached_data.keys()) == list(range(1, 14))
+
+    # Verify sorted order
+    expected_order = [
+        ("10:00", 15.0),  # Original slot 1
+        ("11:00", 16.0),  # Original slot 2
+        ("12:00", 22.0),  # Original slot 3
+        ("15:00", 15.0),  # Original slot 4
+        ("18:00", 14.0),  # Original slot 6 (moved before 19:00)
+        ("19:00", 12.0),  # Original slot 5
+        ("24:00", 16.0),  # Original slots 7-13
+        ("24:00", 16.0),
+        ("24:00", 16.0),
+        ("24:00", 16.0),
+        ("24:00", 16.0),
+        ("24:00", 16.0),
+        ("24:00", 16.0),
+    ]
+
+    for slot_no, (expected_time, expected_temp) in enumerate(expected_order, start=1):
+        assert cached_data[slot_no][ScheduleSlotType.ENDTIME] == expected_time
+        assert cached_data[slot_no][ScheduleSlotType.TEMPERATURE] == expected_temp
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "address_device_translation",
+        "do_mock_client",
+        "ignore_devices_on_create",
+        "un_ignore_list",
+    ),
+    [
+        (TEST_DEVICES, True, None, None),
+    ],
+)
+async def test_schedule_normalization_preserves_validation(
+    central_client_factory_with_homegear_client,
+) -> None:
+    """Test that normalization still allows validation to catch errors."""
+    central, mock_client, _ = central_client_factory_with_homegear_client
+    climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
+
+    # Load valid schedule first
+    await climate.get_schedule_profile(profile=ScheduleProfile.P1, do_load=True)
+
+    # Test that validation still catches invalid temperature ranges
+    invalid_temp_data = {
+        "1": {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 15.0},
+        "2": {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 999.0},  # Way out of range!
+        "3": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 22.0},
+        "4": {ScheduleSlotType.ENDTIME: "15:00", ScheduleSlotType.TEMPERATURE: 15.0},
+        "5": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 12.0},
+        "6": {ScheduleSlotType.ENDTIME: "20:00", ScheduleSlotType.TEMPERATURE: 14.0},
+        "7": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "8": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "9": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "10": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "11": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "12": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        "13": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+    }
+
+    # Should raise ValidationException for invalid temperature
+    with pytest.raises(ValidationException):
+        await climate.set_schedule_profile_weekday(
+            profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=invalid_temp_data
+        )

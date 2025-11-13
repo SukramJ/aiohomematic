@@ -1,4 +1,10 @@
-# Version 2025.11.13 (2025-11-12)
+# Version 2025.11.14 (2025-11-13)
+
+## What's Changed
+
+- Add input converter to climate scheduler setter
+
+# Version 2025.11.13 (2025-11-13)
 
 ## What's Changed
 

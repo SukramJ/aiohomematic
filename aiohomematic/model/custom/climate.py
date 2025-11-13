@@ -531,6 +531,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         do_validate: bool = True,
     ) -> None:
         """Store a profile to device."""
+        # Normalize weekday_data: convert string keys to int and sort by ENDTIME
+        weekday_data = _normalize_weekday_data(weekday_data=weekday_data)
+
         if do_validate:
             self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
@@ -780,6 +783,11 @@ class BaseCustomDpClimate(CustomDataPoint):
         do_validate: bool,
     ) -> None:
         """Set a profile to device."""
+        # Normalize weekday_data: convert string keys to int and sort by ENDTIME
+        profile_data = {
+            weekday: _normalize_weekday_data(weekday_data=weekday_data)
+            for weekday, weekday_data in profile_data.items()
+        }
         if do_validate:
             self._validate_schedule_profile(profile=profile, profile_data=profile_data)
         if profile_data != self._schedule_cache.get(profile, {}):
@@ -1637,6 +1645,28 @@ def _add_to_schedule_data(
         if slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, int):
             slot_value = _convert_minutes_to_time_str(slot_value)
         schedule_data[profile][weekday][slot_no][slot_type] = slot_value
+
+
+def _normalize_weekday_data(*, weekday_data: WEEKDAY_DICT | dict[str, Any]) -> WEEKDAY_DICT:
+    """Normalize weekday data by converting string keys to int and sorting by ENDTIME."""
+    # Convert string keys to int if necessary
+    normalized_data: WEEKDAY_DICT = {}
+    for key, value in weekday_data.items():
+        int_key = int(key) if isinstance(key, str) else key
+        normalized_data[int_key] = value
+
+    # Sort by ENDTIME and reassign slot numbers 1-13
+    sorted_slots = sorted(
+        normalized_data.items(),
+        key=lambda item: _convert_time_str_to_minutes(time_str=str(item[1][ScheduleSlotType.ENDTIME])),
+    )
+
+    # Reassign slot numbers from 1 to 13
+    result: WEEKDAY_DICT = {}
+    for new_slot_no, (_, slot_data) in enumerate(sorted_slots, start=1):
+        result[new_slot_no] = slot_data
+
+    return result
 
 
 def make_simple_thermostat(

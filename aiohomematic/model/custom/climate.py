@@ -419,7 +419,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Enable the away mode by duration on thermostat."""
 
     @inspector
-    async def get_schedule_profile(self, *, profile: ScheduleProfile, do_load: bool = False) -> PROFILE_DICT:
+    async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> PROFILE_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
             raise ValidationException(
@@ -428,13 +428,13 @@ class BaseCustomDpClimate(CustomDataPoint):
                     name=self._device.name,
                 )
             )
-        if do_load or self._schedule_cache == {}:
+        if force_load or self._schedule_cache == {}:
             await self.reload_and_cache_schedules()
         return self._schedule_cache.get(profile, {})
 
     @inspector
     async def get_schedule_profile_weekday(
-        self, *, profile: ScheduleProfile, weekday: ScheduleWeekday, do_load: bool = False
+        self, *, profile: ScheduleProfile, weekday: ScheduleWeekday, force_load: bool = False
     ) -> WEEKDAY_DICT:
         """Return a schedule by climate profile."""
         if not self._supports_schedule:
@@ -444,7 +444,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                     name=self._device.name,
                 )
             )
-        if do_load or self._schedule_cache == {}:
+        if force_load or self._schedule_cache == {}:
             await self.reload_and_cache_schedules()
         return self._schedule_cache.get(profile, {}).get(weekday, {})
 

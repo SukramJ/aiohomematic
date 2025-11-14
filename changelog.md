@@ -1,3 +1,9 @@
+# Version 2025.11.16 (2025-11-14)
+
+## What's Changed
+
+- Optimize climate get/set_schedule
+
 # Version 2025.11.15 (2025-11-13)
 
 ## What's Changed

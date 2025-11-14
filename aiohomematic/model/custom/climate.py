@@ -540,21 +540,13 @@ class BaseCustomDpClimate(CustomDataPoint):
             self._schedule_cache[profile][weekday] = weekday_data
             self.emit_data_point_updated_event()
 
-        schedule_data: SCHEDULE_DICT = {}
-        for slot_no, slot in weekday_data.items():
-            for slot_type, slot_value in slot.items():
-                _add_to_schedule_data(
-                    schedule_data=schedule_data,
-                    profile=profile,
-                    weekday=weekday,
-                    slot_no=slot_no,
-                    slot_type=slot_type,
-                    slot_value=slot_value,
-                )
         await self._client.put_paramset(
             channel_address=self.schedule_channel_address,
             paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=_get_raw_schedule_paramset(schedule_data=schedule_data),
+            values=_build_raw_schedule_paramset(
+                profile=profile,
+                profile_data={weekday: weekday_data},
+            ),
         )
 
     @inspector
@@ -632,30 +624,51 @@ class BaseCustomDpClimate(CustomDataPoint):
         self, *, profile: ScheduleProfile | None = None, weekday: ScheduleWeekday | None = None
     ) -> SCHEDULE_DICT:
         """Get the schedule."""
-        schedule_data: SCHEDULE_DICT = {}
+        # Get raw schedule data from device
         raw_schedule = await self._get_raw_schedule()
-        for slot_name, slot_value in raw_schedule.items():
-            slot_name_tuple = slot_name.split("_")
-            if len(slot_name_tuple) != 4:
-                continue
-            profile_name, slot_type, slot_weekday, slot_no = slot_name_tuple
-            _profile = ScheduleProfile(profile_name)
-            if profile and profile != _profile:
-                continue
-            _slot_type = ScheduleSlotType(slot_type)
-            _weekday = ScheduleWeekday(slot_weekday)
-            if weekday and weekday != _weekday:
-                continue
-            _slot_no = int(slot_no)
 
-            _add_to_schedule_data(
-                schedule_data=schedule_data,
-                profile=_profile,
-                weekday=_weekday,
-                slot_no=_slot_no,
-                slot_type=_slot_type,
-                slot_value=slot_value,
-            )
+        profile_str = profile.value if profile else None
+        weekday_str = weekday.value if weekday else None
+
+        schedule_data: SCHEDULE_DICT = {}
+
+        # Process each schedule entry
+        for slot_name, slot_value in raw_schedule.items():
+            # Split string only once, use maxsplit for micro-optimization
+            # Expected format: "P1_TEMPERATURE_MONDAY_1"
+            parts = slot_name.split("_", 3)  # maxsplit=3 limits splits
+            if len(parts) != 4:
+                continue
+
+            profile_name, slot_type_name, slot_weekday_name, slot_no_str = parts
+
+            if profile_str and profile_name != profile_str:
+                continue
+            if weekday_str and slot_weekday_name != weekday_str:
+                continue
+
+            try:
+                _profile = ScheduleProfile(profile_name)
+                _slot_type = ScheduleSlotType(slot_type_name)
+                _weekday = ScheduleWeekday(slot_weekday_name)
+                _slot_no = int(slot_no_str)
+            except (ValueError, KeyError):
+                # Gracefully skip invalid entries instead of crashing
+                continue
+
+            if _profile not in schedule_data:
+                schedule_data[_profile] = {}
+            if _weekday not in schedule_data[_profile]:
+                schedule_data[_profile][_weekday] = {}
+            if _slot_no not in schedule_data[_profile][_weekday]:
+                schedule_data[_profile][_weekday][_slot_no] = {}
+
+            # Convert ENDTIME from minutes to time string if needed
+            final_value: str | float = slot_value
+            if _slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, int):
+                final_value = _convert_minutes_to_time_str(slot_value)
+
+            schedule_data[_profile][_weekday][_slot_no][_slot_type] = final_value
 
         return schedule_data
 
@@ -788,22 +801,13 @@ class BaseCustomDpClimate(CustomDataPoint):
             self._schedule_cache[profile] = profile_data
             self.emit_data_point_updated_event()
 
-        schedule_data: SCHEDULE_DICT = {}
-        for weekday, weekday_data in profile_data.items():
-            for slot_no, slot in weekday_data.items():
-                for slot_type, slot_value in slot.items():
-                    _add_to_schedule_data(
-                        schedule_data=schedule_data,
-                        profile=profile,
-                        weekday=weekday,
-                        slot_no=slot_no,
-                        slot_type=slot_type,
-                        slot_value=slot_value,
-                    )
         await self._client.put_paramset(
             channel_address=target_channel_address,
             paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=_get_raw_schedule_paramset(schedule_data=schedule_data),
+            values=_build_raw_schedule_paramset(
+                profile=profile,
+                profile_data=profile_data,
+            ),
         )
 
     def _validate_and_convert_simple_to_profile(
@@ -1595,6 +1599,51 @@ def _fillup_weekday_data(*, base_temperature: float, weekday_data: WEEKDAY_DICT)
             }
 
     return weekday_data
+
+
+def _build_raw_schedule_paramset(
+    *,
+    profile: ScheduleProfile,
+    profile_data: PROFILE_DICT,
+) -> _RAW_SCHEDULE_DICT:
+    """
+    Build raw schedule paramset from profile data.
+
+    This helper consolidates the paramset building logic used by both
+    _set_schedule_profile and set_schedule_profile_weekday.
+
+    Args:
+        profile: The schedule profile (P1, P2, P3, etc.)
+        profile_data: Weekday data for the profile
+
+    Returns:
+        Raw paramset dictionary ready for CCU transmission
+
+    """
+    raw_paramset: _RAW_SCHEDULE_DICT = {}
+
+    for weekday, weekday_data in profile_data.items():
+        for slot_no, slot in weekday_data.items():
+            for slot_type, slot_value in slot.items():
+                # Build parameter name: "P1_TEMPERATURE_MONDAY_1"
+                raw_profile_name = f"{str(profile)}_{str(slot_type)}_{str(weekday)}_{slot_no}"
+
+                # Validate parameter name format
+                if SCHEDULER_PROFILE_PATTERN.match(raw_profile_name) is None:
+                    raise ValidationException(
+                        i18n.tr(
+                            "exception.model.custom.climate.validate.profile_name_invalid",
+                            profile_name=raw_profile_name,
+                        )
+                    )
+
+                # Convert ENDTIME strings to minutes for CCU
+                raw_value: float | int = cast(float | int, slot_value)
+                if slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, str):
+                    raw_value = _convert_time_str_to_minutes(time_str=slot_value)
+                raw_paramset[raw_profile_name] = raw_value
+
+    return raw_paramset
 
 
 def _get_raw_schedule_paramset(*, schedule_data: SCHEDULE_DICT) -> _RAW_SCHEDULE_DICT:

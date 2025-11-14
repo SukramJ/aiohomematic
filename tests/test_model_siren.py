@@ -38,9 +38,7 @@ async def test_ceipsiren(
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == (
         "get_schedule",
-        "get_structured_schedule",
         "set_schedule",
-        "set_structured_schedule",
         "turn_off",
         "turn_on",
     )

@@ -17,6 +17,7 @@ from aiohomematic.const import (
     CDPD,
     INIT_DATETIME,
     CallSource,
+    DataPointCategory,
     DataPointKey,
     DataPointUsage,
     DeviceProfile,
@@ -58,8 +59,6 @@ class CustomDataPoint(BaseDataPoint):
         "_group_no",
         "_schedule_cache",
         "_schedule_channel_no",
-        "_schedule_checked",
-        "_supports_schedule",
         "_unregister_callbacks",
     )
 
@@ -85,8 +84,6 @@ class CustomDataPoint(BaseDataPoint):
         self._extended: Final = custom_config.extended
         self._schedule_channel_no: Final[int | None] = custom_config.schedule_channel_no
         self._schedule_cache: SCHEDULE_DICT = {}
-        self._schedule_checked = False
-        self._supports_schedule = True
         super().__init__(
             channel=channel,
             unique_id=unique_id,
@@ -99,9 +96,9 @@ class CustomDataPoint(BaseDataPoint):
         self._post_init_data_point_fields()
 
     @staticmethod
-    def _filter_schedule_entries(*, values: Mapping[str, Any]) -> SCHEDULE_DICT:
+    def _filter_schedule_entries(*, values: Mapping[str, Any]) -> RAW_SCHEDULE:
         """Return only the WP entries from a raw paramset dictionary."""
-        schedule: SCHEDULE_DICT = {}
+        schedule: RAW_SCHEDULE = {}
         for key, value in values.items():
             if not SCHEDULE_PATTERN.match(key):
                 continue
@@ -201,27 +198,15 @@ class CustomDataPoint(BaseDataPoint):
     @inspector
     async def get_schedule(self, *, force_load: bool = False) -> SCHEDULE_DICT:
         """Return the raw schedule dictionary."""
-        await self._ensure_schedule_loaded(force_load=force_load)
+        if not self.supports_schedule:
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.data_point.schedule.unsupported",
+                    address=self._device.name,
+                )
+            )
+        await self.reload_and_cache_schedule(force=force_load)
         return self._schedule_cache
-
-    @inspector
-    async def get_structured_schedule(self, *, force_load: bool = False) -> STRUCTURED_SCHEDULE_DICT:
-        """
-        Return the structured schedule dictionary.
-
-        Args:
-            force_load: Force reloading from device
-
-        Returns:
-            Structured schedule dictionary grouped by schedule number
-            with enum values and bitwise lists converted to enums
-
-        Example:
-            {1: {ScheduleField.WEEKDAY: [Weekday.MONDAY], ...}}
-
-        """
-        await self._ensure_schedule_loaded(force_load=force_load)
-        return raw_schedule_to_dict(raw_schedule=self._schedule_cache)
 
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
@@ -253,39 +238,22 @@ class CustomDataPoint(BaseDataPoint):
 
     async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
         """Reload schedule entries and update cache."""
-        if not force and not self._supports_schedule and self._schedule_checked:
+        if not force and not self.supports_schedule:
             return
 
         try:
-            new_schedule = await self._get_raw_schedule()
+            new_raw_schedule = await self._get_raw_schedule()
         except ValidationException:
-            self._schedule_checked = True
-            self._supports_schedule = False
             return
 
         old_schedule = self._schedule_cache
-        self._schedule_cache = new_schedule
-        self._supports_schedule = True
-        self._schedule_checked = True
-        if old_schedule != new_schedule:
+        self._schedule_cache = raw_schedule_to_dict(raw_schedule=new_raw_schedule)
+        if old_schedule != self._schedule_cache:
             self.emit_data_point_updated_event()
 
     @inspector
-    async def set_schedule(self, *, values: SCHEDULE_DICT) -> None:
+    async def set_schedule(self, *, schedule_dict: SCHEDULE_DICT) -> None:
         """Persist the provided raw schedule dictionary."""
-        if not (filtered_values := self._filter_schedule_entries(values=values)):
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.data_point.schedule.unsupported",
-                    name=self._device.name,
-                )
-            )
-
-        self._schedule_cache = filtered_values
-        self._supports_schedule = True
-        self._schedule_checked = True
-        self.emit_data_point_updated_event()
-
         if (sca := self.schedule_channel_address) is None:
             raise ValidationException(
                 i18n.tr(
@@ -294,37 +262,16 @@ class CustomDataPoint(BaseDataPoint):
                 )
             )
 
+        old_schedule = self._schedule_cache
+        self._schedule_cache = schedule_dict
+        if old_schedule != schedule_dict:
+            self.emit_data_point_updated_event()
+
         await self._client.put_paramset(
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=filtered_values,
+            values=self._filter_schedule_entries(values=dict_to_raw_schedule(schedule_dict=schedule_dict)),
         )
-
-    @inspector
-    async def set_structured_schedule(self, *, schedule_dict: STRUCTURED_SCHEDULE_DICT) -> None:
-        """
-        Set schedule using structured dictionary.
-
-        Args:
-            schedule_dict: Structured schedule dictionary
-
-        Example:
-            await switch.set_structured_schedule(schedule_dict={
-                1: {
-                    SwitchScheduleField.WEEKDAY: [Weekday.MONDAY],
-                    SwitchScheduleField.LEVEL: SwitchLevel.ON,
-                    SwitchScheduleField.TARGET_CHANNELS: [Channel.CHANNEL_1],
-                    SwitchScheduleField.FIXED_HOUR: 12,
-                    SwitchScheduleField.FIXED_MINUTE: 0,
-                    # ... other fields
-                }
-            })
-
-        """
-        # Convert to raw format
-        raw_schedule = dict_to_raw_schedule(schedule_dict=schedule_dict)
-        # Use existing set_schedule method
-        await self.set_schedule(values=raw_schedule)
 
     def _add_data_point(
         self,
@@ -354,17 +301,6 @@ class CustomDataPoint(BaseDataPoint):
                 channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
                 if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                     self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
-
-    async def _ensure_schedule_loaded(self, *, force_load: bool) -> None:
-        """Ensure schedule cache is populated or raise if unsupported."""
-        await self.reload_and_cache_schedule(force=force_load)
-        if not self._supports_schedule:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.data_point.schedule.unsupported",
-                    name=self._device.name,
-                )
-            )
 
     def _get_data_point[DataPointT: hmge.GenericDataPointAny](
         self, *, field: Field, data_point_type: type[DataPointT]
@@ -419,7 +355,7 @@ class CustomDataPoint(BaseDataPoint):
             kind=self._category,
         )
 
-    async def _get_raw_schedule(self) -> SCHEDULE_DICT:
+    async def _get_raw_schedule(self) -> RAW_SCHEDULE:
         """Return the raw schedule dictionary filtered to WP entries."""
         try:
             if (sca := self.schedule_channel_address) is None:
@@ -549,6 +485,9 @@ class ScheduleField(StrEnum):
     FIXED_HOUR = "FIXED_HOUR"
     FIXED_MINUTE = "FIXED_MINUTE"
     LEVEL = "LEVEL"
+    LEVEL_2 = "LEVEL_2"
+    RAMP_TIME_BASE = "RAMP_TIME_BASE"
+    RAMP_TIME_FACTOR = "RAMP_TIME_FACTOR"
     TARGET_CHANNELS = "TARGET_CHANNELS"
     WEEKDAY = "WEEKDAY"
 
@@ -567,7 +506,7 @@ class ScheduleCondition(IntEnum):
     ASTRO = 1
 
 
-class DurationBase(IntEnum):
+class TimeBase(IntEnum):
     """Enum for duration base units."""
 
     MS_100 = 0  # 100 milliseconds
@@ -578,13 +517,6 @@ class DurationBase(IntEnum):
     MIN_5 = 5  # 5 minutes
     MIN_10 = 6  # 10 minutes
     HOUR_1 = 7  # 1 hour
-
-
-class SwitchLevel(IntEnum):
-    """Enum for switch on/off state."""
-
-    OFF = 0
-    ON = 1
 
 
 class Weekday(IntEnum):
@@ -634,9 +566,7 @@ SCHEDULE_PATTERN: Final = re.compile(r"^\d+_WP_")
 # Type aliases for switch schedules
 RAW_SCHEDULE = dict[str, float | int]
 SCHEDULE_GROUP = dict[ScheduleField, Any]
-STRUCTURED_SCHEDULE_DICT = dict[int, SCHEDULE_GROUP]
-# Legacy alias for backward compatibility
-SCHEDULE_DICT = dict[str, float | int]
+SCHEDULE_DICT = dict[int, SCHEDULE_GROUP]
 
 
 def _bitwise_to_list(*, value: int, enum_class: type[IntEnum]) -> list[IntEnum]:
@@ -672,7 +602,7 @@ def _list_to_bitwise(*, items: list[IntEnum]) -> int:
     return result
 
 
-def raw_schedule_to_dict(*, raw_schedule: RAW_SCHEDULE) -> STRUCTURED_SCHEDULE_DICT:
+def raw_schedule_to_dict(*, raw_schedule: RAW_SCHEDULE) -> SCHEDULE_DICT:
     """
     Convert raw paramset schedule to structured dictionary.
 
@@ -687,7 +617,7 @@ def raw_schedule_to_dict(*, raw_schedule: RAW_SCHEDULE) -> STRUCTURED_SCHEDULE_D
         Output: {1: {SwitchScheduleField.WEEKDAY: [Weekday.SUNDAY, ...], ...}}
 
     """
-    schedule_dict: STRUCTURED_SCHEDULE_DICT = {}
+    schedule_dict: SCHEDULE_DICT = {}
 
     for key, value in raw_schedule.items():
         # Expected format: "01_WP_WEEKDAY"
@@ -713,22 +643,24 @@ def raw_schedule_to_dict(*, raw_schedule: RAW_SCHEDULE) -> STRUCTURED_SCHEDULE_D
             schedule_dict[group_no][field] = AstroType(int_value)
         elif field == ScheduleField.CONDITION:
             schedule_dict[group_no][field] = ScheduleCondition(int_value)
-        elif field == ScheduleField.DURATION_BASE:
-            schedule_dict[group_no][field] = DurationBase(int_value)
+        elif field in (ScheduleField.DURATION_BASE, ScheduleField.RAMP_TIME_BASE):
+            schedule_dict[group_no][field] = TimeBase(int_value)
         elif field == ScheduleField.LEVEL:
-            schedule_dict[group_no][field] = SwitchLevel(int_value)
+            schedule_dict[group_no][field] = int_value if isinstance(value, int) else float(value)
+        elif field == ScheduleField.LEVEL_2:
+            schedule_dict[group_no][field] = float(value)
         elif field == ScheduleField.WEEKDAY:
             schedule_dict[group_no][field] = _bitwise_to_list(value=int_value, enum_class=Weekday)
         elif field == ScheduleField.TARGET_CHANNELS:
             schedule_dict[group_no][field] = _bitwise_to_list(value=int_value, enum_class=ScheduleActorChannel)
         else:
-            # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE
+            # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE, RAMP_TIME_FACTOR
             schedule_dict[group_no][field] = int_value
 
     return schedule_dict
 
 
-def dict_to_raw_schedule(*, schedule_dict: STRUCTURED_SCHEDULE_DICT) -> RAW_SCHEDULE:
+def dict_to_raw_schedule(*, schedule_dict: SCHEDULE_DICT) -> RAW_SCHEDULE:
     """
     Convert structured dictionary to raw paramset schedule.
 
@@ -755,13 +687,17 @@ def dict_to_raw_schedule(*, schedule_dict: STRUCTURED_SCHEDULE_DICT) -> RAW_SCHE
                 ScheduleField.ASTRO_TYPE,
                 ScheduleField.CONDITION,
                 ScheduleField.DURATION_BASE,
-                ScheduleField.LEVEL,
+                ScheduleField.RAMP_TIME_BASE,
             ):
                 raw_schedule[key] = int(value.value)
             elif field in (ScheduleField.WEEKDAY, ScheduleField.TARGET_CHANNELS):
                 raw_schedule[key] = _list_to_bitwise(items=value)
+            elif field == ScheduleField.LEVEL:
+                raw_schedule[key] = int(value.value) if isinstance(value, IntEnum) else float(value)
+            elif field == ScheduleField.LEVEL_2:
+                raw_schedule[key] = float(value)
             else:
-                # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE
+                # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE, RAMP_TIME_FACTOR
                 raw_schedule[key] = int(value)
 
     return raw_schedule
@@ -790,7 +726,7 @@ def is_schedule_active(group_data: SCHEDULE_GROUP) -> bool:
     return not (not weekday or not target_channels)
 
 
-def create_empty_schedule_group() -> SCHEDULE_GROUP:
+def create_empty_schedule_group(category: DataPointCategory | None = None) -> SCHEDULE_GROUP:
     """
     Create an empty/deactivated schedule group with all zeros.
 
@@ -798,15 +734,44 @@ def create_empty_schedule_group() -> SCHEDULE_GROUP:
         Schedule group with all fields set to inactive state
 
     """
-    return {
+    empty_schedule_group = {
         ScheduleField.ASTRO_OFFSET: 0,
         ScheduleField.ASTRO_TYPE: AstroType.SUNRISE,
         ScheduleField.CONDITION: ScheduleCondition.FIXED_TIME,
-        ScheduleField.DURATION_BASE: DurationBase.MS_100,
-        ScheduleField.DURATION_FACTOR: 0,
         ScheduleField.FIXED_HOUR: 0,
         ScheduleField.FIXED_MINUTE: 0,
-        ScheduleField.LEVEL: SwitchLevel.OFF,
         ScheduleField.TARGET_CHANNELS: [],
         ScheduleField.WEEKDAY: [],
     }
+    if category == DataPointCategory.COVER:
+        empty_schedule_group.update(
+            {
+                ScheduleField.LEVEL: 0.0,
+                ScheduleField.LEVEL_2: 0.0,
+            }
+        )
+    if category == DataPointCategory.SWITCH:
+        empty_schedule_group.update(
+            {
+                ScheduleField.DURATION_BASE: TimeBase.MS_100,
+                ScheduleField.DURATION_FACTOR: 0,
+                ScheduleField.LEVEL: 0,
+            }
+        )
+    if category == DataPointCategory.LIGHT:
+        empty_schedule_group.update(
+            {
+                ScheduleField.DURATION_BASE: TimeBase.MS_100,
+                ScheduleField.DURATION_FACTOR: 0,
+                ScheduleField.RAMP_TIME_BASE: TimeBase.MS_100,
+                ScheduleField.RAMP_TIME_FACTOR: 0,
+                ScheduleField.LEVEL: 0.0,
+            }
+        )
+    if category == DataPointCategory.VALVE:
+        empty_schedule_group.update(
+            {
+                ScheduleField.LEVEL: 0.0,
+            }
+        )
+    return empty_schedule_group

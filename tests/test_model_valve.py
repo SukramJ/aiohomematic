@@ -40,10 +40,8 @@ async def test_ceipirrigationvalve(
     assert valve.service_method_names == (
         "close",
         "get_schedule",
-        "get_structured_schedule",
         "open",
         "set_schedule",
-        "set_structured_schedule",
     )
 
     await valve.close()

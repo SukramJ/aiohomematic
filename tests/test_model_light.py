@@ -56,9 +56,7 @@ async def test_cedimmer(
     assert light.usage == DataPointUsage.CDP_PRIMARY
     assert light.service_method_names == (
         "get_schedule",
-        "get_structured_schedule",
         "set_schedule",
-        "set_structured_schedule",
         "turn_off",
         "turn_on",
     )

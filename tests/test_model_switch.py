@@ -12,11 +12,10 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.custom.data_point import (
     AstroType,
-    DurationBase,
     ScheduleActorChannel,
     ScheduleCondition,
     ScheduleField,
-    SwitchLevel,
+    TimeBase,
     Weekday,
     create_empty_schedule_group,
     dict_to_raw_schedule,
@@ -53,9 +52,7 @@ async def test_ceswitch(
     assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == (
         "get_schedule",
-        "get_structured_schedule",
         "set_schedule",
-        "set_structured_schedule",
         "turn_off",
         "turn_on",
     )
@@ -139,11 +136,14 @@ async def test_switch_schedule_read_write(
         "UNRELATED": 99,
     }
     expected_schedule = {
-        "01_WP_FIXED_HOUR": 7,
-        "01_WP_FIXED_MINUTE": 30,
-        "01_WP_CONDITION": 0,
-        "02_WP_TARGET_CHANNELS": 1,
+        1: {
+            ScheduleField.CONDITION: ScheduleCondition.FIXED_TIME,
+            ScheduleField.FIXED_HOUR: 7,
+            ScheduleField.FIXED_MINUTE: 30,
+        },
+        2: {ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1]},
     }
+
     mock_client.get_paramset = AsyncMock(return_value=schedule_payload)
 
     schedule = await switch.get_schedule(force_load=True)
@@ -151,11 +151,11 @@ async def test_switch_schedule_read_write(
     assert switch.schedule == expected_schedule
     assert switch.supports_schedule is True
 
-    await switch.set_schedule(values=expected_schedule)
+    await switch.set_schedule(schedule_dict=expected_schedule)
     mock_client.put_paramset.assert_called_with(
         channel_address=switch.schedule_channel_address,
         paramset_key_or_link_address=ParamsetKey.MASTER,
-        values=expected_schedule,
+        values=dict_to_raw_schedule(schedule_dict=expected_schedule),
     )
 
 
@@ -179,12 +179,13 @@ async def test_switch_schedule_unsupported(
     switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
 
     mock_client.get_paramset = AsyncMock(return_value={"UNRELATED": 1})
-
+    chn = switch.channel.device.get_channel(channel_address="VCU2128127:9")
+    chn._is_schedule_channel = False
     with pytest.raises(ValidationException):
         await switch.get_schedule(force_load=True)
 
-    assert switch.supports_schedule is True
-    assert mock_client.get_paramset.await_count == 1
+    assert switch.supports_schedule is False
+    assert mock_client.get_paramset.await_count == 0
 
 
 @pytest.mark.asyncio
@@ -312,11 +313,11 @@ async def test_switch_schedule_conversion() -> None:
     # Verify structure
     assert 2 in structured
     assert structured[2][ScheduleField.WEEKDAY] == [Weekday.MONDAY]
-    assert structured[2][ScheduleField.LEVEL] == SwitchLevel.ON
+    assert structured[2][ScheduleField.LEVEL] == 1
     assert structured[2][ScheduleField.TARGET_CHANNELS] == [ScheduleActorChannel.CHANNEL_1_2]
     assert structured[2][ScheduleField.FIXED_HOUR] == 12
     assert structured[2][ScheduleField.FIXED_MINUTE] == 0
-    assert structured[2][ScheduleField.DURATION_BASE] == DurationBase.SEC_1
+    assert structured[2][ScheduleField.DURATION_BASE] == TimeBase.SEC_1
     assert structured[2][ScheduleField.DURATION_FACTOR] == 10
     assert structured[2][ScheduleField.CONDITION] == ScheduleCondition.FIXED_TIME
     assert structured[2][ScheduleField.ASTRO_TYPE] == AstroType.SUNRISE
@@ -501,7 +502,7 @@ async def test_switch_schedule_duration_calculation() -> None:
     structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
 
     # Verify duration settings
-    assert structured[1][ScheduleField.DURATION_BASE] == DurationBase.SEC_10
+    assert structured[1][ScheduleField.DURATION_BASE] == TimeBase.SEC_10
     assert structured[1][ScheduleField.DURATION_FACTOR] == 6
     # Duration would be: 10 seconds × 6 = 60 seconds
 
@@ -529,7 +530,7 @@ async def test_switch_schedule_sunset_example() -> None:
     assert structured[6][ScheduleField.ASTRO_TYPE] == AstroType.SUNSET
     assert structured[6][ScheduleField.ASTRO_OFFSET] == 24
     assert structured[6][ScheduleField.CONDITION] == ScheduleCondition.ASTRO
-    assert structured[6][ScheduleField.LEVEL] == SwitchLevel.OFF
+    assert structured[6][ScheduleField.LEVEL] == 0
     assert len(structured[6][ScheduleField.WEEKDAY]) == 7  # All weekdays
 
 

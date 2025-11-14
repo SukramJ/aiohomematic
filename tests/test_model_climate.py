@@ -79,7 +79,6 @@ async def test_cesimplerfthermostat(
         "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
-        "get_structured_schedule",
         "set_mode",
         "set_profile",
         "set_schedule",
@@ -87,7 +86,6 @@ async def test_cesimplerfthermostat(
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
         "set_simple_schedule_profile_weekday",
-        "set_structured_schedule",
         "set_temperature",
     )
     assert climate.state_uncertain is False
@@ -171,7 +169,6 @@ async def test_cerfthermostat(
         "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
-        "get_structured_schedule",
         "set_mode",
         "set_profile",
         "set_schedule",
@@ -179,7 +176,6 @@ async def test_cerfthermostat(
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
         "set_simple_schedule_profile_weekday",
-        "set_structured_schedule",
         "set_temperature",
     )
     assert climate.min_temp == 5.0
@@ -369,7 +365,6 @@ async def test_cerfthermostat_with_profiles(
         "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
-        "get_structured_schedule",
         "set_mode",
         "set_profile",
         "set_schedule",
@@ -377,7 +372,6 @@ async def test_cerfthermostat_with_profiles(
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
         "set_simple_schedule_profile_weekday",
-        "set_structured_schedule",
         "set_temperature",
     )
     assert climate.min_temp == 5.0
@@ -655,7 +649,6 @@ async def test_ceipthermostat_bwth(
         "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
-        "get_structured_schedule",
         "set_mode",
         "set_profile",
         "set_schedule",
@@ -663,7 +656,6 @@ async def test_ceipthermostat_bwth(
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
         "set_simple_schedule_profile_weekday",
-        "set_structured_schedule",
         "set_temperature",
     )
     assert climate.min_temp == 5.0
@@ -927,7 +919,6 @@ async def test_ceipthermostat_wgtc(
         "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
-        "get_structured_schedule",
         "set_mode",
         "set_profile",
         "set_schedule",
@@ -935,7 +926,6 @@ async def test_ceipthermostat_wgtc(
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
         "set_simple_schedule_profile_weekday",
-        "set_structured_schedule",
         "set_temperature",
     )
     assert climate.min_temp == 5.0

@@ -61,11 +61,9 @@ async def test_cecover(
     assert cover.service_method_names == (
         "close",
         "get_schedule",
-        "get_structured_schedule",
         "open",
         "set_position",
         "set_schedule",
-        "set_structured_schedule",
         "stop",
     )
     assert mock_client.method_calls[-1] == call.set_value(
@@ -161,12 +159,10 @@ async def test_ceipblind_dr(
         "close",
         "close_tilt",
         "get_schedule",
-        "get_structured_schedule",
         "open",
         "open_tilt",
         "set_position",
         "set_schedule",
-        "set_structured_schedule",
         "stop",
         "stop_tilt",
     )
@@ -344,12 +340,10 @@ async def test_ceblind(
         "close",
         "close_tilt",
         "get_schedule",
-        "get_structured_schedule",
         "open",
         "open_tilt",
         "set_position",
         "set_schedule",
-        "set_structured_schedule",
         "stop",
         "stop_tilt",
     )
@@ -764,12 +758,10 @@ async def test_ceipblind_hdm(
         "close",
         "close_tilt",
         "get_schedule",
-        "get_structured_schedule",
         "open",
         "open_tilt",
         "set_position",
         "set_schedule",
-        "set_structured_schedule",
         "stop",
         "stop_tilt",
     )
@@ -928,11 +920,9 @@ async def test_cegarageho(
     assert cover.service_method_names == (
         "close",
         "get_schedule",
-        "get_structured_schedule",
         "open",
         "set_position",
         "set_schedule",
-        "set_structured_schedule",
         "stop",
         "vent",
     )

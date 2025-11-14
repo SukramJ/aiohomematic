@@ -54,7 +54,14 @@ async def test_cedimmer(
     central, mock_client, _ = central_client_factory_with_homegear_client
     light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
     assert light.usage == DataPointUsage.CDP_PRIMARY
-    assert light.service_method_names == ("turn_off", "turn_on")
+    assert light.service_method_names == (
+        "get_schedule",
+        "get_structured_schedule",
+        "set_schedule",
+        "set_structured_schedule",
+        "turn_off",
+        "turn_on",
+    )
     assert light.color_temp_kelvin is None
     assert light.hs_color is None
     assert light.supports_brightness is True

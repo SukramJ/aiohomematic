@@ -56,6 +56,8 @@ UTF_8: Final = "utf-8"
 # Default encoding for xmlrpc service calls and script files
 ISO_8859_1: Final = "iso-8859-1"
 
+BIDCOS_DEVICE_CHANNEL_DUMMY: Final = 999
+
 # Password can be empty.
 # Allowed characters: A-Z, a-z, 0-9, .!$():;#-
 # The CCU WebUI also supports ÄäÖöÜüß, but these characters are not supported by the XmlRPC servers
@@ -69,6 +71,7 @@ SCHEDULER_PROFILE_PATTERN: Final = re.compile(
     r"^P[1-6]_(ENDTIME|TEMPERATURE)_(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)_([1-9]|1[0-3])$"
 )
 SCHEDULER_TIME_PATTERN: Final = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
+WEEK_PROFILE_PATTERN: Final = re.compile(r".*WEEK_PROFILE$")
 
 ALWAYS_ENABLE_SYSVARS_BY_ID: Final[frozenset[str]] = frozenset({"40", "41"})
 RENAME_SYSVAR_BY_NAME: Final[Mapping[str, str]] = MappingProxyType(

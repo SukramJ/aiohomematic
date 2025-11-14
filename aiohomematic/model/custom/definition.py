@@ -673,6 +673,7 @@ def _rebase_pri_channels(*, device_profile: DeviceProfile, custom_config: Custom
         make_ce_func=custom_config.make_ce_func,
         channels=tuple(pri_channels),
         extended=custom_config.extended,
+        schedule_channel_no=custom_config.schedule_channel_no,
     )
 
 

@@ -13,6 +13,7 @@ from typing import Any, Final, cast
 
 from aiohomematic import i18n
 from aiohomematic.const import (
+    BIDCOS_DEVICE_CHANNEL_DUMMY,
     SCHEDULER_PROFILE_PATTERN,
     SCHEDULER_TIME_PATTERN,
     CallSource,
@@ -23,7 +24,6 @@ from aiohomematic.const import (
     OptionalSettings,
     Parameter,
     ParamsetKey,
-    ProductGroup,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
@@ -184,6 +184,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     """Base Homematic climate data_point."""
 
     __slots__ = (
+        "_climate_schedule_cache",
         "_dp_humidity",
         "_dp_min_max_value_not_relevant_for_manu_mode",
         "_dp_setpoint",
@@ -194,8 +195,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         "_peer_level_dp",
         "_peer_state_dp",
         "_peer_unregister_callbacks",
-        "_schedule_cache",
-        "_supports_schedule",
     )
     _category = DataPointCategory.CLIMATE
 
@@ -223,9 +222,8 @@ class BaseCustomDpClimate(CustomDataPoint):
             group_no=group_no,
             custom_config=custom_config,
         )
-        self._supports_schedule = False
         self._old_manu_setpoint: float | None = None
-        self._schedule_cache: SCHEDULE_DICT = {}
+        self._climate_schedule_cache: SCHEDULE_DICT = {}
 
     @property
     def _temperature_for_heat_mode(self) -> float:
@@ -247,21 +245,12 @@ class BaseCustomDpClimate(CustomDataPoint):
     @property
     def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
         """Return the available schedule profiles."""
-        return tuple(self._schedule_cache.keys())
+        return tuple(self._climate_schedule_cache.keys())
 
     @property
-    def schedule(self) -> SCHEDULE_DICT:
+    def climate_schedule(self) -> SCHEDULE_DICT:
         """Return the schedule cache."""
-        return self._schedule_cache
-
-    @property
-    def schedule_channel_address(self) -> str:
-        """Return schedule channel address."""
-        return (
-            self._channel.address
-            if self._channel.device.product_group in (ProductGroup.HMIP, ProductGroup.HMIPW)
-            else self._device.address
-        )
+        return self._climate_schedule_cache
 
     @property
     def schedule_profile_nos(self) -> int:
@@ -272,11 +261,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     def supports_profiles(self) -> bool:
         """Flag if climate supports profiles."""
         return False
-
-    @property
-    def supports_schedule(self) -> bool:
-        """Flag if climate supports schedule."""
-        return self._supports_schedule
 
     @config_property
     def target_temperature_step(self) -> float:
@@ -361,8 +345,15 @@ class BaseCustomDpClimate(CustomDataPoint):
         if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
             raise ValidationException(i18n.tr("exception.model.custom.climate.copy_schedule.profile_count_mismatch"))
         raw_schedule = await self._get_raw_schedule()
+        if (sca := target_climate_data_point.schedule_channel_address) is None:
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.data_point.schedule.unsupported",
+                    address=self._device.name,
+                )
+            )
         await self._client.put_paramset(
-            channel_address=target_climate_data_point.schedule_channel_address,
+            channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
             values=raw_schedule,
         )
@@ -377,10 +368,10 @@ class BaseCustomDpClimate(CustomDataPoint):
     ) -> None:
         """Copy schedule profile to target device."""
         same_device = False
-        if not self._supports_schedule:
+        if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
+                    "exception.model.custom.data_point.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -399,8 +390,15 @@ class BaseCustomDpClimate(CustomDataPoint):
                     source_profile=source_profile,
                 )
             )
+        if (sca := target_climate_data_point.schedule_channel_address) is None:
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.data_point.schedule.unsupported",
+                    address=self._device.name,
+                )
+            )
         await self._set_schedule_profile(
-            target_channel_address=target_climate_data_point.schedule_channel_address,
+            target_channel_address=sca,
             profile=target_profile,
             profile_data=source_profile_data,
             do_validate=False,
@@ -421,32 +419,32 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> PROFILE_DICT:
         """Return a schedule by climate profile."""
-        if not self._supports_schedule:
+        if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
+                    "exception.model.custom.data_point.schedule.unsupported",
                     name=self._device.name,
                 )
             )
-        if force_load or self._schedule_cache == {}:
+        if force_load or self._climate_schedule_cache == {}:
             await self.reload_and_cache_schedules()
-        return self._schedule_cache.get(profile, {})
+        return self._climate_schedule_cache.get(profile, {})
 
     @inspector
     async def get_schedule_profile_weekday(
         self, *, profile: ScheduleProfile, weekday: ScheduleWeekday, force_load: bool = False
     ) -> WEEKDAY_DICT:
         """Return a schedule by climate profile."""
-        if not self._supports_schedule:
+        if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
+                    "exception.model.custom.data_point.schedule.unsupported",
                     name=self._device.name,
                 )
             )
-        if force_load or self._schedule_cache == {}:
+        if force_load or self._climate_schedule_cache == {}:
             await self.reload_and_cache_schedules()
-        return self._schedule_cache.get(profile, {}).get(weekday, {})
+        return self._climate_schedule_cache.get(profile, {}).get(weekday, {})
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
@@ -473,7 +471,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     async def reload_and_cache_schedules(self) -> None:
         """Reload schedules from CCU and update cache, emit callbacks if changed."""
-        if not self._supports_schedule:
+        if not self.supports_schedule:
             return
 
         try:
@@ -486,9 +484,9 @@ class BaseCustomDpClimate(CustomDataPoint):
             return
 
         # Compare old and new schedules
-        old_schedule = self._schedule_cache
+        old_schedule = self._climate_schedule_cache
         # Update cache with new schedules
-        self._schedule_cache = new_schedule
+        self._climate_schedule_cache = new_schedule
 
         if old_schedule != new_schedule:
             _LOGGER.debug(
@@ -511,8 +509,15 @@ class BaseCustomDpClimate(CustomDataPoint):
         self, *, profile: ScheduleProfile, profile_data: PROFILE_DICT, do_validate: bool = True
     ) -> None:
         """Set a profile to device."""
+        if (sca := self.schedule_channel_address) is None:
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.data_point.schedule.unsupported",
+                    address=self._device.name,
+                )
+            )
         await self._set_schedule_profile(
-            target_channel_address=self.schedule_channel_address,
+            target_channel_address=sca,
             profile=profile,
             profile_data=profile_data,
             do_validate=do_validate,
@@ -534,14 +539,21 @@ class BaseCustomDpClimate(CustomDataPoint):
         if do_validate:
             self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
-        if weekday_data != self._schedule_cache.get(profile, {}).get(weekday, {}):
-            if profile not in self._schedule_cache:
-                self._schedule_cache[profile] = {}
-            self._schedule_cache[profile][weekday] = weekday_data
+        if weekday_data != self._climate_schedule_cache.get(profile, {}).get(weekday, {}):
+            if profile not in self._climate_schedule_cache:
+                self._climate_schedule_cache[profile] = {}
+            self._climate_schedule_cache[profile][weekday] = weekday_data
             self.emit_data_point_updated_event()
 
+        if (sca := self.schedule_channel_address) is None:
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.data_point.schedule.unsupported",
+                    address=self._device.name,
+                )
+            )
         await self._client.put_paramset(
-            channel_address=self.schedule_channel_address,
+            channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
             values=_build_raw_schedule_paramset(
                 profile=profile,
@@ -605,16 +617,22 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def _get_raw_schedule(self) -> _RAW_SCHEDULE_DICT:
         """Return the raw schedule."""
         try:
+            if (sca := self.schedule_channel_address) is None:
+                raise ValidationException(
+                    i18n.tr(
+                        "exception.model.custom.data_point.schedule.unsupported",
+                        address=self._device.name,
+                    )
+                )
             raw_data = await self._client.get_paramset(
-                address=self.schedule_channel_address,
+                address=sca,
                 paramset_key=ParamsetKey.MASTER,
             )
             raw_schedule = {key: value for key, value in raw_data.items() if SCHEDULER_PROFILE_PATTERN.match(key)}
         except ClientException as cex:
-            self._supports_schedule = False
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
+                    "exception.model.custom.data_point.schedule.unsupported",
                     name=self._device.name,
                 )
             ) from cex
@@ -797,8 +815,8 @@ class BaseCustomDpClimate(CustomDataPoint):
         }
         if do_validate:
             self._validate_schedule_profile(profile=profile, profile_data=profile_data)
-        if profile_data != self._schedule_cache.get(profile, {}):
-            self._schedule_cache[profile] = profile_data
+        if profile_data != self._climate_schedule_cache.get(profile, {}):
+            self._climate_schedule_cache[profile] = profile_data
             self.emit_data_point_updated_event()
 
         await self._client.put_paramset(
@@ -1016,29 +1034,6 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         "_dp_valve_state",
         "_dp_week_program_pointer",
     )
-
-    def __init__(
-        self,
-        *,
-        channel: hmd.Channel,
-        unique_id: str,
-        device_profile: DeviceProfile,
-        device_def: Mapping[str, Any],
-        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        group_no: int,
-        custom_config: CustomConfig,
-    ) -> None:
-        """Initialize the Homematic thermostat."""
-        super().__init__(
-            channel=channel,
-            unique_id=unique_id,
-            device_profile=device_profile,
-            device_def=device_def,
-            custom_data_point_def=custom_data_point_def,
-            group_no=group_no,
-            custom_config=custom_config,
-        )
-        self._supports_schedule = True
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -1261,29 +1256,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         "_dp_state",
         "_dp_temperature_offset",
     )
-
-    def __init__(
-        self,
-        *,
-        channel: hmd.Channel,
-        unique_id: str,
-        device_profile: DeviceProfile,
-        device_def: Mapping[str, Any],
-        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        group_no: int,
-        custom_config: CustomConfig,
-    ) -> None:
-        """Initialize the climate ip thermostat."""
-        super().__init__(
-            channel=channel,
-            unique_id=unique_id,
-            device_profile=device_profile,
-            device_def=device_def,
-            custom_data_point_def=custom_data_point_def,
-            group_no=group_no,
-            custom_config=custom_config,
-        )
-        self._supports_schedule = True
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -1792,16 +1764,18 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HM-CC-RT-DN": CustomConfig(make_ce_func=make_thermostat, channels=(4,)),
     "HM-CC-TC": CustomConfig(make_ce_func=make_simple_thermostat),
     "HM-CC-VG-1": CustomConfig(make_ce_func=make_thermostat_group),
-    "HM-TC-IT-WM-W-EU": CustomConfig(make_ce_func=make_thermostat, channels=(2,)),
-    "HmIP-BWTH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIP-HEATING": CustomConfig(make_ce_func=make_ip_thermostat_group),
-    "HmIP-STH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIP-WTH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_thermostat, channels=(8,)),
-    "HmIP-eTRV": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIPW-SCTHD": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIPW-STH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIPW-WTH": CustomConfig(make_ce_func=make_ip_thermostat),
+    "HM-TC-IT-WM-W-EU": CustomConfig(
+        make_ce_func=make_thermostat, channels=(2,), schedule_channel_no=BIDCOS_DEVICE_CHANNEL_DUMMY
+    ),
+    "HmIP-BWTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIP-HEATING": CustomConfig(make_ce_func=make_ip_thermostat_group, schedule_channel_no=1),
+    "HmIP-STH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIP-WTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_thermostat, channels=(8,), schedule_channel_no=1),
+    "HmIP-eTRV": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIPW-SCTHD": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIPW-STH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIPW-WTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
     "Thermostat AA": CustomConfig(make_ce_func=make_ip_thermostat),
     "ZEL STG RM FWT": CustomConfig(make_ce_func=make_simple_thermostat),
 }

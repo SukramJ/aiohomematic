@@ -137,13 +137,13 @@ async def test_load_custom_data_point(
     central, mock_client, _ = central_client_factory_with_homegear_client
     switch: DpSwitch = cast(DpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
     await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
-    assert mock_client.method_calls[-2] == call.get_value(
+    assert mock_client.method_calls[-3] == call.get_value(
         channel_address="VCU2128127:4",
         paramset_key=ParamsetKey.VALUES,
         parameter="STATE",
         call_source="hm_init",
     )
-    assert mock_client.method_calls[-1] == call.get_value(
+    assert mock_client.method_calls[-2] == call.get_value(
         channel_address="VCU2128127:3",
         paramset_key=ParamsetKey.VALUES,
         parameter="STATE",

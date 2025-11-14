@@ -47,6 +47,7 @@ from aiohomematic.const import (
     REPORT_VALUE_USAGE_DATA,
     REPORT_VALUE_USAGE_VALUE_ID,
     VIRTUAL_REMOTE_MODELS,
+    WEEK_PROFILE_PATTERN,
     CallSource,
     DataOperationResult,
     DataPointCategory,
@@ -387,6 +388,14 @@ class Device(LogContextMixin, PayloadMixin):
     def rx_modes(self) -> tuple[RxMode, ...]:
         """Return the rx mode."""
         return self._rx_modes
+
+    @property
+    def schedule_channel_address(self) -> str | None:
+        """Return the schedule channel address."""
+        for channel in self._channels.values():
+            if channel.is_schedule_channel:
+                return channel.address
+        return None
 
     @property
     def sub_model(self) -> str | None:
@@ -738,6 +747,7 @@ class Channel(LogContextMixin, PayloadMixin):
         "_group_no",
         "_id",
         "_is_in_multi_group",
+        "_is_schedule_channel",
         "_link_peer_addresses",
         "_link_peer_changed_callbacks",
         "_link_source_categories",
@@ -767,6 +777,7 @@ class Channel(LogContextMixin, PayloadMixin):
             interface_id=self._device.interface_id, address=channel_address
         )
         self._type_name: Final[str] = self._description["TYPE"]
+        self._is_schedule_channel: Final[bool] = WEEK_PROFILE_PATTERN.match(self._type_name) is not None
         self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
 
         self._unique_id: Final = generate_channel_unique_id(central=self._central, address=channel_address)
@@ -888,6 +899,11 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._is_in_multi_group is None:
             self._is_in_multi_group = self._device.is_in_multi_channel_group(channel_no=self._no)
         return self._is_in_multi_group
+
+    @property
+    def is_schedule_channel(self) -> bool:
+        """Return if channel is a schedule channel."""
+        return self._is_schedule_channel
 
     @property
     def link_peer_addresses(self) -> tuple[str, ...]:

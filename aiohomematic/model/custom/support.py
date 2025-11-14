@@ -18,6 +18,7 @@ class CustomConfig:
     make_ce_func: CustomDataPointFactory
     channels: tuple[int | None, ...] = (1,)
     extended: ExtendedConfig | None = None
+    schedule_channel_no: int | None = None
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

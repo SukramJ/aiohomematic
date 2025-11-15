@@ -129,7 +129,10 @@ async def test_switch_schedule_read_write(
         "01_WP_FIXED_HOUR": 7,
         "01_WP_FIXED_MINUTE": 30,
         "01_WP_CONDITION": 0,
+        "01_WP_TARGET_CHANNELS": 1,
+        "01_WP_WEEKDAY": 2,
         "02_WP_TARGET_CHANNELS": 1,
+        "02_WP_WEEKDAY": 2,
         "UNRELATED": 99,
     }
     expected_schedule = {
@@ -137,8 +140,13 @@ async def test_switch_schedule_read_write(
             ScheduleField.CONDITION: ScheduleCondition.FIXED_TIME,
             ScheduleField.FIXED_HOUR: 7,
             ScheduleField.FIXED_MINUTE: 30,
+            ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
+            ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
         },
-        2: {ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1]},
+        2: {
+            ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
+            ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
+        },
     }
 
     mock_client.get_paramset = AsyncMock(return_value=schedule_payload)

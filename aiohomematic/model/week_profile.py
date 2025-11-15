@@ -288,9 +288,11 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
             new_raw_schedule = await self._get_raw_schedule()
         except ValidationException:
             return
-
         old_schedule = self._schedule_cache
-        self._schedule_cache = self.convert_raw_to_dict_schedule(raw_schedule=new_raw_schedule)
+        new_schedule_dict = self.convert_raw_to_dict_schedule(raw_schedule=new_raw_schedule)
+        self._schedule_cache = {
+            no: group_data for no, group_data in new_schedule_dict.items() if is_schedule_active(group_data=group_data)
+        }
         if old_schedule != self._schedule_cache:
             self._data_point.emit_data_point_updated_event()
 

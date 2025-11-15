@@ -37,7 +37,10 @@ async def test_ceipirrigationvalve(
         CustomDpIpIrrigationValve, get_prepared_custom_data_point(central, "VCU8976407", 4)
     )
     assert valve.usage == DataPointUsage.CDP_PRIMARY
-    assert valve.service_method_names == ("close", "open")
+    assert valve.service_method_names == (
+        "close",
+        "open",
+    )
 
     await valve.close()
     assert valve.value is False

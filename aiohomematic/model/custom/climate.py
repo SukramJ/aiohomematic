@@ -13,9 +13,11 @@ from typing import Any, Final, cast
 
 from aiohomematic import i18n
 from aiohomematic.const import (
-    SCHEDULER_PROFILE_PATTERN,
-    SCHEDULER_TIME_PATTERN,
-    CallSource,
+    BIDCOS_DEVICE_CHANNEL_DUMMY,
+    CLIMATE_PROFILE_DICT,
+    CLIMATE_SIMPLE_PROFILE_DICT,
+    CLIMATE_SIMPLE_WEEKDAY_LIST,
+    CLIMATE_WEEKDAY_DICT,
     DataPointCategory,
     DeviceProfile,
     Field,
@@ -23,11 +25,12 @@ from aiohomematic.const import (
     OptionalSettings,
     Parameter,
     ParamsetKey,
-    ProductGroup,
+    ScheduleProfile,
+    WeekdayStr,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.exceptions import ClientException, ValidationException
-from aiohomematic.model import device as hmd
+from aiohomematic.exceptions import ValidationException
+from aiohomematic.model import device as hmd, week_profile as wp
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
@@ -49,17 +52,11 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 _CLOSED_LEVEL: Final = 0.0
 _DEFAULT_TEMPERATURE_STEP: Final = 0.5
-_MAX_SCHEDULER_TIME: Final = "24:00"
-_MIN_SCHEDULER_TIME: Final = "00:00"
 _OFF_TEMPERATURE: Final = 4.5
 _PARTY_DATE_FORMAT: Final = "%Y_%m_%d %H:%M"
 _PARTY_INIT_DATE: Final = "2000_01_01 00:00"
-_RAW_SCHEDULE_DICT = dict[str, float | int]
 _TEMP_CELSIUS: Final = "°C"
 PROFILE_PREFIX: Final = "week_program_"
-SCHEDULE_SLOT_RANGE: Final = range(1, 13)
-SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
-SCHEDULE_TIME_RANGE: Final = range(1441)
 
 
 class _ModeHm(StrEnum):
@@ -139,47 +136,6 @@ _HM_WEEK_PROFILE_POINTERS_TO_NAMES: Final = {
 _HM_WEEK_PROFILE_POINTERS_TO_IDX: Final = {v: k for k, v in _HM_WEEK_PROFILE_POINTERS_TO_NAMES.items()}
 
 
-class ScheduleSlotType(StrEnum):
-    """Enum for climate item type."""
-
-    ENDTIME = "ENDTIME"
-    STARTTIME = "STARTTIME"
-    TEMPERATURE = "TEMPERATURE"
-
-
-RELEVANT_SLOT_TYPES: Final = (ScheduleSlotType.ENDTIME, ScheduleSlotType.TEMPERATURE)
-
-
-class ScheduleProfile(StrEnum):
-    """Enum for climate profiles."""
-
-    P1 = "P1"
-    P2 = "P2"
-    P3 = "P3"
-    P4 = "P4"
-    P5 = "P5"
-    P6 = "P6"
-
-
-class ScheduleWeekday(StrEnum):
-    """Enum for climate week days."""
-
-    MONDAY = "MONDAY"
-    TUESDAY = "TUESDAY"
-    WEDNESDAY = "WEDNESDAY"
-    THURSDAY = "THURSDAY"
-    FRIDAY = "FRIDAY"
-    SATURDAY = "SATURDAY"
-    SUNDAY = "SUNDAY"
-
-
-SIMPLE_WEEKDAY_LIST = list[dict[ScheduleSlotType, str | float]]
-SIMPLE_PROFILE_DICT = dict[ScheduleWeekday, SIMPLE_WEEKDAY_LIST]
-WEEKDAY_DICT = dict[int, dict[ScheduleSlotType, str | float]]
-PROFILE_DICT = dict[ScheduleWeekday, WEEKDAY_DICT]
-SCHEDULE_DICT = dict[ScheduleProfile, PROFILE_DICT]
-
-
 class BaseCustomDpClimate(CustomDataPoint):
     """Base Homematic climate data_point."""
 
@@ -194,8 +150,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         "_peer_level_dp",
         "_peer_state_dp",
         "_peer_unregister_callbacks",
-        "_schedule_cache",
-        "_supports_schedule",
     )
     _category = DataPointCategory.CLIMATE
 
@@ -223,9 +177,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             group_no=group_no,
             custom_config=custom_config,
         )
-        self._supports_schedule = False
         self._old_manu_setpoint: float | None = None
-        self._schedule_cache: SCHEDULE_DICT = {}
 
     @property
     def _temperature_for_heat_mode(self) -> float:
@@ -246,22 +198,10 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     @property
     def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
-        """Return the available schedule profiles."""
-        return tuple(self._schedule_cache.keys())
-
-    @property
-    def schedule(self) -> SCHEDULE_DICT:
-        """Return the schedule cache."""
-        return self._schedule_cache
-
-    @property
-    def schedule_channel_address(self) -> str:
-        """Return schedule channel address."""
-        return (
-            self._channel.address
-            if self._channel.device.product_group in (ProductGroup.HMIP, ProductGroup.HMIPW)
-            else self._device.address
-        )
+        """Return available schedule profiles."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return self._device.week_profile.available_schedule_profiles
+        return ()
 
     @property
     def schedule_profile_nos(self) -> int:
@@ -272,11 +212,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     def supports_profiles(self) -> bool:
         """Flag if climate supports profiles."""
         return False
-
-    @property
-    def supports_schedule(self) -> bool:
-        """Flag if climate supports schedule."""
-        return self._supports_schedule
 
     @config_property
     def target_temperature_step(self) -> float:
@@ -356,16 +291,9 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     @inspector
     async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
-        """Copy schedule to target device."""
-
-        if self.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
-            raise ValidationException(i18n.tr("exception.model.custom.climate.copy_schedule.profile_count_mismatch"))
-        raw_schedule = await self._get_raw_schedule()
-        await self._client.put_paramset(
-            channel_address=target_climate_data_point.schedule_channel_address,
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=raw_schedule,
-        )
+        """Copy schedule to target device (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            await self._device.week_profile.copy_schedule(target_climate_data_point=target_climate_data_point)
 
     @inspector
     async def copy_schedule_profile(
@@ -375,36 +303,13 @@ class BaseCustomDpClimate(CustomDataPoint):
         target_profile: ScheduleProfile,
         target_climate_data_point: BaseCustomDpClimate | None = None,
     ) -> None:
-        """Copy schedule profile to target device."""
-        same_device = False
-        if not self._supports_schedule:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
-                    name=self._device.name,
-                )
+        """Copy schedule profile to target device (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            await self._device.week_profile.copy_schedule_profile(
+                source_profile=source_profile,
+                target_profile=target_profile,
+                target_climate_data_point=target_climate_data_point,
             )
-        if target_climate_data_point is None:
-            target_climate_data_point = self
-        if self is target_climate_data_point:
-            same_device = True
-
-        if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
-            raise ValidationException(i18n.tr("exception.model.custom.climate.copy_schedule.same_device_invalid"))
-
-        if (source_profile_data := await self.get_schedule_profile(profile=source_profile)) is None:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.climate.source_profile.not_loaded",
-                    source_profile=source_profile,
-                )
-            )
-        await self._set_schedule_profile(
-            target_channel_address=target_climate_data_point.schedule_channel_address,
-            profile=target_profile,
-            profile_data=source_profile_data,
-            do_validate=False,
-        )
 
     @inspector
     async def disable_away_mode(self) -> None:
@@ -419,34 +324,22 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Enable the away mode by duration on thermostat."""
 
     @inspector
-    async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> PROFILE_DICT:
-        """Return a schedule by climate profile."""
-        if not self._supports_schedule:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
-                    name=self._device.name,
-                )
-            )
-        if force_load or self._schedule_cache == {}:
-            await self.reload_and_cache_schedules()
-        return self._schedule_cache.get(profile, {})
+    async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_PROFILE_DICT:
+        """Return a schedule by climate profile (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return await self._device.week_profile.get_schedule_profile(profile=profile, force_load=force_load)
+        return {}
 
     @inspector
     async def get_schedule_profile_weekday(
-        self, *, profile: ScheduleProfile, weekday: ScheduleWeekday, force_load: bool = False
-    ) -> WEEKDAY_DICT:
-        """Return a schedule by climate profile."""
-        if not self._supports_schedule:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
-                    name=self._device.name,
-                )
+        self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
+    ) -> CLIMATE_WEEKDAY_DICT:
+        """Return a schedule by climate profile and weekday (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return await self._device.week_profile.get_schedule_profile_weekday(
+                profile=profile, weekday=weekday, force_load=force_load
             )
-        if force_load or self._schedule_cache == {}:
-            await self.reload_and_cache_schedules()
-        return self._schedule_cache.get(profile, {}).get(weekday, {})
+        return {}
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
@@ -460,44 +353,6 @@ class BaseCustomDpClimate(CustomDataPoint):
             return True
         return super().is_state_change(**kwargs)
 
-    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the data point values."""
-        await super().load_data_point_value(call_source=call_source, direct_call=direct_call)
-        await self.reload_and_cache_schedules()
-
-    async def on_config_changed(self) -> None:
-        """Do what is needed on device config change."""
-        await super().on_config_changed()
-
-        await self.reload_and_cache_schedules()
-
-    async def reload_and_cache_schedules(self) -> None:
-        """Reload schedules from CCU and update cache, emit callbacks if changed."""
-        if not self._supports_schedule:
-            return
-
-        try:
-            new_schedule = await self._get_schedule_profile()
-        except ValidationException:
-            _LOGGER.debug(
-                "RELOAD_AND_CACHE_SCHEDULES: Failed to reload schedules for %s",
-                self._device.name,
-            )
-            return
-
-        # Compare old and new schedules
-        old_schedule = self._schedule_cache
-        # Update cache with new schedules
-        self._schedule_cache = new_schedule
-
-        if old_schedule != new_schedule:
-            _LOGGER.debug(
-                "RELOAD_AND_CACHE_SCHEDULES: Schedule changed for %s, emitting callbacks",
-                self._device.name,
-            )
-            # Emit data point updated event to trigger callbacks
-            self.emit_data_point_updated_event()
-
     @bind_collector
     async def set_mode(self, *, mode: ClimateMode, collector: CallParameterCollector | None = None) -> None:
         """Set new target mode."""
@@ -508,46 +363,28 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     @inspector
     async def set_schedule_profile(
-        self, *, profile: ScheduleProfile, profile_data: PROFILE_DICT, do_validate: bool = True
+        self, *, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT, do_validate: bool = True
     ) -> None:
-        """Set a profile to device."""
-        await self._set_schedule_profile(
-            target_channel_address=self.schedule_channel_address,
-            profile=profile,
-            profile_data=profile_data,
-            do_validate=do_validate,
-        )
+        """Set a profile to device (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            await self._device.week_profile.set_schedule_profile(
+                profile=profile, profile_data=profile_data, do_validate=do_validate
+            )
 
     @inspector
     async def set_schedule_profile_weekday(
         self,
         *,
         profile: ScheduleProfile,
-        weekday: ScheduleWeekday,
-        weekday_data: WEEKDAY_DICT,
+        weekday: WeekdayStr,
+        weekday_data: CLIMATE_WEEKDAY_DICT,
         do_validate: bool = True,
     ) -> None:
-        """Store a profile to device."""
-        # Normalize weekday_data: convert string keys to int and sort by ENDTIME
-        weekday_data = _normalize_weekday_data(weekday_data=weekday_data)
-
-        if do_validate:
-            self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
-
-        if weekday_data != self._schedule_cache.get(profile, {}).get(weekday, {}):
-            if profile not in self._schedule_cache:
-                self._schedule_cache[profile] = {}
-            self._schedule_cache[profile][weekday] = weekday_data
-            self.emit_data_point_updated_event()
-
-        await self._client.put_paramset(
-            channel_address=self.schedule_channel_address,
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=_build_raw_schedule_paramset(
-                profile=profile,
-                profile_data={weekday: weekday_data},
-            ),
-        )
+        """Store a profile weekday to device (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            await self._device.week_profile.set_schedule_profile_weekday(
+                profile=profile, weekday=weekday, weekday_data=weekday_data, do_validate=do_validate
+            )
 
     @inspector
     async def set_simple_schedule_profile(
@@ -555,28 +392,31 @@ class BaseCustomDpClimate(CustomDataPoint):
         *,
         profile: ScheduleProfile,
         base_temperature: float,
-        simple_profile_data: SIMPLE_PROFILE_DICT,
+        simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT,
     ) -> None:
-        """Set a profile to device."""
-        profile_data = self._validate_and_convert_simple_to_profile(
-            base_temperature=base_temperature, simple_profile_data=simple_profile_data
-        )
-        await self.set_schedule_profile(profile=profile, profile_data=profile_data)
+        """Set a profile to device using simple format (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            await self._device.week_profile.set_simple_schedule_profile(
+                profile=profile, base_temperature=base_temperature, simple_profile_data=simple_profile_data
+            )
 
     @inspector
     async def set_simple_schedule_profile_weekday(
         self,
         *,
         profile: ScheduleProfile,
-        weekday: ScheduleWeekday,
+        weekday: WeekdayStr,
         base_temperature: float,
-        simple_weekday_list: SIMPLE_WEEKDAY_LIST,
+        simple_weekday_list: CLIMATE_SIMPLE_WEEKDAY_LIST,
     ) -> None:
-        """Store a simple weekday profile to device."""
-        weekday_data = self._validate_and_convert_simple_to_profile_weekday(
-            base_temperature=base_temperature, simple_weekday_list=simple_weekday_list
-        )
-        await self.set_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
+        """Store a simple weekday profile to device (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            await self._device.week_profile.set_simple_schedule_profile_weekday(
+                profile=profile,
+                weekday=weekday,
+                base_temperature=base_temperature,
+                simple_weekday_list=simple_weekday_list,
+            )
 
     @bind_collector
     async def set_temperature(
@@ -601,76 +441,6 @@ class BaseCustomDpClimate(CustomDataPoint):
             )
 
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
-
-    async def _get_raw_schedule(self) -> _RAW_SCHEDULE_DICT:
-        """Return the raw schedule."""
-        try:
-            raw_data = await self._client.get_paramset(
-                address=self.schedule_channel_address,
-                paramset_key=ParamsetKey.MASTER,
-            )
-            raw_schedule = {key: value for key, value in raw_data.items() if SCHEDULER_PROFILE_PATTERN.match(key)}
-        except ClientException as cex:
-            self._supports_schedule = False
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.climate.schedule.unsupported",
-                    name=self._device.name,
-                )
-            ) from cex
-        return raw_schedule
-
-    async def _get_schedule_profile(
-        self, *, profile: ScheduleProfile | None = None, weekday: ScheduleWeekday | None = None
-    ) -> SCHEDULE_DICT:
-        """Get the schedule."""
-        # Get raw schedule data from device
-        raw_schedule = await self._get_raw_schedule()
-
-        profile_str = profile.value if profile else None
-        weekday_str = weekday.value if weekday else None
-
-        schedule_data: SCHEDULE_DICT = {}
-
-        # Process each schedule entry
-        for slot_name, slot_value in raw_schedule.items():
-            # Split string only once, use maxsplit for micro-optimization
-            # Expected format: "P1_TEMPERATURE_MONDAY_1"
-            parts = slot_name.split("_", 3)  # maxsplit=3 limits splits
-            if len(parts) != 4:
-                continue
-
-            profile_name, slot_type_name, slot_weekday_name, slot_no_str = parts
-
-            if profile_str and profile_name != profile_str:
-                continue
-            if weekday_str and slot_weekday_name != weekday_str:
-                continue
-
-            try:
-                _profile = ScheduleProfile(profile_name)
-                _slot_type = ScheduleSlotType(slot_type_name)
-                _weekday = ScheduleWeekday(slot_weekday_name)
-                _slot_no = int(slot_no_str)
-            except (ValueError, KeyError):
-                # Gracefully skip invalid entries instead of crashing
-                continue
-
-            if _profile not in schedule_data:
-                schedule_data[_profile] = {}
-            if _weekday not in schedule_data[_profile]:
-                schedule_data[_profile][_weekday] = {}
-            if _slot_no not in schedule_data[_profile][_weekday]:
-                schedule_data[_profile][_weekday][_slot_no] = {}
-
-            # Convert ENDTIME from minutes to time string if needed
-            final_value: str | float = slot_value
-            if _slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, int):
-                final_value = _convert_minutes_to_time_str(slot_value)
-
-            schedule_data[_profile][_weekday][_slot_no][_slot_type] = final_value
-
-        return schedule_data
 
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
@@ -781,217 +551,6 @@ class BaseCustomDpClimate(CustomDataPoint):
                 self._peer_unregister_callbacks.append(unreg)
                 self._unregister_callbacks.append(unreg)
 
-    async def _set_schedule_profile(
-        self,
-        *,
-        target_channel_address: str,
-        profile: ScheduleProfile,
-        profile_data: PROFILE_DICT,
-        do_validate: bool,
-    ) -> None:
-        """Set a profile to device."""
-        # Normalize weekday_data: convert string keys to int and sort by ENDTIME
-        profile_data = {
-            weekday: _normalize_weekday_data(weekday_data=weekday_data)
-            for weekday, weekday_data in profile_data.items()
-        }
-        if do_validate:
-            self._validate_schedule_profile(profile=profile, profile_data=profile_data)
-        if profile_data != self._schedule_cache.get(profile, {}):
-            self._schedule_cache[profile] = profile_data
-            self.emit_data_point_updated_event()
-
-        await self._client.put_paramset(
-            channel_address=target_channel_address,
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=_build_raw_schedule_paramset(
-                profile=profile,
-                profile_data=profile_data,
-            ),
-        )
-
-    def _validate_and_convert_simple_to_profile(
-        self, *, base_temperature: float, simple_profile_data: SIMPLE_PROFILE_DICT
-    ) -> PROFILE_DICT:
-        """Convert simple profile dict to profile dict."""
-        profile_dict: PROFILE_DICT = {}
-        for day, simple_weekday_list in simple_profile_data.items():
-            profile_dict[day] = self._validate_and_convert_simple_to_profile_weekday(
-                base_temperature=base_temperature, simple_weekday_list=simple_weekday_list
-            )
-        return profile_dict
-
-    def _validate_and_convert_simple_to_profile_weekday(
-        self, *, base_temperature: float, simple_weekday_list: SIMPLE_WEEKDAY_LIST
-    ) -> WEEKDAY_DICT:
-        """Convert simple weekday list to weekday dict."""
-        if not self.min_temp <= base_temperature <= self.max_temp:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.climate.validate.base_temperature_out_of_range",
-                    base_temperature=base_temperature,
-                    min=self.min_temp,
-                    max=self.max_temp,
-                )
-            )
-
-        weekday_data: WEEKDAY_DICT = {}
-        sorted_simple_weekday_list = _sort_simple_weekday_list(simple_weekday_list=simple_weekday_list)
-        previous_endtime = _MIN_SCHEDULER_TIME
-        slot_no = 1
-        for slot in sorted_simple_weekday_list:
-            if (starttime := slot.get(ScheduleSlotType.STARTTIME)) is None:
-                raise ValidationException(i18n.tr("exception.model.custom.climate.validate.starttime_missing"))
-            if (endtime := slot.get(ScheduleSlotType.ENDTIME)) is None:
-                raise ValidationException(i18n.tr("exception.model.custom.climate.validate.endtime_missing"))
-            if (temperature := slot.get(ScheduleSlotType.TEMPERATURE)) is None:
-                raise ValidationException(i18n.tr("exception.model.custom.climate.validate.temperature_missing"))
-
-            if _convert_time_str_to_minutes(time_str=str(starttime)) >= _convert_time_str_to_minutes(
-                time_str=str(endtime)
-            ):
-                raise ValidationException(
-                    i18n.tr(
-                        "exception.model.custom.climate.validate.start_before_end",
-                        start=starttime,
-                        end=endtime,
-                    )
-                )
-
-            if _convert_time_str_to_minutes(time_str=str(starttime)) < _convert_time_str_to_minutes(
-                time_str=previous_endtime
-            ):
-                raise ValidationException(
-                    i18n.tr(
-                        "exception.model.custom.climate.validate.overlap",
-                        start=starttime,
-                        end=endtime,
-                    )
-                )
-
-            if not self.min_temp <= float(temperature) <= self.max_temp:
-                raise ValidationException(
-                    i18n.tr(
-                        "exception.model.custom.climate.validate.temperature_out_of_range_for_times",
-                        temperature=temperature,
-                        min=self.min_temp,
-                        max=self.max_temp,
-                        start=starttime,
-                        end=endtime,
-                    )
-                )
-
-            if _convert_time_str_to_minutes(time_str=str(starttime)) > _convert_time_str_to_minutes(
-                time_str=previous_endtime
-            ):
-                weekday_data[slot_no] = {
-                    ScheduleSlotType.ENDTIME: starttime,
-                    ScheduleSlotType.TEMPERATURE: base_temperature,
-                }
-                slot_no += 1
-
-            weekday_data[slot_no] = {
-                ScheduleSlotType.ENDTIME: endtime,
-                ScheduleSlotType.TEMPERATURE: temperature,
-            }
-            previous_endtime = str(endtime)
-            slot_no += 1
-
-        return _fillup_weekday_data(base_temperature=base_temperature, weekday_data=weekday_data)
-
-    def _validate_schedule_profile(self, *, profile: ScheduleProfile, profile_data: PROFILE_DICT) -> None:
-        """Validate the profile."""
-        for weekday, weekday_data in profile_data.items():
-            self._validate_schedule_profile_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
-
-    def _validate_schedule_profile_weekday(
-        self,
-        *,
-        profile: ScheduleProfile,
-        weekday: ScheduleWeekday,
-        weekday_data: WEEKDAY_DICT,
-    ) -> None:
-        """Validate the profile weekday."""
-        previous_endtime = 0
-        if len(weekday_data) != 13:
-            if len(weekday_data) > 13:
-                raise ValidationException(
-                    i18n.tr(
-                        "exception.model.custom.climate.validate.too_many_slots",
-                        profile=profile,
-                        weekday=weekday,
-                    )
-                )
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.climate.validate.too_few_slots",
-                    profile=profile,
-                    weekday=weekday,
-                )
-            )
-        for no in SCHEDULE_SLOT_RANGE:
-            if no not in weekday_data:
-                raise ValidationException(
-                    i18n.tr(
-                        "exception.model.custom.climate.validate.slot_missing",
-                        no=no,
-                        profile=profile,
-                        weekday=weekday,
-                    )
-                )
-            slot = weekday_data[no]
-            for slot_type in RELEVANT_SLOT_TYPES:
-                if slot_type not in slot:
-                    raise ValidationException(
-                        i18n.tr(
-                            "exception.model.custom.climate.validate.slot_type_missing",
-                            slot_type=slot_type,
-                            profile=profile,
-                            weekday=weekday,
-                            no=no,
-                        )
-                    )
-                temperature = float(weekday_data[no][ScheduleSlotType.TEMPERATURE])
-                if not self.min_temp <= temperature <= self.max_temp:
-                    raise ValidationException(
-                        i18n.tr(
-                            "exception.model.custom.climate.validate.temperature_out_of_range_for_profile_slot",
-                            temperature=temperature,
-                            min=self.min_temp,
-                            max=self.max_temp,
-                            profile=profile,
-                            weekday=weekday,
-                            no=no,
-                        )
-                    )
-
-                endtime_str = str(weekday_data[no][ScheduleSlotType.ENDTIME])
-                if endtime := _convert_time_str_to_minutes(time_str=endtime_str):
-                    if endtime not in SCHEDULE_TIME_RANGE:
-                        raise ValidationException(
-                            i18n.tr(
-                                "exception.model.custom.climate.validate.time_out_of_bounds_profile_slot",
-                                time=endtime_str,
-                                min_time=_convert_minutes_to_time_str(minutes=SCHEDULE_TIME_RANGE.start),
-                                max_time=_convert_minutes_to_time_str(minutes=SCHEDULE_TIME_RANGE.stop - 1),
-                                profile=profile,
-                                weekday=weekday,
-                                no=no,
-                            )
-                        )
-                    if endtime < previous_endtime:
-                        raise ValidationException(
-                            i18n.tr(
-                                "exception.model.custom.climate.validate.sequence_rising",
-                                time=endtime_str,
-                                previous=_convert_minutes_to_time_str(minutes=previous_endtime),
-                                profile=profile,
-                                weekday=weekday,
-                                no=no,
-                            )
-                        )
-                previous_endtime = endtime
-
 
 class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
     """Simple classic Homematic thermostat HM-CC-TC."""
@@ -1016,29 +575,6 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         "_dp_valve_state",
         "_dp_week_program_pointer",
     )
-
-    def __init__(
-        self,
-        *,
-        channel: hmd.Channel,
-        unique_id: str,
-        device_profile: DeviceProfile,
-        device_def: Mapping[str, Any],
-        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        group_no: int,
-        custom_config: CustomConfig,
-    ) -> None:
-        """Initialize the Homematic thermostat."""
-        super().__init__(
-            channel=channel,
-            unique_id=unique_id,
-            device_profile=device_profile,
-            device_def=device_def,
-            custom_data_point_def=custom_data_point_def,
-            group_no=group_no,
-            custom_config=custom_config,
-        )
-        self._supports_schedule = True
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -1261,29 +797,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         "_dp_state",
         "_dp_temperature_offset",
     )
-
-    def __init__(
-        self,
-        *,
-        channel: hmd.Channel,
-        unique_id: str,
-        device_profile: DeviceProfile,
-        device_def: Mapping[str, Any],
-        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        group_no: int,
-        custom_config: CustomConfig,
-    ) -> None:
-        """Initialize the climate ip thermostat."""
-        super().__init__(
-            channel=channel,
-            unique_id=unique_id,
-            device_profile=device_profile,
-            device_def=device_def,
-            custom_data_point_def=custom_data_point_def,
-            group_no=group_no,
-            custom_config=custom_config,
-        )
-        self._supports_schedule = True
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -1538,180 +1051,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         )
 
 
-def _convert_minutes_to_time_str(minutes: Any) -> str:
-    """Convert minutes to a time string."""
-    if not isinstance(minutes, int):
-        return _MAX_SCHEDULER_TIME
-    time_str = f"{minutes // 60:0=2}:{minutes % 60:0=2}"
-    if SCHEDULER_TIME_PATTERN.match(time_str) is None:
-        raise ValidationException(
-            i18n.tr(
-                "exception.model.custom.climate.validate.time_invalid_format",
-                time=time_str,
-                min=_MIN_SCHEDULER_TIME,
-                max=_MAX_SCHEDULER_TIME,
-            )
-        )
-    return time_str
-
-
-def _convert_time_str_to_minutes(*, time_str: str) -> int:
-    """Convert minutes to a time string."""
-    if SCHEDULER_TIME_PATTERN.match(time_str) is None:
-        raise ValidationException(
-            i18n.tr(
-                "exception.model.custom.climate.validate.time_invalid_format",
-                time=time_str,
-                min=_MIN_SCHEDULER_TIME,
-                max=_MAX_SCHEDULER_TIME,
-            )
-        )
-    try:
-        h, m = time_str.split(":")
-        return (int(h) * 60) + int(m)
-    except Exception as exc:
-        raise ValidationException(
-            i18n.tr(
-                "exception.model.custom.climate.validate.time_convert_failed",
-                time=time_str,
-            )
-        ) from exc
-
-
-def _sort_simple_weekday_list(*, simple_weekday_list: SIMPLE_WEEKDAY_LIST) -> SIMPLE_WEEKDAY_LIST:
-    """Sort simple weekday list."""
-    simple_weekday_dict = sorted(
-        {
-            _convert_time_str_to_minutes(time_str=str(slot[ScheduleSlotType.STARTTIME])): slot
-            for slot in simple_weekday_list
-        }.items()
-    )
-    return [slot[1] for slot in simple_weekday_dict]
-
-
-def _fillup_weekday_data(*, base_temperature: float, weekday_data: WEEKDAY_DICT) -> WEEKDAY_DICT:
-    """Fillup weekday data."""
-    for slot_no in SCHEDULE_SLOT_IN_RANGE:
-        if slot_no not in weekday_data:
-            weekday_data[slot_no] = {
-                ScheduleSlotType.ENDTIME: _MAX_SCHEDULER_TIME,
-                ScheduleSlotType.TEMPERATURE: base_temperature,
-            }
-
-    return weekday_data
-
-
-def _build_raw_schedule_paramset(
-    *,
-    profile: ScheduleProfile,
-    profile_data: PROFILE_DICT,
-) -> _RAW_SCHEDULE_DICT:
-    """
-    Build raw schedule paramset from profile data.
-
-    This helper consolidates the paramset building logic used by both
-    _set_schedule_profile and set_schedule_profile_weekday.
-
-    Args:
-        profile: The schedule profile (P1, P2, P3, etc.)
-        profile_data: Weekday data for the profile
-
-    Returns:
-        Raw paramset dictionary ready for CCU transmission
-
-    """
-    raw_paramset: _RAW_SCHEDULE_DICT = {}
-
-    for weekday, weekday_data in profile_data.items():
-        for slot_no, slot in weekday_data.items():
-            for slot_type, slot_value in slot.items():
-                # Build parameter name: "P1_TEMPERATURE_MONDAY_1"
-                raw_profile_name = f"{str(profile)}_{str(slot_type)}_{str(weekday)}_{slot_no}"
-
-                # Validate parameter name format
-                if SCHEDULER_PROFILE_PATTERN.match(raw_profile_name) is None:
-                    raise ValidationException(
-                        i18n.tr(
-                            "exception.model.custom.climate.validate.profile_name_invalid",
-                            profile_name=raw_profile_name,
-                        )
-                    )
-
-                # Convert ENDTIME strings to minutes for CCU
-                raw_value: float | int = cast(float | int, slot_value)
-                if slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, str):
-                    raw_value = _convert_time_str_to_minutes(time_str=slot_value)
-                raw_paramset[raw_profile_name] = raw_value
-
-    return raw_paramset
-
-
-def _get_raw_schedule_paramset(*, schedule_data: SCHEDULE_DICT) -> _RAW_SCHEDULE_DICT:
-    """Return the raw paramset."""
-    raw_paramset: _RAW_SCHEDULE_DICT = {}
-    for profile, profile_data in schedule_data.items():
-        for weekday, weekday_data in profile_data.items():
-            for slot_no, slot in weekday_data.items():
-                for slot_type, slot_value in slot.items():
-                    raw_profile_name = f"{str(profile)}_{str(slot_type)}_{str(weekday)}_{slot_no}"
-                    if SCHEDULER_PROFILE_PATTERN.match(raw_profile_name) is None:
-                        raise ValidationException(
-                            i18n.tr(
-                                "exception.model.custom.climate.validate.profile_name_invalid",
-                                profile_name=raw_profile_name,
-                            )
-                        )
-                    raw_value: float | int = cast(float | int, slot_value)
-                    if slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, str):
-                        raw_value = _convert_time_str_to_minutes(time_str=slot_value)
-                    raw_paramset[raw_profile_name] = raw_value
-    return raw_paramset
-
-
-def _add_to_schedule_data(
-    *,
-    schedule_data: SCHEDULE_DICT,
-    profile: ScheduleProfile,
-    weekday: ScheduleWeekday,
-    slot_no: int,
-    slot_type: ScheduleSlotType,
-    slot_value: str | float,
-) -> None:
-    """Add or update schedule slot."""
-    if profile not in schedule_data:
-        schedule_data[profile] = {}
-    if weekday not in schedule_data[profile]:
-        schedule_data[profile][weekday] = {}
-    if slot_no not in schedule_data[profile][weekday]:
-        schedule_data[profile][weekday][slot_no] = {}
-    if slot_type not in schedule_data[profile][weekday][slot_no]:
-        if slot_type == ScheduleSlotType.ENDTIME and isinstance(slot_value, int):
-            slot_value = _convert_minutes_to_time_str(slot_value)
-        schedule_data[profile][weekday][slot_no][slot_type] = slot_value
-
-
-def _normalize_weekday_data(*, weekday_data: WEEKDAY_DICT | dict[str, Any]) -> WEEKDAY_DICT:
-    """Normalize weekday data by converting string keys to int and sorting by ENDTIME."""
-    # Convert string keys to int if necessary
-    normalized_data: WEEKDAY_DICT = {}
-    for key, value in weekday_data.items():
-        int_key = int(key) if isinstance(key, str) else key
-        normalized_data[int_key] = value
-
-    # Sort by ENDTIME and reassign slot numbers 1-13
-    sorted_slots = sorted(
-        normalized_data.items(),
-        key=lambda item: _convert_time_str_to_minutes(time_str=str(item[1][ScheduleSlotType.ENDTIME])),
-    )
-
-    # Reassign slot numbers from 1 to 13
-    result: WEEKDAY_DICT = {}
-    for new_slot_no, (_, slot_data) in enumerate(sorted_slots, start=1):
-        result[new_slot_no] = slot_data
-
-    return result
-
-
 def make_simple_thermostat(
     *,
     channel: hmd.Channel,
@@ -1792,16 +1131,18 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HM-CC-RT-DN": CustomConfig(make_ce_func=make_thermostat, channels=(4,)),
     "HM-CC-TC": CustomConfig(make_ce_func=make_simple_thermostat),
     "HM-CC-VG-1": CustomConfig(make_ce_func=make_thermostat_group),
-    "HM-TC-IT-WM-W-EU": CustomConfig(make_ce_func=make_thermostat, channels=(2,)),
-    "HmIP-BWTH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIP-HEATING": CustomConfig(make_ce_func=make_ip_thermostat_group),
-    "HmIP-STH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIP-WTH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_thermostat, channels=(8,)),
-    "HmIP-eTRV": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIPW-SCTHD": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIPW-STH": CustomConfig(make_ce_func=make_ip_thermostat),
-    "HmIPW-WTH": CustomConfig(make_ce_func=make_ip_thermostat),
+    "HM-TC-IT-WM-W-EU": CustomConfig(
+        make_ce_func=make_thermostat, channels=(2,), schedule_channel_no=BIDCOS_DEVICE_CHANNEL_DUMMY
+    ),
+    "HmIP-BWTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIP-HEATING": CustomConfig(make_ce_func=make_ip_thermostat_group, schedule_channel_no=1),
+    "HmIP-STH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIP-WTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_thermostat, channels=(8,), schedule_channel_no=1),
+    "HmIP-eTRV": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIPW-SCTHD": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIPW-STH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
+    "HmIPW-WTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
     "Thermostat AA": CustomConfig(make_ce_func=make_ip_thermostat),
     "ZEL STG RM FWT": CustomConfig(make_ce_func=make_simple_thermostat),
 }

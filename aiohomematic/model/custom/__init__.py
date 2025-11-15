@@ -49,12 +49,7 @@ from typing import Final
 from aiohomematic.decorators import inspector
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom.climate import (
-    PROFILE_DICT,
     PROFILE_PREFIX,
-    SCHEDULE_DICT,
-    SIMPLE_PROFILE_DICT,
-    SIMPLE_WEEKDAY_LIST,
-    WEEKDAY_DICT,
     BaseCustomDpClimate,
     ClimateActivity,
     ClimateMode,
@@ -62,8 +57,6 @@ from aiohomematic.model.custom.climate import (
     CustomDpIpThermostat,
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
-    ScheduleProfile,
-    ScheduleWeekday,
 )
 from aiohomematic.model.custom.cover import (
     CustomDpBlind,
@@ -134,15 +127,8 @@ __all__ = [
     "LightOffArgs",
     "LightOnArgs",
     "LockState",
-    "PROFILE_DICT",
     "PROFILE_PREFIX",
-    "SCHEDULE_DICT",
-    "SIMPLE_PROFILE_DICT",
-    "SIMPLE_WEEKDAY_LIST",
-    "ScheduleProfile",
-    "ScheduleWeekday",
     "SirenOnArgs",
-    "WEEKDAY_DICT",
     "create_custom_data_points",
     "data_point_definition_exists",
     "get_custom_configs",

@@ -36,7 +36,10 @@ async def test_ceipsiren(
     central, mock_client, _ = central_client_factory_with_homegear_client
     siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
-    assert siren.service_method_names == ("turn_off", "turn_on")
+    assert siren.service_method_names == (
+        "turn_off",
+        "turn_on",
+    )
 
     assert siren.is_on is False
     await central.data_point_event(

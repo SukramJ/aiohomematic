@@ -41,6 +41,7 @@ class CustomDataPoint(BaseDataPoint):
         "_device_profile",
         "_extended",
         "_group_no",
+        "_schedule_channel_no",
         "_unregister_callbacks",
     )
 
@@ -74,6 +75,8 @@ class CustomDataPoint(BaseDataPoint):
         self._init_data_points()
         self._init_data_point_fields()
         self._post_init_data_point_fields()
+        if self.usage == DataPointUsage.CDP_PRIMARY:
+            self._device.init_week_profile(data_point=self)
 
     @property
     def _readable_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
@@ -89,6 +92,11 @@ class CustomDataPoint(BaseDataPoint):
     def allow_undefined_generic_data_points(self) -> bool:
         """Return if undefined generic data points of this device are allowed."""
         return self._allow_undefined_generic_data_points
+
+    @property
+    def custom_config(self) -> CustomConfig:
+        """Return the custom config."""
+        return self._custom_config
 
     @property
     def data_point_name_postfix(self) -> str:
@@ -111,9 +119,23 @@ class CustomDataPoint(BaseDataPoint):
         return all(dp.is_valid for dp in self._relevant_data_points)
 
     @property
+    def schedule(self) -> dict[Any, Any]:
+        """Return cached schedule entries from device week profile."""
+        if self._device.week_profile:
+            return self._device.week_profile.schedule
+        return {}
+
+    @property
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return any(dp.state_uncertain for dp in self._relevant_data_points)
+
+    @property
+    def supports_schedule(self) -> bool:
+        """Flag if device supports schedule."""
+        if self._device.week_profile:
+            return self._device.week_profile.supports_schedule
+        return False
 
     @property
     def unconfirmed_last_values_send(self) -> Mapping[Field, Any]:
@@ -142,6 +164,12 @@ class CustomDataPoint(BaseDataPoint):
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
+    async def get_schedule(self, *, force_load: bool = False) -> dict[Any, Any]:
+        """Get schedule from device week profile."""
+        if self._device.week_profile:
+            return await self._device.week_profile.get_schedule(force_load=force_load)
+        return {}
+
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
         result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
@@ -162,7 +190,14 @@ class CustomDataPoint(BaseDataPoint):
         """Init the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        if self._device.week_profile and self.usage == DataPointUsage.CDP_PRIMARY:
+            await self._device.week_profile.reload_and_cache_schedule()
         self.emit_data_point_updated_event()
+
+    async def set_schedule(self, *, schedule_dict: dict[Any, Any]) -> None:
+        """Set schedule on device week profile."""
+        if self._device.week_profile:
+            await self._device.week_profile.set_schedule(schedule_dict=schedule_dict)
 
     def _add_data_point(
         self,

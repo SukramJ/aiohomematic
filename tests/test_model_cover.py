@@ -58,7 +58,12 @@ async def test_cecover(
     assert cover._group_level == _CLOSED_LEVEL
     assert cover.is_closed is True
     await cover.set_position(position=81)
-    assert cover.service_method_names == ("close", "open", "set_position", "stop")
+    assert cover.service_method_names == (
+        "close",
+        "open",
+        "set_position",
+        "stop",
+    )
     assert mock_client.method_calls[-1] == call.set_value(
         channel_address="VCU8537918:4",
         paramset_key=ParamsetKey.VALUES,
@@ -904,7 +909,13 @@ async def test_cegarageho(
         CustomDpGarage, get_prepared_custom_data_point(central=central, address="VCU3574044", channel_no=1)
     )
     assert cover.usage == DataPointUsage.CDP_PRIMARY
-    assert cover.service_method_names == ("close", "open", "set_position", "stop", "vent")
+    assert cover.service_method_names == (
+        "close",
+        "open",
+        "set_position",
+        "stop",
+        "vent",
+    )
 
     assert cover.current_position is None
     await cover.set_position(position=81)

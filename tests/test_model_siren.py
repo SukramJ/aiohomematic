@@ -37,8 +37,6 @@ async def test_ceipsiren(
     siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
     assert siren.usage == DataPointUsage.CDP_PRIMARY
     assert siren.service_method_names == (
-        "get_schedule",
-        "set_schedule",
         "turn_off",
         "turn_on",
     )

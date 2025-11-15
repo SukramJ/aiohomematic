@@ -121,10 +121,8 @@ async def test_ceiplock(
     lock: CustomDpIpLock = cast(CustomDpIpLock, get_prepared_custom_data_point(central, "VCU9724704", 1))
     assert lock.usage == DataPointUsage.CDP_PRIMARY
     assert lock.service_method_names == (
-        "get_schedule",
         "lock",
         "open",
-        "set_schedule",
         "unlock",
     )
 

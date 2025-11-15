@@ -39,9 +39,7 @@ async def test_ceipirrigationvalve(
     assert valve.usage == DataPointUsage.CDP_PRIMARY
     assert valve.service_method_names == (
         "close",
-        "get_schedule",
         "open",
-        "set_schedule",
     )
 
     await valve.close()

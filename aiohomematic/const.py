@@ -1136,3 +1136,137 @@ __all__ = tuple(
         )
     )
 )
+
+
+class AstroType(IntEnum):
+    """Enum for astro event types."""
+
+    SUNRISE = 0
+    SUNSET = 1
+
+
+class ScheduleActorChannel(IntEnum):
+    """Enum for target actor channels (bitwise)."""
+
+    CHANNEL_1_1 = 1
+    CHANNEL_1_2 = 2
+    CHANNEL_1_3 = 4
+    CHANNEL_2_1 = 8
+    CHANNEL_2_2 = 16
+    CHANNEL_2_3 = 32
+    CHANNEL_3_1 = 64
+    CHANNEL_3_2 = 128
+    CHANNEL_3_3 = 256
+    CHANNEL_4_1 = 512
+    CHANNEL_4_2 = 1024
+    CHANNEL_4_3 = 2048
+    CHANNEL_5_1 = 4096
+    CHANNEL_5_2 = 8192
+    CHANNEL_5_3 = 16384
+    CHANNEL_6_1 = 32768
+    CHANNEL_6_2 = 65536
+    CHANNEL_6_3 = 131072
+    CHANNEL_7_1 = 262144
+    CHANNEL_7_2 = 524288
+    CHANNEL_7_3 = 1048576
+    CHANNEL_8_1 = 2097152
+    CHANNEL_8_2 = 4194304
+    CHANNEL_8_3 = 8388608
+
+
+class ScheduleCondition(IntEnum):
+    """Enum for schedule trigger conditions."""
+
+    FIXED_TIME = 0
+    ASTRO = 1
+
+
+class ScheduleField(StrEnum):
+    """Enum for switch schedule field names."""
+
+    ASTRO_OFFSET = "ASTRO_OFFSET"
+    ASTRO_TYPE = "ASTRO_TYPE"
+    CONDITION = "CONDITION"
+    DURATION_BASE = "DURATION_BASE"
+    DURATION_FACTOR = "DURATION_FACTOR"
+    FIXED_HOUR = "FIXED_HOUR"
+    FIXED_MINUTE = "FIXED_MINUTE"
+    LEVEL = "LEVEL"
+    LEVEL_2 = "LEVEL_2"
+    RAMP_TIME_BASE = "RAMP_TIME_BASE"
+    RAMP_TIME_FACTOR = "RAMP_TIME_FACTOR"
+    TARGET_CHANNELS = "TARGET_CHANNELS"
+    WEEKDAY = "WEEKDAY"
+
+
+class ScheduleSlotType(StrEnum):
+    """Enum for climate item type."""
+
+    ENDTIME = "ENDTIME"
+    STARTTIME = "STARTTIME"
+    TEMPERATURE = "TEMPERATURE"
+
+
+class ScheduleProfile(StrEnum):
+    """Enum for climate profiles."""
+
+    P1 = "P1"
+    P2 = "P2"
+    P3 = "P3"
+    P4 = "P4"
+    P5 = "P5"
+    P6 = "P6"
+
+
+class TimeBase(IntEnum):
+    """Enum for duration base units."""
+
+    MS_100 = 0  # 100 milliseconds
+    SEC_1 = 1  # 1 second
+    SEC_5 = 2  # 5 seconds
+    SEC_10 = 3  # 10 seconds
+    MIN_1 = 4  # 1 minute
+    MIN_5 = 5  # 5 minutes
+    MIN_10 = 6  # 10 minutes
+    HOUR_1 = 7  # 1 hour
+
+
+class WeekdayInt(IntEnum):
+    """Enum for weekdays (bitwise)."""
+
+    SUNDAY = 1
+    MONDAY = 2
+    TUESDAY = 4
+    WEDNESDAY = 8
+    THURSDAY = 16
+    FRIDAY = 32
+    SATURDAY = 64
+
+
+class WeekdayStr(StrEnum):
+    """Enum for climate week days."""
+
+    MONDAY = "MONDAY"
+    TUESDAY = "TUESDAY"
+    WEDNESDAY = "WEDNESDAY"
+    THURSDAY = "THURSDAY"
+    FRIDAY = "FRIDAY"
+    SATURDAY = "SATURDAY"
+    SUNDAY = "SUNDAY"
+
+
+SCHEDULE_PATTERN: Final = re.compile(r"^\d+_WP_")
+CLIMATE_MAX_SCHEDULER_TIME: Final = "24:00"
+CLIMATE_MIN_SCHEDULER_TIME: Final = "00:00"
+CLIMATE_WEEKDAY_DICT = dict[int, dict[ScheduleSlotType, str | float]]
+CLIMATE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_WEEKDAY_DICT]
+CLIMATE_RELEVANT_SLOT_TYPES: Final = (ScheduleSlotType.ENDTIME, ScheduleSlotType.TEMPERATURE)
+CLIMATE_SCHEDULE_DICT = dict[ScheduleProfile, CLIMATE_PROFILE_DICT]
+CLIMATE_SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
+CLIMATE_SCHEDULE_SLOT_RANGE: Final = range(1, 13)
+CLIMATE_SCHEDULE_TIME_RANGE: Final = range(1441)
+CLIMATE_SIMPLE_WEEKDAY_LIST = list[dict[ScheduleSlotType, str | float]]
+CLIMATE_SIMPLE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_SIMPLE_WEEKDAY_LIST]
+DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]
+DEFAULT_SCHEDULE_DICT = dict[int, DEFAULT_SCHEDULE_GROUP]
+RAW_SCHEDULE_DICT = dict[str, float | int]

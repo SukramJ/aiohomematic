@@ -60,10 +60,8 @@ async def test_cecover(
     await cover.set_position(position=81)
     assert cover.service_method_names == (
         "close",
-        "get_schedule",
         "open",
         "set_position",
-        "set_schedule",
         "stop",
     )
     assert mock_client.method_calls[-1] == call.set_value(
@@ -158,11 +156,9 @@ async def test_ceipblind_dr(
     assert cover.service_method_names == (
         "close",
         "close_tilt",
-        "get_schedule",
         "open",
         "open_tilt",
         "set_position",
-        "set_schedule",
         "stop",
         "stop_tilt",
     )
@@ -339,11 +335,9 @@ async def test_ceblind(
     assert cover.service_method_names == (
         "close",
         "close_tilt",
-        "get_schedule",
         "open",
         "open_tilt",
         "set_position",
-        "set_schedule",
         "stop",
         "stop_tilt",
     )
@@ -757,11 +751,9 @@ async def test_ceipblind_hdm(
     assert cover.service_method_names == (
         "close",
         "close_tilt",
-        "get_schedule",
         "open",
         "open_tilt",
         "set_position",
-        "set_schedule",
         "stop",
         "stop_tilt",
     )
@@ -919,10 +911,8 @@ async def test_cegarageho(
     assert cover.usage == DataPointUsage.CDP_PRIMARY
     assert cover.service_method_names == (
         "close",
-        "get_schedule",
         "open",
         "set_position",
-        "set_schedule",
         "stop",
         "vent",
     )

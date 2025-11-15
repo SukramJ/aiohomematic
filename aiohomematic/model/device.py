@@ -70,6 +70,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.model import week_profile as wp
 from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
@@ -137,6 +138,7 @@ class Device(LogContextMixin, PayloadMixin):
         "_sub_model",
         "_update_data_point",
         "_value_cache",
+        "_week_profile",
     )
 
     def __init__(self, *, central: hmcu.CentralUnit, interface_id: str, device_address: str) -> None:
@@ -191,6 +193,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
         self._rooms: Final = central.device_details.get_device_rooms(device_address=device_address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
+        self._week_profile: wp.WeekProfile[dict[Any, Any]] | None = None
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
             self._interface_id,
@@ -287,6 +290,14 @@ class Device(LogContextMixin, PayloadMixin):
         return tuple(
             channel.custom_data_point for channel in self._channels.values() if channel.custom_data_point is not None
         )
+
+    @property
+    def default_schedule_channel(self) -> Channel | None:
+        """Return the schedule channel address."""
+        for channel in self._channels.values():
+            if channel.is_schedule_channel:
+                return channel
+        return None
 
     @property
     def firmware_updatable(self) -> bool:
@@ -390,17 +401,16 @@ class Device(LogContextMixin, PayloadMixin):
         return self._rx_modes
 
     @property
-    def schedule_channel_address(self) -> str | None:
-        """Return the schedule channel address."""
-        for channel in self._channels.values():
-            if channel.is_schedule_channel:
-                return channel.address
-        return None
-
-    @property
     def sub_model(self) -> str | None:
         """Return the sub model of the device."""
         return self._sub_model
+
+    @property
+    def supports_week_profile(self) -> bool:
+        """Return if the device supports week profiles."""
+        if self._week_profile is None:
+            return False
+        return self._week_profile.supports_schedule
 
     @property
     def update_data_point(self) -> DpUpdate | None:
@@ -411,6 +421,11 @@ class Device(LogContextMixin, PayloadMixin):
     def value_cache(self) -> _ValueCache:
         """Return the value_cache of the device."""
         return self._value_cache
+
+    @property
+    def week_profile(self) -> wp.WeekProfile[dict[Any, Any]] | None:
+        """Return the week profile of the device."""
+        return self._week_profile
 
     @state_property
     def available(self) -> bool:
@@ -614,6 +629,11 @@ class Device(LogContextMixin, PayloadMixin):
 
         return None
 
+    def init_week_profile(self, *, data_point: hmce.CustomDataPoint) -> None:
+        """Initialize the device schedule."""
+        if self._week_profile is None:
+            self._week_profile = wp.create_week_profile(data_point=data_point)
+
     def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:
         """Return if multiple channels are in the group."""
         if channel_no is None:
@@ -636,6 +656,9 @@ class Device(LogContextMixin, PayloadMixin):
             await channel.on_config_changed()
         if self._update_data_point:
             await self._update_data_point.on_config_changed()
+
+        if self._week_profile:
+            await self._week_profile.reload_and_cache_schedule()
 
         await self._central.save_files(save_paramset_descriptions=True)
         self.emit_device_updated_callback()

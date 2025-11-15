@@ -7,23 +7,22 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
-from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
-from aiohomematic.exceptions import ValidationException
-from aiohomematic.model.custom import CustomDpSwitch
-from aiohomematic.model.custom.data_point import (
+from aiohomematic.const import (
+    WAIT_FOR_CALLBACK,
     AstroType,
+    DataPointUsage,
+    ParamsetKey,
     ScheduleActorChannel,
     ScheduleCondition,
     ScheduleField,
     TimeBase,
-    Weekday,
-    create_empty_schedule_group,
-    dict_to_raw_schedule,
-    is_schedule_active,
-    raw_schedule_to_dict,
+    WeekdayInt,
 )
+from aiohomematic.exceptions import ValidationException
+from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.generic import DpSwitch
 from aiohomematic.model.hub import SysvarDpSwitch
+from aiohomematic.model.week_profile import DefaultWeekProfile, create_empty_schedule_group, is_schedule_active
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES: set[str] = {"VCU2128127"}
@@ -51,8 +50,6 @@ async def test_ceswitch(
     switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
     assert switch.usage == DataPointUsage.CDP_PRIMARY
     assert switch.service_method_names == (
-        "get_schedule",
-        "set_schedule",
         "turn_off",
         "turn_on",
     )
@@ -146,16 +143,16 @@ async def test_switch_schedule_read_write(
 
     mock_client.get_paramset = AsyncMock(return_value=schedule_payload)
 
-    schedule = await switch.get_schedule(force_load=True)
+    schedule = await switch.device.week_profile.get_schedule(force_load=True)
     assert schedule == expected_schedule
     assert switch.schedule == expected_schedule
     assert switch.supports_schedule is True
 
     await switch.set_schedule(schedule_dict=expected_schedule)
     mock_client.put_paramset.assert_called_with(
-        channel_address=switch.schedule_channel_address,
+        channel_address=switch.device.week_profile.schedule_channel_address,
         paramset_key_or_link_address=ParamsetKey.MASTER,
-        values=dict_to_raw_schedule(schedule_dict=expected_schedule),
+        values=DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=expected_schedule),
     )
 
 
@@ -308,11 +305,11 @@ async def test_switch_schedule_conversion() -> None:
     }
 
     # Convert to structured format
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Verify structure
     assert 2 in structured
-    assert structured[2][ScheduleField.WEEKDAY] == [Weekday.MONDAY]
+    assert structured[2][ScheduleField.WEEKDAY] == [WeekdayInt.MONDAY]
     assert structured[2][ScheduleField.LEVEL] == 1
     assert structured[2][ScheduleField.TARGET_CHANNELS] == [ScheduleActorChannel.CHANNEL_1_2]
     assert structured[2][ScheduleField.FIXED_HOUR] == 12
@@ -324,7 +321,7 @@ async def test_switch_schedule_conversion() -> None:
     assert structured[2][ScheduleField.ASTRO_OFFSET] == 0
 
     # Convert back to raw
-    back_to_raw = dict_to_raw_schedule(schedule_dict=structured)
+    back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=structured)
 
     # Verify round-trip conversion
     assert back_to_raw == raw_schedule
@@ -347,18 +344,18 @@ async def test_switch_schedule_bitwise_conversion() -> None:
         "01_WP_ASTRO_OFFSET": 0,
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Verify all weekdays are present
     weekdays = structured[1][ScheduleField.WEEKDAY]
     assert len(weekdays) == 7
-    assert Weekday.SUNDAY in weekdays
-    assert Weekday.MONDAY in weekdays
-    assert Weekday.TUESDAY in weekdays
-    assert Weekday.WEDNESDAY in weekdays
-    assert Weekday.THURSDAY in weekdays
-    assert Weekday.FRIDAY in weekdays
-    assert Weekday.SATURDAY in weekdays
+    assert WeekdayInt.SUNDAY in weekdays
+    assert WeekdayInt.MONDAY in weekdays
+    assert WeekdayInt.TUESDAY in weekdays
+    assert WeekdayInt.WEDNESDAY in weekdays
+    assert WeekdayInt.THURSDAY in weekdays
+    assert WeekdayInt.FRIDAY in weekdays
+    assert WeekdayInt.SATURDAY in weekdays
 
     # Verify all channels are present
     channels = structured[1][ScheduleField.TARGET_CHANNELS]
@@ -385,13 +382,13 @@ async def test_switch_schedule_astro_mode() -> None:
         "05_WP_WEEKDAY": 4,  # Tuesday
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Verify astro settings
     assert structured[5][ScheduleField.CONDITION] == ScheduleCondition.ASTRO
     assert structured[5][ScheduleField.ASTRO_TYPE] == AstroType.SUNRISE
     assert structured[5][ScheduleField.ASTRO_OFFSET] == 42
-    assert structured[5][ScheduleField.WEEKDAY] == [Weekday.TUESDAY]
+    assert structured[5][ScheduleField.WEEKDAY] == [WeekdayInt.TUESDAY]
 
 
 @pytest.mark.asyncio
@@ -445,7 +442,7 @@ async def test_switch_schedule_multiple_groups() -> None:
         "03_WP_ASTRO_OFFSET": 0,
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Verify all three groups are present
     assert 1 in structured
@@ -458,7 +455,7 @@ async def test_switch_schedule_multiple_groups() -> None:
     assert len(structured[3]) == 10
 
     # Round-trip test
-    back_to_raw = dict_to_raw_schedule(schedule_dict=structured)
+    back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=structured)
     assert len(back_to_raw) == len(raw_schedule)
 
 
@@ -472,13 +469,14 @@ async def test_switch_schedule_edge_cases() -> None:
         "INVALID_KEY": 123,  # Should be skipped
         "02_INVALID_FIELD": 456,  # Should be skipped
         "02_WP_UNKNOWN_FIELD": 789,  # Should be skipped
+        "02_WP_TARGET_CHANNELS": 1,
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Should only have valid fields
     assert 2 in structured
-    assert len(structured[2]) == 2  # Only WEEKDAY and LEVEL
+    assert len(structured[2]) == 3  # Only WEEKDAY and LEVEL
 
 
 @pytest.mark.asyncio
@@ -499,7 +497,7 @@ async def test_switch_schedule_duration_calculation() -> None:
         "01_WP_ASTRO_OFFSET": 0,
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Verify duration settings
     assert structured[1][ScheduleField.DURATION_BASE] == TimeBase.SEC_10
@@ -524,7 +522,7 @@ async def test_switch_schedule_sunset_example() -> None:
         "06_WP_WEEKDAY": 127,  # All days
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Verify: "At sunset + 24 minutes, turn off channel 1, every day"
     assert structured[6][ScheduleField.ASTRO_TYPE] == AstroType.SUNSET
@@ -554,7 +552,7 @@ async def test_switch_schedule_24_channels() -> None:
         "01_WP_ASTRO_OFFSET": 0,
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
     # Verify all 24 channels are present
     channels = structured[1][ScheduleField.TARGET_CHANNELS]
@@ -581,13 +579,13 @@ async def test_switch_schedule_24_channels() -> None:
             "01_WP_ASTRO_OFFSET": 0,
         }
 
-        test_structured = raw_schedule_to_dict(raw_schedule=test_raw)
+        test_structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=test_raw)
         test_channels = test_structured[1][ScheduleField.TARGET_CHANNELS]
         assert len(test_channels) == 1
         assert test_channels[0].value == channel_value
 
     # Round-trip test with all channels
-    back_to_raw = dict_to_raw_schedule(schedule_dict=structured)
+    back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=structured)
     assert back_to_raw["01_WP_TARGET_CHANNELS"] == all_channels_bitwise
 
 
@@ -611,7 +609,7 @@ async def test_switch_schedule_channel_combinations() -> None:
         "01_WP_ASTRO_OFFSET": 0,
     }
 
-    structured = raw_schedule_to_dict(raw_schedule=raw_schedule)
+    structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
     channels = structured[1][ScheduleField.TARGET_CHANNELS]
 
     # Verify exactly 5 channels

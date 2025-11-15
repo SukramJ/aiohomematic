@@ -17,6 +17,9 @@ from aiohomematic.const import (  # local import to keep test header minimal
     Field,
     Parameter,
     ParamsetKey,
+    ScheduleProfile,
+    ScheduleSlotType,
+    WeekdayStr,
 )
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import (
@@ -28,7 +31,7 @@ from aiohomematic.model.custom import (
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
 )
-from aiohomematic.model.custom.climate import ScheduleProfile, ScheduleSlotType, ScheduleWeekday, _ModeHm, _ModeHmIP
+from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
@@ -76,12 +79,10 @@ async def test_cesimplerfthermostat(
         "disable_away_mode",
         "enable_away_mode_by_calendar",
         "enable_away_mode_by_duration",
-        "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
         "set_mode",
         "set_profile",
-        "set_schedule",
         "set_schedule_profile",
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
@@ -166,12 +167,10 @@ async def test_cerfthermostat(
         "disable_away_mode",
         "enable_away_mode_by_calendar",
         "enable_away_mode_by_duration",
-        "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
         "set_mode",
         "set_profile",
-        "set_schedule",
         "set_schedule_profile",
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
@@ -362,12 +361,10 @@ async def test_cerfthermostat_with_profiles(
         "disable_away_mode",
         "enable_away_mode_by_calendar",
         "enable_away_mode_by_duration",
-        "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
         "set_mode",
         "set_profile",
-        "set_schedule",
         "set_schedule_profile",
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
@@ -646,12 +643,10 @@ async def test_ceipthermostat_bwth(
         "disable_away_mode",
         "enable_away_mode_by_calendar",
         "enable_away_mode_by_duration",
-        "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
         "set_mode",
         "set_profile",
-        "set_schedule",
         "set_schedule_profile",
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
@@ -916,12 +911,10 @@ async def test_ceipthermostat_wgtc(
         "disable_away_mode",
         "enable_away_mode_by_calendar",
         "enable_away_mode_by_duration",
-        "get_schedule",
         "get_schedule_profile",
         "get_schedule_profile_weekday",
         "set_mode",
         "set_profile",
-        "set_schedule",
         "set_schedule_profile",
         "set_schedule_profile_weekday",
         "set_simple_schedule_profile",
@@ -1179,19 +1172,19 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
     profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)
     assert len(profile_data) == 7
     weekday_data = await climate_bwth.get_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY
     )
     assert len(weekday_data) == 13
     await climate_bwth.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
     await climate_bwth.set_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=weekday_data
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data
     )
     copy_weekday_data = deepcopy(weekday_data)
     copy_weekday_data[1][ScheduleSlotType.TEMPERATURE] = 38.0
     with pytest.raises(ValidationException):
         await climate_bwth.set_schedule_profile_weekday(
             profile=ScheduleProfile.P1,
-            weekday=ScheduleWeekday.MONDAY,
+            weekday=WeekdayStr.MONDAY,
             weekday_data=copy_weekday_data,
         )
 
@@ -1202,7 +1195,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
     with pytest.raises(ValidationException):
         await climate_bwth.set_schedule_profile_weekday(
             profile=ScheduleProfile.P1,
-            weekday=ScheduleWeekday.MONDAY,
+            weekday=WeekdayStr.MONDAY,
             weekday_data=copy_weekday_data2,
         )
 
@@ -1211,7 +1204,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
     with pytest.raises(ValidationException):
         await climate_bwth.set_schedule_profile_weekday(
             profile=ScheduleProfile.P1,
-            weekday=ScheduleWeekday.MONDAY,
+            weekday=WeekdayStr.MONDAY,
             weekday_data=copy_weekday_data3,
         )
 
@@ -1220,7 +1213,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
     with pytest.raises(ValidationException):
         await climate_bwth.set_schedule_profile_weekday(
             profile=ScheduleProfile.P1,
-            weekday=ScheduleWeekday.MONDAY,
+            weekday=WeekdayStr.MONDAY,
             weekday_data=copy_weekday_data4,
         )
     manual_week_profile_data = {
@@ -1249,7 +1242,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
         {"TEMPERATURE": 22.0, "STARTTIME": "19:00", "ENDTIME": "22:00"},
         {"TEMPERATURE": 17.0, "STARTTIME": "09:00", "ENDTIME": "15:00"},
     ]
-    weekday_data = climate_bwth._validate_and_convert_simple_to_profile_weekday(
+    weekday_data = climate_bwth.device.week_profile._validate_and_convert_simple_to_profile_weekday(
         base_temperature=16.0, simple_weekday_list=manual_simple_weekday_list
     )
     assert weekday_data == {
@@ -1275,7 +1268,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
     )
 
     manual_simple_weekday_list2 = []
-    weekday_data2 = climate_bwth._validate_and_convert_simple_to_profile_weekday(
+    weekday_data2 = climate_bwth.device.week_profile._validate_and_convert_simple_to_profile_weekday(
         base_temperature=16.0, simple_weekday_list=manual_simple_weekday_list2
     )
     assert weekday_data2 == {
@@ -1368,7 +1361,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
         {"TEMPERATURE": 17.0, "STARTTIME": "14:00", "ENDTIME": "15:00"},
         {"TEMPERATURE": 17.0, "STARTTIME": "15:00", "ENDTIME": "16:00"},
     ]
-    weekday_data3 = climate_bwth._validate_and_convert_simple_to_profile_weekday(
+    weekday_data3 = climate_bwth.device.week_profile._validate_and_convert_simple_to_profile_weekday(
         base_temperature=16.0, simple_weekday_list=manual_simple_weekday_list3
     )
     assert weekday_data3 == {
@@ -1537,7 +1530,7 @@ async def test_schedule_cache_and_reload_on_config_pending(
     central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
-    assert climate._climate_schedule_cache == {}
+    assert climate.device.week_profile._schedule_cache == {}
 
     # Register a callback to track schedule changes
     callback_called = False
@@ -1583,12 +1576,14 @@ async def test_schedule_cache_and_reload_on_config_pending(
     await asyncio.sleep(0.1)
 
     # Cache should be populated after CONFIG_PENDING reload
-    assert climate._climate_schedule_cache != {}, "Schedule cache should be populated after CONFIG_PENDING reload"
+    assert climate.device.week_profile._schedule_cache != {}, (
+        "Schedule cache should be populated after CONFIG_PENDING reload"
+    )
 
     # The callback may or may not have been called depending on whether schedules changed
     # but the cache should definitely be populated
     # Verify that the cache contains schedule data
-    assert len(climate._climate_schedule_cache) > 0, "Schedule cache should contain profile data"
+    assert len(climate.device.week_profile._schedule_cache) > 0, "Schedule cache should contain profile data"
 
     unreg()
 
@@ -1613,18 +1608,18 @@ async def test_schedule_cache_read_operations(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Clear the cache to start fresh
-    climate._climate_schedule_cache = {}
-    assert climate._climate_schedule_cache == {}
+    climate.device.week_profile._schedule_cache = {}
+    assert climate.device.week_profile._schedule_cache == {}
 
     # Test 1: get_schedule_profile with do_load=True should fetch from API and cache
-    # Note: reload_and_cache_schedules() loads ALL available profiles, not just the requested one
+    # Note: reload_and_cache_schedule() loads ALL available profiles, not just the requested one
     profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert profile_data is not None
     assert len(profile_data) > 0
-    assert ScheduleProfile.P1 in climate._climate_schedule_cache
-    assert climate._climate_schedule_cache[ScheduleProfile.P1] == profile_data
+    assert ScheduleProfile.P1 in climate.device.week_profile._schedule_cache
+    assert climate.device.week_profile._schedule_cache[ScheduleProfile.P1] == profile_data
     # Multiple profiles should be cached after loading
-    assert len(climate._climate_schedule_cache) > 0
+    assert len(climate.device.week_profile._schedule_cache) > 0
 
     # Count API calls
     initial_call_count = len(mock_client.method_calls)
@@ -1635,17 +1630,15 @@ async def test_schedule_cache_read_operations(
     assert len(mock_client.method_calls) == initial_call_count  # No new API calls
 
     # Test 3: get_schedule_profile_weekday should return from cache
-    weekday_data = await climate.get_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY
-    )
+    weekday_data = await climate.get_schedule_profile_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
     assert weekday_data is not None
     assert len(weekday_data) > 0
-    assert weekday_data == profile_data[ScheduleWeekday.MONDAY]
+    assert weekday_data == profile_data[WeekdayStr.MONDAY]
     assert len(mock_client.method_calls) == initial_call_count  # No new API calls
 
     # Test 4: get_schedule_profile_weekday with do_load=True should fetch from API
     weekday_data_reloaded = await climate.get_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, force_load=True
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, force_load=True
     )
     assert weekday_data_reloaded == weekday_data
     assert len(mock_client.method_calls) > initial_call_count  # new API call made
@@ -1653,7 +1646,7 @@ async def test_schedule_cache_read_operations(
     # Test 5: get_schedule_profile for non-cached profile should return empty dict
     # Note: After loading P1, other profiles may also be cached, so we check for a definitely non-existent one
     # First check what's in cache
-    cached_profiles = list(climate._climate_schedule_cache.keys())
+    cached_profiles = list(climate.device.week_profile._schedule_cache.keys())
     # Get a profile that's not in the cache
     non_cached_profile = None
     for test_profile in [ScheduleProfile.P6, ScheduleProfile.P5, ScheduleProfile.P4]:
@@ -1705,19 +1698,21 @@ async def test_schedule_cache_write_operations(
     # Test 1: set_schedule_profile_weekday should update cache
     from copy import deepcopy
 
-    modified_weekday_data = deepcopy(initial_profile_data[ScheduleWeekday.MONDAY])
+    modified_weekday_data = deepcopy(initial_profile_data[WeekdayStr.MONDAY])
     # Modify temperature in slot 1
     modified_weekday_data[1][ScheduleSlotType.TEMPERATURE] = 20.0
 
     callback_count = 0
     await climate.set_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=modified_weekday_data
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=modified_weekday_data
     )
 
     # Verify cache was updated
-    assert climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY] == modified_weekday_data
+    assert climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY] == modified_weekday_data
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
+            ScheduleSlotType.TEMPERATURE
+        ]
         == 20.0
     )
     # Callback should be called once for the change
@@ -1726,22 +1721,24 @@ async def test_schedule_cache_write_operations(
     # Test 2: set_schedule_profile_weekday with same data should not update cache or call callback
     callback_count = 0
     await climate.set_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=modified_weekday_data
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=modified_weekday_data
     )
     # Callback should not be called since data didn't change
     assert callback_count == 0
 
     # Test 3: set_schedule_profile should update entire profile in cache
     modified_profile_data = deepcopy(initial_profile_data)
-    modified_profile_data[ScheduleWeekday.TUESDAY][2][ScheduleSlotType.TEMPERATURE] = 22.0
+    modified_profile_data[WeekdayStr.TUESDAY][2][ScheduleSlotType.TEMPERATURE] = 22.0
 
     callback_count = 0
     await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=modified_profile_data)
 
     # Verify cache was updated
-    assert climate._climate_schedule_cache[ScheduleProfile.P1] == modified_profile_data
+    assert climate.device.week_profile._schedule_cache[ScheduleProfile.P1] == modified_profile_data
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.TUESDAY][2][ScheduleSlotType.TEMPERATURE]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.TUESDAY][2][
+            ScheduleSlotType.TEMPERATURE
+        ]
         == 22.0
     )
     # Callback should be called once
@@ -1778,54 +1775,60 @@ async def test_schedule_cache_consistency(
     # Load initial schedules
     profile1_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
     assert len(profile1_data) > 0
-    assert ScheduleProfile.P1 in climate._climate_schedule_cache
+    assert ScheduleProfile.P1 in climate.device.week_profile._schedule_cache
 
     # Test 1: Writing to one profile shouldn't affect other profiles
     from copy import deepcopy
 
     modified_p1_data = deepcopy(profile1_data)
-    modified_p1_data[ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE] = 25.0
+    modified_p1_data[WeekdayStr.MONDAY][1][ScheduleSlotType.TEMPERATURE] = 25.0
     await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=modified_p1_data)
 
     # Verify P1 was updated
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
+            ScheduleSlotType.TEMPERATURE
+        ]
         == 25.0
     )
 
     # Test 2: Writing to individual weekday should only affect that weekday
-    modified_tuesday_data = deepcopy(profile1_data[ScheduleWeekday.TUESDAY])
+    modified_tuesday_data = deepcopy(profile1_data[WeekdayStr.TUESDAY])
     modified_tuesday_data[2][ScheduleSlotType.TEMPERATURE] = 23.0
     await climate.set_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.TUESDAY, weekday_data=modified_tuesday_data
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.TUESDAY, weekday_data=modified_tuesday_data
     )
 
     # Verify Tuesday was updated
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.TUESDAY][2][ScheduleSlotType.TEMPERATURE]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.TUESDAY][2][
+            ScheduleSlotType.TEMPERATURE
+        ]
         == 23.0
     )
     # Verify Monday still has the previous change
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
+            ScheduleSlotType.TEMPERATURE
+        ]
         == 25.0
     )
     # Verify other weekdays weren't affected
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.WEDNESDAY]
-        == profile1_data[ScheduleWeekday.WEDNESDAY]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.WEDNESDAY]
+        == profile1_data[WeekdayStr.WEDNESDAY]
     )
 
     # Test 3: Multiple sequential writes should maintain consistency
     for temp in [18.0, 19.0, 20.0]:
-        modified_data = deepcopy(climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.WEDNESDAY])
+        modified_data = deepcopy(climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.WEDNESDAY])
         modified_data[3][ScheduleSlotType.TEMPERATURE] = temp
         await climate.set_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=ScheduleWeekday.WEDNESDAY, weekday_data=modified_data
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.WEDNESDAY, weekday_data=modified_data
         )
         # Verify the last write is reflected
         assert (
-            climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.WEDNESDAY][3][
+            climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.WEDNESDAY][3][
                 ScheduleSlotType.TEMPERATURE
             ]
             == temp
@@ -1844,10 +1847,10 @@ async def test_schedule_cache_consistency(
         (TEST_DEVICES, True, None, None),
     ],
 )
-async def test_schedule_cache_reload_and_cache_schedules(
+async def test_schedule_cache_reload_and_cache_schedule(
     central_client_factory_with_homegear_client,
 ) -> None:
-    """Test reload_and_cache_schedules method behavior."""
+    """Test reload_and_cache_schedule method behavior."""
     central, mock_client, _ = central_client_factory_with_homegear_client
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
@@ -1861,41 +1864,47 @@ async def test_schedule_cache_reload_and_cache_schedules(
     unreg = climate.register_data_point_updated_callback(cb=reload_callback, custom_id="test_reload")
 
     # Test 1: Initial load should populate cache
-    climate._climate_schedule_cache = {}
-    assert climate._climate_schedule_cache == {}
+    climate.device.week_profile._schedule_cache = {}
+    assert climate.device.week_profile._schedule_cache == {}
 
-    await climate.reload_and_cache_schedules()
+    await climate.device.week_profile.reload_and_cache_schedule()
 
     # Verify cache was populated
-    assert len(climate._climate_schedule_cache) > 0
+    assert len(climate.device.week_profile._schedule_cache) > 0
     assert reload_callback_count == 1
 
     # Test 2: Reload with same data should not trigger callback
     reload_callback_count = 0
-    initial_cache = deepcopy(climate._climate_schedule_cache)
+    initial_cache = deepcopy(climate.device.week_profile._schedule_cache)
 
-    await climate.reload_and_cache_schedules()
+    await climate.device.week_profile.reload_and_cache_schedule()
 
     # Cache should still be populated
-    assert len(climate._climate_schedule_cache) > 0
+    assert len(climate.device.week_profile._schedule_cache) > 0
     # Callback should not be called if data didn't change
     # (Note: This depends on whether the mock returns the same data)
 
     # Test 3: Manual cache modification followed by reload should restore correct data
-    climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE] = 99.0
+    climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
+        ScheduleSlotType.TEMPERATURE
+    ] = 99.0
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
+            ScheduleSlotType.TEMPERATURE
+        ]
         == 99.0
     )
 
     reload_callback_count = 0
-    await climate.reload_and_cache_schedules()
+    await climate.device.week_profile.reload_and_cache_schedule()
 
     # After reload, the incorrect manual change should be overwritten
     # The cache should reflect the actual data from the device
     assert (
-        climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE]
-        == initial_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY][1][ScheduleSlotType.TEMPERATURE]
+        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
+            ScheduleSlotType.TEMPERATURE
+        ]
+        == initial_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][ScheduleSlotType.TEMPERATURE]
     )
 
     unreg()
@@ -1921,7 +1930,7 @@ async def test_schedule_cache_available_profiles(
     climate: CustomDpRfThermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
 
     # Test 1: Empty cache should return empty tuple
-    climate._climate_schedule_cache = {}
+    climate.device.week_profile._schedule_cache = {}
     assert climate.available_schedule_profiles == ()
 
     # Test 2: After loading profiles, available_schedule_profiles should reflect cache
@@ -1936,8 +1945,8 @@ async def test_schedule_cache_available_profiles(
     assert len(available_profiles) >= 2
 
     # Test 4: schedule property should return the entire cache
-    full_schedule = climate.climate_schedule
-    assert full_schedule == climate._climate_schedule_cache
+    full_schedule = climate.schedule
+    assert full_schedule == climate.device.week_profile._schedule_cache
     assert ScheduleProfile.P1 in full_schedule
     assert ScheduleProfile.P2 in full_schedule
 
@@ -1983,11 +1992,11 @@ async def test_schedule_normalization_string_keys_to_int(
 
     # Should not raise an exception - string keys should be converted to int
     await climate.set_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=weekday_data_with_string_keys
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data_with_string_keys
     )
 
     # Verify data was cached with integer keys
-    cached_data = climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY]
+    cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
     assert all(isinstance(key, int) for key in cached_data)
     assert len(cached_data) == 13
 
@@ -2033,11 +2042,11 @@ async def test_schedule_normalization_sorting_by_endtime(
 
     # Should not raise an exception - data should be sorted and slot numbers reassigned
     await climate.set_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=unsorted_weekday_data
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=unsorted_weekday_data
     )
 
     # Verify data was sorted correctly in cache
-    cached_data = climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY]
+    cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
 
     # Check that slot numbers are 1-13
     assert list(cached_data.keys()) == list(range(1, 14))
@@ -2110,11 +2119,11 @@ async def test_schedule_normalization_complete_example(
 
     # Should not raise an exception
     await climate.set_schedule_profile_weekday(
-        profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=normalized_input
+        profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=normalized_input
     )
 
     # Verify normalization worked correctly
-    cached_data = climate._climate_schedule_cache[ScheduleProfile.P1][ScheduleWeekday.MONDAY]
+    cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
 
     # All keys should be integers 1-13
     assert list(cached_data.keys()) == list(range(1, 14))
@@ -2183,5 +2192,5 @@ async def test_schedule_normalization_preserves_validation(
     # Should raise ValidationException for invalid temperature
     with pytest.raises(ValidationException):
         await climate.set_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=ScheduleWeekday.MONDAY, weekday_data=invalid_temp_data
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=invalid_temp_data
         )

@@ -1033,16 +1033,23 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             )
 
         weekday_data: CLIMATE_WEEKDAY_DICT = {}
-        sorted_simple_weekday_list = _sort_simple_weekday_list(simple_weekday_list=simple_weekday_list)
-        previous_endtime = CLIMATE_MIN_SCHEDULER_TIME
-        slot_no = 1
-        for slot in sorted_simple_weekday_list:
+
+        # Validate required fields before sorting
+        for slot in simple_weekday_list:
             if (starttime := slot.get(ScheduleSlotType.STARTTIME)) is None:
                 raise ValidationException(i18n.tr("exception.model.week_profile.validate.starttime_missing"))
             if (endtime := slot.get(ScheduleSlotType.ENDTIME)) is None:
                 raise ValidationException(i18n.tr("exception.model.week_profile.validate.endtime_missing"))
             if (temperature := slot.get(ScheduleSlotType.TEMPERATURE)) is None:
                 raise ValidationException(i18n.tr("exception.model.week_profile.validate.temperature_missing"))
+
+        sorted_simple_weekday_list = _sort_simple_weekday_list(simple_weekday_list=simple_weekday_list)
+        previous_endtime = CLIMATE_MIN_SCHEDULER_TIME
+        slot_no = 1
+        for slot in sorted_simple_weekday_list:
+            starttime = slot[ScheduleSlotType.STARTTIME]
+            endtime = slot[ScheduleSlotType.ENDTIME]
+            temperature = slot[ScheduleSlotType.TEMPERATURE]
 
             if _convert_time_str_to_minutes(time_str=str(starttime)) >= _convert_time_str_to_minutes(
                 time_str=str(endtime)
@@ -1148,46 +1155,49 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
                             no=no,
                         )
                     )
-                temperature = float(weekday_data[no][ScheduleSlotType.TEMPERATURE])
-                if not self._min_temp <= temperature <= self._max_temp:
+
+            # Validate temperature
+            temperature = float(weekday_data[no][ScheduleSlotType.TEMPERATURE])
+            if not self._min_temp <= temperature <= self._max_temp:
+                raise ValidationException(
+                    i18n.tr(
+                        "exception.model.week_profile.validate.temperature_out_of_range_for_profile_slot",
+                        temperature=temperature,
+                        min=self._min_temp,
+                        max=self._max_temp,
+                        profile=profile,
+                        weekday=weekday,
+                        no=no,
+                    )
+                )
+
+            # Validate endtime
+            endtime_str = str(weekday_data[no][ScheduleSlotType.ENDTIME])
+            if endtime := _convert_time_str_to_minutes(time_str=endtime_str):
+                if endtime not in CLIMATE_SCHEDULE_TIME_RANGE:
                     raise ValidationException(
                         i18n.tr(
-                            "exception.model.week_profile.validate.temperature_out_of_range_for_profile_slot",
-                            temperature=temperature,
-                            min=self._min_temp,
-                            max=self._max_temp,
+                            "exception.model.week_profile.validate.time_out_of_bounds_profile_slot",
+                            time=endtime_str,
+                            min_time=_convert_minutes_to_time_str(minutes=CLIMATE_SCHEDULE_TIME_RANGE.start),
+                            max_time=_convert_minutes_to_time_str(minutes=CLIMATE_SCHEDULE_TIME_RANGE.stop - 1),
                             profile=profile,
                             weekday=weekday,
                             no=no,
                         )
                     )
-
-                endtime_str = str(weekday_data[no][ScheduleSlotType.ENDTIME])
-                if endtime := _convert_time_str_to_minutes(time_str=endtime_str):
-                    if endtime not in CLIMATE_SCHEDULE_TIME_RANGE:
-                        raise ValidationException(
-                            i18n.tr(
-                                "exception.model.week_profile.validate.time_out_of_bounds_profile_slot",
-                                time=endtime_str,
-                                min_time=_convert_minutes_to_time_str(minutes=CLIMATE_SCHEDULE_TIME_RANGE.start),
-                                max_time=_convert_minutes_to_time_str(minutes=CLIMATE_SCHEDULE_TIME_RANGE.stop - 1),
-                                profile=profile,
-                                weekday=weekday,
-                                no=no,
-                            )
+                if endtime < previous_endtime:
+                    raise ValidationException(
+                        i18n.tr(
+                            "exception.model.week_profile.validate.sequence_rising",
+                            time=endtime_str,
+                            previous=_convert_minutes_to_time_str(minutes=previous_endtime),
+                            profile=profile,
+                            weekday=weekday,
+                            no=no,
                         )
-                    if endtime < previous_endtime:
-                        raise ValidationException(
-                            i18n.tr(
-                                "exception.model.week_profile.validate.sequence_rising",
-                                time=endtime_str,
-                                previous=_convert_minutes_to_time_str(minutes=previous_endtime),
-                                profile=profile,
-                                weekday=weekday,
-                                no=no,
-                            )
-                        )
-                previous_endtime = endtime
+                    )
+            previous_endtime = endtime
 
 
 def create_week_profile(*, data_point: cdp.CustomDataPoint) -> WeekProfile[dict[Any, Any]]:
@@ -1242,10 +1252,15 @@ def _filter_weekday_entries(*, weekday_data: CLIMATE_WEEKDAY_DICT) -> CLIMATE_WE
     if not weekday_data:
         return weekday_data
 
-    # Sort slots chronologically by ENDTIME first to ensure we process them in correct order
+    # Sort slots chronologically by ENDTIME first, then by slot number
+    # This ensures that if multiple slots have ENDTIME "24:00",
+    # the one with the lowest slot number is kept
     sorted_slots = sorted(
         weekday_data.items(),
-        key=lambda item: _convert_time_str_to_minutes(time_str=str(item[1][ScheduleSlotType.ENDTIME])),
+        key=lambda item: (
+            _convert_time_str_to_minutes(time_str=str(item[1][ScheduleSlotType.ENDTIME])),
+            item[0],  # Secondary sort by slot number
+        ),
     )
 
     filtered_slots = []
@@ -1255,7 +1270,7 @@ def _filter_weekday_entries(*, weekday_data: CLIMATE_WEEKDAY_DICT) -> CLIMATE_WE
         # Keep all slots that don't end at 24:00
         if slot.get(ScheduleSlotType.ENDTIME, "") != CLIMATE_MAX_SCHEDULER_TIME:
             filtered_slots.append(slot)
-        # Keep only the first slot that ends at 24:00 (chronologically)
+        # Keep only the first slot that ends at 24:00 (lowest slot number)
         elif not found_24_00:
             filtered_slots.append(slot)
             found_24_00 = True

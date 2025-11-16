@@ -37,65 +37,66 @@ def reload_pkg(monkeypatch):
     return _reload
 
 
-def test_init_sets_version_and_allows_non_tty_import(reload_pkg):
-    """Import on non-TTY should still set __version__ and __all__."""
-    pkg = reload_pkg(stdout_isatty=False)
-    assert hasattr(pkg, "__version__")
-    assert "__version__" in pkg.__all__
+class TestPackageImport:
+    """Test package import side effects and signal handling."""
 
+    def test_import_raises_clear_error(self, monkeypatch):
+        """Importing __init__ should raise clear RuntimeError when validation fails."""
+        # Import once to ensure environment is stable
+        import aiohomematic.validator as validator  # type: ignore[import-not-found]
 
-def test_signal_handler_triggers_stop(monkeypatch, reload_pkg):
-    """Signal handler should schedule stop() on all central instances."""
+        # Patch validator to raise and execute module code in isolated namespace
+        def _raise():
+            raise ValueError("boom")
 
-    # Prepare a minimal fake central with stop coroutine
-    class FakeCentral:
-        def __init__(self):
-            self.stopped = False
+        monkeypatch.setattr(validator, "validate_startup", _raise)
 
-        async def stop(self):
-            self.stopped = True
-            return
+        import runpy
 
-    # Need an event loop to be running to schedule stop; patch asyncio.get_running_loop
-    import asyncio
+        with pytest.raises(RuntimeError) as err:
+            # Execute package __init__ in a fresh namespace to avoid polluting global state
+            runpy.run_module("aiohomematic.__init__", init_globals={}, run_name="__init__")
 
-    loop = asyncio.new_event_loop()
-    monkeypatch.setattr(asyncio, "get_running_loop", lambda: loop)
+        assert "startup validation failed" in str(err.value).lower()
 
-    # Patch central instances mapping
-    import aiohomematic.central as hmcu
+    def test_init_sets_version_and_allows_non_tty_import(self, reload_pkg):
+        """Import on non-TTY should still set __version__ and __all__."""
+        pkg = reload_pkg(stdout_isatty=False)
+        assert hasattr(pkg, "__version__")
+        assert "__version__" in pkg.__all__
 
-    fake = FakeCentral()
-    monkeypatch.setattr(hmcu, "CENTRAL_INSTANCES", {"c1": fake})
+    def test_signal_handler_triggers_stop(self, monkeypatch, reload_pkg):
+        """Signal handler should schedule stop() on all central instances."""
 
-    pkg = reload_pkg(stdout_isatty=True)
+        # Prepare a minimal fake central with stop coroutine
+        class FakeCentral:
+            def __init__(self):
+                self.stopped = False
 
-    # Call the signal handler and ensure it schedules stop
-    pkg.signal_handler(sig=2, frame=None)
-    # Execute scheduled task
-    loop.run_until_complete(asyncio.sleep(0))
-    # Allow the thread-safe future to complete
-    loop.run_until_complete(asyncio.sleep(0))
-    assert fake.stopped is True
+            async def stop(self):
+                self.stopped = True
+                return
 
-    loop.close()
+        # Need an event loop to be running to schedule stop; patch asyncio.get_running_loop
+        import asyncio
 
+        loop = asyncio.new_event_loop()
+        monkeypatch.setattr(asyncio, "get_running_loop", lambda: loop)
 
-def test_import_raises_clear_error(monkeypatch):
-    """Importing __init__ should raise clear RuntimeError when validation fails."""
-    # Import once to ensure environment is stable
-    import aiohomematic.validator as validator  # type: ignore[import-not-found]
+        # Patch central instances mapping
+        import aiohomematic.central as hmcu
 
-    # Patch validator to raise and execute module code in isolated namespace
-    def _raise():
-        raise ValueError("boom")
+        fake = FakeCentral()
+        monkeypatch.setattr(hmcu, "CENTRAL_INSTANCES", {"c1": fake})
 
-    monkeypatch.setattr(validator, "validate_startup", _raise)
+        pkg = reload_pkg(stdout_isatty=True)
 
-    import runpy
+        # Call the signal handler and ensure it schedules stop
+        pkg.signal_handler(sig=2, frame=None)
+        # Execute scheduled task
+        loop.run_until_complete(asyncio.sleep(0))
+        # Allow the thread-safe future to complete
+        loop.run_until_complete(asyncio.sleep(0))
+        assert fake.stopped is True
 
-    with pytest.raises(RuntimeError) as err:
-        # Execute package __init__ in a fresh namespace to avoid polluting global state
-        runpy.run_module("aiohomematic.__init__", init_globals={}, run_name="__init__")
-
-    assert "startup validation failed" in str(err.value).lower()
+        loop.close()

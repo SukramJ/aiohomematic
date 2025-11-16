@@ -1,9 +1,10 @@
-# Version 2025.11.16 (2025-11-14)
+# Version 2025.11.16 (2025-11-16)
 
 ## What's Changed
 
 - Add schedule support to custom data point
 - Optimize climate get/set_schedule
+- Return filtered climate schedule data on get_schedule / Accept filtered data in climate set_schedule
 
 # Version 2025.11.15 (2025-11-13)
 

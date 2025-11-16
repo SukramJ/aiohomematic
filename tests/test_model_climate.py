@@ -33,6 +33,7 @@ from aiohomematic.model.custom import (
 )
 from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy
+from aiohomematic.model.week_profile import _filter_profile_entries, _filter_schedule_entries, _filter_weekday_entries
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -1174,7 +1175,7 @@ async def test_climate_ip_with_pydevccu(central_unit_pydevccu_mini) -> None:
     weekday_data = await climate_bwth.get_schedule_profile_weekday(
         profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY
     )
-    assert len(weekday_data) == 13
+    assert len(weekday_data) == 5
     await climate_bwth.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
     await climate_bwth.set_schedule_profile_weekday(
         profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data
@@ -1617,7 +1618,10 @@ async def test_schedule_cache_read_operations(
     assert profile_data is not None
     assert len(profile_data) > 0
     assert ScheduleProfile.P1 in climate.device.week_profile._schedule_cache
-    assert climate.device.week_profile._schedule_cache[ScheduleProfile.P1] == profile_data
+    assert (
+        _filter_profile_entries(profile_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1])
+        == profile_data
+    )
     # Multiple profiles should be cached after loading
     assert len(climate.device.week_profile._schedule_cache) > 0
 
@@ -1708,7 +1712,12 @@ async def test_schedule_cache_write_operations(
     )
 
     # Verify cache was updated
-    assert climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY] == modified_weekday_data
+    assert (
+        _filter_weekday_entries(
+            weekday_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
+        )
+        == modified_weekday_data
+    )
     assert (
         climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
             ScheduleSlotType.TEMPERATURE
@@ -1734,7 +1743,10 @@ async def test_schedule_cache_write_operations(
     await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=modified_profile_data)
 
     # Verify cache was updated
-    assert climate.device.week_profile._schedule_cache[ScheduleProfile.P1] == modified_profile_data
+    assert (
+        _filter_profile_entries(profile_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1])
+        == modified_profile_data
+    )
     assert (
         climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.TUESDAY][2][
             ScheduleSlotType.TEMPERATURE
@@ -1815,7 +1827,9 @@ async def test_schedule_cache_consistency(
     )
     # Verify other weekdays weren't affected
     assert (
-        climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.WEDNESDAY]
+        _filter_weekday_entries(
+            weekday_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.WEDNESDAY]
+        )
         == profile1_data[WeekdayStr.WEDNESDAY]
     )
 
@@ -1946,7 +1960,7 @@ async def test_schedule_cache_available_profiles(
 
     # Test 4: schedule property should return the entire cache
     full_schedule = climate.schedule
-    assert full_schedule == climate.device.week_profile._schedule_cache
+    assert full_schedule == _filter_schedule_entries(schedule_data=climate.device.week_profile._schedule_cache)
     assert ScheduleProfile.P1 in full_schedule
     assert ScheduleProfile.P2 in full_schedule
 

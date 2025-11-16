@@ -271,3 +271,31 @@ class TestSysvarSelect:
         await select.send_variable(value="v2")
         assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="list_ext", value=1)
         assert select.value == "v2"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_hmsysvarselect_send_invalid_value(self, central_client_factory_with_ccu_client) -> None:
+        """Test sending invalid variable value triggers error logging."""
+        central, mock_client, _ = central_client_factory_with_ccu_client
+        select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
+
+        initial_value = select.value
+        call_count_before = len(mock_client.method_calls)
+
+        # Try to send an invalid string value (not in value list)
+        await select.send_variable(value="invalid_value_not_in_list")
+
+        # Should not have made any calls to the backend
+        assert len(mock_client.method_calls) == call_count_before
+        # Value should remain unchanged
+        assert select.value == initial_value

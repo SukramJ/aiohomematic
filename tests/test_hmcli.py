@@ -77,180 +77,209 @@ def base_argv(*args: str) -> list[str]:
     return ["aiohomematic", *list(args)]
 
 
-def test_get_value_plain(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    # Prepare fake to return a value
-    def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
-        fake = FakeServerProxy("uri", context=context, headers=headers)
-        fake.values[("OEQ1234567:1", "LEVEL")] = 0.42
-        return fake
+class TestHmcliGetValue:
+    """Test CLI getValue operations."""
 
-    monkeypatch.setattr(hmcli, "ServerProxy", construct)  # factory returning instance
+    def test_get_value_plain(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+        # Prepare fake to return a value
+        def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
+            fake = FakeServerProxy("uri", context=context, headers=headers)
+            fake.values[("OEQ1234567:1", "LEVEL")] = 0.42
+            return fake
 
-    argv = base_argv("-H", "ccu.local", "-p", "2001", "-a", "OEQ1234567:1", "--parameter", "LEVEL")
-    monkeypatch.setattr(sys, "argv", argv)
+        monkeypatch.setattr(hmcli, "ServerProxy", construct)  # factory returning instance
 
-    code, out, err = run_cli(capsys)
-    assert code == 0
-    assert out.strip() == "0.42"
-    assert err == ""
+        argv = base_argv("-H", "ccu.local", "-p", "2001", "-a", "OEQ1234567:1", "--parameter", "LEVEL")
+        monkeypatch.setattr(sys, "argv", argv)
 
+        code, out, err = run_cli(capsys)
+        assert code == 0
+        assert out.strip() == "0.42"
+        assert err == ""
 
-def test_get_value_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
-        fake = FakeServerProxy("uri", context=context, headers=headers)
-        fake.values[("ABC0001:2", "STATE")] = True
-        return fake
+    def test_get_value_json(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+        def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
+            fake = FakeServerProxy("uri", context=context, headers=headers)
+            fake.values[("ABC0001:2", "STATE")] = True
+            return fake
 
-    monkeypatch.setattr(hmcli, "ServerProxy", construct)
+        monkeypatch.setattr(hmcli, "ServerProxy", construct)
 
-    argv = base_argv("-H", "1.2.3.4", "-p", "2001", "-a", "ABC0001:2", "--parameter", "STATE", "--json")
-    monkeypatch.setattr(sys, "argv", argv)
+        argv = base_argv("-H", "1.2.3.4", "-p", "2001", "-a", "ABC0001:2", "--parameter", "STATE", "--json")
+        monkeypatch.setattr(sys, "argv", argv)
 
-    code, out, err = run_cli(capsys)
-    assert code == 0
-    data = json.loads(out)
-    assert data == {"address": "ABC0001:2", "parameter": "STATE", "value": True}
-    assert err == ""
-
-
-@pytest.mark.parametrize(
-    ("typ", "raw", "parsed"),
-    [
-        ("int", "5", 5),
-        ("float", "3.14", 3.14),
-        ("bool", "1", True),
-        (None, "abc", "abc"),
-    ],
-)
-def test_set_value_types(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], typ: str | None, raw: str, parsed: Any
-) -> None:
-    fake = FakeServerProxy("uri", context=None, headers={})
-
-    def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
-        return fake
-
-    monkeypatch.setattr(hmcli, "ServerProxy", construct)
-
-    argv = base_argv("-H", "ccu", "-p", "2001", "-a", "X:1", "--parameter", "FOO", "--value", raw)
-    if typ is not None:
-        argv += ["--type", typ]
-    monkeypatch.setattr(sys, "argv", argv)
-
-    code, out, err = run_cli(capsys)
-    assert code == 0
-    assert out == ""
-    assert err == ""
-    assert fake.set_calls == [("X:1", "FOO", parsed)]
+        code, out, err = run_cli(capsys)
+        assert code == 0
+        data = json.loads(out)
+        assert data == {"address": "ABC0001:2", "parameter": "STATE", "value": True}
+        assert err == ""
 
 
-def test_master_get_plain_and_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
-        fake = FakeServerProxy("uri", context=context, headers=headers)
-        fake.paramsets[("DEV:0", hmcli.ParamsetKey.MASTER)] = {"PROFILE": 2}
-        return fake
+class TestHmcliSetValue:
+    """Test CLI setValue operations."""
 
-    monkeypatch.setattr(hmcli, "ServerProxy", construct)
-
-    # Plain
-    argv = base_argv(
-        "-H", "h", "-p", "2001", "-a", "DEV:0", "--paramset_key", hmcli.ParamsetKey.MASTER, "--parameter", "PROFILE"
+    @pytest.mark.parametrize(
+        ("typ", "raw", "parsed"),
+        [
+            ("int", "5", 5),
+            ("float", "3.14", 3.14),
+            ("bool", "1", True),
+            (None, "abc", "abc"),
+        ],
     )
-    monkeypatch.setattr(sys, "argv", argv)
-    code, out, err = run_cli(capsys)
-    assert code == 0 and out.strip() == "2" and err == ""
+    def test_set_value_types(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+        typ: str | None,
+        raw: str,
+        parsed: Any,
+    ) -> None:
+        fake = FakeServerProxy("uri", context=None, headers={})
 
-    # JSON
-    argv = base_argv(
-        "-H",
-        "h",
-        "-p",
-        "2001",
-        "-a",
-        "DEV:0",
-        "--paramset_key",
-        hmcli.ParamsetKey.MASTER,
-        "--parameter",
-        "PROFILE",
-        "--json",
-    )
-    monkeypatch.setattr(sys, "argv", argv)
-    code, out, err = run_cli(capsys)
-    assert code == 0
-    data = json.loads(out)
-    assert data == {"address": "DEV:0", "paramset_key": hmcli.ParamsetKey.MASTER, "parameter": "PROFILE", "value": 2}
+        def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
+            return fake
 
+        monkeypatch.setattr(hmcli, "ServerProxy", construct)
 
-def test_master_put_value(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    fake = FakeServerProxy("uri", context=None, headers={})
+        argv = base_argv("-H", "ccu", "-p", "2001", "-a", "X:1", "--parameter", "FOO", "--value", raw)
+        if typ is not None:
+            argv += ["--type", typ]
+        monkeypatch.setattr(sys, "argv", argv)
 
-    def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
-        return fake
-
-    monkeypatch.setattr(hmcli, "ServerProxy", construct)
-
-    argv = base_argv(
-        "-H",
-        "h",
-        "-p",
-        "2001",
-        "-a",
-        "DEV:0",
-        "--paramset_key",
-        hmcli.ParamsetKey.MASTER,
-        "--parameter",
-        "PROFILE",
-        "--value",
-        "7",
-        "--type",
-        "int",
-    )
-    monkeypatch.setattr(sys, "argv", argv)
-
-    code, out, err = run_cli(capsys)
-    assert code == 0
-    assert fake.put_calls == [("DEV:0", hmcli.ParamsetKey.MASTER, {"PROFILE": 7})]
+        code, out, err = run_cli(capsys)
+        assert code == 0
+        assert out == ""
+        assert err == ""
+        assert fake.set_calls == [("X:1", "FOO", parsed)]
 
 
-def test_tls_and_headers_in_proxy_init(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    argv = base_argv(
-        "-H",
-        "host",
-        "-p",
-        "2001",
-        "--tls",
-        "--verify",
-        "-U",
-        "user",
-        "-P",
-        "pass",
-        "-a",
-        "D:1",
-        "--parameter",
-        "STATE",
-    )
-    monkeypatch.setattr(sys, "argv", argv)
+class TestHmcliMasterOperations:
+    """Test CLI master paramset operations."""
 
-    code, out, err = run_cli(capsys)
-    # Validate constructor args captured; outcome code isn't essential for this test
-    init = FakeServerProxy.last_init
-    assert init is not None
-    assert init["uri"].startswith("https://host:2001")
-    assert init["context"] == {"verify": True}
-    assert init["headers"] == {"X-User": "user", "X-Pass": "pass"}
+    def test_master_get_plain_and_json(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
+            fake = FakeServerProxy("uri", context=context, headers=headers)
+            fake.paramsets[("DEV:0", hmcli.ParamsetKey.MASTER)] = {"PROFILE": 2}
+            return fake
+
+        monkeypatch.setattr(hmcli, "ServerProxy", construct)
+
+        # Plain
+        argv = base_argv(
+            "-H", "h", "-p", "2001", "-a", "DEV:0", "--paramset_key", hmcli.ParamsetKey.MASTER, "--parameter", "PROFILE"
+        )
+        monkeypatch.setattr(sys, "argv", argv)
+        code, out, err = run_cli(capsys)
+        assert code == 0 and out.strip() == "2" and err == ""
+
+        # JSON
+        argv = base_argv(
+            "-H",
+            "h",
+            "-p",
+            "2001",
+            "-a",
+            "DEV:0",
+            "--paramset_key",
+            hmcli.ParamsetKey.MASTER,
+            "--parameter",
+            "PROFILE",
+            "--json",
+        )
+        monkeypatch.setattr(sys, "argv", argv)
+        code, out, err = run_cli(capsys)
+        assert code == 0
+        data = json.loads(out)
+        assert data == {
+            "address": "DEV:0",
+            "paramset_key": hmcli.ParamsetKey.MASTER,
+            "parameter": "PROFILE",
+            "value": 2,
+        }
+
+    def test_master_put_value(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+        fake = FakeServerProxy("uri", context=None, headers={})
+
+        def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
+            return fake
+
+        monkeypatch.setattr(hmcli, "ServerProxy", construct)
+
+        argv = base_argv(
+            "-H",
+            "h",
+            "-p",
+            "2001",
+            "-a",
+            "DEV:0",
+            "--paramset_key",
+            hmcli.ParamsetKey.MASTER,
+            "--parameter",
+            "PROFILE",
+            "--value",
+            "7",
+            "--type",
+            "int",
+        )
+        monkeypatch.setattr(sys, "argv", argv)
+
+        code, out, err = run_cli(capsys)
+        assert code == 0
+        assert fake.put_calls == [("DEV:0", hmcli.ParamsetKey.MASTER, {"PROFILE": 7})]
 
 
-def test_error_handling_prints_and_exits(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    class Boom(FakeServerProxy):
-        def getValue(self, address: str, param: str) -> Any:  # noqa: N802
-            raise RuntimeError("boom")
+class TestHmcliConnectionSettings:
+    """Test CLI connection settings and authentication."""
 
-    monkeypatch.setattr(hmcli, "ServerProxy", lambda *a, **k: Boom("uri"))
+    def test_tls_and_headers_in_proxy_init(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        argv = base_argv(
+            "-H",
+            "host",
+            "-p",
+            "2001",
+            "--tls",
+            "--verify",
+            "-U",
+            "user",
+            "-P",
+            "pass",
+            "-a",
+            "D:1",
+            "--parameter",
+            "STATE",
+        )
+        monkeypatch.setattr(sys, "argv", argv)
 
-    argv = base_argv("-H", "h", "-p", "2001", "-a", "A:1", "--parameter", "X")
-    monkeypatch.setattr(sys, "argv", argv)
+        code, out, err = run_cli(capsys)
+        # Validate constructor args captured; outcome code isn't essential for this test
+        init = FakeServerProxy.last_init
+        assert init is not None
+        assert init["uri"].startswith("https://host:2001")
+        assert init["context"] == {"verify": True}
+        assert init["headers"] == {"X-User": "user", "X-Pass": "pass"}
 
-    code, out, err = run_cli(capsys)
-    assert code == 1
-    assert out == ""
-    assert "boom" in err
+
+class TestHmcliErrorHandling:
+    """Test CLI error handling."""
+
+    def test_error_handling_prints_and_exits(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        class Boom(FakeServerProxy):
+            def getValue(self, address: str, param: str) -> Any:  # noqa: N802
+                raise RuntimeError("boom")
+
+        monkeypatch.setattr(hmcli, "ServerProxy", lambda *a, **k: Boom("uri"))
+
+        argv = base_argv("-H", "h", "-p", "2001", "-a", "A:1", "--parameter", "X")
+        monkeypatch.setattr(sys, "argv", argv)
+
+        code, out, err = run_cli(capsys)
+        assert code == 1
+        assert out == ""
+        assert "boom" in err

@@ -557,6 +557,16 @@ class TestClientEventTracking:
     """Test client event tracking helpers and timeouts."""
 
     @pytest.mark.asyncio
+    async def test_event_tracker_timeout_and_unsubscribe(self) -> None:
+        """Tracker should timeout and call unsubscribe in finally when event does not meet value condition."""
+        dpk = DataPointKey(
+            interface_id="i", channel_address="addr:1", paramset_key=ParamsetKey.VALUES, parameter="LEVEL"
+        )
+        dev = _EventDevice()
+        await _track_single_data_point_state_change_or_timeout(device=dev, dpk_value=(dpk, 0.0), wait_for_callback=0)
+        assert dev.dp.unsub_called is True
+
+    @pytest.mark.asyncio
     async def test_event_tracking_helpers_early_return(self) -> None:
         """_track_single_data_point_state_change_or_timeout returns early when dp supports no events."""
         dpk = DataPointKey(
@@ -572,16 +582,6 @@ class TestClientEventTracking:
 
         # The wrapper that awaits multiple trackers should also complete successfully
         await _wait_for_state_change_or_timeout(device=_FakeDevice(), dpk_values={(dpk, 0)}, wait_for_callback=1)
-
-    @pytest.mark.asyncio
-    async def test_event_tracker_timeout_and_unsubscribe(self) -> None:
-        """Tracker should timeout and call unsubscribe in finally when event does not meet value condition."""
-        dpk = DataPointKey(
-            interface_id="i", channel_address="addr:1", paramset_key=ParamsetKey.VALUES, parameter="LEVEL"
-        )
-        dev = _EventDevice()
-        await _track_single_data_point_state_change_or_timeout(device=dev, dpk_value=(dpk, 0.0), wait_for_callback=0)
-        assert dev.dp.unsub_called is True
 
 
 class TestClientClasses:
@@ -715,6 +715,27 @@ class TestClientClasses:
         assert await client_ccu.check_connection_availability(handle_ping_pong=True) is False
 
     @pytest.mark.asyncio
+    async def test_clientjsonccu_value_and_description_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Cover ClientJsonCCU.get_value non-VALUES branch and get_device_description exception path."""
+        central = _FakeCentral()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
+
+        ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
+        client_json = _ClientJsonCCU(client_config=ccfg)
+
+        # get_value for MASTER branch should read from MASTER paramset returned by FakeJsonRpcClient
+        val = await client_json.get_value(channel_address="dev1:1", paramset_key=ParamsetKey.MASTER, parameter="LEVEL")
+        assert val == 99
+
+        # get_device_description should catch BaseHomematicException and return None
+        async def raise_bhe(*, interface: Interface, address: str):  # noqa: ARG002
+            raise ClientException("fail")
+
+        monkeypatch.setattr(central.json_rpc_client, "get_device_description", raise_bhe)
+        assert await client_json.get_device_description(device_address="dev1") is None
+
+    @pytest.mark.asyncio
     async def test_fetch_all_device_data_exception_event(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """fetch_all_device_data should emit interface event on ClientException and not raise when decorated with re_raise=False."""
         central = _FakeCentral()
@@ -742,27 +763,6 @@ class TestClientClasses:
         await client_ccu.fetch_all_device_data()
 
         assert called.get("interface_event_type") == InterfaceEventType.FETCH_DATA
-
-    @pytest.mark.asyncio
-    async def test_clientjsonccu_value_and_description_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Cover ClientJsonCCU.get_value non-VALUES branch and get_device_description exception path."""
-        central = _FakeCentral()
-        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
-
-        ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
-        client_json = _ClientJsonCCU(client_config=ccfg)
-
-        # get_value for MASTER branch should read from MASTER paramset returned by FakeJsonRpcClient
-        val = await client_json.get_value(channel_address="dev1:1", paramset_key=ParamsetKey.MASTER, parameter="LEVEL")
-        assert val == 99
-
-        # get_device_description should catch BaseHomematicException and return None
-        async def raise_bhe(*, interface: Interface, address: str):  # noqa: ARG002
-            raise ClientException("fail")
-
-        monkeypatch.setattr(central.json_rpc_client, "get_device_description", raise_bhe)
-        assert await client_json.get_device_description(device_address="dev1") is None
 
 
 class TestClientConfig:
@@ -881,15 +881,6 @@ class TestClientHelpers:
 class TestClientProductGroup:
     """Test product group determination by model and interface."""
 
-    def test_get_product_group_by_model_prefixes(self) -> None:
-        """get_product_group should classify by known model prefixes (case-insensitive)."""
-        c = _make_client_with_interface(Interface.BIDCOS_RF)
-
-        assert c.get_product_group(model="HMIPW-ABC123") is ProductGroup.HMIPW
-        assert c.get_product_group(model="hmip-device") is ProductGroup.HMIP
-        assert c.get_product_group(model="HMW-foo") is ProductGroup.HMW
-        assert c.get_product_group(model="hm-bar") is ProductGroup.HM
-
     def test_get_product_group_by_interface_fallbacks(self) -> None:
         """When no known prefix is found, the interface determines the product group."""
         assert _make_client_with_interface(Interface.HMIP_RF).get_product_group(model="X") is ProductGroup.HMIP
@@ -899,6 +890,15 @@ class TestClientProductGroup:
             _make_client_with_interface(Interface.VIRTUAL_DEVICES).get_product_group(model="X") is ProductGroup.VIRTUAL
         )
         assert _make_client_with_interface(Interface.CUXD).get_product_group(model="X") is ProductGroup.UNKNOWN
+
+    def test_get_product_group_by_model_prefixes(self) -> None:
+        """get_product_group should classify by known model prefixes (case-insensitive)."""
+        c = _make_client_with_interface(Interface.BIDCOS_RF)
+
+        assert c.get_product_group(model="HMIPW-ABC123") is ProductGroup.HMIPW
+        assert c.get_product_group(model="hmip-device") is ProductGroup.HMIP
+        assert c.get_product_group(model="HMW-foo") is ProductGroup.HMW
+        assert c.get_product_group(model="hm-bar") is ProductGroup.HM
 
 
 class TestClientSupportFlags:
@@ -960,6 +960,21 @@ class TestClientProxyLifecycle:
 class TestClientReconnectAndConnection:
     """Test client reconnection and connection checking."""
 
+    def test_is_callback_alive_paths_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Cover warning and recovery branches in is_callback_alive based on last event time."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+
+        assert client.is_callback_alive() is True
+
+        central._last_event = datetime.now() - timedelta(seconds=CALLBACK_WARN_INTERVAL + 1)
+        assert client.is_callback_alive() is False
+        assert client.is_callback_alive() is False
+
+        central._last_event = datetime.now()
+        assert client.is_callback_alive() is True
+
     @pytest.mark.asyncio
     async def test_reconnect_and_is_connected_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Cover reconnect waiting path and is_connected counting/push-updates logic."""
@@ -994,24 +1009,45 @@ class TestClientReconnectAndConnection:
         client2.check_connection_availability = _cca_true  # type: ignore[method-assign]
         assert await client2.is_connected() is True
 
-    def test_is_callback_alive_paths_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Cover warning and recovery branches in is_callback_alive based on last event time."""
-        central = _FakeCentral2()
-        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
-
-        assert client.is_callback_alive() is True
-
-        central._last_event = datetime.now() - timedelta(seconds=CALLBACK_WARN_INTERVAL + 1)
-        assert client.is_callback_alive() is False
-        assert client.is_callback_alive() is False
-
-        central._last_event = datetime.now()
-        assert client.is_callback_alive() is True
-
 
 class TestClientValueAndParamset:
     """Test client value and paramset operations."""
+
+    @pytest.mark.asyncio
+    async def test_get_device_descriptions_and_wrappers_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Cover get_all_device_descriptions and link/metadata wrappers raising ClientException."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+
+        res = await client.get_all_device_descriptions(device_address="dev1")
+        assert res == ()
+
+        for meth in (
+            client.add_link,
+            client.remove_link,
+            client.get_link_peers,
+            client.get_links,
+            client.get_metadata,
+            client.set_metadata,
+        ):
+            with pytest.raises(ClientException):
+                name = getattr(meth, "__name__", "")
+                if name in {"get_link_peers", "get_links", "get_metadata", "set_metadata"}:
+                    if name == "get_link_peers":
+                        await meth(address="a")  # type: ignore[misc]
+                    elif name == "get_links":
+                        await meth(address="a", flags=0)  # type: ignore[misc]
+                    elif name == "get_metadata":
+                        await meth(address="a", data_id="x")  # type: ignore[misc]
+                    else:  # set_metadata
+                        await meth(address="a", data_id="x", value={})  # type: ignore[misc]
+                elif name == "remove_link":
+                    await meth(sender_address="a", receiver_address="b")  # type: ignore[misc]
+                else:  # add_link
+                    await meth(sender_address="a", receiver_address="b", name="n", description="d")  # type: ignore[misc]
 
     @pytest.mark.asyncio
     async def test_set_value_and_put_paramset_paths_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1056,42 +1092,6 @@ class TestClientValueAndParamset:
                 values={"LEVEL": 1},
                 check_against_pd=True,
             )
-
-    @pytest.mark.asyncio
-    async def test_get_device_descriptions_and_wrappers_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Cover get_all_device_descriptions and link/metadata wrappers raising ClientException."""
-        central = _FakeCentral2()
-        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
-        client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
-        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
-
-        res = await client.get_all_device_descriptions(device_address="dev1")
-        assert res == ()
-
-        for meth in (
-            client.add_link,
-            client.remove_link,
-            client.get_link_peers,
-            client.get_links,
-            client.get_metadata,
-            client.set_metadata,
-        ):
-            with pytest.raises(ClientException):
-                name = getattr(meth, "__name__", "")
-                if name in {"get_link_peers", "get_links", "get_metadata", "set_metadata"}:
-                    if name == "get_link_peers":
-                        await meth(address="a")  # type: ignore[misc]
-                    elif name == "get_links":
-                        await meth(address="a", flags=0)  # type: ignore[misc]
-                    elif name == "get_metadata":
-                        await meth(address="a", data_id="x")  # type: ignore[misc]
-                    else:  # set_metadata
-                        await meth(address="a", data_id="x", value={})  # type: ignore[misc]
-                elif name == "remove_link":
-                    await meth(sender_address="a", receiver_address="b")  # type: ignore[misc]
-                else:  # add_link
-                    await meth(sender_address="a", receiver_address="b", name="n", description="d")  # type: ignore[misc]
 
 
 class TestClientFirmwareAndUpdates:

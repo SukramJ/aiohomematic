@@ -19,35 +19,7 @@ class TestCentralPyDevCCU:
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    async def test_central_mini(central_unit_pydevccu_mini) -> None:
-        (self,)
-        """Test the central."""
-        central = central_unit_pydevccu_mini
-        assert central
-        assert central.name == const.CENTRAL_NAME
-        assert central.model == "PyDevCCU"
-        assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
-        assert central.primary_client.model == "PyDevCCU"
-        assert len(central._devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 70
-
-        usage_types: dict[DataPointUsage, int] = {}
-        for dp in central.get_data_points(exclude_no_create=False):
-            if hasattr(dp, "usage"):
-                if dp.usage not in usage_types:
-                    usage_types[dp.usage] = 0
-                counter = usage_types[dp.usage]
-                usage_types[dp.usage] = counter + 1
-
-        assert usage_types[DataPointUsage.NO_CREATE] == 45
-        assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
-        assert usage_types[DataPointUsage.DATA_POINT] == 16
-        assert usage_types[DataPointUsage.CDP_VISIBLE] == 5
-
-    @pytest.mark.enable_socket
-    @pytest.mark.asyncio
-    async def not_test_central_full(central_unit_full) -> None:  # noqa: C901
-        (self,)
+    async def not_test_central_full(self, central_unit_full) -> None:  # noqa: C901
         """Test the central."""
         central = central_unit_full
         assert central
@@ -202,3 +174,29 @@ class TestCentralPyDevCCU:
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
         assert len(central._devices) == 0
         assert len(central.get_data_points(exclude_no_create=False)) == 0
+
+    @pytest.mark.enable_socket
+    @pytest.mark.asyncio
+    async def test_central_mini(self, central_unit_pydevccu_mini) -> None:
+        """Test the central."""
+        central = central_unit_pydevccu_mini
+        assert central
+        assert central.name == const.CENTRAL_NAME
+        assert central.model == "PyDevCCU"
+        assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
+        assert central.primary_client.model == "PyDevCCU"
+        assert len(central._devices) == 2
+        assert len(central.get_data_points(exclude_no_create=False)) == 70
+
+        usage_types: dict[DataPointUsage, int] = {}
+        for dp in central.get_data_points(exclude_no_create=False):
+            if hasattr(dp, "usage"):
+                if dp.usage not in usage_types:
+                    usage_types[dp.usage] = 0
+                counter = usage_types[dp.usage]
+                usage_types[dp.usage] = counter + 1
+
+        assert usage_types[DataPointUsage.NO_CREATE] == 45
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
+        assert usage_types[DataPointUsage.DATA_POINT] == 16
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 5

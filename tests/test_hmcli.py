@@ -80,23 +80,6 @@ def base_argv(*args: str) -> list[str]:
 class TestHmcliGetValue:
     """Test CLI getValue operations."""
 
-    def test_get_value_plain(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-        # Prepare fake to return a value
-        def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
-            fake = FakeServerProxy("uri", context=context, headers=headers)
-            fake.values[("OEQ1234567:1", "LEVEL")] = 0.42
-            return fake
-
-        monkeypatch.setattr(hmcli, "ServerProxy", construct)  # factory returning instance
-
-        argv = base_argv("-H", "ccu.local", "-p", "2001", "-a", "OEQ1234567:1", "--parameter", "LEVEL")
-        monkeypatch.setattr(sys, "argv", argv)
-
-        code, out, err = run_cli(capsys)
-        assert code == 0
-        assert out.strip() == "0.42"
-        assert err == ""
-
     def test_get_value_json(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
         def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
             fake = FakeServerProxy("uri", context=context, headers=headers)
@@ -112,6 +95,23 @@ class TestHmcliGetValue:
         assert code == 0
         data = json.loads(out)
         assert data == {"address": "ABC0001:2", "parameter": "STATE", "value": True}
+        assert err == ""
+
+    def test_get_value_plain(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+        # Prepare fake to return a value
+        def construct(_: str, *, context: Any = None, headers: dict[str, str] | None = None) -> FakeServerProxy:
+            fake = FakeServerProxy("uri", context=context, headers=headers)
+            fake.values[("OEQ1234567:1", "LEVEL")] = 0.42
+            return fake
+
+        monkeypatch.setattr(hmcli, "ServerProxy", construct)  # factory returning instance
+
+        argv = base_argv("-H", "ccu.local", "-p", "2001", "-a", "OEQ1234567:1", "--parameter", "LEVEL")
+        monkeypatch.setattr(sys, "argv", argv)
+
+        code, out, err = run_cli(capsys)
+        assert code == 0
+        assert out.strip() == "0.42"
         assert err == ""
 
 

@@ -29,8 +29,7 @@ class TestCentralFullSession:
             (None, True, None, None),
         ],
     )
-    async def test_central_full(central_client_factory_with_homegear_client) -> None:  # noqa: C901
-        (self,)
+    async def test_central_full(self, central_client_factory_with_homegear_client) -> None:  # noqa: C901
         """Test the central."""
         central, _, _ = central_client_factory_with_homegear_client
         assert central

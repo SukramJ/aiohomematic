@@ -45,62 +45,6 @@ class TestCentralConfigProperties:
     """Test CentralConfig property derivations."""
 
     @pytest.mark.asyncio
-    async def test_central_config_enable_xml_rpc_server_true_false(self) -> None:
-        """Enable XML-RPC server depends on requires_xml_rpc_server and start_direct."""
-        ic = InterfaceConfig(central_name="c1", interface=Interface.BIDCOS_RF, port=2001)
-
-        cfg = CentralConfig(
-            central_id="c1",
-            host="127.0.0.1",
-            interface_configs=frozenset({ic}),
-            name="n",
-            password="p",
-            username="u",
-            start_direct=False,
-        )
-        assert cfg.enable_xml_rpc_server is True
-
-        cfg_direct = CentralConfig(
-            central_id="c1",
-            host="127.0.0.1",
-            interface_configs=frozenset({ic}),
-            name="n",
-            password="p",
-            username="u",
-            start_direct=True,
-        )
-        assert cfg_direct.enable_xml_rpc_server is False
-
-    @pytest.mark.asyncio
-    async def test_central_config_load_un_ignore_and_use_caches(self) -> None:
-        """Both load_un_ignore and use_caches are false when start_direct is True."""
-        ic = InterfaceConfig(central_name="c1", interface=Interface.BIDCOS_RF, port=2001)
-
-        cfg_direct = CentralConfig(
-            central_id="c1",
-            host="127.0.0.1",
-            interface_configs=frozenset({ic}),
-            name="n",
-            password="p",
-            username="u",
-            start_direct=True,
-        )
-        assert cfg_direct.load_un_ignore is False
-        assert cfg_direct.use_caches is False
-
-        cfg_normal = CentralConfig(
-            central_id="c1",
-            host="127.0.0.1",
-            interface_configs=frozenset({ic}),
-            name="n",
-            password="p",
-            username="u",
-            start_direct=False,
-        )
-        assert cfg_normal.load_un_ignore is True
-        assert cfg_normal.use_caches is True
-
-    @pytest.mark.asyncio
     async def test_central_config_connection_check_port_precedence(self) -> None:
         """connection_check_port uses interface port, else json_port, else scheme default."""
         # 1) With interface port present, it should be returned.
@@ -151,6 +95,33 @@ class TestCentralConfigProperties:
         assert cfg_https.connection_check_port == 443
 
     @pytest.mark.asyncio
+    async def test_central_config_enable_xml_rpc_server_true_false(self) -> None:
+        """Enable XML-RPC server depends on requires_xml_rpc_server and start_direct."""
+        ic = InterfaceConfig(central_name="c1", interface=Interface.BIDCOS_RF, port=2001)
+
+        cfg = CentralConfig(
+            central_id="c1",
+            host="127.0.0.1",
+            interface_configs=frozenset({ic}),
+            name="n",
+            password="p",
+            username="u",
+            start_direct=False,
+        )
+        assert cfg.enable_xml_rpc_server is True
+
+        cfg_direct = CentralConfig(
+            central_id="c1",
+            host="127.0.0.1",
+            interface_configs=frozenset({ic}),
+            name="n",
+            password="p",
+            username="u",
+            start_direct=True,
+        )
+        assert cfg_direct.enable_xml_rpc_server is False
+
+    @pytest.mark.asyncio
     async def test_central_config_enabled_interface_configs_and_url(self) -> None:
         """Ensure disabled interfaces are filtered and URL is built correctly (with port)."""
         ic1 = InterfaceConfig(central_name="c1", interface=Interface.BIDCOS_RF, port=2001)
@@ -171,6 +142,35 @@ class TestCentralConfigProperties:
         enabled = cfg.enabled_interface_configs
         assert ic1 in enabled and ic2 not in enabled
         assert cfg.create_central_url() == "https://example.local:8181"
+
+    @pytest.mark.asyncio
+    async def test_central_config_load_un_ignore_and_use_caches(self) -> None:
+        """Both load_un_ignore and use_caches are false when start_direct is True."""
+        ic = InterfaceConfig(central_name="c1", interface=Interface.BIDCOS_RF, port=2001)
+
+        cfg_direct = CentralConfig(
+            central_id="c1",
+            host="127.0.0.1",
+            interface_configs=frozenset({ic}),
+            name="n",
+            password="p",
+            username="u",
+            start_direct=True,
+        )
+        assert cfg_direct.load_un_ignore is False
+        assert cfg_direct.use_caches is False
+
+        cfg_normal = CentralConfig(
+            central_id="c1",
+            host="127.0.0.1",
+            interface_configs=frozenset({ic}),
+            name="n",
+            password="p",
+            username="u",
+            start_direct=False,
+        )
+        assert cfg_normal.load_un_ignore is True
+        assert cfg_normal.use_caches is True
 
 
 class TestCentralConnectionState:

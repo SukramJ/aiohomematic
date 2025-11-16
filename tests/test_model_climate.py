@@ -646,6 +646,76 @@ class TestCustomDpIpThermostat:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_ceipthermostat_activity_fallback_to_link_peer(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Activity falls back to a link peer's STATE/LEVEL when own DPs are DpDummy.
+
+        We simulate a device where the thermostat channel has dummy `STATE`/`LEVEL`.
+        We then point its `link_peer_channel` to a channel that exposes `STATE` and
+        verify that `activity` uses the peer values and reacts to changes.
+        """
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+
+        # Use the IP thermostat used above; it has a real STATE on channel 9 in the fixture data
+        climate: CustomDpIpThermostat = cast(
+            CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU1769958", 1)
+        )
+
+        # Ensure default mode is AUTO and not OFF
+        assert climate.mode in (ClimateMode.AUTO, ClimateMode.HEAT)
+
+        # Force own LEVEL/STATE to be dummy so fallback path is used
+        climate._dp_state = DpDummy(channel=climate._channel, param_field=Field.STATE)
+        climate._dp_level = DpDummy(channel=climate._channel, param_field=Field.LEVEL)
+
+        # Point link peer to channel 9 which exposes a usable STATE
+        device = central.get_device(address="VCU1769958")
+        peer_address = f"{device.address}:9"
+        peer_channel = central.get_channel(channel_address=peer_address)
+        peer_channel._link_target_categories = (DataPointCategory.CLIMATE,)
+        climate._channel._link_peer_addresses = (peer_address,)  # type: ignore[attr-defined]
+        # Emit peer-changed so the thermostat refreshes its peer DP references
+        climate._channel.emit_link_peer_changed_event()
+
+        assert climate.activity == ClimateActivity.IDLE
+
+        # Set peer STATE to ON → activity should be HEAT
+        await central.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address=peer_address,
+            parameter=Parameter.STATE,
+            value=1,
+        )
+        assert climate.activity == ClimateActivity.HEAT
+
+        # Set peer STATE to OFF → activity should be IDLE (unless target temp forces OFF)
+        await central.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address=peer_address,
+            parameter=Parameter.STATE,
+            value=0,
+        )
+        assert climate.activity == ClimateActivity.IDLE
+
+        # Now set mode OFF (via dedicated method) and ensure OFF overrides peer state
+        await climate.set_mode(mode=ClimateMode.OFF)
+        assert climate.activity == ClimateActivity.OFF
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_ceipthermostat_bwth(
         self,
         central_client_factory_with_homegear_client,
@@ -1200,76 +1270,6 @@ class TestCustomDpIpThermostat:
         await climate.set_mode(mode=ClimateMode.AUTO)
         assert call_count == len(mock_client.method_calls)
 
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_ceipthermostat_activity_fallback_to_link_peer(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """
-        Activity falls back to a link peer's STATE/LEVEL when own DPs are DpDummy.
-
-        We simulate a device where the thermostat channel has dummy `STATE`/`LEVEL`.
-        We then point its `link_peer_channel` to a channel that exposes `STATE` and
-        verify that `activity` uses the peer values and reacts to changes.
-        """
-        central, _mock_client, _ = central_client_factory_with_homegear_client
-
-        # Use the IP thermostat used above; it has a real STATE on channel 9 in the fixture data
-        climate: CustomDpIpThermostat = cast(
-            CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU1769958", 1)
-        )
-
-        # Ensure default mode is AUTO and not OFF
-        assert climate.mode in (ClimateMode.AUTO, ClimateMode.HEAT)
-
-        # Force own LEVEL/STATE to be dummy so fallback path is used
-        climate._dp_state = DpDummy(channel=climate._channel, param_field=Field.STATE)
-        climate._dp_level = DpDummy(channel=climate._channel, param_field=Field.LEVEL)
-
-        # Point link peer to channel 9 which exposes a usable STATE
-        device = central.get_device(address="VCU1769958")
-        peer_address = f"{device.address}:9"
-        peer_channel = central.get_channel(channel_address=peer_address)
-        peer_channel._link_target_categories = (DataPointCategory.CLIMATE,)
-        climate._channel._link_peer_addresses = (peer_address,)  # type: ignore[attr-defined]
-        # Emit peer-changed so the thermostat refreshes its peer DP references
-        climate._channel.emit_link_peer_changed_event()
-
-        assert climate.activity == ClimateActivity.IDLE
-
-        # Set peer STATE to ON → activity should be HEAT
-        await central.data_point_event(
-            interface_id=const.INTERFACE_ID,
-            channel_address=peer_address,
-            parameter=Parameter.STATE,
-            value=1,
-        )
-        assert climate.activity == ClimateActivity.HEAT
-
-        # Set peer STATE to OFF → activity should be IDLE (unless target temp forces OFF)
-        await central.data_point_event(
-            interface_id=const.INTERFACE_ID,
-            channel_address=peer_address,
-            parameter=Parameter.STATE,
-            value=0,
-        )
-        assert climate.activity == ClimateActivity.IDLE
-
-        # Now set mode OFF (via dedicated method) and ensure OFF overrides peer state
-        await climate.set_mode(mode=ClimateMode.OFF)
-        assert climate.activity == ClimateActivity.OFF
-
 
 class TestClimateIntegration:
     """Integration tests for climate data points with PyDevCCU."""
@@ -1659,173 +1659,36 @@ class TestScheduleCache:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_schedule_cache_read_operations(
+    async def test_schedule_cache_available_profiles(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test that schedule cache read operations work correctly."""
+        """Test that available_schedule_profiles returns correct profiles from cache."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
-        # Clear the cache to start fresh
+        # Test 1: Empty cache should return empty tuple
         climate.device.week_profile._schedule_cache = {}
-        assert climate.device.week_profile._schedule_cache == {}
+        assert climate.available_schedule_profiles == ()
 
-        # Test 1: get_schedule_profile with do_load=True should fetch from API and cache
-        # Note: reload_and_cache_schedule() loads ALL available profiles, not just the requested one
-        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert profile_data is not None
-        assert len(profile_data) > 0
-        assert ScheduleProfile.P1 in climate.device.week_profile._schedule_cache
-        assert (
-            _filter_profile_entries(profile_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1])
-            == profile_data
-        )
-        # Multiple profiles should be cached after loading
-        assert len(climate.device.week_profile._schedule_cache) > 0
+        # Test 2: After loading profiles, available_schedule_profiles should reflect cache
+        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        assert ScheduleProfile.P1 in climate.available_schedule_profiles
 
-        # Count API calls
-        initial_call_count = len(mock_client.method_calls)
+        # Test 3: After loading multiple profiles, all should be available
+        await climate.get_schedule_profile(profile=ScheduleProfile.P2)
+        available_profiles = climate.available_schedule_profiles
+        assert ScheduleProfile.P1 in available_profiles
+        assert ScheduleProfile.P2 in available_profiles
+        assert len(available_profiles) >= 2
 
-        # Test 2: get_schedule_profile without do_load should return from cache without API call
-        cached_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert cached_profile_data == profile_data
-        assert len(mock_client.method_calls) == initial_call_count  # No new API calls
-
-        # Test 3: get_schedule_profile_weekday should return from cache
-        weekday_data = await climate.get_schedule_profile_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
-        assert weekday_data is not None
-        assert len(weekday_data) > 0
-        assert weekday_data == profile_data[WeekdayStr.MONDAY]
-        assert len(mock_client.method_calls) == initial_call_count  # No new API calls
-
-        # Test 4: get_schedule_profile_weekday with do_load=True should fetch from API
-        weekday_data_reloaded = await climate.get_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, force_load=True
-        )
-        assert weekday_data_reloaded == weekday_data
-        assert len(mock_client.method_calls) > initial_call_count  # new API call made
-
-        # Test 5: get_schedule_profile for non-cached profile should return empty dict
-        # Note: After loading P1, other profiles may also be cached, so we check for a definitely non-existent one
-        # First check what's in cache
-        cached_profiles = list(climate.device.week_profile._schedule_cache.keys())
-        # Get a profile that's not in the cache
-        non_cached_profile = None
-        for test_profile in [ScheduleProfile.P6, ScheduleProfile.P5, ScheduleProfile.P4]:
-            if test_profile not in cached_profiles:
-                non_cached_profile = test_profile
-                break
-
-        if non_cached_profile:
-            empty_profile = await climate.get_schedule_profile(profile=non_cached_profile)
-            assert empty_profile == {}
-        else:
-            # If all profiles are cached (which can happen), just verify that accessing cache doesn't cause errors
-            for profile in cached_profiles:
-                assert await climate.get_schedule_profile(profile=profile) != {}
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_schedule_cache_write_operations(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """Test that schedule cache write operations work correctly."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load initial schedule to cache
-        initial_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert len(initial_profile_data) > 0
-
-        # Register callback to track cache updates
-        callback_count = 0
-
-        def cache_update_callback(**kwargs):
-            nonlocal callback_count
-            callback_count += 1
-
-        unreg = climate.register_data_point_updated_callback(cb=cache_update_callback, custom_id="test_cache_update")
-
-        # Test 1: set_schedule_profile_weekday should update cache
-        from copy import deepcopy
-
-        modified_weekday_data = deepcopy(initial_profile_data[WeekdayStr.MONDAY])
-        # Modify temperature in slot 1
-        modified_weekday_data[1][ScheduleSlotType.TEMPERATURE] = 20.0
-
-        callback_count = 0
-        await climate.set_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=modified_weekday_data
-        )
-
-        # Verify cache was updated
-        assert (
-            _filter_weekday_entries(
-                weekday_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
-            )
-            == modified_weekday_data
-        )
-        assert (
-            climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
-                ScheduleSlotType.TEMPERATURE
-            ]
-            == 20.0
-        )
-        # Callback should be called once for the change
-        assert callback_count == 1
-
-        # Test 2: set_schedule_profile_weekday with same data should not update cache or call callback
-        callback_count = 0
-        await climate.set_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=modified_weekday_data
-        )
-        # Callback should not be called since data didn't change
-        assert callback_count == 0
-
-        # Test 3: set_schedule_profile should update entire profile in cache
-        modified_profile_data = deepcopy(initial_profile_data)
-        modified_profile_data[WeekdayStr.TUESDAY][2][ScheduleSlotType.TEMPERATURE] = 22.0
-
-        callback_count = 0
-        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=modified_profile_data)
-
-        # Verify cache was updated
-        assert (
-            _filter_profile_entries(profile_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1])
-            == modified_profile_data
-        )
-        assert (
-            climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.TUESDAY][2][
-                ScheduleSlotType.TEMPERATURE
-            ]
-            == 22.0
-        )
-        # Callback should be called once
-        assert callback_count == 1
-
-        # Test 4: set_schedule_profile with same data should not trigger callback
-        callback_count = 0
-        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=modified_profile_data)
-        # Callback should not be called since data didn't change
-        assert callback_count == 0
-
-        unreg()
+        # Test 4: schedule property should return the entire cache
+        full_schedule = climate.schedule
+        assert full_schedule == _filter_schedule_entries(schedule_data=climate.device.week_profile._schedule_cache)
+        assert ScheduleProfile.P1 in full_schedule
+        assert ScheduleProfile.P2 in full_schedule
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -1927,6 +1790,86 @@ class TestScheduleCache:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_schedule_cache_read_operations(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that schedule cache read operations work correctly."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Clear the cache to start fresh
+        climate.device.week_profile._schedule_cache = {}
+        assert climate.device.week_profile._schedule_cache == {}
+
+        # Test 1: get_schedule_profile with do_load=True should fetch from API and cache
+        # Note: reload_and_cache_schedule() loads ALL available profiles, not just the requested one
+        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        assert profile_data is not None
+        assert len(profile_data) > 0
+        assert ScheduleProfile.P1 in climate.device.week_profile._schedule_cache
+        assert (
+            _filter_profile_entries(profile_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1])
+            == profile_data
+        )
+        # Multiple profiles should be cached after loading
+        assert len(climate.device.week_profile._schedule_cache) > 0
+
+        # Count API calls
+        initial_call_count = len(mock_client.method_calls)
+
+        # Test 2: get_schedule_profile without do_load should return from cache without API call
+        cached_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        assert cached_profile_data == profile_data
+        assert len(mock_client.method_calls) == initial_call_count  # No new API calls
+
+        # Test 3: get_schedule_profile_weekday should return from cache
+        weekday_data = await climate.get_schedule_profile_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
+        assert weekday_data is not None
+        assert len(weekday_data) > 0
+        assert weekday_data == profile_data[WeekdayStr.MONDAY]
+        assert len(mock_client.method_calls) == initial_call_count  # No new API calls
+
+        # Test 4: get_schedule_profile_weekday with do_load=True should fetch from API
+        weekday_data_reloaded = await climate.get_schedule_profile_weekday(
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, force_load=True
+        )
+        assert weekday_data_reloaded == weekday_data
+        assert len(mock_client.method_calls) > initial_call_count  # new API call made
+
+        # Test 5: get_schedule_profile for non-cached profile should return empty dict
+        # Note: After loading P1, other profiles may also be cached, so we check for a definitely non-existent one
+        # First check what's in cache
+        cached_profiles = list(climate.device.week_profile._schedule_cache.keys())
+        # Get a profile that's not in the cache
+        non_cached_profile = None
+        for test_profile in [ScheduleProfile.P6, ScheduleProfile.P5, ScheduleProfile.P4]:
+            if test_profile not in cached_profiles:
+                non_cached_profile = test_profile
+                break
+
+        if non_cached_profile:
+            empty_profile = await climate.get_schedule_profile(profile=non_cached_profile)
+            assert empty_profile == {}
+        else:
+            # If all profiles are cached (which can happen), just verify that accessing cache doesn't cause errors
+            for profile in cached_profiles:
+                assert await climate.get_schedule_profile(profile=profile) != {}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_schedule_cache_reload_and_cache_schedule(
         self,
         central_client_factory_with_homegear_client,
@@ -2004,163 +1947,97 @@ class TestScheduleCache:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_schedule_cache_available_profiles(
+    async def test_schedule_cache_write_operations(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test that available_schedule_profiles returns correct profiles from cache."""
+        """Test that schedule cache write operations work correctly."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
-        # Test 1: Empty cache should return empty tuple
-        climate.device.week_profile._schedule_cache = {}
-        assert climate.available_schedule_profiles == ()
+        # Load initial schedule to cache
+        initial_profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        assert len(initial_profile_data) > 0
 
-        # Test 2: After loading profiles, available_schedule_profiles should reflect cache
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert ScheduleProfile.P1 in climate.available_schedule_profiles
+        # Register callback to track cache updates
+        callback_count = 0
 
-        # Test 3: After loading multiple profiles, all should be available
-        await climate.get_schedule_profile(profile=ScheduleProfile.P2)
-        available_profiles = climate.available_schedule_profiles
-        assert ScheduleProfile.P1 in available_profiles
-        assert ScheduleProfile.P2 in available_profiles
-        assert len(available_profiles) >= 2
+        def cache_update_callback(**kwargs):
+            nonlocal callback_count
+            callback_count += 1
 
-        # Test 4: schedule property should return the entire cache
-        full_schedule = climate.schedule
-        assert full_schedule == _filter_schedule_entries(schedule_data=climate.device.week_profile._schedule_cache)
-        assert ScheduleProfile.P1 in full_schedule
-        assert ScheduleProfile.P2 in full_schedule
+        unreg = climate.register_data_point_updated_callback(cb=cache_update_callback, custom_id="test_cache_update")
+
+        # Test 1: set_schedule_profile_weekday should update cache
+        from copy import deepcopy
+
+        modified_weekday_data = deepcopy(initial_profile_data[WeekdayStr.MONDAY])
+        # Modify temperature in slot 1
+        modified_weekday_data[1][ScheduleSlotType.TEMPERATURE] = 20.0
+
+        callback_count = 0
+        await climate.set_schedule_profile_weekday(
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=modified_weekday_data
+        )
+
+        # Verify cache was updated
+        assert (
+            _filter_weekday_entries(
+                weekday_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
+            )
+            == modified_weekday_data
+        )
+        assert (
+            climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY][1][
+                ScheduleSlotType.TEMPERATURE
+            ]
+            == 20.0
+        )
+        # Callback should be called once for the change
+        assert callback_count == 1
+
+        # Test 2: set_schedule_profile_weekday with same data should not update cache or call callback
+        callback_count = 0
+        await climate.set_schedule_profile_weekday(
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=modified_weekday_data
+        )
+        # Callback should not be called since data didn't change
+        assert callback_count == 0
+
+        # Test 3: set_schedule_profile should update entire profile in cache
+        modified_profile_data = deepcopy(initial_profile_data)
+        modified_profile_data[WeekdayStr.TUESDAY][2][ScheduleSlotType.TEMPERATURE] = 22.0
+
+        callback_count = 0
+        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=modified_profile_data)
+
+        # Verify cache was updated
+        assert (
+            _filter_profile_entries(profile_data=climate.device.week_profile._schedule_cache[ScheduleProfile.P1])
+            == modified_profile_data
+        )
+        assert (
+            climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.TUESDAY][2][
+                ScheduleSlotType.TEMPERATURE
+            ]
+            == 22.0
+        )
+        # Callback should be called once
+        assert callback_count == 1
+
+        # Test 4: set_schedule_profile with same data should not trigger callback
+        callback_count = 0
+        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=modified_profile_data)
+        # Callback should not be called since data didn't change
+        assert callback_count == 0
+
+        unreg()
 
 
 class TestScheduleNormalization:
     """Tests for schedule data normalization."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_schedule_normalization_string_keys_to_int(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """Test that string keys are converted to integers."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load valid schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        # Create weekday data with string keys (as might come from JSON)
-        weekday_data_with_string_keys = {
-            "1": {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 17.0},
-            "2": {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            "3": {ScheduleSlotType.ENDTIME: "10:00", ScheduleSlotType.TEMPERATURE: 17.0},
-            "4": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            "5": {ScheduleSlotType.ENDTIME: "14:00", ScheduleSlotType.TEMPERATURE: 17.0},
-            "6": {ScheduleSlotType.ENDTIME: "16:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            "7": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 17.0},
-            "8": {ScheduleSlotType.ENDTIME: "20:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            "9": {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 17.0},
-            "10": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "11": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "12": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "13": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-        }
-
-        # Should not raise an exception - string keys should be converted to int
-        await climate.set_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data_with_string_keys
-        )
-
-        # Verify data was cached with integer keys
-        cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
-        assert all(isinstance(key, int) for key in cached_data)
-        assert len(cached_data) == 13
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_schedule_normalization_sorting_by_endtime(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """Test that slots are sorted by ENDTIME and slot numbers are reassigned."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load valid schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        # Create weekday data with unsorted ENDTIME values
-        unsorted_weekday_data = {
-            "1": {ScheduleSlotType.ENDTIME: "10:00", ScheduleSlotType.TEMPERATURE: 15.0},
-            "2": {ScheduleSlotType.ENDTIME: "11:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "3": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 22.0},
-            "4": {ScheduleSlotType.ENDTIME: "15:00", ScheduleSlotType.TEMPERATURE: 15.0},
-            "5": {ScheduleSlotType.ENDTIME: "19:00", ScheduleSlotType.TEMPERATURE: 12.0},
-            "6": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 14.0},  # Out of order!
-            "7": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "8": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "9": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "10": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "11": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "12": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-            "13": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
-        }
-
-        # Should not raise an exception - data should be sorted and slot numbers reassigned
-        await climate.set_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=unsorted_weekday_data
-        )
-
-        # Verify data was sorted correctly in cache
-        cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
-
-        # Check that slot numbers are 1-13
-        assert list(cached_data.keys()) == list(range(1, 14))
-
-        # Check that times are in ascending order
-        previous_endtime_minutes = 0
-        for slot_no in range(1, 14):
-            endtime_str = cached_data[slot_no][ScheduleSlotType.ENDTIME]
-            h, m = endtime_str.split(":")
-            endtime_minutes = int(h) * 60 + int(m)
-            assert endtime_minutes >= previous_endtime_minutes, f"Slot {slot_no} has non-ascending ENDTIME"
-            previous_endtime_minutes = endtime_minutes
-
-        # Verify specific slot contents after sorting
-        # Original slot 6 (18:00, 14.0) should now be slot 5 (after 15:00, before 19:00)
-        assert cached_data[5][ScheduleSlotType.ENDTIME] == "18:00"
-        assert cached_data[5][ScheduleSlotType.TEMPERATURE] == 14.0
-
-        # Original slot 5 (19:00, 12.0) should now be slot 6
-        assert cached_data[6][ScheduleSlotType.ENDTIME] == "19:00"
-        assert cached_data[6][ScheduleSlotType.TEMPERATURE] == 12.0
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -2291,3 +2168,126 @@ class TestScheduleNormalization:
             await climate.set_schedule_profile_weekday(
                 profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=invalid_temp_data
             )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_schedule_normalization_sorting_by_endtime(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that slots are sorted by ENDTIME and slot numbers are reassigned."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Load valid schedule first
+        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+
+        # Create weekday data with unsorted ENDTIME values
+        unsorted_weekday_data = {
+            "1": {ScheduleSlotType.ENDTIME: "10:00", ScheduleSlotType.TEMPERATURE: 15.0},
+            "2": {ScheduleSlotType.ENDTIME: "11:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "3": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 22.0},
+            "4": {ScheduleSlotType.ENDTIME: "15:00", ScheduleSlotType.TEMPERATURE: 15.0},
+            "5": {ScheduleSlotType.ENDTIME: "19:00", ScheduleSlotType.TEMPERATURE: 12.0},
+            "6": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 14.0},  # Out of order!
+            "7": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "8": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "9": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "10": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "11": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "12": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "13": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        }
+
+        # Should not raise an exception - data should be sorted and slot numbers reassigned
+        await climate.set_schedule_profile_weekday(
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=unsorted_weekday_data
+        )
+
+        # Verify data was sorted correctly in cache
+        cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
+
+        # Check that slot numbers are 1-13
+        assert list(cached_data.keys()) == list(range(1, 14))
+
+        # Check that times are in ascending order
+        previous_endtime_minutes = 0
+        for slot_no in range(1, 14):
+            endtime_str = cached_data[slot_no][ScheduleSlotType.ENDTIME]
+            h, m = endtime_str.split(":")
+            endtime_minutes = int(h) * 60 + int(m)
+            assert endtime_minutes >= previous_endtime_minutes, f"Slot {slot_no} has non-ascending ENDTIME"
+            previous_endtime_minutes = endtime_minutes
+
+        # Verify specific slot contents after sorting
+        # Original slot 6 (18:00, 14.0) should now be slot 5 (after 15:00, before 19:00)
+        assert cached_data[5][ScheduleSlotType.ENDTIME] == "18:00"
+        assert cached_data[5][ScheduleSlotType.TEMPERATURE] == 14.0
+
+        # Original slot 5 (19:00, 12.0) should now be slot 6
+        assert cached_data[6][ScheduleSlotType.ENDTIME] == "19:00"
+        assert cached_data[6][ScheduleSlotType.TEMPERATURE] == 12.0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_schedule_normalization_string_keys_to_int(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that string keys are converted to integers."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Load valid schedule first
+        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+
+        # Create weekday data with string keys (as might come from JSON)
+        weekday_data_with_string_keys = {
+            "1": {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 17.0},
+            "2": {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            "3": {ScheduleSlotType.ENDTIME: "10:00", ScheduleSlotType.TEMPERATURE: 17.0},
+            "4": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            "5": {ScheduleSlotType.ENDTIME: "14:00", ScheduleSlotType.TEMPERATURE: 17.0},
+            "6": {ScheduleSlotType.ENDTIME: "16:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            "7": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 17.0},
+            "8": {ScheduleSlotType.ENDTIME: "20:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            "9": {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 17.0},
+            "10": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "11": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "12": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+            "13": {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
+        }
+
+        # Should not raise an exception - string keys should be converted to int
+        await climate.set_schedule_profile_weekday(
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data_with_string_keys
+        )
+
+        # Verify data was cached with integer keys
+        cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
+        assert all(isinstance(key, int) for key in cached_data)
+        assert len(cached_data) == 13

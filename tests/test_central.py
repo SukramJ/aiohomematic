@@ -131,17 +131,14 @@ class TestCentralBasics:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_device_get_data_points(
+    async def test_device_export(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test central/device get_data_points."""
+        """Test device export."""
         central, _, _ = central_client_factory_with_homegear_client
-        dps = central.get_data_points()
-        assert dps
-
-        dps_reg = central.get_data_points(registered=True)
-        assert dps_reg == ()
+        device = central.get_device(address="VCU6354483")
+        await device.export_device_definition()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -155,14 +152,17 @@ class TestCentralBasics:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_device_export(
+    async def test_device_get_data_points(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test device export."""
+        """Test central/device get_data_points."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU6354483")
-        await device.export_device_definition()
+        dps = central.get_data_points()
+        assert dps
+
+        dps_reg = central.get_data_points(registered=True)
+        assert dps_reg == ()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -189,6 +189,48 @@ class TestCentralBasics:
 
 class TestCentralUnIgnore:
     """Test un-ignore parameter functionality for different device types."""
+
+    @pytest.mark.parametrize(
+        ("line", "parameter", "channel_no", "paramset_key", "expected_result"),
+        [
+            ("LEVEL", "LEVEL", 3, ParamsetKey.VALUES, True),
+            ("LEVEL@HmIP-BROLL:3:VALUES", "LEVEL", 3, ParamsetKey.VALUES, False),
+            ("LEVEL:VALUES@HmIP-BROLL:3", "LEVEL", 3, ParamsetKey.VALUES, True),
+            ("LEVEL:VALUES@all:3", "LEVEL", 3, ParamsetKey.VALUES, True),
+            ("LEVEL:VALUES@all:3", "LEVEL", 4, ParamsetKey.VALUES, False),
+            ("LEVEL:VALUES@HmIP-BROLL:all", "LEVEL", 3, ParamsetKey.VALUES, True),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_device_un_ignore_broll(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+        line: str,
+        parameter: str,
+        channel_no: int,
+        paramset_key: ParamsetKey,
+        expected_result: bool,
+    ) -> None:
+        """Test device un ignore."""
+        central = await factory_with_homegear_client.init(
+            address_device_translation={"VCU8537918"}, un_ignore_list=[line]
+        ).get_default_central()
+        try:
+            channel = _FakeChannel(model="HmIP-BROLL", no=channel_no)
+            assert (
+                central.parameter_visibility.parameter_is_un_ignored(
+                    channel=channel,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
+                )
+                is expected_result
+            )
+            dp = central.get_generic_data_point(channel_address=f"VCU8537918:{channel_no}", parameter=parameter)
+            if expected_result:
+                assert dp
+                assert dp.usage == DataPointUsage.DATA_POINT
+        finally:
+            await central.stop()
 
     @pytest.mark.parametrize(
         ("line", "parameter", "channel_no", "paramset_key", "expected_result"),
@@ -235,48 +277,6 @@ class TestCentralUnIgnore:
                 is expected_result
             )
             if dp := central.get_generic_data_point(channel_address=f"VCU3609622:{channel_no}", parameter=parameter):
-                assert dp.usage == DataPointUsage.DATA_POINT
-        finally:
-            await central.stop()
-
-    @pytest.mark.parametrize(
-        ("line", "parameter", "channel_no", "paramset_key", "expected_result"),
-        [
-            ("LEVEL", "LEVEL", 3, ParamsetKey.VALUES, True),
-            ("LEVEL@HmIP-BROLL:3:VALUES", "LEVEL", 3, ParamsetKey.VALUES, False),
-            ("LEVEL:VALUES@HmIP-BROLL:3", "LEVEL", 3, ParamsetKey.VALUES, True),
-            ("LEVEL:VALUES@all:3", "LEVEL", 3, ParamsetKey.VALUES, True),
-            ("LEVEL:VALUES@all:3", "LEVEL", 4, ParamsetKey.VALUES, False),
-            ("LEVEL:VALUES@HmIP-BROLL:all", "LEVEL", 3, ParamsetKey.VALUES, True),
-        ],
-    )
-    @pytest.mark.asyncio
-    async def test_device_un_ignore_broll(
-        self,
-        factory_with_homegear_client: FactoryWithClient,
-        line: str,
-        parameter: str,
-        channel_no: int,
-        paramset_key: ParamsetKey,
-        expected_result: bool,
-    ) -> None:
-        """Test device un ignore."""
-        central = await factory_with_homegear_client.init(
-            address_device_translation={"VCU8537918"}, un_ignore_list=[line]
-        ).get_default_central()
-        try:
-            channel = _FakeChannel(model="HmIP-BROLL", no=channel_no)
-            assert (
-                central.parameter_visibility.parameter_is_un_ignored(
-                    channel=channel,
-                    paramset_key=paramset_key,
-                    parameter=parameter,
-                )
-                is expected_result
-            )
-            dp = central.get_generic_data_point(channel_address=f"VCU8537918:{channel_no}", parameter=parameter)
-            if expected_result:
-                assert dp
                 assert dp.usage == DataPointUsage.DATA_POINT
         finally:
             await central.stop()
@@ -674,6 +674,27 @@ class TestCentralDeviceManagement:
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (
+                {
+                    "VCU4264293": "HmIP-RCV-50.json",
+                    "VCU0000057": "HM-RCV-50.json",
+                    "VCU0000001": "HMW-RCV-50.json",
+                },
+                True,
+                None,
+                None,
+            ),
+        ],
+    )
     async def test_virtual_remote_delete(
         self,
         central_client_factory_with_homegear_client,
@@ -862,34 +883,6 @@ class TestCentralPingPong:
             (TEST_DEVICES, False, None, None),
         ],
     )
-    async def test_ping_pong(self, central_client_factory_with_ccu_client) -> None:
-        """Test central other methods."""
-        central, client, _ = central_client_factory_with_ccu_client
-        client._is_initialized = True
-        interface_id = client.interface_id
-        await client.check_connection_availability(handle_ping_pong=True)
-        assert client.ping_pong_cache._pending_pong_count == 1
-        for token_stored in list(client.ping_pong_cache._pending_pongs):
-            await central.data_point_event(
-                interface_id=interface_id,
-                channel_address="",
-                parameter=Parameter.PONG,
-                value=f"{interface_id}#{token_stored}",
-            )
-        assert client.ping_pong_cache._pending_pong_count == 0
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, False, None, None),
-        ],
-    )
     async def test_pending_pong_failure(
         self,
         central_client_factory_with_ccu_client,
@@ -916,6 +909,34 @@ class TestCentralPingPong:
             },
         )
         assert len(factory.ha_event_mock.mock_calls) == 10
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, False, None, None),
+        ],
+    )
+    async def test_ping_pong(self, central_client_factory_with_ccu_client) -> None:
+        """Test central other methods."""
+        central, client, _ = central_client_factory_with_ccu_client
+        client._is_initialized = True
+        interface_id = client.interface_id
+        await client.check_connection_availability(handle_ping_pong=True)
+        assert client.ping_pong_cache._pending_pong_count == 1
+        for token_stored in list(client.ping_pong_cache._pending_pongs):
+            await central.data_point_event(
+                interface_id=interface_id,
+                channel_address="",
+                parameter=Parameter.PONG,
+                value=f"{interface_id}#{token_stored}",
+            )
+        assert client.ping_pong_cache._pending_pong_count == 0
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -1045,6 +1066,55 @@ class TestCentralConfig:
     """Test CentralConfig validation and URL creation."""
 
     @pytest.mark.asyncio
+    async def test_central_config_check_config_raises_on_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """`CentralConfig.check_config` should raise `AioHomematicConfigException` when invalid."""
+        ic = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
+
+        # Fail directory creation to ensure we get an error
+        def fail_create_dir(*, directory: str) -> bool:  # type: ignore[override]
+            raise AioHomematicException("dir error")
+
+        monkeypatch.setattr("aiohomematic.central.check_or_create_directory", fail_create_dir)
+
+        cfg = CentralConfig(
+            central_id="c1",
+            host="bad host",
+            interface_configs=frozenset({ic}),
+            name="n|bad",
+            password="",
+            username="",
+        )
+
+        with pytest.raises(AioHomematicConfigException):
+            cfg.check_config()
+
+    @pytest.mark.asyncio
+    async def test_central_config_create_central_url_variants(self) -> None:
+        """`create_central_url` includes scheme and optional json_port when set."""
+        cfg1 = CentralConfig(
+            central_id="c1",
+            host="example.local",
+            interface_configs=frozenset(),
+            name="n",
+            password="p",
+            username="u",
+            tls=False,
+        )
+        assert cfg1.create_central_url() == "http://example.local"
+
+        cfg2 = CentralConfig(
+            central_id="c1",
+            host="example.local",
+            interface_configs=frozenset(),
+            name="n",
+            password="p",
+            username="u",
+            tls=True,
+            json_port=32001,
+        )
+        assert cfg2.create_central_url() == "https://example.local:32001"
+
+    @pytest.mark.asyncio
     async def test_check_config_collects_multiple_failures_and_directory_error(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path
     ) -> None:
@@ -1098,55 +1168,6 @@ class TestCentralConfig:
         )
         assert any("No primary interface" in e for e in errors2)
 
-    @pytest.mark.asyncio
-    async def test_central_config_check_config_raises_on_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """`CentralConfig.check_config` should raise `AioHomematicConfigException` when invalid."""
-        ic = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
-
-        # Fail directory creation to ensure we get an error
-        def fail_create_dir(*, directory: str) -> bool:  # type: ignore[override]
-            raise AioHomematicException("dir error")
-
-        monkeypatch.setattr("aiohomematic.central.check_or_create_directory", fail_create_dir)
-
-        cfg = CentralConfig(
-            central_id="c1",
-            host="bad host",
-            interface_configs=frozenset({ic}),
-            name="n|bad",
-            password="",
-            username="",
-        )
-
-        with pytest.raises(AioHomematicConfigException):
-            cfg.check_config()
-
-    @pytest.mark.asyncio
-    async def test_central_config_create_central_url_variants(self) -> None:
-        """`create_central_url` includes scheme and optional json_port when set."""
-        cfg1 = CentralConfig(
-            central_id="c1",
-            host="example.local",
-            interface_configs=frozenset(),
-            name="n",
-            password="p",
-            username="u",
-            tls=False,
-        )
-        assert cfg1.create_central_url() == "http://example.local"
-
-        cfg2 = CentralConfig(
-            central_id="c1",
-            host="example.local",
-            interface_configs=frozenset(),
-            name="n",
-            password="p",
-            username="u",
-            tls=True,
-            json_port=32001,
-        )
-        assert cfg2.create_central_url() == "https://example.local:32001"
-
 
 class TestCentralEventHandling:
     """Test central event handling and exception catching."""
@@ -1187,41 +1208,6 @@ class TestCentralEventHandling:
 
         # Ensure debug log from RuntimeError branch appeared
         assert any("EVENT: RuntimeError" in rec.getMessage() for rec in caplog.records)
-
-    @pytest.mark.asyncio
-    async def test_sysvar_data_point_path_event_create_task_exceptions_are_caught(
-        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """Central.sysvar_data_point_path_event should catch exceptions from looper.create_task and continue."""
-        central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
-
-        # Subscription dict with a simple async callback (won't be executed due to create_task raising)
-        async def dummy_cb(*, value: Any, received_at: Any) -> None:  # noqa: ANN001
-            return None
-
-        central._sysvar_data_point_event_subscriptions = {  # type: ignore[attr-defined]
-            "path/1": dummy_cb
-        }
-
-        # Fake looper raising exceptions to hit both except branches
-        class BoomLooper:
-            def __init__(self, exc_type: type[BaseException]) -> None:
-                self._exc_type = exc_type
-
-            def create_task(self, *, target: Any, name: str) -> None:  # noqa: ANN001
-                raise self._exc_type("boom")
-
-        # First, RuntimeError path
-        central._looper = BoomLooper(RuntimeError)  # type: ignore[attr-defined]
-        with caplog.at_level("DEBUG"):
-            hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
-        assert any("EVENT: RuntimeError" in rec.getMessage() for rec in caplog.records)
-
-        # Then, generic Exception path
-        central._looper = BoomLooper(Exception)  # type: ignore[attr-defined]
-        with caplog.at_level("WARNING"):
-            hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
-        assert any("EVENT failed: Unable to call handler" in rec.getMessage() for rec in caplog.records)
 
     @pytest.mark.asyncio
     async def test_emit_backend_parameter_callback_exception_handling(
@@ -1346,6 +1332,41 @@ class TestCentralEventHandling:
         assert called_with[0][EventKey.INTERFACE_ID] == "if1"
         assert called_with[0][EventKey.TYPE] == InterfaceEventType.CALLBACK
         assert called_with[0][EventKey.DATA] == {EventKey.AVAILABLE: True}
+
+    @pytest.mark.asyncio
+    async def test_sysvar_data_point_path_event_create_task_exceptions_are_caught(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Central.sysvar_data_point_path_event should catch exceptions from looper.create_task and continue."""
+        central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+
+        # Subscription dict with a simple async callback (won't be executed due to create_task raising)
+        async def dummy_cb(*, value: Any, received_at: Any) -> None:  # noqa: ANN001
+            return None
+
+        central._sysvar_data_point_event_subscriptions = {  # type: ignore[attr-defined]
+            "path/1": dummy_cb
+        }
+
+        # Fake looper raising exceptions to hit both except branches
+        class BoomLooper:
+            def __init__(self, exc_type: type[BaseException]) -> None:
+                self._exc_type = exc_type
+
+            def create_task(self, *, target: Any, name: str) -> None:  # noqa: ANN001
+                raise self._exc_type("boom")
+
+        # First, RuntimeError path
+        central._looper = BoomLooper(RuntimeError)  # type: ignore[attr-defined]
+        with caplog.at_level("DEBUG"):
+            hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
+        assert any("EVENT: RuntimeError" in rec.getMessage() for rec in caplog.records)
+
+        # Then, generic Exception path
+        central._looper = BoomLooper(Exception)  # type: ignore[attr-defined]
+        with caplog.at_level("WARNING"):
+            hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
+        assert any("EVENT failed: Unable to call handler" in rec.getMessage() for rec in caplog.records)
 
     # Note: Tests for start() and stop() error handling require complex setup
     # and are better suited for integration tests with full central initialization

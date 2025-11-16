@@ -107,12 +107,6 @@ class TestGenerateUniqueId:
 class TestXmlRpcHelpers:
     """Tests for XML-RPC helper functions."""
 
-    def test_build_xml_rpc_uri(self) -> None:
-        """Test build_xml_rpc_uri."""
-        assert build_xml_rpc_uri(host="1.2.3.4", port=80, path=None) == "http://1.2.3.4:80"
-        assert build_xml_rpc_uri(host="1.2.3.4", port=80, path="group") == "http://1.2.3.4:80/group"
-        assert build_xml_rpc_uri(host="1.2.3.4", port=80, path="group", tls=True) == "https://1.2.3.4:80/group"
-
     def test_build_headers(self) -> None:
         """Test build_xml_rpc_uri."""
         assert build_xml_rpc_headers(username="Martin", password="") == [("Authorization", "Basic TWFydGluOg==")]
@@ -120,6 +114,12 @@ class TestXmlRpcHelpers:
         assert build_xml_rpc_headers(username="Martin", password="asdf") == [
             ("Authorization", "Basic TWFydGluOmFzZGY=")
         ]
+
+    def test_build_xml_rpc_uri(self) -> None:
+        """Test build_xml_rpc_uri."""
+        assert build_xml_rpc_uri(host="1.2.3.4", port=80, path=None) == "http://1.2.3.4:80"
+        assert build_xml_rpc_uri(host="1.2.3.4", port=80, path="group") == "http://1.2.3.4:80/group"
+        assert build_xml_rpc_uri(host="1.2.3.4", port=80, path="group", tls=True) == "https://1.2.3.4:80/group"
 
 
 class TestDirectoryHelpers:
@@ -213,86 +213,6 @@ class TestNamingHelpers:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_get_data_point_name(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """Test get_data_point_name."""
-        central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
-        assert device
-        channel4 = device.get_channel(channel_address=f"{device.address}:5")
-        name_data = get_data_point_name_data(channel=channel4, parameter="LEVEL")
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
-        assert name_data.name == "Level"
-
-        central.device_details.add_name(address=f"{device.address}:5", name="Roof")
-        channel5 = device.get_channel(channel_address=f"{device.address}:5")
-        name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
-        assert name_data.name == "Roof Level"
-
-        with patch(
-            "aiohomematic.model.support._get_base_name_from_channel_or_device",
-            return_value=None,
-        ):
-            name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
-            assert name_data.full_name == ""
-            assert name_data.name == ""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_get_event_name(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """Test get_event_name."""
-        central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
-        assert device
-        channel4 = device.get_channel(channel_address=f"{device.address}:4")
-        name_data = get_event_name(channel=channel4, parameter="LEVEL")
-        assert name_data.channel_name == ""
-        assert name_data.name == "Level"
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
-
-        central.device_details.add_name(address=f"{device.address}:5", name="Roof")
-        channel5 = device.get_channel(channel_address=f"{device.address}:5")
-        name_data = get_event_name(channel=channel5, parameter="LEVEL")
-        assert name_data.channel_name == "Roof"
-        assert name_data.name == "Roof Level"
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
-
-        with patch(
-            "aiohomematic.model.support._get_base_name_from_channel_or_device",
-            return_value=None,
-        ):
-            name_data = get_event_name(channel=channel5, parameter="LEVEL")
-            assert name_data.full_name == ""
-            assert name_data.name == ""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
     async def test_custom_data_point_name(
         self,
         central_client_factory_with_homegear_client,
@@ -365,6 +285,45 @@ class TestNamingHelpers:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_get_data_point_name(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test get_data_point_name."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.get_device(address="VCU2128127")
+        assert device
+        channel4 = device.get_channel(channel_address=f"{device.address}:5")
+        name_data = get_data_point_name_data(channel=channel4, parameter="LEVEL")
+        assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
+        assert name_data.name == "Level"
+
+        central.device_details.add_name(address=f"{device.address}:5", name="Roof")
+        channel5 = device.get_channel(channel_address=f"{device.address}:5")
+        name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
+        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
+        assert name_data.name == "Roof Level"
+
+        with patch(
+            "aiohomematic.model.support._get_base_name_from_channel_or_device",
+            return_value=None,
+        ):
+            name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
+            assert name_data.full_name == ""
+            assert name_data.name == ""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_get_device_name(
         self,
         central_client_factory_with_homegear_client,
@@ -374,6 +333,47 @@ class TestNamingHelpers:
         assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM VCU2128127"
         central.device_details.add_name(address="VCU2128127", name="Roof")
         assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_get_event_name(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test get_event_name."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.get_device(address="VCU2128127")
+        assert device
+        channel4 = device.get_channel(channel_address=f"{device.address}:4")
+        name_data = get_event_name(channel=channel4, parameter="LEVEL")
+        assert name_data.channel_name == ""
+        assert name_data.name == "Level"
+        assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
+
+        central.device_details.add_name(address=f"{device.address}:5", name="Roof")
+        channel5 = device.get_channel(channel_address=f"{device.address}:5")
+        name_data = get_event_name(channel=channel5, parameter="LEVEL")
+        assert name_data.channel_name == "Roof"
+        assert name_data.name == "Roof Level"
+        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
+
+        with patch(
+            "aiohomematic.model.support._get_base_name_from_channel_or_device",
+            return_value=None,
+        ):
+            name_data = get_event_name(channel=channel5, parameter="LEVEL")
+            assert name_data.full_name == ""
+            assert name_data.name == ""
 
 
 class TestTLSHelpers:
@@ -606,19 +606,6 @@ class TestIPv4Validation:
 class TestAddressValidation:
     """Tests for address validation."""
 
-    def test_is_device_address(self) -> None:
-        """Test is_device_address."""
-        for address in VIRTUAL_REMOTE_ADDRESSES:
-            assert is_device_address(address=address) is True
-        assert is_device_address(address="123456789:2") is False
-        assert is_device_address(address="KEQ1234567") is True
-        assert is_device_address(address="001858A123B912") is True
-        assert is_device_address(address="1234567890#") is False
-        assert is_device_address(address="123456789_:123") is False
-        assert is_device_address(address="ABcdEFghIJ1234567890") is True
-        assert is_device_address(address="12345678901234567890") is True
-        assert is_device_address(address="123456789012345678901") is False
-
     def test_is_channel_address(self) -> None:
         """Test is_channel_address."""
         for address in VIRTUAL_REMOTE_ADDRESSES:
@@ -632,6 +619,19 @@ class TestAddressValidation:
         assert is_channel_address(address="ABcdEFghIJ1234567890:123") is True
         assert is_channel_address(address="12345678901234567890:123") is True
         assert is_channel_address(address="123456789012345678901:123") is False
+
+    def test_is_device_address(self) -> None:
+        """Test is_device_address."""
+        for address in VIRTUAL_REMOTE_ADDRESSES:
+            assert is_device_address(address=address) is True
+        assert is_device_address(address="123456789:2") is False
+        assert is_device_address(address="KEQ1234567") is True
+        assert is_device_address(address="001858A123B912") is True
+        assert is_device_address(address="1234567890#") is False
+        assert is_device_address(address="123456789_:123") is False
+        assert is_device_address(address="ABcdEFghIJ1234567890") is True
+        assert is_device_address(address="12345678901234567890") is True
+        assert is_device_address(address="123456789012345678901") is False
 
 
 class TestPatterns:

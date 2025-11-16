@@ -40,6 +40,25 @@ def reload_pkg(monkeypatch):
 class TestPackageImport:
     """Test package import side effects and signal handling."""
 
+    def test_import_raises_clear_error(self, monkeypatch):
+        """Importing __init__ should raise clear RuntimeError when validation fails."""
+        # Import once to ensure environment is stable
+        import aiohomematic.validator as validator  # type: ignore[import-not-found]
+
+        # Patch validator to raise and execute module code in isolated namespace
+        def _raise():
+            raise ValueError("boom")
+
+        monkeypatch.setattr(validator, "validate_startup", _raise)
+
+        import runpy
+
+        with pytest.raises(RuntimeError) as err:
+            # Execute package __init__ in a fresh namespace to avoid polluting global state
+            runpy.run_module("aiohomematic.__init__", init_globals={}, run_name="__init__")
+
+        assert "startup validation failed" in str(err.value).lower()
+
     def test_init_sets_version_and_allows_non_tty_import(self, reload_pkg):
         """Import on non-TTY should still set __version__ and __all__."""
         pkg = reload_pkg(stdout_isatty=False)
@@ -81,22 +100,3 @@ class TestPackageImport:
         assert fake.stopped is True
 
         loop.close()
-
-    def test_import_raises_clear_error(self, monkeypatch):
-        """Importing __init__ should raise clear RuntimeError when validation fails."""
-        # Import once to ensure environment is stable
-        import aiohomematic.validator as validator  # type: ignore[import-not-found]
-
-        # Patch validator to raise and execute module code in isolated namespace
-        def _raise():
-            raise ValueError("boom")
-
-        monkeypatch.setattr(validator, "validate_startup", _raise)
-
-        import runpy
-
-        with pytest.raises(RuntimeError) as err:
-            # Execute package __init__ in a fresh namespace to avoid polluting global state
-            runpy.run_module("aiohomematic.__init__", init_globals={}, run_name="__init__")
-
-        assert "startup validation failed" in str(err.value).lower()

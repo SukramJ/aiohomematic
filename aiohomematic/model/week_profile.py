@@ -1,4 +1,264 @@
-"""Module for handling week profiles."""
+"""
+Module for handling week profiles.
+
+This module provides scheduling functionality for HomeMatic devices, supporting both
+climate devices (thermostats) and non-climate devices (switches, lights, covers, valves).
+
+SCHEDULE SYSTEM OVERVIEW
+========================
+
+The schedule system manages weekly time-based automation for HomeMatic devices. It handles
+conversion between CCU raw paramset format and structured Python dictionaries, providing
+validation, filtering, and normalization of schedule data.
+
+Two main implementations:
+- ClimeateWeekProfile: Manages climate device schedules (thermostats)
+- DefaultWeekProfile: Manages non-climate device schedules (switches, lights, covers, valves)
+
+
+CLIMATE SCHEDULE DATA STRUCTURES
+=================================
+
+Climate schedules use a hierarchical structure with three levels:
+
+1. CLIMATE_SCHEDULE_DICT (Complete Schedule)
+   Structure: dict[ScheduleProfile, CLIMATE_PROFILE_DICT]
+
+   Contains all profiles (P1-P6) for a thermostat device.
+
+Example:
+   {
+       ScheduleProfile.P1: {
+           "MONDAY": {1: {...}, 2: {...}, ...},
+           "TUESDAY": {1: {...}, 2: {...}, ...},
+           ...
+       },
+       ScheduleProfile.P2: {...},
+       ...
+   }
+
+2. CLIMATE_PROFILE_DICT (Single Profile)
+   Structure: dict[WeekdayStr, CLIMATE_WEEKDAY_DICT]
+
+   Contains all weekdays for a single profile (e.g., P1).
+
+Example:
+   {
+       "MONDAY": {
+           1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
+           2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
+           3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+           ...
+       },
+       "TUESDAY": {...},
+       ...
+   }
+
+3. CLIMATE_WEEKDAY_DICT (Single Weekday)
+   Structure: dict[int, dict[ScheduleSlotType, str | float]]
+
+   Contains 13 time slots for a single weekday. Each slot has an ENDTIME and TEMPERATURE.
+   Slots define periods where the thermostat maintains a specific temperature until the
+   ENDTIME is reached.
+
+Example:
+   {
+       1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
+       2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
+       3: {ScheduleSlotType.ENDTIME: "17:00", ScheduleSlotType.TEMPERATURE: 18.0},
+       4: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
+       5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+       6-13: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0}
+   }
+
+   Note: Always contains exactly 13 slots. Unused slots are filled with 24:00 entries.
+
+
+RAW SCHEDULE FORMAT
+===================
+
+CCU devices store schedules in a flat paramset format:
+
+Example (Climate):
+{
+    "P1_TEMPERATURE_MONDAY_1": 18.0,
+    "P1_ENDTIME_MONDAY_1": 360,      # 06:00 in minutes
+    "P1_TEMPERATURE_MONDAY_2": 21.0,
+    "P1_ENDTIME_MONDAY_2": 480,      # 08:00 in minutes
+    ...
+}
+
+Example (Switch):
+{
+    "01_WP_WEEKDAY": 127,            # Bitwise: all days (0b1111111)
+    "01_WP_LEVEL": 1,                # On/Off state
+    "01_WP_FIXED_HOUR": 7,
+    "01_WP_FIXED_MINUTE": 30,
+    ...
+}
+
+
+SIMPLE SCHEDULE FORMAT
+======================
+
+A simplified format for easy user input, focusing on temperature periods without
+redundant 24:00 slots:
+
+CLIMATE_SIMPLE_WEEKDAY_LIST:
+[
+    {
+        ScheduleSlotType.STARTTIME: "06:00",
+        ScheduleSlotType.ENDTIME: "08:00",
+        ScheduleSlotType.TEMPERATURE: 21.0
+    },
+    {
+        ScheduleSlotType.STARTTIME: "17:00",
+        ScheduleSlotType.ENDTIME: "22:00",
+        ScheduleSlotType.TEMPERATURE: 21.0
+    }
+]
+
+The system automatically:
+- Fills gaps with base_temperature
+- Converts to full 13-slot format
+- Sorts by time
+- Validates ranges
+
+
+SCHEDULE SERVICES
+=================
+
+Core Operations:
+----------------
+
+get_schedule() -> CLIMATE_SCHEDULE_DICT
+    Retrieves complete schedule from cache or device.
+    Returns filtered data (redundant 24:00 slots removed).
+
+get_schedule_profile(profile) -> CLIMATE_PROFILE_DICT
+    Retrieves single profile (e.g., P1) from cache or device.
+    Returns filtered data for the specified profile.
+
+get_schedule_profile_weekday(profile, weekday) -> CLIMATE_WEEKDAY_DICT
+    Retrieves single weekday schedule from a profile.
+    Returns filtered data for the specified weekday.
+
+set_schedule(schedule_dict)
+    Persists complete schedule to device.
+    Updates cache and emits change events.
+
+set_schedule_profile(profile, profile_data)
+    Persists single profile to device.
+    Validates, updates cache, and emits change events.
+
+set_schedule_profile_weekday(profile, weekday, weekday_data)
+    Persists single weekday schedule to device.
+    Normalizes to 13 slots, validates, updates cache.
+
+set_simple_schedule_profile(profile, base_temperature, simple_profile_data)
+    Convenience method for setting schedules using simplified format.
+    Converts simple format to full 13-slot format automatically.
+
+copy_schedule(target_climate_data_point)
+    Copies entire schedule from this device to another.
+
+copy_schedule_profile(source_profile, target_profile, target_climate_data_point)
+    Copies single profile to another profile/device.
+
+
+DATA PROCESSING PIPELINE
+=========================
+
+Filtering (Output - Removes Redundancy):
+-----------------------------------------
+Applied when reading schedules to present clean data to users.
+
+_filter_schedule_entries(schedule_data) -> CLIMATE_SCHEDULE_DICT
+    Filters all profiles in a complete schedule.
+
+_filter_profile_entries(profile_data) -> CLIMATE_PROFILE_DICT
+    Filters all weekdays in a profile.
+
+_filter_weekday_entries(weekday_data) -> CLIMATE_WEEKDAY_DICT
+    Filters redundant 24:00 slots from a weekday schedule:
+    - Keeps all slots that don't end at 24:00
+    - Keeps only the FIRST slot that ends at 24:00
+    - Removes subsequent 24:00 slots
+    - Renumbers remaining slots sequentially (1, 2, 3, ...)
+
+Example:
+    Input:  {1: {ENDTIME: "06:00"}, 2: {ENDTIME: "12:00"}, 3: {ENDTIME: "24:00"}, ..., 13: {ENDTIME: "24:00"}}
+    Output: {1: {ENDTIME: "06:00"}, 2: {ENDTIME: "12:00"}, 3: {ENDTIME: "24:00"}}
+
+
+Normalization (Input - Ensures Valid Format):
+----------------------------------------------
+Applied when setting schedules to ensure data meets device requirements.
+
+_normalize_weekday_data(weekday_data) -> CLIMATE_WEEKDAY_DICT
+    Normalizes weekday schedule data:
+    - Converts string keys to integers
+    - Sorts slots chronologically by ENDTIME
+    - Renumbers slots sequentially (1-N)
+    - Fills missing slots (N+1 to 13) with 24:00 entries
+    - Always returns exactly 13 slots
+
+Example:
+    Input:  {"2": {ENDTIME: "12:00"}, "1": {ENDTIME: "06:00"}}
+    Output: {
+        1: {ENDTIME: "06:00", TEMPERATURE: 20.0},
+        2: {ENDTIME: "12:00", TEMPERATURE: 21.0},
+        3-13: {ENDTIME: "24:00", TEMPERATURE: 21.0}  # Filled automatically
+    }
+
+
+TYPICAL WORKFLOW EXAMPLES
+==========================
+
+Reading a Schedule:
+-------------------
+1. User calls get_schedule_profile_weekday(P1, "MONDAY")
+2. System retrieves from cache or device (13 slots)
+3. _filter_weekday_entries removes redundant 24:00 slots
+4. User receives clean data (e.g., 3-5 meaningful slots)
+
+Setting a Schedule:
+-------------------
+1. User provides schedule data (may be incomplete, unsorted)
+2. System calls _normalize_weekday_data to:
+   - Sort by time
+   - Fill to exactly 13 slots
+3. System validates (temperature ranges, time ranges, sequence)
+4. System persists to device
+5. Cache is updated, events are emitted
+
+Using Simple Format:
+--------------------
+1. User calls set_simple_schedule_profile_weekday with:
+   - base_temperature: 18.0
+   - simple_weekday_list: [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}]
+2. System converts to full format:
+   - Slot 1: ENDTIME: "07:00", TEMP: 18.0 (base_temperature before start)
+   - Slot 2: ENDTIME: "22:00", TEMP: 21.0 (user's period)
+   - Slots 3-13: ENDTIME: "24:00", TEMP: 18.0 (base_temperature after end)
+3. System validates and persists
+
+DATA FLOW SUMMARY
+=================
+
+Device → Python (Reading):
+    Raw Paramset → convert_raw_to_dict_schedule() → Cache (13 slots) →
+    _filter_*_entries() → User (clean, minimal slots)
+
+Python → Device (Writing):
+    User Data → _normalize_weekday_data() → Full 13 slots → Validation →
+    convert_dict_to_raw_schedule() → Raw Paramset → Device
+
+Simple → Full Format:
+    Simple List → _validate_and_convert_simple_to_profile_weekday() →
+    Full 13 slots → Normal writing flow
+
+"""
 
 from __future__ import annotations
 
@@ -982,30 +1242,28 @@ def _filter_weekday_entries(*, weekday_data: CLIMATE_WEEKDAY_DICT) -> CLIMATE_WE
     if not weekday_data:
         return weekday_data
 
-    filtered_slots = {}
+    # Sort slots chronologically by ENDTIME first to ensure we process them in correct order
+    sorted_slots = sorted(
+        weekday_data.items(),
+        key=lambda item: _convert_time_str_to_minutes(time_str=str(item[1][ScheduleSlotType.ENDTIME])),
+    )
+
+    filtered_slots = []
     found_24_00 = False
 
-    for slot_num in range(1, 14):  # Slots 1-13
-        if slot_num not in weekday_data:
-            continue
-
-        slot = weekday_data[slot_num]
+    for _slot_num, slot in sorted_slots:
         # Keep all slots that don't end at 24:00
         if slot.get(ScheduleSlotType.ENDTIME, "") != CLIMATE_MAX_SCHEDULER_TIME:
-            filtered_slots[slot_num] = slot
-        # Keep only the first slot that ends at 24:00
+            filtered_slots.append(slot)
+        # Keep only the first slot that ends at 24:00 (chronologically)
         elif not found_24_00:
-            filtered_slots[slot_num] = slot
+            filtered_slots.append(slot)
             found_24_00 = True
         # Skip additional 24:00 slots
 
     # Renumber slots to be sequential (1, 2, 3, ...)
     if filtered_slots:
-        renumbered_slots = {}
-        for new_num, (_, slot) in enumerate(sorted(filtered_slots.items()), start=1):
-            renumbered_slots[new_num] = slot
-        return renumbered_slots
-
+        return dict(enumerate(filtered_slots, start=1))
     return {}
 
 

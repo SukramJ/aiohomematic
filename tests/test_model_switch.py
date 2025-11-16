@@ -662,26 +662,27 @@ class TestProgramSwitch:
 
         # Get a program switch
         program_dp = central.get_program_data_point(pid="pid1")
-        if program_dp and hasattr(program_dp, "switch"):
-            switch: ProgramDpSwitch = cast(ProgramDpSwitch, program_dp.switch)
-            assert switch.usage == DataPointUsage.DATA_POINT
+        assert program_dp
+        assert hasattr(program_dp, "switch")
+        switch: ProgramDpSwitch = cast(ProgramDpSwitch, program_dp.switch)
+        assert switch.usage == DataPointUsage.DATA_POINT
 
-            # Test value property
-            value = switch.value
-            assert isinstance(value, bool) or value is None
+        # Test value property
+        value = switch.value
+        assert isinstance(value, bool) or value is None
 
-            # Test turn_on (may fail with mock, but we're testing coverage)
-            try:
-                await switch.turn_on()
-                assert any(c == call.set_program_state(pid="pid1", state=True) for c in mock_client.method_calls)
-            except Exception:
-                # Mock may not support full operation, but we exercised the code path
-                pass
+        # Test turn_on (may fail with mock, but we're testing coverage)
+        try:
+            await switch.turn_on()
+            assert any(c == call.set_program_state(pid="pid1", state=True) for c in mock_client.method_calls)
+        except Exception:
+            # Mock may not support full operation, but we exercised the code path
+            pass
 
-            # Test turn_off (may fail with mock, but we're testing coverage)
-            try:
-                await switch.turn_off()
-                assert any(c == call.set_program_state(pid="pid1", state=False) for c in mock_client.method_calls)
-            except Exception:
-                # Mock may not support full operation, but we exercised the code path
-                pass
+        # Test turn_off (may fail with mock, but we're testing coverage)
+        try:
+            await switch.turn_off()
+            assert any(c == call.set_program_state(pid="pid1", state=False) for c in mock_client.method_calls)
+        except Exception:
+            # Mock may not support full operation, but we exercised the code path
+            pass

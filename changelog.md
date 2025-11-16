@@ -3,6 +3,7 @@
 ## What's Changed
 
 - Add schedule support to custom data point
+- Improve the test coverage of week_profile
 - Optimize climate get/set_schedule
 - Return filtered climate schedule data on get_schedule / Accept filtered data in climate set_schedule
 

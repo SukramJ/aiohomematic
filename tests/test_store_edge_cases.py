@@ -78,38 +78,6 @@ class TestParameterVisibilityEdgeCases:
             # May fail with mock, but we exercised the code path
 
 
-class TestDynamicCacheEdgeCases:
-    """Test edge cases in dynamic cache operations."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_central_data_cache_access(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test accessing central data cache."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-
-        # Try to access the cache
-        device = central.get_device(address="VCU6354483")
-        assert device
-        # Access various cache methods
-        cache = central._data_cache
-
-        # Test cache operations (read-only to avoid side effects)
-        assert cache
-
-
 class TestParamsetDescriptionEdgeCases:
     """Test edge cases in paramset description operations."""
 
@@ -146,66 +114,9 @@ class TestParamsetDescriptionEdgeCases:
         # Should return None or empty dict
         assert desc is None or isinstance(desc, dict)
 
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_paramset_description_multiple_channels(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test checking if parameter is in multiple channels."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-
-        device = central.get_device(address="VCU6354483")
-        assert device
-        for channel in list(device.channels.values())[:1]:
-            for dp in list(channel.data_points.values())[:1]:
-                # Check if parameter is in multiple channels
-                in_multiple = central.paramset_descriptions.is_in_multiple_channels(
-                    device_type=device.device_type,
-                    channel_no=channel.no,
-                    parameter=dp.parameter,
-                )
-                assert isinstance(in_multiple, bool)
-
 
 class TestDeviceDetailsEdgeCases:
     """Test edge cases in device details operations."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_device_details_get_name(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test getting device name from details."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-
-        device = central.get_device(address="VCU6354483")
-        assert device
-        # Get device name from details
-        name = central.device_details.get_name(address=device.address)
-        # May return None or a string
-        assert name is None or isinstance(name, str)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

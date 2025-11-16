@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
 from enum import IntEnum
 import logging
 from typing import Any, Final, cast
@@ -22,6 +21,7 @@ from aiohomematic.const import (
     CLIMATE_SIMPLE_PROFILE_DICT,
     CLIMATE_SIMPLE_WEEKDAY_LIST,
     CLIMATE_WEEKDAY_DICT,
+    DEFAULT_CLIMATE_FILL_TEMPERATURE,
     DEFAULT_SCHEDULE_DICT,
     DEFAULT_SCHEDULE_GROUP,
     RAW_SCHEDULE_DICT,
@@ -79,7 +79,7 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC):
     @property
     def schedule(self) -> SCHEDULE_DICT_T:
         """Return the schedule cache."""
-        return self._schedule_cache
+        return self._filter_schedule_entries(schedule_data=self._schedule_cache)
 
     @property
     def schedule_channel_address(self) -> str | None:
@@ -112,6 +112,10 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC):
     async def set_schedule(self, *, schedule_dict: SCHEDULE_DICT_T) -> None:
         """Persist the provided schedule dictionary."""
 
+    def _filter_schedule_entries(self, *, schedule_data: SCHEDULE_DICT_T) -> SCHEDULE_DICT_T:
+        """Filter schedule entries by removing invalid/not relevant entries."""
+        return schedule_data
+
     def _validate_and_get_schedule_channel_address(self) -> str:
         """
         Validate that schedule is supported and return the channel address.
@@ -142,7 +146,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
     """
 
     @staticmethod
-    def _filter_schedule_entries(*, values: Mapping[str, Any]) -> RAW_SCHEDULE_DICT:
+    def _convert_schedule_entries(*, values: RAW_SCHEDULE_DICT) -> RAW_SCHEDULE_DICT:
         """
         Extract only week profile (WP) entries from a raw paramset dictionary.
 
@@ -309,7 +313,9 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         await self._client.put_paramset(
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=self._filter_schedule_entries(values=self.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)),
+            values=self._convert_schedule_entries(
+                values=self.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)
+            ),
         )
 
     async def _get_raw_schedule(self) -> RAW_SCHEDULE_DICT:
@@ -328,7 +334,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
                 )
             ) from cex
 
-        if not (schedule := self._filter_schedule_entries(values=raw_data)):
+        if not (schedule := self._convert_schedule_entries(values=raw_data)):
             raise ValidationException(
                 i18n.tr(
                     "exception.model.week_profile.schedule.unsupported",
@@ -538,7 +544,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             )
         if force_load or not self._schedule_cache:
             await self.reload_and_cache_schedule()
-        return self._schedule_cache
+        return _filter_schedule_entries(schedule_data=self._schedule_cache)
 
     @inspector
     async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_PROFILE_DICT:
@@ -552,7 +558,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             )
         if force_load or not self._schedule_cache:
             await self.reload_and_cache_schedule()
-        return self._schedule_cache.get(profile, {})
+        return _filter_profile_entries(profile_data=self._schedule_cache.get(profile, {}))
 
     @inspector
     async def get_schedule_profile_weekday(
@@ -568,7 +574,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             )
         if force_load or not self._schedule_cache:
             await self.reload_and_cache_schedule()
-        return self._schedule_cache.get(profile, {}).get(weekday, {})
+        return _filter_weekday_entries(weekday_data=self._schedule_cache.get(profile, {}).get(weekday, {}))
 
     async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
         """Reload schedules from CCU and update cache, emit callbacks if changed."""
@@ -941,6 +947,63 @@ def _bitwise_to_list(*, value: int, enum_class: type[IntEnum]) -> list[IntEnum]:
     return [item for item in enum_class if value & item.value]
 
 
+def _filter_profile_entries(*, profile_data: CLIMATE_PROFILE_DICT) -> CLIMATE_PROFILE_DICT:
+    """Filter profile data to remove redundant 24:00 slots."""
+    if not profile_data:
+        return profile_data
+
+    filtered_data = {}
+    for weekday, weekday_data in profile_data.items():
+        if filtered_weekday := _filter_weekday_entries(weekday_data=weekday_data):
+            filtered_data[weekday] = filtered_weekday
+
+    return filtered_data
+
+
+def _filter_schedule_entries(*, schedule_data: CLIMATE_SCHEDULE_DICT) -> CLIMATE_SCHEDULE_DICT:
+    """Filter schedule data to remove redundant 24:00 slots."""
+    if not schedule_data:
+        return schedule_data
+
+    result: CLIMATE_SCHEDULE_DICT = {}
+    for profile, profile_data in schedule_data.items():
+        if filtered_profile := _filter_profile_entries(profile_data=profile_data):
+            result[profile] = filtered_profile
+    return result
+
+
+def _filter_weekday_entries(*, weekday_data: CLIMATE_WEEKDAY_DICT) -> CLIMATE_WEEKDAY_DICT:
+    """Filter weekday data to remove redundant 24:00 slots."""
+    if not weekday_data:
+        return weekday_data
+
+    filtered_slots = {}
+    found_24_00 = False
+
+    for slot_num in range(1, 14):  # Slots 1-13
+        if slot_num not in weekday_data:
+            continue
+
+        slot = weekday_data[slot_num]
+        # Keep all slots that don't end at 24:00
+        if slot.get(ScheduleSlotType.ENDTIME, "") != CLIMATE_MAX_SCHEDULER_TIME:
+            filtered_slots[slot_num] = slot
+        # Keep only the first slot that ends at 24:00
+        elif not found_24_00:
+            filtered_slots[slot_num] = slot
+            found_24_00 = True
+        # Skip additional 24:00 slots
+
+    # Renumber slots to be sequential (1, 2, 3, ...)
+    if filtered_slots:
+        renumbered_slots = {}
+        for new_num, (_, slot) in enumerate(sorted(filtered_slots.items()), start=1):
+            renumbered_slots[new_num] = slot
+        return renumbered_slots
+
+    return {}
+
+
 def _list_to_bitwise(*, items: list[IntEnum]) -> int:
     """
     Convert list of enum values to bitwise integer.
@@ -1107,7 +1170,8 @@ def _normalize_weekday_data(*, weekday_data: CLIMATE_WEEKDAY_DICT | dict[str, An
     Normalize climate weekday schedule data.
 
     Ensures slot keys are integers (not strings) and slots are sorted chronologically
-    by ENDTIME. Re-indexes slots from 1-13 in temporal order.
+    by ENDTIME. Re-indexes slots from 1-13 in temporal order. Fills missing slots
+    at the end with 24:00 entries.
 
     Args:
         weekday_data: Weekday schedule data (possibly with string keys)
@@ -1117,7 +1181,7 @@ def _normalize_weekday_data(*, weekday_data: CLIMATE_WEEKDAY_DICT | dict[str, An
 
     Example:
         Input: {"2": {ENDTIME: "12:00"}, "1": {ENDTIME: "06:00"}}
-        Output: {1: {ENDTIME: "06:00"}, 2: {ENDTIME: "12:00"}}
+        Output: {1: {ENDTIME: "06:00"}, 2: {ENDTIME: "12:00"}, 3: {ENDTIME: "24:00", TEMPERATURE: ...}, ...}
 
     """
     # Convert string keys to int if necessary
@@ -1132,9 +1196,22 @@ def _normalize_weekday_data(*, weekday_data: CLIMATE_WEEKDAY_DICT | dict[str, An
         key=lambda item: _convert_time_str_to_minutes(time_str=str(item[1][ScheduleSlotType.ENDTIME])),
     )
 
-    # Reassign slot numbers from 1 to 13
+    # Reassign slot numbers from 1 to N (where N is number of existing slots)
     result: CLIMATE_WEEKDAY_DICT = {}
     for new_slot_no, (_, slot_data) in enumerate(sorted_slots, start=1):
         result[new_slot_no] = slot_data
+
+    # Fill up missing slots (from N+1 to 13) with 24:00 entries
+    if result:
+        # Get the temperature from the last existing slot
+        last_slot = result[len(result)]
+        fill_temperature = last_slot.get(ScheduleSlotType.TEMPERATURE, DEFAULT_CLIMATE_FILL_TEMPERATURE)
+
+        # Fill missing slots
+        for slot_no in range(len(result) + 1, 14):
+            result[slot_no] = {
+                ScheduleSlotType.ENDTIME: CLIMATE_MAX_SCHEDULER_TIME,
+                ScheduleSlotType.TEMPERATURE: fill_temperature,
+            }
 
     return result

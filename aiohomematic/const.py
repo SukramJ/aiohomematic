@@ -1255,7 +1255,6 @@ class WeekdayStr(StrEnum):
     SUNDAY = "SUNDAY"
 
 
-SCHEDULE_PATTERN: Final = re.compile(r"^\d+_WP_")
 CLIMATE_MAX_SCHEDULER_TIME: Final = "24:00"
 CLIMATE_MIN_SCHEDULER_TIME: Final = "00:00"
 CLIMATE_WEEKDAY_DICT = dict[int, dict[ScheduleSlotType, str | float]]
@@ -1267,6 +1266,8 @@ CLIMATE_SCHEDULE_SLOT_RANGE: Final = range(1, 13)
 CLIMATE_SCHEDULE_TIME_RANGE: Final = range(1441)
 CLIMATE_SIMPLE_WEEKDAY_LIST = list[dict[ScheduleSlotType, str | float]]
 CLIMATE_SIMPLE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_SIMPLE_WEEKDAY_LIST]
+DEFAULT_CLIMATE_FILL_TEMPERATURE: Final = 20.0
 DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]
 DEFAULT_SCHEDULE_DICT = dict[int, DEFAULT_SCHEDULE_GROUP]
 RAW_SCHEDULE_DICT = dict[str, float | int]
+SCHEDULE_PATTERN: Final = re.compile(r"^\d+_WP_")

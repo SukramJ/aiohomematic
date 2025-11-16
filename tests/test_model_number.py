@@ -214,3 +214,34 @@ class TestSysvarNumber:
         await enumber.send_variable(value=35.0)
         # value over max won't change value
         assert enumber.value == 23.0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({}, True, None, None),
+        ],
+    )
+    async def test_sysvar_number_without_min_max(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test SysvarDpNumber when min/max are not set."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        enumber: SysvarDpNumber = cast(
+            SysvarDpNumber,
+            central.get_sysvar_data_point(legacy_name="integer_ext"),
+        )
+        assert enumber.usage == DataPointUsage.DATA_POINT
+
+        # For numbers without explicit min/max, any value should work
+        if enumber:
+            await enumber.send_variable(value=42.0)
+            assert any(
+                c == call.set_system_variable(legacy_name="integer_ext", value=42.0) for c in mock_client.method_calls
+            )

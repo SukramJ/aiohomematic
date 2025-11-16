@@ -33,7 +33,7 @@ from aiohomematic.model.custom import (
 )
 from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy
-from aiohomematic.model.week_profile import _filter_profile_entries, _filter_weekday_entries
+from aiohomematic.model.week_profile import _filter_profile_entries, _filter_schedule_entries, _filter_weekday_entries
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -1960,7 +1960,7 @@ async def test_schedule_cache_available_profiles(
 
     # Test 4: schedule property should return the entire cache
     full_schedule = climate.schedule
-    assert full_schedule == climate.device.week_profile._schedule_cache
+    assert full_schedule == _filter_schedule_entries(schedule_data=climate.device.week_profile._schedule_cache)
     assert ScheduleProfile.P1 in full_schedule
     assert ScheduleProfile.P2 in full_schedule
 

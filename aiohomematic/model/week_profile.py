@@ -79,7 +79,7 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC):
     @property
     def schedule(self) -> SCHEDULE_DICT_T:
         """Return the schedule cache."""
-        return self._filter_schedule_entries(schedule_data=self._schedule_cache)
+        return self._schedule_cache
 
     @property
     def schedule_channel_address(self) -> str | None:
@@ -457,6 +457,11 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
     def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
         """Return the available schedule profiles."""
         return tuple(self._schedule_cache.keys())
+
+    @property
+    def schedule(self) -> CLIMATE_SCHEDULE_DICT:
+        """Return the schedule cache."""
+        return _filter_schedule_entries(schedule_data=self._schedule_cache)
 
     @inspector
     async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:

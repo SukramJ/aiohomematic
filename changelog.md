@@ -1,3 +1,11 @@
+# Version 2025.11.17 (2025-11-16)
+
+## What's Changed
+
+- Fix week profile filtering
+- Improve test coverage,
+- Reorganize test files
+
 # Version 2025.11.16 (2025-11-16)
 
 ## What's Changed

@@ -181,13 +181,13 @@ _filter_profile_entries(profile_data) -> CLIMATE_PROFILE_DICT
 
 _filter_weekday_entries(weekday_data) -> CLIMATE_WEEKDAY_DICT
     Filters redundant 24:00 slots from a weekday schedule:
-    - Keeps all slots that don't end at 24:00
-    - Keeps only the FIRST slot that ends at 24:00
-    - Removes subsequent 24:00 slots
+    - Processes slots in slot-number order
+    - Keeps all slots up to and including the first 24:00
+    - Stops at the first occurrence of 24:00 (ignores all subsequent slots)
     - Renumbers remaining slots sequentially (1, 2, 3, ...)
 
 Example:
-    Input:  {1: {ENDTIME: "06:00"}, 2: {ENDTIME: "12:00"}, 3: {ENDTIME: "24:00"}, ..., 13: {ENDTIME: "24:00"}}
+    Input:  {1: {ENDTIME: "06:00"}, 2: {ENDTIME: "12:00"}, 3: {ENDTIME: "24:00"}, 4: {ENDTIME: "18:00"}, ..., 13: {ENDTIME: "24:00"}}
     Output: {1: {ENDTIME: "06:00"}, 2: {ENDTIME: "12:00"}, 3: {ENDTIME: "24:00"}}
 
 
@@ -1248,33 +1248,30 @@ def _filter_schedule_entries(*, schedule_data: CLIMATE_SCHEDULE_DICT) -> CLIMATE
 
 
 def _filter_weekday_entries(*, weekday_data: CLIMATE_WEEKDAY_DICT) -> CLIMATE_WEEKDAY_DICT:
-    """Filter weekday data to remove redundant 24:00 slots."""
+    """
+    Filter weekday data to remove redundant 24:00 slots.
+
+    Processes slots in slot-number order and stops at the first occurrence of 24:00.
+    Any slots after the first 24:00 are ignored, regardless of their endtime.
+    This matches the behavior of homematicip_local_climate_scheduler_card.
+    """
     if not weekday_data:
         return weekday_data
 
-    # Sort slots chronologically by ENDTIME first, then by slot number
-    # This ensures that if multiple slots have ENDTIME "24:00",
-    # the one with the lowest slot number is kept
-    sorted_slots = sorted(
-        weekday_data.items(),
-        key=lambda item: (
-            _convert_time_str_to_minutes(time_str=str(item[1][ScheduleSlotType.ENDTIME])),
-            item[0],  # Secondary sort by slot number
-        ),
-    )
+    # Sort slots by slot number only (not by endtime)
+    sorted_slots = sorted(weekday_data.items(), key=lambda item: item[0])
 
     filtered_slots = []
-    found_24_00 = False
 
     for _slot_num, slot in sorted_slots:
-        # Keep all slots that don't end at 24:00
-        if slot.get(ScheduleSlotType.ENDTIME, "") != CLIMATE_MAX_SCHEDULER_TIME:
-            filtered_slots.append(slot)
-        # Keep only the first slot that ends at 24:00 (lowest slot number)
-        elif not found_24_00:
-            filtered_slots.append(slot)
-            found_24_00 = True
-        # Skip additional 24:00 slots
+        endtime = slot.get(ScheduleSlotType.ENDTIME, "")
+
+        # Add this slot to the filtered list
+        filtered_slots.append(slot)
+
+        # Stop at the first occurrence of 24:00 - ignore all subsequent slots
+        if endtime == CLIMATE_MAX_SCHEDULER_TIME:
+            break
 
     # Renumber slots to be sequential (1, 2, 3, ...)
     if filtered_slots:

@@ -1,4 +1,4 @@
-"""Tests for switch data points of aiohomematic."""
+"""Tests for entity and data point functionality of aiohomematic."""
 
 from __future__ import annotations
 
@@ -19,193 +19,211 @@ TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
 # pylint: disable=protected-access
 
 
-def test_validate_data_point_definition() -> None:
-    """Test validate_data_point_definition."""
-    assert validate_custom_data_point_definition() is not None
+class TestDataPointDefinition:
+    """Tests for data point definition validation."""
+
+    def test_custom_required_data_points(self) -> None:
+        """Test required parameters from data point definitions."""
+        required_parameters = get_required_parameters()
+        assert len(required_parameters) == 88
+        assert check_ignore_parameters_is_clean() is True
+
+    def test_validate_data_point_definition(self) -> None:
+        """Test custom data point definition validation."""
+        assert validate_custom_data_point_definition() is not None
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    (
-        "address_device_translation",
-        "do_mock_client",
-        "ignore_devices_on_create",
-        "un_ignore_list",
-    ),
-    [
-        (TEST_DEVICES, True, None, None),
-    ],
-)
-async def test_custom_data_point_callback(
-    central_client_factory_with_homegear_client,
-) -> None:
-    """Test CustomDpSwitch."""
-    central, _, factory = central_client_factory_with_homegear_client
-    switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-    assert switch.usage == DataPointUsage.CDP_PRIMARY
+class TestDataPointCallbacks:
+    """Tests for data point callback functionality."""
 
-    device_updated_mock = MagicMock()
-    device_removed_mock = MagicMock()
-
-    unregister_data_point_updated_callback = switch.register_data_point_updated_callback(
-        cb=device_updated_mock, custom_id="some_id"
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
     )
-    unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
-    assert switch.value is None
-    assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM VCU2128127"
-    await central.data_point_event(
-        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
+    async def test_custom_data_point_callback(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test CustomDpSwitch callback registration and events."""
+        central, _, factory = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        assert switch.usage == DataPointUsage.CDP_PRIMARY
+
+        device_updated_mock = MagicMock()
+        device_removed_mock = MagicMock()
+
+        unregister_data_point_updated_callback = switch.register_data_point_updated_callback(
+            cb=device_updated_mock, custom_id="some_id"
+        )
+        unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
+        assert switch.value is None
+        assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM VCU2128127"
+        await central.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
+        )
+        assert switch.value is True
+        await central.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
+        )
+        assert switch.value is False
+        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
+        assert factory.system_event_mock.call_args_list[-1] == call(
+            system_event="deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
+        )
+        unregister_data_point_updated_callback()
+        unregister_device_removed_callback()
+
+        device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
+        device_removed_mock.assert_called_with()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
     )
-    assert switch.value is True
-    await central.data_point_event(
-        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
+    async def test_generic_data_point_callback(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test generic data point callback registration and events."""
+        central, _, factory = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+        )
+        assert switch.usage == DataPointUsage.NO_CREATE
+
+        device_updated_mock = MagicMock()
+        device_removed_mock = MagicMock()
+
+        switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
+        switch.register_device_removed_callback(cb=device_removed_mock)
+        assert switch.value is None
+        assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM VCU2128127 State"
+        await central.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
+        )
+        assert switch.value is True
+        await central.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
+        )
+        assert switch.value is False
+        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
+        assert factory.system_event_mock.call_args_list[-1] == call(
+            system_event="deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
+        )
+        switch._unregister_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
+        switch._unregister_device_removed_callback(cb=device_removed_mock)
+
+        device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
+        device_removed_mock.assert_called_with()
+
+
+class TestDataPointLoading:
+    """Tests for data point value loading."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
     )
-    assert switch.value is False
-    await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
-    assert factory.system_event_mock.call_args_list[-1] == call(
-        system_event="deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
+    async def test_load_custom_data_point(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test custom data point value loading."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(DpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
+        assert mock_client.method_calls[-3] == call.get_value(
+            channel_address="VCU2128127:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+            call_source="hm_init",
+        )
+        assert mock_client.method_calls[-2] == call.get_value(
+            channel_address="VCU2128127:3",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+            call_source="hm_init",
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
     )
-    unregister_data_point_updated_callback()
-    unregister_device_removed_callback()
+    async def test_load_generic_data_point(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test generic data point value loading."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+        )
+        await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
+        assert mock_client.method_calls[-1] == call.get_value(
+            channel_address="VCU2128127:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+            call_source="hm_init",
+        )
 
-    device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
-    device_removed_mock.assert_called_with()
 
+class TestWrappedDataPoint:
+    """Tests for wrapped data point functionality."""
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    (
-        "address_device_translation",
-        "do_mock_client",
-        "ignore_devices_on_create",
-        "un_ignore_list",
-    ),
-    [
-        (TEST_DEVICES, True, None, None),
-    ],
-)
-async def test_generic_data_point_callback(
-    central_client_factory_with_homegear_client,
-) -> None:
-    """Test CustomDpSwitch."""
-    central, _, factory = central_client_factory_with_homegear_client
-    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
-    assert switch.usage == DataPointUsage.NO_CREATE
-
-    device_updated_mock = MagicMock()
-    device_removed_mock = MagicMock()
-
-    switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
-    switch.register_device_removed_callback(cb=device_removed_mock)
-    assert switch.value is None
-    assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM VCU2128127 State"
-    await central.data_point_event(
-        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
     )
-    assert switch.value is True
-    await central.data_point_event(
-        interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
-    )
-    assert switch.value is False
-    await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
-    assert factory.system_event_mock.call_args_list[-1] == call(
-        system_event="deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
-    )
-    switch._unregister_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
-    switch._unregister_device_removed_callback(cb=device_removed_mock)
-
-    device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
-    device_removed_mock.assert_called_with()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    (
-        "address_device_translation",
-        "do_mock_client",
-        "ignore_devices_on_create",
-        "un_ignore_list",
-    ),
-    [
-        (TEST_DEVICES, True, None, None),
-    ],
-)
-async def test_load_custom_data_point(
-    central_client_factory_with_homegear_client,
-) -> None:
-    """Test load custom_data_point."""
-    central, mock_client, _ = central_client_factory_with_homegear_client
-    switch: DpSwitch = cast(DpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-    await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
-    assert mock_client.method_calls[-3] == call.get_value(
-        channel_address="VCU2128127:4",
-        paramset_key=ParamsetKey.VALUES,
-        parameter="STATE",
-        call_source="hm_init",
-    )
-    assert mock_client.method_calls[-2] == call.get_value(
-        channel_address="VCU2128127:3",
-        paramset_key=ParamsetKey.VALUES,
-        parameter="STATE",
-        call_source="hm_init",
-    )
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    (
-        "address_device_translation",
-        "do_mock_client",
-        "ignore_devices_on_create",
-        "un_ignore_list",
-    ),
-    [
-        (TEST_DEVICES, True, None, None),
-    ],
-)
-async def test_load_generic_data_point(
-    central_client_factory_with_homegear_client,
-) -> None:
-    """Test load generic_data_point."""
-    central, mock_client, _ = central_client_factory_with_homegear_client
-    switch: DpSwitch = cast(DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"))
-    await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
-    assert mock_client.method_calls[-1] == call.get_value(
-        channel_address="VCU2128127:4",
-        paramset_key=ParamsetKey.VALUES,
-        parameter="STATE",
-        call_source="hm_init",
-    )
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    (
-        "address_device_translation",
-        "do_mock_client",
-        "ignore_devices_on_create",
-        "un_ignore_list",
-    ),
-    [
-        (TEST_DEVICES, True, None, None),
-    ],
-)
-async def test_generic_wrapped_data_point(
-    central_client_factory_with_homegear_client,
-) -> None:
-    """Test wrapped data_point."""
-    central, _, _ = central_client_factory_with_homegear_client
-    wrapped_data_point: DpSensor = cast(
-        DpSensor, central.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL")
-    )
-    assert wrapped_data_point.default_category() == "number"
-    assert wrapped_data_point._is_forced_sensor is True
-    assert wrapped_data_point.category == "sensor"
-    assert wrapped_data_point.usage == DataPointUsage.DATA_POINT
-
-
-def test_custom_required_data_points() -> None:
-    """Test required parameters from data_point definitions."""
-    required_parameters = get_required_parameters()
-    assert len(required_parameters) == 88
-    assert check_ignore_parameters_is_clean() is True
+    async def test_generic_wrapped_data_point(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test wrapped data point category and forced sensor behavior."""
+        central, _, _ = central_client_factory_with_homegear_client
+        wrapped_data_point: DpSensor = cast(
+            DpSensor, central.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL")
+        )
+        assert wrapped_data_point.default_category() == "number"
+        assert wrapped_data_point._is_forced_sensor is True
+        assert wrapped_data_point.category == "sensor"
+        assert wrapped_data_point.usage == DataPointUsage.DATA_POINT

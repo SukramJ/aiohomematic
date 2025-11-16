@@ -83,132 +83,137 @@ def _pd(**over: Any) -> dict[str, Any]:
     return data
 
 
-def test_safe_create_event_wraps_errors() -> None:
-    """Use pytest.raises when constructor errors are wrapped into AioHomematicException."""
+class TestEventFactory:
+    """Tests for event factory and error handling."""
 
-    class _Boom(me.GenericEvent):  # type: ignore[misc]
-        def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
-            """Raise immediately without calling super to avoid deep init."""
-            raise RuntimeError("boom")
+    def test_safe_create_event_wraps_errors(self) -> None:
+        """Test that event creation errors are wrapped in AioHomematicException."""
 
-    ch = _FakeChannel()
-    from aiohomematic.exceptions import AioHomematicException
+        class _Boom(me.GenericEvent):  # type: ignore[misc]
+            def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+                """Raise immediately without calling super to avoid deep init."""
+                raise RuntimeError("boom")
 
-    with pytest.raises(AioHomematicException) as excinfo:
-        me._safe_create_event(event_t=_Boom, channel=ch, parameter="X", parameter_data=_pd())
-    assert "Unable to create event" in str(excinfo.value)
+        ch = _FakeChannel()
+        from aiohomematic.exceptions import AioHomematicException
+
+        with pytest.raises(AioHomematicException):
+            me._safe_create_event(event_t=_Boom, channel=ch, parameter="X", parameter_data=_pd())
 
 
-def test_determine_generic_dp_types() -> None:
-    """Generic factory should map parameter types and operations to DP classes."""
-    ch = _FakeChannel()
+class TestGenericDataPointTypeDetermination:
+    """Tests for generic data point type determination logic."""
 
-    # ACTION write-only -> DpAction
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="DO_SOMETHING",
-            parameter_data=_pd(TYPE=ParameterType.ACTION, OPERATIONS=int(Operations.WRITE)),
+    def test_determine_generic_dp_types(self) -> None:
+        """Test generic factory mapping parameter types and operations to DP classes."""
+        ch = _FakeChannel()
+
+        # ACTION write-only -> DpAction
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="DO_SOMETHING",
+                parameter_data=_pd(TYPE=ParameterType.ACTION, OPERATIONS=int(Operations.WRITE)),
+            )
+            is DpAction
         )
-        is DpAction
-    )
 
-    # ACTION write-only specific button-like action -> DpButton
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="RESET_MOTION",
-            parameter_data=_pd(TYPE=ParameterType.ACTION, OPERATIONS=int(Operations.WRITE)),
+        # ACTION write-only specific button-like action -> DpButton
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="RESET_MOTION",
+                parameter_data=_pd(TYPE=ParameterType.ACTION, OPERATIONS=int(Operations.WRITE)),
+            )
+            is DpButton
         )
-        is DpButton
-    )
 
-    # ACTION write+read with click events -> DpButton
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="PRESS_SHORT",
-            parameter_data=_pd(TYPE=ParameterType.ACTION, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+        # ACTION write+read with click events -> DpButton
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="PRESS_SHORT",
+                parameter_data=_pd(TYPE=ParameterType.ACTION, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+            )
+            is DpButton
         )
-        is DpButton
-    )
 
-    # BOOL with WRITE -> DpSwitch
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="STATE",
-            parameter_data=_pd(TYPE=ParameterType.BOOL, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+        # BOOL with WRITE -> DpSwitch
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="STATE",
+                parameter_data=_pd(TYPE=ParameterType.BOOL, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+            )
+            is DpSwitch
         )
-        is DpSwitch
-    )
 
-    # ENUM with WRITE -> DpSelect
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="MODE",
-            parameter_data=_pd(TYPE=ParameterType.ENUM, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+        # ENUM with WRITE -> DpSelect
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="MODE",
+                parameter_data=_pd(TYPE=ParameterType.ENUM, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+            )
+            is DpSelect
         )
-        is DpSelect
-    )
 
-    # FLOAT with WRITE -> DpFloat (returned via BaseDpNumber type)
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="LEVEL",
-            parameter_data=_pd(TYPE=ParameterType.FLOAT, OPERATIONS=int(Operations.READ | Operations.WRITE)),
-        )
-        is DpFloat
-    )  # type: ignore[name-defined]
+        # FLOAT with WRITE -> DpFloat (returned via BaseDpNumber type)
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="LEVEL",
+                parameter_data=_pd(TYPE=ParameterType.FLOAT, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+            )
+            is DpFloat
+        )  # type: ignore[name-defined]
 
-    # INTEGER with WRITE -> DpInteger (returned via BaseDpNumber type)
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="COUNTER",
-            parameter_data=_pd(TYPE=ParameterType.INTEGER, OPERATIONS=int(Operations.READ | Operations.WRITE)),
-        )
-        is DpInteger
-    )  # type: ignore[name-defined]
+        # INTEGER with WRITE -> DpInteger (returned via BaseDpNumber type)
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="COUNTER",
+                parameter_data=_pd(TYPE=ParameterType.INTEGER, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+            )
+            is DpInteger
+        )  # type: ignore[name-defined]
 
-    # STRING with WRITE -> DpText
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="LABEL",
-            parameter_data=_pd(TYPE=ParameterType.STRING, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+        # STRING with WRITE -> DpText
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="LABEL",
+                parameter_data=_pd(TYPE=ParameterType.STRING, OPERATIONS=int(Operations.READ | Operations.WRITE)),
+            )
+            is DpText
         )
-        is DpText
-    )
 
-    # Read-only BOOL-like (VALUE_LIST) -> DpBinarySensor
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="STATE",
-            parameter_data={
-                "TYPE": ParameterType.ENUM,
-                "OPERATIONS": int(Operations.READ),
-                "FLAGS": 0,
-                "VALUE_LIST": ("CLOSED", "OPEN"),
-            },
+        # Read-only BOOL-like (VALUE_LIST) -> DpBinarySensor
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="STATE",
+                parameter_data={
+                    "TYPE": ParameterType.ENUM,
+                    "OPERATIONS": int(Operations.READ),
+                    "FLAGS": 0,
+                    "VALUE_LIST": ("CLOSED", "OPEN"),
+                },
+            )
+            is DpBinarySensor
         )
-        is DpBinarySensor
-    )
 
-    # Read-only ENUM not matching binary -> DpSensor
-    assert (
-        _determine_data_point_type(
-            channel=ch,
-            parameter="SOMETHING",
-            parameter_data={
-                "TYPE": ParameterType.ENUM,
-                "OPERATIONS": int(Operations.READ),
-                "FLAGS": 0,
-                "VALUE_LIST": ("A", "B", "C"),
-            },
+        # Read-only ENUM not matching binary -> DpSensor
+        assert (
+            _determine_data_point_type(
+                channel=ch,
+                parameter="SOMETHING",
+                parameter_data={
+                    "TYPE": ParameterType.ENUM,
+                    "OPERATIONS": int(Operations.READ),
+                    "FLAGS": 0,
+                    "VALUE_LIST": ("A", "B", "C"),
+                },
+            )
+            is DpSensor
         )
-        is DpSensor
-    )

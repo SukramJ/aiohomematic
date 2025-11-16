@@ -1,4 +1,4 @@
-"""Tests for switch data points of aiohomematic."""
+"""Tests for property decorators of aiohomematic."""
 
 from __future__ import annotations
 
@@ -18,7 +18,234 @@ from aiohomematic.property_decorators import (
 # pylint: disable=protected-access
 
 
-class Dummy:
+class TestBasicPropertyDecorators:
+    """Test basic property decorator functionality."""
+
+    def test_generic_property_get_set_delete(self) -> None:
+        """Test basic get, set, and delete operations."""
+        test_class = PropertyTestClazz()
+        assert test_class.value == "test_value"
+        assert test_class.config == "test_config"
+
+        test_class.value = "new_value"
+        test_class.config = "new_config"
+        assert test_class.value == "new_value"
+        assert test_class.config == "new_config"
+
+        del test_class.value
+        del test_class.config
+        assert test_class.value == ""
+        assert test_class.config == ""
+
+    def test_generic_property_unreadable_attribute_raises(self) -> None:
+        """Test that property without getter raises AttributeError."""
+        prop: _GenericProperty[int, int] = _GenericProperty(
+            fget=None,
+            fset=None,
+            fdel=None,
+            doc=None,
+            kind=Kind.SIMPLE,
+            cached=False,
+            log_context=False,
+        )
+
+        class C:
+            p = prop  # type: ignore[assignment]
+
+        with pytest.raises(AttributeError, match="unreadable attribute"):
+            _ = C().p  # type: ignore[attr-defined]
+
+    def test_hm_property_read_only(self) -> None:
+        """Test read-only hm_property."""
+        d = DummyReadOnly()
+        assert d.x == 1
+
+        with pytest.raises(AttributeError, match="can't set attribute"):
+            DummyReadOnly.x.__set__(d, 2)  # type: ignore[arg-type]
+
+        with pytest.raises(AttributeError, match="can't delete attribute"):
+            DummyReadOnly.x.__delete__(d)
+
+    def test_log_context_collection(self) -> None:
+        """Test collecting properties marked for log context."""
+        test_class = PropertyTestClazz()
+        info_context_attributes = get_hm_property_by_log_context(data_object=test_class)
+        assert info_context_attributes == {"info_context": "test_info"}
+
+    def test_property_kind_collection(self) -> None:
+        """Test collecting properties by kind."""
+        test_class = PropertyTestClazz()
+
+        config_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.CONFIG)
+        assert config_attributes == {"config": "test_config"}
+
+        value_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.STATE)
+        assert value_attributes == {"value": "test_value"}
+
+        info_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.INFO)
+        assert info_attributes == {"info": "test_info", "info_context": "test_info"}
+
+
+class TestCachedProperties:
+    """Test cached property functionality."""
+
+    def test_cached_property_basic(self) -> None:
+        """Test that cached properties cache their values."""
+        test_obj = CachedPropertyTestClazz()
+
+        # First access computes
+        val1 = test_obj.cached_value
+        assert val1 == "computed_1"
+
+        # Second access returns cached value
+        val2 = test_obj.cached_value
+        assert val2 == "computed_1"
+        assert test_obj.call_count == 1  # Only computed once
+
+    def test_cached_property_invalidation_on_delete(self) -> None:
+        """Test that cache is invalidated when property is deleted."""
+        test_obj = CachedPropertyTestClazz()
+
+        # Access to cache
+        _ = test_obj.cached_value
+        assert test_obj.call_count == 1
+
+        # Deleting should invalidate cache
+        del test_obj.cached_value
+
+        # Next access should recompute
+        val = test_obj.cached_value
+        assert val == "computed_2"
+        assert test_obj.call_count == 2
+
+    def test_cached_property_invalidation_on_set(self) -> None:
+        """Test that cache is invalidated when property is set."""
+        test_obj = CachedPropertyTestClazz()
+
+        # Access to cache
+        _ = test_obj.cached_value
+        assert test_obj.call_count == 1
+
+        # Setting should invalidate cache
+        test_obj.cached_value = "new"
+
+        # Next access should recompute
+        val = test_obj.cached_value
+        assert val == "computed_2"
+        assert test_obj.call_count == 2
+
+
+class TestCachedPropertiesWithSlots:
+    """Test cached properties with __slots__ objects."""
+
+    def test_cached_property_slots_basic(self) -> None:
+        """Test cached property works with __slots__."""
+        test_obj = SlotsClassWithCachedProperty()
+
+        # First access computes
+        val1 = test_obj.cached_value
+        assert val1 == "slots_1"
+
+        # Second access returns cached value
+        val2 = test_obj.cached_value
+        assert val2 == "slots_1"
+        assert test_obj.call_count == 1
+
+    def test_cached_property_slots_delete_invalidation(self) -> None:
+        """Test cache invalidation with __slots__ on delete."""
+        test_obj = SlotsClassWithCachedProperty()
+
+        # Access to cache
+        _ = test_obj.cached_value
+        assert test_obj.call_count == 1
+
+        # Deleting should invalidate cache
+        del test_obj.cached_value
+
+        # Next access should recompute
+        val = test_obj.cached_value
+        assert val == "slots_2"
+        assert test_obj.call_count == 2
+
+    def test_cached_property_slots_set_invalidation(self) -> None:
+        """Test cache invalidation with __slots__ on set."""
+        test_obj = SlotsClassWithCachedProperty()
+
+        # Access to cache
+        _ = test_obj.cached_value
+        assert test_obj.call_count == 1
+
+        # Setting should invalidate cache
+        test_obj.cached_value = "new"
+
+        # Next access should recompute
+        val = test_obj.cached_value
+        assert val == "slots_2"
+        assert test_obj.call_count == 2
+
+
+class TestPropertyDocstrings:
+    """Test that property docstrings are preserved."""
+
+    def test_property_doc_from_getter(self) -> None:
+        """Test that docstring is taken from getter when not explicitly provided."""
+        PropertyTestClazz()
+        assert PropertyTestClazz.config.__doc__ == "Return config."
+        assert PropertyTestClazz.value.__doc__ == "Return value."
+
+
+class TestPropertyNameFallbacks:
+    """Test property name fallbacks for cached properties."""
+
+    def test_cached_property_name_fallback_to_prop(self) -> None:
+        """Test that cache attr name falls back to 'prop' if all are None."""
+        prop = _GenericProperty(
+            fget=None,
+            fset=None,
+            fdel=None,
+            doc=None,
+            kind=Kind.SIMPLE,
+            cached=True,
+            log_context=False,
+        )
+        # Should use default 'prop' for cache attribute
+        assert prop._cache_attr == "_cached_prop"
+
+    def test_cached_property_name_from_fdel(self) -> None:
+        """Test that cache attr name comes from fdel if fget and fset are None."""
+        prop = _GenericProperty(
+            fget=None,
+            fset=None,
+            fdel=lambda self: None,
+            doc=None,
+            kind=Kind.SIMPLE,
+            cached=True,
+            log_context=False,
+        )
+        # Should use fdel.__name__ for cache attribute
+        assert prop._cache_attr == "_cached_<lambda>"
+
+    def test_cached_property_name_from_fset(self) -> None:
+        """Test that cache attr name comes from fset if fget is None."""
+        prop = _GenericProperty(
+            fget=None,
+            fset=lambda self, val: None,
+            fdel=None,
+            doc=None,
+            kind=Kind.SIMPLE,
+            cached=True,
+            log_context=False,
+        )
+        # Should use fset.__name__ for cache attribute
+        assert prop._cache_attr == "_cached_<lambda>"
+
+
+# Test fixture classes
+
+
+class DummyReadOnly:
+    """Test class with read-only property."""
+
     def __init__(self) -> None:
         self._x = 1
 
@@ -27,36 +254,8 @@ class Dummy:
         return self._x
 
 
-def test_generic_property() -> None:
-    """Test CustomDpSwitch."""
-    test_class = PropertyTestClazz()
-    assert test_class.value == "test_value"
-    assert test_class.config == "test_config"
-    test_class.value = "new_value"
-    test_class.config = "new_config"
-    assert test_class.value == "new_value"
-    assert test_class.config == "new_config"
-    del test_class.value
-    del test_class.config
-    assert test_class.value == ""
-    assert test_class.config == ""
-
-
-def test_generic_property_read() -> None:
-    """Test CustomDpSwitch."""
-    test_class = PropertyTestClazz()
-    config_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.CONFIG)
-    assert config_attributes == {"config": "test_config"}
-    value_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.STATE)
-    assert value_attributes == {"value": "test_value"}
-    info_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.INFO)
-    assert info_attributes == {"info": "test_info", "info_context": "test_info"}
-    info_context_attributes = get_hm_property_by_log_context(data_object=test_class)
-    assert info_context_attributes == {"info_context": "test_info"}
-
-
 class PropertyTestClazz:
-    """test class for generic_properties."""
+    """Test class for generic properties."""
 
     def __init__(self):
         """Init PropertyTestClazz."""
@@ -105,34 +304,53 @@ class PropertyTestClazz:
         return self._info
 
 
-def test_hm_property_set_raises_attribute_error() -> None:
-    d = Dummy()
-    with pytest.raises(AttributeError, match="can't set attribute"):
-        # Setting a read-only hm_property should raise
-        Dummy.x.__set__(d, 2)  # type: ignore[arg-type]
+class CachedPropertyTestClazz:
+    """Test class for cached properties."""
+
+    def __init__(self):
+        """Init CachedPropertyTestClazz."""
+        self._storage: str = "initial"
+        self.call_count: int = 0
+
+    @hm_property(cached=True)
+    def cached_value(self) -> str:
+        """Return a computed value that should be cached."""
+        self.call_count += 1
+        return f"computed_{self.call_count}"
+
+    @cached_value.setter
+    def cached_value(self, value: str) -> None:
+        """Set the value."""
+        self._storage = value
+
+    @cached_value.deleter
+    def cached_value(self) -> None:
+        """Delete the value."""
+        self._storage = "deleted"
 
 
-def test_hm_property_delete_raises_attribute_error() -> None:
-    d = Dummy()
-    with pytest.raises(AttributeError, match="can't delete attribute"):
-        Dummy.x.__delete__(d)
+class SlotsClassWithCachedProperty:
+    """Test class with __slots__ and cached property."""
 
+    __slots__ = ("_storage", "call_count", "_cached_cached_value")
 
-def test_generic_property_unreadable_attribute_raises() -> None:
-    # Construct a GenericProperty without a getter to force the branch
-    prop: _GenericProperty[int, int] = _GenericProperty(
-        fget=None,
-        fset=None,
-        fdel=None,
-        doc=None,
-        kind=Kind.SIMPLE,
-        cached=False,
-        log_context=False,
-    )
+    def __init__(self):
+        """Init SlotsClassWithCachedProperty."""
+        self._storage: str = "initial"
+        self.call_count: int = 0
 
-    class C:
-        # Bind our property instance to the class
-        p = prop  # type: ignore[assignment]
+    @hm_property(cached=True)
+    def cached_value(self) -> str:
+        """Return a computed value that should be cached."""
+        self.call_count += 1
+        return f"slots_{self.call_count}"
 
-    with pytest.raises(AttributeError, match="unreadable attribute"):
-        _ = C().p  # type: ignore[attr-defined]
+    @cached_value.setter
+    def cached_value(self, value: str) -> None:
+        """Set the value."""
+        self._storage = value
+
+    @cached_value.deleter
+    def cached_value(self) -> None:
+        """Delete the value."""
+        self._storage = "deleted"

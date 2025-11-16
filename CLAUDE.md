@@ -556,6 +556,7 @@ await central.stop()
 - Translates high-level operations to backend requests
 
 **Key Types**:
+
 - `ClientCCU` - CCU3/CCU2 via XML-RPC
 - `ClientJsonCCU` - CCU via JSON-RPC
 - `ClientHomegear` - Homegear backend
@@ -569,6 +570,7 @@ await central.stop()
 - Provides generic, custom, and calculated entity types
 
 **Key Classes**:
+
 - `Device` - Represents a physical device
 - `Channel` - A device channel
 - `DataPoint` - Addressable parameter with read/write/event capabilities
@@ -1017,57 +1019,57 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 
 ### Configuration Files
 
-| File | Purpose | Key Settings |
-|------|---------|--------------|
-| `pyproject.toml` | Main project configuration | Build, dependencies, tool configs |
-| `.pre-commit-config.yaml` | Pre-commit hooks | Linters, formatters, type checkers |
-| `requirements.txt` | Runtime dependencies | aiohttp, orjson, voluptuous |
-| `requirements_test.txt` | Test dependencies | pytest, mypy, pylint, ruff |
-| `.yamllint` | YAML linting rules | YAML formatting standards |
-| `codecov.yml` | Coverage configuration | Coverage thresholds |
+| File                      | Purpose                    | Key Settings                       |
+| ------------------------- | -------------------------- | ---------------------------------- |
+| `pyproject.toml`          | Main project configuration | Build, dependencies, tool configs  |
+| `.pre-commit-config.yaml` | Pre-commit hooks           | Linters, formatters, type checkers |
+| `requirements.txt`        | Runtime dependencies       | aiohttp, orjson, voluptuous        |
+| `requirements_test.txt`   | Test dependencies          | pytest, mypy, pylint, ruff         |
+| `.yamllint`               | YAML linting rules         | YAML formatting standards          |
+| `codecov.yml`             | Coverage configuration     | Coverage thresholds                |
 
 ### Core Source Files
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `aiohomematic/const.py` | 1,273 | Constants, enums, patterns |
-| `aiohomematic/support.py` | 678 | Cross-cutting utilities |
-| `aiohomematic/central/__init__.py` | 2,390 | Central orchestration |
-| `aiohomematic/client/__init__.py` | 1,944 | Client protocol adapters |
-| `aiohomematic/model/device.py` | ~1,800 | Device model |
-| `aiohomematic/model/data_point.py` | ~1,200 | DataPoint base class |
+| File                               | Lines  | Purpose                    |
+| ---------------------------------- | ------ | -------------------------- |
+| `aiohomematic/const.py`            | 1,273  | Constants, enums, patterns |
+| `aiohomematic/support.py`          | 678    | Cross-cutting utilities    |
+| `aiohomematic/central/__init__.py` | 2,390  | Central orchestration      |
+| `aiohomematic/client/__init__.py`  | 1,944  | Client protocol adapters   |
+| `aiohomematic/model/device.py`     | ~1,800 | Device model               |
+| `aiohomematic/model/data_point.py` | ~1,200 | DataPoint base class       |
 
 ### Documentation Files
 
-| File | Purpose |
-|------|---------|
-| `README.md` | Project overview, quickstart |
-| `changelog.md` | Release history |
-| `docs/architecture.md` | Architecture overview |
-| `docs/data_flow.md` | Data flow diagrams |
-| `docs/extension_points.md` | How to extend the library |
-| `docs/sequence_diagrams.md` | Sequence diagrams |
-| `docs/homeassistant_lifecycle.md` | Home Assistant integration |
+| File                              | Purpose                      |
+| --------------------------------- | ---------------------------- |
+| `README.md`                       | Project overview, quickstart |
+| `changelog.md`                    | Release history              |
+| `docs/architecture.md`            | Architecture overview        |
+| `docs/data_flow.md`               | Data flow diagrams           |
+| `docs/extension_points.md`        | How to extend the library    |
+| `docs/sequence_diagrams.md`       | Sequence diagrams            |
+| `docs/homeassistant_lifecycle.md` | Home Assistant integration   |
 
 ### Test Files
 
-| File | Purpose |
-|------|---------|
-| `tests/conftest.py` | Pytest fixtures and configuration |
-| `tests/test_central.py` | Central unit tests |
-| `tests/test_client.py` | Client protocol tests |
-| `tests/test_model_climate.py` | Climate entity tests |
-| `tests/test_model_cover.py` | Cover entity tests |
+| File                          | Purpose                           |
+| ----------------------------- | --------------------------------- |
+| `tests/conftest.py`           | Pytest fixtures and configuration |
+| `tests/test_central.py`       | Central unit tests                |
+| `tests/test_client.py`        | Client protocol tests             |
+| `tests/test_model_climate.py` | Climate entity tests              |
+| `tests/test_model_cover.py`   | Cover entity tests                |
 
 ### Development Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `script/sort_class_members.py` | Organize class members |
-| `script/check_i18n.py` | Validate translation usage |
-| `script/check_i18n_catalogs.py` | Check translation completeness |
-| `script/lint_kwonly.py` | Enforce keyword-only arguments |
-| `script/run-in-env.sh` | Run commands in virtual environment |
+| Script                          | Purpose                             |
+| ------------------------------- | ----------------------------------- |
+| `script/sort_class_members.py`  | Organize class members              |
+| `script/check_i18n.py`          | Validate translation usage          |
+| `script/check_i18n_catalogs.py` | Check translation completeness      |
+| `script/lint_kwonly.py`         | Enforce keyword-only arguments      |
+| `script/run-in-env.sh`          | Run commands in virtual environment |
 
 ---
 

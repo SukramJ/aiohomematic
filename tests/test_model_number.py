@@ -242,4 +242,6 @@ class TestSysvarNumber:
         # For numbers without explicit min/max, any value should work
         if enumber:
             await enumber.send_variable(value=42.0)
-            assert any(c == call.set_system_variable(legacy_name="integer_ext", value=42.0) for c in mock_client.method_calls)
+            assert any(
+                c == call.set_system_variable(legacy_name="integer_ext", value=42.0) for c in mock_client.method_calls
+            )

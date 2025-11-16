@@ -54,52 +54,54 @@ class _FakeDevice:
         return True
 
 
-async def test_update_properties_and_latest_firmware_and_in_progress() -> None:
-    """DpUpdate should expose device data and compute latest_firmware/in_progress correctly."""
-    dev = _FakeDevice()
-    dp = DpUpdate(device=dev)
+class TestUpdateDataPoint:
+    """Tests for DpUpdate data points."""
 
-    # Basic properties
-    assert dp.available is True
-    assert dp.firmware == "1.0.0"
-    assert dp.firmware_update_state is None
+    async def test_update_properties_and_latest_firmware_and_in_progress(self) -> None:
+        """Test DpUpdate device properties and latest firmware computation."""
+        dev = _FakeDevice()
+        dp = DpUpdate(device=dev)
 
-    # latest_firmware for BidCos returns available_firmware if set
-    dev.available_firmware = "1.1.0"
-    assert dp.latest_firmware == "1.1.0"
+        # Basic properties
+        assert dp.available is True
+        assert dp.firmware == "1.0.0"
+        assert dp.firmware_update_state is None
 
-    # HMIP: in_progress depends on state, latest depends on READY states
-    dev.interface = Interface.HMIP_RF
-    dev.firmware_update_state = next(iter(HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES))
-    assert dp.in_progress is True
-    dev.firmware_update_state = next(iter(HMIP_FIRMWARE_UPDATE_READY_STATES))
-    dev.available_firmware = "2.0.0"
-    assert dp.latest_firmware == "2.0.0"
+        # latest_firmware for BidCos returns available_firmware if set
+        dev.available_firmware = "1.1.0"
+        assert dp.latest_firmware == "1.1.0"
 
+        # HMIP: in_progress depends on state, latest depends on READY states
+        dev.interface = Interface.HMIP_RF
+        dev.firmware_update_state = next(iter(HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES))
+        assert dp.in_progress is True
+        dev.firmware_update_state = next(iter(HMIP_FIRMWARE_UPDATE_READY_STATES))
+        dev.available_firmware = "2.0.0"
+        assert dp.latest_firmware == "2.0.0"
 
-async def test_update_register_unregister_and_actions(monkeypatch) -> None:
-    """Registering a callback returns an unregister; refresh and update call through to device/central."""
-    dev = _FakeDevice()
-    dp = DpUpdate(device=dev)
+    async def test_update_register_unregister_and_actions(self, monkeypatch) -> None:
+        """Test DpUpdate callback registration and firmware update actions."""
+        dev = _FakeDevice()
+        dp = DpUpdate(device=dev)
 
-    called: dict[str, Any] = {"count": 0}
+        called: dict[str, Any] = {"count": 0}
 
-    def cb(**kwargs: Any) -> None:  # noqa: D401
-        """Execute dummy callback."""
-        called["count"] += 1
+        def cb(**kwargs: Any) -> None:  # noqa: D401
+            """Execute dummy callback."""
+            called["count"] += 1
 
-    unregister = dp.register_data_point_updated_callback(cb=cb, custom_id="CID")
-    assert callable(unregister)
-    # The device should have the callback stored
-    assert dev._callbacks
-    unregister()  # remove from device
-    assert not dev._callbacks
+        unregister = dp.register_data_point_updated_callback(cb=cb, custom_id="CID")
+        assert callable(unregister)
+        # The device should have the callback stored
+        assert dev._callbacks
+        unregister()  # remove from device
+        assert not dev._callbacks
 
-    # refresh_firmware_data should forward to central and update modified_at
-    before = dp.modified_at
-    await dp.refresh_firmware_data()
-    assert dev.address in dev.central._refreshed
-    assert dp.modified_at >= before
+        # refresh_firmware_data should forward to central and update modified_at
+        before = dp.modified_at
+        await dp.refresh_firmware_data()
+        assert dev.address in dev.central._refreshed
+        assert dp.modified_at >= before
 
-    # update_firmware forwards to device
-    assert await dp.update_firmware(refresh_after_update_intervals=(1, 2)) is True
+        # update_firmware forwards to device
+        assert await dp.update_firmware(refresh_after_update_intervals=(1, 2)) is True

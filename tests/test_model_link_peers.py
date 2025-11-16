@@ -9,132 +9,128 @@ import pytest
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    (
-        "address_device_translation",
-        "do_mock_client",
-        "ignore_devices_on_create",
-        "un_ignore_list",
-    ),
-    [
-        (TEST_DEVICES, True, None, None),
-    ],
-)
-async def test_channel_link_peer_initialization_and_events(
-    central_client_factory_with_homegear_client,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """
-    Link peer addresses are loaded and change event is emitted once on init.
+class TestChannelLinkPeers:
+    """Tests for Channel link peer functionality."""
 
-    Also verifies that when exactly one peer exists, the peer channel is resolvable.
-    """
-    central, client, _ = central_client_factory_with_homegear_client
-    device = central.get_device(address="VCU2128127")
-    # Use channel 1, which exists for this device in the test dataset
-    ch = device.get_channel(channel_address=f"{device.address}:1")
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_channel_link_peer_change_detection_and_properties(
+        self,
+        central_client_factory_with_homegear_client,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test link peer change detection and property behavior for single vs multiple peers."""
+        central, client, _ = central_client_factory_with_homegear_client
+        device = central.get_device(address="VCU2128127")
+        ch = device.get_channel(channel_address=f"{device.address}:1")
 
-    # Force transmitter condition to ensure init_link_peer tries to fetch peers
-    ch._link_source_categories = True  # type: ignore[attr-defined]
+        # Force transmitter condition
+        ch._link_source_categories = True  # type: ignore[attr-defined]
 
-    # Prepare a deterministic get_link_peers implementation
-    peer_addr_single = f"{device.address}:2"
+        # Sequence of returns: first single, then same (no event), then multiple (event)
+        seq = [
+            (f"{device.address}:2",),
+            (f"{device.address}:2",),
+            (f"{device.address}:2", f"{device.address}:3"),
+        ]
 
-    async def _fake_get_link_peers(*, address: str):  # noqa: D401, ARG001
-        return (peer_addr_single,)
+        async def _fake_get_link_peers(*, address: str):  # noqa: D401, ARG001
+            # Pop from the sequence until exhausted; then keep returning last
+            if seq:
+                return seq.pop(0)
+            return (f"{device.address}:2",)
 
-    monkeypatch.setattr(client, "get_link_peers", _fake_get_link_peers, raising=False)
+        monkeypatch.setattr(client, "get_link_peers", _fake_get_link_peers, raising=False)
 
-    calls: list[str] = []
+        calls: list[str] = []
 
-    def _on_changed() -> None:
-        calls.append("changed")
+        def _on_changed() -> None:
+            calls.append("changed")
 
-    unreg = ch.register_link_peer_changed_callback(cb=_on_changed)
+        ch.register_link_peer_changed_callback(cb=_on_changed)
 
-    # Trigger init
-    await ch.init_link_peer()
+        # 1st init: should emit
+        await ch.init_link_peer()
+        assert calls == ["changed"]
+        assert ch.link_peer_addresses == (f"{device.address}:2",)
+        assert len(ch.link_peer_channels) == 1
 
-    # Ensure callback fired once and addresses are set
-    assert calls == ["changed"]
-    assert ch.link_peer_addresses == (peer_addr_single,)
+        # 2nd init with same data: no additional emit
+        await ch.init_link_peer()
+        assert calls == ["changed"]
 
-    # Exactly one peer => channel should resolve
-    peer_ch = ch.link_peer_channels[0]
-    assert peer_ch is not None
-    assert peer_ch.address == peer_addr_single
+        # 3rd init with changed peers (multiple): should emit
+        await ch.init_link_peer()
+        assert calls == ["changed", "changed"]
 
-    # Cleanup callback
-    if unreg:
-        unreg()
+        # With multiple peers: property returns a tuple and peer channel cannot be resolved
+        addr = ch.link_peer_addresses
+        assert isinstance(addr, tuple) and len(addr) == 2
+        assert len(ch.link_peer_channels) == 2
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_channel_link_peer_initialization_and_events(
+        self,
+        central_client_factory_with_homegear_client,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test link peer address loading and change event emission on initialization."""
+        central, client, _ = central_client_factory_with_homegear_client
+        device = central.get_device(address="VCU2128127")
+        # Use channel 1, which exists for this device in the test dataset
+        ch = device.get_channel(channel_address=f"{device.address}:1")
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    (
-        "address_device_translation",
-        "do_mock_client",
-        "ignore_devices_on_create",
-        "un_ignore_list",
-    ),
-    [
-        (TEST_DEVICES, True, None, None),
-    ],
-)
-async def test_channel_link_peer_change_detection_and_properties(
-    central_client_factory_with_homegear_client,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """
-    Verify that change events are only emitted when peers actually change.
+        # Force transmitter condition to ensure init_link_peer tries to fetch peers
+        ch._link_source_categories = True  # type: ignore[attr-defined]
 
-    Also verify property behavior for single vs multiple peers.
-    """
-    central, client, _ = central_client_factory_with_homegear_client
-    device = central.get_device(address="VCU2128127")
-    ch = device.get_channel(channel_address=f"{device.address}:1")
+        # Prepare a deterministic get_link_peers implementation
+        peer_addr_single = f"{device.address}:2"
 
-    # Force transmitter condition
-    ch._link_source_categories = True  # type: ignore[attr-defined]
+        async def _fake_get_link_peers(*, address: str):  # noqa: D401, ARG001
+            return (peer_addr_single,)
 
-    # Sequence of returns: first single, then same (no event), then multiple (event)
-    seq = [
-        (f"{device.address}:2",),
-        (f"{device.address}:2",),
-        (f"{device.address}:2", f"{device.address}:3"),
-    ]
+        monkeypatch.setattr(client, "get_link_peers", _fake_get_link_peers, raising=False)
 
-    async def _fake_get_link_peers(*, address: str):  # noqa: D401, ARG001
-        # Pop from the sequence until exhausted; then keep returning last
-        if seq:
-            return seq.pop(0)
-        return (f"{device.address}:2",)
+        calls: list[str] = []
 
-    monkeypatch.setattr(client, "get_link_peers", _fake_get_link_peers, raising=False)
+        def _on_changed() -> None:
+            calls.append("changed")
 
-    calls: list[str] = []
+        unreg = ch.register_link_peer_changed_callback(cb=_on_changed)
 
-    def _on_changed() -> None:
-        calls.append("changed")
+        # Trigger init
+        await ch.init_link_peer()
 
-    ch.register_link_peer_changed_callback(cb=_on_changed)
+        # Ensure callback fired once and addresses are set
+        assert calls == ["changed"]
+        assert ch.link_peer_addresses == (peer_addr_single,)
 
-    # 1st init: should emit
-    await ch.init_link_peer()
-    assert calls == ["changed"]
-    assert ch.link_peer_addresses == (f"{device.address}:2",)
-    assert len(ch.link_peer_channels) == 1
+        # Exactly one peer => channel should resolve
+        peer_ch = ch.link_peer_channels[0]
+        assert peer_ch is not None
+        assert peer_ch.address == peer_addr_single
 
-    # 2nd init with same data: no additional emit
-    await ch.init_link_peer()
-    assert calls == ["changed"]
-
-    # 3rd init with changed peers (multiple): should emit
-    await ch.init_link_peer()
-    assert calls == ["changed", "changed"]
-
-    # With multiple peers: property returns a tuple and peer channel cannot be resolved
-    addr = ch.link_peer_addresses
-    assert isinstance(addr, tuple) and len(addr) == 2
-    assert len(ch.link_peer_channels) == 2
+        # Cleanup callback
+        if unreg:
+            unreg()

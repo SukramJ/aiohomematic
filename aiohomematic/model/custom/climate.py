@@ -16,6 +16,7 @@ from aiohomematic.const import (
     BIDCOS_DEVICE_CHANNEL_DUMMY,
     CLIMATE_PROFILE_DICT,
     CLIMATE_SIMPLE_PROFILE_DICT,
+    CLIMATE_SIMPLE_SCHEDULE_DICT,
     CLIMATE_SIMPLE_WEEKDAY_LIST,
     CLIMATE_WEEKDAY_DICT,
     DataPointCategory,
@@ -339,6 +340,39 @@ class BaseCustomDpClimate(CustomDataPoint):
             return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
         return {}
 
+    @inspector
+    async def get_schedule_simple_profile(
+        self, *, base_temperature: float, profile: ScheduleProfile, force_load: bool = False
+    ) -> CLIMATE_SIMPLE_PROFILE_DICT:
+        """Return a simple schedule by climate profile (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return await self._device.week_profile.get_simple_profile(
+                base_temperature=base_temperature, profile=profile, force_load=force_load
+            )
+        return {}
+
+    @inspector
+    async def get_schedule_simple_schedule(
+        self, *, base_temperature: float, force_load: bool = False
+    ) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
+        """Return the complete simple schedule dictionary (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return await self._device.week_profile.get_simple_schedule(
+                base_temperature=base_temperature, force_load=force_load
+            )
+        return {}
+
+    @inspector
+    async def get_schedule_simple_weekday(
+        self, *, base_temperature: float, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
+    ) -> CLIMATE_SIMPLE_WEEKDAY_LIST:
+        """Return a simple schedule by climate profile and weekday (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return await self._device.week_profile.get_simple_weekday(
+                base_temperature=base_temperature, profile=profile, weekday=weekday, force_load=force_load
+            )
+        return []
+
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
         if (
@@ -382,6 +416,16 @@ class BaseCustomDpClimate(CustomDataPoint):
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
             await self._device.week_profile.set_weekday(
                 profile=profile, weekday=weekday, weekday_data=weekday_data, do_validate=do_validate
+            )
+
+    @inspector
+    async def set_schedule_simple_schedule(
+        self, *, base_temperature: float, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
+    ) -> None:
+        """Set the complete simple schedule dictionary to device (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            await self._device.week_profile.set_simple_schedule(
+                base_temperature=base_temperature, simple_schedule_data=simple_schedule_data
             )
 
     @inspector

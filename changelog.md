@@ -4,7 +4,8 @@
 
 - Add more simple services and converters to week profile
 - Add base_temperature to CLIMATE_SIMPLE_WEEKDAY_DATA
-- Filter entries in \_validate_and_convert_weekday_to_simple
+- Filter entries in validate_and_convert_weekday_to_simple
+- Refactor simple schedule
 
 # Version 2025.11.17 (2025-11-16)
 

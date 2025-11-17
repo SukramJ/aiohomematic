@@ -102,24 +102,46 @@ SIMPLE SCHEDULE FORMAT
 ======================
 
 A simplified format for easy user input, focusing on temperature periods without
-redundant 24:00 slots:
+redundant 24:00 slots. The base temperature is automatically identified or can be
+specified as part of the data structure.
 
-CLIMATE_SIMPLE_WEEKDAY_LIST:
-[
-    {
-        ScheduleSlotType.STARTTIME: "06:00",
-        ScheduleSlotType.ENDTIME: "08:00",
-        ScheduleSlotType.TEMPERATURE: 21.0
-    },
-    {
-        ScheduleSlotType.STARTTIME: "17:00",
-        ScheduleSlotType.ENDTIME: "22:00",
-        ScheduleSlotType.TEMPERATURE: 21.0
-    }
-]
+CLIMATE_SIMPLE_WEEKDAY_DATA:
+    Structure: tuple[float, CLIMATE_SIMPLE_WEEKDAY_LIST]
+
+    A tuple containing:
+    - base_temperature (float): The temperature used for periods not explicitly defined
+    - list of time periods: Non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE
+
+Example:
+(
+    18.0,  # base_temperature - used for gaps and periods at this temperature
+    [
+        {
+            ScheduleSlotType.STARTTIME: "06:00",
+            ScheduleSlotType.ENDTIME: "08:00",
+            ScheduleSlotType.TEMPERATURE: 21.0
+        },
+        {
+            ScheduleSlotType.STARTTIME: "17:00",
+            ScheduleSlotType.ENDTIME: "22:00",
+            ScheduleSlotType.TEMPERATURE: 21.0
+        }
+    ]
+)
+
+CLIMATE_SIMPLE_PROFILE_DICT:
+    Structure: dict[WeekdayStr, CLIMATE_SIMPLE_WEEKDAY_DATA]
+
+    Maps weekday names to their simple weekday data (base temp + periods).
+
+CLIMATE_SIMPLE_SCHEDULE_DICT:
+    Structure: dict[ScheduleProfile, CLIMATE_SIMPLE_PROFILE_DICT]
+
+    Maps profiles (P1-P6) to their simple profile data.
 
 The system automatically:
-- Fills gaps with base_temperature
+- Identifies base_temperature when converting from full format (using identify_base_temperature())
+- Fills gaps with base_temperature when converting to full format
 - Converts to full 13-slot format
 - Sorts by time
 - Validates ranges
@@ -131,58 +153,73 @@ SCHEDULE SERVICES
 Core Operations:
 ----------------
 
-get_schedule() -> CLIMATE_SCHEDULE_DICT
+Full Format Methods:
+~~~~~~~~~~~~~~~~~~~~
+
+get_schedule(*, force_load: bool = False) -> CLIMATE_SCHEDULE_DICT
     Retrieves complete schedule from cache or device.
     Returns filtered data (redundant 24:00 slots removed).
 
-get_profile(profile) -> CLIMATE_PROFILE_DICT
+get_profile(*, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_PROFILE_DICT
     Retrieves single profile (e.g., P1) from cache or device.
     Returns filtered data for the specified profile.
 
-get_weekday(profile, weekday) -> CLIMATE_WEEKDAY_DICT
+get_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> CLIMATE_WEEKDAY_DICT
     Retrieves single weekday schedule from a profile.
     Returns filtered data for the specified weekday.
 
-get_simple_schedule(base_temperature) -> CLIMATE_SIMPLE_SCHEDULE_DICT
-    Retrieves complete schedule in simplified format from cache or device.
-    Returns only non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE.
-
-get_simple_profile(base_temperature, profile) -> CLIMATE_SIMPLE_PROFILE_DICT
-    Retrieves single profile in simplified format from cache or device.
-    Returns only non-base temperature periods for the specified profile.
-
-get_simple_weekday(base_temperature, profile, weekday) -> CLIMATE_SIMPLE_WEEKDAY_LIST
-    Retrieves single weekday in simplified format from cache or device.
-    Returns list of non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE.
-
-set_schedule(schedule_data)
+set_schedule(*, schedule_data: CLIMATE_SCHEDULE_DICT) -> None
     Persists complete schedule to device.
     Updates cache and emits change events.
 
-set_profile(profile, profile_data)
+set_profile(*, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT) -> None
     Persists single profile to device.
     Validates, updates cache, and emits change events.
 
-set_weekday(profile, weekday, weekday_data)
+set_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, weekday_data: CLIMATE_WEEKDAY_DICT) -> None
     Persists single weekday schedule to device.
     Normalizes to 13 slots, validates, updates cache.
 
-set_simple_schedule(base_temperature, simple_schedule_data)
+Simple Format Methods:
+~~~~~~~~~~~~~~~~~~~~~~
+
+get_simple_schedule(*, force_load: bool = False) -> CLIMATE_SIMPLE_SCHEDULE_DICT
+    Retrieves complete schedule in simplified format from cache or device.
+    Automatically identifies base_temperature for each weekday.
+    Returns dict[ScheduleProfile, dict[WeekdayStr, (base_temp, list)]].
+
+get_simple_profile(*, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_SIMPLE_PROFILE_DICT
+    Retrieves single profile in simplified format from cache or device.
+    Automatically identifies base_temperature for each weekday.
+    Returns dict[WeekdayStr, (base_temp, list)] for the specified profile.
+
+get_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> CLIMATE_SIMPLE_WEEKDAY_DATA
+    Retrieves single weekday in simplified format from cache or device.
+    Automatically identifies base_temperature.
+    Returns tuple of (base_temperature, list of non-base periods).
+
+set_simple_schedule(*, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT) -> None
     Persists complete schedule using simplified format to device.
     Converts simple format to full 13-slot format automatically.
+    Expects dict[ScheduleProfile, dict[WeekdayStr, (base_temp, list)]].
 
-set_simple_profile(base_temperature, profile, simple_profile_data)
+set_simple_profile(*, profile: ScheduleProfile, simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT) -> None
     Persists single profile using simplified format to device.
     Converts simple format to full 13-slot format automatically.
+    Expects dict[WeekdayStr, (base_temp, list)].
 
-set_simple_weekday(base_temperature, profile, weekday, simple_weekday_data)
+set_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_DATA) -> None
     Persists single weekday using simplified format to device.
     Converts simple format to full 13-slot format automatically.
+    Expects tuple of (base_temperature, list).
 
-copy_schedule(target_climate_data_point)
+Utility Methods:
+~~~~~~~~~~~~~~~~
+
+copy_schedule(*, target_climate_data_point: BaseCustomDpClimate | None = None) -> None
     Copies entire schedule from this device to another.
 
-copy_profile(source_profile, target_profile, target_climate_data_point)
+copy_profile(*, source_profile: ScheduleProfile, target_profile: ScheduleProfile, target_climate_data_point: BaseCustomDpClimate | None = None) -> None
     Copies single profile to another profile/device.
 
 
@@ -255,15 +292,27 @@ Setting a Schedule:
 Using Simple Format:
 --------------------
 1. User calls set_simple_weekday with:
-   - profile: P1
-   - weekday: "MONDAY"
-   - base_temperature: 18.0
-   - simple_weekday_data: [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}]
-2. System converts to full format:
+   - profile: ScheduleProfile.P1
+   - weekday: WeekdayStr.MONDAY
+   - simple_weekday_data: (18.0, [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}])
+                          ^^^^^ base_temperature is part of the tuple
+2. System extracts base_temperature (18.0) and periods from tuple
+3. System converts to full format:
    - Slot 1: ENDTIME: "07:00", TEMP: 18.0 (base_temperature before start)
    - Slot 2: ENDTIME: "22:00", TEMP: 21.0 (user's period)
    - Slots 3-13: ENDTIME: "24:00", TEMP: 18.0 (base_temperature after end)
-3. System validates and persists
+4. System validates and persists
+
+Reading Simple Format:
+----------------------
+1. User calls get_simple_weekday(profile=P1, weekday="MONDAY")
+2. System retrieves full schedule from cache (13 slots)
+3. System identifies base_temperature using identify_base_temperature()
+   - Analyzes time durations for each temperature
+   - Returns temperature used for most minutes of the day
+4. System filters out base_temperature periods and returns:
+   (18.0, [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}])
+   ^^^^^ identified base_temperature + list of non-base periods
 
 DATA FLOW SUMMARY
 =================
@@ -277,12 +326,13 @@ Python → Device (Writing):
     convert_dict_to_raw_schedule() → Raw Paramset → Device
 
 Simple → Full Format (Writing):
-    Simple List → _validate_and_convert_simple_to_weekday() →
+    Simple Tuple (base_temp, list) → _validate_and_convert_simple_to_weekday() →
     Full 13 slots → Normal writing flow
 
 Full → Simple Format (Reading):
-    Full 13 slots → _validate_and_convert_weekday_to_simple() →
-    Simple List (non-base temperature periods only)
+    Full 13 slots → identify_base_temperature() (analyzes time durations) →
+    _validate_and_convert_weekday_to_simple() →
+    Simple Tuple (base_temp, non-base temperature periods only)
 
 """
 

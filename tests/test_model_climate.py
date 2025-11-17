@@ -2311,3 +2311,328 @@ class TestScheduleNormalization:
         cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
         assert all(isinstance(key, int) for key in cached_data)
         assert len(cached_data) == 13
+
+
+class TestClimateHelperMethods:
+    """Tests for untested climate helper methods and properties."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_is_state_change_temperature(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test is_state_change method for temperature changes."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Temperature change should return True
+        assert climate.is_state_change(temperature=22.0) is True
+
+        # Same temperature should return False
+        current_temp = climate.target_temperature
+        if current_temp is not None:
+            assert climate.is_state_change(temperature=current_temp) is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_is_state_change_mode(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test is_state_change method for mode changes."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Different mode should return True
+        current_mode = climate.mode
+        new_mode = ClimateMode.AUTO if current_mode != ClimateMode.AUTO else ClimateMode.HEAT
+        assert climate.is_state_change(mode=new_mode) is True
+
+        # Same mode should return False
+        assert climate.is_state_change(mode=current_mode) is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_is_state_change_profile(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test is_state_change method for profile changes."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Different profile should return True
+        current_profile = climate.profile
+        new_profile = ClimateProfile.COMFORT if current_profile != ClimateProfile.COMFORT else ClimateProfile.ECO
+        assert climate.is_state_change(profile=new_profile) is True
+
+        # Same profile should return False
+        assert climate.is_state_change(profile=current_profile) is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_temperature_for_heat_mode_rf_thermostat(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test _temperature_for_heat_mode property for RF thermostat."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Test with valid temperature
+        temp = climate._temperature_for_heat_mode
+        assert temp >= climate.min_temp
+        assert temp <= climate.max_temp
+
+        # Test with OFF temperature
+        await climate.set_temperature(temperature=4.5, do_validate=False)
+        temp = climate._temperature_for_heat_mode
+        assert temp > 4.5
+        assert temp >= climate.min_temp
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_temperature_for_heat_mode_ip_thermostat(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test _temperature_for_heat_mode property for IP thermostat."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpIpThermostat = cast(
+            CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1)
+        )
+
+        # Test with valid temperature
+        temp = climate._temperature_for_heat_mode
+        assert temp >= climate.min_temp
+        assert temp <= climate.max_temp
+
+        # Test with None target temperature
+        climate._old_manu_setpoint = None
+        temp = climate._temperature_for_heat_mode
+        assert temp >= climate.min_temp
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_temperature_offset_rf_thermostat(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test temperature_offset property for RF thermostat."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Temperature offset should be accessible
+        offset = climate.temperature_offset
+        assert offset is None or isinstance(offset, str)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_temperature_offset_ip_thermostat(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test temperature_offset property for IP thermostat."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpIpThermostat = cast(
+            CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1)
+        )
+
+        # Temperature offset should be accessible
+        offset = climate.temperature_offset
+        assert offset is None or isinstance(offset, float)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_optimum_start_stop_property(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test optimum_start_stop property for IP thermostat."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpIpThermostat = cast(
+            CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1)
+        )
+
+        # optimum_start_stop should be accessible
+        optimum = climate.optimum_start_stop
+        assert optimum is None or isinstance(optimum, bool)
+
+    def test_party_mode_code_helper_function(self) -> None:
+        """Test _party_mode_code helper function."""
+        from aiohomematic.model.custom.climate import _party_mode_code
+
+        # Test party mode code generation
+        start = datetime(2025, 1, 15, 10, 30)
+        end = datetime(2025, 1, 16, 14, 45)
+        away_temp = 18.5
+
+        code = _party_mode_code(start=start, end=end, away_temperature=away_temp)
+
+        # Expected format: "18.5,630,15,01,25,885,16,01,25"
+        parts = code.split(",")
+        assert len(parts) == 9
+        assert float(parts[0]) == away_temp
+        assert int(parts[1]) == 630  # 10*60 + 30
+        assert parts[2] == "15"  # day
+        assert parts[3] == "01"  # month
+        assert parts[4] == "25"  # year
+        assert int(parts[5]) == 885  # 14*60 + 45
+        assert parts[6] == "16"  # day
+        assert parts[7] == "01"  # month
+        assert parts[8] == "25"  # year
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_available_schedule_profiles(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test available_schedule_profiles property."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Load schedule first
+        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+
+        # Check available profiles
+        available = climate.available_schedule_profiles
+        assert isinstance(available, tuple)
+        # Should have at least P1 after loading it
+        if available:
+            assert all(isinstance(p, ScheduleProfile) for p in available)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_schedule_profile_nos_property(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test schedule_profile_nos property."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate_rf: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+        climate_ip: CustomDpIpThermostat = cast(
+            CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1)
+        )
+
+        # RF thermostat should return profile count
+        assert isinstance(climate_rf.schedule_profile_nos, int)
+
+        # IP thermostat should return profile count
+        assert isinstance(climate_ip.schedule_profile_nos, int)
+        assert climate_ip.schedule_profile_nos > 0

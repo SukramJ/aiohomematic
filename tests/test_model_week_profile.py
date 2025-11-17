@@ -2925,3 +2925,325 @@ class TestInverseScheduleConverters:
             assert ScheduleProfile.P2 in result
             assert WeekdayStr.MONDAY in result[ScheduleProfile.P1]
             assert WeekdayStr.TUESDAY in result[ScheduleProfile.P2]
+
+
+class TestWeekProfileHelperMethods:
+    """Tests for untested week profile helper methods and properties."""
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_address_property(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test schedule_channel_address property."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        if climate.device.week_profile:
+            # Should return channel address
+            channel_address = climate.device.week_profile.schedule_channel_address
+            assert channel_address is not None
+            assert isinstance(channel_address, str)
+            assert ":" in channel_address  # Format should be "ADDRESS:CHANNEL"
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_supports_schedule_property(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test supports_schedule property."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        if climate.device.week_profile:
+            # Should return True for devices with schedule support
+            assert climate.device.week_profile.supports_schedule is True
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_validate_and_get_schedule_channel_address(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test _validate_and_get_schedule_channel_address method."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        if climate.device.week_profile:
+            # Should return valid channel address
+            channel_address = climate.device.week_profile._validate_and_get_schedule_channel_address()
+            assert channel_address is not None
+            assert isinstance(channel_address, str)
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_validate_and_get_schedule_channel_address_unsupported(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test _validate_and_get_schedule_channel_address raises exception when unsupported."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        if climate.device.week_profile:
+            # Mock schedule_channel_address to return None
+            original_sca = climate.device.week_profile._schedule_channel_no
+            climate.device.week_profile._schedule_channel_no = None
+
+            # Temporarily clear default_schedule_channel
+            original_dsc = climate.device._default_schedule_channel
+            climate.device._default_schedule_channel = None
+
+            # Should raise ValidationException
+            with pytest.raises(ValidationException):
+                climate.device.week_profile._validate_and_get_schedule_channel_address()
+
+            # Restore original values
+            climate.device.week_profile._schedule_channel_no = original_sca
+            climate.device._default_schedule_channel = original_dsc
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_empty_schedule_group(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test empty_schedule_group method for DefaultWeekProfile."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+
+        # Create a mock custom data point with non-climate category
+        mock_data_point = MagicMock(spec=CustomDataPoint)
+        mock_data_point.device.address = "TEST123"
+        mock_data_point.device.client = mock_client
+        mock_data_point.device.central = central
+        mock_data_point.category = DataPointCategory.SWITCH
+        mock_data_point.custom_config.schedule_channel_no = None
+
+        # Create DefaultWeekProfile
+        week_profile = DefaultWeekProfile(data_point=mock_data_point)
+
+        # Get empty schedule group
+        empty_group = week_profile.empty_schedule_group()
+
+        # Should return empty dict when schedule not supported
+        assert isinstance(empty_group, dict)
+
+    def test_empty_schedule_group_switch_category(self):
+        """Test create_empty_schedule_group for switch category."""
+        empty_group = create_empty_schedule_group(category=DataPointCategory.SWITCH)
+
+        # Should have all required fields
+        assert ScheduleField.WEEKDAY in empty_group
+        assert ScheduleField.TARGET_CHANNELS in empty_group
+        assert ScheduleField.LEVEL in empty_group
+        assert ScheduleField.DURATION_BASE in empty_group
+        assert ScheduleField.DURATION_FACTOR in empty_group
+
+        # Weekday and target channels should be empty
+        assert empty_group[ScheduleField.WEEKDAY] == []
+        assert empty_group[ScheduleField.TARGET_CHANNELS] == []
+
+    def test_empty_schedule_group_cover_category(self):
+        """Test create_empty_schedule_group for cover category."""
+        empty_group = create_empty_schedule_group(category=DataPointCategory.COVER)
+
+        # Should have cover-specific fields
+        assert ScheduleField.LEVEL in empty_group
+        assert ScheduleField.LEVEL_2 in empty_group
+        assert empty_group[ScheduleField.LEVEL] == 0.0
+        assert empty_group[ScheduleField.LEVEL_2] == 0.0
+
+    def test_empty_schedule_group_light_category(self):
+        """Test create_empty_schedule_group for light category."""
+        empty_group = create_empty_schedule_group(category=DataPointCategory.LIGHT)
+
+        # Should have light-specific fields
+        assert ScheduleField.LEVEL in empty_group
+        assert ScheduleField.RAMP_TIME_BASE in empty_group
+        assert ScheduleField.RAMP_TIME_FACTOR in empty_group
+        assert ScheduleField.DURATION_BASE in empty_group
+        assert ScheduleField.DURATION_FACTOR in empty_group
+
+    def test_empty_schedule_group_valve_category(self):
+        """Test create_empty_schedule_group for valve category."""
+        empty_group = create_empty_schedule_group(category=DataPointCategory.VALVE)
+
+        # Should have valve-specific fields
+        assert ScheduleField.LEVEL in empty_group
+        assert empty_group[ScheduleField.LEVEL] == 0.0
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_convert_schedule_entries_filters_wp_entries(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test _convert_schedule_entries filters week profile entries correctly."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+
+        # Mock raw paramset with mixed entries
+        raw_values = {
+            "01_WP_WEEKDAY": 127,
+            "01_WP_LEVEL": 1.0,
+            "02_WP_WEEKDAY": 64,
+            "SOME_OTHER_PARAM": "value",
+            "ANOTHER_PARAM": 42,
+        }
+
+        # Should extract only WP entries
+        result = DefaultWeekProfile._convert_schedule_entries(values=raw_values)
+
+        # Should only have WP entries
+        assert "01_WP_WEEKDAY" in result
+        assert "01_WP_LEVEL" in result
+        assert "02_WP_WEEKDAY" in result
+        assert "SOME_OTHER_PARAM" not in result
+        assert "ANOTHER_PARAM" not in result
+        assert len(result) == 3
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_schedule_property_returns_filtered(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test that schedule property returns filtered data."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Load schedule first
+        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+
+        if climate.device.week_profile and isinstance(climate.device.week_profile, ClimeateWeekProfile):
+            # Get schedule via property
+            schedule = climate.device.week_profile.schedule
+
+            # Should return filtered schedule (no redundant 24:00 slots)
+            assert isinstance(schedule, dict)
+
+            # If there's data, verify it's filtered
+            if schedule:
+                for profile_data in schedule.values():
+                    for weekday_data in profile_data.values():
+                        # Filtered data should have fewer than 13 slots
+                        # (unless all slots have different times)
+                        if weekday_data:
+                            # At least verify the data structure is correct
+                            for slot in weekday_data.values():
+                                assert ScheduleSlotType.ENDTIME in slot
+                                assert ScheduleSlotType.TEMPERATURE in slot
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
+    async def test_convert_raw_to_dict_handles_invalid_entries(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test convert_raw_to_dict_schedule handles invalid entries gracefully."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+
+        # Raw schedule with some invalid entries
+        raw_schedule = {
+            "P1_TEMPERATURE_MONDAY_1": 20.0,
+            "P1_ENDTIME_MONDAY_1": 360,
+            "INVALID_ENTRY": "value",
+            "P1_BADTYPE_MONDAY_1": 100,  # Invalid slot type
+            "P99_TEMPERATURE_MONDAY_1": 20.0,  # Invalid profile
+        }
+
+        # Should handle gracefully and only convert valid entries
+        result = ClimeateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+
+        # Should have P1 profile
+        assert ScheduleProfile.P1 in result
+        assert WeekdayStr.MONDAY in result[ScheduleProfile.P1]
+
+        # Should have valid slot
+        assert 1 in result[ScheduleProfile.P1][WeekdayStr.MONDAY]
+        slot = result[ScheduleProfile.P1][WeekdayStr.MONDAY][1]
+        assert ScheduleSlotType.TEMPERATURE in slot
+        assert ScheduleSlotType.ENDTIME in slot

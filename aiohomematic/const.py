@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.11.17"
+VERSION: Final = "2025.11.18"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1265,7 +1265,8 @@ CLIMATE_SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
 CLIMATE_SCHEDULE_SLOT_RANGE: Final = range(1, 13)
 CLIMATE_SCHEDULE_TIME_RANGE: Final = range(1441)
 CLIMATE_SIMPLE_WEEKDAY_LIST = list[dict[ScheduleSlotType, str | float]]
-CLIMATE_SIMPLE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_SIMPLE_WEEKDAY_LIST]
+CLIMATE_SIMPLE_WEEKDAY_DATA = tuple[float, CLIMATE_SIMPLE_WEEKDAY_LIST]
+CLIMATE_SIMPLE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_SIMPLE_WEEKDAY_DATA]
 CLIMATE_SIMPLE_SCHEDULE_DICT = dict[ScheduleProfile, CLIMATE_SIMPLE_PROFILE_DICT]
 DEFAULT_CLIMATE_FILL_TEMPERATURE: Final = 18.0
 DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]

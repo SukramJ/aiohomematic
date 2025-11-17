@@ -306,6 +306,7 @@ from aiohomematic.const import (
     CLIMATE_SCHEDULE_TIME_RANGE,
     CLIMATE_SIMPLE_PROFILE_DICT,
     CLIMATE_SIMPLE_SCHEDULE_DICT,
+    CLIMATE_SIMPLE_WEEKDAY_DATA,
     CLIMATE_SIMPLE_WEEKDAY_LIST,
     CLIMATE_WEEKDAY_DICT,
     DEFAULT_CLIMATE_FILL_TEMPERATURE,
@@ -891,7 +892,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
     @inspector
     async def get_simple_weekday(
         self, *, base_temperature: float, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
-    ) -> CLIMATE_SIMPLE_WEEKDAY_LIST:
+    ) -> CLIMATE_SIMPLE_WEEKDAY_DATA:
         """Return a simple schedule by climate profile and weekday."""
         if not self.supports_schedule:
             raise ValidationException(
@@ -983,40 +984,30 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
     async def set_simple_profile(
         self,
         *,
-        base_temperature: float,
         profile: ScheduleProfile,
         simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT,
     ) -> None:
         """Set a profile to device."""
-        profile_data = self._validate_and_convert_simple_to_profile(
-            base_temperature=base_temperature, simple_profile_data=simple_profile_data
-        )
+        profile_data = self._validate_and_convert_simple_to_profile(simple_profile_data=simple_profile_data)
         await self.set_profile(profile=profile, profile_data=profile_data)
 
     @inspector
-    async def set_simple_schedule(
-        self, *, base_temperature: float, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
-    ) -> None:
+    async def set_simple_schedule(self, *, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT) -> None:
         """Set the complete simple schedule dictionary to device."""
         # Convert simple schedule to full schedule format
-        schedule_data = self._validate_and_convert_simple_to_schedule(
-            base_temperature=base_temperature, simple_schedule_data=simple_schedule_data
-        )
+        schedule_data = self._validate_and_convert_simple_to_schedule(simple_schedule_data=simple_schedule_data)
         await self.set_schedule(schedule_data=schedule_data)
 
     @inspector
     async def set_simple_weekday(
         self,
         *,
-        base_temperature: float,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_LIST,
+        simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_DATA,
     ) -> None:
         """Store a simple weekday profile to device."""
-        weekday_data = self._validate_and_convert_simple_to_weekday(
-            base_temperature=base_temperature, simple_weekday_data=simple_weekday_data
-        )
+        weekday_data = self._validate_and_convert_simple_to_weekday(simple_weekday_data=simple_weekday_data)
         await self.set_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
     @inspector
@@ -1105,7 +1096,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         )
 
     def _validate_and_convert_profile_to_simple(
-        self, *, base_temperature: float, profile_data: CLIMATE_PROFILE_DICT
+        self, *, profile_data: CLIMATE_PROFILE_DICT, base_temperature: float | None = None
     ) -> CLIMATE_SIMPLE_PROFILE_DICT:
         """
         Convert a full climate profile (with 13-slot weekdays) to the simplified representation used for user input.
@@ -1120,74 +1111,53 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
           emitted in the simple representation.
         """
 
-        if not self._min_temp <= float(base_temperature) <= self._max_temp:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.week_profile.validate.base_temperature_out_of_range",
-                    base_temperature=base_temperature,
-                    min=self._min_temp,
-                    max=self._max_temp,
-                )
-            )
-
         simple_profile: CLIMATE_SIMPLE_PROFILE_DICT = {}
         for weekday, weekday_data in profile_data.items():
             simple_profile[weekday] = self._validate_and_convert_weekday_to_simple(
-                base_temperature=base_temperature, weekday_data=weekday_data
+                weekday_data=weekday_data, base_temperature=base_temperature
             )
         return simple_profile
 
     def _validate_and_convert_schedule_to_simple(
-        self, *, base_temperature: float, schedule_data: CLIMATE_SCHEDULE_DICT
+        self, *, schedule_data: CLIMATE_SCHEDULE_DICT, base_temperature: float | None = None
     ) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
         """
         Convert a full schedule to the simplified schedule representation.
 
         Inverse of `_validate_and_convert_simple_to_schedule`.
         """
-        if not self._min_temp <= float(base_temperature) <= self._max_temp:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.week_profile.validate.base_temperature_out_of_range",
-                    base_temperature=base_temperature,
-                    min=self._min_temp,
-                    max=self._max_temp,
-                )
-            )
 
         simple_schedule: CLIMATE_SIMPLE_SCHEDULE_DICT = {}
         for profile, profile_data in schedule_data.items():
             simple_schedule[profile] = self._validate_and_convert_profile_to_simple(
-                base_temperature=base_temperature, profile_data=profile_data
+                profile_data=profile_data, base_temperature=base_temperature
             )
         return simple_schedule
 
     def _validate_and_convert_simple_to_profile(
-        self, *, base_temperature: float, simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT
+        self, *, simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT
     ) -> CLIMATE_PROFILE_DICT:
         """Convert simple profile dict to profile dict."""
         profile_data: CLIMATE_PROFILE_DICT = {}
         for day, simple_weekday_data in simple_profile_data.items():
-            profile_data[day] = self._validate_and_convert_simple_to_weekday(
-                base_temperature=base_temperature, simple_weekday_data=simple_weekday_data
-            )
+            profile_data[day] = self._validate_and_convert_simple_to_weekday(simple_weekday_data=simple_weekday_data)
         return profile_data
 
     def _validate_and_convert_simple_to_schedule(
-        self, *, base_temperature: float, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
+        self, *, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
     ) -> CLIMATE_SCHEDULE_DICT:
         """Convert simple schedule dict to schedule dict."""
         schedule_data: CLIMATE_SCHEDULE_DICT = {}
         for profile, profile_data in simple_schedule_data.items():
-            schedule_data[profile] = self._validate_and_convert_simple_to_profile(
-                base_temperature=base_temperature, simple_profile_data=profile_data
-            )
+            schedule_data[profile] = self._validate_and_convert_simple_to_profile(simple_profile_data=profile_data)
         return schedule_data
 
     def _validate_and_convert_simple_to_weekday(
-        self, *, base_temperature: float, simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_LIST
+        self, *, simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_DATA
     ) -> CLIMATE_WEEKDAY_DICT:
         """Convert simple weekday list to weekday dict."""
+        base_temperature, _weekday_data = simple_weekday_data
+
         if not self._min_temp <= base_temperature <= self._max_temp:
             raise ValidationException(
                 i18n.tr(
@@ -1201,7 +1171,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         weekday_data: CLIMATE_WEEKDAY_DICT = {}
 
         # Validate required fields before sorting
-        for slot in simple_weekday_data:
+        for slot in _weekday_data:
             if (starttime := slot.get(ScheduleSlotType.STARTTIME)) is None:
                 raise ValidationException(i18n.tr("exception.model.week_profile.validate.starttime_missing"))
             if (endtime := slot.get(ScheduleSlotType.ENDTIME)) is None:
@@ -1209,7 +1179,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             if (temperature := slot.get(ScheduleSlotType.TEMPERATURE)) is None:
                 raise ValidationException(i18n.tr("exception.model.week_profile.validate.temperature_missing"))
 
-        sorted_simple_weekday_data = _sort_simple_weekday_data(simple_weekday_data=simple_weekday_data)
+        sorted_simple_weekday_data = _sort_simple_weekday_data(simple_weekday_data=_weekday_data)
         previous_endtime = CLIMATE_MIN_SCHEDULER_TIME
         slot_no = 1
         for slot in sorted_simple_weekday_data:
@@ -1270,26 +1240,33 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         return _fillup_weekday_data(base_temperature=base_temperature, weekday_data=weekday_data)
 
     def _validate_and_convert_weekday_to_simple(
-        self, *, base_temperature: float, weekday_data: CLIMATE_WEEKDAY_DICT
-    ) -> CLIMATE_SIMPLE_WEEKDAY_LIST:
+        self, *, weekday_data: CLIMATE_WEEKDAY_DICT, base_temperature: float | None = None
+    ) -> CLIMATE_SIMPLE_WEEKDAY_DATA:
         """
         Convert a full weekday (13 slots) to a simplified list of time ranges for non-base temperatures.
 
         Inverse of `_validate_and_convert_simple_to_profile_weekday`.
         """
 
-        if not self._min_temp <= float(base_temperature) <= self._max_temp:
+        _base_temperature = (
+            base_temperature if base_temperature is not None else identify_base_temperature(weekday_data=weekday_data)
+        )
+
+        # filter out irrelevant entries
+        filtered_data = _filter_weekday_entries(weekday_data=weekday_data)
+
+        if not self._min_temp <= float(_base_temperature) <= self._max_temp:
             raise ValidationException(
                 i18n.tr(
                     "exception.model.week_profile.validate.base_temperature_out_of_range",
-                    base_temperature=base_temperature,
+                    base_temperature=_base_temperature,
                     min=self._min_temp,
                     max=self._max_temp,
                 )
             )
 
         # Normalize and perform basic validation using existing helper
-        normalized = _normalize_weekday_data(weekday_data=weekday_data)
+        normalized = _normalize_weekday_data(weekday_data=filtered_data)
 
         # Build simple list by merging consecutive non-base temperature slots
         result: CLIMATE_SIMPLE_WEEKDAY_LIST = []
@@ -1319,7 +1296,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
                 )
 
             # Ignore base temperature segments; track/merge non-base
-            if temp != float(base_temperature):
+            if temp != float(_base_temperature):
                 if open_range is None:
                     # start new range from previous_end
                     open_range = {
@@ -1357,7 +1334,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         if result:
             result = _sort_simple_weekday_data(simple_weekday_data=result)
 
-        return result
+        return _base_temperature, result
 
     def _validate_profile(self, *, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT) -> None:
         """Validate the profile."""
@@ -1669,6 +1646,42 @@ def create_empty_schedule_group(category: DataPointCategory | None = None) -> DE
 
 
 # climate
+
+
+def identify_base_temperature(*, weekday_data: CLIMATE_WEEKDAY_DICT) -> float:
+    """
+    Identify base temperature from weekday data.
+
+    Identify the temperature that is used for the most minutes of a day.
+    """
+    if not weekday_data:
+        return DEFAULT_CLIMATE_FILL_TEMPERATURE
+
+    # Track total minutes for each temperature
+    temperature_minutes: dict[float, int] = {}
+    previous_minutes = 0
+
+    # Iterate through slots in order
+    for slot_no in sorted(weekday_data.keys()):
+        slot = weekday_data[slot_no]
+        endtime_minutes = _convert_time_str_to_minutes(time_str=str(slot[ScheduleSlotType.ENDTIME]))
+        temperature = float(slot[ScheduleSlotType.TEMPERATURE])
+
+        # Calculate duration for this slot (from previous endtime to current endtime)
+        duration = endtime_minutes - previous_minutes
+
+        # Add duration to the total for this temperature
+        if temperature not in temperature_minutes:
+            temperature_minutes[temperature] = 0
+        temperature_minutes[temperature] += duration
+
+        previous_minutes = endtime_minutes
+
+    # Return the temperature with the most minutes
+    if not temperature_minutes:
+        return DEFAULT_CLIMATE_FILL_TEMPERATURE
+
+    return max(temperature_minutes, key=lambda temp: temperature_minutes[temp])
 
 
 def _convert_minutes_to_time_str(minutes: Any) -> str:

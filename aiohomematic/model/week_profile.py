@@ -1284,7 +1284,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         """
         Convert a full weekday (13 slots) to a simplified list of time ranges for non-base temperatures.
 
-        Inverse of `_validate_and_convert_simple_to_profile_weekday`.
+        Inverse of `_validate_and_convert_simple_to_weekday`.
         """
 
         base_temperature = identify_base_temperature(weekday_data=weekday_data)

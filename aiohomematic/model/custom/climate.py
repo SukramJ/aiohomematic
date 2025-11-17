@@ -340,15 +340,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         return {}
 
     @inspector
-    async def get_schedule_profile_weekday(
-        self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
-    ) -> CLIMATE_WEEKDAY_DICT:
-        """Return a schedule by climate profile and weekday (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
-        return {}
-
-    @inspector
     async def get_schedule_simple_profile(
         self, *, profile: ScheduleProfile, force_load: bool = False
     ) -> CLIMATE_SIMPLE_PROFILE_DICT:
@@ -374,6 +365,15 @@ class BaseCustomDpClimate(CustomDataPoint):
                 profile=profile, weekday=weekday, force_load=force_load
             )
         return DEFAULT_CLIMATE_FILL_TEMPERATURE, []
+
+    @inspector
+    async def get_schedule_weekday(
+        self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
+    ) -> CLIMATE_WEEKDAY_DICT:
+        """Return a schedule by climate profile and weekday (delegates to week profile)."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
+        return {}
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""

@@ -1048,6 +1048,12 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             values=self.convert_dict_to_raw_schedule(schedule_data={profile: {weekday: weekday_data}}),
         )
 
+    def simple_schedule(self, *, base_temperature: float) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
+        """Return a simplified schedule dictionary."""
+        return self._validate_and_convert_schedule_to_simple(
+            base_temperature=base_temperature, schedule_data=self._schedule_cache
+        )
+
     async def _get_raw_schedule(self) -> RAW_SCHEDULE_DICT:
         """Return the raw schedule."""
         try:

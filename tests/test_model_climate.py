@@ -90,10 +90,10 @@ class TestCustomDpSimpleRfThermostat:
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
             "get_schedule_profile",
-            "get_schedule_profile_weekday",
             "get_schedule_simple_profile",
             "get_schedule_simple_schedule",
             "get_schedule_simple_weekday",
+            "get_schedule_weekday",
             "set_mode",
             "set_profile",
             "set_schedule_profile",
@@ -188,10 +188,10 @@ class TestCustomDpRfThermostat:
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
             "get_schedule_profile",
-            "get_schedule_profile_weekday",
             "get_schedule_simple_profile",
             "get_schedule_simple_schedule",
             "get_schedule_simple_weekday",
+            "get_schedule_weekday",
             "set_mode",
             "set_profile",
             "set_schedule_profile",
@@ -388,10 +388,10 @@ class TestCustomDpRfThermostat:
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
             "get_schedule_profile",
-            "get_schedule_profile_weekday",
             "get_schedule_simple_profile",
             "get_schedule_simple_schedule",
             "get_schedule_simple_weekday",
+            "get_schedule_weekday",
             "set_mode",
             "set_profile",
             "set_schedule_profile",
@@ -750,10 +750,10 @@ class TestCustomDpIpThermostat:
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
             "get_schedule_profile",
-            "get_schedule_profile_weekday",
             "get_schedule_simple_profile",
             "get_schedule_simple_schedule",
             "get_schedule_simple_weekday",
+            "get_schedule_weekday",
             "set_mode",
             "set_profile",
             "set_schedule_profile",
@@ -1037,10 +1037,10 @@ class TestCustomDpIpThermostat:
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
             "get_schedule_profile",
-            "get_schedule_profile_weekday",
             "get_schedule_simple_profile",
             "get_schedule_simple_schedule",
             "get_schedule_simple_weekday",
+            "get_schedule_weekday",
             "set_mode",
             "set_profile",
             "set_schedule_profile",
@@ -1316,9 +1316,7 @@ class TestClimateIntegration:
         assert climate_bwth
         profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)
         assert len(profile_data) == 7
-        weekday_data = await climate_bwth.get_schedule_profile_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY
-        )
+        weekday_data = await climate_bwth.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
         assert len(weekday_data) == 5
         await climate_bwth.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
         await climate_bwth.set_schedule_weekday(
@@ -1864,15 +1862,15 @@ class TestScheduleCache:
         assert cached_profile_data == profile_data
         assert len(mock_client.method_calls) == initial_call_count  # No new API calls
 
-        # Test 3: get_schedule_profile_weekday should return from cache
-        weekday_data = await climate.get_schedule_profile_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
+        # Test 3: get_schedule_weekday should return from cache
+        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
         assert weekday_data is not None
         assert len(weekday_data) > 0
         assert weekday_data == profile_data[WeekdayStr.MONDAY]
         assert len(mock_client.method_calls) == initial_call_count  # No new API calls
 
-        # Test 4: get_schedule_profile_weekday with do_load=True should fetch from API
-        weekday_data_reloaded = await climate.get_schedule_profile_weekday(
+        # Test 4: get_schedule_weekday with do_load=True should fetch from API
+        weekday_data_reloaded = await climate.get_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, force_load=True
         )
         assert weekday_data_reloaded == weekday_data

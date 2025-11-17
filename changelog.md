@@ -1,3 +1,9 @@
+# Version 2025.11.19 (2025-11-17)
+
+## What's Changed
+
+- Fix service naming
+
 # Version 2025.11.18 (2025-11-17)
 
 ## What's Changed

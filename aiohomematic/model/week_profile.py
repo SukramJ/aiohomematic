@@ -102,24 +102,46 @@ SIMPLE SCHEDULE FORMAT
 ======================
 
 A simplified format for easy user input, focusing on temperature periods without
-redundant 24:00 slots:
+redundant 24:00 slots. The base temperature is automatically identified or can be
+specified as part of the data structure.
 
-CLIMATE_SIMPLE_WEEKDAY_LIST:
-[
-    {
-        ScheduleSlotType.STARTTIME: "06:00",
-        ScheduleSlotType.ENDTIME: "08:00",
-        ScheduleSlotType.TEMPERATURE: 21.0
-    },
-    {
-        ScheduleSlotType.STARTTIME: "17:00",
-        ScheduleSlotType.ENDTIME: "22:00",
-        ScheduleSlotType.TEMPERATURE: 21.0
-    }
-]
+CLIMATE_SIMPLE_WEEKDAY_DATA:
+    Structure: tuple[float, CLIMATE_SIMPLE_WEEKDAY_LIST]
+
+    A tuple containing:
+    - base_temperature (float): The temperature used for periods not explicitly defined
+    - list of time periods: Non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE
+
+Example:
+(
+    18.0,  # base_temperature - used for gaps and periods at this temperature
+    [
+        {
+            ScheduleSlotType.STARTTIME: "06:00",
+            ScheduleSlotType.ENDTIME: "08:00",
+            ScheduleSlotType.TEMPERATURE: 21.0
+        },
+        {
+            ScheduleSlotType.STARTTIME: "17:00",
+            ScheduleSlotType.ENDTIME: "22:00",
+            ScheduleSlotType.TEMPERATURE: 21.0
+        }
+    ]
+)
+
+CLIMATE_SIMPLE_PROFILE_DICT:
+    Structure: dict[WeekdayStr, CLIMATE_SIMPLE_WEEKDAY_DATA]
+
+    Maps weekday names to their simple weekday data (base temp + periods).
+
+CLIMATE_SIMPLE_SCHEDULE_DICT:
+    Structure: dict[ScheduleProfile, CLIMATE_SIMPLE_PROFILE_DICT]
+
+    Maps profiles (P1-P6) to their simple profile data.
 
 The system automatically:
-- Fills gaps with base_temperature
+- Identifies base_temperature when converting from full format (using identify_base_temperature())
+- Fills gaps with base_temperature when converting to full format
 - Converts to full 13-slot format
 - Sorts by time
 - Validates ranges
@@ -131,58 +153,73 @@ SCHEDULE SERVICES
 Core Operations:
 ----------------
 
-get_schedule() -> CLIMATE_SCHEDULE_DICT
+Full Format Methods:
+~~~~~~~~~~~~~~~~~~~~
+
+get_schedule(*, force_load: bool = False) -> CLIMATE_SCHEDULE_DICT
     Retrieves complete schedule from cache or device.
     Returns filtered data (redundant 24:00 slots removed).
 
-get_profile(profile) -> CLIMATE_PROFILE_DICT
+get_profile(*, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_PROFILE_DICT
     Retrieves single profile (e.g., P1) from cache or device.
     Returns filtered data for the specified profile.
 
-get_weekday(profile, weekday) -> CLIMATE_WEEKDAY_DICT
+get_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> CLIMATE_WEEKDAY_DICT
     Retrieves single weekday schedule from a profile.
     Returns filtered data for the specified weekday.
 
-get_simple_schedule(base_temperature) -> CLIMATE_SIMPLE_SCHEDULE_DICT
-    Retrieves complete schedule in simplified format from cache or device.
-    Returns only non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE.
-
-get_simple_profile(base_temperature, profile) -> CLIMATE_SIMPLE_PROFILE_DICT
-    Retrieves single profile in simplified format from cache or device.
-    Returns only non-base temperature periods for the specified profile.
-
-get_simple_weekday(base_temperature, profile, weekday) -> CLIMATE_SIMPLE_WEEKDAY_LIST
-    Retrieves single weekday in simplified format from cache or device.
-    Returns list of non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE.
-
-set_schedule(schedule_data)
+set_schedule(*, schedule_data: CLIMATE_SCHEDULE_DICT) -> None
     Persists complete schedule to device.
     Updates cache and emits change events.
 
-set_profile(profile, profile_data)
+set_profile(*, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT) -> None
     Persists single profile to device.
     Validates, updates cache, and emits change events.
 
-set_weekday(profile, weekday, weekday_data)
+set_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, weekday_data: CLIMATE_WEEKDAY_DICT) -> None
     Persists single weekday schedule to device.
     Normalizes to 13 slots, validates, updates cache.
 
-set_simple_schedule(base_temperature, simple_schedule_data)
+Simple Format Methods:
+~~~~~~~~~~~~~~~~~~~~~~
+
+get_simple_schedule(*, force_load: bool = False) -> CLIMATE_SIMPLE_SCHEDULE_DICT
+    Retrieves complete schedule in simplified format from cache or device.
+    Automatically identifies base_temperature for each weekday.
+    Returns dict[ScheduleProfile, dict[WeekdayStr, (base_temp, list)]].
+
+get_simple_profile(*, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_SIMPLE_PROFILE_DICT
+    Retrieves single profile in simplified format from cache or device.
+    Automatically identifies base_temperature for each weekday.
+    Returns dict[WeekdayStr, (base_temp, list)] for the specified profile.
+
+get_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> CLIMATE_SIMPLE_WEEKDAY_DATA
+    Retrieves single weekday in simplified format from cache or device.
+    Automatically identifies base_temperature.
+    Returns tuple of (base_temperature, list of non-base periods).
+
+set_simple_schedule(*, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT) -> None
     Persists complete schedule using simplified format to device.
     Converts simple format to full 13-slot format automatically.
+    Expects dict[ScheduleProfile, dict[WeekdayStr, (base_temp, list)]].
 
-set_simple_profile(base_temperature, profile, simple_profile_data)
+set_simple_profile(*, profile: ScheduleProfile, simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT) -> None
     Persists single profile using simplified format to device.
     Converts simple format to full 13-slot format automatically.
+    Expects dict[WeekdayStr, (base_temp, list)].
 
-set_simple_weekday(base_temperature, profile, weekday, simple_weekday_data)
+set_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_DATA) -> None
     Persists single weekday using simplified format to device.
     Converts simple format to full 13-slot format automatically.
+    Expects tuple of (base_temperature, list).
 
-copy_schedule(target_climate_data_point)
+Utility Methods:
+~~~~~~~~~~~~~~~~
+
+copy_schedule(*, target_climate_data_point: BaseCustomDpClimate | None = None) -> None
     Copies entire schedule from this device to another.
 
-copy_profile(source_profile, target_profile, target_climate_data_point)
+copy_profile(*, source_profile: ScheduleProfile, target_profile: ScheduleProfile, target_climate_data_point: BaseCustomDpClimate | None = None) -> None
     Copies single profile to another profile/device.
 
 
@@ -255,15 +292,27 @@ Setting a Schedule:
 Using Simple Format:
 --------------------
 1. User calls set_simple_weekday with:
-   - profile: P1
-   - weekday: "MONDAY"
-   - base_temperature: 18.0
-   - simple_weekday_data: [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}]
-2. System converts to full format:
+   - profile: ScheduleProfile.P1
+   - weekday: WeekdayStr.MONDAY
+   - simple_weekday_data: (18.0, [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}])
+                          ^^^^^ base_temperature is part of the tuple
+2. System extracts base_temperature (18.0) and periods from tuple
+3. System converts to full format:
    - Slot 1: ENDTIME: "07:00", TEMP: 18.0 (base_temperature before start)
    - Slot 2: ENDTIME: "22:00", TEMP: 21.0 (user's period)
    - Slots 3-13: ENDTIME: "24:00", TEMP: 18.0 (base_temperature after end)
-3. System validates and persists
+4. System validates and persists
+
+Reading Simple Format:
+----------------------
+1. User calls get_simple_weekday(profile=P1, weekday="MONDAY")
+2. System retrieves full schedule from cache (13 slots)
+3. System identifies base_temperature using identify_base_temperature()
+   - Analyzes time durations for each temperature
+   - Returns temperature used for most minutes of the day
+4. System filters out base_temperature periods and returns:
+   (18.0, [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}])
+   ^^^^^ identified base_temperature + list of non-base periods
 
 DATA FLOW SUMMARY
 =================
@@ -277,12 +326,13 @@ Python → Device (Writing):
     convert_dict_to_raw_schedule() → Raw Paramset → Device
 
 Simple → Full Format (Writing):
-    Simple List → _validate_and_convert_simple_to_weekday() →
+    Simple Tuple (base_temp, list) → _validate_and_convert_simple_to_weekday() →
     Full 13 slots → Normal writing flow
 
 Full → Simple Format (Reading):
-    Full 13 slots → _validate_and_convert_weekday_to_simple() →
-    Simple List (non-base temperature periods only)
+    Full 13 slots → identify_base_temperature() (analyzes time durations) →
+    _validate_and_convert_weekday_to_simple() →
+    Simple Tuple (base_temp, non-base temperature periods only)
 
 """
 
@@ -306,6 +356,7 @@ from aiohomematic.const import (
     CLIMATE_SCHEDULE_TIME_RANGE,
     CLIMATE_SIMPLE_PROFILE_DICT,
     CLIMATE_SIMPLE_SCHEDULE_DICT,
+    CLIMATE_SIMPLE_WEEKDAY_DATA,
     CLIMATE_SIMPLE_WEEKDAY_LIST,
     CLIMATE_WEEKDAY_DICT,
     DEFAULT_CLIMATE_FILL_TEMPERATURE,
@@ -750,6 +801,11 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         """Return the schedule cache."""
         return _filter_schedule_entries(schedule_data=self._schedule_cache)
 
+    @property
+    def simple_schedule(self) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
+        """Return a simplified schedule dictionary."""
+        return self._validate_and_convert_schedule_to_simple(schedule_data=self._schedule_cache)
+
     @inspector
     async def copy_profile(
         self,
@@ -854,7 +910,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
 
     @inspector
     async def get_simple_profile(
-        self, *, base_temperature: float, profile: ScheduleProfile, force_load: bool = False
+        self, *, profile: ScheduleProfile, force_load: bool = False
     ) -> CLIMATE_SIMPLE_PROFILE_DICT:
         """Return a simple schedule by climate profile."""
         if not self.supports_schedule:
@@ -866,14 +922,10 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             )
         if force_load or not self._schedule_cache:
             await self.reload_and_cache_schedule()
-        return self._validate_and_convert_profile_to_simple(
-            base_temperature=base_temperature, profile_data=self._schedule_cache.get(profile, {})
-        )
+        return self._validate_and_convert_profile_to_simple(profile_data=self._schedule_cache.get(profile, {}))
 
     @inspector
-    async def get_simple_schedule(
-        self, *, base_temperature: float, force_load: bool = False
-    ) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
+    async def get_simple_schedule(self, *, force_load: bool = False) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
         """Return the complete simple schedule dictionary."""
         if not self.supports_schedule:
             raise ValidationException(
@@ -884,14 +936,12 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             )
         if force_load or not self._schedule_cache:
             await self.reload_and_cache_schedule()
-        return self._validate_and_convert_schedule_to_simple(
-            base_temperature=base_temperature, schedule_data=self._schedule_cache
-        )
+        return self._validate_and_convert_schedule_to_simple(schedule_data=self._schedule_cache)
 
     @inspector
     async def get_simple_weekday(
-        self, *, base_temperature: float, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
-    ) -> CLIMATE_SIMPLE_WEEKDAY_LIST:
+        self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
+    ) -> CLIMATE_SIMPLE_WEEKDAY_DATA:
         """Return a simple schedule by climate profile and weekday."""
         if not self.supports_schedule:
             raise ValidationException(
@@ -903,7 +953,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         if force_load or not self._schedule_cache:
             await self.reload_and_cache_schedule()
         return self._validate_and_convert_weekday_to_simple(
-            base_temperature=base_temperature, weekday_data=self._schedule_cache.get(profile, {}).get(weekday, {})
+            weekday_data=self._schedule_cache.get(profile, {}).get(weekday, {})
         )
 
     @inspector
@@ -983,40 +1033,30 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
     async def set_simple_profile(
         self,
         *,
-        base_temperature: float,
         profile: ScheduleProfile,
         simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT,
     ) -> None:
         """Set a profile to device."""
-        profile_data = self._validate_and_convert_simple_to_profile(
-            base_temperature=base_temperature, simple_profile_data=simple_profile_data
-        )
+        profile_data = self._validate_and_convert_simple_to_profile(simple_profile_data=simple_profile_data)
         await self.set_profile(profile=profile, profile_data=profile_data)
 
     @inspector
-    async def set_simple_schedule(
-        self, *, base_temperature: float, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
-    ) -> None:
+    async def set_simple_schedule(self, *, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT) -> None:
         """Set the complete simple schedule dictionary to device."""
         # Convert simple schedule to full schedule format
-        schedule_data = self._validate_and_convert_simple_to_schedule(
-            base_temperature=base_temperature, simple_schedule_data=simple_schedule_data
-        )
+        schedule_data = self._validate_and_convert_simple_to_schedule(simple_schedule_data=simple_schedule_data)
         await self.set_schedule(schedule_data=schedule_data)
 
     @inspector
     async def set_simple_weekday(
         self,
         *,
-        base_temperature: float,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_LIST,
+        simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_DATA,
     ) -> None:
         """Store a simple weekday profile to device."""
-        weekday_data = self._validate_and_convert_simple_to_weekday(
-            base_temperature=base_temperature, simple_weekday_data=simple_weekday_data
-        )
+        weekday_data = self._validate_and_convert_simple_to_weekday(simple_weekday_data=simple_weekday_data)
         await self.set_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
     @inspector
@@ -1046,12 +1086,6 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
             values=self.convert_dict_to_raw_schedule(schedule_data={profile: {weekday: weekday_data}}),
-        )
-
-    def simple_schedule(self, *, base_temperature: float) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
-        """Return a simplified schedule dictionary."""
-        return self._validate_and_convert_schedule_to_simple(
-            base_temperature=base_temperature, schedule_data=self._schedule_cache
         )
 
     async def _get_raw_schedule(self) -> RAW_SCHEDULE_DICT:
@@ -1105,7 +1139,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         )
 
     def _validate_and_convert_profile_to_simple(
-        self, *, base_temperature: float, profile_data: CLIMATE_PROFILE_DICT
+        self, *, profile_data: CLIMATE_PROFILE_DICT
     ) -> CLIMATE_SIMPLE_PROFILE_DICT:
         """
         Convert a full climate profile (with 13-slot weekdays) to the simplified representation used for user input.
@@ -1120,74 +1154,49 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
           emitted in the simple representation.
         """
 
-        if not self._min_temp <= float(base_temperature) <= self._max_temp:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.week_profile.validate.base_temperature_out_of_range",
-                    base_temperature=base_temperature,
-                    min=self._min_temp,
-                    max=self._max_temp,
-                )
-            )
-
         simple_profile: CLIMATE_SIMPLE_PROFILE_DICT = {}
         for weekday, weekday_data in profile_data.items():
-            simple_profile[weekday] = self._validate_and_convert_weekday_to_simple(
-                base_temperature=base_temperature, weekday_data=weekday_data
-            )
+            simple_profile[weekday] = self._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
         return simple_profile
 
     def _validate_and_convert_schedule_to_simple(
-        self, *, base_temperature: float, schedule_data: CLIMATE_SCHEDULE_DICT
+        self, *, schedule_data: CLIMATE_SCHEDULE_DICT
     ) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
         """
         Convert a full schedule to the simplified schedule representation.
 
         Inverse of `_validate_and_convert_simple_to_schedule`.
         """
-        if not self._min_temp <= float(base_temperature) <= self._max_temp:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.week_profile.validate.base_temperature_out_of_range",
-                    base_temperature=base_temperature,
-                    min=self._min_temp,
-                    max=self._max_temp,
-                )
-            )
 
         simple_schedule: CLIMATE_SIMPLE_SCHEDULE_DICT = {}
         for profile, profile_data in schedule_data.items():
-            simple_schedule[profile] = self._validate_and_convert_profile_to_simple(
-                base_temperature=base_temperature, profile_data=profile_data
-            )
+            simple_schedule[profile] = self._validate_and_convert_profile_to_simple(profile_data=profile_data)
         return simple_schedule
 
     def _validate_and_convert_simple_to_profile(
-        self, *, base_temperature: float, simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT
+        self, *, simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT
     ) -> CLIMATE_PROFILE_DICT:
         """Convert simple profile dict to profile dict."""
         profile_data: CLIMATE_PROFILE_DICT = {}
         for day, simple_weekday_data in simple_profile_data.items():
-            profile_data[day] = self._validate_and_convert_simple_to_weekday(
-                base_temperature=base_temperature, simple_weekday_data=simple_weekday_data
-            )
+            profile_data[day] = self._validate_and_convert_simple_to_weekday(simple_weekday_data=simple_weekday_data)
         return profile_data
 
     def _validate_and_convert_simple_to_schedule(
-        self, *, base_temperature: float, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
+        self, *, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
     ) -> CLIMATE_SCHEDULE_DICT:
         """Convert simple schedule dict to schedule dict."""
         schedule_data: CLIMATE_SCHEDULE_DICT = {}
         for profile, profile_data in simple_schedule_data.items():
-            schedule_data[profile] = self._validate_and_convert_simple_to_profile(
-                base_temperature=base_temperature, simple_profile_data=profile_data
-            )
+            schedule_data[profile] = self._validate_and_convert_simple_to_profile(simple_profile_data=profile_data)
         return schedule_data
 
     def _validate_and_convert_simple_to_weekday(
-        self, *, base_temperature: float, simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_LIST
+        self, *, simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_DATA
     ) -> CLIMATE_WEEKDAY_DICT:
         """Convert simple weekday list to weekday dict."""
+        base_temperature, _weekday_data = simple_weekday_data
+
         if not self._min_temp <= base_temperature <= self._max_temp:
             raise ValidationException(
                 i18n.tr(
@@ -1201,7 +1210,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         weekday_data: CLIMATE_WEEKDAY_DICT = {}
 
         # Validate required fields before sorting
-        for slot in simple_weekday_data:
+        for slot in _weekday_data:
             if (starttime := slot.get(ScheduleSlotType.STARTTIME)) is None:
                 raise ValidationException(i18n.tr("exception.model.week_profile.validate.starttime_missing"))
             if (endtime := slot.get(ScheduleSlotType.ENDTIME)) is None:
@@ -1209,7 +1218,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             if (temperature := slot.get(ScheduleSlotType.TEMPERATURE)) is None:
                 raise ValidationException(i18n.tr("exception.model.week_profile.validate.temperature_missing"))
 
-        sorted_simple_weekday_data = _sort_simple_weekday_data(simple_weekday_data=simple_weekday_data)
+        sorted_simple_weekday_data = _sort_simple_weekday_data(simple_weekday_data=_weekday_data)
         previous_endtime = CLIMATE_MIN_SCHEDULER_TIME
         slot_no = 1
         for slot in sorted_simple_weekday_data:
@@ -1270,13 +1279,18 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         return _fillup_weekday_data(base_temperature=base_temperature, weekday_data=weekday_data)
 
     def _validate_and_convert_weekday_to_simple(
-        self, *, base_temperature: float, weekday_data: CLIMATE_WEEKDAY_DICT
-    ) -> CLIMATE_SIMPLE_WEEKDAY_LIST:
+        self, *, weekday_data: CLIMATE_WEEKDAY_DICT
+    ) -> CLIMATE_SIMPLE_WEEKDAY_DATA:
         """
         Convert a full weekday (13 slots) to a simplified list of time ranges for non-base temperatures.
 
         Inverse of `_validate_and_convert_simple_to_profile_weekday`.
         """
+
+        base_temperature = identify_base_temperature(weekday_data=weekday_data)
+
+        # filter out irrelevant entries
+        filtered_data = _filter_weekday_entries(weekday_data=weekday_data)
 
         if not self._min_temp <= float(base_temperature) <= self._max_temp:
             raise ValidationException(
@@ -1289,7 +1303,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             )
 
         # Normalize and perform basic validation using existing helper
-        normalized = _normalize_weekday_data(weekday_data=weekday_data)
+        normalized = _normalize_weekday_data(weekday_data=filtered_data)
 
         # Build simple list by merging consecutive non-base temperature slots
         result: CLIMATE_SIMPLE_WEEKDAY_LIST = []
@@ -1357,7 +1371,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         if result:
             result = _sort_simple_weekday_data(simple_weekday_data=result)
 
-        return result
+        return base_temperature, result
 
     def _validate_profile(self, *, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT) -> None:
         """Validate the profile."""
@@ -1669,6 +1683,42 @@ def create_empty_schedule_group(category: DataPointCategory | None = None) -> DE
 
 
 # climate
+
+
+def identify_base_temperature(*, weekday_data: CLIMATE_WEEKDAY_DICT) -> float:
+    """
+    Identify base temperature from weekday data.
+
+    Identify the temperature that is used for the most minutes of a day.
+    """
+    if not weekday_data:
+        return DEFAULT_CLIMATE_FILL_TEMPERATURE
+
+    # Track total minutes for each temperature
+    temperature_minutes: dict[float, int] = {}
+    previous_minutes = 0
+
+    # Iterate through slots in order
+    for slot_no in sorted(weekday_data.keys()):
+        slot = weekday_data[slot_no]
+        endtime_minutes = _convert_time_str_to_minutes(time_str=str(slot[ScheduleSlotType.ENDTIME]))
+        temperature = float(slot[ScheduleSlotType.TEMPERATURE])
+
+        # Calculate duration for this slot (from previous endtime to current endtime)
+        duration = endtime_minutes - previous_minutes
+
+        # Add duration to the total for this temperature
+        if temperature not in temperature_minutes:
+            temperature_minutes[temperature] = 0
+        temperature_minutes[temperature] += duration
+
+        previous_minutes = endtime_minutes
+
+    # Return the temperature with the most minutes
+    if not temperature_minutes:
+        return DEFAULT_CLIMATE_FILL_TEMPERATURE
+
+    return max(temperature_minutes, key=lambda temp: temperature_minutes[temp])
 
 
 def _convert_minutes_to_time_str(minutes: Any) -> str:

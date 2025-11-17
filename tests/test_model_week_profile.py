@@ -2788,7 +2788,7 @@ class TestInverseScheduleConverters:
             )
 
             # Convert back to simple
-            result_simple_schedule = climate.device.week_profile._validate_and_convert_schedule_to_simple_schedule(
+            result_simple_schedule = climate.device.week_profile._validate_and_convert_schedule_to_simple(
                 base_temperature=18.0, schedule_data=full_schedule
             )
 
@@ -2876,7 +2876,7 @@ class TestInverseScheduleConverters:
             }
 
             with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_schedule_to_simple_schedule(
+                climate.device.week_profile._validate_and_convert_schedule_to_simple(
                     base_temperature=999.0, schedule_data=schedule_data
                 )
 
@@ -2916,7 +2916,7 @@ class TestInverseScheduleConverters:
                 },
             }
 
-            result = climate.device.week_profile._validate_and_convert_schedule_to_simple_schedule(
+            result = climate.device.week_profile._validate_and_convert_schedule_to_simple(
                 base_temperature=18.0, schedule_data=schedule_data
             )
 

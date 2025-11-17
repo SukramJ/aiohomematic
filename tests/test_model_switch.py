@@ -160,11 +160,11 @@ class TestCustomSwitch:
         assert switch.schedule == expected_schedule
         assert switch.supports_schedule is True
 
-        await switch.set_schedule(schedule_dict=expected_schedule)
+        await switch.set_schedule(schedule_data=expected_schedule)
         mock_client.put_paramset.assert_called_with(
             channel_address=switch.device.week_profile.schedule_channel_address,
             paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=expected_schedule),
+            values=DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=expected_schedule),
         )
 
     @pytest.mark.asyncio
@@ -364,7 +364,7 @@ class TestScheduleConversion:
             assert test_channels[0].value == channel_value
 
         # Round-trip test with all channels
-        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=structured)
+        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=structured)
         assert back_to_raw["01_WP_TARGET_CHANNELS"] == all_channels_bitwise
 
     @pytest.mark.asyncio
@@ -495,7 +495,7 @@ class TestScheduleConversion:
         assert structured[2][ScheduleField.ASTRO_OFFSET] == 0
 
         # Convert back to raw
-        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=structured)
+        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=structured)
 
         # Verify round-trip conversion
         assert back_to_raw == raw_schedule
@@ -606,7 +606,7 @@ class TestScheduleConversion:
         assert len(structured[3]) == 10
 
         # Round-trip test
-        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=structured)
+        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=structured)
         assert len(back_to_raw) == len(raw_schedule)
 
     @pytest.mark.asyncio

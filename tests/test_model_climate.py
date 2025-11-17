@@ -1357,13 +1357,13 @@ class TestClimateIntegration:
             weekday_data=manual_week_profile_data,
         )
 
-        manual_simple_weekday_list = [
+        manual_simple_weekday_data = [
             {"TEMPERATURE": 17.0, "STARTTIME": "05:00", "ENDTIME": "06:00"},
             {"TEMPERATURE": 22.0, "STARTTIME": "19:00", "ENDTIME": "22:00"},
             {"TEMPERATURE": 17.0, "STARTTIME": "09:00", "ENDTIME": "15:00"},
         ]
-        weekday_data = climate_bwth.device.week_profile._validate_and_convert_simple_to_profile_weekday(
-            base_temperature=16.0, simple_weekday_list=manual_simple_weekday_list
+        weekday_data = climate_bwth.device.week_profile._validate_and_convert_simple_to_weekday(
+            base_temperature=16.0, simple_weekday_data=manual_simple_weekday_data
         )
         assert weekday_data == {
             1: {ScheduleSlotType.ENDTIME: "05:00", ScheduleSlotType.TEMPERATURE: 16.0},
@@ -1384,12 +1384,12 @@ class TestClimateIntegration:
             profile="P1",
             weekday="MONDAY",
             base_temperature=16.0,
-            simple_weekday_list=manual_simple_weekday_list,
+            simple_weekday_data=manual_simple_weekday_data,
         )
 
-        manual_simple_weekday_list2 = []
-        weekday_data2 = climate_bwth.device.week_profile._validate_and_convert_simple_to_profile_weekday(
-            base_temperature=16.0, simple_weekday_list=manual_simple_weekday_list2
+        manual_simple_weekday_data2 = []
+        weekday_data2 = climate_bwth.device.week_profile._validate_and_convert_simple_to_weekday(
+            base_temperature=16.0, simple_weekday_data=manual_simple_weekday_data2
         )
         assert weekday_data2 == {
             1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 16.0},
@@ -1410,7 +1410,7 @@ class TestClimateIntegration:
             profile="P1",
             weekday="MONDAY",
             base_temperature=16.0,
-            simple_weekday_list=manual_simple_weekday_list2,
+            simple_weekday_data=manual_simple_weekday_data2,
         )
 
         with pytest.raises(ValidationException):
@@ -1418,7 +1418,7 @@ class TestClimateIntegration:
                 profile="P1",
                 weekday="MONDAY",
                 base_temperature=16.0,
-                simple_weekday_list=[
+                simple_weekday_data=[
                     {"TEMPERATURE": 34.0, "STARTTIME": "05:00", "ENDTIME": "06:00"},
                 ],
             )
@@ -1428,7 +1428,7 @@ class TestClimateIntegration:
                 profile="P1",
                 weekday="MONDAY",
                 base_temperature=34.0,
-                simple_weekday_list=[],
+                simple_weekday_data=[],
             )
 
         with pytest.raises(ValidationException):
@@ -1436,7 +1436,7 @@ class TestClimateIntegration:
                 profile="P1",
                 weekday="MONDAY",
                 base_temperature=16.0,
-                simple_weekday_list=[
+                simple_weekday_data=[
                     {"TEMPERATURE": 17.0, "STARTTIME": "05:00", "ENDTIME": "06:00"},
                     {"TEMPERATURE": 22.0, "STARTTIME": "19:00", "ENDTIME": "22:00"},
                     {"TEMPERATURE": 17.0, "STARTTIME": "09:00", "ENDTIME": "20:00"},
@@ -1468,7 +1468,7 @@ class TestClimateIntegration:
             },
         )
 
-        manual_simple_weekday_list3 = [
+        manual_simple_weekday_data3 = [
             {"TEMPERATURE": 17.0, "STARTTIME": "05:00", "ENDTIME": "06:00"},
             {"TEMPERATURE": 17.0, "STARTTIME": "06:00", "ENDTIME": "07:00"},
             {"TEMPERATURE": 17.0, "STARTTIME": "07:00", "ENDTIME": "08:00"},
@@ -1481,8 +1481,8 @@ class TestClimateIntegration:
             {"TEMPERATURE": 17.0, "STARTTIME": "14:00", "ENDTIME": "15:00"},
             {"TEMPERATURE": 17.0, "STARTTIME": "15:00", "ENDTIME": "16:00"},
         ]
-        weekday_data3 = climate_bwth.device.week_profile._validate_and_convert_simple_to_profile_weekday(
-            base_temperature=16.0, simple_weekday_list=manual_simple_weekday_list3
+        weekday_data3 = climate_bwth.device.week_profile._validate_and_convert_simple_to_weekday(
+            base_temperature=16.0, simple_weekday_data=manual_simple_weekday_data3
         )
         assert weekday_data3 == {
             1: {"ENDTIME": "05:00", "TEMPERATURE": 16.0},
@@ -1503,14 +1503,14 @@ class TestClimateIntegration:
             profile="P1",
             weekday="MONDAY",
             base_temperature=16.0,
-            simple_weekday_list=manual_simple_weekday_list3,
+            simple_weekday_data=manual_simple_weekday_data3,
         )
 
         await climate_bwth.set_simple_schedule_profile_weekday(
             profile="P1",
             weekday="MONDAY",
             base_temperature=16.0,
-            simple_weekday_list=[
+            simple_weekday_data=[
                 {"TEMPERATURE": 17.0, "STARTTIME": "05:00", "ENDTIME": "06:00"},
                 {"TEMPERATURE": 17.0, "STARTTIME": "06:00", "ENDTIME": "07:00"},
                 {"TEMPERATURE": 17.0, "STARTTIME": "13:00", "ENDTIME": "14:00"},
@@ -1531,7 +1531,7 @@ class TestClimateIntegration:
                 profile="P1",
                 weekday="MONDAY",
                 base_temperature=16.0,
-                simple_weekday_list=[
+                simple_weekday_data=[
                     {"TEMPERATURE": 17.0, "STARTTIME": "05:00", "ENDTIME": "06:00"},
                     {"TEMPERATURE": 17.0, "STARTTIME": "06:00", "ENDTIME": "07:00"},
                     {"TEMPERATURE": 17.0, "STARTTIME": "07:00", "ENDTIME": "08:00"},

@@ -305,7 +305,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     ) -> None:
         """Copy schedule profile to target device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            await self._device.week_profile.copy_schedule_profile(
+            await self._device.week_profile.copy_profile(
                 source_profile=source_profile,
                 target_profile=target_profile,
                 target_climate_data_point=target_climate_data_point,
@@ -327,7 +327,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_PROFILE_DICT:
         """Return a schedule by climate profile (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            return await self._device.week_profile.get_schedule_profile(profile=profile, force_load=force_load)
+            return await self._device.week_profile.get_profile(profile=profile, force_load=force_load)
         return {}
 
     @inspector
@@ -336,9 +336,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     ) -> CLIMATE_WEEKDAY_DICT:
         """Return a schedule by climate profile and weekday (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            return await self._device.week_profile.get_schedule_profile_weekday(
-                profile=profile, weekday=weekday, force_load=force_load
-            )
+            return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
         return {}
 
     def is_state_change(self, **kwargs: Any) -> bool:
@@ -367,7 +365,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     ) -> None:
         """Set a profile to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            await self._device.week_profile.set_schedule_profile(
+            await self._device.week_profile.set_profile(
                 profile=profile, profile_data=profile_data, do_validate=do_validate
             )
 
@@ -382,7 +380,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     ) -> None:
         """Store a profile weekday to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            await self._device.week_profile.set_schedule_profile_weekday(
+            await self._device.week_profile.set_weekday(
                 profile=profile, weekday=weekday, weekday_data=weekday_data, do_validate=do_validate
             )
 
@@ -396,7 +394,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     ) -> None:
         """Set a profile to device using simple format (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            await self._device.week_profile.set_simple_schedule_profile(
+            await self._device.week_profile.set_simple_profile(
                 profile=profile, base_temperature=base_temperature, simple_profile_data=simple_profile_data
             )
 
@@ -407,15 +405,15 @@ class BaseCustomDpClimate(CustomDataPoint):
         profile: ScheduleProfile,
         weekday: WeekdayStr,
         base_temperature: float,
-        simple_weekday_list: CLIMATE_SIMPLE_WEEKDAY_LIST,
+        simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_LIST,
     ) -> None:
         """Store a simple weekday profile to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
-            await self._device.week_profile.set_simple_schedule_profile_weekday(
+            await self._device.week_profile.set_simple_weekday(
                 profile=profile,
                 weekday=weekday,
                 base_temperature=base_temperature,
-                simple_weekday_list=simple_weekday_list,
+                simple_weekday_data=simple_weekday_data,
             )
 
     @bind_collector

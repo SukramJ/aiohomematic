@@ -32,7 +32,7 @@ from aiohomematic.model.week_profile import (
     _filter_weekday_entries,
     _list_to_bitwise,
     _normalize_weekday_data,
-    _sort_simple_weekday_list,
+    _sort_simple_weekday_data,
     create_empty_schedule_group,
     create_week_profile,
     is_schedule_active,
@@ -372,7 +372,7 @@ class TestHelperFunctions:
         result = _list_to_bitwise(items=[WeekdayInt.MONDAY])
         assert result == 2  # MONDAY = 2
 
-    def test_sort_simple_weekday_list(self):
+    def test_sort_simple_weekday_data(self):
         """Test sorting simple weekday list."""
         simple_list = [
             {
@@ -391,7 +391,7 @@ class TestHelperFunctions:
                 ScheduleSlotType.TEMPERATURE: 19.0,
             },
         ]
-        result = _sort_simple_weekday_list(simple_weekday_list=simple_list)
+        result = _sort_simple_weekday_data(simple_weekday_data=simple_list)
 
         assert result[0][ScheduleSlotType.STARTTIME] == "06:00"
         assert result[1][ScheduleSlotType.STARTTIME] == "12:00"
@@ -499,7 +499,7 @@ class TestScheduleOperations:
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 base_temperature=999.0,  # Way out of range
-                simple_weekday_list=simple_data,
+                simple_weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -536,7 +536,7 @@ class TestScheduleOperations:
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 base_temperature=18.0,
-                simple_weekday_list=simple_data,
+                simple_weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -573,7 +573,7 @@ class TestScheduleOperations:
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 base_temperature=18.0,
-                simple_weekday_list=simple_data,
+                simple_weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -610,7 +610,7 @@ class TestScheduleOperations:
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 base_temperature=18.0,
-                simple_weekday_list=simple_data,
+                simple_weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -652,7 +652,7 @@ class TestScheduleOperations:
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 base_temperature=18.0,
-                simple_weekday_list=simple_data,
+                simple_weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -689,7 +689,7 @@ class TestScheduleOperations:
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 base_temperature=18.0,
-                simple_weekday_list=simple_data,
+                simple_weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -726,7 +726,7 @@ class TestScheduleOperations:
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 base_temperature=18.0,
-                simple_weekday_list=simple_data,
+                simple_weekday_data=simple_data,
             )
 
 
@@ -1191,7 +1191,7 @@ class TestClimateWeekProfileIntegration:
         schedule = await climate.get_schedule()
 
         # Set schedule (same data to avoid breaking things)
-        await climate.set_schedule(schedule_dict=schedule)
+        await climate.set_schedule(schedule_data=schedule)
 
     @pytest.mark.parametrize(
         (
@@ -1280,7 +1280,7 @@ class TestClimateWeekProfileIntegration:
         )
 
         # Create simple weekday data
-        simple_weekday_list = [
+        simple_weekday_data = [
             {
                 ScheduleSlotType.STARTTIME: "06:00",
                 ScheduleSlotType.ENDTIME: "22:00",
@@ -1293,7 +1293,7 @@ class TestClimateWeekProfileIntegration:
             profile=ScheduleProfile.P2,
             weekday=WeekdayStr.WEDNESDAY,
             base_temperature=18.0,
-            simple_weekday_list=simple_weekday_list,
+            simple_weekday_data=simple_weekday_data,
         )
 
 
@@ -1302,7 +1302,7 @@ class TestDefaultWeekProfileConversion:
 
     def test_convert_dict_to_raw_schedule_switch(self):
         """Test converting switch schedule dict to raw format."""
-        schedule_dict = {
+        schedule_data = {
             1: {
                 ScheduleField.WEEKDAY: [WeekdayInt.MONDAY, WeekdayInt.TUESDAY],
                 ScheduleField.LEVEL: 1.0,
@@ -1311,7 +1311,7 @@ class TestDefaultWeekProfileConversion:
             }
         }
 
-        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)
+        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
         assert "01_WP_WEEKDAY" in result
         assert "01_WP_LEVEL" in result
@@ -1407,7 +1407,7 @@ class TestClimateWeekProfileConversion:
 
     def test_convert_dict_to_raw_schedule(self):
         """Test converting climate schedule dict to raw format."""
-        schedule_dict = {
+        schedule_data = {
             ScheduleProfile.P1: {
                 WeekdayStr.MONDAY: {
                     1: {
@@ -1418,7 +1418,7 @@ class TestClimateWeekProfileConversion:
             }
         }
 
-        result = ClimeateWeekProfile.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)
+        result = ClimeateWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
         assert "P1_TEMPERATURE_MONDAY_1" in result
         assert "P1_ENDTIME_MONDAY_1" in result
@@ -1428,7 +1428,7 @@ class TestClimateWeekProfileConversion:
     def test_convert_dict_to_raw_schedule_invalid_profile_name(self):
         """Test that invalid profile names raise ValidationException."""
         # Create a schedule with invalid profile/weekday/slot combination
-        schedule_dict = {
+        schedule_data = {
             ScheduleProfile.P1: {
                 WeekdayStr.MONDAY: {
                     999: {  # Invalid slot number
@@ -1440,7 +1440,7 @@ class TestClimateWeekProfileConversion:
         }
 
         with pytest.raises(ValidationException):
-            ClimeateWeekProfile.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)
+            ClimeateWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
     def test_convert_raw_to_dict_schedule(self):
         """Test converting raw climate schedule to dict format."""
@@ -1635,7 +1635,7 @@ class TestDefaultWeekProfileAdditionalEdgeCases:
         """Test converting schedule with all supported field types."""
         from aiohomematic.const import AstroType, ScheduleCondition, TimeBase
 
-        schedule_dict = {
+        schedule_data = {
             1: {
                 ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
                 ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
@@ -1651,7 +1651,7 @@ class TestDefaultWeekProfileAdditionalEdgeCases:
             }
         }
 
-        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)
+        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
         assert result["01_WP_ASTRO_TYPE"] == 1  # AstroType.SUNSET
         assert result["01_WP_CONDITION"] == 1  # ScheduleCondition.ASTRO
@@ -1665,7 +1665,7 @@ class TestDefaultWeekProfileAdditionalEdgeCases:
 
     def test_convert_dict_to_raw_schedule_with_float_level_2(self):
         """Test converting schedule with LEVEL_2 (float)."""
-        schedule_dict = {
+        schedule_data = {
             1: {
                 ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
                 ScheduleField.LEVEL: 0.5,
@@ -1673,7 +1673,7 @@ class TestDefaultWeekProfileAdditionalEdgeCases:
             }
         }
 
-        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)
+        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
         assert "01_WP_LEVEL" in result
         assert "01_WP_LEVEL_2" in result
         assert result["01_WP_LEVEL"] == 0.5
@@ -1681,14 +1681,14 @@ class TestDefaultWeekProfileAdditionalEdgeCases:
 
     def test_convert_dict_to_raw_schedule_with_int_level(self):
         """Test converting schedule with integer level value."""
-        schedule_dict = {
+        schedule_data = {
             1: {
                 ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
                 ScheduleField.LEVEL: 1,  # Integer
             }
         }
 
-        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_dict=schedule_dict)
+        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
         assert "01_WP_LEVEL" in result
         assert result["01_WP_LEVEL"] == 1.0  # Should be converted to float
 
@@ -1773,7 +1773,7 @@ class TestClimateWeekProfileAdditionalEdgeCases:
         schedule = await climate.get_schedule()
 
         # Set same schedule again (cache shouldn't trigger event)
-        await climate.set_schedule(schedule_dict=schedule)
+        await climate.set_schedule(schedule_data=schedule)
 
 
 class TestPropertyAccessAndValidation:
@@ -1929,7 +1929,7 @@ class TestSimpleScheduleConversionMethods:
         )
 
         # Simple schedule with gap: 06:00-08:00 and 18:00-22:00
-        simple_weekday_list = [
+        simple_weekday_data = [
             {
                 ScheduleSlotType.STARTTIME: "06:00",
                 ScheduleSlotType.ENDTIME: "08:00",
@@ -1947,7 +1947,7 @@ class TestSimpleScheduleConversionMethods:
             profile=ScheduleProfile.P3,
             weekday=WeekdayStr.SUNDAY,
             base_temperature=18.0,
-            simple_weekday_list=simple_weekday_list,
+            simple_weekday_data=simple_weekday_data,
         )
 
 
@@ -2011,7 +2011,7 @@ class TestAdvancedValidation:
         )
 
         # Period starting at 00:00
-        simple_weekday_list = [
+        simple_weekday_data = [
             {
                 ScheduleSlotType.STARTTIME: "00:00",
                 ScheduleSlotType.ENDTIME: "06:00",
@@ -2029,7 +2029,7 @@ class TestAdvancedValidation:
             profile=ScheduleProfile.P3,
             weekday=WeekdayStr.MONDAY,
             base_temperature=16.0,
-            simple_weekday_list=simple_weekday_list,
+            simple_weekday_data=simple_weekday_data,
         )
 
     @pytest.mark.parametrize(
@@ -2205,7 +2205,7 @@ class TestComplexScheduleScenarios:
         )
 
         # Create schedule with 6 temperature changes
-        simple_weekday_list = [
+        simple_weekday_data = [
             {
                 ScheduleSlotType.STARTTIME: "06:00",
                 ScheduleSlotType.ENDTIME: "08:00",
@@ -2243,7 +2243,7 @@ class TestComplexScheduleScenarios:
             profile=ScheduleProfile.P6,
             weekday=WeekdayStr.WEDNESDAY,
             base_temperature=17.0,
-            simple_weekday_list=simple_weekday_list,
+            simple_weekday_data=simple_weekday_data,
         )
 
         # Verify it was set correctly
@@ -2503,7 +2503,7 @@ class TestInverseScheduleConverters:
                 1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_profile_weekday_to_simple(
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
                 base_temperature=18.0, weekday_data=weekday_data
             )
 
@@ -2536,7 +2536,7 @@ class TestInverseScheduleConverters:
                 3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_profile_weekday_to_simple(
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
                 base_temperature=18.0, weekday_data=weekday_data
             )
 
@@ -2573,7 +2573,7 @@ class TestInverseScheduleConverters:
                 4: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_profile_weekday_to_simple(
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
                 base_temperature=18.0, weekday_data=weekday_data
             )
 
@@ -2613,7 +2613,7 @@ class TestInverseScheduleConverters:
 
             # Base temperature out of range
             with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_profile_weekday_to_simple(
+                climate.device.week_profile._validate_and_convert_weekday_to_simple(
                     base_temperature=100.0, weekday_data=weekday_data
                 )
 
@@ -2647,7 +2647,7 @@ class TestInverseScheduleConverters:
                 5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_profile_weekday_to_simple(
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
                 base_temperature=18.0, weekday_data=weekday_data
             )
 
@@ -2685,7 +2685,7 @@ class TestInverseScheduleConverters:
                 5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_profile_weekday_to_simple(
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
                 base_temperature=18.0, weekday_data=weekday_data
             )
 
@@ -2830,12 +2830,12 @@ class TestInverseScheduleConverters:
             ]
 
             # Convert to full format
-            full_format = climate.device.week_profile._validate_and_convert_simple_to_profile_weekday(
-                base_temperature=18.0, simple_weekday_list=original_simple
+            full_format = climate.device.week_profile._validate_and_convert_simple_to_weekday(
+                base_temperature=18.0, simple_weekday_data=original_simple
             )
 
             # Convert back to simple format
-            result_simple = climate.device.week_profile._validate_and_convert_profile_weekday_to_simple(
+            result_simple = climate.device.week_profile._validate_and_convert_weekday_to_simple(
                 base_temperature=18.0, weekday_data=full_format
             )
 

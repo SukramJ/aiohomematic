@@ -2687,7 +2687,7 @@ class TestClimateSimpleScheduleMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Get simple profile
-        simple_profile = await climate.get_schedule_simple_profile(base_temperature=18.0, profile=ScheduleProfile.P1)
+        simple_profile = await climate.get_schedule_simple_profile(profile=ScheduleProfile.P1)
 
         # Should return a dict with weekdays
         assert isinstance(simple_profile, dict)
@@ -2728,7 +2728,7 @@ class TestClimateSimpleScheduleMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Get simple schedule
-        simple_schedule = await climate.get_schedule_simple_schedule(base_temperature=18.0)
+        simple_schedule = await climate.get_schedule_simple_schedule()
 
         # Should return a dict with profiles
         assert isinstance(simple_schedule, dict)
@@ -2772,7 +2772,7 @@ class TestClimateSimpleScheduleMethods:
 
         # Get simple weekday
         simple_weekday = await climate.get_schedule_simple_weekday(
-            base_temperature=18.0, profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY
         )
 
         # Should return a list

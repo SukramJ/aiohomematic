@@ -2545,14 +2545,12 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             profile_data = {
                 WeekdayStr.MONDAY: {
-                    1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                    1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 0.0},
                 }
             }
 
             with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_profile_to_simple(
-                    base_temperature=-10.0, profile_data=profile_data
-                )
+                climate.device.week_profile._validate_and_convert_profile_to_simple(profile_data=profile_data)
 
     @pytest.mark.parametrize(
         (
@@ -2586,17 +2584,15 @@ class TestInverseScheduleConverters:
                 },
             }
 
-            result = climate.device.week_profile._validate_and_convert_profile_to_simple(
-                base_temperature=18.0, profile_data=profile_data
-            )
+            result = climate.device.week_profile._validate_and_convert_profile_to_simple(profile_data=profile_data)
 
             # Should have both weekdays
             assert WeekdayStr.MONDAY in result
             assert WeekdayStr.TUESDAY in result
-            assert len(result[WeekdayStr.MONDAY][1]) == 1
-            assert len(result[WeekdayStr.TUESDAY][1]) == 1
-            assert result[WeekdayStr.MONDAY][1][0][ScheduleSlotType.TEMPERATURE] == 21.0
-            assert result[WeekdayStr.TUESDAY][1][0][ScheduleSlotType.TEMPERATURE] == 22.0
+            assert len(result[WeekdayStr.MONDAY][1]) == 2
+            assert len(result[WeekdayStr.TUESDAY][1]) == 2
+            assert result[WeekdayStr.MONDAY][1][0][ScheduleSlotType.TEMPERATURE] == 18.0
+            assert result[WeekdayStr.TUESDAY][1][0][ScheduleSlotType.TEMPERATURE] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -2622,9 +2618,7 @@ class TestInverseScheduleConverters:
                 1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                base_temperature=18.0, weekday_data=weekday_data
-            )
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce empty list (no non-base periods)
             assert len(result[1]) == 0
@@ -2655,15 +2649,13 @@ class TestInverseScheduleConverters:
                 3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                base_temperature=18.0, weekday_data=weekday_data
-            )
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce single entry from 06:00-22:00 at 21.0
-            assert len(result[1]) == 1
-            assert result[1][0][ScheduleSlotType.STARTTIME] == "06:00"
-            assert result[1][0][ScheduleSlotType.ENDTIME] == "22:00"
-            assert result[1][0][ScheduleSlotType.TEMPERATURE] == 21.0
+            assert len(result[1]) == 2
+            assert result[1][0][ScheduleSlotType.STARTTIME] == "00:00"
+            assert result[1][0][ScheduleSlotType.ENDTIME] == "06:00"
+            assert result[1][0][ScheduleSlotType.TEMPERATURE] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -2692,9 +2684,7 @@ class TestInverseScheduleConverters:
                 4: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                base_temperature=18.0, weekday_data=weekday_data
-            )
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce two separate entries (different temps)
             assert len(result) == 2
@@ -2727,14 +2717,12 @@ class TestInverseScheduleConverters:
 
         if climate.device.week_profile:
             weekday_data = {
-                1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 100.0},
             }
 
             # Base temperature out of range
             with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                    base_temperature=100.0, weekday_data=weekday_data
-                )
+                climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
     @pytest.mark.parametrize(
         (
@@ -2766,15 +2754,13 @@ class TestInverseScheduleConverters:
                 5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                base_temperature=18.0, weekday_data=weekday_data
-            )
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should merge into single entry from 06:00-22:00
-            assert len(result[1]) == 1
-            assert result[1][0][ScheduleSlotType.STARTTIME] == "06:00"
-            assert result[1][0][ScheduleSlotType.ENDTIME] == "22:00"
-            assert result[1][0][ScheduleSlotType.TEMPERATURE] == 21.0
+            assert len(result[1]) == 2
+            assert result[1][1][ScheduleSlotType.STARTTIME] == "22:00"
+            assert result[1][1][ScheduleSlotType.ENDTIME] == "24:00"
+            assert result[1][1][ScheduleSlotType.TEMPERATURE] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -2804,9 +2790,7 @@ class TestInverseScheduleConverters:
                 5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
             }
 
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                base_temperature=18.0, weekday_data=weekday_data
-            )
+            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce two entries
             assert len(result[1]) == 2
@@ -2867,7 +2851,7 @@ class TestInverseScheduleConverters:
 
             # Convert back to simple
             result_simple_profile = climate.device.week_profile._validate_and_convert_profile_to_simple(
-                base_temperature=18.0, profile_data=full_profile
+                profile_data=full_profile
             )
 
             # Should match original
@@ -2917,7 +2901,7 @@ class TestInverseScheduleConverters:
 
             # Convert back to simple
             result_simple_schedule = climate.device.week_profile._validate_and_convert_schedule_to_simple(
-                base_temperature=18.0, schedule_data=full_schedule
+                schedule_data=full_schedule
             )
 
             # Should match original
@@ -2967,7 +2951,7 @@ class TestInverseScheduleConverters:
 
             # Convert back to simple format
             result_simple = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                base_temperature=18.0, weekday_data=full_format
+                weekday_data=full_format
             )
 
             # Should match original
@@ -3002,15 +2986,13 @@ class TestInverseScheduleConverters:
             schedule_data = {
                 ScheduleProfile.P1: {
                     WeekdayStr.MONDAY: {
-                        1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                        1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 999.0},
                     }
                 }
             }
 
             with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_schedule_to_simple(
-                    base_temperature=999.0, schedule_data=schedule_data
-                )
+                climate.device.week_profile._validate_and_convert_schedule_to_simple(schedule_data=schedule_data)
 
     @pytest.mark.parametrize(
         (
@@ -3048,9 +3030,7 @@ class TestInverseScheduleConverters:
                 },
             }
 
-            result = climate.device.week_profile._validate_and_convert_schedule_to_simple(
-                base_temperature=18.0, schedule_data=schedule_data
-            )
+            result = climate.device.week_profile._validate_and_convert_schedule_to_simple(schedule_data=schedule_data)
 
             # Should have both profiles
             assert ScheduleProfile.P1 in result
@@ -3388,18 +3368,16 @@ class TestValidateAndConvertMethods:
         profile_data[WeekdayStr.MONDAY] = _normalize_weekday_data(weekday_data=profile_data[WeekdayStr.MONDAY])
 
         # Convert full to simple profile format
-        simple_profile = climate.device.week_profile._validate_and_convert_profile_to_simple(
-            base_temperature=18.0, profile_data=profile_data
-        )
+        simple_profile = climate.device.week_profile._validate_and_convert_profile_to_simple(profile_data=profile_data)
 
         # Should have Monday
         assert WeekdayStr.MONDAY in simple_profile
         # Monday should have 1 entry (07:00-22:00 at 21.0)
         _, monday_data = simple_profile[WeekdayStr.MONDAY]
-        assert len(monday_data) == 1
-        assert monday_data[0][ScheduleSlotType.STARTTIME] == "07:00"
-        assert monday_data[0][ScheduleSlotType.ENDTIME] == "22:00"
-        assert monday_data[0][ScheduleSlotType.TEMPERATURE] == 21.0
+        assert len(monday_data) == 2
+        assert monday_data[0][ScheduleSlotType.STARTTIME] == "00:00"
+        assert monday_data[0][ScheduleSlotType.ENDTIME] == "07:00"
+        assert monday_data[0][ScheduleSlotType.TEMPERATURE] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -3449,7 +3427,7 @@ class TestValidateAndConvertMethods:
 
         # Convert full to simple schedule format
         simple_schedule = climate.device.week_profile._validate_and_convert_schedule_to_simple(
-            base_temperature=18.0, schedule_data=schedule_data
+            schedule_data=schedule_data
         )
 
         # Should have P1 profile
@@ -3458,10 +3436,10 @@ class TestValidateAndConvertMethods:
         assert WeekdayStr.MONDAY in simple_schedule[ScheduleProfile.P1]
         # Monday should have 1 entry (06:00-22:00 at 21.0)
         _, monday_data = simple_schedule[ScheduleProfile.P1][WeekdayStr.MONDAY]
-        assert len(monday_data) == 1
-        assert monday_data[0][ScheduleSlotType.STARTTIME] == "06:00"
-        assert monday_data[0][ScheduleSlotType.ENDTIME] == "22:00"
-        assert monday_data[0][ScheduleSlotType.TEMPERATURE] == 21.0
+        assert len(monday_data) == 2
+        assert monday_data[1][ScheduleSlotType.STARTTIME] == "22:00"
+        assert monday_data[1][ScheduleSlotType.ENDTIME] == "24:00"
+        assert monday_data[1][ScheduleSlotType.TEMPERATURE] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -3709,9 +3687,7 @@ class TestValidateAndConvertMethods:
         }
 
         # Convert full to simple weekday format
-        simple_weekday = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-            base_temperature=18.0, weekday_data=weekday_data
-        )
+        simple_weekday = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
         # Should have 2 entries (only non-base temperature periods)
         assert len(simple_weekday[1]) == 2
@@ -3775,9 +3751,7 @@ class TestValidateAndConvertMethods:
         )
 
         # Convert full -> simple
-        result_simple = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-            base_temperature=18.0, weekday_data=full_data
-        )
+        result_simple = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=full_data)
 
         # Should match original (might be in different order, so check contents)
         assert len(result_simple) == len(original_simple)

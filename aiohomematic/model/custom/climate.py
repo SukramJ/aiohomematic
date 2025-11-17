@@ -484,6 +484,12 @@ class BaseCustomDpClimate(CustomDataPoint):
 
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
 
+    def simple_schedule(self, *, base_temperature: float) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
+        """Return cached simple schedule entries from device week profile."""
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+            return self._device.week_profile.simple_schedule(base_temperature=base_temperature)
+        return {}
+
     def _init_data_point_fields(self) -> None:
         """Init the data_point fields."""
         super()._init_data_point_fields()

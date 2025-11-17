@@ -143,6 +143,18 @@ get_weekday(profile, weekday) -> CLIMATE_WEEKDAY_DICT
     Retrieves single weekday schedule from a profile.
     Returns filtered data for the specified weekday.
 
+get_simple_schedule() -> CLIMATE_SIMPLE_SCHEDULE_DICT
+    Retrieves complete schedule in simplified format from cache or device.
+    Returns only non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE.
+
+get_simple_profile(profile) -> CLIMATE_SIMPLE_PROFILE_DICT
+    Retrieves single profile in simplified format from cache or device.
+    Returns only non-base temperature periods for the specified profile.
+
+get_simple_weekday(profile, weekday) -> CLIMATE_SIMPLE_WEEKDAY_LIST
+    Retrieves single weekday in simplified format from cache or device.
+    Returns list of non-base temperature periods with STARTTIME, ENDTIME, TEMPERATURE.
+
 set_schedule(schedule_data)
     Persists complete schedule to device.
     Updates cache and emits change events.
@@ -155,14 +167,22 @@ set_weekday(profile, weekday, weekday_data)
     Persists single weekday schedule to device.
     Normalizes to 13 slots, validates, updates cache.
 
+set_simple_schedule(base_temperature, simple_schedule_data)
+    Persists complete schedule using simplified format to device.
+    Converts simple format to full 13-slot format automatically.
+
 set_simple_profile(profile, base_temperature, simple_profile_data)
-    Convenience method for setting schedules using simplified format.
+    Persists single profile using simplified format to device.
+    Converts simple format to full 13-slot format automatically.
+
+set_simple_weekday(profile, weekday, base_temperature, simple_weekday_data)
+    Persists single weekday using simplified format to device.
     Converts simple format to full 13-slot format automatically.
 
 copy_schedule(target_climate_data_point)
     Copies entire schedule from this device to another.
 
-copy_schedule_profile(source_profile, target_profile, target_climate_data_point)
+copy_profile(source_profile, target_profile, target_climate_data_point)
     Copies single profile to another profile/device.
 
 
@@ -217,7 +237,7 @@ TYPICAL WORKFLOW EXAMPLES
 
 Reading a Schedule:
 -------------------
-1. User calls get_schedule_profile_weekday(P1, "MONDAY")
+1. User calls get_weekday(profile=P1, weekday="MONDAY")
 2. System retrieves from cache or device (13 slots)
 3. _filter_weekday_entries removes redundant 24:00 slots
 4. User receives clean data (e.g., 3-5 meaningful slots)
@@ -234,7 +254,9 @@ Setting a Schedule:
 
 Using Simple Format:
 --------------------
-1. User calls set_simple_schedule_profile_weekday with:
+1. User calls set_simple_weekday with:
+   - profile: P1
+   - weekday: "MONDAY"
    - base_temperature: 18.0
    - simple_weekday_data: [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}]
 2. System converts to full format:
@@ -254,9 +276,13 @@ Python → Device (Writing):
     User Data → _normalize_weekday_data() → Full 13 slots → Validation →
     convert_dict_to_raw_schedule() → Raw Paramset → Device
 
-Simple → Full Format:
-    Simple List → _validate_and_convert_simple_to_profile_weekday() →
+Simple → Full Format (Writing):
+    Simple List → _validate_and_convert_simple_to_weekday() →
     Full 13 slots → Normal writing flow
+
+Full → Simple Format (Reading):
+    Full 13 slots → _validate_and_convert_weekday_to_simple() →
+    Simple List (non-base temperature periods only)
 
 """
 

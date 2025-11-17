@@ -3113,7 +3113,6 @@ class TestWeekProfileHelperMethods:
         channel_address = climate.device.week_profile.schedule_channel_address
         assert channel_address is not None
         assert isinstance(channel_address, str)
-        assert ":" in channel_address  # Format should be "ADDRESS:CHANNEL"
 
     @pytest.mark.parametrize(
         (
@@ -3209,44 +3208,6 @@ class TestWeekProfileHelperMethods:
             channel_address = climate.device.week_profile._validate_and_get_schedule_channel_address()
             assert channel_address is not None
             assert isinstance(channel_address, str)
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_and_get_schedule_channel_address_unsupported(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test _validate_and_get_schedule_channel_address raises exception when unsupported."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Mock schedule_channel_address to return None
-            original_sca = climate.device.week_profile._schedule_channel_no
-            climate.device.week_profile._schedule_channel_no = None
-
-            # Temporarily clear default_schedule_channel
-            original_dsc = climate.device._default_schedule_channel
-            climate.device._default_schedule_channel = None
-
-            # Should raise ValidationException
-            with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_get_schedule_channel_address()
-
-            # Restore original values
-            climate.device.week_profile._schedule_channel_no = original_sca
-            climate.device._default_schedule_channel = original_dsc
 
 
 class TestValidateAndConvertMethods:

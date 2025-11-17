@@ -2,6 +2,7 @@
 
 ## What's Changed
 
+- Add more simple services and converters to week profile
 - Fix week profile filtering
 - Improve test coverage,
 - Reorganize test files

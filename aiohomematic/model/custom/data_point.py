@@ -194,10 +194,10 @@ class CustomDataPoint(BaseDataPoint):
             await self._device.week_profile.reload_and_cache_schedule()
         self.emit_data_point_updated_event()
 
-    async def set_schedule(self, *, schedule_dict: dict[Any, Any]) -> None:
+    async def set_schedule(self, *, schedule_data: dict[Any, Any]) -> None:
         """Set schedule on device week profile."""
         if self._device.week_profile:
-            await self._device.week_profile.set_schedule(schedule_dict=schedule_dict)
+            await self._device.week_profile.set_schedule(schedule_data=schedule_data)
 
     def _add_data_point(
         self,

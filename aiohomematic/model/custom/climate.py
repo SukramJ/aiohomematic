@@ -404,7 +404,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             )
 
     @inspector
-    async def set_schedule_profile_weekday(
+    async def set_schedule_weekday(
         self,
         *,
         profile: ScheduleProfile,
@@ -419,7 +419,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             )
 
     @inspector
-    async def set_schedule_simple_schedule(
+    async def set_simple_schedule(
         self, *, base_temperature: float, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT
     ) -> None:
         """Set the complete simple schedule dictionary to device (delegates to week profile)."""
@@ -432,31 +432,31 @@ class BaseCustomDpClimate(CustomDataPoint):
     async def set_simple_schedule_profile(
         self,
         *,
-        profile: ScheduleProfile,
         base_temperature: float,
+        profile: ScheduleProfile,
         simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT,
     ) -> None:
         """Set a profile to device using simple format (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
             await self._device.week_profile.set_simple_profile(
-                profile=profile, base_temperature=base_temperature, simple_profile_data=simple_profile_data
+                base_temperature=base_temperature, profile=profile, simple_profile_data=simple_profile_data
             )
 
     @inspector
-    async def set_simple_schedule_profile_weekday(
+    async def set_simple_schedule_weekday(
         self,
         *,
+        base_temperature: float,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        base_temperature: float,
         simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_LIST,
     ) -> None:
         """Store a simple weekday profile to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
             await self._device.week_profile.set_simple_weekday(
+                base_temperature=base_temperature,
                 profile=profile,
                 weekday=weekday,
-                base_temperature=base_temperature,
                 simple_weekday_data=simple_weekday_data,
             )
 

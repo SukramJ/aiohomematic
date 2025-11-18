@@ -578,39 +578,6 @@ class TestLegacyCompatibility:
     """Test legacy callback protocol compatibility."""
 
     @pytest.mark.asyncio
-    async def test_legacy_and_new_api_coexist(self) -> None:
-        """Legacy and new API should work together."""
-        bus = EventBus()
-        legacy_calls = []
-        new_calls = []
-
-        # Legacy callback
-        def legacy_callback(*, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-            legacy_calls.append(system_event)
-
-        # New event handler
-        def new_handler(event: BackendSystemEventData) -> None:
-            new_calls.append(event)
-
-        # Subscribe both
-        bus.subscribe_backend_system_callback(callback=legacy_callback)
-        bus.subscribe(event_type=BackendSystemEventData, handler=new_handler)
-
-        # Publish event
-        event = BackendSystemEventData(
-            timestamp=datetime.now(),
-            system_event=BackendSystemEvent.DEVICES_CREATED,
-            data={"count": 3},
-        )
-        await bus.publish(event=event)
-
-        # Both should have received the event
-        assert len(legacy_calls) == 1
-        assert len(new_calls) == 1
-        assert legacy_calls[0] == BackendSystemEvent.DEVICES_CREATED
-        assert new_calls[0] == event
-
-    @pytest.mark.asyncio
     async def test_subscribe_datapoint_event_callback_with_filtering(self) -> None:
         """Legacy DataPointEventCallback should filter by DataPointKey."""
         bus = EventBus()

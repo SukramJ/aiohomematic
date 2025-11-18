@@ -120,11 +120,7 @@ class DataPointUpdatedEvent(Event):
 
 @dataclass(frozen=True, slots=True)
 class BackendParameterEvent(Event):
-    """
-    Raw parameter update event from backend (re-emitted from RPC callbacks).
-
-    This replaces the _backend_parameter_callbacks pattern.
-    """
+    """Raw parameter update event from backend (re-emitted from RPC callbacks)."""
 
     interface_id: str
     channel_address: str
@@ -134,11 +130,7 @@ class BackendParameterEvent(Event):
 
 @dataclass(frozen=True, slots=True)
 class BackendSystemEventData(Event):
-    """
-    System-level events from backend (devices created, deleted, etc.).
-
-    This replaces the _backend_system_callbacks pattern.
-    """
+    """System-level events from backend (devices created, deleted, etc.)."""
 
     system_event: BackendSystemEvent
     data: dict[str, Any]
@@ -146,11 +138,7 @@ class BackendSystemEventData(Event):
 
 @dataclass(frozen=True, slots=True)
 class HomematicEvent(Event):
-    """
-    Homematic-specific events (INTERFACE, KEYPRESS, etc.).
-
-    This replaces the _homematic_callbacks pattern.
-    """
+    """Homematic-specific events (INTERFACE, KEYPRESS, etc.)."""
 
     event_type: EventType
     event_data: dict[EventKey, Any]
@@ -158,11 +146,7 @@ class HomematicEvent(Event):
 
 @dataclass(frozen=True, slots=True)
 class SysvarUpdatedEvent(Event):
-    """
-    System variable value updated.
-
-    This replaces the _sysvar_data_point_event_subscriptions pattern.
-    """
+    """System variable value updated."""
 
     state_path: str
     value: Any

@@ -27,7 +27,7 @@ class TestCentralPyDevCCU:
         assert central.model == "PyDevCCU"
         assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
         assert central.primary_client.model == "PyDevCCU"
-        assert len(central._devices) == 394
+        assert len(central.devices) == 394
 
         data = {}
         for device in central.devices:
@@ -130,7 +130,7 @@ class TestCentralPyDevCCU:
                 usage_types[dp.usage] = counter + 1
 
         addresses: dict[str, str] = {}
-        for address, device in central._devices.items():
+        for address, device in central.devices.items():
             addresses[address] = f"{device.model}.json"
 
         # check __dict__ / __slots__
@@ -165,14 +165,14 @@ class TestCentralPyDevCCU:
         assert len(data_point_types) == 6
         assert len(parameters) == 234
 
-        assert len(central._devices) == 394
+        assert len(central.devices) == 394
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-        assert len(central._devices) == 391
+        assert len(central.devices) == 391
         del_addresses = list(central.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID))
         del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
-        assert len(central._devices) == 0
+        assert len(central.devices) == 0
         assert len(central.get_data_points(exclude_no_create=False)) == 0
 
     @pytest.mark.enable_socket
@@ -185,7 +185,7 @@ class TestCentralPyDevCCU:
         assert central.model == "PyDevCCU"
         assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
         assert central.primary_client.model == "PyDevCCU"
-        assert len(central._devices) == 2
+        assert len(central.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 70
 
         usage_types: dict[DataPointUsage, int] = {}

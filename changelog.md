@@ -2,6 +2,7 @@
 
 ## What's Changed
 
+- Extract device registry from central
 - Extract scheduler from central
 - Refactor event handling to event bus
 - Rename writeable to writable

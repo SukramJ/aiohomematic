@@ -80,6 +80,7 @@ from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper, loop_check
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.decorators import callback_backend_system, callback_event
+from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.event_bus import (
     BackendParameterEvent,
     BackendSystemEventData,
@@ -196,7 +197,7 @@ from aiohomematic.type_aliases import (
     UnregisterCallback,
 )
 
-__all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA", "_SchedulerJob"]
+__all__ = ["CentralConfig", "CentralUnit", "DeviceRegistry", "INTERFACE_EVENT_SCHEMA", "_SchedulerJob"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
@@ -256,8 +257,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._data_point_key_event_subscriptions: Final[dict[DataPointKey, list[DataPointEventCallback]]] = {}
         self._data_point_path_event_subscriptions: Final[dict[str, DataPointKey]] = {}
         self._sysvar_data_point_event_subscriptions: Final[dict[str, SysvarEventCallback]] = {}
-        # {device_address, device}
-        self._devices: Final[dict[str, Device]] = {}
+        # Device registry
+        self._device_registry: Final = DeviceRegistry(central=self)
         # {sysvar_name, sysvar_data_point}
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {sysvar_name, program_button}
@@ -344,7 +345,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     @property
     def devices(self) -> tuple[Device, ...]:
         """Return all devices."""
-        return tuple(self._devices.values())
+        return self._device_registry.devices
 
     @property
     def event_bus(self) -> EventBus:
@@ -665,7 +666,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             device_address,
         )
 
-        if (device := self._devices.get(device_address)) is None:
+        if (device := self._device_registry.get_device(address=device_address)) is None:
             return
 
         await self.delete_devices(interface_id=interface_id, addresses=[device_address, *list(device.channels.keys())])
@@ -679,7 +680,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             str(addresses),
         )
         for address in addresses:
-            if device := self._devices.get(address):
+            if device := self._device_registry.get_device(address=address):
                 self.remove_device(device=device)
         await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
 
@@ -808,9 +809,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_channel(self, *, channel_address: str) -> Channel | None:
         """Return Homematic channel."""
-        if device := self.get_device(address=channel_address):
-            return device.get_channel(channel_address=channel_address)
-        return None
+        return self._device_registry.get_channel(channel_address=channel_address)
 
     def get_client(self, *, interface_id: str) -> hmcl.Client:
         """Return a client by interface_id."""
@@ -851,7 +850,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     ) -> tuple[CallbackDataPoint, ...]:
         """Return all externally registered data points."""
         all_data_points: list[CallbackDataPoint] = []
-        for device in self._devices.values():
+        for device in self._device_registry.devices:
             if interface and interface != device.interface:
                 continue
             all_data_points.extend(
@@ -861,8 +860,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_device(self, *, address: str) -> Device | None:
         """Return Homematic device."""
-        d_address = get_device_address(address=address)
-        return self._devices.get(d_address)
+        return self._device_registry.get_device(address=address)
 
     def get_event(self, *, channel_address: str, parameter: str) -> GenericEvent | None:
         """Return the hm event."""
@@ -1071,11 +1069,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def get_virtual_remotes(self) -> tuple[Device, ...]:
         """Get the virtual remote for the Client."""
-        return tuple(
-            cl.get_virtual_remote()  # type: ignore[misc]
-            for cl in self._clients.values()
-            if cl.get_virtual_remote() is not None
-        )
+        return self._device_registry.get_virtual_remotes()
 
     def has_client(self, *, interface_id: str) -> bool:
         """Check if client exists in central."""
@@ -1083,10 +1077,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def identify_channel(self, *, text: str) -> Channel | None:
         """Identify channel within a text."""
-        for device in self._devices.values():
-            if channel := device.identify_channel(text=text):
-                return channel
-        return None
+        return self._device_registry.identify_channel(text=text)
 
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
@@ -1123,7 +1114,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                 await self._refresh_device_descriptions_and_create_missing_devices(
                     client=client, refresh_only_existing=True
                 )
-            for device in self._devices.values():
+            for device in self._device_registry.devices:
                 if device.is_updatable:
                     device.refresh_firmware_data()
 
@@ -1132,7 +1123,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Refresh device firmware data for processing devices."""
         for device in [
             device_in_state
-            for device_in_state in self._devices.values()
+            for device_in_state in self._device_registry.devices
             if device_in_state.firmware_update_state in device_firmware_states
         ]:
             await self.refresh_firmware_data(device_address=device.address)
@@ -1262,7 +1253,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def remove_device(self, *, device: Device) -> None:
         """Remove device to central collections."""
-        if device.address not in self._devices:
+        if not self._device_registry.has_device(address=device.address):
             _LOGGER.debug(
                 "REMOVE_DEVICE: device %s not registered in central",
                 device.address,
@@ -1273,7 +1264,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_descriptions.remove_device(device=device)
         self._paramset_descriptions.remove_device(device=device)
         self._device_details.remove_device(device=device)
-        del self._devices[device.address]
+        self._device_registry.remove_device(device_address=device.address)
 
     def remove_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """Remove event subscription from central collections."""
@@ -1623,7 +1614,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         new_device_addresses: dict[str, set[str]] = {}
 
         # Cache existing device addresses once to avoid repeated mapping lookups
-        existing_addresses = set(self._devices.keys())
+        existing_addresses = self._device_registry.get_device_addresses()
 
         def _check_for_new_device_addresses_helper(*, iid: str) -> None:
             """Check if there are new devices that need to be created."""
@@ -1768,7 +1759,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         for interface_id, device_addresses in new_device_addresses.items():
             for device_address in device_addresses:
                 # Do we check for duplicates here? For now, we do.
-                if device_address in self._devices:
+                if self._device_registry.has_device(address=device_address):
                     continue
                 device: Device | None = None
                 try:
@@ -1790,7 +1781,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                         create_data_points_and_events(device=device)
                         create_custom_data_points(device=device)
                         new_devices.add(device)
-                        self._devices[device_address] = device
+                        self._device_registry.add_device(device=device)
                 except Exception as exc:
                     _LOGGER.error(  # i18n-log: ignore
                         "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
@@ -1942,7 +1933,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         await self._init_hub()
         await self._init_clients()
         # Proactively fetch device descriptions if none were created yet to avoid slow startup
-        if not self._devices:
+        if self._device_registry.device_count == 0:
             for client in self._clients.values():
                 await self._refresh_device_descriptions_and_create_missing_devices(
                     client=client, refresh_only_existing=False

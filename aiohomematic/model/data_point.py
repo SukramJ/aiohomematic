@@ -685,8 +685,8 @@ class BaseParameterDataPoint[
         return self._raw_unit != self._unit
 
     @property
-    def is_writeable(self) -> bool:
-        """Return, if data_point is writeable."""
+    def is_writable(self) -> bool:
+        """Return, if data_point is writable."""
         return False if self._is_forced_sensor else bool(self._operations & Operations.WRITE)
 
     @property

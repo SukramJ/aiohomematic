@@ -103,7 +103,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         do_validate: bool = True,
     ) -> set[DP_KEY_VALUE]:
         """Send value to ccu, or use collector if set."""
-        if not self.is_writeable:
+        if not self.is_writable:
             _LOGGER.error(
                 i18n.tr(
                     "log.model.generic_data_point.send_value.not_writable",

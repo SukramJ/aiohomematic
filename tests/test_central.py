@@ -1177,12 +1177,23 @@ class TestCentralEventHandling:
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Central.data_point_event should swallow RuntimeError/Exception from callbacks and continue."""
+        from unittest.mock import AsyncMock, MagicMock
+
         # Create a bare instance without running CentralUnit.__init__
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
 
         # Provide minimal attributes used by data_point_event
         central._data_point_key_event_subscriptions = {}  # type: ignore[attr-defined]
         central._last_event_seen_for_interface = {}  # type: ignore[attr-defined]
+
+        # Mock looper and event_bus to prevent AttributeError during arg evaluation
+        mock_looper = MagicMock()
+        mock_looper.create_task = MagicMock()
+        central._looper = mock_looper  # type: ignore[attr-defined]
+
+        mock_event_bus = MagicMock()
+        mock_event_bus.publish = AsyncMock()
+        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
 
         # Pretend we have a client so has_client(interface_id) returns True
         monkeypatch.setattr(hmcu.CentralUnit, "has_client", lambda self, interface_id: True)
@@ -1214,8 +1225,19 @@ class TestCentralEventHandling:
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         """emit_backend_parameter_callback should catch exceptions from callbacks and continue."""
+        from unittest.mock import AsyncMock, MagicMock
+
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
         central._backend_parameter_callbacks = []  # type: ignore[attr-defined]
+
+        # Mock looper and event_bus to prevent AttributeError during arg evaluation
+        mock_looper = MagicMock()
+        mock_looper.create_task = MagicMock()
+        central._looper = mock_looper  # type: ignore[attr-defined]
+
+        mock_event_bus = MagicMock()
+        mock_event_bus.publish = AsyncMock()
+        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
 
         # Track which callbacks were called
         calls: list[str] = []
@@ -1250,8 +1272,19 @@ class TestCentralEventHandling:
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         """emit_backend_system_callback should catch exceptions and continue calling other callbacks."""
+        from unittest.mock import AsyncMock, MagicMock
+
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
         central._backend_system_callbacks = []  # type: ignore[attr-defined]
+
+        # Mock looper and event_bus to prevent AttributeError during arg evaluation
+        mock_looper = MagicMock()
+        mock_looper.create_task = MagicMock()
+        central._looper = mock_looper  # type: ignore[attr-defined]
+
+        mock_event_bus = MagicMock()
+        mock_event_bus.publish = AsyncMock()
+        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
 
         calls: list[str] = []
 
@@ -1282,8 +1315,19 @@ class TestCentralEventHandling:
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         """emit_homematic_callback should catch exceptions from callbacks and continue."""
+        from unittest.mock import AsyncMock, MagicMock
+
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
         central._homematic_callbacks = []  # type: ignore[attr-defined]
+
+        # Mock looper and event_bus to prevent AttributeError during arg evaluation
+        mock_looper = MagicMock()
+        mock_looper.create_task = MagicMock()
+        central._looper = mock_looper  # type: ignore[attr-defined]
+
+        mock_event_bus = MagicMock()
+        mock_event_bus.publish = AsyncMock()
+        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
 
         calls: list[tuple[str, EventType]] = []
 
@@ -1310,8 +1354,19 @@ class TestCentralEventHandling:
     @pytest.mark.asyncio
     async def test_emit_interface_event_with_valid_data(self) -> None:
         """emit_interface_event should properly format and emit interface events."""
+        from unittest.mock import AsyncMock, MagicMock
+
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
         central._homematic_callbacks = []  # type: ignore[attr-defined]
+
+        # Mock looper and event_bus to prevent AttributeError during arg evaluation
+        mock_looper = MagicMock()
+        mock_looper.create_task = MagicMock()
+        central._looper = mock_looper  # type: ignore[attr-defined]
+
+        mock_event_bus = MagicMock()
+        mock_event_bus.publish = AsyncMock()
+        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
 
         called_with: list[dict[str, Any]] = []
 
@@ -1338,6 +1393,8 @@ class TestCentralEventHandling:
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Central.sysvar_data_point_path_event should catch exceptions from looper.create_task and continue."""
+        from unittest.mock import AsyncMock, MagicMock
+
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
 
         # Subscription dict with a simple async callback (won't be executed due to create_task raising)
@@ -1347,6 +1404,11 @@ class TestCentralEventHandling:
         central._sysvar_data_point_event_subscriptions = {  # type: ignore[attr-defined]
             "path/1": dummy_cb
         }
+
+        # Mock event_bus to prevent AttributeError during arg evaluation
+        mock_event_bus = MagicMock()
+        mock_event_bus.publish = AsyncMock()
+        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
 
         # Fake looper raising exceptions to hit both except branches
         class BoomLooper:

@@ -9,6 +9,7 @@
 ## What's Changed
 
 - Fix service naming
+- Refactor event handling to event bus
 
 # Version 2025.11.18 (2025-11-17)
 

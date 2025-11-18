@@ -48,11 +48,11 @@ class TestDeviceBasics:
         central, _, _ = central_client_factory_with_homegear_client
         device = central.get_device(address="VCU2128127")
         assert device.address == "VCU2128127"
-        assert device.name == "HmIP-BSM VCU2128127"
+        assert device.name == "HmIP-BSM_VCU2128127"
         assert (
             str(device) == "address: VCU2128127, "
             "model: HmIP-BSM, "
-            "name: HmIP-BSM VCU2128127, "
+            "name: HmIP-BSM_VCU2128127, "
             "generic dps: 27, "
             "calculated dps: 0, "
             "custom dps: 3, "

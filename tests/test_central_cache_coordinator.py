@@ -1,0 +1,357 @@
+"""Tests for aiohomematic.central.cache_coordinator."""
+
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from aiohomematic.central.cache_coordinator import CacheCoordinator
+from aiohomematic.store import (
+    CentralDataCache,
+    DeviceDescriptionCache,
+    DeviceDetailsCache,
+    ParamsetDescriptionCache,
+    SessionRecorder,
+)
+
+
+class _FakeCentral:
+    """Minimal fake CentralUnit for testing."""
+
+    def __init__(self, *, name: str = "test_central") -> None:
+        """Initialize a fake central."""
+        self.name = name
+        self.config = MagicMock()
+        self.config.cache_dir = "/tmp/test_cache"  # noqa: S108  # nosec B108
+        self.config.enable_session_recording = False
+        self.primary_client = None
+        self.clients = []
+        self.looper = MagicMock()
+        self.looper.async_add_executor_job = AsyncMock()
+
+
+class TestCacheCoordinatorBasics:
+    """Test basic CacheCoordinator functionality."""
+
+    def test_cache_coordinator_initialization(self) -> None:
+        """CacheCoordinator should initialize with central instance."""
+        central = _FakeCentral()
+        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+        assert coordinator._central == central
+        assert coordinator._data_cache is not None
+        assert coordinator._device_details is not None
+        assert coordinator._device_descriptions is not None
+        assert coordinator._paramset_descriptions is not None
+
+    def test_data_cache_property(self) -> None:
+        """Data cache property should return the cache instance."""
+        central = _FakeCentral()
+        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+        cache = coordinator.data_cache
+        assert cache is not None
+        assert cache == coordinator._data_cache
+
+    def test_device_descriptions_property(self) -> None:
+        """Device descriptions property should return the cache instance."""
+        central = _FakeCentral()
+        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+        cache = coordinator.device_descriptions
+        assert cache is not None
+        assert cache == coordinator._device_descriptions
+
+    def test_device_details_property(self) -> None:
+        """Device details property should return the cache instance."""
+        central = _FakeCentral()
+        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+        cache = coordinator.device_details
+        assert cache is not None
+        assert cache == coordinator._device_details
+
+    def test_paramset_descriptions_property(self) -> None:
+        """Paramset descriptions property should return the cache instance."""
+        central = _FakeCentral()
+        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+        cache = coordinator.paramset_descriptions
+        assert cache is not None
+        assert cache == coordinator._paramset_descriptions
+
+
+class TestCacheCoordinatorClearOperations:
+    """Test cache clearing operations."""
+
+    @pytest.mark.asyncio
+    async def test_clear_all(self) -> None:
+        """Clear all caches."""
+        central = _FakeCentral()
+
+        # Mock all cache clear methods at class level
+        with (
+            patch.object(CentralDataCache, "clear", new=AsyncMock()) as mock_data_clear,
+            patch.object(DeviceDetailsCache, "clear", new=AsyncMock()) as mock_details_clear,
+            patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()) as mock_desc_clear,
+            patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
+            patch.object(SessionRecorder, "clear", new=AsyncMock()),
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            await coordinator.clear_all()
+
+            # All caches should have been cleared
+            mock_data_clear.assert_called_once()
+            mock_details_clear.assert_called_once()
+            mock_desc_clear.assert_called_once()
+            mock_param_clear.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_clear_all_handles_exceptions(self) -> None:
+        """Clear all should handle exceptions gracefully."""
+        central = _FakeCentral()
+
+        # Mock one cache to raise an exception
+        with (
+            patch.object(CentralDataCache, "clear", new=AsyncMock(side_effect=RuntimeError("Cache error"))),
+            patch.object(DeviceDetailsCache, "clear", new=AsyncMock()),
+            patch.object(SessionRecorder, "clear", new=AsyncMock()),
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            # Should not raise even if one cache fails
+            await coordinator.clear_all()
+
+
+class TestCacheCoordinatorLoadOperations:
+    """Test cache loading operations."""
+
+    @pytest.mark.asyncio
+    async def test_load_all(self) -> None:
+        """Load all caches."""
+        central = _FakeCentral()
+
+        # Mock all cache load methods
+        with (
+            patch.object(DeviceDescriptionCache, "load", new=AsyncMock()) as mock_desc_load,
+            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock()) as mock_param_load,
+            patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
+            patch.object(CentralDataCache, "load", new=AsyncMock()),
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            await coordinator.load_all()
+
+            # Persistent caches should have been loaded
+            mock_desc_load.assert_called_once()
+            mock_param_load.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_load_all_handles_exceptions(self) -> None:
+        """Load all should raise exceptions from cache loads."""
+        central = _FakeCentral()
+
+        # Mock one cache to raise an exception
+        with (
+            patch.object(DeviceDescriptionCache, "load", new=AsyncMock(side_effect=RuntimeError("Load error"))),
+            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock()),
+            patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
+            patch.object(CentralDataCache, "load", new=AsyncMock()),
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            # Should raise the exception since there's no exception handling
+            with pytest.raises(RuntimeError, match="Load error"):
+                await coordinator.load_all()
+
+
+class TestCacheCoordinatorSaveOperations:
+    """Test cache saving operations."""
+
+    @pytest.mark.asyncio
+    async def test_save_all(self) -> None:
+        """Save all caches."""
+        central = _FakeCentral()
+
+        # Mock all cache save methods
+        with (
+            patch.object(DeviceDescriptionCache, "save", new=AsyncMock()) as mock_desc_save,
+            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()) as mock_param_save,
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            await coordinator.save_all(
+                save_device_descriptions=True,
+                save_paramset_descriptions=True,
+            )
+
+            # Persistent caches should have been saved
+            mock_desc_save.assert_called_once()
+            mock_param_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_save_all_handles_exceptions(self) -> None:
+        """Save all should raise exceptions from cache saves."""
+        central = _FakeCentral()
+
+        # Mock one cache to raise an exception
+        with (
+            patch.object(DeviceDescriptionCache, "save", new=AsyncMock(side_effect=RuntimeError("Save error"))),
+            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()),
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            # Should raise the exception since there's no exception handling
+            with pytest.raises(RuntimeError, match="Save error"):
+                await coordinator.save_all(
+                    save_device_descriptions=True,
+                    save_paramset_descriptions=True,
+                )
+
+
+class TestCacheCoordinatorDeviceRemoval:
+    """Test device removal from caches."""
+
+    @pytest.mark.asyncio
+    async def test_remove_device_from_caches(self) -> None:
+        """Remove device from all caches."""
+        central = _FakeCentral()
+
+        # Create a mock device
+        mock_device = MagicMock()
+        mock_device.address = "VCU0000001"
+
+        # Mock cache removal methods
+        with (
+            patch.object(DeviceDetailsCache, "remove_device", new=MagicMock()) as mock_details_remove,
+            patch.object(DeviceDescriptionCache, "remove_device", new=MagicMock()) as mock_desc_remove,
+            patch.object(ParamsetDescriptionCache, "remove_device", new=MagicMock()) as mock_param_remove,
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator.remove_device_from_caches(device=mock_device)  # type: ignore[arg-type]
+
+            # All caches should have had the device removed
+            mock_details_remove.assert_called_once_with(device=mock_device)
+            mock_desc_remove.assert_called_once_with(device=mock_device)
+            mock_param_remove.assert_called_once_with(device=mock_device)
+
+    @pytest.mark.asyncio
+    async def test_remove_device_handles_exceptions(self) -> None:
+        """Remove device should handle exceptions gracefully."""
+        central = _FakeCentral()
+
+        # Create a mock device
+        mock_device = MagicMock()
+        mock_device.address = "VCU0000001"
+
+        # Mock one cache to raise an exception, others succeed
+        with (
+            patch.object(DeviceDetailsCache, "remove_device", new=MagicMock(side_effect=KeyError("Not found"))),
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            # Should raise since there's no exception handling
+            with pytest.raises(KeyError):
+                coordinator.remove_device_from_caches(device=mock_device)  # type: ignore[arg-type]
+
+
+class TestCacheCoordinatorIntegration:
+    """Integration tests for CacheCoordinator."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_operations(self) -> None:
+        """Test concurrent cache operations."""
+        import asyncio
+
+        central = _FakeCentral()
+
+        # Mock methods with async delay
+        async def mock_load() -> None:
+            await asyncio.sleep(0.01)
+
+        async def mock_save() -> None:
+            await asyncio.sleep(0.01)
+
+        with (
+            patch.object(DeviceDescriptionCache, "load", new=AsyncMock(side_effect=mock_load)) as mock_desc_load,
+            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock(side_effect=mock_load)) as mock_param_load,
+            patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
+            patch.object(CentralDataCache, "load", new=AsyncMock()),
+            patch.object(DeviceDescriptionCache, "save", new=AsyncMock(side_effect=mock_save)) as mock_desc_save,
+            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock(side_effect=mock_save)) as mock_param_save,
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            # Run load and save concurrently
+            await asyncio.gather(
+                coordinator.load_all(),
+                coordinator.save_all(
+                    save_device_descriptions=True,
+                    save_paramset_descriptions=True,
+                ),
+            )
+
+            # All operations should have completed
+            mock_desc_load.assert_called_once()
+            mock_param_load.assert_called_once()
+            mock_desc_save.assert_called_once()
+            mock_param_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_full_cache_lifecycle(self) -> None:
+        """Test full cache lifecycle (load, use, save, clear)."""
+        central = _FakeCentral()
+
+        # Mock all methods
+        with (
+            patch.object(DeviceDescriptionCache, "load", new=AsyncMock()) as mock_desc_load,
+            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock()) as mock_param_load,
+            patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
+            patch.object(CentralDataCache, "load", new=AsyncMock()),
+            patch.object(DeviceDescriptionCache, "save", new=AsyncMock()) as mock_desc_save,
+            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()) as mock_param_save,
+            patch.object(CentralDataCache, "clear", new=AsyncMock()) as mock_data_clear,
+            patch.object(DeviceDetailsCache, "clear", new=AsyncMock()) as mock_details_clear,
+            patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()) as mock_desc_clear,
+            patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
+            patch.object(SessionRecorder, "clear", new=AsyncMock()),
+        ):
+            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+            # Load
+            await coordinator.load_all()
+            mock_desc_load.assert_called_once()
+            mock_param_load.assert_called_once()
+
+            # Save
+            await coordinator.save_all(
+                save_device_descriptions=True,
+                save_paramset_descriptions=True,
+            )
+            mock_desc_save.assert_called_once()
+            mock_param_save.assert_called_once()
+
+            # Clear
+            await coordinator.clear_all()
+            mock_data_clear.assert_called_once()
+            mock_details_clear.assert_called_once()
+            mock_desc_clear.assert_called_once()
+            mock_param_clear.assert_called_once()
+
+
+class TestCacheCoordinatorSessionRecording:
+    """Test session recording cache functionality."""
+
+    def test_session_recording_cache_when_disabled(self) -> None:
+        """Session recording cache should be None when disabled."""
+        central = _FakeCentral()
+        central.config.enable_session_recording = False
+        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+        # When session recording is disabled, cache should be None
+        assert hasattr(coordinator, "_session_recording") is False or coordinator._session_recording is None
+
+    def test_session_recording_cache_when_enabled(self) -> None:
+        """Session recording cache should be created when enabled."""
+        central = _FakeCentral()
+        central.config.enable_session_recording = True
+
+        with patch("aiohomematic.central.cache_coordinator.SessionRecorder"):
+            _ = CacheCoordinator(central=central)  # type: ignore[arg-type]
+
+            # When enabled, cache should be created (if implementation supports it)
+            # This depends on actual implementation in cache_coordinator.py

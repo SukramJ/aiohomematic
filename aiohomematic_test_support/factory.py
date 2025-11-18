@@ -21,7 +21,6 @@ from aiohomematic_test_support.mock import SessionPlayer, get_client_session, ge
 _LOGGER = logging.getLogger(__name__)
 
 
-# pylint: disable=protected-access
 class FactoryWithClient:
     """Factory for a central with one local client."""
 
@@ -87,7 +86,7 @@ class FactoryWithClient:
 
         if start:
             await central.start()
-            await central._init_hub()
+            await central.hub_coordinator.init_hub()
         assert central
         return central
 

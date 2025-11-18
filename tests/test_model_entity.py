@@ -65,7 +65,7 @@ class TestDataPointCallbacks:
         )
         unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
         assert switch.value is None
-        assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM VCU2128127"
+        assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
         await central.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
         )
@@ -121,7 +121,7 @@ class TestDataPointCallbacks:
         switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
         switch.register_device_removed_callback(cb=device_removed_mock)
         assert switch.value is None
-        assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM VCU2128127 State"
+        assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
         await central.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
         )

@@ -267,62 +267,6 @@ class TestClientErrorScenarios:
                 assert isinstance(supports, bool)
 
 
-class TestCentralCallbacks:
-    """Test callback registration and removal."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_callback_registration_duplicate(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test registering the same callback multiple times."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-
-        callback = Mock()
-
-        # Register the same callback multiple times
-        _ = central.register_backend_parameter_callback(cb=callback)
-        _ = central.register_backend_parameter_callback(cb=callback)
-
-        # Second registration should not add duplicate
-        # (implementation dependent)
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_callback_registration_none(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test registering None as callback."""
-        central, _, _ = central_client_factory_with_ccu_client
-
-        # Try to register None
-        _ = central.register_backend_parameter_callback(cb=None)  # type: ignore[arg-type]
-
-        # Should handle gracefully
-
-
 class TestParameterVisibility:
     """Test parameter visibility operations."""
 

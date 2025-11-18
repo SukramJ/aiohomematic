@@ -187,7 +187,7 @@ class TestCalculatedDataPoint:
 
         # Ops flags from base: READ + EVENT, not WRITE
         assert calc.is_readable is True
-        assert calc.is_writeable is False
+        assert calc.is_writable is False
         assert calc.supports_events is True
 
         # DPK and paramset
@@ -241,7 +241,7 @@ class TestCalculatedDataPoint:
         # And the overall calc still exposes expected operation flags
         assert calc.is_readable is True
         assert calc.supports_events is True
-        assert calc.is_writeable is False
+        assert calc.is_writable is False
 
     def test_calculated_datapoint_misc_properties_and_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test misc getters, is_relevant_for_model default, load path, state_uncertain branch, and unregister None branch."""

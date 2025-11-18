@@ -1,3 +1,9 @@
+# Version 2025.11.20 (2025-11-18)
+
+## What's Changed
+
+- Rename writeable to writable
+
 # Version 2025.11.19 (2025-11-17)
 
 ## What's Changed

@@ -44,7 +44,7 @@ class TestGenericBinarySensor:
         )
         assert binary_sensor.usage == DataPointUsage.DATA_POINT
         assert binary_sensor.value is False
-        assert binary_sensor.is_writeable is False
+        assert binary_sensor.is_writable is False
         assert binary_sensor.visible is True
         await central.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU5864966:1", parameter="STATE", value=1

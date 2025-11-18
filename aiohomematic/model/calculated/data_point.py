@@ -148,8 +148,8 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         return all(dp.is_valid for dp in self._relevant_data_points)
 
     @property
-    def is_writeable(self) -> bool:
-        """Return, if data_point is writeable."""
+    def is_writable(self) -> bool:
+        """Return, if data_point is writable."""
         return bool(self._operations & Operations.WRITE)
 
     @property

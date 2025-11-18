@@ -54,30 +54,10 @@ ServiceMethodMap: TypeAlias = Mapping[str, ServiceMethod]
 CustomDataPointFactory: TypeAlias = Callable[..., None]
 
 
-# BackendParameterCallback: TypeAlias = Callable[[str, str, str, Any], None]
-class BackendParameterCallback(Protocol):
-    """Protocol for backend parameter callback."""
-
-    def __call__(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None: ...  # noqa: D102
-
-
 class DataPointEventCallback(Protocol):
     """Protocol for backend parameter callback."""
 
     async def __call__(self, *, value: Any, received_at: datetime) -> None: ...  # noqa: D102
-
-
-class HomematicCallback(Protocol):
-    """Protocol for Homematic callback."""
-
-    def __call__(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None: ...  # noqa: D102
-
-
-# System callbacks receive different kwargs depending on the system event
-class BackendSystemCallback(Protocol):
-    """Protocol for backend system callback."""
-
-    def __call__(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None: ...  # noqa: D102
 
 
 # Sysvar event callbacks (hub/sysvar) vary by implementation; keep variadic

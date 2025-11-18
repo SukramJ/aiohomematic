@@ -189,10 +189,7 @@ from aiohomematic.support import (
 )
 from aiohomematic.type_aliases import (
     AsyncTaskFactory,
-    BackendParameterCallback,
-    BackendSystemCallback,
     DataPointEventCallback,
-    HomematicCallback,
     SysvarEventCallback,
     UnregisterCallback,
 )
@@ -263,15 +260,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {sysvar_name, program_button}
         self._program_data_points: Final[dict[str, ProgramDpType]] = {}
-        # Signature: (system_event, new_data_points, new_channel_events, **kwargs)
-        # e.g. DEVICES_CREATED, HUB_REFRESHED
-        self._backend_system_callbacks: Final[set[BackendSystemCallback]] = set()
-        # Signature: (interface_id, channel_address, parameter, value)
-        # Re-emitted events from the backend for parameter updates
-        self._backend_parameter_callbacks: Final[set[BackendParameterCallback]] = set()
-        # Signature: (event_type, event_data)
-        # Events like INTERFACE, KEYPRESS, ...
-        self._homematic_callbacks: Final[set[HomematicCallback]] = set()
 
         CENTRAL_INSTANCES[self.name] = self
         self._scheduler: Final = BackgroundScheduler(central=self)
@@ -707,18 +695,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             name=f"event-bus-backend-param-{channel_address}-{parameter}",
         )
 
-        # Call legacy callbacks (backward compatibility)
-        for callback_handler in self._backend_parameter_callbacks:
-            try:
-                callback_handler(
-                    interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
-                )
-            except Exception as exc:
-                _LOGGER.error(  # i18n-log: ignore
-                    "EMIT_BACKEND_PARAMETER_CALLBACK: Unable to call handler: %s",
-                    extract_exc_args(exc=exc),
-                )
-
     @loop_check
     def emit_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
         """
@@ -734,16 +710,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             name=f"event-bus-backend-system-{system_event}",
         )
 
-        # Call legacy callbacks (backward compatibility)
-        for callback_handler in self._backend_system_callbacks:
-            try:
-                callback_handler(system_event=system_event, **kwargs)
-            except Exception as exc:
-                _LOGGER.error(  # i18n-log: ignore
-                    "EMIT_BACKEND_SYSTEM_CALLBACK: Unable to call handler: %s",
-                    extract_exc_args(exc=exc),
-                )
-
     @loop_check
     def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
         """
@@ -758,17 +724,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             ),
             name=f"event-bus-homematic-{event_type}",
         )
-
-        # Call legacy callbacks (backward compatibility)
-        for callback_handler in self._homematic_callbacks:
-            try:
-                # Call with keyword arguments as expected by tests and integrations
-                callback_handler(event_type=event_type, event_data=event_data)
-            except Exception as exc:
-                _LOGGER.error(  # i18n-log: ignore
-                    "EMIT_HOMEMATIC_CALLBACK: Unable to call handler: %s",
-                    extract_exc_args(exc=exc),
-                )
 
     @loop_check
     def emit_interface_event(
@@ -1127,123 +1082,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if device_in_state.firmware_update_state in device_firmware_states
         ]:
             await self.refresh_firmware_data(device_address=device.address)
-
-    def register_backend_parameter_callback(self, *, cb: BackendParameterCallback) -> UnregisterCallback:
-        """
-        Register backend_parameter callback in central.
-
-        .. deprecated:: 2025.11.16
-            Use :meth:`event_bus.subscribe` with :class:`BackendParameterEvent` instead.
-            This method will be removed in a future version.
-
-            Example::
-
-                from aiohomematic.central.event_bus import BackendParameterEvent
-
-                unsubscribe = central.event_bus.subscribe(
-                    event_type=BackendParameterEvent,
-                    handler=my_handler
-                )
-
-        """
-        warnings.warn(
-            "register_backend_parameter_callback() is deprecated. "
-            "Use central.event_bus.subscribe(event_type=BackendParameterEvent, handler=...) instead. "
-            "See docs/event_bus_migration_guide.md for migration instructions.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Register via EventBus for new system
-        unsubscribe_eventbus = self._event_bus.subscribe_backend_parameter_callback(callback=cb)
-
-        # Also add to legacy set for backward compatibility
-        if callable(cb) and cb not in self._backend_parameter_callbacks:
-            self._backend_parameter_callbacks.add(cb)
-
-        def combined_unregister() -> None:
-            """Unregister from both systems."""
-            unsubscribe_eventbus()
-            self._unregister_backend_parameter_callback(cb=cb)
-
-        return combined_unregister
-
-    def register_backend_system_callback(self, *, cb: BackendSystemCallback) -> UnregisterCallback:
-        """
-        Register system_event callback in central.
-
-        .. deprecated:: 2025.11.16
-            Use :meth:`event_bus.subscribe` with :class:`BackendSystemEventData` instead.
-            This method will be removed in a future version.
-
-            Example::
-
-                from aiohomematic.central.event_bus import BackendSystemEventData
-
-                unsubscribe = central.event_bus.subscribe(
-                    event_type=BackendSystemEventData,
-                    handler=my_handler
-                )
-
-        """
-        warnings.warn(
-            "register_backend_system_callback() is deprecated. "
-            "Use central.event_bus.subscribe(event_type=BackendSystemEventData, handler=...) instead. "
-            "See docs/event_bus_migration_guide.md for migration instructions.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Register via EventBus for new system
-        unsubscribe_eventbus = self._event_bus.subscribe_backend_system_callback(callback=cb)
-
-        # Also add to legacy set for backward compatibility
-        if callable(cb) and cb not in self._backend_system_callbacks:
-            self._backend_system_callbacks.add(cb)
-
-        def combined_unregister() -> None:
-            """Unregister from both systems."""
-            unsubscribe_eventbus()
-            self._unregister_backend_system_callback(cb=cb)
-
-        return combined_unregister
-
-    def register_homematic_callback(self, *, cb: HomematicCallback) -> UnregisterCallback:
-        """
-        Register ha_event callback in central.
-
-        .. deprecated:: 2025.11.16
-            Use :meth:`event_bus.subscribe` with :class:`HomematicEvent` instead.
-            This method will be removed in a future version.
-
-            Example::
-
-                from aiohomematic.central.event_bus import HomematicEvent
-
-                unsubscribe = central.event_bus.subscribe(
-                    event_type=HomematicEvent,
-                    handler=my_handler
-                )
-
-        """
-        warnings.warn(
-            "register_homematic_callback() is deprecated. "
-            "Use central.event_bus.subscribe(event_type=HomematicEvent, handler=...) instead. "
-            "See docs/event_bus_migration_guide.md for migration instructions.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Register via EventBus for new system
-        unsubscribe_eventbus = self._event_bus.subscribe_homematic_callback(callback=cb)
-
-        # Also add to legacy set for backward compatibility
-        if callable(cb) and cb not in self._homematic_callbacks:
-            self._homematic_callbacks.add(cb)
-
-        def combined_unregister() -> None:
-            """Unregister from both systems."""
-            unsubscribe_eventbus()
-            self._unregister_homematic_callback(cb=cb)
-
-        return combined_unregister
 
     @inspector
     async def remove_central_links(self) -> None:
@@ -1969,21 +1807,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             "STOP_SCHEDULER: Stopped scheduler for %s",
             self.name,
         )
-
-    def _unregister_backend_parameter_callback(self, *, cb: BackendParameterCallback) -> None:
-        """Un register backend_parameter callback in central."""
-        if cb in self._backend_parameter_callbacks:
-            self._backend_parameter_callbacks.remove(cb)
-
-    def _unregister_backend_system_callback(self, *, cb: BackendSystemCallback) -> None:
-        """Un register system_event callback in central."""
-        if cb in self._backend_system_callbacks:
-            self._backend_system_callbacks.remove(cb)
-
-    def _unregister_homematic_callback(self, *, cb: HomematicCallback) -> None:
-        """RUn register ha_event callback in central."""
-        if cb in self._homematic_callbacks:
-            self._homematic_callbacks.remove(cb)
 
 
 class CentralConfig:

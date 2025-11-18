@@ -62,15 +62,6 @@ class _FakeClient:
 class TestDeviceRegistryBasics:
     """Test basic DeviceRegistry functionality."""
 
-    def test_initialization(self) -> None:
-        """DeviceRegistry should initialize with empty device collection."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        assert registry.device_count == 0
-        assert registry.devices == ()
-        assert registry.get_device_addresses() == frozenset()
-
     def test_add_device(self) -> None:
         """Add a device to the registry."""
         central = _FakeCentral()
@@ -82,6 +73,21 @@ class TestDeviceRegistryBasics:
         assert registry.device_count == 1
         assert len(registry.devices) == 1
         assert registry.devices[0].address == "VCU0000001"
+
+    def test_add_device_overwrites_existing(self) -> None:
+        """Adding a device with same address should overwrite the existing one."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        device1 = _FakeDevice(address="VCU0000001")
+        device2 = _FakeDevice(address="VCU0000001")
+
+        registry.add_device(device=device1)  # type: ignore[arg-type]
+        assert registry.device_count == 1
+
+        registry.add_device(device=device2)  # type: ignore[arg-type]
+        assert registry.device_count == 1  # Still 1, not 2
+        assert registry.get_device(address="VCU0000001") is device2  # type: ignore[arg-type]
 
     def test_add_multiple_devices(self) -> None:
         """Add multiple devices to the registry."""
@@ -98,21 +104,6 @@ class TestDeviceRegistryBasics:
 
         assert registry.device_count == 3
         assert len(registry.devices) == 3
-
-    def test_add_device_overwrites_existing(self) -> None:
-        """Adding a device with same address should overwrite the existing one."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device1 = _FakeDevice(address="VCU0000001")
-        device2 = _FakeDevice(address="VCU0000001")
-
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        assert registry.device_count == 1
-
-        registry.add_device(device=device2)  # type: ignore[arg-type]
-        assert registry.device_count == 1  # Still 1, not 2
-        assert registry.get_device(address="VCU0000001") is device2  # type: ignore[arg-type]
 
     def test_clear(self) -> None:
         """Clear all devices from the registry."""
@@ -184,43 +175,18 @@ class TestDeviceRegistryBasics:
         assert devices1 == devices2
         assert devices1 is not devices2
 
+    def test_initialization(self) -> None:
+        """DeviceRegistry should initialize with empty device collection."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        assert registry.device_count == 0
+        assert registry.devices == ()
+        assert registry.get_device_addresses() == frozenset()
+
 
 class TestDeviceRegistryGetDevice:
     """Test get_device functionality."""
-
-    def test_get_device_with_device_address(self) -> None:
-        """Get device using device address."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        retrieved = registry.get_device(address="VCU0000001")
-        assert retrieved is device  # type: ignore[comparison-overlap]
-
-    def test_get_device_with_channel_address(self) -> None:
-        """Get device using channel address (should extract device part)."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        # Should work with channel address too
-        retrieved = registry.get_device(address="VCU0000001:1")
-        assert retrieved is device  # type: ignore[comparison-overlap]
-
-    def test_get_device_not_found(self) -> None:
-        """Get device that doesn't exist should return None."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        retrieved = registry.get_device(address="VCU9999999")
-        assert retrieved is None
 
     def test_get_device_after_removal(self) -> None:
         """Get device after it's been removed should return None."""
@@ -235,24 +201,43 @@ class TestDeviceRegistryGetDevice:
         retrieved = registry.get_device(address="VCU0000001")
         assert retrieved is None
 
-
-class TestDeviceRegistryGetChannel:
-    """Test get_channel functionality."""
-
-    def test_get_channel_success(self) -> None:
-        """Get channel from device."""
+    def test_get_device_not_found(self) -> None:
+        """Get device that doesn't exist should return None."""
         central = _FakeCentral()
         registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
 
-        channel = _FakeChannel(address="VCU0000001:1")
-        device = _FakeDevice(
-            address="VCU0000001",
-            channels={"VCU0000001:1": channel},
-        )
+        device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
 
-        retrieved = registry.get_channel(channel_address="VCU0000001:1")
-        assert retrieved is channel  # type: ignore[comparison-overlap]
+        retrieved = registry.get_device(address="VCU9999999")
+        assert retrieved is None
+
+    def test_get_device_with_channel_address(self) -> None:
+        """Get device using channel address (should extract device part)."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        device = _FakeDevice(address="VCU0000001")
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        # Should work with channel address too
+        retrieved = registry.get_device(address="VCU0000001:1")
+        assert retrieved is device  # type: ignore[comparison-overlap]
+
+    def test_get_device_with_device_address(self) -> None:
+        """Get device using device address."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        device = _FakeDevice(address="VCU0000001")
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        retrieved = registry.get_device(address="VCU0000001")
+        assert retrieved is device  # type: ignore[comparison-overlap]
+
+
+class TestDeviceRegistryGetChannel:
+    """Test get_channel functionality."""
 
     def test_get_channel_device_not_found(self) -> None:
         """Get channel when device doesn't exist should return None."""
@@ -260,17 +245,6 @@ class TestDeviceRegistryGetChannel:
         registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
 
         retrieved = registry.get_channel(channel_address="VCU9999999:1")
-        assert retrieved is None
-
-    def test_get_channel_not_found(self) -> None:
-        """Get channel that doesn't exist on device should return None."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device = _FakeDevice(address="VCU0000001", channels={})
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        retrieved = registry.get_channel(channel_address="VCU0000001:1")
         assert retrieved is None
 
     def test_get_channel_multiple_devices(self) -> None:
@@ -299,26 +273,35 @@ class TestDeviceRegistryGetChannel:
         assert retrieved1 is channel1  # type: ignore[comparison-overlap]
         assert retrieved2 is channel2  # type: ignore[comparison-overlap]
 
+    def test_get_channel_not_found(self) -> None:
+        """Get channel that doesn't exist on device should return None."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        device = _FakeDevice(address="VCU0000001", channels={})
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        retrieved = registry.get_channel(channel_address="VCU0000001:1")
+        assert retrieved is None
+
+    def test_get_channel_success(self) -> None:
+        """Get channel from device."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        channel = _FakeChannel(address="VCU0000001:1")
+        device = _FakeDevice(
+            address="VCU0000001",
+            channels={"VCU0000001:1": channel},
+        )
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        retrieved = registry.get_channel(channel_address="VCU0000001:1")
+        assert retrieved is channel  # type: ignore[comparison-overlap]
+
 
 class TestDeviceRegistryHasDevice:
     """Test has_device functionality."""
-
-    def test_has_device_true(self) -> None:
-        """Has device should return True for existing device."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        assert registry.has_device(address="VCU0000001") is True
-
-    def test_has_device_false(self) -> None:
-        """Has device should return False for non-existing device."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        assert registry.has_device(address="VCU9999999") is False
 
     def test_has_device_after_add_and_remove(self) -> None:
         """Has device should reflect add and remove operations."""
@@ -338,48 +321,26 @@ class TestDeviceRegistryHasDevice:
         registry.remove_device(device_address="VCU0000001")
         assert registry.has_device(address="VCU0000001") is False
 
+    def test_has_device_false(self) -> None:
+        """Has device should return False for non-existing device."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        assert registry.has_device(address="VCU9999999") is False
+
+    def test_has_device_true(self) -> None:
+        """Has device should return True for existing device."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        device = _FakeDevice(address="VCU0000001")
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        assert registry.has_device(address="VCU0000001") is True
+
 
 class TestDeviceRegistryRemoveDevice:
     """Test remove_device functionality."""
-
-    def test_remove_device_success(self) -> None:
-        """Remove device should remove the device from registry."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        assert registry.device_count == 1
-
-        registry.remove_device(device_address="VCU0000001")
-
-        assert registry.device_count == 0
-        assert registry.has_device(address="VCU0000001") is False
-
-    def test_remove_device_not_found(self) -> None:
-        """Remove device that doesn't exist should not raise error."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        # Should not raise
-        registry.remove_device(device_address="VCU9999999")
-
-        assert registry.device_count == 0
-
-    def test_remove_device_multiple_times(self) -> None:
-        """Remove same device multiple times should not raise error."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        registry.remove_device(device_address="VCU0000001")
-        # Should not raise on second removal
-        registry.remove_device(device_address="VCU0000001")
-
-        assert registry.device_count == 0
 
     def test_remove_device_leaves_others(self) -> None:
         """Remove device should only remove specified device."""
@@ -401,6 +362,45 @@ class TestDeviceRegistryRemoveDevice:
         assert registry.has_device(address="VCU0000002") is False
         assert registry.has_device(address="VCU0000003") is True
 
+    def test_remove_device_multiple_times(self) -> None:
+        """Remove same device multiple times should not raise error."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        device = _FakeDevice(address="VCU0000001")
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        registry.remove_device(device_address="VCU0000001")
+        # Should not raise on second removal
+        registry.remove_device(device_address="VCU0000001")
+
+        assert registry.device_count == 0
+
+    def test_remove_device_not_found(self) -> None:
+        """Remove device that doesn't exist should not raise error."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        # Should not raise
+        registry.remove_device(device_address="VCU9999999")
+
+        assert registry.device_count == 0
+
+    def test_remove_device_success(self) -> None:
+        """Remove device should remove the device from registry."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        device = _FakeDevice(address="VCU0000001")
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        assert registry.device_count == 1
+
+        registry.remove_device(device_address="VCU0000001")
+
+        assert registry.device_count == 0
+        assert registry.has_device(address="VCU0000001") is False
+
 
 class TestDeviceRegistryGetDeviceAddresses:
     """Test get_device_addresses functionality."""
@@ -414,8 +414,8 @@ class TestDeviceRegistryGetDeviceAddresses:
         assert isinstance(addresses, frozenset)
         assert len(addresses) == 0
 
-    def test_get_device_addresses_single(self) -> None:
-        """Get device addresses should return all addresses."""
+    def test_get_device_addresses_immutable(self) -> None:
+        """Get device addresses should return frozenset (immutable)."""
         central = _FakeCentral()
         registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
 
@@ -423,8 +423,7 @@ class TestDeviceRegistryGetDeviceAddresses:
         registry.add_device(device=device)  # type: ignore[arg-type]
 
         addresses = registry.get_device_addresses()
-        assert len(addresses) == 1
-        assert "VCU0000001" in addresses
+        assert isinstance(addresses, frozenset)
 
     def test_get_device_addresses_multiple(self) -> None:
         """Get device addresses should return all device addresses."""
@@ -445,8 +444,8 @@ class TestDeviceRegistryGetDeviceAddresses:
         assert "VCU0000002" in addresses
         assert "VCU0000003" in addresses
 
-    def test_get_device_addresses_immutable(self) -> None:
-        """Get device addresses should return frozenset (immutable)."""
+    def test_get_device_addresses_single(self) -> None:
+        """Get device addresses should return all addresses."""
         central = _FakeCentral()
         registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
 
@@ -454,40 +453,19 @@ class TestDeviceRegistryGetDeviceAddresses:
         registry.add_device(device=device)  # type: ignore[arg-type]
 
         addresses = registry.get_device_addresses()
-        assert isinstance(addresses, frozenset)
+        assert len(addresses) == 1
+        assert "VCU0000001" in addresses
 
 
 class TestDeviceRegistryIdentifyChannel:
     """Test identify_channel functionality."""
 
-    def test_identify_channel_success(self) -> None:
-        """Identify channel should find channel in text."""
+    def test_identify_channel_empty_registry(self) -> None:
+        """Identify channel should return None for empty registry."""
         central = _FakeCentral()
         registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
 
-        channel = _FakeChannel(address="VCU0000001:1")
-        device = _FakeDevice(
-            address="VCU0000001",
-            channels={"VCU0000001:1": channel},
-        )
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        identified = registry.identify_channel(text="The device VCU0000001:1 is active")
-        assert identified is channel  # type: ignore[comparison-overlap]
-
-    def test_identify_channel_not_found(self) -> None:
-        """Identify channel should return None when no channel matches."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        channel = _FakeChannel(address="VCU0000001:1")
-        device = _FakeDevice(
-            address="VCU0000001",
-            channels={"VCU0000001:1": channel},
-        )
-        registry.add_device(device=device)  # type: ignore[arg-type]
-
-        identified = registry.identify_channel(text="No channel address here")
+        identified = registry.identify_channel(text="VCU0000001:1")
         assert identified is None
 
     def test_identify_channel_multiple_devices(self) -> None:
@@ -513,44 +491,39 @@ class TestDeviceRegistryIdentifyChannel:
         identified = registry.identify_channel(text="Channel VCU0000002:1 triggered")
         assert identified is channel2  # type: ignore[comparison-overlap]
 
-    def test_identify_channel_empty_registry(self) -> None:
-        """Identify channel should return None for empty registry."""
+    def test_identify_channel_not_found(self) -> None:
+        """Identify channel should return None when no channel matches."""
         central = _FakeCentral()
         registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
 
-        identified = registry.identify_channel(text="VCU0000001:1")
+        channel = _FakeChannel(address="VCU0000001:1")
+        device = _FakeDevice(
+            address="VCU0000001",
+            channels={"VCU0000001:1": channel},
+        )
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        identified = registry.identify_channel(text="No channel address here")
         assert identified is None
+
+    def test_identify_channel_success(self) -> None:
+        """Identify channel should find channel in text."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        channel = _FakeChannel(address="VCU0000001:1")
+        device = _FakeDevice(
+            address="VCU0000001",
+            channels={"VCU0000001:1": channel},
+        )
+        registry.add_device(device=device)  # type: ignore[arg-type]
+
+        identified = registry.identify_channel(text="The device VCU0000001:1 is active")
+        assert identified is channel  # type: ignore[comparison-overlap]
 
 
 class TestDeviceRegistryVirtualRemotes:
     """Test get_virtual_remotes functionality."""
-
-    def test_get_virtual_remotes_none(self) -> None:
-        """Get virtual remotes should return empty tuple when no clients have remotes."""
-        central = _FakeCentral()
-        client1 = _FakeClient(virtual_remote=None)
-        client2 = _FakeClient(virtual_remote=None)
-        central.clients = [client1, client2]  # type: ignore[list-item]
-
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        remotes = registry.get_virtual_remotes()
-        assert isinstance(remotes, tuple)
-        assert len(remotes) == 0
-
-    def test_get_virtual_remotes_single(self) -> None:
-        """Get virtual remotes should return remote from client."""
-        central = _FakeCentral()
-        remote1 = _FakeDevice(address="VCU_REMOTE_001")
-        client1 = _FakeClient(virtual_remote=remote1)
-        client2 = _FakeClient(virtual_remote=None)
-        central.clients = [client1, client2]  # type: ignore[list-item]
-
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        remotes = registry.get_virtual_remotes()
-        assert len(remotes) == 1
-        assert remote1 in remotes  # type: ignore[comparison-overlap]
 
     def test_get_virtual_remotes_multiple(self) -> None:
         """Get virtual remotes should return all remotes from all clients."""
@@ -585,9 +558,56 @@ class TestDeviceRegistryVirtualRemotes:
         assert isinstance(remotes, tuple)
         assert len(remotes) == 0
 
+    def test_get_virtual_remotes_none(self) -> None:
+        """Get virtual remotes should return empty tuple when no clients have remotes."""
+        central = _FakeCentral()
+        client1 = _FakeClient(virtual_remote=None)
+        client2 = _FakeClient(virtual_remote=None)
+        central.clients = [client1, client2]  # type: ignore[list-item]
+
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        remotes = registry.get_virtual_remotes()
+        assert isinstance(remotes, tuple)
+        assert len(remotes) == 0
+
+    def test_get_virtual_remotes_single(self) -> None:
+        """Get virtual remotes should return remote from client."""
+        central = _FakeCentral()
+        remote1 = _FakeDevice(address="VCU_REMOTE_001")
+        client1 = _FakeClient(virtual_remote=remote1)
+        client2 = _FakeClient(virtual_remote=None)
+        central.clients = [client1, client2]  # type: ignore[list-item]
+
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        remotes = registry.get_virtual_remotes()
+        assert len(remotes) == 1
+        assert remote1 in remotes  # type: ignore[comparison-overlap]
+
 
 class TestDeviceRegistryIntegration:
     """Integration tests for DeviceRegistry with multiple operations."""
+
+    def test_concurrent_operations(self) -> None:
+        """Test that concurrent operations work correctly."""
+        central = _FakeCentral()
+        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+
+        # Add multiple devices
+        for i in range(10):
+            device = _FakeDevice(address=f"VCU00000{i:02d}")
+            registry.add_device(device=device)  # type: ignore[arg-type]
+
+        # Query while iterating
+        count = 0
+        for device in registry.devices:
+            count += 1
+            # These operations shouldn't affect the iteration
+            assert registry.has_device(address=device.address)  # type: ignore[union-attr]
+            assert registry.get_device(address=device.address) is device  # type: ignore[arg-type,union-attr]
+
+        assert count == 10
 
     def test_full_lifecycle(self) -> None:
         """Test full lifecycle of device registry operations."""
@@ -641,26 +661,6 @@ class TestDeviceRegistryIntegration:
         registry.clear()
         assert registry.device_count == 0
         assert registry.devices == ()
-
-    def test_concurrent_operations(self) -> None:
-        """Test that concurrent operations work correctly."""
-        central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
-
-        # Add multiple devices
-        for i in range(10):
-            device = _FakeDevice(address=f"VCU00000{i:02d}")
-            registry.add_device(device=device)  # type: ignore[arg-type]
-
-        # Query while iterating
-        count = 0
-        for device in registry.devices:
-            count += 1
-            # These operations shouldn't affect the iteration
-            assert registry.has_device(address=device.address)  # type: ignore[union-attr]
-            assert registry.get_device(address=device.address) is device  # type: ignore[arg-type,union-attr]
-
-        assert count == 10
 
     def test_virtual_remotes_integration(self) -> None:
         """Test virtual remotes with full integration."""

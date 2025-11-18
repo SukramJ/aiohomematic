@@ -26,7 +26,6 @@ from aiohomematic.central.event_bus import (
     DataPointUpdatedEvent,
     EventBus,
     HomematicEvent,
-    SysvarUpdatedEvent,
 )
 from aiohomematic.const import (
     BackendSystemEvent,
@@ -39,8 +38,6 @@ from aiohomematic.const import (
 )
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
-from aiohomematic.support import extract_exc_args
-from aiohomematic.type_aliases import DataPointEventCallback, SysvarEventCallback
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralUnit
@@ -55,11 +52,8 @@ class EventCoordinator:
 
     __slots__ = (
         "_central",
-        "_data_point_key_event_subscriptions",
-        "_data_point_path_event_subscriptions",
         "_event_bus",
         "_last_event_seen_for_interface",
-        "_sysvar_data_point_event_subscriptions",
     )
 
     def __init__(self, *, central: CentralUnit) -> None:
@@ -76,29 +70,19 @@ class EventCoordinator:
         # Initialize event bus
         self._event_bus: Final = EventBus(enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG))
 
-        # Legacy event subscriptions (for backward compatibility)
-        self._data_point_key_event_subscriptions: Final[dict[DataPointKey, list[DataPointEventCallback]]] = {}
-        self._data_point_path_event_subscriptions: Final[dict[str, DataPointKey]] = {}
-        self._sysvar_data_point_event_subscriptions: Final[dict[str, SysvarEventCallback]] = {}
-
         # Store last event seen datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
 
     @property
     def event_bus(self) -> EventBus:
         """
-        Return the EventBus for direct event subscription.
+        Return the EventBus for event subscription.
 
-        The EventBus provides a type-safe, modern API for subscribing to events.
-        Use this for new code instead of the legacy register_*_callback methods.
+        The EventBus provides a type-safe API for subscribing to events.
 
         Example:
         -------
-            # Modern API (recommended)
             central.event_coordinator.event_bus.subscribe(DataPointUpdatedEvent, my_handler)
-
-            # Legacy API (still supported)
-            central.event_coordinator.add_data_point_subscription(data_point)
 
         """
         return self._event_bus
@@ -106,6 +90,8 @@ class EventCoordinator:
     def add_data_point_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """
         Add data point to event subscription.
+
+        This method subscribes the data point's event handler to the EventBus.
 
         Args:
         ----
@@ -115,28 +101,11 @@ class EventCoordinator:
         if isinstance(data_point, GenericDataPoint | GenericEvent) and (
             data_point.is_readable or data_point.supports_events
         ):
-            if data_point.dpk not in self._data_point_key_event_subscriptions:
-                self._data_point_key_event_subscriptions[data_point.dpk] = []
-            self._data_point_key_event_subscriptions[data_point.dpk].append(data_point.event)
-
-            if (
-                not data_point.channel.device.client.supports_rpc_callback
-                and data_point.state_path not in self._data_point_path_event_subscriptions
-            ):
-                self._data_point_path_event_subscriptions[data_point.state_path] = data_point.dpk
-
-    def add_sysvar_subscription(self, *, state_path: str, callback: SysvarEventCallback) -> None:
-        """
-        Add system variable to event subscription.
-
-        Args:
-        ----
-            state_path: State path of the system variable
-            callback: Callback to invoke when system variable is updated
-
-        """
-        if state_path not in self._sysvar_data_point_event_subscriptions:
-            self._sysvar_data_point_event_subscriptions[state_path] = callback
+            # Subscribe data point's event method to EventBus using compatibility wrapper
+            self._event_bus.subscribe_datapoint_event_callback(
+                dpk=data_point.dpk,
+                callback=data_point.event,
+            )
 
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """
@@ -184,70 +153,16 @@ class EventCoordinator:
 
         received_at = datetime.now()
 
-        # Publish to EventBus (new system)
-        self._central.looper.create_task(
-            target=self._event_bus.publish(
-                event=DataPointUpdatedEvent(
-                    timestamp=datetime.now(),
-                    dpk=dpk,
-                    value=value,
-                    received_at=received_at,
-                )
-            ),
-            name=f"event-bus-datapoint-{dpk.channel_address}-{dpk.parameter}",
-        )
-
-        # Call legacy event callbacks (backward compatibility)
-        if dpk in self._data_point_key_event_subscriptions:
-            try:
-                for callback_handler in self._data_point_key_event_subscriptions[dpk]:
-                    if callable(callback_handler):
-                        await callback_handler(value=value, received_at=received_at)
-            except RuntimeError as rterr:
-                _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s, %s, %s",
-                    extract_exc_args(exc=rterr),
-                    interface_id,
-                    channel_address,
-                    parameter,
-                )
-            except Exception as exc:
-                _LOGGER_EVENT.error(  # i18n-log: ignore
-                    "EVENT failed: Unable to call handler for: %s, %s, %s, %s",
-                    interface_id,
-                    channel_address,
-                    parameter,
-                    extract_exc_args(exc=exc),
-                )
-
-    def data_point_path_event(self, *, state_path: str, value: str) -> None:
-        """
-        Handle data point path event from MQTT or other sources.
-
-        Args:
-        ----
-            state_path: State path of the data point
-            value: New value
-
-        """
-        _LOGGER_EVENT.debug(
-            "DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
-            state_path,
-            value,
-        )
-
-        if (dpk := self._data_point_path_event_subscriptions.get(state_path)) is not None:
-            self._central.looper.create_task(
-                target=lambda: self.data_point_event(
-                    interface_id=dpk.interface_id,
-                    channel_address=dpk.channel_address,
-                    parameter=dpk.parameter,
-                    value=value,
-                ),
-                name=f"device-data-point-event-{dpk.interface_id}-{dpk.channel_address}-{dpk.parameter}",
+        # Publish to EventBus (await directly for synchronous event processing)
+        await self._event_bus.publish(
+            event=DataPointUpdatedEvent(
+                timestamp=datetime.now(),
+                dpk=dpk,
+                value=value,
+                received_at=received_at,
             )
+        )
 
-    @loop_check
     def emit_backend_parameter_callback(
         self, *, interface_id: str, channel_address: str, parameter: str, value: Any
     ) -> None:
@@ -264,9 +179,9 @@ class EventCoordinator:
             value: New value
 
         """
-        # Publish to EventBus (new system)
+        # Publish to EventBus asynchronously
         self._central.looper.create_task(
-            target=self._event_bus.publish(
+            target=lambda: self._event_bus.publish(
                 event=BackendParameterEvent(
                     timestamp=datetime.now(),
                     interface_id=interface_id,
@@ -293,7 +208,7 @@ class EventCoordinator:
         """
         # Publish to EventBus (new system)
         self._central.looper.create_task(
-            target=self._event_bus.publish(
+            target=lambda: self._event_bus.publish(
                 event=BackendSystemEventData(timestamp=datetime.now(), system_event=system_event, data=kwargs)
             ),
             name=f"event-bus-backend-system-{system_event}",
@@ -314,7 +229,7 @@ class EventCoordinator:
         """
         # Publish to EventBus (new system)
         self._central.looper.create_task(
-            target=self._event_bus.publish(
+            target=lambda: self._event_bus.publish(
                 event=HomematicEvent(timestamp=datetime.now(), event_type=event_type, event_data=event_data)
             ),
             name=f"event-bus-homematic-{event_type}",
@@ -353,17 +268,6 @@ class EventCoordinator:
             event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
-    def get_data_point_path(self) -> tuple[str, ...]:
-        """
-        Return the registered state paths.
-
-        Returns
-        -------
-            Tuple of registered state paths
-
-        """
-        return tuple(self._data_point_path_event_subscriptions)
-
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """
         Return the last event seen for an interface.
@@ -379,44 +283,6 @@ class EventCoordinator:
         """
         return self._last_event_seen_for_interface.get(interface_id)
 
-    def get_sysvar_data_point_path(self) -> tuple[str, ...]:
-        """
-        Return the registered sysvar state paths.
-
-        Returns
-        -------
-            Tuple of registered sysvar state paths
-
-        """
-        return tuple(self._sysvar_data_point_event_subscriptions)
-
-    def remove_data_point_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
-        """
-        Remove data point event subscription.
-
-        Args:
-        ----
-            data_point: Data point to unsubscribe from events
-
-        """
-        if isinstance(data_point, GenericDataPoint | GenericEvent) and data_point.supports_events:
-            if data_point.dpk in self._data_point_key_event_subscriptions:
-                del self._data_point_key_event_subscriptions[data_point.dpk]
-            if data_point.state_path in self._data_point_path_event_subscriptions:
-                del self._data_point_path_event_subscriptions[data_point.state_path]
-
-    def remove_sysvar_subscription(self, *, state_path: str) -> None:
-        """
-        Remove system variable event subscription.
-
-        Args:
-        ----
-            state_path: State path of the system variable
-
-        """
-        if state_path in self._sysvar_data_point_event_subscriptions:
-            del self._sysvar_data_point_event_subscriptions[state_path]
-
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """
         Set the last event seen timestamp for an interface.
@@ -427,69 +293,3 @@ class EventCoordinator:
 
         """
         self._last_event_seen_for_interface[interface_id] = datetime.now()
-
-    def sysvar_data_point_path_event(self, *, state_path: str, value: str) -> None:
-        """
-        Handle system variable path event.
-
-        Args:
-        ----
-            state_path: State path of the system variable
-            value: New value
-
-        """
-        _LOGGER_EVENT.debug(
-            "SYSVAR_DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
-            state_path,
-            value,
-        )
-
-        received_at = datetime.now()
-
-        # Publish to EventBus (new system)
-        try:
-            self._central.looper.create_task(
-                target=self._event_bus.publish(
-                    event=SysvarUpdatedEvent(
-                        timestamp=datetime.now(),
-                        state_path=state_path,
-                        value=value,
-                        received_at=received_at,
-                    )
-                ),
-                name=f"event-bus-sysvar-{state_path}",
-            )
-        except RuntimeError as rterr:
-            _LOGGER_EVENT.debug(
-                "EVENT: RuntimeError [%s]. Failed to publish to EventBus for: %s",
-                extract_exc_args(exc=rterr),
-                state_path,
-            )
-        except Exception as exc:  # pragma: no cover
-            _LOGGER_EVENT.error(  # i18n-log: ignore
-                "EVENT failed: Unable to call handler for: %s, %s",
-                state_path,
-                extract_exc_args(exc=exc),
-            )
-
-        # Call legacy event callbacks (backward compatibility)
-        if state_path in self._sysvar_data_point_event_subscriptions:
-            try:
-                callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
-                if callable(callback_handler):
-                    self._central.looper.create_task(
-                        target=lambda: callback_handler(value=value, received_at=received_at),
-                        name=f"sysvar-data-point-event-{state_path}",
-                    )
-            except RuntimeError as rterr:
-                _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s",
-                    extract_exc_args(exc=rterr),
-                    state_path,
-                )
-            except Exception as exc:  # pragma: no cover
-                _LOGGER_EVENT.error(  # i18n-log: ignore
-                    "EVENT failed: Unable to call handler for: %s, %s",
-                    state_path,
-                    extract_exc_args(exc=exc),
-                )

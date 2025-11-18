@@ -9,6 +9,7 @@ import sys
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig
+from aiohomematic.central.event_bus import BackendSystemEventData
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.model.custom import validate_custom_data_point_definition
 
@@ -31,25 +32,10 @@ class Example:
         self.SLEEPCOUNTER = 0
         self.central = None
 
-    def _systemcallback(self, system_event: str, **kwargs):
-        self.got_devices = True
-        if (
-            system_event == const.BackendSystemEvent.NEW_DEVICES
-            and kwargs
-            and kwargs.get("device_descriptions")
-            and len(kwargs["device_descriptions"]) > 0
-        ):
+    def _systemcallback(self, event: BackendSystemEventData) -> None:
+        """Handle backend system events."""
+        if event.system_event == const.BackendSystemEvent.DEVICES_CREATED:
             self.got_devices = True
-            return
-        if (
-            system_event == const.BackendSystemEvent.DEVICES_CREATED
-            and kwargs
-            and kwargs.get("new_data_points")
-            and len(kwargs["new_data_points"]) > 0
-        ):
-            if len(kwargs["new_data_points"]) > 1:
-                self.got_devices = True
-            return
 
     async def example_run(self):
         """Process the example."""
@@ -84,7 +70,7 @@ class Example:
         # For testing we set a short INIT_TIMEOUT
         const.INIT_TIMEOUT = 10
         # Add callbacks to handle the events and see what happens on the system.
-        self.central.register_backend_system_callback(cb=self._systemcallback)
+        self.central.event_bus.subscribe(event_type=BackendSystemEventData, handler=self._systemcallback)
 
         await self.central.start()
         while not self.got_devices and self.SLEEPCOUNTER < 20:

@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 import contextlib
 import logging
-from typing import Any, Self, cast
+from typing import Self, cast
 from unittest.mock import MagicMock, Mock, patch
 
 from aiohttp import ClientSession
 
 from aiohomematic.central import CentralConfig, CentralUnit
+from aiohomematic.central.event_bus import BackendSystemEventData, HomematicEvent
 from aiohomematic.client import Client, ClientConfig, InterfaceConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, OptionalSettings
 from aiohomematic_test_support import const
@@ -51,6 +52,13 @@ class FactoryWithClient:
         )
         self.system_event_mock = MagicMock()
         self.ha_event_mock = MagicMock()
+        self._event_bus_unsubscribe_callbacks: list[Callable[[], None]] = []
+
+    def cleanup_event_bus_subscriptions(self) -> None:
+        """Clean up all event bus subscriptions."""
+        for unsubscribe in self._event_bus_unsubscribe_callbacks:
+            unsubscribe()
+        self._event_bus_unsubscribe_callbacks.clear()
 
     async def get_default_central(self, *, start: bool = True) -> CentralUnit:
         """Return a central based on give address_device_translation."""
@@ -100,8 +108,21 @@ class FactoryWithClient:
             optional_settings=(OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
         ).create_central()
 
-        central.register_backend_system_callback(cb=self.system_event_mock)
-        central.register_homematic_callback(cb=self.ha_event_mock)
+        # Subscribe to events via event bus instead of deprecated callbacks
+        def _system_event_handler(event: BackendSystemEventData) -> None:
+            """Handle backend system events."""
+            self.system_event_mock(event)
+
+        def _ha_event_handler(event: HomematicEvent) -> None:
+            """Handle homematic events."""
+            self.ha_event_mock(event)
+
+        self._event_bus_unsubscribe_callbacks.append(
+            central.event_bus.subscribe(event_type=BackendSystemEventData, handler=_system_event_handler)
+        )
+        self._event_bus_unsubscribe_callbacks.append(
+            central.event_bus.subscribe(event_type=HomematicEvent, handler=_ha_event_handler)
+        )
 
         assert central
         self._client_session.set_central(central=central)  # type: ignore[attr-defined]
@@ -176,6 +197,7 @@ async def get_central_client_factory(
     try:
         yield central, client, factory
     finally:
+        factory.cleanup_event_bus_subscriptions()
         await central.stop()
         await central.clear_files()
 
@@ -188,8 +210,9 @@ async def get_pydev_ccu_central_unit_full(
     """Create and yield central, after all devices have been created."""
     device_event = asyncio.Event()
 
-    def systemcallback(system_event: Any, *args: Any, **kwargs: Any) -> None:
-        if system_event == BackendSystemEvent.DEVICES_CREATED:
+    def system_event_handler(event: BackendSystemEventData) -> None:
+        """Handle backend system events."""
+        if event.system_event == BackendSystemEvent.DEVICES_CREATED:
             device_event.set()
 
     interface_configs = {
@@ -211,7 +234,7 @@ async def get_pydev_ccu_central_unit_full(
         program_markers=(),
         sysvar_markers=(),
     ).create_central()
-    central.register_backend_system_callback(cb=systemcallback)
+    central.event_bus.subscribe(event_type=BackendSystemEventData, handler=system_event_handler)
     await central.start()
 
     # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available

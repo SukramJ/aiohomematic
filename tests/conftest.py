@@ -11,6 +11,7 @@ import pydevccu
 import pytest
 
 from aiohomematic.central import CentralUnit
+from aiohomematic.central.event_bus import BackendSystemEventData, HomematicEvent
 from aiohomematic.client import Client
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import (
@@ -147,16 +148,18 @@ def pydevccu_full() -> pydevccu.Server:
 async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
 
-    def homematic_callback(*args, **kwargs):
+    def homematic_callback(event: HomematicEvent) -> None:
         """Do dummy homematic_callback."""
 
-    def backend_system_callback(*args, **kwargs):
+    def backend_system_callback(event: BackendSystemEventData) -> None:
         """Do dummy backend_system_callback."""
 
     central = await get_pydev_ccu_central_unit_full(port=const.CCU_PORT)
 
-    unregister_homematic_callback = central.register_homematic_callback(cb=homematic_callback)
-    unregister_backend_system_callback = central.register_backend_system_callback(cb=backend_system_callback)
+    unregister_homematic_callback = central.event_bus.subscribe(event_type=HomematicEvent, handler=homematic_callback)
+    unregister_backend_system_callback = central.event_bus.subscribe(
+        event_type=BackendSystemEventData, handler=backend_system_callback
+    )
 
     try:
         yield central

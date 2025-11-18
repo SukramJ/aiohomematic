@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import call
 
 import pytest
 
@@ -43,17 +42,21 @@ class TestClickEvent:
         await central.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:1", parameter="PRESS_SHORT", value=True
         )
-        assert factory.ha_event_mock.call_args_list[-1] == call(
-            event_type="homematic.keypress",
-            event_data={
-                "interface_id": const.INTERFACE_ID,
-                "address": "VCU2128127",
-                "channel_no": 1,
-                "model": "HmIP-BSM",
-                "parameter": "PRESS_SHORT",
-                "value": True,
-            },
-        )
+        # Wait for async event bus publish to complete
+        import asyncio
+
+        await asyncio.sleep(0.1)
+        # Verify the ha_event_mock received a HomematicEvent with the correct data
+        assert factory.ha_event_mock.called
+        call_args = factory.ha_event_mock.call_args_list[-1]
+        event_obj = call_args[0][0]  # First positional argument
+        assert event_obj.event_type == "homematic.keypress"
+        assert event_obj.event_data["interface_id"] == const.INTERFACE_ID
+        assert event_obj.event_data["address"] == "VCU2128127"
+        assert event_obj.event_data["channel_no"] == 1
+        assert event_obj.event_data["model"] == "HmIP-BSM"
+        assert event_obj.event_data["parameter"] == "PRESS_SHORT"
+        assert event_obj.event_data["value"] is True
 
 
 class TestImpulseEvent:
@@ -85,17 +88,21 @@ class TestImpulseEvent:
         await central.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000263:1", parameter="SEQUENCE_OK", value=True
         )
-        assert factory.ha_event_mock.call_args_list[-1] == call(
-            event_type="homematic.impulse",
-            event_data={
-                "interface_id": const.INTERFACE_ID,
-                "address": "VCU0000263",
-                "channel_no": 1,
-                "model": "HM-Sen-EP",
-                "parameter": "SEQUENCE_OK",
-                "value": True,
-            },
-        )
+        # Wait for async event bus publish to complete
+        import asyncio
+
+        await asyncio.sleep(0.1)
+        # Verify the ha_event_mock received a HomematicEvent with the correct data
+        assert factory.ha_event_mock.called
+        call_args = factory.ha_event_mock.call_args_list[-1]
+        event_obj = call_args[0][0]  # First positional argument
+        assert event_obj.event_type == "homematic.impulse"
+        assert event_obj.event_data["interface_id"] == const.INTERFACE_ID
+        assert event_obj.event_data["address"] == "VCU0000263"
+        assert event_obj.event_data["channel_no"] == 1
+        assert event_obj.event_data["model"] == "HM-Sen-EP"
+        assert event_obj.event_data["parameter"] == "SEQUENCE_OK"
+        assert event_obj.event_data["value"] is True
 
 
 class TestDeviceErrorEvent:
@@ -128,14 +135,18 @@ class TestDeviceErrorEvent:
         await central.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT", value=True
         )
-        assert factory.ha_event_mock.call_args_list[-1] == call(
-            event_type="homematic.device_error",
-            event_data={
-                "interface_id": const.INTERFACE_ID,
-                "address": "VCU2128127",
-                "channel_no": 0,
-                "model": "HmIP-BSM",
-                "parameter": "ERROR_OVERHEAT",
-                "value": True,
-            },
-        )
+        # Wait for async event bus publish to complete
+        import asyncio
+
+        await asyncio.sleep(0.1)
+        # Verify the ha_event_mock received a HomematicEvent with the correct data
+        assert factory.ha_event_mock.called
+        call_args = factory.ha_event_mock.call_args_list[-1]
+        event_obj = call_args[0][0]  # First positional argument
+        assert event_obj.event_type == "homematic.device_error"
+        assert event_obj.event_data["interface_id"] == const.INTERFACE_ID
+        assert event_obj.event_data["address"] == "VCU2128127"
+        assert event_obj.event_data["channel_no"] == 0
+        assert event_obj.event_data["model"] == "HmIP-BSM"
+        assert event_obj.event_data["parameter"] == "ERROR_OVERHEAT"
+        assert event_obj.event_data["value"] is True

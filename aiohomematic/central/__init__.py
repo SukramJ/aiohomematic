@@ -316,18 +316,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     @property
     def event_bus(self) -> EventBus:
         """
-        Return the EventBus for direct event subscription.
+        Return the EventBus for event subscription.
 
-        The EventBus provides a type-safe, modern API for subscribing to events.
-        Use this for new code instead of the legacy register_*_callback methods.
+        The EventBus provides a type-safe API for subscribing to events.
 
         Example:
         -------
-            # Modern API (recommended)
             central.event_bus.subscribe(DataPointUpdatedEvent, my_handler)
-
-            # Legacy API (still supported)
-            central.register_backend_system_callback(cb=my_legacy_callback)
 
         """
         return self._event_coordinator.event_bus

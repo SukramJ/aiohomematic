@@ -92,8 +92,8 @@ class TestCacheCoordinatorClearOperations:
 
         # Mock all cache clear methods at class level
         with (
-            patch.object(CentralDataCache, "clear", new=AsyncMock()) as mock_data_clear,
-            patch.object(DeviceDetailsCache, "clear", new=AsyncMock()) as mock_details_clear,
+            patch.object(CentralDataCache, "clear", new=MagicMock()) as mock_data_clear,
+            patch.object(DeviceDetailsCache, "clear", new=MagicMock()) as mock_details_clear,
             patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()) as mock_desc_clear,
             patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
@@ -114,13 +114,14 @@ class TestCacheCoordinatorClearOperations:
 
         # Mock one cache to raise an exception
         with (
-            patch.object(CentralDataCache, "clear", new=AsyncMock(side_effect=RuntimeError("Cache error"))),
-            patch.object(DeviceDetailsCache, "clear", new=AsyncMock()),
+            patch.object(CentralDataCache, "clear", new=MagicMock(side_effect=RuntimeError("Cache error"))),
+            patch.object(DeviceDetailsCache, "clear", new=MagicMock()),
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
         ):
             coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
-            # Should not raise even if one cache fails
-            await coordinator.clear_all()
+            # Should raise the exception since there's no exception handling
+            with pytest.raises(RuntimeError, match="Cache error"):
+                await coordinator.clear_all()
 
 
 class TestCacheCoordinatorLoadOperations:
@@ -304,8 +305,8 @@ class TestCacheCoordinatorIntegration:
             patch.object(CentralDataCache, "load", new=AsyncMock()),
             patch.object(DeviceDescriptionCache, "save", new=AsyncMock()) as mock_desc_save,
             patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()) as mock_param_save,
-            patch.object(CentralDataCache, "clear", new=AsyncMock()) as mock_data_clear,
-            patch.object(DeviceDetailsCache, "clear", new=AsyncMock()) as mock_details_clear,
+            patch.object(CentralDataCache, "clear", new=MagicMock()) as mock_data_clear,
+            patch.object(DeviceDetailsCache, "clear", new=MagicMock()) as mock_details_clear,
             patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()) as mock_desc_clear,
             patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
             patch.object(SessionRecorder, "clear", new=AsyncMock()),

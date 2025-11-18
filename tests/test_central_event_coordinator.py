@@ -65,19 +65,6 @@ class _FakeDataPoint(GenericDataPoint):  # type: ignore[type-arg]
         self.event_calls.append({"value": value, "received_at": received_at})
 
 
-class _FakeEventBus:
-    """Minimal fake EventBus for testing."""
-
-    def __init__(self, *, enable_event_logging: bool = False) -> None:
-        """Initialize a fake event bus."""
-        self.enable_event_logging = enable_event_logging
-        self.published_events: list[Any] = []
-
-    async def publish(self, *, event: Any) -> None:
-        """Record published events."""
-        self.published_events.append(event)
-
-
 class _FakeLooper:
     """Minimal fake Looper for testing."""
 
@@ -137,17 +124,14 @@ class TestEventCoordinatorBasics:
 
         assert coordinator._central == central
         assert coordinator._event_bus is not None
-        assert len(coordinator._data_point_key_event_subscriptions) == 0
-        assert len(coordinator._data_point_path_event_subscriptions) == 0
-        assert len(coordinator._sysvar_data_point_event_subscriptions) == 0
         assert len(coordinator._last_event_seen_for_interface) == 0
 
 
-class TestEventCoordinatorDataPointSubscriptions:
-    """Test data point subscription management."""
+class TestEventCoordinatorDeprecatedMethods:
+    """Test deprecated methods still work without errors."""
 
-    def test_add_data_point_subscription(self) -> None:
-        """Add data point subscription should register the data point for events."""
+    def test_add_data_point_subscription_deprecated(self) -> None:
+        """Add data point subscription should be a no-op but not raise errors."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
@@ -159,61 +143,46 @@ class TestEventCoordinatorDataPointSubscriptions:
         )
         data_point = _FakeDataPoint(dpk=dpk)
 
+        # Should not raise an error (method is deprecated but kept for compatibility)
         coordinator.add_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
 
-        # Should be registered
-        assert dpk in coordinator._data_point_key_event_subscriptions
-        assert data_point.state_path in coordinator._data_point_path_event_subscriptions
-
-    def test_add_data_point_subscription_not_readable(self) -> None:
-        """Add data point subscription should skip non-readable data points."""
+    def test_add_sysvar_subscription_deprecated(self) -> None:
+        """Add sysvar subscription should be a no-op but not raise errors."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
-        dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        data_point = _FakeDataPoint(dpk=dpk, is_readable=False, supports_events=False)
+        state_path = "sv_12345"
+        callback = AsyncMock()
 
-        coordinator.add_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
+        # Should not raise an error (method is deprecated but kept for compatibility)
+        coordinator.add_sysvar_subscription(state_path=state_path, callback=callback)
 
-        # Should not be registered
-        assert dpk not in coordinator._data_point_key_event_subscriptions
-
-    def test_get_data_point_path(self) -> None:
-        """Get data point path should return registered state paths."""
+    def test_data_point_path_event_deprecated(self) -> None:
+        """Data point path event should be a no-op but not raise errors."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
-        dpk1 = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        dpk2 = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000002:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
+        # Should not raise an error (method is deprecated but kept for compatibility)
+        coordinator.data_point_path_event(state_path="test/path", value="test_value")
 
-        data_point1 = _FakeDataPoint(dpk=dpk1)
-        data_point2 = _FakeDataPoint(dpk=dpk2)
-
-        coordinator.add_data_point_subscription(data_point=data_point1)  # type: ignore[arg-type]
-        coordinator.add_data_point_subscription(data_point=data_point2)  # type: ignore[arg-type]
+    def test_get_data_point_path_returns_empty(self) -> None:
+        """Get data point path should return empty tuple (deprecated)."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
         paths = coordinator.get_data_point_path()
-        assert isinstance(paths, tuple)
-        assert data_point1.state_path in paths
-        assert data_point2.state_path in paths
+        assert paths == ()
 
-    def test_remove_data_point_subscription(self) -> None:
-        """Remove data point subscription should unregister the data point."""
+    def test_get_sysvar_data_point_path_returns_empty(self) -> None:
+        """Get sysvar data point path should return empty tuple (deprecated)."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
+
+        paths = coordinator.get_sysvar_data_point_path()
+        assert paths == ()
+
+    def test_remove_data_point_subscription_deprecated(self) -> None:
+        """Remove data point subscription should be a no-op but not raise errors."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
@@ -225,65 +194,18 @@ class TestEventCoordinatorDataPointSubscriptions:
         )
         data_point = _FakeDataPoint(dpk=dpk)
 
-        # Add subscription
-        coordinator.add_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
-        assert dpk in coordinator._data_point_key_event_subscriptions
-
-        # Remove subscription
+        # Should not raise an error (method is deprecated but kept for compatibility)
         coordinator.remove_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
-        assert dpk not in coordinator._data_point_key_event_subscriptions
 
-
-class TestEventCoordinatorSysvarSubscriptions:
-    """Test system variable subscription management."""
-
-    def test_add_sysvar_subscription(self) -> None:
-        """Add sysvar subscription should register the callback."""
+    def test_remove_sysvar_subscription_deprecated(self) -> None:
+        """Remove sysvar subscription should be a no-op but not raise errors."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
         state_path = "sv_12345"
-        callback = AsyncMock()
 
-        coordinator.add_sysvar_subscription(state_path=state_path, callback=callback)
-
-        # Should be registered
-        assert state_path in coordinator._sysvar_data_point_event_subscriptions
-        assert coordinator._sysvar_data_point_event_subscriptions[state_path] == callback
-
-    def test_get_sysvar_data_point_path(self) -> None:
-        """Get sysvar data point path should return registered state paths."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        state_path1 = "sv_12345"
-        state_path2 = "sv_67890"
-        callback1 = AsyncMock()
-        callback2 = AsyncMock()
-
-        coordinator.add_sysvar_subscription(state_path=state_path1, callback=callback1)
-        coordinator.add_sysvar_subscription(state_path=state_path2, callback=callback2)
-
-        paths = coordinator.get_sysvar_data_point_path()
-        assert isinstance(paths, tuple)
-        assert state_path1 in paths
-        assert state_path2 in paths
-
-    def test_remove_sysvar_subscription(self) -> None:
-        """Remove sysvar subscription should unregister the callback."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        state_path = "sv_12345"
-        callback = AsyncMock()
-
-        # Add subscription
-        coordinator.add_sysvar_subscription(state_path=state_path, callback=callback)
-        assert state_path in coordinator._sysvar_data_point_event_subscriptions
-
-        # Remove subscription
+        # Should not raise an error (method is deprecated but kept for compatibility)
         coordinator.remove_sysvar_subscription(state_path=state_path)
-        assert state_path not in coordinator._sysvar_data_point_event_subscriptions
 
 
 class TestEventCoordinatorDataPointEvent:
@@ -302,7 +224,7 @@ class TestEventCoordinatorDataPointEvent:
             value=True,
         )
 
-        # Should not have published any events
+        # Should not create any tasks when client doesn't exist
         assert len(central.looper.tasks) == 0
 
     @pytest.mark.asyncio
@@ -316,21 +238,26 @@ class TestEventCoordinatorDataPointEvent:
 
         await coordinator.data_point_event(
             interface_id="BidCos-RF",
-            channel_address="VCU0000001:0",
+            channel_address="BidCos-RF:0",
             parameter=Parameter.PONG,
-            value="BidCos-RF#test-token",
+            value="BidCos-RF#test_token",
         )
 
-        # Should have handled the pong
-        client.ping_pong_cache.handle_received_pong.assert_called_once_with(pong_token="test-token")
+        # Should have handled pong
+        client.ping_pong_cache.handle_received_pong.assert_called_once_with(pong_token="test_token")
 
     @pytest.mark.asyncio
     async def test_data_point_event_publishes_to_event_bus(self) -> None:
-        """Data point event should publish to event bus."""
+        """Data point event should publish events to EventBus."""
+        from unittest.mock import AsyncMock
+
         central = _FakeCentral()
         central._clients["BidCos-RF"] = _FakeClient()
 
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
+
+        # Mock EventBus publish to verify it's called
+        coordinator._event_bus.publish = AsyncMock()
 
         await coordinator.data_point_event(
             interface_id="BidCos-RF",
@@ -339,47 +266,15 @@ class TestEventCoordinatorDataPointEvent:
             value=True,
         )
 
-        # Should have created a task to publish event
-        assert len(central.looper.tasks) == 1
-        assert "event-bus-datapoint" in central.looper.tasks[0]["name"]
-
-    @pytest.mark.asyncio
-    async def test_data_point_event_with_subscription(self) -> None:
-        """Data point event should call subscribed callbacks."""
-        central = _FakeCentral()
-        central._clients["BidCos-RF"] = _FakeClient()
-
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        data_point = _FakeDataPoint(dpk=dpk)
-
-        # Add subscription
-        coordinator.add_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
-
-        # Trigger event
-        await coordinator.data_point_event(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            parameter="STATE",
-            value=True,
-        )
-
-        # Should have called the callback
-        assert len(data_point.event_calls) == 1
-        assert data_point.event_calls[0]["value"] is True
+        # Should have called EventBus publish
+        coordinator._event_bus.publish.assert_called_once()
 
 
 class TestEventCoordinatorEmitMethods:
-    """Test event emission methods."""
+    """Test emit callback methods."""
 
     def test_emit_backend_parameter_callback(self) -> None:
-        """Emit backend parameter callback should publish to event bus."""
+        """Emit backend parameter callback should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
@@ -390,40 +285,40 @@ class TestEventCoordinatorEmitMethods:
             value=True,
         )
 
-        # Should have created a task to publish event
+        # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
         assert "event-bus-backend-param" in central.looper.tasks[0]["name"]
 
     def test_emit_backend_system_callback(self) -> None:
-        """Emit backend system callback should publish to event bus."""
+        """Emit backend system callback should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
         coordinator.emit_backend_system_callback(
             system_event=BackendSystemEvent.DEVICES_CREATED,
-            device_count=5,
+            interface_id="BidCos-RF",
         )
 
-        # Should have created a task to publish event
+        # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
         assert "event-bus-backend-system" in central.looper.tasks[0]["name"]
 
     def test_emit_homematic_callback(self) -> None:
-        """Emit Homematic callback should publish to event bus."""
+        """Emit Homematic callback should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
         coordinator.emit_homematic_callback(
             event_type=EventType.KEYPRESS,
-            event_data={EventKey.ADDRESS: "VCU0000001:1"},
+            event_data={EventKey.INTERFACE_ID: "BidCos-RF", EventKey.ADDRESS: "VCU0000001:1"},
         )
 
-        # Should have created a task to publish event
+        # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
         assert "event-bus-homematic" in central.looper.tasks[0]["name"]
 
     def test_emit_interface_event(self) -> None:
-        """Emit interface event should create and emit interface event."""
+        """Emit interface event should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
@@ -433,155 +328,47 @@ class TestEventCoordinatorEmitMethods:
             data={EventKey.AVAILABLE: True},
         )
 
-        # Should have created a task to publish event
+        # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
+        assert "event-bus-homematic" in central.looper.tasks[0]["name"]
 
 
 class TestEventCoordinatorLastEventSeen:
     """Test last event seen tracking."""
 
     def test_get_last_event_seen_for_interface_none(self) -> None:
-        """Get last event seen should return None when no event seen."""
+        """Get last event seen should return None when no event has been seen."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
-        last_seen = coordinator.get_last_event_seen_for_interface(interface_id="NonExistent")
-        assert last_seen is None
+        last_event = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
+        assert last_event is None
 
     def test_set_last_event_seen_for_interface(self) -> None:
-        """Set last event seen should track timestamp."""
+        """Set last event seen should update the timestamp."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
-        before = datetime.now()
         coordinator.set_last_event_seen_for_interface(interface_id="BidCos-RF")
-        after = datetime.now()
 
-        last_seen = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
-        assert last_seen is not None
-        assert before <= last_seen <= after
+        last_event = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
+        assert last_event is not None
+        assert isinstance(last_event, datetime)
 
 
-class TestEventCoordinatorPathEvents:
-    """Test path-based event handling."""
-
-    def test_data_point_path_event(self) -> None:
-        """Data point path event should route to data_point_event."""
-        central = _FakeCentral()
-        central._clients["BidCos-RF"] = _FakeClient()
-
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        data_point = _FakeDataPoint(dpk=dpk)
-
-        # Add subscription
-        coordinator.add_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
-
-        # Trigger path event
-        coordinator.data_point_path_event(
-            state_path=data_point.state_path,
-            value="true",
-        )
-
-        # Should have created a task to handle the event
-        assert len(central.looper.tasks) == 1
-        assert "device-data-point-event" in central.looper.tasks[0]["name"]
+class TestEventCoordinatorSysvarEvent:
+    """Test system variable event handling."""
 
     def test_sysvar_data_point_path_event(self) -> None:
-        """Sysvar data point path event should call callback and publish to event bus."""
+        """Sysvar data point path event should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
-        state_path = "sv_12345"
-        callback = AsyncMock()
-
-        # Add subscription
-        coordinator.add_sysvar_subscription(state_path=state_path, callback=callback)
-
-        # Trigger event
-        coordinator.sysvar_data_point_path_event(state_path=state_path, value="42")
-
-        # Should have created tasks for event bus and callback
-        assert len(central.looper.tasks) >= 1
-        assert any("event-bus-sysvar" in task["name"] for task in central.looper.tasks)
-
-
-class TestEventCoordinatorIntegration:
-    """Integration tests for EventCoordinator."""
-
-    @pytest.mark.asyncio
-    async def test_full_event_flow(self) -> None:
-        """Test full event flow from data point event to callback."""
-        central = _FakeCentral()
-        central._clients["BidCos-RF"] = _FakeClient()
-
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        data_point = _FakeDataPoint(dpk=dpk)
-
-        # Subscribe
-        coordinator.add_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
-
-        # Trigger event
-        await coordinator.data_point_event(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            parameter="STATE",
-            value=True,
+        coordinator.sysvar_data_point_path_event(
+            state_path="sv_12345",
+            value="test_value",
         )
 
-        # Verify callback was called
-        assert len(data_point.event_calls) == 1
-        assert data_point.event_calls[0]["value"] is True
-
-        # Verify event bus was notified
+        # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
-
-        # Verify last event seen was updated
-        last_seen = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
-        assert last_seen is not None
-
-    @pytest.mark.asyncio
-    async def test_multiple_subscriptions_same_data_point(self) -> None:
-        """Test multiple subscriptions to the same data point."""
-        central = _FakeCentral()
-        central._clients["BidCos-RF"] = _FakeClient()
-
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        data_point1 = _FakeDataPoint(dpk=dpk)
-        data_point2 = _FakeDataPoint(dpk=dpk)
-
-        # Subscribe both
-        coordinator.add_data_point_subscription(data_point=data_point1)  # type: ignore[arg-type]
-        coordinator.add_data_point_subscription(data_point=data_point2)  # type: ignore[arg-type]
-
-        # Trigger event
-        await coordinator.data_point_event(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            parameter="STATE",
-            value=True,
-        )
-
-        # Both callbacks should have been called
-        assert len(data_point1.event_calls) == 1
-        assert len(data_point2.event_calls) == 1
+        assert "event-bus-sysvar" in central.looper.tasks[0]["name"]

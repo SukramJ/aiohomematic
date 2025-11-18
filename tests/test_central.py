@@ -632,18 +632,18 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test add_device."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central._devices) == 1
+        assert len(central.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
         await central.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
-        assert len(central._devices) == 2
+        assert len(central.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
         await central.add_new_devices(interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc)
-        assert len(central._devices) == 2
+        assert len(central.devices) == 2
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -663,13 +663,13 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test device delete_device."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central._devices) == 2
+        assert len(central.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
 
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
-        assert len(central._devices) == 1
+        assert len(central.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
@@ -707,13 +707,13 @@ class TestCentralDeviceManagement:
 
         await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
 
-        assert len(central._devices) == 3
+        assert len(central.devices) == 3
         assert len(central.get_data_points()) == 350
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"])
-        assert len(central._devices) == 1
+        assert len(central.devices) == 1
         assert len(central.get_data_points()) == 100
         await central.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
-        assert len(central._devices) == 0
+        assert len(central.devices) == 0
         assert len(central.get_data_points()) == 0
         assert central.get_virtual_remotes() == ()
 
@@ -863,7 +863,7 @@ class TestCentralCallbacksAndServices:
 
             assert central.available is True
             assert central.system_information.serial is None
-            assert len(central._devices) == 0
+            assert len(central.devices) == 0
             assert len(central.get_data_points()) == 0
 
             assert await central.get_system_variable(legacy_name="SysVar_Name") is None
@@ -1486,8 +1486,10 @@ class TestCentralDeviceCreation:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """_create_devices should catch exceptions from Device() and from data point creation and continue."""
+        from aiohomematic.central.device_registry import DeviceRegistry
+
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
-        central._devices = {}  # type: ignore[attr-defined]
+        central._device_registry = DeviceRegistry(central=central)
         central._clients = {"if1": object()}  # type: ignore[attr-defined]
 
         # Provide minimal config for CentralUnit.name property access inside method

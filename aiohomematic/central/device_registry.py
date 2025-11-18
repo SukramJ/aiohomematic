@@ -1,0 +1,203 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
+"""
+Device registry for managing device and channel collections.
+
+This module provides a centralized registry for device management within the central unit.
+It separates device storage concerns from device lifecycle management.
+
+The DeviceRegistry provides:
+- Device storage and lookup by address
+- Channel lookup by channel address
+- Device iteration and filtering
+- Channel identification within text
+- Virtual remote device access
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Final
+
+from aiohomematic.support import get_device_address
+
+if TYPE_CHECKING:
+    from aiohomematic.central import CentralUnit
+    from aiohomematic.model.device import Channel, Device
+
+_LOGGER: Final = logging.getLogger(__name__)
+
+
+class DeviceRegistry:
+    """Registry for device and channel management."""
+
+    __slots__ = (
+        "_central",
+        "_devices",
+    )
+
+    def __init__(self, *, central: CentralUnit) -> None:
+        """Initialize the device registry."""
+        self._central: Final = central
+        # {device_address, device}
+        self._devices: Final[dict[str, Device]] = {}
+
+    @property
+    def device_count(self) -> int:
+        """
+        Return the count of devices in the registry.
+
+        Returns
+        -------
+            Number of devices
+
+        """
+        return len(self._devices)
+
+    @property
+    def devices(self) -> tuple[Device, ...]:
+        """
+        Return all devices as a tuple.
+
+        Returns
+        -------
+            Tuple of all Device instances
+
+        """
+        return tuple(self._devices.values())
+
+    def add_device(self, *, device: Device) -> None:
+        """
+        Add a device to the registry.
+
+        Args:
+        ----
+            device: Device instance to add
+
+        """
+        self._devices[device.address] = device
+        _LOGGER.debug(
+            "ADD_DEVICE: Added device %s to registry for %s",
+            device.address,
+            self._central.name,
+        )
+
+    def clear(self) -> None:
+        """Clear all devices from the registry."""
+        self._devices.clear()
+        _LOGGER.debug("CLEAR: Cleared device registry for %s", self._central.name)
+
+    def get_channel(self, *, channel_address: str) -> Channel | None:
+        """
+        Get a channel by channel address.
+
+        Args:
+        ----
+            channel_address: Channel address (e.g., "VCU0000001:1")
+
+        Returns:
+        -------
+            Channel instance or None if not found
+
+        """
+        if device := self.get_device(address=channel_address):
+            return device.get_channel(channel_address=channel_address)
+        return None
+
+    def get_device(self, *, address: str) -> Device | None:
+        """
+        Get a device by address.
+
+        Args:
+        ----
+            address: Device address or channel address
+
+        Returns:
+        -------
+            Device instance or None if not found
+
+        """
+        d_address = get_device_address(address=address)
+        return self._devices.get(d_address)
+
+    def get_device_addresses(self) -> frozenset[str]:
+        """
+        Get all device addresses in the registry.
+
+        Returns
+        -------
+            Frozen set of device addresses
+
+        """
+        return frozenset(self._devices.keys())
+
+    def get_virtual_remotes(self) -> tuple[Device, ...]:
+        """
+        Get all virtual remote devices from clients.
+
+        Returns
+        -------
+            Tuple of virtual remote Device instances
+
+        """
+        return tuple(
+            cl.get_virtual_remote()  # type: ignore[misc]
+            for cl in self._central.clients
+            if cl.get_virtual_remote() is not None
+        )
+
+    def has_device(self, *, address: str) -> bool:
+        """
+        Check if a device exists in the registry.
+
+        Args:
+        ----
+            address: Device address
+
+        Returns:
+        -------
+            True if device exists, False otherwise
+
+        """
+        return address in self._devices
+
+    def identify_channel(self, *, text: str) -> Channel | None:
+        """
+        Identify a channel within a text string.
+
+        Args:
+        ----
+            text: Text to search for channel identification
+
+        Returns:
+        -------
+            Channel instance or None if not found
+
+        """
+        for device in self._devices.values():
+            if channel := device.identify_channel(text=text):
+                return channel
+        return None
+
+    def remove_device(self, *, device_address: str) -> None:
+        """
+        Remove a device from the registry.
+
+        Args:
+        ----
+            device_address: Address of the device to remove
+
+        """
+        if device_address not in self._devices:
+            _LOGGER.debug(
+                "REMOVE_DEVICE: Device %s not found in registry for %s",
+                device_address,
+                self._central.name,
+            )
+            return
+        del self._devices[device_address]
+        _LOGGER.debug(
+            "REMOVE_DEVICE: Removed device %s from registry for %s",
+            device_address,
+            self._central.name,
+        )

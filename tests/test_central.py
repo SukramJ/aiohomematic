@@ -740,20 +740,24 @@ class TestCentralCallbacksAndServices:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test central other methods."""
+        import asyncio
+
         central, _, factory = central_client_factory_with_homegear_client
         central.emit_interface_event(
             interface_id="SOME_ID",
             interface_event_type=InterfaceEventType.CALLBACK,
             data={EventKey.AVAILABLE: False},
         )
-        assert factory.ha_event_mock.call_args_list[-1] == call(
-            event_type="homematic.interface",
-            event_data={
-                "interface_id": "SOME_ID",
-                "type": "callback",
-                "data": {EventKey.AVAILABLE: False},
-            },
-        )
+        # Wait for async event bus publish to complete
+        await asyncio.sleep(0.1)
+        # Verify that the ha_event_mock received a HomematicEvent with the correct data
+        assert factory.ha_event_mock.called
+        call_args = factory.ha_event_mock.call_args_list[-1]
+        event = call_args[0][0]  # First positional argument
+        assert event.event_type == "homematic.interface"
+        assert event.event_data["interface_id"] == "SOME_ID"
+        assert event.event_data["type"] == "callback"
+        assert event.event_data["data"] == {EventKey.AVAILABLE: False}
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -888,6 +892,8 @@ class TestCentralPingPong:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test central other methods."""
+        import asyncio
+
         central, client, factory = central_client_factory_with_ccu_client
         client._is_initialized = True
         count = 0
@@ -896,19 +902,18 @@ class TestCentralPingPong:
             await client.check_connection_availability(handle_ping_pong=True)
             count += 1
         assert client.ping_pong_cache._pending_pong_count == max_count
-        assert factory.ha_event_mock.mock_calls[-1] == call(
-            event_type=EventType.INTERFACE,
-            event_data={
-                EventKey.DATA: {
-                    EventKey.CENTRAL_NAME: "CentralTest",
-                    EventKey.PONG_MISMATCH_ACCEPTABLE: False,
-                    EventKey.PONG_MISMATCH_COUNT: 16,
-                },
-                EventKey.INTERFACE_ID: "CentralTest-BidCos-RF",
-                EventKey.TYPE: InterfaceEventType.PENDING_PONG,
-            },
-        )
-        assert len(factory.ha_event_mock.mock_calls) == 10
+        # Wait for async event bus publish to complete
+        await asyncio.sleep(0.1)
+        # Verify the ha_event_mock received a HomematicEvent with the correct data
+        assert factory.ha_event_mock.called
+        call_args = factory.ha_event_mock.call_args_list[-1]
+        event = call_args[0][0]  # First positional argument
+        assert event.event_type == EventType.INTERFACE
+        assert event.event_data[EventKey.INTERFACE_ID] == "CentralTest-BidCos-RF"
+        assert event.event_data[EventKey.TYPE] == InterfaceEventType.PENDING_PONG
+        assert event.event_data[EventKey.DATA][EventKey.CENTRAL_NAME] == "CentralTest"
+        assert event.event_data[EventKey.DATA][EventKey.PONG_MISMATCH_ACCEPTABLE] is False
+        assert event.event_data[EventKey.DATA][EventKey.PONG_MISMATCH_COUNT] == 16
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

@@ -75,9 +75,17 @@ class TestDataPointCallbacks:
         )
         assert switch.value is False
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
-        assert factory.system_event_mock.call_args_list[-1] == call(
-            system_event="deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
-        )
+        # Wait for async event bus publish to complete
+        import asyncio
+
+        await asyncio.sleep(0.1)
+        # Verify the system event mock received a BackendSystemEventData event
+        assert factory.system_event_mock.called
+        call_args = factory.system_event_mock.call_args_list[-1]
+        event = call_args[0][0]  # First positional argument
+        assert event.system_event == "deleteDevices"
+        assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
+        assert event.data.get("addresses") == ["VCU2128127"]
         unregister_data_point_updated_callback()
         unregister_device_removed_callback()
 
@@ -123,9 +131,17 @@ class TestDataPointCallbacks:
         )
         assert switch.value is False
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
-        assert factory.system_event_mock.call_args_list[-1] == call(
-            system_event="deleteDevices", interface_id="CentralTest-BidCos-RF", addresses=["VCU2128127"]
-        )
+        # Wait for async event bus publish to complete
+        import asyncio
+
+        await asyncio.sleep(0.1)
+        # Verify the system event mock received a BackendSystemEventData event
+        assert factory.system_event_mock.called
+        call_args = factory.system_event_mock.call_args_list[-1]
+        event = call_args[0][0]  # First positional argument
+        assert event.system_event == "deleteDevices"
+        assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
+        assert event.data.get("addresses") == ["VCU2128127"]
         switch._unregister_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
         switch._unregister_device_removed_callback(cb=device_removed_mock)
 

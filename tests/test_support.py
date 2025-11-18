@@ -228,7 +228,7 @@ class TestNamingHelpers:
             ignore_multiple_channels_for_name=False,
             usage=DataPointUsage.CDP_PRIMARY,
         )
-        assert name_data.full_name == "HmIP-BSM VCU2128127"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127"
         assert name_data.name == ""
 
         name_data = get_custom_data_point_name(
@@ -237,7 +237,7 @@ class TestNamingHelpers:
             ignore_multiple_channels_for_name=False,
             usage=DataPointUsage.CDP_SECONDARY,
         )
-        assert name_data.full_name == "HmIP-BSM VCU2128127"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127"
         assert name_data.name == ""
 
         central.device_details.add_name(address=f"{device.address}:5", name="Roof")
@@ -248,7 +248,7 @@ class TestNamingHelpers:
             ignore_multiple_channels_for_name=False,
             usage=DataPointUsage.CDP_PRIMARY,
         )
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
         assert name_data.name == "Roof"
 
         name_data = get_custom_data_point_name(
@@ -257,7 +257,7 @@ class TestNamingHelpers:
             ignore_multiple_channels_for_name=False,
             usage=DataPointUsage.CDP_SECONDARY,
         )
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof"
         assert name_data.name == "Roof"
 
         with patch(
@@ -295,13 +295,13 @@ class TestNamingHelpers:
         assert device
         channel4 = device.get_channel(channel_address=f"{device.address}:5")
         name_data = get_data_point_name_data(channel=channel4, parameter="LEVEL")
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
         assert name_data.name == "Level"
 
         central.device_details.add_name(address=f"{device.address}:5", name="Roof")
         channel5 = device.get_channel(channel_address=f"{device.address}:5")
         name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
         assert name_data.name == "Roof Level"
 
         with patch(
@@ -330,7 +330,7 @@ class TestNamingHelpers:
     ) -> None:
         """Test get_device_name."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM VCU2128127"
+        assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM_VCU2128127"
         central.device_details.add_name(address="VCU2128127", name="Roof")
         assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"
 
@@ -358,14 +358,14 @@ class TestNamingHelpers:
         name_data = get_event_name(channel=channel4, parameter="LEVEL")
         assert name_data.channel_name == ""
         assert name_data.name == "Level"
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Level"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
 
         central.device_details.add_name(address=f"{device.address}:5", name="Roof")
         channel5 = device.get_channel(channel_address=f"{device.address}:5")
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
         assert name_data.channel_name == "Roof"
         assert name_data.name == "Roof Level"
-        assert name_data.full_name == "HmIP-BSM VCU2128127 Roof Level"
+        assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
 
         with patch(
             "aiohomematic.model.support._get_base_name_from_channel_or_device",

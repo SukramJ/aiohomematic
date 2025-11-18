@@ -2,6 +2,7 @@
 
 ## What's Changed
 
+- Extract coordinators from central unit
 - Extract device registry from central
 - Extract scheduler from central
 - Refactor event handling to event bus

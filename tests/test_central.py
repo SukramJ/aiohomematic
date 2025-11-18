@@ -18,6 +18,7 @@ from aiohomematic.const import (
     LOCAL_HOST,
     PING_PONG_MISMATCH_COUNT,
     DataPointCategory,
+    DataPointKey,
     DataPointUsage,
     DeviceFirmwareState,
     EventKey,
@@ -703,7 +704,7 @@ class TestCentralDeviceManagement:
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.get_virtual_remotes()) == 1
 
-        assert central._get_virtual_remote(device_address="VCU0000057")
+        assert central.device_coordinator.get_device(address="VCU0000057")
 
         await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
 
@@ -867,7 +868,7 @@ class TestCentralCallbacksAndServices:
             assert len(central.get_data_points()) == 0
 
             assert await central.get_system_variable(legacy_name="SysVar_Name") is None
-            assert central._get_virtual_remote(device_address="VCU4264293") is None
+            assert central.device_coordinator.get_device(address="VCU4264293") is None
         finally:
             await central.stop()
 
@@ -1184,33 +1185,41 @@ class TestCentralEventHandling:
         """Central.data_point_event should swallow RuntimeError/Exception from callbacks and continue."""
         from unittest.mock import AsyncMock, MagicMock
 
+        from aiohomematic.central.event_coordinator import EventCoordinator
+
         # Create a bare instance without running CentralUnit.__init__
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
 
-        # Provide minimal attributes used by data_point_event
-        central._data_point_key_event_subscriptions = {}  # type: ignore[attr-defined]
-        central._last_event_seen_for_interface = {}  # type: ignore[attr-defined]
+        # Create a bare EventCoordinator instance
+        event_coordinator = EventCoordinator.__new__(EventCoordinator)  # type: ignore[call-arg]
+        event_coordinator._data_point_key_event_subscriptions = {}  # type: ignore[attr-defined]
+        event_coordinator._last_event_seen_for_interface = {}  # type: ignore[attr-defined]
 
         # Mock looper and event_bus to prevent AttributeError during arg evaluation
         mock_looper = MagicMock()
         mock_looper.create_task = MagicMock()
-        central._looper = mock_looper  # type: ignore[attr-defined]
 
         mock_event_bus = MagicMock()
         mock_event_bus.publish = AsyncMock()
-        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
-
-        # Pretend we have a client so has_client(interface_id) returns True
-        monkeypatch.setattr(hmcu.CentralUnit, "has_client", lambda self, interface_id: True)
+        event_coordinator._event_bus = mock_event_bus  # type: ignore[attr-defined]
 
         # Build a DPK mapping to a callback that raises RuntimeError (debug-level branch)
         async def cb_runtime_error(*, value: Any, received_at: Any) -> None:  # noqa: ANN001
             raise RuntimeError("rt")
 
-        dpk = hmcu.DataPointKey(
+        dpk = DataPointKey(
             interface_id="if1", channel_address="A:1", paramset_key=ParamsetKey.VALUES, parameter="STATE"
         )
-        central._data_point_key_event_subscriptions[dpk] = [cb_runtime_error]  # type: ignore[index]
+        event_coordinator._data_point_key_event_subscriptions[dpk] = [cb_runtime_error]  # type: ignore[attr-defined]
+
+        # Set event coordinator on central
+        central._event_coordinator = event_coordinator  # type: ignore[attr-defined]
+        central._looper = mock_looper  # type: ignore[attr-defined]
+
+        # Mock has_client on event_coordinator's central reference
+        mock_central_ref = MagicMock()
+        mock_central_ref.has_client = lambda interface_id: True
+        event_coordinator._central = mock_central_ref  # type: ignore[attr-defined]
 
         # Exercise the path; error should be logged at DEBUG and not raised
         with caplog.at_level("DEBUG"):
@@ -1232,20 +1241,29 @@ class TestCentralEventHandling:
         """Central.sysvar_data_point_path_event should catch exceptions from looper.create_task and continue."""
         from unittest.mock import AsyncMock, MagicMock
 
+        from aiohomematic.central.event_coordinator import EventCoordinator
+
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
+
+        # Create a bare EventCoordinator instance
+        event_coordinator = EventCoordinator.__new__(EventCoordinator)  # type: ignore[call-arg]
 
         # Subscription dict with a simple async callback (won't be executed due to create_task raising)
         async def dummy_cb(*, value: Any, received_at: Any) -> None:  # noqa: ANN001
             return None
 
-        central._sysvar_data_point_event_subscriptions = {  # type: ignore[attr-defined]
+        event_coordinator._sysvar_data_point_event_subscriptions = {  # type: ignore[attr-defined]
             "path/1": dummy_cb
         }
 
         # Mock event_bus to prevent AttributeError during arg evaluation
         mock_event_bus = MagicMock()
         mock_event_bus.publish = AsyncMock()
-        central._event_bus = mock_event_bus  # type: ignore[attr-defined]
+        event_coordinator._event_bus = mock_event_bus  # type: ignore[attr-defined]
+
+        # Mock central reference for event_coordinator
+        mock_central_ref = MagicMock()
+        event_coordinator._central = mock_central_ref  # type: ignore[attr-defined]
 
         # Fake looper raising exceptions to hit both except branches
         class BoomLooper:
@@ -1255,14 +1273,17 @@ class TestCentralEventHandling:
             def create_task(self, *, target: Any, name: str) -> None:  # noqa: ANN001
                 raise self._exc_type("boom")
 
+        # Set event coordinator on central
+        central._event_coordinator = event_coordinator  # type: ignore[attr-defined]
+
         # First, RuntimeError path
-        central._looper = BoomLooper(RuntimeError)  # type: ignore[attr-defined]
+        mock_central_ref.looper = BoomLooper(RuntimeError)
         with caplog.at_level("DEBUG"):
             hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
         assert any("EVENT: RuntimeError" in rec.getMessage() for rec in caplog.records)
 
         # Then, generic Exception path
-        central._looper = BoomLooper(Exception)  # type: ignore[attr-defined]
+        mock_central_ref.looper = BoomLooper(Exception)
         with caplog.at_level("WARNING"):
             hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
         assert any("EVENT failed: Unable to call handler" in rec.getMessage() for rec in caplog.records)
@@ -1318,6 +1339,7 @@ class TestCentralDeviceCreation:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """_create_devices should catch exceptions from Device() and from data point creation and continue."""
+        from aiohomematic.central.device_coordinator import DeviceCoordinator
         from aiohomematic.central.device_registry import DeviceRegistry
 
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
@@ -1330,6 +1352,22 @@ class TestCentralDeviceCreation:
 
         central._config = _Cfg()  # type: ignore[attr-defined]
 
+        # Create device coordinator
+        device_coordinator = DeviceCoordinator.__new__(DeviceCoordinator)  # type: ignore[call-arg]
+        device_coordinator._central = central  # type: ignore[attr-defined]
+        device_coordinator._device_add_semaphore = None  # type: ignore[attr-defined]
+        central._device_coordinator = device_coordinator  # type: ignore[attr-defined]
+
+        # Mock coordinators
+        from unittest.mock import MagicMock
+
+        mock_client_coordinator = MagicMock()
+        mock_client_coordinator.has_clients = True
+        central._client_coordinator = mock_client_coordinator  # type: ignore[attr-defined]
+
+        mock_cache_coordinator = MagicMock()
+        central._cache_coordinator = mock_cache_coordinator  # type: ignore[attr-defined]
+
         # Mapping with one interface and one device address
         new_device_addresses = {"if1": {"ABC1234"}}
 
@@ -1340,8 +1378,8 @@ class TestCentralDeviceCreation:
 
         monkeypatch.setattr(hmcu, "Device", BoomDevice)
 
-        await hmcu.CentralUnit._create_devices(
-            central, new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
+        await device_coordinator.create_devices(
+            new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
         )
 
         # Second pass: Device succeeds, but creation helpers raise to hit second except path
@@ -1363,10 +1401,12 @@ class TestCentralDeviceCreation:
         def raise_on_create(*args: Any, **kwargs: Any) -> None:  # noqa: ANN001
             raise Exception("create")
 
-        monkeypatch.setattr(hmcu, "create_data_points_and_events", raise_on_create)
+        import aiohomematic.model as hm_model
 
-        await hmcu.CentralUnit._create_devices(
-            central, new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
+        monkeypatch.setattr(hm_model, "create_data_points_and_events", raise_on_create)
+
+        await device_coordinator.create_devices(
+            new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
         )
 
         # Should not have raised; internal logging covered the branches

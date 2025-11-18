@@ -1,0 +1,323 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
+"""
+Hub coordinator for managing programs and system variables.
+
+This module provides centralized management of system-level entities like
+programs and system variables that are exposed through the Hub.
+
+The HubCoordinator provides:
+- Program data point management
+- System variable data point management
+- Hub data refresh coordination
+- Program execution and state management
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Any, Final
+
+from aiohomematic import i18n
+from aiohomematic.decorators import inspector
+from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
+
+if TYPE_CHECKING:
+    from aiohomematic.central import CentralUnit
+    from aiohomematic.const import DataPointCategory
+
+_LOGGER: Final = logging.getLogger(__name__)
+
+
+class HubCoordinator:
+    """Coordinator for hub-level entities (programs and system variables)."""
+
+    __slots__ = (
+        "_central",
+        "_hub",
+        "_program_data_points",
+        "_sysvar_data_points",
+    )
+
+    def __init__(self, *, central: CentralUnit) -> None:
+        """
+        Initialize the hub coordinator.
+
+        Args:
+        ----
+            central: The CentralUnit instance
+
+        """
+        self._central: Final = central
+        self._hub: Hub = Hub(central=central)
+
+        # {sysvar_name, sysvar_data_point}
+        self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
+        # {program_name, program_button}
+        self._program_data_points: Final[dict[str, ProgramDpType]] = {}
+
+    @property
+    def program_data_points(self) -> tuple[GenericProgramDataPoint, ...]:
+        """Return the program data points (both buttons and switches)."""
+        return tuple(
+            [x.button for x in self._program_data_points.values()]
+            + [x.switch for x in self._program_data_points.values()]
+        )
+
+    @property
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPoint, ...]:
+        """Return the sysvar data points."""
+        return tuple(self._sysvar_data_points.values())
+
+    def add_program_data_point(self, *, program_dp: ProgramDpType) -> None:
+        """
+        Add new program data point.
+
+        Args:
+        ----
+            program_dp: Program data point to add
+
+        """
+        self._program_data_points[program_dp.pid] = program_dp
+        _LOGGER.debug(
+            "ADD_PROGRAM_DATA_POINT: Added program %s to %s",
+            program_dp.pid,
+            self._central.name,
+        )
+
+    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPoint) -> None:
+        """
+        Add new system variable data point.
+
+        Args:
+        ----
+            sysvar_data_point: System variable data point to add
+
+        """
+        if (vid := sysvar_data_point.vid) is not None:
+            self._sysvar_data_points[vid] = sysvar_data_point
+            _LOGGER.debug(
+                "ADD_SYSVAR_DATA_POINT: Added sysvar %s to %s",
+                vid,
+                self._central.name,
+            )
+
+            # Add event subscription for this sysvar
+            if sysvar_data_point.state_path:
+                self._central.event_coordinator.add_sysvar_subscription(
+                    state_path=sysvar_data_point.state_path,
+                    callback=sysvar_data_point.event,
+                )
+
+    async def execute_program(self, *, pid: str) -> bool:
+        """
+        Execute a program on the backend.
+
+        Args:
+        ----
+            pid: Program identifier
+
+        Returns:
+        -------
+            True if execution succeeded, False otherwise
+
+        """
+        if client := self._central.primary_client:
+            return await client.execute_program(pid=pid)
+        return False
+
+    @inspector(re_raise=False)
+    async def fetch_program_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch program data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_program_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
+    async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch system variable data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_sysvar_data(scheduled=scheduled)
+
+    def get_hub_data_points(
+        self, *, category: DataPointCategory | None = None, registered: bool | None = None
+    ) -> tuple[GenericProgramDataPoint | GenericSysvarDataPoint, ...]:
+        """
+        Return the hub data points (programs and sysvars) filtered by category and registration.
+
+        Args:
+        ----
+            category: Optional category to filter by
+            registered: Optional registration status to filter by
+
+        Returns:
+        -------
+            Tuple of matching hub data points
+
+        """
+        return tuple(
+            he
+            for he in (self.program_data_points + self.sysvar_data_points)
+            if (category is None or he.category == category) and (registered is None or he.is_registered == registered)
+        )
+
+    def get_program_data_point(self, *, pid: str | None = None, legacy_name: str | None = None) -> ProgramDpType | None:
+        """
+        Return a program data point by ID or legacy name.
+
+        Args:
+        ----
+            pid: Program identifier
+            legacy_name: Legacy name of the program
+
+        Returns:
+        -------
+            Program data point or None if not found
+
+        """
+        if pid and (program := self._program_data_points.get(pid)):
+            return program
+        if legacy_name:
+            for program in self._program_data_points.values():
+                if legacy_name in (program.button.legacy_name, program.switch.legacy_name):
+                    return program
+        return None
+
+    async def get_system_variable(self, *, legacy_name: str) -> Any | None:
+        """
+        Get system variable value from the backend.
+
+        Args:
+        ----
+            legacy_name: Legacy name of the system variable
+
+        Returns:
+        -------
+            Current value of the system variable or None
+
+        """
+        if client := self._central.primary_client:
+            return await client.get_system_variable(name=legacy_name)
+        return None
+
+    def get_sysvar_data_point(
+        self, *, vid: str | None = None, legacy_name: str | None = None
+    ) -> GenericSysvarDataPoint | None:
+        """
+        Return a system variable data point by ID or legacy name.
+
+        Args:
+        ----
+            vid: System variable identifier
+            legacy_name: Legacy name of the system variable
+
+        Returns:
+        -------
+            System variable data point or None if not found
+
+        """
+        if vid and (sysvar := self._sysvar_data_points.get(vid)):
+            return sysvar
+        if legacy_name:
+            for sysvar in self._sysvar_data_points.values():
+                if sysvar.legacy_name == legacy_name:
+                    return sysvar
+        return None
+
+    async def init_hub(self) -> None:
+        """Initialize the hub by fetching program and sysvar data."""
+        _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central.name)
+        await self._hub.fetch_program_data(scheduled=True)
+        await self._hub.fetch_sysvar_data(scheduled=True)
+
+    def remove_program_data_point(self, *, pid: str) -> None:
+        """
+        Remove a program data point.
+
+        Args:
+        ----
+            pid: Program identifier
+
+        """
+        if (program_dp := self.get_program_data_point(pid=pid)) is not None:
+            program_dp.button.emit_device_removed_event()
+            program_dp.switch.emit_device_removed_event()
+            del self._program_data_points[pid]
+            _LOGGER.debug(
+                "REMOVE_PROGRAM_DATA_POINT: Removed program %s from %s",
+                pid,
+                self._central.name,
+            )
+
+    def remove_sysvar_data_point(self, *, vid: str) -> None:
+        """
+        Remove a system variable data point.
+
+        Args:
+        ----
+            vid: System variable identifier
+
+        """
+        if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
+            sysvar_dp.emit_device_removed_event()
+            del self._sysvar_data_points[vid]
+
+            # Remove event subscription
+            if sysvar_dp.state_path:
+                self._central.event_coordinator.remove_sysvar_subscription(state_path=sysvar_dp.state_path)
+
+            _LOGGER.debug(
+                "REMOVE_SYSVAR_DATA_POINT: Removed sysvar %s from %s",
+                vid,
+                self._central.name,
+            )
+
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
+        """
+        Set program state on the backend.
+
+        Args:
+        ----
+            pid: Program identifier
+            state: New program state
+
+        Returns:
+        -------
+            True if setting succeeded, False otherwise
+
+        """
+        if client := self._central.primary_client:
+            return await client.set_program_state(pid=pid, state=state)
+        return False
+
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> None:
+        """
+        Set system variable value on the backend.
+
+        Args:
+        ----
+            legacy_name: Legacy name of the system variable
+            value: New value
+
+        """
+        if dp := self.get_sysvar_data_point(legacy_name=legacy_name):
+            await dp.send_variable(value=value)
+        else:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.central.set_system_variable.not_found",
+                    legacy_name=legacy_name,
+                    name=self._central.name,
+                )
+            )

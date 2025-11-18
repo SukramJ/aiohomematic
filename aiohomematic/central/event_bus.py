@@ -73,13 +73,7 @@ import logging
 from typing import Any, TypeVar, cast
 
 from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType
-from aiohomematic.type_aliases import (
-    BackendParameterCallback,
-    BackendSystemCallback,
-    DataPointEventCallback,
-    HomematicCallback,
-    SysvarEventCallback,
-)
+from aiohomematic.type_aliases import DataPointEventCallback, SysvarEventCallback
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -126,11 +120,7 @@ class DataPointUpdatedEvent(Event):
 
 @dataclass(frozen=True, slots=True)
 class BackendParameterEvent(Event):
-    """
-    Raw parameter update event from backend (re-emitted from RPC callbacks).
-
-    This replaces the _backend_parameter_callbacks pattern.
-    """
+    """Raw parameter update event from backend (re-emitted from RPC callbacks)."""
 
     interface_id: str
     channel_address: str
@@ -140,11 +130,7 @@ class BackendParameterEvent(Event):
 
 @dataclass(frozen=True, slots=True)
 class BackendSystemEventData(Event):
-    """
-    System-level events from backend (devices created, deleted, etc.).
-
-    This replaces the _backend_system_callbacks pattern.
-    """
+    """System-level events from backend (devices created, deleted, etc.)."""
 
     system_event: BackendSystemEvent
     data: dict[str, Any]
@@ -152,11 +138,7 @@ class BackendSystemEventData(Event):
 
 @dataclass(frozen=True, slots=True)
 class HomematicEvent(Event):
-    """
-    Homematic-specific events (INTERFACE, KEYPRESS, etc.).
-
-    This replaces the _homematic_callbacks pattern.
-    """
+    """Homematic-specific events (INTERFACE, KEYPRESS, etc.)."""
 
     event_type: EventType
     event_data: dict[EventKey, Any]
@@ -164,11 +146,7 @@ class HomematicEvent(Event):
 
 @dataclass(frozen=True, slots=True)
 class SysvarUpdatedEvent(Event):
-    """
-    System variable value updated.
-
-    This replaces the _sysvar_data_point_event_subscriptions pattern.
-    """
+    """System variable value updated."""
 
     state_path: str
     value: Any
@@ -339,55 +317,6 @@ class EventBus:
 
         return unsubscribe
 
-    def subscribe_backend_parameter_callback(self, *, callback: BackendParameterCallback) -> UnsubscribeCallback:
-        """
-        Subscribe to backend parameter events using legacy callback protocol.
-
-        This is a compatibility wrapper for the old BackendParameterCallback protocol.
-        New code should use subscribe(BackendParameterEvent, handler) instead.
-
-        Args:
-        ----
-            callback: Legacy callback following BackendParameterCallback protocol
-
-        Returns:
-        -------
-            Unsubscribe callback
-
-        """
-
-        def adapter(event: BackendParameterEvent) -> None:
-            callback(
-                interface_id=event.interface_id,
-                channel_address=event.channel_address,
-                parameter=event.parameter,
-                value=event.value,
-            )
-
-        return self.subscribe(event_type=BackendParameterEvent, handler=adapter)
-
-    def subscribe_backend_system_callback(self, *, callback: BackendSystemCallback) -> UnsubscribeCallback:
-        """
-        Subscribe to backend system events using legacy callback protocol.
-
-        This is a compatibility wrapper for the old BackendSystemCallback protocol.
-        New code should use subscribe(BackendSystemEventData, handler) instead.
-
-        Args:
-        ----
-            callback: Legacy callback following BackendSystemCallback protocol
-
-        Returns:
-        -------
-            Unsubscribe callback
-
-        """
-
-        def adapter(event: BackendSystemEventData) -> None:
-            callback(system_event=event.system_event, **event.data)
-
-        return self.subscribe(event_type=BackendSystemEventData, handler=adapter)
-
     def subscribe_datapoint_event_callback(
         self, *, dpk: DataPointKey, callback: DataPointEventCallback
     ) -> UnsubscribeCallback:
@@ -414,28 +343,6 @@ class EventBus:
                 await callback(value=event.value, received_at=event.received_at)
 
         return self.subscribe(event_type=DataPointUpdatedEvent, handler=adapter)
-
-    def subscribe_homematic_callback(self, *, callback: HomematicCallback) -> UnsubscribeCallback:
-        """
-        Subscribe to Homematic events using legacy callback protocol.
-
-        This is a compatibility wrapper for the old HomematicCallback protocol.
-        New code should use subscribe(HomematicEvent, handler) instead.
-
-        Args:
-        ----
-            callback: Legacy callback following HomematicCallback protocol
-
-        Returns:
-        -------
-            Unsubscribe callback
-
-        """
-
-        def adapter(event: HomematicEvent) -> None:
-            callback(event_type=event.event_type, event_data=event.event_data)
-
-        return self.subscribe(event_type=HomematicEvent, handler=adapter)
 
     def subscribe_sysvar_event_callback(self, *, state_path: str, callback: SysvarEventCallback) -> UnsubscribeCallback:
         """

@@ -13,8 +13,6 @@ from collections.abc import Callable, Coroutine, Mapping
 from datetime import datetime
 from typing import Any, Protocol, TypeAlias
 
-from aiohomematic.const import BackendSystemEvent, EventKey, EventType
-
 type ParamType = bool | int | float | str | None
 
 # Generic zero-argument callback that returns nothing

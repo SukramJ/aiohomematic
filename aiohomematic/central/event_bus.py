@@ -73,10 +73,7 @@ import logging
 from typing import Any, TypeVar, cast
 
 from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType
-from aiohomematic.type_aliases import (
-    DataPointEventCallback,
-    SysvarEventCallback,
-)
+from aiohomematic.type_aliases import DataPointEventCallback, SysvarEventCallback
 
 _LOGGER = logging.getLogger(__name__)
 

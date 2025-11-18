@@ -71,7 +71,6 @@ from datetime import datetime
 import logging
 from logging import DEBUG
 from typing import Any, Final, cast
-import warnings
 
 from aiohttp import ClientSession
 import voluptuous as vol
@@ -187,12 +186,7 @@ from aiohomematic.support import (
     is_ipv4_address,
     is_port,
 )
-from aiohomematic.type_aliases import (
-    AsyncTaskFactory,
-    DataPointEventCallback,
-    SysvarEventCallback,
-    UnregisterCallback,
-)
+from aiohomematic.type_aliases import AsyncTaskFactory, DataPointEventCallback, SysvarEventCallback
 
 __all__ = ["CentralConfig", "CentralUnit", "DeviceRegistry", "INTERFACE_EVENT_SCHEMA", "_SchedulerJob"]
 

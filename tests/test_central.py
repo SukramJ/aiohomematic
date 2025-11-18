@@ -1270,8 +1270,6 @@ class TestCentralEventHandling:
     # Note: Tests for start() and stop() error handling require complex setup
     # and are better suited for integration tests with full central initialization
 
-    # Note: add_event_subscription tests are covered by existing integration tests
-
 
 class TestCentralValidation:
     """Test config validation and system information retrieval."""

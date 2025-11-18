@@ -152,7 +152,7 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import CustomDataPoint, create_custom_data_points
-from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
+from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.device import Channel, Device
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint, GenericDataPointAny
@@ -186,7 +186,6 @@ from aiohomematic.support import (
     is_ipv4_address,
     is_port,
 )
-from aiohomematic.type_aliases import AsyncTaskFactory, DataPointEventCallback, SysvarEventCallback
 
 __all__ = ["CentralConfig", "CentralUnit", "DeviceRegistry", "INTERFACE_EVENT_SCHEMA", "_SchedulerJob"]
 
@@ -245,9 +244,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._primary_client: hmcl.Client | None = None
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
-        self._data_point_key_event_subscriptions: Final[dict[DataPointKey, list[DataPointEventCallback]]] = {}
-        self._data_point_path_event_subscriptions: Final[dict[str, DataPointKey]] = {}
-        self._sysvar_data_point_event_subscriptions: Final[dict[str, SysvarEventCallback]] = {}
         # Device registry
         self._device_registry: Final = DeviceRegistry(central=self)
         # {sysvar_name, sysvar_data_point}
@@ -476,20 +472,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             self._version = max(versions) if versions else None
         return self._version
 
-    def add_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
-        """Add data_point to central event subscription."""
-        if isinstance(data_point, GenericDataPoint | GenericEvent) and (
-            data_point.is_readable or data_point.supports_events
-        ):
-            if data_point.dpk not in self._data_point_key_event_subscriptions:
-                self._data_point_key_event_subscriptions[data_point.dpk] = []
-            self._data_point_key_event_subscriptions[data_point.dpk].append(data_point.event)
-            if (
-                not data_point.channel.device.client.supports_rpc_callback
-                and data_point.state_path not in self._data_point_path_event_subscriptions
-            ):
-                self._data_point_path_event_subscriptions[data_point.state_path] = data_point.dpk
-
     async def add_new_device_manually(self, *, interface_id: str, address: str) -> None:
         """Add new devices manually triggered to central unit."""
         if interface_id not in self._clients:
@@ -531,8 +513,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Add new program button."""
         if (vid := sysvar_data_point.vid) is not None:
             self._sysvar_data_points[vid] = sysvar_data_point
-        if sysvar_data_point.state_path not in self._sysvar_data_point_event_subscriptions:
-            self._sysvar_data_point_event_subscriptions[sysvar_data_point.state_path] = sysvar_data_point.event
 
     async def clear_files(self) -> None:
         """Remove all stored files and caches."""
@@ -581,7 +561,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             parameter=parameter,
         )
 
-        # Publish to EventBus (new system)
+        # Publish to EventBus
         received_at = datetime.now()
         self._looper.create_task(
             target=self._event_bus.publish(
@@ -594,51 +574,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             ),
             name=f"event-bus-datapoint-{dpk.channel_address}-{dpk.parameter}",
         )
-
-        # Call legacy event callbacks (backward compatibility)
-        if dpk in self._data_point_key_event_subscriptions:
-            try:
-                for callback_handler in self._data_point_key_event_subscriptions[dpk]:
-                    if callable(callback_handler):
-                        await callback_handler(value=value, received_at=received_at)
-            except RuntimeError as rterr:
-                _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s, %s, %s",
-                    extract_exc_args(exc=rterr),
-                    interface_id,
-                    channel_address,
-                    parameter,
-                )
-            except Exception as exc:
-                _LOGGER_EVENT.error(  # i18n-log: ignore
-                    "EVENT failed: Unable to call handler for: %s, %s, %s, %s",
-                    interface_id,
-                    channel_address,
-                    parameter,
-                    extract_exc_args(exc=exc),
-                )
-
-    def data_point_path_event(self, *, state_path: str, value: str) -> None:
-        """If a device emits some sort event, we will handle it here."""
-        _LOGGER_EVENT.debug(
-            "DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
-            state_path,
-            value,
-        )
-
-        if (dpk := self._data_point_path_event_subscriptions.get(state_path)) is not None:
-            self._looper.create_task(
-                target=cast(
-                    AsyncTaskFactory,
-                    lambda: self.data_point_event(
-                        interface_id=dpk.interface_id,
-                        channel_address=dpk.channel_address,
-                        parameter=dpk.parameter,
-                        value=value,
-                    ),
-                ),
-                name=f"device-data-point-event-{dpk.interface_id}-{dpk.channel_address}-{dpk.parameter}",
-            )
 
     async def delete_device(self, *, interface_id: str, device_address: str) -> None:
         """Delete devices from central."""
@@ -784,10 +719,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if dp.custom_id == custom_id:
                 return dp
         return None
-
-    def get_data_point_path(self) -> tuple[str, ...]:
-        """Return the registered state path."""
-        return tuple(self._data_point_path_event_subscriptions)
 
     def get_data_points(
         self,
@@ -975,10 +906,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
                     return sysvar
         return None
 
-    def get_sysvar_data_point_path(self) -> tuple[str, ...]:
-        """Return the registered sysvar state path."""
-        return tuple(self._sysvar_data_point_event_subscriptions)
-
     def get_un_ignore_candidates(self, *, include_master: bool = False) -> list[str]:
         """Return the candidates for un_ignore."""
         candidates = sorted(
@@ -1098,14 +1025,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._device_details.remove_device(device=device)
         self._device_registry.remove_device(device_address=device.address)
 
-    def remove_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
-        """Remove event subscription from central collections."""
-        if isinstance(data_point, GenericDataPoint | GenericEvent) and data_point.supports_events:
-            if data_point.dpk in self._data_point_key_event_subscriptions:
-                del self._data_point_key_event_subscriptions[data_point.dpk]
-            if data_point.state_path in self._data_point_path_event_subscriptions:
-                del self._data_point_path_event_subscriptions[data_point.state_path]
-
     def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
         if (program_dp := self.get_program_data_point(pid=pid)) is not None:
@@ -1118,8 +1037,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
             sysvar_dp.emit_device_removed_event()
             del self._sysvar_data_points[vid]
-            if sysvar_dp.state_path in self._sysvar_data_point_event_subscriptions:
-                del self._sysvar_data_point_event_subscriptions[sysvar_dp.state_path]
 
     async def restart_clients(self) -> None:
         """Restart clients."""
@@ -1293,54 +1210,19 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             value,
         )
 
-        # Publish to EventBus (new system)
+        # Publish to EventBus
         received_at = datetime.now()
-        try:
-            self._looper.create_task(
-                target=self._event_bus.publish(
-                    event=SysvarUpdatedEvent(
-                        timestamp=datetime.now(),
-                        state_path=state_path,
-                        value=value,
-                        received_at=received_at,
-                    )
-                ),
-                name=f"event-bus-sysvar-{state_path}",
-            )
-        except RuntimeError as rterr:
-            _LOGGER_EVENT.debug(
-                "EVENT: RuntimeError [%s]. Failed to publish to EventBus for: %s",
-                extract_exc_args(exc=rterr),
-                state_path,
-            )
-        except Exception as exc:  # pragma: no cover
-            _LOGGER_EVENT.error(  # i18n-log: ignore
-                "EVENT failed: Unable to call handler for: %s, %s",
-                state_path,
-                extract_exc_args(exc=exc),
-            )
-
-        # Call legacy event callbacks (backward compatibility)
-        if state_path in self._sysvar_data_point_event_subscriptions:
-            try:
-                callback_handler = self._sysvar_data_point_event_subscriptions[state_path]
-                if callable(callback_handler):
-                    self._looper.create_task(
-                        target=lambda: callback_handler(value=value, received_at=received_at),
-                        name=f"sysvar-data-point-event-{state_path}",
-                    )
-            except RuntimeError as rterr:
-                _LOGGER_EVENT.debug(
-                    "EVENT: RuntimeError [%s]. Failed to call handler for: %s",
-                    extract_exc_args(exc=rterr),
-                    state_path,
+        self._looper.create_task(
+            target=self._event_bus.publish(
+                event=SysvarUpdatedEvent(
+                    timestamp=datetime.now(),
+                    state_path=state_path,
+                    value=value,
+                    received_at=received_at,
                 )
-            except Exception as exc:  # pragma: no cover
-                _LOGGER_EVENT.error(  # i18n-log: ignore
-                    "EVENT failed: Unable to call handler for: %s, %s",
-                    state_path,
-                    extract_exc_args(exc=exc),
-                )
+            ),
+            name=f"event-bus-sysvar-{state_path}",
+        )
 
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""

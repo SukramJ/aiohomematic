@@ -73,7 +73,7 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
-from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
+from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import DpBinarySensor, GenericDataPoint, GenericDataPointAny
 from aiohomematic.model.support import (
@@ -1026,8 +1026,6 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def add_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Add a data_point to a channel."""
-        if isinstance(data_point, BaseParameterDataPoint):
-            self._central.add_event_subscription(data_point=data_point)
         if isinstance(data_point, CalculatedDataPoint):
             self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
@@ -1280,8 +1278,6 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
-        if isinstance(data_point, BaseParameterDataPoint):
-            self._central.remove_event_subscription(data_point=data_point)
         if isinstance(data_point, CalculatedDataPoint):
             del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):

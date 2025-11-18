@@ -381,36 +381,6 @@ class TestDeviceUtilities:
                 # May fail with mock client
 
 
-class TestEventSubscriptions:
-    """Test event subscription operations."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_remove_event_subscription_nonexistent(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test removing event subscription for non-existent data point."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-
-        device = central.get_device(address="VCU6354483")
-        if device:
-            for channel in list(device.channels.values())[:1]:
-                for dp in list(channel.data_points.values())[:1]:
-                    # Try to remove event subscription
-                    central.remove_event_subscription(data_point=dp)
-
-
 class TestCentralCollections:
     """Test central collection access."""
 

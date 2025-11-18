@@ -4,6 +4,7 @@ Issue analyzer script for AioHomematic and Homematic(IP) Local.
 
 This script uses Claude AI to analyze newly created issues and provide helpful feedback.
 """
+
 from __future__ import annotations
 
 import json
@@ -95,18 +96,10 @@ def get_claude_analysis(title: str, body: str, api_key: str) -> dict:
 
     docs_str = "\n".join([f"- {key}: {url}" for key, url in DOCS_LINKS.items()])
 
-    prompt = CLAUDE_ANALYSIS_PROMPT.format(
-        title=title,
-        body=body or "(empty)",
-        docs=docs_str
-    )
+    prompt = CLAUDE_ANALYSIS_PROMPT.format(title=title, body=body or "(empty)", docs=docs_str)
 
     message = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=2000,
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        model="claude-3-5-sonnet-20241022", max_tokens=2000, messages=[{"role": "user", "content": prompt}]
     )
 
     # Parse the JSON response
@@ -224,7 +217,9 @@ def format_comment(analysis: dict, similar_items: list[dict]) -> str:
     if is_german:
         comment += "---\n"
         comment += "_Diese Analyse wurde automatisch erstellt. "
-        comment += "Bei Fragen oder Problemen, bitte die [Diskussionen]({}) nutzen._\n".format(DOCS_LINKS["discussions"])
+        comment += "Bei Fragen oder Problemen, bitte die [Diskussionen]({}) nutzen._\n".format(
+            DOCS_LINKS["discussions"]
+        )
     else:
         comment += "---\n"
         comment += "_This analysis was generated automatically. "

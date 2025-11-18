@@ -2,6 +2,8 @@
 
 ## What's Changed
 
+- Extract scheduler from central
+- Refactor event handling to event bus
 - Rename writeable to writable
 
 # Version 2025.11.19 (2025-11-17)
@@ -9,7 +11,6 @@
 ## What's Changed
 
 - Fix service naming
-- Refactor event handling to event bus
 
 # Version 2025.11.18 (2025-11-17)
 

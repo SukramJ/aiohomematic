@@ -25,8 +25,8 @@ Public API (selected)
 
 Internal helpers
 ----------------
-- _Scheduler: Background thread that periodically checks connection health,
-  refreshes data, and fetches firmware status according to configured intervals.
+- BackgroundScheduler: Asyncio-based scheduler for periodic tasks such as connection
+  health checks, data refreshes, and firmware status updates.
 
 Quick start
 -----------
@@ -67,10 +67,9 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 from logging import DEBUG
-import threading
 from typing import Any, Final, cast
 import warnings
 
@@ -89,6 +88,7 @@ from aiohomematic.central.event_bus import (
     HomematicEvent,
     SysvarUpdatedEvent,
 )
+from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob as _SchedulerJob
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import (
     CATEGORIES,
@@ -114,17 +114,12 @@ from aiohomematic.const import (
     DEFAULT_UN_IGNORES,
     DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE,
     DEFAULT_VERIFY_TLS,
-    DEVICE_FIRMWARE_CHECK_INTERVAL,
-    DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
-    DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
     IDENTIFIER_SEPARATOR,
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
     LOCAL_HOST,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
-    SCHEDULER_LOOP_SLEEP,
-    SCHEDULER_NOT_STARTED_SLEEP,
     TIMEOUT,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
@@ -154,7 +149,6 @@ from aiohomematic.exceptions import (
     AioHomematicException,
     BaseHomematicException,
     NoClientsException,
-    NoConnectionException,
 )
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import CustomDataPoint, create_custom_data_points
@@ -202,7 +196,7 @@ from aiohomematic.type_aliases import (
     UnregisterCallback,
 )
 
-__all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA"]
+__all__ = ["CentralConfig", "CentralUnit", "INTERFACE_EVENT_SCHEMA", "_SchedulerJob"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
@@ -279,7 +273,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._homematic_callbacks: Final[set[HomematicCallback]] = set()
 
         CENTRAL_INSTANCES[self.name] = self
-        self._scheduler: Final = _Scheduler(central=self)
+        self._scheduler: Final = BackgroundScheduler(central=self)
         self._hub: Hub = Hub(central=self)
         self._version: str | None = None
         # store last event received datetime by interface_id
@@ -295,8 +289,8 @@ class CentralUnit(LogContextMixin, PayloadMixin):
     @property
     def _has_active_threads(self) -> bool:
         """Return if active sub threads are alive."""
-        if self._scheduler.is_alive():
-            return True
+        # BackgroundScheduler is async-based, not a thread
+        # Only check XML-RPC server thread
         return bool(
             self._xml_rpc_server and self._xml_rpc_server.no_central_assigned and self._xml_rpc_server.is_alive()
         )
@@ -1433,7 +1427,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         _LOGGER.debug("STOP: Stopping Central %s", self.name)
 
         await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
-        self._stop_scheduler()
+        await self._stop_scheduler()
         await self._stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()
@@ -1956,12 +1950,16 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         return True
 
     def _start_scheduler(self) -> None:
-        """Start the scheduler."""
+        """Start the background scheduler."""
         _LOGGER.debug(
             "START_SCHEDULER: Starting scheduler for %s",
             self.name,
         )
-        self._scheduler.start()
+        # Schedule async start() method via looper
+        self._looper.create_task(
+            target=self._scheduler.start(),
+            name=f"start_scheduler_{self.name}",
+        )
 
     async def _stop_clients(self) -> None:
         """Stop clients."""
@@ -1973,9 +1971,9 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._clients.clear()
         self._clients_started = False
 
-    def _stop_scheduler(self) -> None:
-        """Start the connection checker."""
-        self._scheduler.stop()
+    async def _stop_scheduler(self) -> None:
+        """Stop the background scheduler."""
+        await self._scheduler.stop()
         _LOGGER.debug(
             "STOP_SCHEDULER: Stopped scheduler for %s",
             self.name,
@@ -1995,266 +1993,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """RUn register ha_event callback in central."""
         if cb in self._homematic_callbacks:
             self._homematic_callbacks.remove(cb)
-
-
-class _Scheduler(threading.Thread):
-    """Periodically check connection to the backend, and load data when required."""
-
-    def __init__(self, *, central: CentralUnit) -> None:
-        """Init the connection checker."""
-        threading.Thread.__init__(self, name=f"ConnectionChecker for {central.name}")
-        self._central: Final = central
-        self._unregister_callback = self._central.register_backend_system_callback(cb=self._backend_system_callback)
-        self._active = True
-        self._devices_created = False
-        self._scheduler_jobs = [
-            _SchedulerJob(task=self._check_connection, run_interval=CONNECTION_CHECKER_INTERVAL),
-            _SchedulerJob(
-                task=self._refresh_client_data,
-                run_interval=self._central.config.periodic_refresh_interval,
-            ),
-            _SchedulerJob(
-                task=self._refresh_program_data,
-                run_interval=self._central.config.sys_scan_interval,
-            ),
-            _SchedulerJob(task=self._refresh_sysvar_data, run_interval=self._central.config.sys_scan_interval),
-            _SchedulerJob(
-                task=self._fetch_device_firmware_update_data,
-                run_interval=DEVICE_FIRMWARE_CHECK_INTERVAL,
-            ),
-            _SchedulerJob(
-                task=self._fetch_device_firmware_update_data_in_delivery,
-                run_interval=DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
-            ),
-            _SchedulerJob(
-                task=self._fetch_device_firmware_update_data_in_update,
-                run_interval=DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
-            ),
-        ]
-
-    def run(self) -> None:
-        """Run the scheduler thread."""
-        _LOGGER.debug(
-            "run: scheduler for %s",
-            self._central.name,
-        )
-
-        self._central.looper.create_task(
-            target=self._run_scheduler_tasks(),
-            name="run_scheduler_tasks",
-        )
-
-    def stop(self) -> None:
-        """To stop the ConnectionChecker."""
-        if self._unregister_callback is not None:
-            self._unregister_callback()
-        self._active = False
-
-    def _backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """Handle event of new device creation, to delay the start of the sysvar scan."""
-        if system_event == BackendSystemEvent.DEVICES_CREATED:
-            self._devices_created = True
-
-    async def _check_connection(self) -> None:
-        """Check connection to backend."""
-        _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central.name)
-        try:
-            if not self._central.all_clients_active:
-                _LOGGER.error(
-                    i18n.tr(
-                        "log.central.scheduler.check_connection.no_clients",
-                        name=self._central.name,
-                    )
-                )
-                await self._central.restart_clients()
-            else:
-                reconnects: list[Any] = []
-                reloads: list[Any] = []
-                for interface_id in self._central.interface_ids:
-                    # check:
-                    #  - client is available
-                    #  - client is connected
-                    #  - interface callback is alive
-                    client = self._central.get_client(interface_id=interface_id)
-                    if client.available is False or not await client.is_connected() or not client.is_callback_alive():
-                        reconnects.append(client.reconnect())
-                        reloads.append(self._central.load_and_refresh_data_point_data(interface=client.interface))
-                if reconnects:
-                    await asyncio.gather(*reconnects)
-                    if self._central.available:
-                        await asyncio.gather(*reloads)
-        except NoConnectionException as nex:
-            _LOGGER.error(
-                i18n.tr(
-                    "log.central.scheduler.check_connection.no_connection",
-                    reason=extract_exc_args(exc=nex),
-                )
-            )
-        except Exception as exc:
-            _LOGGER.error(
-                i18n.tr(
-                    "log.central.scheduler.check_connection.failed",
-                    exc_type=type(exc).__name__,
-                    reason=extract_exc_args(exc=exc),
-                )
-            )
-
-    @inspector(re_raise=False)
-    async def _fetch_device_firmware_update_data(self) -> None:
-        """Periodically fetch device firmware update data from backend."""
-        if (
-            not self._central.config.enable_device_firmware_check
-            or not self._central.available
-            or not self._devices_created
-        ):
-            return
-
-        _LOGGER.debug(
-            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching of device firmware update data for %s",
-            self._central.name,
-        )
-        await self._central.refresh_firmware_data()
-
-    @inspector(re_raise=False)
-    async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
-        """Periodically fetch device firmware update data from backend."""
-        if (
-            not self._central.config.enable_device_firmware_check
-            or not self._central.available
-            or not self._devices_created
-        ):
-            return
-
-        _LOGGER.debug(
-            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: Scheduled fetching of device firmware update data for delivering devices for %s",
-            self._central.name,
-        )
-        await self._central.refresh_firmware_data_by_state(
-            device_firmware_states=(
-                DeviceFirmwareState.DELIVER_FIRMWARE_IMAGE,
-                DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
-            )
-        )
-
-    @inspector(re_raise=False)
-    async def _fetch_device_firmware_update_data_in_update(self) -> None:
-        """Periodically fetch device firmware update data from backend."""
-        if (
-            not self._central.config.enable_device_firmware_check
-            or not self._central.available
-            or not self._devices_created
-        ):
-            return
-
-        _LOGGER.debug(
-            "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: Scheduled fetching of device firmware update data for updating devices for %s",
-            self._central.name,
-        )
-        await self._central.refresh_firmware_data_by_state(
-            device_firmware_states=(
-                DeviceFirmwareState.READY_FOR_UPDATE,
-                DeviceFirmwareState.DO_UPDATE_PENDING,
-                DeviceFirmwareState.PERFORMING_UPDATE,
-            )
-        )
-
-    @inspector(re_raise=False)
-    async def _refresh_client_data(self) -> None:
-        """Refresh client data."""
-        if not self._central.available:
-            return
-
-        if (poll_clients := self._central.poll_clients) is not None and len(poll_clients) > 0:
-            _LOGGER.debug("REFRESH_CLIENT_DATA: Loading data for %s", self._central.name)
-            for client in poll_clients:
-                await self._central.load_and_refresh_data_point_data(interface=client.interface)
-                self._central.set_last_event_seen_for_interface(interface_id=client.interface_id)
-
-    @inspector(re_raise=False)
-    async def _refresh_program_data(self) -> None:
-        """Refresh system program_data."""
-        if not self._central.config.enable_program_scan or not self._central.available or not self._devices_created:
-            return
-
-        _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central.name)
-        await self._central.fetch_program_data(scheduled=True)
-
-    @inspector(re_raise=False)
-    async def _refresh_sysvar_data(self) -> None:
-        """Refresh system variables."""
-        if not self._central.config.enable_sysvar_scan or not self._central.available or not self._devices_created:
-            return
-
-        _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central.name)
-        await self._central.fetch_sysvar_data(scheduled=True)
-
-    async def _run_scheduler_tasks(self) -> None:
-        """Run all tasks."""
-        while self._active:
-            if self._central.state != CentralUnitState.RUNNING:
-                _LOGGER.debug("SCHEDULER: Waiting till central %s is started", self._central.name)
-                await asyncio.sleep(SCHEDULER_NOT_STARTED_SLEEP)
-                continue
-
-            any_executed = False
-            for job in self._scheduler_jobs:
-                if not self._active or not job.ready:
-                    continue
-                await job.run()
-                job.schedule_next_execution()
-                any_executed = True
-
-            if not self._active:
-                break  # type: ignore[unreachable]
-
-            # If no job was executed this cycle, we can sleep until the next job is due
-            if not any_executed:
-                now = datetime.now()
-                try:
-                    next_due = min(job.next_run for job in self._scheduler_jobs)
-                    # Sleep until the next task should run, but cap to 1s to remain responsive
-                    delay = max(0.0, (next_due - now).total_seconds())
-                    await asyncio.sleep(min(1.0, delay))
-                except ValueError:
-                    # No jobs configured; fallback to default loop sleep
-                    await asyncio.sleep(SCHEDULER_LOOP_SLEEP)
-            else:
-                # When work was done, yield briefly to the loop
-                await asyncio.sleep(SCHEDULER_LOOP_SLEEP)
-
-
-class _SchedulerJob:
-    """Job to run in the scheduler."""
-
-    def __init__(
-        self,
-        *,
-        task: AsyncTaskFactory,
-        run_interval: int,
-        next_run: datetime | None = None,
-    ):
-        """Init the job."""
-        self._task: Final = task
-        self._next_run = next_run or datetime.now()
-        self._run_interval: Final = run_interval
-
-    @property
-    def next_run(self) -> datetime:
-        """Return the next scheduled run timestamp."""
-        return self._next_run
-
-    @property
-    def ready(self) -> bool:
-        """Return if the job can be executed."""
-        return self._next_run < datetime.now()
-
-    async def run(self) -> None:
-        """Run the task."""
-        await self._task()
-
-    def schedule_next_execution(self) -> None:
-        """Schedule the next execution of the job."""
-        self._next_run += timedelta(seconds=self._run_interval)
 
 
 class CentralConfig:

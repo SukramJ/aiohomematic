@@ -1227,45 +1227,6 @@ class TestCentralEventHandling:
         # Verify EventBus publish was called via create_task
         assert mock_looper.create_task.called
 
-    @pytest.mark.asyncio
-    async def test_sysvar_data_point_path_event_create_task_exceptions_are_caught(
-        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """
-        Central.sysvar_data_point_path_event should complete without errors.
-
-        Note: Legacy sysvar subscription handling has been removed. Events are now
-        handled via EventBus. This test verifies sysvar_data_point_path_event completes.
-        """
-        from unittest.mock import AsyncMock, MagicMock
-
-        from aiohomematic.central.event_coordinator import EventCoordinator
-
-        central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
-
-        # Create a bare EventCoordinator instance
-        event_coordinator = EventCoordinator.__new__(EventCoordinator)  # type: ignore[call-arg]
-
-        # Mock event_bus to prevent AttributeError during arg evaluation
-        mock_event_bus = MagicMock()
-        mock_event_bus.publish = AsyncMock()
-        event_coordinator._event_bus = mock_event_bus  # type: ignore[attr-defined]
-
-        # Mock central reference for event_coordinator
-        mock_central_ref = MagicMock()
-        mock_central_ref.looper = MagicMock()
-        mock_central_ref.looper.create_task = MagicMock()
-        event_coordinator._central = mock_central_ref  # type: ignore[attr-defined]
-
-        # Set event coordinator on central
-        central._event_coordinator = event_coordinator  # type: ignore[attr-defined]
-
-        # Should complete without errors
-        hmcu.CentralUnit.sysvar_data_point_path_event(central, state_path="path/1", value="v")
-
-        # Verify EventBus publish was called
-        assert mock_central_ref.looper.create_task.called
-
     # Note: Tests for start() and stop() error handling require complex setup
     # and are better suited for integration tests with full central initialization
 

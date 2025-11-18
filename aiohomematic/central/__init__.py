@@ -500,10 +500,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             value=value,
         )
 
-    def data_point_path_event(self, *, state_path: str, value: str) -> None:
-        """If a device emits some sort event, we will handle it here."""
-        self._event_coordinator.data_point_path_event(state_path=state_path, value=value)
-
     async def delete_device(self, *, interface_id: str, device_address: str) -> None:
         """Delete device from central."""
         await self._device_coordinator.delete_device(interface_id=interface_id, device_address=device_address)
@@ -596,10 +592,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             if dp.custom_id == custom_id:
                 return dp
         return None
-
-    def get_data_point_path(self) -> tuple[str, ...]:
-        """Return the registered state path."""
-        return self._event_coordinator.get_data_point_path()
 
     def get_data_points(
         self,
@@ -769,10 +761,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         """Return the sysvar data_point."""
         return self._hub_coordinator.get_sysvar_data_point(vid=vid, legacy_name=legacy_name)
 
-    def get_sysvar_data_point_path(self) -> tuple[str, ...]:
-        """Return the registered sysvar state path."""
-        return self._event_coordinator.get_sysvar_data_point_path()
-
     def get_un_ignore_candidates(self, *, include_master: bool = False) -> list[str]:
         """Return the candidates for un_ignore."""
         candidates = sorted(
@@ -868,7 +856,7 @@ class CentralUnit(LogContextMixin, PayloadMixin):
 
     def remove_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """Remove event subscription from central collections."""
-        self._event_coordinator.remove_data_point_subscription(data_point=data_point)
+        # EventBus subscriptions are automatically cleaned up when data points are deleted
 
     def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
@@ -1030,10 +1018,6 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             waited += interval
         self._state = CentralUnitState.STOPPED
         _LOGGER.debug("STOP: Central %s is %s", self.name, self._state)
-
-    def sysvar_data_point_path_event(self, *, state_path: str, value: str) -> None:
-        """If a device emits some sort event, we will handle it here."""
-        self.event_coordinator.sysvar_data_point_path_event(state_path=state_path, value=value)
 
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""

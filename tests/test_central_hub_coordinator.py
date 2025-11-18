@@ -116,6 +116,8 @@ class _FakeCentral:
         self.name = name
         self.config = MagicMock()
         self.event_coordinator = _FakeEventCoordinator()
+        self.event_bus = MagicMock()
+        self.event_bus.subscribe_sysvar_event_callback = MagicMock(return_value=lambda: None)
         self._primary_client: _FakeClient | None = None
 
     @property
@@ -297,8 +299,11 @@ class TestHubCoordinatorSysvarOperations:
         assert "123" in coordinator._sysvar_data_points
         assert coordinator._sysvar_data_points["123"] == sysvar_dp
 
-        # Should be subscribed to events
-        assert sysvar_dp.state_path in central.event_coordinator.sysvar_subscriptions
+        # Should have subscribed via EventBus
+        central.event_bus.subscribe_sysvar_event_callback.assert_called_once_with(
+            state_path=sysvar_dp.state_path,
+            callback=sysvar_dp.event,
+        )
 
     @pytest.mark.asyncio
     async def test_fetch_sysvar_data(self) -> None:
@@ -364,7 +369,7 @@ class TestHubCoordinatorSysvarOperations:
         assert retrieved is None
 
     def test_remove_sysvar_data_point(self) -> None:
-        """Remove sysvar data point should unregister the sysvar and unsubscribe from events."""
+        """Remove sysvar data point should unregister the sysvar and emit removed event."""
         central = _FakeCentral()
         coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
 
@@ -373,7 +378,6 @@ class TestHubCoordinatorSysvarOperations:
 
         coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
         assert "123" in coordinator._sysvar_data_points
-        assert sysvar_dp.state_path in central.event_coordinator.sysvar_subscriptions
 
         coordinator.remove_sysvar_data_point(vid="123")
 
@@ -381,8 +385,7 @@ class TestHubCoordinatorSysvarOperations:
         assert "123" not in coordinator._sysvar_data_points
         # Device removed event should have been emitted
         sysvar_dp.emit_device_removed_event.assert_called_once()
-        # Should be unsubscribed from events
-        assert sysvar_dp.state_path not in central.event_coordinator.sysvar_subscriptions
+        # Event subscription is automatically cleaned up when sysvar_dp is deleted
 
     @pytest.mark.asyncio
     async def test_set_system_variable_not_found(self) -> None:

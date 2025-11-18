@@ -102,9 +102,9 @@ class HubCoordinator:
                 self._central.name,
             )
 
-            # Add event subscription for this sysvar
+            # Add event subscription for this sysvar via EventBus
             if sysvar_data_point.state_path:
-                self._central.event_coordinator.add_sysvar_subscription(
+                self._central.event_bus.subscribe_sysvar_event_callback(
                     state_path=sysvar_data_point.state_path,
                     callback=sysvar_data_point.event,
                 )
@@ -273,9 +273,7 @@ class HubCoordinator:
             sysvar_dp.emit_device_removed_event()
             del self._sysvar_data_points[vid]
 
-            # Remove event subscription
-            if sysvar_dp.state_path:
-                self._central.event_coordinator.remove_sysvar_subscription(state_path=sysvar_dp.state_path)
+            # Event subscription will be automatically cleaned up when sysvar_dp is deleted
 
             _LOGGER.debug(
                 "REMOVE_SYSVAR_DATA_POINT: Removed sysvar %s from %s",

@@ -127,11 +127,11 @@ class TestEventCoordinatorBasics:
         assert len(coordinator._last_event_seen_for_interface) == 0
 
 
-class TestEventCoordinatorDeprecatedMethods:
-    """Test deprecated methods still work without errors."""
+class TestEventCoordinatorDataPointSubscription:
+    """Test data point subscription (only method kept for backward compatibility)."""
 
-    def test_add_data_point_subscription_deprecated(self) -> None:
-        """Add data point subscription should be a no-op but not raise errors."""
+    def test_add_data_point_subscription(self) -> None:
+        """Add data point subscription should register with EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
 
@@ -143,69 +143,8 @@ class TestEventCoordinatorDeprecatedMethods:
         )
         data_point = _FakeDataPoint(dpk=dpk)
 
-        # Should not raise an error (method is deprecated but kept for compatibility)
+        # Should register with EventBus via compatibility wrapper
         coordinator.add_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
-
-    def test_add_sysvar_subscription_deprecated(self) -> None:
-        """Add sysvar subscription should be a no-op but not raise errors."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        state_path = "sv_12345"
-        callback = AsyncMock()
-
-        # Should not raise an error (method is deprecated but kept for compatibility)
-        coordinator.add_sysvar_subscription(state_path=state_path, callback=callback)
-
-    def test_data_point_path_event_deprecated(self) -> None:
-        """Data point path event should be a no-op but not raise errors."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        # Should not raise an error (method is deprecated but kept for compatibility)
-        coordinator.data_point_path_event(state_path="test/path", value="test_value")
-
-    def test_get_data_point_path_returns_empty(self) -> None:
-        """Get data point path should return empty tuple (deprecated)."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        paths = coordinator.get_data_point_path()
-        assert paths == ()
-
-    def test_get_sysvar_data_point_path_returns_empty(self) -> None:
-        """Get sysvar data point path should return empty tuple (deprecated)."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        paths = coordinator.get_sysvar_data_point_path()
-        assert paths == ()
-
-    def test_remove_data_point_subscription_deprecated(self) -> None:
-        """Remove data point subscription should be a no-op but not raise errors."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        data_point = _FakeDataPoint(dpk=dpk)
-
-        # Should not raise an error (method is deprecated but kept for compatibility)
-        coordinator.remove_data_point_subscription(data_point=data_point)  # type: ignore[arg-type]
-
-    def test_remove_sysvar_subscription_deprecated(self) -> None:
-        """Remove sysvar subscription should be a no-op but not raise errors."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        state_path = "sv_12345"
-
-        # Should not raise an error (method is deprecated but kept for compatibility)
-        coordinator.remove_sysvar_subscription(state_path=state_path)
 
 
 class TestEventCoordinatorDataPointEvent:
@@ -249,7 +188,6 @@ class TestEventCoordinatorDataPointEvent:
     @pytest.mark.asyncio
     async def test_data_point_event_publishes_to_event_bus(self) -> None:
         """Data point event should publish events to EventBus."""
-        from unittest.mock import AsyncMock
 
         central = _FakeCentral()
         central._clients["BidCos-RF"] = _FakeClient()
@@ -354,21 +292,3 @@ class TestEventCoordinatorLastEventSeen:
         last_event = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
         assert last_event is not None
         assert isinstance(last_event, datetime)
-
-
-class TestEventCoordinatorSysvarEvent:
-    """Test system variable event handling."""
-
-    def test_sysvar_data_point_path_event(self) -> None:
-        """Sysvar data point path event should publish to EventBus."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(central=central)  # type: ignore[arg-type]
-
-        coordinator.sysvar_data_point_path_event(
-            state_path="sv_12345",
-            value="test_value",
-        )
-
-        # Should have created a task to publish to EventBus
-        assert len(central.looper.tasks) == 1
-        assert "event-bus-sysvar" in central.looper.tasks[0]["name"]

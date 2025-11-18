@@ -26,7 +26,6 @@ from aiohomematic.central.event_bus import (
     DataPointUpdatedEvent,
     EventBus,
     HomematicEvent,
-    SysvarUpdatedEvent,
 )
 from aiohomematic.const import (
     BackendSystemEvent,
@@ -39,8 +38,6 @@ from aiohomematic.const import (
 )
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
-from aiohomematic.support import extract_exc_args
-from aiohomematic.type_aliases import SysvarEventCallback
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralUnit
@@ -110,21 +107,6 @@ class EventCoordinator:
                 callback=data_point.event,
             )
 
-    def add_sysvar_subscription(self, *, state_path: str, callback: SysvarEventCallback) -> None:
-        """
-        Add system variable to event subscription.
-
-        DEPRECATED: This method is kept for backward compatibility but does nothing.
-        System variables now subscribe directly to the EventBus.
-
-        Args:
-        ----
-            state_path: State path of the system variable
-            callback: Callback to invoke when system variable is updated
-
-        """
-        # No-op: System variables subscribe directly to EventBus
-
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """
         Handle data point event from backend.
@@ -179,25 +161,6 @@ class EventCoordinator:
                 value=value,
                 received_at=received_at,
             )
-        )
-
-    def data_point_path_event(self, *, state_path: str, value: str) -> None:
-        """
-        Handle data point path event from MQTT or other sources.
-
-        DEPRECATED: This method is kept for backward compatibility.
-        Path-based events are now handled directly via EventBus.
-
-        Args:
-        ----
-            state_path: State path of the data point
-            value: New value
-
-        """
-        _LOGGER_EVENT.debug(
-            "DATA_POINT_PATH_EVENT: topic = %s, payload = %s (method deprecated)",
-            state_path,
-            value,
         )
 
     def emit_backend_parameter_callback(
@@ -305,20 +268,6 @@ class EventCoordinator:
             event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
-    def get_data_point_path(self) -> tuple[str, ...]:
-        """
-        Return the registered state paths.
-
-        DEPRECATED: This method is kept for backward compatibility.
-        Returns empty tuple as legacy path subscriptions are no longer used.
-
-        Returns
-        -------
-            Tuple of registered state paths (always empty)
-
-        """
-        return ()
-
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """
         Return the last event seen for an interface.
@@ -334,48 +283,6 @@ class EventCoordinator:
         """
         return self._last_event_seen_for_interface.get(interface_id)
 
-    def get_sysvar_data_point_path(self) -> tuple[str, ...]:
-        """
-        Return the registered sysvar state paths.
-
-        DEPRECATED: This method is kept for backward compatibility.
-        Returns empty tuple as legacy sysvar subscriptions are no longer used.
-
-        Returns
-        -------
-            Tuple of registered sysvar state paths (always empty)
-
-        """
-        return ()
-
-    def remove_data_point_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
-        """
-        Remove data point event subscription.
-
-        DEPRECATED: This method is kept for backward compatibility but does nothing.
-        Data points now unsubscribe directly from the EventBus.
-
-        Args:
-        ----
-            data_point: Data point to unsubscribe from events
-
-        """
-        # No-op: DataPoints unsubscribe directly from EventBus
-
-    def remove_sysvar_subscription(self, *, state_path: str) -> None:
-        """
-        Remove system variable event subscription.
-
-        DEPRECATED: This method is kept for backward compatibility but does nothing.
-        System variables now unsubscribe directly from the EventBus.
-
-        Args:
-        ----
-            state_path: State path of the system variable
-
-        """
-        # No-op: System variables unsubscribe directly from EventBus
-
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """
         Set the last event seen timestamp for an interface.
@@ -386,47 +293,3 @@ class EventCoordinator:
 
         """
         self._last_event_seen_for_interface[interface_id] = datetime.now()
-
-    def sysvar_data_point_path_event(self, *, state_path: str, value: str) -> None:
-        """
-        Handle system variable path event.
-
-        Args:
-        ----
-            state_path: State path of the system variable
-            value: New value
-
-        """
-        _LOGGER_EVENT.debug(
-            "SYSVAR_DATA_POINT_PATH_EVENT: topic = %s, payload = %s",
-            state_path,
-            value,
-        )
-
-        received_at = datetime.now()
-
-        # Publish to EventBus
-        try:
-            self._central.looper.create_task(
-                target=lambda: self._event_bus.publish(
-                    event=SysvarUpdatedEvent(
-                        timestamp=datetime.now(),
-                        state_path=state_path,
-                        value=value,
-                        received_at=received_at,
-                    )
-                ),
-                name=f"event-bus-sysvar-{state_path}",
-            )
-        except RuntimeError as rterr:
-            _LOGGER_EVENT.debug(
-                "EVENT: RuntimeError [%s]. Failed to publish to EventBus for: %s",
-                extract_exc_args(exc=rterr),
-                state_path,
-            )
-        except Exception as exc:  # pragma: no cover
-            _LOGGER_EVENT.error(  # i18n-log: ignore
-                "EVENT failed: Unable to publish to EventBus for: %s, %s",
-                state_path,
-                extract_exc_args(exc=exc),
-            )

@@ -10,9 +10,10 @@ from __future__ import annotations
 import json
 import os
 import sys
+from typing import Any, cast
 
 from anthropic import Anthropic
-from github import Github, GithubException
+from github import Auth, Github, GithubException, Repository
 
 # Documentation links
 DOCS_LINKS = {
@@ -90,7 +91,7 @@ Please respond in JSON format with the following structure:
 Be helpful and constructive. Only flag missing information if it's genuinely required to help solve the issue."""
 
 
-def get_claude_analysis(title: str, body: str, api_key: str) -> dict:
+def get_claude_analysis(title: str, body: str, api_key: str) -> dict[str, Any]:
     """Use Claude to analyze the issue."""
     client = Anthropic(api_key=api_key)
 
@@ -99,7 +100,7 @@ def get_claude_analysis(title: str, body: str, api_key: str) -> dict:
     prompt = CLAUDE_ANALYSIS_PROMPT.format(title=title, body=body or "(empty)", docs=docs_str)
 
     message = client.messages.create(
-        model="claude-3-5-sonnet-20241022", max_tokens=2000, messages=[{"role": "user", "content": prompt}]
+        model="claude-3-5-sonnet-20240620", max_tokens=2000, messages=[{"role": "user", "content": prompt}]
     )
 
     # Parse the JSON response
@@ -110,12 +111,14 @@ def get_claude_analysis(title: str, body: str, api_key: str) -> dict:
     elif "```" in response_text:
         response_text = response_text.split("```")[1].split("```")[0].strip()
 
-    return json.loads(response_text)
+    return cast(dict[str, Any], json.loads(response_text))
 
 
-def search_similar_issues(repo, search_terms: list[str], current_issue_number: int) -> list[dict]:
+def search_similar_issues(
+    repo: Repository.Repository, search_terms: list[str], current_issue_number: int
+) -> list[dict[str, Any]]:
     """Search for similar issues and discussions."""
-    similar_items = []
+    similar_items: list[dict[str, Any]] = []
 
     # Limit search terms to top 3 most relevant
     search_terms = search_terms[:3]
@@ -154,7 +157,7 @@ def search_similar_issues(repo, search_terms: list[str], current_issue_number: i
     return unique_items[:5]  # Return top 5 overall
 
 
-def format_comment(analysis: dict, similar_items: list[dict]) -> str:
+def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]) -> str:
     """Format the comment to post on the issue."""
     lang = analysis.get("language", "en")
     is_german = lang == "de"
@@ -228,11 +231,11 @@ def format_comment(analysis: dict, similar_items: list[dict]) -> str:
     return comment
 
 
-def main():
+def main() -> None:
     """Analyze issue and post comment."""
     # Get environment variables
-    github_token = os.getenv("GITHUB_TOKEN")
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    github_token = os.getenv("GITHUB_TOKEN") or ""
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY") or ""
     issue_number = int(os.getenv("ISSUE_NUMBER", "0"))
     issue_title = os.getenv("ISSUE_TITLE", "")
     issue_body = os.getenv("ISSUE_BODY", "")
@@ -243,7 +246,7 @@ def main():
         sys.exit(1)
 
     # Initialize GitHub client
-    gh = Github(github_token)
+    gh = Github(auth=Auth.Token(github_token))
     repo = gh.get_repo(repo_name)
     issue = repo.get_issue(issue_number)
 

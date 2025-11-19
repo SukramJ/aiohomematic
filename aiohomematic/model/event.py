@@ -84,7 +84,7 @@ class GenericEvent(BaseParameterDataPointAny):
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
             parameter_data=parameter_data,
-            unique_id_prefix=f"event_{channel.central.name}",
+            unique_id_prefix=f"event_{channel.device._central_info.name}",
         )
 
     @property

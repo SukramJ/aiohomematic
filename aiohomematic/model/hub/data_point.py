@@ -5,11 +5,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from slugify import slugify
 
-from aiohomematic import central as hmcu
 from aiohomematic.const import (
     PROGRAM_ADDRESS,
     SYSVAR_ADDRESS,
@@ -32,6 +31,19 @@ from aiohomematic.model.support import (
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin, parse_sys_var
 
+if TYPE_CHECKING:
+    from aiohomematic.model.interfaces import (
+        CentralInfo,
+        ChannelLookup,
+        ConfigProvider,
+        EventBusProvider,
+        HubDataFetcher,
+        ParameterVisibilityProvider,
+        ParamsetDescriptionProvider,
+        PrimaryClientProvider,
+        TaskScheduler,
+    )
+
 
 class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     """Class for a Homematic system variable."""
@@ -43,31 +55,47 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         "_legacy_name",
         "_name_data",
         "_state_uncertain",
+        "_primary_client_provider",
     )
 
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        task_scheduler: TaskScheduler,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        channel_lookup: ChannelLookup,
+        primary_client_provider: PrimaryClientProvider,
         address: str,
         data: HubData,
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
-            central=central,
+            config_provider=config_provider,
             address=address,
             parameter=slugify(data.legacy_name),
         )
         self._legacy_name = data.legacy_name
-        self._channel = central.identify_channel(text=data.legacy_name)
+        self._channel = channel_lookup.identify_channel(text=data.legacy_name)
         self._name_data: Final = get_hub_data_point_name_data(
-            channel=self._channel, legacy_name=data.legacy_name, central_name=central.name
+            channel=self._channel, legacy_name=data.legacy_name, central_name=central_info.name
         )
         self._description = data.description
-        super().__init__(central=central, unique_id=unique_id)
+        super().__init__(
+            unique_id=unique_id,
+            central_info=central_info,
+            event_bus_provider=event_bus_provider,
+            task_scheduler=task_scheduler,
+            paramset_description_provider=paramset_description_provider,
+            parameter_visibility_provider=parameter_visibility_provider,
+        )
         self._enabled_default: Final = data.enabled_default
         self._state_uncertain: bool = True
+        self._primary_client_provider: Final = primary_client_provider
 
     @property
     def channel(self) -> Channel | None:
@@ -107,7 +135,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        return self.central.available
+        return self._central_info.available  # type: ignore[no-any-return]
 
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
@@ -134,12 +162,30 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        task_scheduler: TaskScheduler,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        channel_lookup: ChannelLookup,
+        primary_client_provider: PrimaryClientProvider,
         data: SystemVariableData,
     ) -> None:
         """Initialize the data_point."""
         self._vid: Final = data.vid
-        super().__init__(central=central, address=SYSVAR_ADDRESS, data=data)
+        super().__init__(
+            config_provider=config_provider,
+            central_info=central_info,
+            event_bus_provider=event_bus_provider,
+            task_scheduler=task_scheduler,
+            paramset_description_provider=paramset_description_provider,
+            parameter_visibility_provider=parameter_visibility_provider,
+            channel_lookup=channel_lookup,
+            primary_client_provider=primary_client_provider,
+            address=SYSVAR_ADDRESS,
+            data=data,
+        )
         self._data_type = data.data_type
         self._values: Final[tuple[str, ...] | None] = tuple(data.values) if data.values else None
         self._max: Final = data.max_value
@@ -211,7 +257,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
     @inspector
     async def send_variable(self, *, value: Any) -> None:
         """Set variable value on the backend."""
-        if client := self.central.primary_client:
+        if client := self._primary_client_provider.primary_client:
             await client.set_system_variable(
                 legacy_name=self._legacy_name, value=parse_sys_var(data_type=self._data_type, raw_value=value)
             )
@@ -280,18 +326,34 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         "_is_active",
         "_is_internal",
         "_last_execute_time",
+        "_hub_data_fetcher",
     )
 
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        task_scheduler: TaskScheduler,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        channel_lookup: ChannelLookup,
+        primary_client_provider: PrimaryClientProvider,
+        hub_data_fetcher: HubDataFetcher,
         data: ProgramData,
     ) -> None:
         """Initialize the data_point."""
         self._pid: Final = data.pid
         super().__init__(
-            central=central,
+            config_provider=config_provider,
+            central_info=central_info,
+            event_bus_provider=event_bus_provider,
+            task_scheduler=task_scheduler,
+            paramset_description_provider=paramset_description_provider,
+            parameter_visibility_provider=parameter_visibility_provider,
+            channel_lookup=channel_lookup,
+            primary_client_provider=primary_client_provider,
             address=PROGRAM_ADDRESS,
             data=data,
         )
@@ -299,15 +361,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         self._is_internal: bool = data.is_internal
         self._last_execute_time: str = data.last_execute_time
         self._state_uncertain: bool = True
-
-    @property
-    def _hub_data_fetcher(self) -> Any:
-        """
-        Return the hub data fetcher.
-
-        Type: HubDataFetcher protocol (1 method instead of 150+)
-        """
-        return self._central
+        self._hub_data_fetcher: Final = hub_data_fetcher
 
     @config_property
     def is_internal(self) -> bool:

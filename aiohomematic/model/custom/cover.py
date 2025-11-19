@@ -210,7 +210,8 @@ class CustomDpCover(CustomDataPoint):
         self._dp_group_level: DpSensor[float | None] = self._get_data_point(
             field=Field.GROUP_LEVEL, data_point_type=DpSensor[float | None]
         )
-        self._use_group_channel_for_cover_state = self.central.config.use_group_channel_for_cover_state
+        # pylint: disable=protected-access
+        self._use_group_channel_for_cover_state = self._device._config_provider.config.use_group_channel_for_cover_state
 
     async def _set_level(
         self,

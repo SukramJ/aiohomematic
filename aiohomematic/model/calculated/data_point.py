@@ -63,7 +63,10 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         """Initialize the data point."""
         self._unregister_callbacks: list[UnregisterCallback] = []
         unique_id = generate_unique_id(
-            central=channel.central, address=channel.address, parameter=self._calculated_parameter, prefix="calculated"
+            config_provider=channel.device._config_provider,
+            address=channel.address,
+            parameter=self._calculated_parameter,
+            prefix="calculated",
         )
         super().__init__(
             channel=channel,

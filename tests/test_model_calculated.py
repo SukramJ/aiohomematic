@@ -73,6 +73,26 @@ class _FakeDevice:
         self.name = "DeviceName"
         self.client = type("Client", (), {"interface": None})()
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
+        # Add protocol interface attributes for DI
+        self._config_provider = type("ConfigProvider", (), {"config": self.central.config})()
+        self._central_info = type("CentralInfo", (), {"name": "CentralTest", "available": True})()
+        self._event_bus_provider = type("EventBusProvider", (), {"event_bus": self.central.event_bus})()
+        self._task_scheduler = type("TaskScheduler", (), {})()
+        self._paramset_description_provider = type(
+            "ParamsetDescriptionProvider",
+            (),
+            {"is_in_multiple_channels": lambda self, channel_address, parameter: False},
+        )()
+        self._parameter_visibility_provider = type(
+            "ParameterVisibilityProvider",
+            (),
+            {
+                "parameter_is_hidden": lambda self, channel, paramset_key, parameter: False,
+                "parameter_is_un_ignored": lambda self, channel, paramset_key, parameter, custom_only=False: False,
+            },
+        )()
+        self._device_data_refresher = type("DeviceDataRefresher", (), {})()
+        self._device_details_provider = type("DeviceDetailsProvider", (), {"get_name": lambda self, address: None})()
 
     def add_dp(self, dp: _FakeGenericDP) -> None:
         self._store[(dp.parameter, dp.paramset_key)] = dp

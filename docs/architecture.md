@@ -40,12 +40,17 @@ Components keep minimal CentralUnit reference only for factory functions, while 
 
 **Rationale**: Factory functions require full CentralUnit context; all other operations are properly decoupled.
 
-### Tier 3: Provider Properties (Model Layer)
+### Tier 3: Full Dependency Injection (Model Layer)
 
-Model classes use provider properties for adequate decoupling:
+Model classes now use full dependency injection with protocol interfaces:
 
-- **Device**, **Channel**, **DataPoint** classes use `@property` decorators to access central services
-- Maintains backward compatibility and ergonomic API
+- **Device**: Receives 16 protocol interfaces (DeviceDetailsProvider, DeviceDescriptionProvider, ParamsetDescriptionProvider, ParameterVisibilityProvider, ClientProvider, ConfigProvider, CentralInfo, EventBusProvider, TaskScheduler, FileOperations, DeviceDataRefresher, DataCacheProvider, ChannelLookup, EventSubscriptionManager) via constructor injection
+- **Channel**: Accesses protocol interfaces through its parent Device instance (self.\_device.\_xxx_provider)
+- **CallbackDataPoint**: Receives 5 protocol interfaces (CentralInfo, EventBusProvider, TaskScheduler, ParamsetDescriptionProvider, ParameterVisibilityProvider)
+- **BaseDataPoint**: Extracts protocol interfaces from channel.device and passes them to CallbackDataPoint
+- **BaseParameterDataPoint**: Uses device protocol interfaces for initialization
+
+**Benefits**: Complete decoupling from CentralUnit throughout the entire model layer, improved testability, clear dependency contracts at all levels.
 
 ### Protocol Interfaces
 
@@ -59,6 +64,15 @@ Key protocol interfaces defined in `aiohomematic/model/interfaces.py`:
 - **EventBusProvider**: Event system access
 - **TaskScheduler**: Background task scheduling
 - **PrimaryClientProvider**: Primary client access
+- **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
+- **DeviceDescriptionProvider**: Device descriptions lookup
+- **ParamsetDescriptionProvider**: Paramset descriptions and multi-channel checks
+- **ParameterVisibilityProvider**: Parameter visibility rules
+- **FileOperations**: File I/O operations
+- **DeviceDataRefresher**: Device data refresh operations
+- **DataCacheProvider**: Data cache access
+- **ChannelLookup**: Channel lookup by address
+- **EventSubscriptionManager**: Event subscription management
 
 These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.
 
@@ -70,7 +84,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
   - Client owns protocol details: it knows how to talk to the backend via XML‑RPC or JSON‑RPC, how to fetch lists and paramsets, and how to write values. Central should not embed protocol specifics; instead it calls client methods.
 - Model vs Central/Client
   - Model is pure domain representation plus transformation from paramset descriptions to concrete data points/events. It must not perform network I/O. It consumes metadata provided by Central/Client and exposes typed operations on DataPoints (which then delegate to the client for I/O through the device/channel back‑reference).
-  - Model layer uses provider properties for loose coupling to central services.
+  - Model layer (Device, Channel, DataPoint) uses full dependency injection with protocol interfaces, achieving complete decoupling from CentralUnit.
 - Coordinators
   - Infrastructure coordinators (CacheCoordinator, DeviceCoordinator, etc.) use full dependency injection with protocol interfaces.
   - Factory coordinators (ClientCoordinator, HubCoordinator) use hybrid DI: protocols for operations, minimal central reference for factories.

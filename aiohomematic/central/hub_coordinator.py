@@ -73,6 +73,12 @@ class HubCoordinator:
             hub_data_point_manager=self,  # type: ignore[arg-type]  # HubCoordinator implements HubDataPointManager
             primary_client_provider=primary_client_provider,
             event_emitter=central,
+            event_bus_provider=event_bus_provider,
+            task_scheduler=central.looper,
+            paramset_description_provider=central.paramset_descriptions,  # type: ignore[arg-type]
+            parameter_visibility_provider=central.parameter_visibility,  # type: ignore[arg-type]
+            channel_lookup=central,
+            hub_data_fetcher=self,  # HubCoordinator implements HubDataFetcher
         )
 
         # {sysvar_name, sysvar_data_point}

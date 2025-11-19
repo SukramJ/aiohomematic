@@ -50,7 +50,8 @@ def create_data_points_and_events(*, device: hmd.Device) -> None:
     """Create the data points associated to this device."""
     for channel in device.channels.values():
         for paramset_key, paramsset_key_descriptions in channel.paramset_descriptions.items():
-            if not device.central.parameter_visibility.is_relevant_paramset(
+            # pylint: disable=protected-access
+            if not device._parameter_visibility_provider.is_relevant_paramset(
                 channel=channel,
                 paramset_key=paramset_key,
             ):
@@ -59,12 +60,14 @@ def create_data_points_and_events(*, device: hmd.Device) -> None:
                 parameter,
                 parameter_data,
             ) in paramsset_key_descriptions.items():
-                parameter_is_un_ignored = channel.device.central.parameter_visibility.parameter_is_un_ignored(
+                # pylint: disable=protected-access
+                parameter_is_un_ignored = channel.device._parameter_visibility_provider.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
                 )
-                if channel.device.central.parameter_visibility.should_skip_parameter(
+                # pylint: disable=protected-access
+                if channel.device._parameter_visibility_provider.should_skip_parameter(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,

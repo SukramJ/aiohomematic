@@ -34,11 +34,11 @@ class ProgramDpSwitch(GenericProgramDataPoint):
     @inspector
     async def turn_off(self) -> None:
         """Turn the program off."""
-        await self.central.set_program_state(pid=self._pid, state=False)
+        await self._hub_data_fetcher.set_program_state(pid=self._pid, state=False)
         await self._hub_data_fetcher.fetch_program_data(scheduled=False)
 
     @inspector
     async def turn_on(self) -> None:
         """Turn the program on."""
-        await self.central.set_program_state(pid=self._pid, state=True)
+        await self._hub_data_fetcher.set_program_state(pid=self._pid, state=True)
         await self._hub_data_fetcher.fetch_program_data(scheduled=False)

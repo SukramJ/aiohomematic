@@ -75,12 +75,24 @@ class DeviceDetailsProvider(Protocol):
         """Get numeric ID for an address."""
 
     @abstractmethod
-    def get_channel_rooms(self, *, channel_address: str) -> tuple[str, ...]:
+    def get_channel_rooms(self, *, channel_address: str) -> set[str]:
         """Get rooms for a channel."""
+
+    @abstractmethod
+    def get_device_rooms(self, *, device_address: str) -> set[str]:
+        """Get rooms for a device."""
 
     @abstractmethod
     def get_function_text(self, *, address: str) -> str | None:
         """Get function text for an address."""
+
+    @abstractmethod
+    def get_interface(self, *, address: str) -> Any:  # Avoid circular import with Interface
+        """Get interface for an address."""
+
+    @abstractmethod
+    def get_name(self, *, address: str) -> str | None:
+        """Get name for an address."""
 
 
 @runtime_checkable
@@ -400,6 +412,10 @@ class ChannelLookup(Protocol):
     def get_channel(self, *, channel_address: str) -> Any | None:  # Avoid circular import
         """Get channel by address."""
 
+    @abstractmethod
+    def identify_channel(self, *, text: str) -> Any | None:  # Avoid circular import
+        """Identify a channel within a text string."""
+
 
 @runtime_checkable
 class FileOperations(Protocol):
@@ -437,12 +453,20 @@ class HubDataFetcher(Protocol):
     """Protocol for fetching hub data."""
 
     @abstractmethod
+    async def execute_program(self, *, pid: str) -> bool:
+        """Execute a program on the backend."""
+
+    @abstractmethod
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data from the backend."""
 
     @abstractmethod
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch system variable data from the backend."""
+
+    @abstractmethod
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
+        """Set program state on the backend."""
 
 
 @runtime_checkable
@@ -489,3 +513,18 @@ class CentralUnitStateProvider(Protocol):
     @abstractmethod
     def state(self) -> Any:  # Avoid circular import
         """Get current central state."""
+
+
+@runtime_checkable
+class DataCacheProvider(Protocol):
+    """Protocol for accessing data cache."""
+
+    @abstractmethod
+    def get_data(
+        self,
+        *,
+        interface: Any,  # Avoid circular import with Interface
+        channel_address: str,
+        parameter: str,
+    ) -> Any:
+        """Get cached data for a parameter."""

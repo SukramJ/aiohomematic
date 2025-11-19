@@ -20,6 +20,7 @@ from aiohomematic.const import (
     DeviceFirmwareState,
     EventType,
     Interface,
+    ParamsetKey,
     SystemInformation,
 )
 
@@ -33,7 +34,7 @@ class ParameterVisibilityProvider(Protocol):
         self,
         *,
         channel: Any,
-        paramset_key: str,
+        paramset_key: ParamsetKey,
     ) -> bool:
         """
         Return if a paramset is relevant.
@@ -50,7 +51,7 @@ class ParameterVisibilityProvider(Protocol):
         self,
         *,
         channel: Any,
-        paramset_key: str,
+        paramset_key: ParamsetKey,
         parameter: str,
     ) -> bool:
         """Check if a parameter is hidden."""
@@ -60,7 +61,7 @@ class ParameterVisibilityProvider(Protocol):
         self,
         *,
         channel: Any,
-        paramset_key: str,
+        paramset_key: ParamsetKey,
         parameter: str,
         custom_only: bool = False,
     ) -> bool:
@@ -71,7 +72,7 @@ class ParameterVisibilityProvider(Protocol):
         self,
         *,
         channel: Any,
-        paramset_key: str,
+        paramset_key: ParamsetKey,
         parameter: str,
         parameter_is_un_ignored: bool,
     ) -> bool:
@@ -172,7 +173,7 @@ class ParamsetDescriptionProvider(Protocol):
         *,
         interface_id: str,
         channel_address: str,
-        paramset_key: str,
+        paramset_key: ParamsetKey,
         parameter: str,
     ) -> dict[str, Any] | None:
         """Get parameter data from paramset description."""
@@ -427,8 +428,8 @@ class DataPointProvider(Protocol):
     def get_readable_generic_data_points(
         self,
         *,
-        paramset_key: Any = None,  # Avoid circular import
-        interface: Any = None,  # Avoid circular import
+        paramset_key: ParamsetKey | None = None,
+        interface: Interface | None = None,
     ) -> tuple[Any, ...]:  # Avoid circular import
         """Get readable generic data points."""
 
@@ -537,7 +538,7 @@ class ClientCoordination(Protocol):
         """Get client by interface ID."""
 
     @abstractmethod
-    async def load_and_refresh_data_point_data(self, *, interface: Any) -> None:
+    async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:
         """Load and refresh data point data for an interface."""
 
     @abstractmethod

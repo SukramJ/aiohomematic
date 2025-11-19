@@ -76,7 +76,7 @@ class HubCoordinator:
             event_bus_provider=event_bus_provider,
             task_scheduler=central.looper,
             paramset_description_provider=central.paramset_descriptions,  # type: ignore[arg-type]
-            parameter_visibility_provider=central.parameter_visibility,  # type: ignore[arg-type]
+            parameter_visibility_provider=central.parameter_visibility,
             channel_lookup=central,
             hub_data_fetcher=self,  # HubCoordinator implements HubDataFetcher
         )

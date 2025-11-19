@@ -14,7 +14,14 @@ from abc import abstractmethod
 from collections.abc import Callable, Collection, Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from aiohomematic.const import BackendSystemEvent, DeviceDescription, DeviceFirmwareState, EventType, SystemInformation
+from aiohomematic.const import (
+    BackendSystemEvent,
+    DeviceDescription,
+    DeviceFirmwareState,
+    EventType,
+    Interface,
+    SystemInformation,
+)
 
 
 @runtime_checkable
@@ -560,7 +567,7 @@ class DataCacheProvider(Protocol):
     def get_data(
         self,
         *,
-        interface: Any,  # Avoid circular import with Interface
+        interface: Interface,
         channel_address: str,
         parameter: str,
     ) -> Any:

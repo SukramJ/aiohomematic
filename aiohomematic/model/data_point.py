@@ -397,22 +397,30 @@ class CallbackDataPoint(ABC, LogContextMixin):
                     )
                 )
 
+            async def _publish_wrapper(cid: str = custom_id, ckw: dict[str, Any] = custom_kwargs) -> None:  # noqa: E731
+                """Call publish with custom id and kwargs."""
+                await _publish(cid, ckw)
+
             self._central.looper.create_task(
-                target=lambda cid=custom_id, ckw=custom_kwargs: _publish(cid, ckw),  # type: ignore[misc]
+                target=_publish_wrapper,
                 name=f"emit-callback-event-{self._unique_id}-{custom_id}",
             )
 
     @loop_check
     def emit_device_removed_event(self) -> None:
         """Do what is needed when the data_point has been removed."""
+
         # Publish to EventBus asynchronously
-        self._central.looper.create_task(
-            target=lambda: self._central.event_bus.publish(
+        async def _publish_device_removed() -> None:
+            await self._central.event_bus.publish(
                 event=DeviceRemovedEvent(
                     timestamp=datetime.now(),
                     unique_id=self._unique_id,
                 )
-            ),
+            )
+
+        self._central.looper.create_task(
+            target=_publish_device_removed,
             name=f"emit-device-removed-{self._unique_id}",
         )
 

@@ -583,14 +583,18 @@ class Device(LogContextMixin, PayloadMixin):
     def emit_device_updated_callback(self) -> None:
         """Do what is needed when the state of the device has been updated."""
         self._set_modified_at()
+
         # Publish to EventBus asynchronously
-        self._central.looper.create_task(
-            target=lambda: self._central.event_bus.publish(
+        async def _publish_device_updated() -> None:
+            await self._central.event_bus.publish(
                 event=DeviceUpdatedEvent(
                     timestamp=datetime.now(),
                     device_address=self._address,
                 )
-            ),
+            )
+
+        self._central.looper.create_task(
+            target=_publish_device_updated,
             name=f"device-updated-{self._address}",
         )
 
@@ -757,13 +761,16 @@ class Device(LogContextMixin, PayloadMixin):
             or old_firmware_updatable != self.firmware_updatable
         ):
             # Publish to EventBus asynchronously
-            self._central.looper.create_task(
-                target=lambda: self._central.event_bus.publish(
+            async def _publish_firmware_updated() -> None:
+                await self._central.event_bus.publish(
                     event=FirmwareUpdatedEvent(
                         timestamp=datetime.now(),
                         device_address=self._address,
                     )
-                ),
+                )
+
+            self._central.looper.create_task(
+                target=_publish_firmware_updated,
                 name=f"firmware-updated-{self._address}",
             )
 
@@ -1207,15 +1214,19 @@ class Channel(LogContextMixin, PayloadMixin):
     @loop_check
     def emit_link_peer_changed_event(self) -> None:
         """Do what is needed when the link peer has been changed for the device."""
+
         # Publish to EventBus asynchronously
         # pylint: disable=protected-access
-        self._device._central.looper.create_task(
-            target=lambda: self._device._central.event_bus.publish(
+        async def _publish_link_peer_changed() -> None:
+            await self._device._central.event_bus.publish(
                 event=LinkPeerChangedEvent(
                     timestamp=datetime.now(),
                     channel_address=self._address,
                 )
-            ),
+            )
+
+        self._device._central.looper.create_task(
+            target=_publish_link_peer_changed,
             name=f"link-peer-changed-{self._address}",
         )
 

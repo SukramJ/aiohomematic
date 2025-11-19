@@ -302,6 +302,7 @@ class TestDeviceFirmware:
         )
 
         device.refresh_firmware_data()
+        await central.looper.block_till_done()
         assert not emitted
 
         # Now change available firmware and state to trigger callback
@@ -309,11 +310,14 @@ class TestDeviceFirmware:
         current_desc["FIRMWARE_UPDATE_STATE"] = 1  # any int that maps differently
 
         device.refresh_firmware_data()
+        await central.looper.block_till_done()
         assert emitted
 
-        # Duplicate registration returns None
-        assert device.register_firmware_update_callback(cb=fw_cb) is None
+        # Duplicate registration now returns a new unsubscribe function (from event bus)
+        remove_fw2 = device.register_firmware_update_callback(cb=fw_cb)
+        assert callable(remove_fw2)
         remove_fw()
+        remove_fw2()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

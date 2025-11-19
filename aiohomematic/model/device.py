@@ -25,7 +25,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 from datetime import datetime
-from functools import partial
 import logging
 import os
 import random
@@ -34,6 +33,7 @@ from typing import TYPE_CHECKING, Any, Final, cast
 import orjson
 
 from aiohomematic import client as hmcl, i18n
+from aiohomematic.central.event_bus import DeviceUpdatedEvent, FirmwareUpdatedEvent, LinkPeerChangedEvent
 
 if TYPE_CHECKING:
     from aiohomematic import central as hmcu
@@ -120,8 +120,6 @@ class Device(LogContextMixin, PayloadMixin):
         "_channels",
         "_client",
         "_description",
-        "_device_updated_callbacks",
-        "_firmware_update_callbacks",
         "_forced_availability",
         "_group_channels",
         "_has_custom_data_point_definition",
@@ -166,8 +164,6 @@ class Device(LogContextMixin, PayloadMixin):
 
         self._modified_at: datetime = INIT_DATETIME
         self._forced_availability: ForcedDeviceAvailability = ForcedDeviceAvailability.NOT_SET
-        self._device_updated_callbacks: Final[list[DeviceUpdatedCallback]] = []
-        self._firmware_update_callbacks: Final[list[FirmwareUpdateCallback]] = []
         self._model: Final[str] = self._description["TYPE"]
         self._ignore_on_initial_load: Final[bool] = check_ignore_model_on_initial_load(model=self._model)
         self._is_updatable: Final = self._description.get("UPDATABLE") or False
@@ -587,11 +583,20 @@ class Device(LogContextMixin, PayloadMixin):
     def emit_device_updated_callback(self) -> None:
         """Do what is needed when the state of the device has been updated."""
         self._set_modified_at()
-        for callback_handler in self._device_updated_callbacks:
-            try:
-                callback_handler()
-            except Exception as exc:
-                _LOGGER.error("EMIT_DEVICE_UPDATED failed: %s", extract_exc_args(exc=exc))  # i18n-log: ignore
+
+        # Publish to EventBus asynchronously
+        async def _publish_device_updated() -> None:
+            await self._central.event_bus.publish(
+                event=DeviceUpdatedEvent(
+                    timestamp=datetime.now(),
+                    device_address=self._address,
+                )
+            )
+
+        self._central.looper.create_task(
+            target=_publish_device_updated,
+            name=f"device-updated-{self._address}",
+        )
 
     @inspector
     async def export_device_definition(self) -> None:
@@ -755,22 +760,45 @@ class Device(LogContextMixin, PayloadMixin):
             or old_firmware_update_state != self.firmware_update_state
             or old_firmware_updatable != self.firmware_updatable
         ):
-            for callback_handler in self._firmware_update_callbacks:
-                callback_handler()
+            # Publish to EventBus asynchronously
+            async def _publish_firmware_updated() -> None:
+                await self._central.event_bus.publish(
+                    event=FirmwareUpdatedEvent(
+                        timestamp=datetime.now(),
+                        device_address=self._address,
+                    )
+                )
+
+            self._central.looper.create_task(
+                target=_publish_firmware_updated,
+                name=f"firmware-updated-{self._address}",
+            )
 
     def register_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> UnregisterCallback:
         """Register update callback."""
-        if callable(cb) and cb not in self._device_updated_callbacks:
-            self._device_updated_callbacks.append(cb)
-            return partial(self.unregister_device_updated_callback, cb=cb)
-        return None
+
+        # Create adapter that filters for this device's events
+        def event_handler(event: DeviceUpdatedEvent) -> None:
+            if event.device_address == self._address:
+                cb()
+
+        return self._central.event_bus.subscribe(
+            event_type=DeviceUpdatedEvent,
+            handler=event_handler,
+        )
 
     def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
         """Register firmware update callback."""
-        if callable(cb) and cb not in self._firmware_update_callbacks:
-            self._firmware_update_callbacks.append(cb)
-            return partial(self.unregister_firmware_update_callback, cb=cb)
-        return None
+
+        # Create adapter that filters for this device's events
+        def event_handler(event: FirmwareUpdatedEvent) -> None:
+            if event.device_address == self._address:
+                cb()
+
+        return self._central.event_bus.subscribe(
+            event_type=FirmwareUpdatedEvent,
+            handler=event_handler,
+        )
 
     def remove(self) -> None:
         """Remove data points from collections and central."""
@@ -792,14 +820,10 @@ class Device(LogContextMixin, PayloadMixin):
                 dp.emit_data_point_updated_event()
 
     def unregister_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> None:
-        """Remove update callback."""
-        if cb in self._device_updated_callbacks:
-            self._device_updated_callbacks.remove(cb)
+        """Unregister update callback (placeholder for compatibility)."""
 
     def unregister_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> None:
-        """Remove firmware update callback."""
-        if cb in self._firmware_update_callbacks:
-            self._firmware_update_callbacks.remove(cb)
+        """Unregister firmware update callback (placeholder for compatibility)."""
 
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
@@ -847,7 +871,6 @@ class Channel(LogContextMixin, PayloadMixin):
         "_is_in_multi_group",
         "_is_schedule_channel",
         "_link_peer_addresses",
-        "_link_peer_changed_callbacks",
         "_link_source_categories",
         "_link_source_roles",
         "_link_target_categories",
@@ -887,7 +910,6 @@ class Channel(LogContextMixin, PayloadMixin):
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPointAny]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
-        self._link_peer_changed_callbacks: list[LinkPeerChangedCallback] = []
         self._link_source_roles: tuple[str, ...] = (
             tuple(source_roles.split(" ")) if (source_roles := self._description.get("LINK_SOURCE_ROLES")) else ()
         )
@@ -1192,11 +1214,21 @@ class Channel(LogContextMixin, PayloadMixin):
     @loop_check
     def emit_link_peer_changed_event(self) -> None:
         """Do what is needed when the link peer has been changed for the device."""
-        for callback_handler in self._link_peer_changed_callbacks:
-            try:
-                callback_handler()
-            except Exception as exc:
-                _LOGGER.error("EMIT_LINK_PEER_CHANGED_EVENT failed: %s", extract_exc_args(exc=exc))  # i18n-log: ignore
+
+        # Publish to EventBus asynchronously
+        # pylint: disable=protected-access
+        async def _publish_link_peer_changed() -> None:
+            await self._device._central.event_bus.publish(
+                event=LinkPeerChangedEvent(
+                    timestamp=datetime.now(),
+                    channel_address=self._address,
+                )
+            )
+
+        self._device._central.looper.create_task(
+            target=_publish_link_peer_changed,
+            name=f"link-peer-changed-{self._address}",
+        )
 
     async def finalize_init(self) -> None:
         """Finalize the channel init action after model setup."""
@@ -1350,10 +1382,16 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def register_link_peer_changed_callback(self, *, cb: LinkPeerChangedCallback) -> UnregisterCallback:
         """Register the link peer changed callback."""
-        if callable(cb) and cb not in self._link_peer_changed_callbacks:
-            self._link_peer_changed_callbacks.append(cb)
-            return partial(self._unregister_link_peer_changed_callback, cb=cb)
-        return None
+
+        # Create adapter that filters for this channel's events
+        def event_handler(event: LinkPeerChangedEvent) -> None:
+            if event.channel_address == self._address:
+                cb()
+
+        return self._device._central.event_bus.subscribe(  # pylint: disable=protected-access
+            event_type=LinkPeerChangedEvent,
+            handler=event_handler,
+        )
 
     def remove(self) -> None:
         """Remove data points from collections and central."""
@@ -1428,11 +1466,6 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
-
-    def _unregister_link_peer_changed_callback(self, *, cb: LinkPeerChangedCallback) -> None:
-        """Unregister the link peer changed callback."""
-        if cb in self._link_peer_changed_callbacks:
-            self._link_peer_changed_callbacks.remove(cb)
 
 
 class _ValueCache:

@@ -55,6 +55,14 @@ class _FakeCentral:
 
         self.parameter_visibility = _PV()
 
+        # Provide minimal event_bus for callback registration
+        class _EventBus:
+            def subscribe(self, *, event_type: Any, handler: Callable[[Any], None]) -> Callable[[], None]:  # noqa: D401, ANN001
+                """Mock subscribe that returns a no-op unsubscribe."""
+                return lambda: None
+
+        self.event_bus = _EventBus()
+
 
 class _FakeDevice:
     def __init__(self, model: str = "HmIP-XYZ", address: str = "ADDR1") -> None:

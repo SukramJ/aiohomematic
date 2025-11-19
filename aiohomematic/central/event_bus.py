@@ -60,6 +60,13 @@ This EventBus replaces the following callback patterns in CentralUnit:
 - _data_point_key_event_subscriptions → DataPointUpdatedEvent
 - _sysvar_data_point_event_subscriptions → SysvarUpdatedEvent
 
+And in Device/Channel/DataPoint:
+- Device._device_updated_callbacks → DeviceUpdatedEvent
+- Device._firmware_update_callbacks → FirmwareUpdatedEvent
+- Channel._link_peer_changed_callbacks → LinkPeerChangedEvent
+- DataPoint._data_point_updated_callbacks → DataPointUpdatedCallbackEvent
+- DataPoint._device_removed_callbacks → DeviceRemovedEvent
+
 """
 
 from __future__ import annotations
@@ -160,6 +167,50 @@ class InterfaceEvent(Event):
     interface_id: str
     event_type: str
     data: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceUpdatedEvent(Event):
+    """Device state has been updated."""
+
+    device_address: str
+
+
+@dataclass(frozen=True, slots=True)
+class FirmwareUpdatedEvent(Event):
+    """Device firmware information has been updated."""
+
+    device_address: str
+
+
+@dataclass(frozen=True, slots=True)
+class LinkPeerChangedEvent(Event):
+    """Channel link peer addresses have changed."""
+
+    channel_address: str
+
+
+@dataclass(frozen=True, slots=True)
+class DataPointUpdatedCallbackEvent(Event):
+    """
+    Data point value updated callback event.
+
+    This event is fired when a data point's value changes and external
+    consumers (like Home Assistant entities) need to be notified.
+    Unlike DataPointUpdatedEvent which handles internal backend updates,
+    this event is for external integration points.
+    """
+
+    unique_id: str
+    custom_id: str
+    kwargs: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceRemovedEvent(Event):
+    """Device or data point has been removed."""
+
+    unique_id: str
 
 
 class EventBus:

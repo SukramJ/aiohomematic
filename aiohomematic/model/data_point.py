@@ -25,11 +25,10 @@ parameter values across all supported devices.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime, timedelta
-from functools import partial, wraps
+from functools import wraps
 from inspect import getfullargspec
 import logging
 from typing import Any, Final, TypeAlias, TypeVar, cast, overload
@@ -38,6 +37,7 @@ import voluptuous as vol
 
 from aiohomematic import central as hmcu, client as hmcl, i18n, support as hms, validator as val
 from aiohomematic.async_support import loop_check
+from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent, DeviceRemovedEvent
 from aiohomematic.const import (
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
@@ -68,7 +68,7 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.model import device as hmd
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
 from aiohomematic.property_decorators import config_property, hm_property, state_property
-from aiohomematic.support import LogContextMixin, PayloadMixin, extract_exc_args, log_boundary_error
+from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
 from aiohomematic.type_aliases import (
     CallableAny,
     DataPointUpdatedCallback,
@@ -144,13 +144,13 @@ class CallbackDataPoint(ABC, LogContextMixin):
         "_cached_service_method_names",
         "_central",
         "_custom_id",
-        "_data_point_updated_callbacks",
-        "_device_removed_callbacks",
         "_emitted_event_at",
         "_modified_at",
         "_path_data",
         "_refreshed_at",
+        "_registered_custom_ids",
         "_signature",
+        "_subscription_counts",
         "_temporary_modified_at",
         "_temporary_refreshed_at",
         "_unique_id",
@@ -162,8 +162,8 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Init the callback data_point."""
         self._central: Final = central
         self._unique_id: Final = unique_id
-        self._data_point_updated_callbacks: dict[str, set[DataPointUpdatedCallback]] = defaultdict(set)
-        self._device_removed_callbacks: list[DeviceRemovedCallback] = []
+        self._registered_custom_ids: set[str] = set()
+        self._subscription_counts: dict[str, int] = {}
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
         self._emitted_event_at: datetime = INIT_DATETIME
@@ -374,26 +374,55 @@ class CallbackDataPoint(ABC, LogContextMixin):
         if not self._should_emit_data_point_updated_callback:
             return
         self._emitted_event_at = datetime.now()
-        for custom_id, callback_handlers in self._data_point_updated_callbacks.items():
-            for callback_handler in callback_handlers:
-                try:
-                    # Add the data_point reference once to kwargs to avoid per-callback writes.
-                    kwargs[KWARGS_ARG_DATA_POINT] = self
-                    kwargs[KWARGS_ARG_CUSTOM_ID] = custom_id
-                    callback_handler(**kwargs)
-                except Exception as exc:
-                    _LOGGER.error(  # i18n-log: ignore
-                        "EMIT_DATA_POINT_UPDATED_EVENT failed: %s", extract_exc_args(exc=exc)
+
+        # Add the data_point reference to kwargs once
+        event_kwargs = {**kwargs, KWARGS_ARG_DATA_POINT: self}
+
+        # Publish events to EventBus asynchronously - one event per registered custom_id
+        for custom_id in self._registered_custom_ids:
+            # Add custom_id to kwargs for this specific event
+            custom_kwargs = {**event_kwargs, KWARGS_ARG_CUSTOM_ID: custom_id}
+
+            async def _publish(
+                cid: str,
+                ckw: dict[str, Any],
+            ) -> None:  # noqa: E731
+                """Publish callback event with custom id."""
+                await self._central.event_bus.publish(
+                    event=DataPointUpdatedCallbackEvent(
+                        timestamp=datetime.now(),
+                        unique_id=self._unique_id,
+                        custom_id=cid,
+                        kwargs=ckw,
                     )
+                )
+
+            async def _publish_wrapper(cid: str = custom_id, ckw: dict[str, Any] = custom_kwargs) -> None:  # noqa: E731
+                """Call publish with custom id and kwargs."""
+                await _publish(cid, ckw)
+
+            self._central.looper.create_task(
+                target=_publish_wrapper,
+                name=f"emit-callback-event-{self._unique_id}-{custom_id}",
+            )
 
     @loop_check
     def emit_device_removed_event(self) -> None:
         """Do what is needed when the data_point has been removed."""
-        for callback_handler in self._device_removed_callbacks:
-            try:
-                callback_handler()
-            except Exception as exc:
-                _LOGGER.error("EMIT_DEVICE_REMOVED_EVENT failed: %s", extract_exc_args(exc=exc))  # i18n-log: ignore
+
+        # Publish to EventBus asynchronously
+        async def _publish_device_removed() -> None:
+            await self._central.event_bus.publish(
+                event=DeviceRemovedEvent(
+                    timestamp=datetime.now(),
+                    unique_id=self._unique_id,
+                )
+            )
+
+        self._central.looper.create_task(
+            target=_publish_device_removed,
+            name=f"emit-device-removed-{self._unique_id}",
+        )
 
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""
@@ -413,17 +442,50 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 )
             self._custom_id = custom_id
 
-        if callable(cb) and cb not in self._data_point_updated_callbacks[custom_id]:
-            self._data_point_updated_callbacks[custom_id].add(cb)
-            return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
-        return None
+        # Track registration for emit method
+        self._registered_custom_ids.add(custom_id)
+
+        # Create adapter that filters for this data point's events with matching custom_id
+        def event_handler(event: DataPointUpdatedCallbackEvent) -> None:
+            if event.unique_id == self._unique_id and event.custom_id == custom_id:
+                cb(**event.kwargs)
+
+        unsubscribe = self._central.event_bus.subscribe(
+            event_type=DataPointUpdatedCallbackEvent,
+            handler=event_handler,
+        )
+
+        # Track subscription count per custom_id for proper cleanup
+        current_count = self._subscription_counts.get(custom_id, 0)
+        self._subscription_counts[custom_id] = current_count + 1
+
+        # Wrap unsubscribe to also remove from tracking when last subscription is removed
+        def wrapped_unsubscribe() -> None:
+            unsubscribe()
+            # Decrement subscription count
+            count = self._subscription_counts.get(custom_id, 1)
+            count -= 1
+            if count <= 0:
+                # Last subscription for this custom_id, remove from tracking
+                self._registered_custom_ids.discard(custom_id)
+                self._subscription_counts.pop(custom_id, None)
+            else:
+                self._subscription_counts[custom_id] = count
+
+        return wrapped_unsubscribe
 
     def register_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> UnregisterCallback:
         """Register the device removed callback."""
-        if callable(cb) and cb not in self._device_removed_callbacks:
-            self._device_removed_callbacks.append(cb)
-            return partial(self._unregister_device_removed_callback, cb=cb)
-        return None
+
+        # Create adapter that filters for this data point's events
+        def event_handler(event: DeviceRemovedEvent) -> None:
+            if event.unique_id == self._unique_id:
+                cb()
+
+        return self._central.event_bus.subscribe(
+            event_type=DeviceRemovedEvent,
+            handler=event_handler,
+        )
 
     def register_internal_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback) -> UnregisterCallback:
         """Register internal data_point updated callback."""
@@ -461,16 +523,10 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._temporary_refreshed_at = refreshed_at
 
     def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
-        """Unregister data_point updated callback."""
-        if cb in self._data_point_updated_callbacks[custom_id]:
-            self._data_point_updated_callbacks[custom_id].remove(cb)
-        if self.custom_id == custom_id:
-            self._custom_id = None
+        """Unregister data_point updated callback (placeholder for compatibility)."""
 
     def _unregister_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> None:
-        """Unregister the device removed callback."""
-        if cb in self._device_removed_callbacks:
-            self._device_removed_callbacks.remove(cb)
+        """Unregister device removed callback (placeholder for compatibility)."""
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):

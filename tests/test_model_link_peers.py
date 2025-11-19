@@ -61,16 +61,19 @@ class TestChannelLinkPeers:
 
         # 1st init: should emit
         await ch.init_link_peer()
+        await central.looper.block_till_done()
         assert calls == ["changed"]
         assert ch.link_peer_addresses == (f"{device.address}:2",)
         assert len(ch.link_peer_channels) == 1
 
         # 2nd init with same data: no additional emit
         await ch.init_link_peer()
+        await central.looper.block_till_done()
         assert calls == ["changed"]
 
         # 3rd init with changed peers (multiple): should emit
         await ch.init_link_peer()
+        await central.looper.block_till_done()
         assert calls == ["changed", "changed"]
 
         # With multiple peers: property returns a tuple and peer channel cannot be resolved
@@ -121,6 +124,7 @@ class TestChannelLinkPeers:
 
         # Trigger init
         await ch.init_link_peer()
+        await central.looper.block_till_done()
 
         # Ensure callback fired once and addresses are set
         assert calls == ["changed"]

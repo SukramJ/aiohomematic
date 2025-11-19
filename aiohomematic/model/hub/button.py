@@ -20,7 +20,7 @@ class ProgramDpButton(GenericProgramDataPoint):
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        return self._is_active and self._central.available
+        return self._is_active and self._central_info.available
 
     @inspector
     async def press(self) -> None:

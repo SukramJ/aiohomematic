@@ -16,11 +16,12 @@ The HubCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
 from aiohomematic.decorators import inspector
 from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
+from aiohomematic.model.interfaces import CentralInfo, EventBusProvider, PrimaryClientProvider
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralUnit
@@ -33,23 +34,46 @@ class HubCoordinator:
     """Coordinator for hub-level entities (programs and system variables)."""
 
     __slots__ = (
-        "_central",
+        "_central_info",
+        "_event_bus_provider",
+        "_primary_client_provider",
         "_hub",
         "_program_data_points",
         "_sysvar_data_points",
     )
 
-    def __init__(self, *, central: CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        central: CentralUnit,  # Required for Hub construction
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        primary_client_provider: PrimaryClientProvider,
+    ) -> None:
         """
         Initialize the hub coordinator.
 
         Args:
         ----
-            central: The CentralUnit instance
+            central: CentralUnit instance (required for Hub construction)
+            central_info: Provider for central system information
+            event_bus_provider: Provider for event bus access
+            primary_client_provider: Provider for primary client access
 
         """
-        self._central: Final = central
-        self._hub: Hub = Hub(central=central)
+        self._central_info: Final = central_info
+        self._event_bus_provider: Final = event_bus_provider
+        self._primary_client_provider: Final = primary_client_provider
+
+        # Create Hub with protocol interfaces
+        self._hub: Hub = Hub(
+            central=central,  # Required for data point factory
+            config_provider=central,
+            central_info=central_info,
+            hub_data_point_manager=self,  # type: ignore[arg-type]  # HubCoordinator implements HubDataPointManager
+            primary_client_provider=primary_client_provider,
+            event_emitter=central,
+        )
 
         # {sysvar_name, sysvar_data_point}
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
@@ -82,7 +106,7 @@ class HubCoordinator:
         _LOGGER.debug(
             "ADD_PROGRAM_DATA_POINT: Added program %s to %s",
             program_dp.pid,
-            self._central.name,
+            self._central_info.name,
         )
 
     def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPoint) -> None:
@@ -99,12 +123,12 @@ class HubCoordinator:
             _LOGGER.debug(
                 "ADD_SYSVAR_DATA_POINT: Added sysvar %s to %s",
                 vid,
-                self._central.name,
+                self._central_info.name,
             )
 
             # Add event subscription for this sysvar via EventBus
             if sysvar_data_point.state_path:
-                self._central.event_bus.subscribe_sysvar_event_callback(
+                self._event_bus_provider.event_bus.subscribe_sysvar_event_callback(
                     state_path=sysvar_data_point.state_path,
                     callback=sysvar_data_point.event,
                 )
@@ -122,8 +146,8 @@ class HubCoordinator:
             True if execution succeeded, False otherwise
 
         """
-        if client := self._central.primary_client:
-            return await client.execute_program(pid=pid)
+        if client := self._primary_client_provider.primary_client:
+            return cast(bool, await client.execute_program(pid=pid))
         return False
 
     @inspector(re_raise=False)
@@ -207,7 +231,7 @@ class HubCoordinator:
             Current value of the system variable or None
 
         """
-        if client := self._central.primary_client:
+        if client := self._primary_client_provider.primary_client:
             return await client.get_system_variable(name=legacy_name)
         return None
 
@@ -237,7 +261,7 @@ class HubCoordinator:
 
     async def init_hub(self) -> None:
         """Initialize the hub by fetching program and sysvar data."""
-        _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central.name)
+        _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central_info.name)
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
 
@@ -257,7 +281,7 @@ class HubCoordinator:
             _LOGGER.debug(
                 "REMOVE_PROGRAM_DATA_POINT: Removed program %s from %s",
                 pid,
-                self._central.name,
+                self._central_info.name,
             )
 
     def remove_sysvar_data_point(self, *, vid: str) -> None:
@@ -278,7 +302,7 @@ class HubCoordinator:
             _LOGGER.debug(
                 "REMOVE_SYSVAR_DATA_POINT: Removed sysvar %s from %s",
                 vid,
-                self._central.name,
+                self._central_info.name,
             )
 
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
@@ -295,8 +319,8 @@ class HubCoordinator:
             True if setting succeeded, False otherwise
 
         """
-        if client := self._central.primary_client:
-            return await client.set_program_state(pid=pid, state=state)
+        if client := self._primary_client_provider.primary_client:
+            return cast(bool, await client.set_program_state(pid=pid, state=state))
         return False
 
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> None:
@@ -316,6 +340,6 @@ class HubCoordinator:
                 i18n.tr(
                     "log.central.set_system_variable.not_found",
                     legacy_name=legacy_name,
-                    name=self._central.name,
+                    name=self._central_info.name,
                 )
             )

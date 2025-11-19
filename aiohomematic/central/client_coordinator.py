@@ -28,6 +28,7 @@ from aiohomematic.const import (
     ProxyInitState,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.model.interfaces import CentralInfo, ConfigProvider, CoordinatorProvider, SystemInfoProvider
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -40,22 +41,43 @@ class ClientCoordinator:
     """Coordinator for client lifecycle and operations."""
 
     __slots__ = (
-        "_central",
+        "_central",  # Only for factory functions
+        "_config_provider",
+        "_central_info",
+        "_coordinator_provider",
+        "_system_info_provider",
         "_clients",
         "_clients_started",
         "_primary_client",
     )
 
-    def __init__(self, *, central: CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        central: CentralUnit,  # Required for client factory function
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        coordinator_provider: CoordinatorProvider,
+        system_info_provider: SystemInfoProvider,
+    ) -> None:
         """
         Initialize the client coordinator.
 
         Args:
         ----
-            central: The CentralUnit instance
+            central: CentralUnit instance (required for client factory)
+            config_provider: Provider for configuration access
+            central_info: Provider for central system information
+            coordinator_provider: Provider for accessing other coordinators
+            system_info_provider: Provider for system information
 
         """
+        # Keep central reference only for client factory function
         self._central: Final = central
+        self._config_provider: Final = config_provider
+        self._central_info: Final = central_info
+        self._coordinator_provider: Final = coordinator_provider
+        self._system_info_provider: Final = system_info_provider
 
         # {interface_id, client}
         self._clients: Final[dict[str, hmcl.Client]] = {}
@@ -66,7 +88,7 @@ class ClientCoordinator:
     def all_clients_active(self) -> bool:
         """Check if all configured clients exist and are active."""
         count_client = len(self._clients)
-        return count_client > 0 and count_client == len(self._central.config.enabled_interface_configs)
+        return count_client > 0 and count_client == len(self._config_provider.config.enabled_interface_configs)
 
     @property
     def available(self) -> bool:
@@ -139,7 +161,7 @@ class ClientCoordinator:
                 i18n.tr(
                     "exception.central.get_client.interface_missing",
                     interface_id=interface_id,
-                    name=self._central.name,
+                    name=self._central_info.name,
                 )
             )
         return self._clients[interface_id]
@@ -161,13 +183,13 @@ class ClientCoordinator:
 
     async def restart_clients(self) -> None:
         """Restart all clients."""
-        _LOGGER.debug("RESTART_CLIENTS: Restarting clients for %s", self._central.name)
+        _LOGGER.debug("RESTART_CLIENTS: Restarting clients for %s", self._central_info.name)
         await self.stop_clients()
         if await self.start_clients():
             _LOGGER.info(
                 i18n.tr(
                     "log.central.restart_clients.restarted",
-                    name=self._central.name,
+                    name=self._central_info.name,
                 )
             )
 
@@ -184,10 +206,10 @@ class ClientCoordinator:
             return False
 
         # Load caches after clients are created
-        await self._central.cache_coordinator.load_all()
+        await self._coordinator_provider.cache_coordinator.load_all()
 
         # Initialize hub
-        await self._central.hub_coordinator.init_hub()
+        await self._coordinator_provider.hub_coordinator.init_hub()
 
         # Initialize clients
         await self._init_clients()
@@ -197,7 +219,7 @@ class ClientCoordinator:
 
     async def stop_clients(self) -> None:
         """Stop all clients."""
-        _LOGGER.debug("STOP_CLIENTS: Stopping clients for %s", self._central.name)
+        _LOGGER.debug("STOP_CLIENTS: Stopping clients for %s", self._central_info.name)
         await self._de_init_clients()
 
         for client in self._clients.values():
@@ -229,12 +251,12 @@ class ClientCoordinator:
                 _LOGGER.debug(
                     "CREATE_CLIENT: Adding client %s to %s",
                     client.interface_id,
-                    self._central.name,
+                    self._central_info.name,
                 )
                 self._clients[client.interface_id] = client
                 return True
         except BaseHomematicException as bhexc:  # pragma: no cover
-            self._central.event_coordinator.emit_interface_event(
+            self._coordinator_provider.event_coordinator.emit_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,
                 data={EventKey.AVAILABLE: False},
@@ -262,27 +284,27 @@ class ClientCoordinator:
             _LOGGER.error(
                 i18n.tr(
                     "log.central.create_clients.already_created",
-                    name=self._central.name,
+                    name=self._central_info.name,
                 )
             )
             return False
 
-        if len(self._central.config.enabled_interface_configs) == 0:
+        if len(self._config_provider.config.enabled_interface_configs) == 0:
             _LOGGER.error(
                 i18n.tr(
                     "log.central.create_clients.no_interfaces",
-                    name=self._central.name,
+                    name=self._central_info.name,
                 )
             )
             return False
 
         # Create primary clients first
-        for interface_config in self._central.config.enabled_interface_configs:
+        for interface_config in self._config_provider.config.enabled_interface_configs:
             if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
                 await self._create_client(interface_config=interface_config)
 
         # Create secondary clients
-        for interface_config in self._central.config.enabled_interface_configs:
+        for interface_config in self._config_provider.config.enabled_interface_configs:
             if interface_config.interface not in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
                 if (
                     self.primary_client is not None
@@ -292,7 +314,7 @@ class ClientCoordinator:
                         i18n.tr(
                             "log.central.create_clients.interface_not_available",
                             interface=interface_config.interface,
-                            name=self._central.name,
+                            name=self._central_info.name,
                         )
                     )
                     interface_config.disable()
@@ -304,7 +326,7 @@ class ClientCoordinator:
                 i18n.tr(
                     "log.central.create_clients.created_count_failed",
                     created=len(self._clients),
-                    total=len(self._central.config.enabled_interface_configs),
+                    total=len(self._config_provider.config.enabled_interface_configs),
                 )
             )
             return False
@@ -313,12 +335,12 @@ class ClientCoordinator:
             _LOGGER.warning(
                 i18n.tr(
                     "log.central.create_clients.no_primary_identified",
-                    name=self._central.name,
+                    name=self._central_info.name,
                 )
             )
             return True
 
-        _LOGGER.debug("CREATE_CLIENTS successful for %s", self._central.name)
+        _LOGGER.debug("CREATE_CLIENTS successful for %s", self._central_info.name)
         return True
 
     async def _de_init_clients(self) -> None:
@@ -345,14 +367,16 @@ class ClientCoordinator:
     async def _init_clients(self) -> None:
         """Initialize all clients."""
         for client in self._clients.copy().values():
-            if client.interface not in self._central.system_information.available_interfaces:
+            if client.interface not in self._system_info_provider.system_information.available_interfaces:
                 _LOGGER.debug(
                     "INIT_CLIENTS failed: Interface: %s is not available for the backend %s",
                     client.interface,
-                    self._central.name,
+                    self._central_info.name,
                 )
                 del self._clients[client.interface_id]
                 continue
 
             if await client.initialize_proxy() == ProxyInitState.INIT_SUCCESS:
-                _LOGGER.debug("INIT_CLIENTS: client %s initialized for %s", client.interface_id, self._central.name)
+                _LOGGER.debug(
+                    "INIT_CLIENTS: client %s initialized for %s", client.interface_id, self._central_info.name
+                )

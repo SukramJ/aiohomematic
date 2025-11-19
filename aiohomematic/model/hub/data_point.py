@@ -300,6 +300,15 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         self._last_execute_time: str = data.last_execute_time
         self._state_uncertain: bool = True
 
+    @property
+    def _hub_data_fetcher(self) -> Any:
+        """
+        Return the hub data fetcher.
+
+        Type: HubDataFetcher protocol (1 method instead of 150+)
+        """
+        return self._central
+
     @config_property
     def is_internal(self) -> bool:
         """Return the program is internal."""

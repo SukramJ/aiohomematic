@@ -29,11 +29,14 @@ from functools import partial
 import logging
 import os
 import random
-from typing import Any, Final, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 import orjson
 
-from aiohomematic import central as hmcu, client as hmcl, i18n
+from aiohomematic import client as hmcl, i18n
+
+if TYPE_CHECKING:
+    from aiohomematic import central as hmcu
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
@@ -149,7 +152,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._address: Final = device_address
         self._channel_group: Final[dict[int | None, int]] = {}
         self._group_channels: Final[dict[int, set[int | None]]] = {}
-        self._id: Final = self._central.device_details.get_address_id(address=device_address)
+        self._id: Final = central.device_details.get_address_id(address=device_address)
         self._interface: Final = central.device_details.get_interface(address=device_address)
         self._client: Final = central.get_client(interface_id=interface_id)
         self._description = self._central.device_descriptions.get_device_description(
@@ -215,6 +218,51 @@ class Device(LogContextMixin, PayloadMixin):
         )
 
     @property
+    def _central_info(self) -> Any:
+        """
+        Return the central info provider.
+
+        Type: CentralInfo protocol (3 properties instead of 150+)
+        """
+        return self._central
+
+    @property
+    def _config_provider(self) -> Any:
+        """
+        Return the config provider.
+
+        Type: ConfigProvider protocol (1 property instead of 150+)
+        """
+        return self._central
+
+    @property
+    def _device_data_refresher(self) -> Any:
+        """
+        Return the device data refresher.
+
+        Type: DeviceDataRefresher protocol (1 method instead of 150+)
+        """
+        return self._central
+
+    @property
+    def _device_description_provider(self) -> Any:
+        """
+        Return the device description provider.
+
+        Type: DeviceDescriptionProvider protocol (2 methods instead of 150+)
+        """
+        return self._central.device_descriptions
+
+    @property
+    def _device_details_provider(self) -> Any:
+        """
+        Return the device details provider.
+
+        Type: DeviceDetailsProvider protocol (3 methods instead of 150+)
+        """
+        return self._central.device_details
+
+    @property
     def _dp_config_pending(self) -> DpBinarySensor | None:
         """Return th CONFIG_PENDING data_point."""
         return cast(
@@ -237,6 +285,33 @@ class Device(LogContextMixin, PayloadMixin):
             DpBinarySensor | None,
             self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH),
         )
+
+    @property
+    def _file_operations(self) -> Any:
+        """
+        Return the file operations provider.
+
+        Type: FileOperations protocol (1 method instead of 150+)
+        """
+        return self._central
+
+    @property
+    def _paramset_provider(self) -> Any:
+        """
+        Return the paramset description provider.
+
+        Type: ParamsetDescriptionProvider protocol (2 methods instead of 150+)
+        """
+        return self._central.paramset_descriptions
+
+    @property
+    def _task_scheduler(self) -> Any:
+        """
+        Return the task scheduler.
+
+        Type: TaskScheduler protocol (2 methods instead of 150+)
+        """
+        return self._central.looper
 
     @property
     def allow_undefined_generic_data_points(self) -> bool:
@@ -365,7 +440,7 @@ class Device(LogContextMixin, PayloadMixin):
     def info(self) -> Mapping[str, Any]:
         """Return the device info."""
         device_info = dict(self.info_payload)
-        device_info["central"] = self._central.info_payload
+        device_info["central"] = self._central_info.info_payload
         return device_info
 
     @property
@@ -660,7 +735,7 @@ class Device(LogContextMixin, PayloadMixin):
         if self._week_profile:
             await self._week_profile.reload_and_cache_schedule()
 
-        await self._central.save_files(save_paramset_descriptions=True)
+        await self._file_operations.save_files(save_paramset_descriptions=True)
         self.emit_device_updated_callback()
 
     def refresh_firmware_data(self) -> None:
@@ -670,7 +745,7 @@ class Device(LogContextMixin, PayloadMixin):
         old_firmware_update_state = self.firmware_update_state
         old_firmware_updatable = self.firmware_updatable
 
-        self._description = self._central.device_descriptions.get_device_description(
+        self._description = self._device_description_provider.get_device_description(
             interface_id=self._interface_id, address=self._address
         )
 
@@ -734,10 +809,10 @@ class Device(LogContextMixin, PayloadMixin):
         async def refresh_data() -> None:
             for refresh_interval in refresh_after_update_intervals:
                 await asyncio.sleep(refresh_interval)
-                await self._central.refresh_firmware_data(device_address=self._address)
+                await self._device_data_refresher.refresh_firmware_data(device_address=self._address)
 
         if refresh_after_update_intervals:
-            self._central.looper.create_task(target=refresh_data, name="refresh_firmware_data")
+            self._task_scheduler.create_task(target=refresh_data, name="refresh_firmware_data")
 
         return update_result
 
@@ -842,9 +917,63 @@ class Channel(LogContextMixin, PayloadMixin):
         )
 
     @property
+    def _channel_lookup(self) -> Any:
+        """
+        Return the channel lookup provider.
+
+        Type: ChannelLookup protocol (1 method instead of 150+)
+        """
+        return self._central
+
+    @property
+    def _device_description_provider(self) -> Any:
+        """
+        Return the device description provider.
+
+        Type: DeviceDescriptionProvider protocol (2 methods instead of 150+)
+        """
+        return self._central.device_descriptions
+
+    @property
+    def _device_details_provider(self) -> Any:
+        """
+        Return the device details provider.
+
+        Type: DeviceDetailsProvider protocol (3 methods instead of 150+)
+        """
+        return self._central.device_details
+
+    @property
+    def _event_subscription_manager(self) -> Any:
+        """
+        Return the event subscription manager.
+
+        Type: EventSubscriptionManager protocol (2 methods instead of 150+)
+        """
+        return self._central
+
+    @property
     def _has_key_press_events(self) -> bool:
         """Return if channel has KEYPRESS events."""
         return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
+
+    @property
+    def _paramset_provider(self) -> Any:
+        """
+        Return the paramset description provider.
+
+        Type: ParamsetDescriptionProvider protocol (2 methods instead of 150+)
+        """
+        return self._central.paramset_descriptions
+
+    @property
+    def _task_scheduler(self) -> Any:
+        """
+        Return the task scheduler.
+
+        Type: TaskScheduler protocol (2 methods instead of 150+)
+        """
+        return self._central.looper
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPoint[Any], ...]:
@@ -939,7 +1068,8 @@ class Channel(LogContextMixin, PayloadMixin):
         return tuple(
             channel
             for address in self._link_peer_addresses
-            if self._link_peer_addresses and (channel := self._central.get_channel(channel_address=address)) is not None
+            if self._link_peer_addresses
+            and (channel := self._channel_lookup.get_channel(channel_address=address)) is not None
         )
 
     @property
@@ -974,8 +1104,11 @@ class Channel(LogContextMixin, PayloadMixin):
     @property
     def paramset_descriptions(self) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Return the paramset descriptions of the channel."""
-        return self._central.paramset_descriptions.get_channel_paramset_descriptions(
-            interface_id=self._device.interface_id, channel_address=self._address
+        return cast(
+            Mapping[ParamsetKey, Mapping[str, ParameterData]],
+            self._paramset_provider.get_channel_paramset_descriptions(
+                interface_id=self._device.interface_id, channel_address=self._address
+            ),
         )
 
     @property
@@ -1027,7 +1160,7 @@ class Channel(LogContextMixin, PayloadMixin):
     def add_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
-            self._central.add_event_subscription(data_point=data_point)
+            self._event_subscription_manager.add_event_subscription(data_point=data_point)
         if isinstance(data_point, CalculatedDataPoint):
             self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
@@ -1177,7 +1310,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def init_channel(self) -> None:
         """Init the channel."""
-        self._central.looper.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
+        self._task_scheduler.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
 
     async def init_link_peer(self) -> None:
         """Init the link partners."""
@@ -1281,7 +1414,7 @@ class Channel(LogContextMixin, PayloadMixin):
     def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
-            self._central.remove_event_subscription(data_point=data_point)
+            self._event_subscription_manager.remove_event_subscription(data_point=data_point)
         if isinstance(data_point, CalculatedDataPoint):
             del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):
@@ -1476,11 +1609,29 @@ class _DefinitionExporter:
         self._device_address: Final = device.address
         self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
 
+    @property
+    def _device_description_provider(self) -> Any:
+        """
+        Return the device description provider.
+
+        Type: DeviceDescriptionProvider protocol (2 methods instead of 150+)
+        """
+        return self._central.device_descriptions
+
+    @property
+    def _task_scheduler(self) -> Any:
+        """
+        Return the task scheduler.
+
+        Type: TaskScheduler protocol (2 methods instead of 150+)
+        """
+        return self._central.looper
+
     @inspector
     async def export_data(self) -> None:
         """Export data."""
         device_descriptions: Mapping[str, DeviceDescription] = (
-            self._central.device_descriptions.get_device_with_channels(
+            self._device_description_provider.get_device_with_channels(
                 interface_id=self._interface_id, device_address=self._device_address
             )
         )
@@ -1537,4 +1688,7 @@ class _DefinitionExporter:
                 fptr.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
             return DataOperationResult.SAVE_SUCCESS
 
-        return await self._central.looper.async_add_executor_job(perform_save, name="save-device-description")
+        return cast(
+            DataOperationResult,
+            await self._task_scheduler.async_add_executor_job(perform_save, name="save-device-description"),
+        )

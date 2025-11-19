@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
 from aiohomematic.const import (
@@ -37,10 +37,10 @@ from aiohomematic.model.custom import create_custom_data_points
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.device import Device
 from aiohomematic.model.event import GenericEvent
+from aiohomematic.model.interfaces import CentralInfo, ConfigProvider, CoordinatorProvider
 from aiohomematic.support import extract_device_addresses_from_device_descriptions, extract_exc_args
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralUnit
     from aiohomematic.central.device_registry import DeviceRegistry
     from aiohomematic.client import Client
     from aiohomematic.model.device import Channel
@@ -53,25 +53,41 @@ class DeviceCoordinator:
 
     __slots__ = (
         "_central",
+        "_coordinator_provider",
+        "_central_info",
+        "_config_provider",
         "_device_add_semaphore",
     )
 
-    def __init__(self, *, central: CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        central: Any,  # CentralUnit at runtime, but avoid circular import
+        coordinator_provider: CoordinatorProvider,
+        central_info: CentralInfo,
+        config_provider: ConfigProvider,
+    ) -> None:
         """
         Initialize the device coordinator.
 
         Args:
         ----
-            central: The CentralUnit instance
+            central: The central unit instance (required for device creation)
+            coordinator_provider: Provider for accessing other coordinators
+            central_info: Provider for central system information
+            config_provider: Provider for configuration access
 
         """
         self._central: Final = central
+        self._coordinator_provider: Final = coordinator_provider
+        self._central_info: Final = central_info
+        self._config_provider: Final = config_provider
         self._device_add_semaphore: Final = asyncio.Semaphore()
 
     @property
     def device_registry(self) -> DeviceRegistry:
         """Return the device registry."""
-        return self._central.device_registry
+        return self._coordinator_provider.device_registry  # type: ignore[no-any-return]
 
     @property
     def devices(self) -> tuple[Device, ...]:
@@ -88,14 +104,14 @@ class DeviceCoordinator:
             address: Device address
 
         """
-        if not self._central.client_coordinator.has_client(interface_id=interface_id):
+        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
             _LOGGER.error(  # i18n-log: ignore
                 "ADD_NEW_DEVICES_MANUALLY failed: Missing client for interface_id %s",
                 interface_id,
             )
             return
 
-        client = self._central.client_coordinator.get_client(interface_id=interface_id)
+        client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
         if not (device_descriptions := await client.get_all_device_descriptions(device_address=address)):
             _LOGGER.error(  # i18n-log: ignore
                 "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
@@ -122,7 +138,9 @@ class DeviceCoordinator:
         """
         source = (
             SourceOfDeviceCreation.NEW
-            if self._central.cache_coordinator.device_descriptions.has_device_descriptions(interface_id=interface_id)
+            if self._coordinator_provider.cache_coordinator.device_descriptions.has_device_descriptions(
+                interface_id=interface_id
+            )
             else SourceOfDeviceCreation.INIT
         )
         await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions, source=source)
@@ -147,7 +165,9 @@ class DeviceCoordinator:
 
         def _check_for_new_device_addresses_helper(*, iid: str) -> None:
             """Check if there are new devices that need to be created."""
-            if not self._central.cache_coordinator.paramset_descriptions.has_interface_id(interface_id=iid):
+            if not self._coordinator_provider.cache_coordinator.paramset_descriptions.has_interface_id(
+                interface_id=iid
+            ):
                 _LOGGER.debug(
                     "CHECK_FOR_NEW_DEVICE_ADDRESSES: Skipping interface %s, missing paramsets",
                     iid,
@@ -155,7 +175,9 @@ class DeviceCoordinator:
                 return
             # Build the set locally and assign only if non-empty to avoid add-then-delete pattern
             # Use set difference for speed on large collections
-            addresses = set(self._central.cache_coordinator.device_descriptions.get_addresses(interface_id=iid))
+            addresses = set(
+                self._coordinator_provider.cache_coordinator.device_descriptions.get_addresses(interface_id=iid)
+            )
             # get_addresses returns an iterable (likely tuple); convert to set once for efficient diff
             if new_set := addresses - existing_addresses:
                 new_device_addresses[iid] = new_set
@@ -163,7 +185,7 @@ class DeviceCoordinator:
         if interface_id:
             _check_for_new_device_addresses_helper(iid=interface_id)
         else:
-            for iid in self._central.client_coordinator.interface_ids:
+            for iid in self._coordinator_provider.client_coordinator.interface_ids:
                 _check_for_new_device_addresses_helper(iid=iid)
 
         if _LOGGER.isEnabledFor(level=logging.DEBUG):
@@ -194,14 +216,14 @@ class DeviceCoordinator:
             source: Source of device creation
 
         """
-        if not self._central.client_coordinator.has_clients:
+        if not self._coordinator_provider.client_coordinator.has_clients:
             raise AioHomematicException(
                 i18n.tr(
                     "exception.central.create_devices.no_clients",
-                    name=self._central.name,
+                    name=self._central_info.name,
                 )
             )
-        _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self._central.name)
+        _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self._central_info.name)
 
         new_devices = set[Device]()
 
@@ -213,7 +235,7 @@ class DeviceCoordinator:
                 device: Device | None = None
                 try:
                     device = Device(
-                        central=self._central,
+                        central=cast(Any, self._central),  # Central is CentralUnit at runtime
                         interface_id=interface_id,
                         device_address=device_address,
                     )
@@ -239,14 +261,14 @@ class DeviceCoordinator:
                         interface_id,
                         device_address,
                     )
-        _LOGGER.debug("CREATE_DEVICES: Finished creating devices for %s", self._central.name)
+        _LOGGER.debug("CREATE_DEVICES: Finished creating devices for %s", self._central_info.name)
 
         if new_devices:
             for device in new_devices:
                 await device.finalize_init()
             new_dps = _get_new_data_points(new_devices=new_devices)
             new_channel_events = _get_new_channel_events(new_devices=new_devices)
-            self._central.event_coordinator.emit_backend_system_callback(
+            self._coordinator_provider.event_coordinator.emit_backend_system_callback(
                 system_event=BackendSystemEvent.DEVICES_CREATED,
                 new_data_points=new_dps,
                 new_channel_events=new_channel_events,
@@ -294,7 +316,7 @@ class DeviceCoordinator:
             if device := self.device_registry.get_device(address=address):
                 self.remove_device(device=device)
 
-        await self._central.cache_coordinator.save_all(
+        await self._coordinator_provider.cache_coordinator.save_all(
             save_device_descriptions=True,
             save_paramset_descriptions=True,
         )
@@ -361,11 +383,11 @@ class DeviceCoordinator:
             List of device descriptions
 
         """
-        result = self._central.cache_coordinator.device_descriptions.get_raw_device_descriptions(
+        result = self._coordinator_provider.cache_coordinator.device_descriptions.get_raw_device_descriptions(
             interface_id=interface_id
         )
         _LOGGER.debug("LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result))
-        return result
+        return cast(list[DeviceDescription], result)
 
     async def refresh_device_descriptions_and_create_missing_devices(
         self, *, client: Client, refresh_only_existing: bool, device_address: str | None = None
@@ -398,7 +420,7 @@ class DeviceCoordinator:
                     dev_desc
                     for dev_desc in list(device_descriptions)
                     if dev_desc["ADDRESS"]
-                    in self._central.cache_coordinator.device_descriptions.get_device_descriptions(
+                    in self._coordinator_provider.cache_coordinator.device_descriptions.get_device_descriptions(
                         interface_id=client.interface_id
                     )
                 )
@@ -429,7 +451,7 @@ class DeviceCoordinator:
             )
             device.refresh_firmware_data()
         else:
-            for client in self._central.client_coordinator.clients:
+            for client in self._coordinator_provider.client_coordinator.clients:
                 await self.refresh_device_descriptions_and_create_missing_devices(
                     client=client, refresh_only_existing=True
                 )
@@ -460,7 +482,7 @@ class DeviceCoordinator:
             return
 
         device.remove()
-        self._central.cache_coordinator.remove_device_from_caches(device=device)
+        self._coordinator_provider.cache_coordinator.remove_device_from_caches(device=device)
         self.device_registry.remove_device(device_address=device.address)
 
     @inspector(measure_performance=True)
@@ -490,7 +512,7 @@ class DeviceCoordinator:
             len(device_descriptions),
         )
 
-        if not self._central.client_coordinator.has_client(interface_id=interface_id):
+        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
             _LOGGER.error(  # i18n-log: ignore
                 "ADD_NEW_DEVICES failed: Missing client for interface_id %s",
                 interface_id,
@@ -508,7 +530,7 @@ class DeviceCoordinator:
 
             # Here we block the automatic creation of new devices, if required
             if (
-                self._central.config.delay_new_device_creation
+                self._config_provider.config.delay_new_device_creation
                 and source == SourceOfDeviceCreation.NEW
                 and (
                     new_addresses := extract_device_addresses_from_device_descriptions(
@@ -516,7 +538,7 @@ class DeviceCoordinator:
                     )
                 )
             ):
-                self._central.event_coordinator.emit_backend_system_callback(
+                self._coordinator_provider.event_coordinator.emit_backend_system_callback(
                     system_event=BackendSystemEvent.DEVICES_DELAYED,
                     new_addresses=new_addresses,
                     interface_id=interface_id,
@@ -524,11 +546,11 @@ class DeviceCoordinator:
                 )
                 return
 
-            client = self._central.client_coordinator.get_client(interface_id=interface_id)
+            client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
             save_descriptions = False
             for dev_desc in new_device_descriptions:
                 try:
-                    self._central.cache_coordinator.device_descriptions.add_device(
+                    self._coordinator_provider.cache_coordinator.device_descriptions.add_device(
                         interface_id=interface_id, device_description=dev_desc
                     )
                     await client.fetch_paramset_descriptions(device_description=dev_desc)
@@ -541,14 +563,14 @@ class DeviceCoordinator:
                         extract_exc_args(exc=exc),
                     )
 
-            await self._central.cache_coordinator.save_all(
+            await self._coordinator_provider.cache_coordinator.save_all(
                 save_device_descriptions=save_descriptions,
                 save_paramset_descriptions=save_descriptions,
             )
 
         if new_device_addresses := self.check_for_new_device_addresses(interface_id=interface_id):
-            await self._central.cache_coordinator.device_details.load()
-            await self._central.cache_coordinator.load_data_cache(interface=client.interface)
+            await self._coordinator_provider.cache_coordinator.device_details.load()
+            await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
             await self.create_devices(new_device_addresses=new_device_addresses, source=source)
 
     def _identify_new_device_descriptions(
@@ -567,7 +589,9 @@ class DeviceCoordinator:
             Tuple of new device descriptions
 
         """
-        known_addresses = self._central.cache_coordinator.device_descriptions.get_addresses(interface_id=interface_id)
+        known_addresses = self._coordinator_provider.cache_coordinator.device_descriptions.get_addresses(
+            interface_id=interface_id
+        )
         return tuple(
             dev_desc
             for dev_desc in device_descriptions

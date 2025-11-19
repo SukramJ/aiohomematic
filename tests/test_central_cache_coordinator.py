@@ -17,29 +17,57 @@ from aiohomematic.store import (
 
 
 class _FakeCentral:
-    """Minimal fake CentralUnit for testing."""
+    """Minimal fake CentralUnit for testing - implements all required protocols."""
 
     def __init__(self, *, name: str = "test_central") -> None:
         """Initialize a fake central."""
         self.name = name
+        self.available = True
+        self.model = "Test"
         self.config = MagicMock()
         self.config.cache_dir = "/tmp/test_cache"  # noqa: S108  # nosec B108
         self.config.enable_session_recording = False
+        self.config.storage_directory = "/tmp/test"  # noqa: S108  # nosec B108
+        self.config.session_recorder_start = False
         self.primary_client = None
         self.clients = []
         self.looper = MagicMock()
         self.looper.async_add_executor_job = AsyncMock()
+        # For protocol compatibility
+        self.devices = ()
+        self.interface_ids = frozenset()
+
+    def get_client(self, *, interface_id: str) -> MagicMock | None:
+        """Get client by interface_id."""
+        return None
+
+    def get_data_point(self, *, dpk: str) -> MagicMock | None:
+        """Get data point by key."""
+        return None
+
+    def get_device(self, *, address: str) -> MagicMock | None:
+        """Get device by address."""
+        return None
 
 
 class TestCacheCoordinatorBasics:
     """Test basic CacheCoordinator functionality."""
 
     def test_cache_coordinator_initialization(self) -> None:
-        """CacheCoordinator should initialize with central instance."""
+        """CacheCoordinator should initialize with protocol interfaces."""
         central = _FakeCentral()
-        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = CacheCoordinator(
+            central_info=central,
+            device_provider=central,
+            client_provider=central,
+            data_point_provider=central,
+            primary_client_provider=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            session_recorder_active=False,
+        )  # type: ignore[arg-type]
 
-        assert coordinator._central == central
+        assert coordinator._central_info == central
         assert coordinator._data_cache is not None
         assert coordinator._device_details is not None
         assert coordinator._device_descriptions is not None
@@ -48,7 +76,16 @@ class TestCacheCoordinatorBasics:
     def test_data_cache_property(self) -> None:
         """Data cache property should return the cache instance."""
         central = _FakeCentral()
-        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = CacheCoordinator(
+            central_info=central,
+            device_provider=central,
+            client_provider=central,
+            data_point_provider=central,
+            primary_client_provider=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            session_recorder_active=False,
+        )  # type: ignore[arg-type]
 
         cache = coordinator.data_cache
         assert cache is not None
@@ -57,7 +94,16 @@ class TestCacheCoordinatorBasics:
     def test_device_descriptions_property(self) -> None:
         """Device descriptions property should return the cache instance."""
         central = _FakeCentral()
-        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = CacheCoordinator(
+            central_info=central,
+            device_provider=central,
+            client_provider=central,
+            data_point_provider=central,
+            primary_client_provider=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            session_recorder_active=False,
+        )  # type: ignore[arg-type]
 
         cache = coordinator.device_descriptions
         assert cache is not None
@@ -66,7 +112,16 @@ class TestCacheCoordinatorBasics:
     def test_device_details_property(self) -> None:
         """Device details property should return the cache instance."""
         central = _FakeCentral()
-        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = CacheCoordinator(
+            central_info=central,
+            device_provider=central,
+            client_provider=central,
+            data_point_provider=central,
+            primary_client_provider=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            session_recorder_active=False,
+        )  # type: ignore[arg-type]
 
         cache = coordinator.device_details
         assert cache is not None
@@ -75,7 +130,16 @@ class TestCacheCoordinatorBasics:
     def test_paramset_descriptions_property(self) -> None:
         """Paramset descriptions property should return the cache instance."""
         central = _FakeCentral()
-        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = CacheCoordinator(
+            central_info=central,
+            device_provider=central,
+            client_provider=central,
+            data_point_provider=central,
+            primary_client_provider=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            session_recorder_active=False,
+        )  # type: ignore[arg-type]
 
         cache = coordinator.paramset_descriptions
         assert cache is not None
@@ -98,7 +162,16 @@ class TestCacheCoordinatorClearOperations:
             patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             await coordinator.clear_all()
 
             # All caches should have been cleared
@@ -118,7 +191,16 @@ class TestCacheCoordinatorClearOperations:
             patch.object(DeviceDetailsCache, "clear", new=MagicMock()),
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             # Should raise the exception since there's no exception handling
             with pytest.raises(RuntimeError, match="Cache error"):
                 await coordinator.clear_all()
@@ -139,7 +221,16 @@ class TestCacheCoordinatorLoadOperations:
             patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
             patch.object(CentralDataCache, "load", new=AsyncMock()),
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             await coordinator.load_all()
 
             # Persistent caches should have been loaded
@@ -158,7 +249,16 @@ class TestCacheCoordinatorLoadOperations:
             patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
             patch.object(CentralDataCache, "load", new=AsyncMock()),
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             # Should raise the exception since there's no exception handling
             with pytest.raises(RuntimeError, match="Load error"):
                 await coordinator.load_all()
@@ -177,7 +277,16 @@ class TestCacheCoordinatorSaveOperations:
             patch.object(DeviceDescriptionCache, "save", new=AsyncMock()) as mock_desc_save,
             patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()) as mock_param_save,
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             await coordinator.save_all(
                 save_device_descriptions=True,
                 save_paramset_descriptions=True,
@@ -197,7 +306,16 @@ class TestCacheCoordinatorSaveOperations:
             patch.object(DeviceDescriptionCache, "save", new=AsyncMock(side_effect=RuntimeError("Save error"))),
             patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()),
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             # Should raise the exception since there's no exception handling
             with pytest.raises(RuntimeError, match="Save error"):
                 await coordinator.save_all(
@@ -224,7 +342,16 @@ class TestCacheCoordinatorDeviceRemoval:
             patch.object(DeviceDescriptionCache, "remove_device", new=MagicMock()) as mock_desc_remove,
             patch.object(ParamsetDescriptionCache, "remove_device", new=MagicMock()) as mock_param_remove,
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             coordinator.remove_device_from_caches(device=mock_device)  # type: ignore[arg-type]
 
             # All caches should have had the device removed
@@ -245,7 +372,16 @@ class TestCacheCoordinatorDeviceRemoval:
         with (
             patch.object(DeviceDetailsCache, "remove_device", new=MagicMock(side_effect=KeyError("Not found"))),
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             # Should raise since there's no exception handling
             with pytest.raises(KeyError):
                 coordinator.remove_device_from_caches(device=mock_device)  # type: ignore[arg-type]
@@ -276,7 +412,16 @@ class TestCacheCoordinatorIntegration:
             patch.object(DeviceDescriptionCache, "save", new=AsyncMock(side_effect=mock_save)) as mock_desc_save,
             patch.object(ParamsetDescriptionCache, "save", new=AsyncMock(side_effect=mock_save)) as mock_param_save,
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
             # Run load and save concurrently
             await asyncio.gather(
                 coordinator.load_all(),
@@ -311,7 +456,16 @@ class TestCacheCoordinatorIntegration:
             patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
         ):
-            coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
 
             # Load
             await coordinator.load_all()
@@ -341,7 +495,16 @@ class TestCacheCoordinatorSessionRecording:
         """Session recording cache should be None when disabled."""
         central = _FakeCentral()
         central.config.enable_session_recording = False
-        coordinator = CacheCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = CacheCoordinator(
+            central_info=central,
+            device_provider=central,
+            client_provider=central,
+            data_point_provider=central,
+            primary_client_provider=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            session_recorder_active=False,
+        )  # type: ignore[arg-type]
 
         # When session recording is disabled, cache should be None
         assert hasattr(coordinator, "_session_recording") is False or coordinator._session_recording is None
@@ -352,7 +515,16 @@ class TestCacheCoordinatorSessionRecording:
         central.config.enable_session_recording = True
 
         with patch("aiohomematic.central.cache_coordinator.SessionRecorder"):
-            _ = CacheCoordinator(central=central)  # type: ignore[arg-type]
+            _ = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
 
             # When enabled, cache should be created (if implementation supports it)
             # This depends on actual implementation in cache_coordinator.py

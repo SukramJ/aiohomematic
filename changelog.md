@@ -1,7 +1,8 @@
-# Version 2025.11.20 (2025-11-18)
+# Version 2025.11.20 (2025-11-19)
 
 ## What's Changed
 
+- De-couple from central unit
 - Extract coordinators from central unit
 - Extract device registry from central
 - Extract scheduler from central

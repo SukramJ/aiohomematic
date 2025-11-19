@@ -38,9 +38,9 @@ from aiohomematic.const import (
 )
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
+from aiohomematic.model.interfaces import ClientProvider, TaskScheduler
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralUnit
     from aiohomematic.model.data_point import BaseParameterDataPointAny
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -51,21 +51,29 @@ class EventCoordinator:
     """Coordinator for event subscription and handling."""
 
     __slots__ = (
-        "_central",
+        "_client_provider",
+        "_task_scheduler",
         "_event_bus",
         "_last_event_seen_for_interface",
     )
 
-    def __init__(self, *, central: CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        client_provider: ClientProvider,
+        task_scheduler: TaskScheduler,
+    ) -> None:
         """
         Initialize the event coordinator.
 
         Args:
         ----
-            central: The CentralUnit instance
+            client_provider: Provider for client access
+            task_scheduler: Provider for task scheduling
 
         """
-        self._central: Final = central
+        self._client_provider: Final = client_provider
+        self._task_scheduler: Final = task_scheduler
 
         # Initialize event bus
         self._event_bus: Final = EventBus(enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG))
@@ -127,7 +135,7 @@ class EventCoordinator:
             str(value),
         )
 
-        if not self._central.has_client(interface_id=interface_id):
+        if not self._client_provider.has_client(interface_id=interface_id):
             return
 
         self.set_last_event_seen_for_interface(interface_id=interface_id)
@@ -138,7 +146,7 @@ class EventCoordinator:
                 v_interface_id, token = value.split("#")
                 if (
                     v_interface_id == interface_id
-                    and (client := self._central.get_client(interface_id=interface_id))
+                    and (client := self._client_provider.get_client(interface_id=interface_id))
                     and client.supports_ping_pong
                 ):
                     client.ping_pong_cache.handle_received_pong(pong_token=token)
@@ -180,7 +188,7 @@ class EventCoordinator:
 
         """
         # Publish to EventBus asynchronously
-        self._central.looper.create_task(
+        self._task_scheduler.create_task(
             target=lambda: self._event_bus.publish(
                 event=BackendParameterEvent(
                     timestamp=datetime.now(),
@@ -207,7 +215,7 @@ class EventCoordinator:
 
         """
         # Publish to EventBus (new system)
-        self._central.looper.create_task(
+        self._task_scheduler.create_task(
             target=lambda: self._event_bus.publish(
                 event=BackendSystemEventData(timestamp=datetime.now(), system_event=system_event, data=kwargs)
             ),
@@ -228,7 +236,7 @@ class EventCoordinator:
 
         """
         # Publish to EventBus (new system)
-        self._central.looper.create_task(
+        self._task_scheduler.create_task(
             target=lambda: self._event_bus.publish(
                 event=HomematicEvent(timestamp=datetime.now(), event_type=event_type, event_data=event_data)
             ),

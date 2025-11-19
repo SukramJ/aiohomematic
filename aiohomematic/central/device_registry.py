@@ -19,10 +19,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Final
 
+from aiohomematic.model.interfaces import CentralInfo, ClientProvider
 from aiohomematic.support import get_device_address
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralUnit
     from aiohomematic.model.device import Channel, Device
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -32,13 +32,28 @@ class DeviceRegistry:
     """Registry for device and channel management."""
 
     __slots__ = (
-        "_central",
+        "_central_info",
+        "_client_provider",
         "_devices",
     )
 
-    def __init__(self, *, central: CentralUnit) -> None:
-        """Initialize the device registry."""
-        self._central: Final = central
+    def __init__(
+        self,
+        *,
+        central_info: CentralInfo,
+        client_provider: ClientProvider,
+    ) -> None:
+        """
+        Initialize the device registry.
+
+        Args:
+        ----
+            central_info: Provider for central system information
+            client_provider: Provider for client access
+
+        """
+        self._central_info: Final = central_info
+        self._client_provider: Final = client_provider
         # {device_address, device}
         self._devices: Final[dict[str, Device]] = {}
 
@@ -79,13 +94,13 @@ class DeviceRegistry:
         _LOGGER.debug(
             "ADD_DEVICE: Added device %s to registry for %s",
             device.address,
-            self._central.name,
+            self._central_info.name,
         )
 
     def clear(self) -> None:
         """Clear all devices from the registry."""
         self._devices.clear()
-        _LOGGER.debug("CLEAR: Cleared device registry for %s", self._central.name)
+        _LOGGER.debug("CLEAR: Cleared device registry for %s", self._central_info.name)
 
     def get_channel(self, *, channel_address: str) -> Channel | None:
         """
@@ -141,9 +156,7 @@ class DeviceRegistry:
 
         """
         return tuple(
-            cl.get_virtual_remote()  # type: ignore[misc]
-            for cl in self._central.clients
-            if cl.get_virtual_remote() is not None
+            cl.get_virtual_remote() for cl in self._client_provider.clients if cl.get_virtual_remote() is not None
         )
 
     def has_device(self, *, address: str) -> bool:
@@ -192,12 +205,12 @@ class DeviceRegistry:
             _LOGGER.debug(
                 "REMOVE_DEVICE: Device %s not found in registry for %s",
                 device_address,
-                self._central.name,
+                self._central_info.name,
             )
             return
         del self._devices[device_address]
         _LOGGER.debug(
             "REMOVE_DEVICE: Removed device %s from registry for %s",
             device_address,
-            self._central.name,
+            self._central_info.name,
         )

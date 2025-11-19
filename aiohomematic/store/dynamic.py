@@ -49,6 +49,14 @@ from aiohomematic.const import (
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
 from aiohomematic.model.device import Device
+from aiohomematic.model.interfaces import (
+    CentralInfo,
+    ClientProvider,
+    DataPointProvider,
+    DeviceProvider,
+    EventEmitter,
+    PrimaryClientProvider,
+)
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -152,7 +160,8 @@ class DeviceDetailsCache:
     """Cache for device/channel details."""
 
     __slots__ = (
-        "_central",
+        "_central_info",
+        "_primary_client_provider",
         "_channel_rooms",
         "_device_channel_ids",
         "_device_rooms",
@@ -162,9 +171,15 @@ class DeviceDetailsCache:
         "_refreshed_at",
     )
 
-    def __init__(self, *, central: hmcu.CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        central_info: CentralInfo,
+        primary_client_provider: PrimaryClientProvider,
+    ) -> None:
         """Init the device details cache."""
-        self._central: Final = central
+        self._central_info: Final = central_info
+        self._primary_client_provider: Final = primary_client_provider
         self._channel_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         self._device_channel_ids: Final[dict[str, str]] = {}
         self._device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
@@ -231,15 +246,15 @@ class DeviceDetailsCache:
         ):
             return
         self.clear()
-        _LOGGER.debug("LOAD: Loading names for %s", self._central.name)
-        if client := self._central.primary_client:
+        _LOGGER.debug("LOAD: Loading names for %s", self._central_info.name)
+        if client := self._primary_client_provider.primary_client:
             await client.fetch_device_details()
-        _LOGGER.debug("LOAD: Loading rooms for %s", self._central.name)
+        _LOGGER.debug("LOAD: Loading rooms for %s", self._central_info.name)
         self._channel_rooms.clear()
         self._channel_rooms.update(await self._get_all_rooms())
         self._device_rooms.clear()
         self._device_rooms.update(self._prepare_device_rooms())
-        _LOGGER.debug("LOAD: Loading functions for %s", self._central.name)
+        _LOGGER.debug("LOAD: Loading functions for %s", self._central_info.name)
         self._functions.clear()
         self._functions.update(await self._get_all_functions())
         self._refreshed_at = datetime.now()
@@ -254,14 +269,20 @@ class DeviceDetailsCache:
 
     async def _get_all_functions(self) -> Mapping[str, set[str]]:
         """Get all functions, if available."""
-        if client := self._central.primary_client:
-            return await client.get_all_functions()
+        if client := self._primary_client_provider.primary_client:
+            return cast(
+                Mapping[str, set[str]],
+                await client.get_all_functions(),
+            )
         return {}
 
     async def _get_all_rooms(self) -> Mapping[str, set[str]]:
         """Get all rooms, if available."""
-        if client := self._central.primary_client:
-            return await client.get_all_rooms()
+        if client := self._primary_client_provider.primary_client:
+            return cast(
+                Mapping[str, set[str]],
+                await client.get_all_rooms(),
+            )
         return {}
 
     def _prepare_device_rooms(self) -> dict[str, set[str]]:
@@ -277,14 +298,27 @@ class CentralDataCache:
     """Central cache for device/channel initial data."""
 
     __slots__ = (
-        "_central",
+        "_device_provider",
+        "_client_provider",
+        "_data_point_provider",
+        "_central_info",
         "_refreshed_at",
         "_value_cache",
     )
 
-    def __init__(self, *, central: hmcu.CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        device_provider: DeviceProvider,
+        client_provider: ClientProvider,
+        data_point_provider: DataPointProvider,
+        central_info: CentralInfo,
+    ) -> None:
         """Init the central data cache."""
-        self._central: Final = central
+        self._device_provider: Final = device_provider
+        self._client_provider: Final = client_provider
+        self._data_point_provider: Final = data_point_provider
+        self._central_info: Final = central_info
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
@@ -300,7 +334,7 @@ class CentralDataCache:
             self._value_cache[interface] = {}
             self._refreshed_at[interface] = INIT_DATETIME
         else:
-            for _interface in self._central.interfaces:
+            for _interface in self._device_provider.interfaces:
                 self.clear(interface=_interface)
 
     def get_data(
@@ -317,8 +351,8 @@ class CentralDataCache:
 
     async def load(self, *, direct_call: bool = False, interface: Interface | None = None) -> None:
         """Fetch data from the backend."""
-        _LOGGER.debug("load: Loading device data for %s", self._central.name)
-        for client in self._central.clients:
+        _LOGGER.debug("load: Loading device data for %s", self._central_info.name)
+        for client in self._client_provider.clients:
             if interface and interface != client.interface:
                 continue
             if direct_call is False and changed_within_seconds(
@@ -336,7 +370,9 @@ class CentralDataCache:
         direct_call: bool = False,
     ) -> None:
         """Refresh data_point data."""
-        for dp in self._central.get_readable_generic_data_points(paramset_key=paramset_key, interface=interface):
+        for dp in self._data_point_provider.get_readable_generic_data_points(
+            paramset_key=paramset_key, interface=interface
+        ):
             await dp.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
 
     def _get_refreshed_at(self, *, interface: Interface) -> datetime:
@@ -360,7 +396,8 @@ class PingPongCache:
 
     __slots__ = (
         "_allowed_delta",
-        "_central",
+        "_event_emitter",
+        "_central_info",
         "_interface_id",
         "_pending_pong_logged",
         "_pending_pongs",
@@ -375,14 +412,16 @@ class PingPongCache:
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        event_emitter: EventEmitter,
+        central_info: CentralInfo,
         interface_id: str,
         allowed_delta: int = PING_PONG_MISMATCH_COUNT,
         ttl: int = PING_PONG_MISMATCH_COUNT_TTL,
     ):
         """Initialize the cache with ttl."""
         assert ttl > 0
-        self._central: Final = central
+        self._event_emitter: Final = event_emitter
+        self._central_info: Final = central_info
         self._interface_id: Final = interface_id
         self._allowed_delta: Final = allowed_delta
         self._ttl: Final = ttl
@@ -470,7 +509,7 @@ class PingPongCache:
 
         def _emit_event(mismatch_count: int) -> None:
             """Emit event."""
-            self._central.emit_homematic_callback(
+            self._event_emitter.emit_homematic_callback(
                 event_type=EventType.INTERFACE,
                 event_data=cast(
                     dict[EventKey, Any],
@@ -479,7 +518,7 @@ class PingPongCache:
                             EventKey.INTERFACE_ID: self._interface_id,
                             EventKey.TYPE: event_type,
                             EventKey.DATA: {
-                                EventKey.CENTRAL_NAME: self._central.name,
+                                EventKey.CENTRAL_NAME: self._central_info.name,
                                 EventKey.PONG_MISMATCH_ACCEPTABLE: mismatch_count <= self._allowed_delta,
                                 EventKey.PONG_MISMATCH_COUNT: mismatch_count,
                             },
@@ -623,7 +662,7 @@ class PingPongCache:
             return
         self._retry_at.add(token)
 
-        if (looper := getattr(self._central, "looper", None)) is None:
+        if (looper := getattr(self._central_info, "looper", None)) is None:
             # In testing contexts without a looper, we cannot schedule — leave to TTL expiry.
             _LOGGER.debug(
                 "PING PONG CACHE: Skip scheduling retry for token %s on %s (no looper)",

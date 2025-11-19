@@ -38,10 +38,11 @@ import logging
 import re
 from typing import Final, TypeAlias
 
-from aiohomematic import central as hmcu, support as hms
+from aiohomematic import support as hms
 from aiohomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
 from aiohomematic.model import hmd
 from aiohomematic.model.custom import get_required_parameters
+from aiohomematic.model.interfaces import ConfigProvider
 from aiohomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -342,7 +343,7 @@ class ParameterVisibilityCache:
     """
 
     __slots__ = (
-        "_central",
+        "_config_provider",
         "_custom_un_ignore_complex",
         "_custom_un_ignore_values_parameters",
         "_ignore_custom_device_definition_models",
@@ -360,13 +361,13 @@ class ParameterVisibilityCache:
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        config_provider: ConfigProvider,
     ) -> None:
         """Init the parameter visibility cache."""
-        self._central = central
-        self._storage_directory: Final = central.config.storage_directory
+        self._config_provider = config_provider
+        self._storage_directory: Final = config_provider.config.storage_directory
         self._required_parameters: Final = get_required_parameters()
-        self._raw_un_ignores: Final[frozenset[str]] = central.config.un_ignore_list or frozenset()
+        self._raw_un_ignores: Final[frozenset[str]] = config_provider.config.un_ignore_list or frozenset()
 
         # un_ignore from custom un_ignore files
         # parameter
@@ -377,7 +378,7 @@ class ParameterVisibilityCache:
             dict[TModelName, dict[TUnIgnoreChannelNo, dict[ParamsetKey, set[TParameterName]]]]
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
         self._ignore_custom_device_definition_models: Final[frozenset[TModelName]] = (
-            central.config.ignore_custom_device_definition_models
+            config_provider.config.ignore_custom_device_definition_models
         )
 
         # model, channel_no, paramset_key, set[parameter]

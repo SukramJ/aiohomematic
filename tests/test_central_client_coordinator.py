@@ -78,7 +78,13 @@ class TestClientCoordinatorBasics:
     def test_all_clients_active_false_when_no_clients(self) -> None:
         """All clients active should be False when no clients exist."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         assert coordinator.all_clients_active is False
 
@@ -89,7 +95,13 @@ class TestClientCoordinatorBasics:
             _FakeInterfaceConfig(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF),
         ]
 
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
         client = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         coordinator._clients["BidCos-RF"] = client  # type: ignore[assignment]
 
@@ -98,7 +110,13 @@ class TestClientCoordinatorBasics:
     def test_available_property(self) -> None:
         """Available property should return True when all clients are available."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF, available=True)
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF, available=True)
@@ -111,7 +129,13 @@ class TestClientCoordinatorBasics:
     def test_available_property_false_when_one_unavailable(self) -> None:
         """Available property should return False when any client is unavailable."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF, available=True)
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF, available=False)
@@ -124,7 +148,13 @@ class TestClientCoordinatorBasics:
     def test_client_coordinator_initialization(self) -> None:
         """ClientCoordinator should initialize with central instance."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         assert coordinator._central == central
         assert len(coordinator._clients) == 0
@@ -134,7 +164,13 @@ class TestClientCoordinatorBasics:
     def test_clients_property(self) -> None:
         """Clients property should return tuple of all clients."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
@@ -151,7 +187,13 @@ class TestClientCoordinatorBasics:
     def test_clients_started_property(self) -> None:
         """Clients started property should track start state."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         assert coordinator.clients_started is False
 
@@ -161,7 +203,13 @@ class TestClientCoordinatorBasics:
     def test_has_clients_property(self) -> None:
         """Has clients property should return True when clients exist."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         assert coordinator.has_clients is False
 
@@ -173,7 +221,13 @@ class TestClientCoordinatorBasics:
     def test_interface_ids_property(self) -> None:
         """Interface IDs property should return frozenset of all interface IDs."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
@@ -189,7 +243,13 @@ class TestClientCoordinatorBasics:
     def test_interfaces_property(self) -> None:
         """Interfaces property should return frozenset of all interfaces."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
@@ -205,7 +265,13 @@ class TestClientCoordinatorBasics:
     def test_is_alive_property(self) -> None:
         """Is alive property should return True when all callbacks are alive."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
@@ -218,7 +284,13 @@ class TestClientCoordinatorBasics:
     def test_poll_clients_property(self) -> None:
         """Poll clients property should return clients that need polling."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         client1.supports_push_updates = False  # This client needs polling
@@ -243,7 +315,13 @@ class TestClientCoordinatorGetClient:
         from aiohomematic.exceptions import AioHomematicException
 
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         with pytest.raises(AioHomematicException):
             coordinator.get_client(interface_id="NonExistent")
@@ -251,7 +329,13 @@ class TestClientCoordinatorGetClient:
     def test_get_client_success(self) -> None:
         """Get client should return the client when it exists."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         coordinator._clients["BidCos-RF"] = client  # type: ignore[assignment]
@@ -262,14 +346,26 @@ class TestClientCoordinatorGetClient:
     def test_has_client_false(self) -> None:
         """Has client should return False when client doesn't exist."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         assert coordinator.has_client(interface_id="NonExistent") is False
 
     def test_has_client_true(self) -> None:
         """Has client should return True when client exists."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         coordinator._clients["BidCos-RF"] = client  # type: ignore[assignment]
@@ -290,7 +386,13 @@ class TestClientCoordinatorLifecycle:
             patch.object(ClientCoordinator, "stop_clients", new=AsyncMock()) as mock_stop,
             patch.object(ClientCoordinator, "start_clients", new=AsyncMock(return_value=True)) as mock_start,
         ):
-            coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = ClientCoordinator(
+                central=central,
+                config_provider=central,
+                central_info=central,
+                coordinator_provider=central,
+                system_info_provider=central,
+            )  # type: ignore[arg-type]
             await coordinator.restart_clients()
 
             mock_stop.assert_called_once()
@@ -303,7 +405,13 @@ class TestClientCoordinatorLifecycle:
 
         # Mock _create_clients to return False
         with patch.object(ClientCoordinator, "_create_clients", new=AsyncMock(return_value=False)):
-            coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = ClientCoordinator(
+                central=central,
+                config_provider=central,
+                central_info=central,
+                coordinator_provider=central,
+                system_info_provider=central,
+            )  # type: ignore[arg-type]
             result = await coordinator.start_clients()
 
             assert result is False
@@ -322,7 +430,13 @@ class TestClientCoordinatorLifecycle:
             patch.object(ClientCoordinator, "_create_clients", new=AsyncMock(return_value=True)),
             patch.object(ClientCoordinator, "_init_clients", new=AsyncMock()) as mock_init,
         ):
-            coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = ClientCoordinator(
+                central=central,
+                config_provider=central,
+                central_info=central,
+                coordinator_provider=central,
+                system_info_provider=central,
+            )  # type: ignore[arg-type]
             result = await coordinator.start_clients()
 
             assert result is True
@@ -335,7 +449,13 @@ class TestClientCoordinatorLifecycle:
     async def test_stop_clients(self) -> None:
         """Stop clients should deinitialize and stop all clients."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
@@ -369,7 +489,13 @@ class TestClientCoordinatorPrimaryClient:
     def test_get_primary_client_none_when_no_clients(self) -> None:
         """Primary client should return None when no clients exist."""
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         primary = coordinator.primary_client
         assert primary is None
@@ -378,7 +504,13 @@ class TestClientCoordinatorPrimaryClient:
         """Primary client should return cached client if available."""
 
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         # Set a cached primary client
         cached_client = _FakeClient(
@@ -395,7 +527,13 @@ class TestClientCoordinatorPrimaryClient:
         from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES
 
         central = _FakeCentral()
-        coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = ClientCoordinator(
+            central=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
 
         # Add clients
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
@@ -427,7 +565,13 @@ class TestClientCoordinatorIntegration:
             patch.object(ClientCoordinator, "_create_clients", new=AsyncMock(return_value=True)),
             patch.object(ClientCoordinator, "_init_clients", new=AsyncMock()),
         ):
-            coordinator = ClientCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = ClientCoordinator(
+                central=central,
+                config_provider=central,
+                central_info=central,
+                coordinator_provider=central,
+                system_info_provider=central,
+            )  # type: ignore[arg-type]
 
             # Start clients
             result = await coordinator.start_clients()

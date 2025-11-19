@@ -132,17 +132,21 @@ class TestHubCoordinatorBasics:
     def test_hub_coordinator_initialization(self) -> None:
         """HubCoordinator should initialize with central instance."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
-        assert coordinator._central == central
         assert coordinator._hub is not None
+        assert coordinator._hub._central == central  # Central is stored in Hub
         assert len(coordinator._program_data_points) == 0
         assert len(coordinator._sysvar_data_points) == 0
 
     def test_program_data_points_property(self) -> None:
         """Program data points property should return all program data points."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         coordinator._program_data_points["123"] = program_dp  # type: ignore[assignment]
@@ -155,7 +159,9 @@ class TestHubCoordinatorBasics:
     def test_sysvar_data_points_property(self) -> None:
         """Sysvar data points property should return all sysvar data points."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
         coordinator._sysvar_data_points["123"] = sysvar_dp  # type: ignore[assignment]
@@ -171,7 +177,9 @@ class TestHubCoordinatorProgramOperations:
     def test_add_program_data_point(self) -> None:
         """Add program data point should register the program."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         coordinator.add_program_data_point(program_dp=program_dp)
@@ -184,7 +192,9 @@ class TestHubCoordinatorProgramOperations:
     async def test_execute_program_no_client(self) -> None:
         """Execute program should return False when no primary client."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         result = await coordinator.execute_program(pid="123")
         assert result is False
@@ -195,7 +205,9 @@ class TestHubCoordinatorProgramOperations:
         central = _FakeCentral()
         central._primary_client = _FakeClient()
 
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         result = await coordinator.execute_program(pid="123")
         assert result is True
@@ -204,7 +216,9 @@ class TestHubCoordinatorProgramOperations:
     async def test_fetch_program_data(self) -> None:
         """Fetch program data should call hub method."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         coordinator._hub = _FakeHub(central=central)
         coordinator._hub.fetch_program_data = AsyncMock()  # type: ignore[method-assign]
@@ -216,7 +230,9 @@ class TestHubCoordinatorProgramOperations:
     def test_get_program_data_point_by_legacy_name(self) -> None:
         """Get program data point should return program by legacy name."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         coordinator.add_program_data_point(program_dp=program_dp)
@@ -227,7 +243,9 @@ class TestHubCoordinatorProgramOperations:
     def test_get_program_data_point_by_pid(self) -> None:
         """Get program data point should return program by PID."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         coordinator.add_program_data_point(program_dp=program_dp)
@@ -238,7 +256,9 @@ class TestHubCoordinatorProgramOperations:
     def test_get_program_data_point_not_found(self) -> None:
         """Get program data point should return None when not found."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         retrieved = coordinator.get_program_data_point(pid="999")
         assert retrieved is None
@@ -246,7 +266,9 @@ class TestHubCoordinatorProgramOperations:
     def test_remove_program_data_point(self) -> None:
         """Remove program data point should unregister the program."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         program_dp.button.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
@@ -267,7 +289,9 @@ class TestHubCoordinatorProgramOperations:
     async def test_set_program_state_no_client(self) -> None:
         """Set program state should return False when no primary client."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         result = await coordinator.set_program_state(pid="123", state=True)
         assert result is False
@@ -278,7 +302,9 @@ class TestHubCoordinatorProgramOperations:
         central = _FakeCentral()
         central._primary_client = _FakeClient()
 
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         result = await coordinator.set_program_state(pid="123", state=True)
         assert result is True
@@ -290,7 +316,9 @@ class TestHubCoordinatorSysvarOperations:
     def test_add_sysvar_data_point(self) -> None:
         """Add sysvar data point should register the sysvar and subscribe to events."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
         coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
@@ -309,7 +337,9 @@ class TestHubCoordinatorSysvarOperations:
     async def test_fetch_sysvar_data(self) -> None:
         """Fetch sysvar data should call hub method."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         coordinator._hub = _FakeHub(central=central)
         coordinator._hub.fetch_sysvar_data = AsyncMock()  # type: ignore[method-assign]
@@ -322,7 +352,9 @@ class TestHubCoordinatorSysvarOperations:
     async def test_get_system_variable_no_client(self) -> None:
         """Get system variable should return None when no primary client."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         result = await coordinator.get_system_variable(legacy_name="test_var")
         assert result is None
@@ -333,7 +365,9 @@ class TestHubCoordinatorSysvarOperations:
         central = _FakeCentral()
         central._primary_client = _FakeClient()
 
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         result = await coordinator.get_system_variable(legacy_name="test_var")
         assert result == 42
@@ -341,7 +375,9 @@ class TestHubCoordinatorSysvarOperations:
     def test_get_sysvar_data_point_by_legacy_name(self) -> None:
         """Get sysvar data point should return sysvar by legacy name."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
         coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
@@ -352,7 +388,9 @@ class TestHubCoordinatorSysvarOperations:
     def test_get_sysvar_data_point_by_vid(self) -> None:
         """Get sysvar data point should return sysvar by VID."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
         coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
@@ -363,7 +401,9 @@ class TestHubCoordinatorSysvarOperations:
     def test_get_sysvar_data_point_not_found(self) -> None:
         """Get sysvar data point should return None when not found."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         retrieved = coordinator.get_sysvar_data_point(vid="999")
         assert retrieved is None
@@ -371,7 +411,9 @@ class TestHubCoordinatorSysvarOperations:
     def test_remove_sysvar_data_point(self) -> None:
         """Remove sysvar data point should unregister the sysvar and emit removed event."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
         sysvar_dp.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
@@ -391,7 +433,9 @@ class TestHubCoordinatorSysvarOperations:
     async def test_set_system_variable_not_found(self) -> None:
         """Set system variable should log error when sysvar not found."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         # Should not raise
         await coordinator.set_system_variable(legacy_name="nonexistent", value=100)
@@ -400,7 +444,9 @@ class TestHubCoordinatorSysvarOperations:
     async def test_set_system_variable_success(self) -> None:
         """Set system variable should call data point method."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
         sysvar_dp.send_variable = AsyncMock()  # type: ignore[method-assign]
@@ -418,7 +464,9 @@ class TestHubCoordinatorGetHubDataPoints:
     def test_get_hub_data_points_filter_by_category(self) -> None:
         """Get hub data points should filter by category."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         sysvar_dp = _FakeSysvarDataPoint(vid="456", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -433,7 +481,9 @@ class TestHubCoordinatorGetHubDataPoints:
     def test_get_hub_data_points_filter_by_registered(self) -> None:
         """Get hub data points should filter by registration status."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         program_dp.button.is_registered = False
@@ -454,7 +504,9 @@ class TestHubCoordinatorGetHubDataPoints:
     def test_get_hub_data_points_no_filter(self) -> None:
         """Get hub data points should return all data points when no filter."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
         sysvar_dp = _FakeSysvarDataPoint(vid="456", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -473,7 +525,9 @@ class TestHubCoordinatorInitHub:
     async def test_init_hub(self) -> None:
         """Init hub should fetch program and sysvar data."""
         central = _FakeCentral()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         coordinator._hub = _FakeHub(central=central)
         coordinator._hub.fetch_program_data = AsyncMock()  # type: ignore[method-assign]
@@ -493,7 +547,9 @@ class TestHubCoordinatorIntegration:
         """Test full program lifecycle (add, execute, remove)."""
         central = _FakeCentral()
         central._primary_client = _FakeClient()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         # Add program
         program_dp = _FakeProgramDpType(pid="123")
@@ -519,7 +575,9 @@ class TestHubCoordinatorIntegration:
         """Test full sysvar lifecycle (add, get, set, remove)."""
         central = _FakeCentral()
         central._primary_client = _FakeClient()
-        coordinator = HubCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = HubCoordinator(
+            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+        )  # type: ignore[arg-type]
 
         # Add sysvar
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)

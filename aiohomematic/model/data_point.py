@@ -379,8 +379,13 @@ class CallbackDataPoint(ABC, LogContextMixin):
         for custom_id in self._registered_custom_ids:
             # Add custom_id to kwargs for this specific event
             custom_kwargs = {**event_kwargs, KWARGS_ARG_CUSTOM_ID: custom_id}
-            self._central.looper.create_task(
-                target=lambda cid=custom_id, ckw=custom_kwargs: self._central.event_bus.publish(
+
+            async def _publish(
+                cid: str,
+                ckw: dict[str, Any],
+            ) -> None:  # noqa: E731
+                """Publish callback event with custom id."""
+                await self._central.event_bus.publish(
                     event=hmcu.event_bus.DataPointUpdatedCallbackEvent(
                         timestamp=datetime.now(),
                         unique_id=self._unique_id,
@@ -388,6 +393,10 @@ class CallbackDataPoint(ABC, LogContextMixin):
                         kwargs=ckw,
                     )
                 )
+
+            self._central.looper.create_task(
+                target=lambda cid=custom_id, ckw=custom_kwargs: _publish(cid, ckw),  # type: ignore[misc]
+                name=f"emit-callback-event-{self._unique_id}-{custom_id}",
             )
 
     @loop_check
@@ -400,7 +409,8 @@ class CallbackDataPoint(ABC, LogContextMixin):
                     timestamp=datetime.now(),
                     unique_id=self._unique_id,
                 )
-            )
+            ),
+            name=f"emit-device-removed-{self._unique_id}",
         )
 
     async def finalize_init(self) -> None:
@@ -420,9 +430,6 @@ class CallbackDataPoint(ABC, LogContextMixin):
                     )
                 )
             self._custom_id = custom_id
-
-        if not callable(cb):
-            return None
 
         # Track registration for emit method
         self._registered_custom_ids.add(custom_id)
@@ -460,8 +467,6 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     def register_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> UnregisterCallback:
         """Register the device removed callback."""
-        if not callable(cb):
-            return None
 
         # Create adapter that filters for this data point's events
         def event_handler(event: hmcu.event_bus.DeviceRemovedEvent) -> None:
@@ -507,6 +512,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
     def _set_temporary_refreshed_at(self, *, refreshed_at: datetime) -> None:
         """Set temporary_refreshed_at to current datetime."""
         self._temporary_refreshed_at = refreshed_at
+
+    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
+        """Unregister data_point updated callback (placeholder for compatibility)."""
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):

@@ -589,7 +589,8 @@ class Device(LogContextMixin, PayloadMixin):
                     timestamp=datetime.now(),
                     device_address=self._address,
                 )
-            )
+            ),
+            name=f"device-updated-{self._address}",
         )
 
     @inspector
@@ -761,13 +762,12 @@ class Device(LogContextMixin, PayloadMixin):
                         timestamp=datetime.now(),
                         device_address=self._address,
                     )
-                )
+                ),
+                name=f"firmware-updated-{self._address}",
             )
 
     def register_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> UnregisterCallback:
         """Register update callback."""
-        if not callable(cb):
-            return None
 
         # Create adapter that filters for this device's events
         def event_handler(event: hmcu.event_bus.DeviceUpdatedEvent) -> None:
@@ -781,8 +781,6 @@ class Device(LogContextMixin, PayloadMixin):
 
     def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
         """Register firmware update callback."""
-        if not callable(cb):
-            return None
 
         # Create adapter that filters for this device's events
         def event_handler(event: hmcu.event_bus.FirmwareUpdatedEvent) -> None:
@@ -812,6 +810,12 @@ class Device(LogContextMixin, PayloadMixin):
             self._forced_availability = forced_availability
             for dp in self.generic_data_points:
                 dp.emit_data_point_updated_event()
+
+    def unregister_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> None:
+        """Unregister update callback (placeholder for compatibility)."""
+
+    def unregister_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> None:
+        """Unregister firmware update callback (placeholder for compatibility)."""
 
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
@@ -1203,13 +1207,15 @@ class Channel(LogContextMixin, PayloadMixin):
     def emit_link_peer_changed_event(self) -> None:
         """Do what is needed when the link peer has been changed for the device."""
         # Publish to EventBus asynchronously
+        # pylint: disable=protected-access
         self._device._central.looper.create_task(
             target=lambda: self._device._central.event_bus.publish(
                 event=hmcu.event_bus.LinkPeerChangedEvent(
                     timestamp=datetime.now(),
                     channel_address=self._address,
                 )
-            )
+            ),
+            name=f"link-peer-changed-{self._address}",
         )
 
     async def finalize_init(self) -> None:
@@ -1364,15 +1370,13 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def register_link_peer_changed_callback(self, *, cb: LinkPeerChangedCallback) -> UnregisterCallback:
         """Register the link peer changed callback."""
-        if not callable(cb):
-            return None
 
         # Create adapter that filters for this channel's events
         def event_handler(event: hmcu.event_bus.LinkPeerChangedEvent) -> None:
             if event.channel_address == self._address:
                 cb()
 
-        return self._device._central.event_bus.subscribe(
+        return self._device._central.event_bus.subscribe(  # pylint: disable=protected-access
             event_type=hmcu.event_bus.LinkPeerChangedEvent,
             handler=event_handler,
         )

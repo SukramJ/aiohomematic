@@ -29,6 +29,9 @@ class CentralStub:
         """Initialize the stub with a name and event collection storage."""
         self.name = name
         self.events: list[dict[str, Any]] = []
+        # Properties for protocol compatibility
+        self.available = True
+        self.model = "Test"
 
     # Signature-compatible enough for tests
     def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[str, Any]) -> None:  # type: ignore[override]
@@ -108,7 +111,7 @@ class TestPingPongCache:
     def test_pingpongcache_cleanup_by_ttl(self) -> None:
         """Confirm TTL-based cleanup removes stale timestamps from both store."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifTTL", allowed_delta=1, ttl=1)
+        ppc = PingPongCache(event_emitter=central, central_info=central, interface_id="ifTTL", allowed_delta=1, ttl=1)
 
         with freeze_time("2020-01-01 12:00:00"):
             ts_old = str(datetime.now() - timedelta(seconds=5))
@@ -138,7 +141,7 @@ class TestPingPongCache:
     def test_pingpongcache_clear_resets_state(self) -> None:
         """Verify that clear() empties counts and prevents spurious events immediately after."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifC", allowed_delta=1, ttl=60)
+        ppc = PingPongCache(event_emitter=central, central_info=central, interface_id="ifC", allowed_delta=1, ttl=60)
 
         # Create some state and cause a high pending condition to ensure internal flags may be set
         ppc.handle_send_ping(ping_token=str(datetime.now()))
@@ -157,7 +160,7 @@ class TestPingPongCache:
     def test_pingpongcache_emits_single_reset_event_on_drop_from_high(self) -> None:
         """Ensure exactly one reset event (mismatch=0) is sent when dropping from high to low pending state."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifR", allowed_delta=1, ttl=60)
+        ppc = PingPongCache(event_emitter=central, central_info=central, interface_id="ifR", allowed_delta=1, ttl=60)
 
         # Cause high pending (count becomes 2)
         ts1 = str(datetime.now())
@@ -188,7 +191,7 @@ class TestPingPongCache:
     def test_pingpongcache_retry_coalesces_single_task(self) -> None:
         """Ensure multiple schedules for the same token are coalesced into a single task creation."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifCoal", allowed_delta=1, ttl=60)
+        ppc = PingPongCache(event_emitter=central, central_info=central, interface_id="ifCoal", allowed_delta=1, ttl=60)
 
         # Inject a tracking looper
         tracker = TrackingLooper()
@@ -206,7 +209,7 @@ class TestPingPongCache:
     async def test_pingpongcache_retry_reconciles_with_looper(self) -> None:
         """With a looper, the retry should reconcile an unknown pong with a late pending ping and emit events."""
         central = CentralWithLooperStub()
-        ppc = PingPongCache(central=central, interface_id="ifLoop", allowed_delta=5, ttl=60)
+        ppc = PingPongCache(event_emitter=central, central_info=central, interface_id="ifLoop", allowed_delta=5, ttl=60)
 
         token = "tok-retry"
         # Simulate unknown pong state without scheduling the built-in 15s task
@@ -239,7 +242,9 @@ class TestPingPongCache:
     async def test_pingpongcache_retry_skips_without_looper(self) -> None:
         """When no looper is available, scheduling a retry should be skipped and token reschedulable."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifNoLoop", allowed_delta=1, ttl=60)
+        ppc = PingPongCache(
+            event_emitter=central, central_info=central, interface_id="ifNoLoop", allowed_delta=1, ttl=60
+        )
 
         # Ensure token not present initially
         token = "tok-skip"
@@ -257,7 +262,9 @@ class TestPingPongCache:
     ) -> None:
         """Verify PingPongCache counters, threshold flips, warnings, and event payloads."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifX", allowed_delta=allowed_delta, ttl=60)
+        ppc = PingPongCache(
+            event_emitter=central, central_info=central, interface_id="ifX", allowed_delta=allowed_delta, ttl=60
+        )
 
         # Initially low and zero counts
         assert ppc.allowed_delta == allowed_delta
@@ -301,7 +308,7 @@ class TestPingPongCache:
     def test_pingpongcache_throttles_low_state_pending_events(self) -> None:
         """Confirm that in low state, PENDING_PONG events are emitted only on even counts (2, 4, ...)."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifT", allowed_delta=10, ttl=60)
+        ppc = PingPongCache(event_emitter=central, central_info=central, interface_id="ifT", allowed_delta=10, ttl=60)
 
         # Stay in low state and send 5 pings
         for i in range(1, 6):
@@ -319,7 +326,7 @@ class TestPingPongCache:
     ) -> None:
         """Ensure high unknown pongs trigger a warning and an interface event with correct payload."""
         central = CentralStub()
-        ppc = PingPongCache(central=central, interface_id="ifU", allowed_delta=1, ttl=60)
+        ppc = PingPongCache(event_emitter=central, central_info=central, interface_id="ifU", allowed_delta=1, ttl=60)
 
         # Add two unknown pongs to exceed allowed_delta
         with caplog.at_level("WARNING"):

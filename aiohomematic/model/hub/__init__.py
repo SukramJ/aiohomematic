@@ -79,7 +79,7 @@ import asyncio
 from collections.abc import Collection, Mapping, Set as AbstractSet
 from datetime import datetime
 import logging
-from typing import Final, NamedTuple
+from typing import Any, Final, NamedTuple
 
 from aiohomematic import central as hmcu
 from aiohomematic.const import (
@@ -100,6 +100,13 @@ from aiohomematic.model.hub.select import SysvarDpSelect
 from aiohomematic.model.hub.sensor import SysvarDpSensor
 from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from aiohomematic.model.hub.text import SysvarDpText
+from aiohomematic.model.interfaces import (
+    CentralInfo,
+    ConfigProvider,
+    EventEmitter,
+    HubDataPointManager,
+    PrimaryClientProvider,
+)
 
 __all__ = [
     "GenericHubDataPoint",
@@ -139,16 +146,39 @@ class Hub:
     __slots__ = (
         "_sema_fetch_sysvars",
         "_sema_fetch_programs",
-        "_central",
-        "_config",
+        "_central",  # Only for data point factory functions
+        "_config_provider",
+        "_central_info",
+        "_hub_data_point_manager",
+        "_primary_client_provider",
+        "_event_emitter",
     )
 
-    def __init__(self, *, central: hmcu.CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        central: hmcu.CentralUnit,  # Required for data point factory functions
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        hub_data_point_manager: HubDataPointManager,
+        primary_client_provider: PrimaryClientProvider,
+        event_emitter: EventEmitter,
+    ) -> None:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
         self._sema_fetch_programs: Final = asyncio.Semaphore()
+        # Keep central reference only for data point factory functions
         self._central: Final = central
-        self._config: Final = central.config
+        self._config_provider: Final = config_provider
+        self._central_info: Final = central_info
+        self._hub_data_point_manager: Final = hub_data_point_manager
+        self._primary_client_provider: Final = primary_client_provider
+        self._event_emitter: Final = event_emitter
+
+    @property
+    def _config(self) -> Any:
+        """Return configuration (for backward compatibility in fetch methods)."""
+        return self._config_provider.config
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -157,10 +187,10 @@ class Hub:
             _LOGGER.debug(
                 "FETCH_PROGRAM_DATA: %s fetching of programs for %s",
                 "Scheduled" if scheduled else "Manual",
-                self._central.name,
+                self._central_info.name,
             )
             async with self._sema_fetch_programs:
-                if self._central.available:
+                if self._central_info.available:
                     await self._update_program_data_points()
 
     @inspector(re_raise=False)
@@ -170,10 +200,10 @@ class Hub:
             _LOGGER.debug(
                 "FETCH_SYSVAR_DATA: %s fetching of system variables for %s",
                 "Scheduled" if scheduled else "Manual",
-                self._central.name,
+                self._central_info.name,
             )
             async with self._sema_fetch_sysvars:
-                if self._central.available:
+                if self._central_info.available:
                     await self._update_sysvar_data_points()
 
     def _create_program_dp(self, *, data: ProgramData) -> ProgramDpType:
@@ -183,13 +213,13 @@ class Hub:
             button=ProgramDpButton(central=self._central, data=data),
             switch=ProgramDpSwitch(central=self._central, data=data),
         )
-        self._central.add_program_data_point(program_dp=program_dp)
+        self._hub_data_point_manager.add_program_data_point(program_dp=program_dp)
         return program_dp
 
     def _create_system_variable(self, *, data: SystemVariableData) -> GenericSysvarDataPoint:
         """Create system variable as data_point."""
         sysvar_dp = self._create_sysvar_data_point(data=data)
-        self._central.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
+        self._hub_data_point_manager.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
         return sysvar_dp
 
     def _create_sysvar_data_point(self, *, data: SystemVariableData) -> GenericSysvarDataPoint:
@@ -212,13 +242,15 @@ class Hub:
 
     def _identify_missing_program_ids(self, *, programs: tuple[ProgramData, ...]) -> set[str]:
         """Identify missing programs."""
-        return {dp.pid for dp in self._central.program_data_points if dp.pid not in [x.pid for x in programs]}
+        return {
+            dp.pid for dp in self._hub_data_point_manager.program_data_points if dp.pid not in [x.pid for x in programs]
+        }
 
     def _identify_missing_variable_ids(self, *, variables: tuple[SystemVariableData, ...]) -> set[str]:
         """Identify missing variables."""
         variable_ids: dict[str, bool] = {x.vid: x.extended_sysvar for x in variables}
         missing_variable_ids: list[str] = []
-        for dp in self._central.sysvar_data_points:
+        for dp in self._hub_data_point_manager.sysvar_data_points:
             if dp.data_type == SysvarType.STRING:
                 continue
             if (vid := dp.vid) is not None and (
@@ -230,25 +262,25 @@ class Hub:
     def _remove_program_data_point(self, *, ids: set[str]) -> None:
         """Remove sysvar data_point from hub."""
         for pid in ids:
-            self._central.remove_program_button(pid=pid)
+            self._hub_data_point_manager.remove_program_button(pid=pid)
 
     def _remove_sysvar_data_point(self, *, del_data_point_ids: set[str]) -> None:
         """Remove sysvar data_point from hub."""
         for vid in del_data_point_ids:
-            self._central.remove_sysvar_data_point(vid=vid)
+            self._hub_data_point_manager.remove_sysvar_data_point(vid=vid)
 
     async def _update_program_data_points(self) -> None:
         """Retrieve all program data and update program values."""
-        if not (client := self._central.primary_client):
+        if not (client := self._primary_client_provider.primary_client):
             return
         if (programs := await client.get_all_programs(markers=self._config.program_markers)) is None:
-            _LOGGER.debug("UPDATE_PROGRAM_DATA_POINTS: Unable to retrieve programs for %s", self._central.name)
+            _LOGGER.debug("UPDATE_PROGRAM_DATA_POINTS: Unable to retrieve programs for %s", self._central_info.name)
             return
 
         _LOGGER.debug(
             "UPDATE_PROGRAM_DATA_POINTS: %i programs received for %s",
             len(programs),
-            self._central.name,
+            self._central_info.name,
         )
 
         if missing_program_ids := self._identify_missing_program_ids(programs=programs):
@@ -257,7 +289,7 @@ class Hub:
         new_programs: list[GenericProgramDataPoint] = []
 
         for program_data in programs:
-            if program_dp := self._central.get_program_data_point(pid=program_data.pid):
+            if program_dp := self._hub_data_point_manager.get_program_data_point(pid=program_data.pid):
                 program_dp.button.update_data(data=program_data)
                 program_dp.switch.update_data(data=program_data)
             else:
@@ -266,28 +298,28 @@ class Hub:
                 new_programs.append(program_dp.switch)
 
         if new_programs:
-            self._central.emit_backend_system_callback(
+            self._event_emitter.emit_backend_system_callback(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_programs),
             )
 
     async def _update_sysvar_data_points(self) -> None:
         """Retrieve all variable data and update hmvariable values."""
-        if not (client := self._central.primary_client):
+        if not (client := self._primary_client_provider.primary_client):
             return
         if (variables := await client.get_all_system_variables(markers=self._config.sysvar_markers)) is None:
-            _LOGGER.debug("UPDATE_SYSVAR_DATA_POINTS: Unable to retrieve sysvars for %s", self._central.name)
+            _LOGGER.debug("UPDATE_SYSVAR_DATA_POINTS: Unable to retrieve sysvars for %s", self._central_info.name)
             return
 
         _LOGGER.debug(
             "UPDATE_SYSVAR_DATA_POINTS: %i sysvars received for %s",
             len(variables),
-            self._central.name,
+            self._central_info.name,
         )
 
         # remove some variables in case of CCU backend
         # - OldValue(s) are for internal calculations
-        if self._central.model is Backend.CCU:
+        if self._central_info.model is Backend.CCU:
             variables = _clean_variables(variables=variables)
 
         if missing_variable_ids := self._identify_missing_variable_ids(variables=variables):
@@ -296,13 +328,13 @@ class Hub:
         new_sysvars: list[GenericSysvarDataPoint] = []
 
         for sysvar in variables:
-            if dp := self._central.get_sysvar_data_point(vid=sysvar.vid):
+            if dp := self._hub_data_point_manager.get_sysvar_data_point(vid=sysvar.vid):
                 dp.write_value(value=sysvar.value, write_at=datetime.now())
             else:
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 
         if new_sysvars:
-            self._central.emit_backend_system_callback(
+            self._event_emitter.emit_backend_system_callback(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )

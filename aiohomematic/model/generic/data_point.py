@@ -75,7 +75,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             Parameter.STICKY_UN_REACH,
         ):
             self._device.emit_device_updated_callback()
-            self._central.emit_homematic_callback(
+            self._event_emitter.emit_homematic_callback(
                 event_type=EventType.DEVICE_AVAILABILITY,
                 event_data=self.get_event_data(value=new_value),
             )
@@ -145,7 +145,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         """Generate the usage for the data_point."""
         if self._forced_usage:
             return self._forced_usage
-        if self._central.parameter_visibility.parameter_is_hidden(
+        if self._visibility_provider.parameter_is_hidden(
             channel=self._channel,
             paramset_key=self._paramset_key,
             parameter=self._parameter,

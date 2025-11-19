@@ -150,7 +150,9 @@ class Client(ABC, LogContextMixin):
         self._is_initialized: bool = False
         self._is_linkable: bool = client_config.interface in LINKABLE_INTERFACES
         self._ping_pong_cache: Final = PingPongCache(
-            central=client_config.central, interface_id=client_config.interface_id
+            event_emitter=client_config.central,
+            central_info=client_config.central,
+            interface_id=client_config.interface_id,
         )
         self._proxy: BaseRpcProxy
         self._proxy_read: BaseRpcProxy

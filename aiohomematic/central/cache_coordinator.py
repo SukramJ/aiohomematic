@@ -16,9 +16,18 @@ The CacheCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic.const import DataOperationResult, Interface
+from aiohomematic.model.interfaces import (
+    CentralInfo,
+    ClientProvider,
+    ConfigProvider,
+    DataPointProvider,
+    DeviceProvider,
+    PrimaryClientProvider,
+    TaskScheduler,
+)
 from aiohomematic.store import (
     CentralDataCache,
     DeviceDescriptionCache,
@@ -29,7 +38,6 @@ from aiohomematic.store import (
 )
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralUnit
     from aiohomematic.model.device import Device
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -39,7 +47,7 @@ class CacheCoordinator:
     """Coordinator for all cache operations in the central unit."""
 
     __slots__ = (
-        "_central",
+        "_central_info",
         "_data_cache",
         "_device_descriptions",
         "_device_details",
@@ -48,27 +56,61 @@ class CacheCoordinator:
         "_recorder",
     )
 
-    def __init__(self, *, central: CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        central_info: CentralInfo,
+        device_provider: DeviceProvider,
+        client_provider: ClientProvider,
+        data_point_provider: DataPointProvider,
+        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProvider,
+        task_scheduler: TaskScheduler,
+        session_recorder_active: bool,
+    ) -> None:
         """
         Initialize the cache coordinator.
 
         Args:
         ----
-            central: The CentralUnit instance
+            central_info: Provider for central system information
+            device_provider: Provider for device access
+            client_provider: Provider for client access
+            data_point_provider: Provider for data point access
+            primary_client_provider: Provider for primary client access
+            config_provider: Provider for configuration access
+            task_scheduler: Provider for task scheduling
+            session_recorder_active: Whether session recording should be active
 
         """
-        self._central: Final = central
+        self._central_info: Final = central_info
 
-        # Initialize all caches
-        self._data_cache: Final = CentralDataCache(central=central)
-        self._device_details: Final = DeviceDetailsCache(central=central)
-        self._device_descriptions: Final = DeviceDescriptionCache(central=central)
-        self._paramset_descriptions: Final = ParamsetDescriptionCache(central=central)
-        self._parameter_visibility: Final = ParameterVisibilityCache(central=central)
+        # Initialize all caches with protocol interfaces
+        self._data_cache: Final = CentralDataCache(
+            device_provider=device_provider,
+            client_provider=client_provider,
+            data_point_provider=data_point_provider,
+            central_info=central_info,
+        )
+        self._device_details: Final = DeviceDetailsCache(
+            central_info=central_info,
+            primary_client_provider=primary_client_provider,
+        )
+        # Cast central to CentralUnit for cache classes that need it
+        central = cast(Any, central_info)
+        self._device_descriptions: Final = DeviceDescriptionCache(
+            central=central,
+        )
+        self._paramset_descriptions: Final = ParamsetDescriptionCache(
+            central=central,
+        )
+        self._parameter_visibility: Final = ParameterVisibilityCache(
+            config_provider=config_provider,
+        )
         self._recorder: Final = SessionRecorder(
             central=central,
             ttl_seconds=600,
-            active=central.config.session_recorder_start,
+            active=session_recorder_active,
         )
 
     @property
@@ -103,7 +145,7 @@ class CacheCoordinator:
 
     async def clear_all(self) -> None:
         """Clear all caches and remove stored files."""
-        _LOGGER.debug("CLEAR_ALL: Clearing all caches for %s", self._central.name)
+        _LOGGER.debug("CLEAR_ALL: Clearing all caches for %s", self._central_info.name)
         await self._device_descriptions.clear()
         await self._paramset_descriptions.clear()
         await self._recorder.clear()
@@ -119,7 +161,7 @@ class CacheCoordinator:
             True if loading succeeded, False if any cache failed to load
 
         """
-        _LOGGER.debug("LOAD_ALL: Loading caches for %s", self._central.name)
+        _LOGGER.debug("LOAD_ALL: Loading caches for %s", self._central_info.name)
 
         if DataOperationResult.LOAD_FAIL in (
             await self._device_descriptions.load(),
@@ -127,7 +169,7 @@ class CacheCoordinator:
         ):
             _LOGGER.warning(  # i18n-log: ignore
                 "LOAD_ALL failed: Unable to load caches for %s. Clearing files",
-                self._central.name,
+                self._central_info.name,
             )
             await self.clear_all()
             return False
@@ -181,7 +223,7 @@ class CacheCoordinator:
         """
         _LOGGER.debug(
             "SAVE_ALL: Saving caches for %s (device_desc=%s, paramset_desc=%s)",
-            self._central.name,
+            self._central_info.name,
             save_device_descriptions,
             save_paramset_descriptions,
         )

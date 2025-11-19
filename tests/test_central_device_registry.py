@@ -65,7 +65,7 @@ class TestDeviceRegistryBasics:
     def test_add_device(self) -> None:
         """Add a device to the registry."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -77,7 +77,7 @@ class TestDeviceRegistryBasics:
     def test_add_device_overwrites_existing(self) -> None:
         """Adding a device with same address should overwrite the existing one."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000001")
@@ -92,7 +92,7 @@ class TestDeviceRegistryBasics:
     def test_add_multiple_devices(self) -> None:
         """Add multiple devices to the registry."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -108,7 +108,7 @@ class TestDeviceRegistryBasics:
     def test_clear(self) -> None:
         """Clear all devices from the registry."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         # Add multiple devices
         for i in range(5):
@@ -127,7 +127,7 @@ class TestDeviceRegistryBasics:
     def test_device_count_property(self) -> None:
         """Device count property should return correct count."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         assert registry.device_count == 0
 
@@ -146,7 +146,7 @@ class TestDeviceRegistryBasics:
     def test_devices_property(self) -> None:
         """Devices property should return all devices as a tuple."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -163,7 +163,7 @@ class TestDeviceRegistryBasics:
     def test_devices_property_returns_new_tuple(self) -> None:
         """Devices property should return a new tuple each time."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -178,7 +178,7 @@ class TestDeviceRegistryBasics:
     def test_initialization(self) -> None:
         """DeviceRegistry should initialize with empty device collection."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         assert registry.device_count == 0
         assert registry.devices == ()
@@ -191,7 +191,7 @@ class TestDeviceRegistryGetDevice:
     def test_get_device_after_removal(self) -> None:
         """Get device after it's been removed should return None."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -204,7 +204,7 @@ class TestDeviceRegistryGetDevice:
     def test_get_device_not_found(self) -> None:
         """Get device that doesn't exist should return None."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -215,7 +215,7 @@ class TestDeviceRegistryGetDevice:
     def test_get_device_with_channel_address(self) -> None:
         """Get device using channel address (should extract device part)."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -227,7 +227,7 @@ class TestDeviceRegistryGetDevice:
     def test_get_device_with_device_address(self) -> None:
         """Get device using device address."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -242,7 +242,7 @@ class TestDeviceRegistryGetChannel:
     def test_get_channel_device_not_found(self) -> None:
         """Get channel when device doesn't exist should return None."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         retrieved = registry.get_channel(channel_address="VCU9999999:1")
         assert retrieved is None
@@ -250,7 +250,7 @@ class TestDeviceRegistryGetChannel:
     def test_get_channel_multiple_devices(self) -> None:
         """Get channel from correct device when multiple devices exist."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         channel1 = _FakeChannel(address="VCU0000001:1")
         channel2 = _FakeChannel(address="VCU0000002:1")
@@ -276,7 +276,7 @@ class TestDeviceRegistryGetChannel:
     def test_get_channel_not_found(self) -> None:
         """Get channel that doesn't exist on device should return None."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001", channels={})
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -287,7 +287,7 @@ class TestDeviceRegistryGetChannel:
     def test_get_channel_success(self) -> None:
         """Get channel from device."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         channel = _FakeChannel(address="VCU0000001:1")
         device = _FakeDevice(
@@ -306,7 +306,7 @@ class TestDeviceRegistryHasDevice:
     def test_has_device_after_add_and_remove(self) -> None:
         """Has device should reflect add and remove operations."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
 
@@ -324,14 +324,14 @@ class TestDeviceRegistryHasDevice:
     def test_has_device_false(self) -> None:
         """Has device should return False for non-existing device."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         assert registry.has_device(address="VCU9999999") is False
 
     def test_has_device_true(self) -> None:
         """Has device should return True for existing device."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -345,7 +345,7 @@ class TestDeviceRegistryRemoveDevice:
     def test_remove_device_leaves_others(self) -> None:
         """Remove device should only remove specified device."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -365,7 +365,7 @@ class TestDeviceRegistryRemoveDevice:
     def test_remove_device_multiple_times(self) -> None:
         """Remove same device multiple times should not raise error."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -379,7 +379,7 @@ class TestDeviceRegistryRemoveDevice:
     def test_remove_device_not_found(self) -> None:
         """Remove device that doesn't exist should not raise error."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         # Should not raise
         registry.remove_device(device_address="VCU9999999")
@@ -389,7 +389,7 @@ class TestDeviceRegistryRemoveDevice:
     def test_remove_device_success(self) -> None:
         """Remove device should remove the device from registry."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -408,7 +408,7 @@ class TestDeviceRegistryGetDeviceAddresses:
     def test_get_device_addresses_empty(self) -> None:
         """Get device addresses should return empty frozenset for empty registry."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         addresses = registry.get_device_addresses()
         assert isinstance(addresses, frozenset)
@@ -417,7 +417,7 @@ class TestDeviceRegistryGetDeviceAddresses:
     def test_get_device_addresses_immutable(self) -> None:
         """Get device addresses should return frozenset (immutable)."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -428,7 +428,7 @@ class TestDeviceRegistryGetDeviceAddresses:
     def test_get_device_addresses_multiple(self) -> None:
         """Get device addresses should return all device addresses."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -447,7 +447,7 @@ class TestDeviceRegistryGetDeviceAddresses:
     def test_get_device_addresses_single(self) -> None:
         """Get device addresses should return all addresses."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         registry.add_device(device=device)  # type: ignore[arg-type]
@@ -463,7 +463,7 @@ class TestDeviceRegistryIdentifyChannel:
     def test_identify_channel_empty_registry(self) -> None:
         """Identify channel should return None for empty registry."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         identified = registry.identify_channel(text="VCU0000001:1")
         assert identified is None
@@ -471,7 +471,7 @@ class TestDeviceRegistryIdentifyChannel:
     def test_identify_channel_multiple_devices(self) -> None:
         """Identify channel should work with multiple devices."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         channel1 = _FakeChannel(address="VCU0000001:1")
         channel2 = _FakeChannel(address="VCU0000002:1")
@@ -494,7 +494,7 @@ class TestDeviceRegistryIdentifyChannel:
     def test_identify_channel_not_found(self) -> None:
         """Identify channel should return None when no channel matches."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         channel = _FakeChannel(address="VCU0000001:1")
         device = _FakeDevice(
@@ -509,7 +509,7 @@ class TestDeviceRegistryIdentifyChannel:
     def test_identify_channel_success(self) -> None:
         """Identify channel should find channel in text."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         channel = _FakeChannel(address="VCU0000001:1")
         device = _FakeDevice(
@@ -539,7 +539,7 @@ class TestDeviceRegistryVirtualRemotes:
 
         central.clients = [client1, client2, client3, client4]  # type: ignore[list-item]
 
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         remotes = registry.get_virtual_remotes()
         assert len(remotes) == 3
@@ -552,7 +552,7 @@ class TestDeviceRegistryVirtualRemotes:
         central = _FakeCentral()
         central.clients = []
 
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         remotes = registry.get_virtual_remotes()
         assert isinstance(remotes, tuple)
@@ -565,7 +565,7 @@ class TestDeviceRegistryVirtualRemotes:
         client2 = _FakeClient(virtual_remote=None)
         central.clients = [client1, client2]  # type: ignore[list-item]
 
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         remotes = registry.get_virtual_remotes()
         assert isinstance(remotes, tuple)
@@ -579,7 +579,7 @@ class TestDeviceRegistryVirtualRemotes:
         client2 = _FakeClient(virtual_remote=None)
         central.clients = [client1, client2]  # type: ignore[list-item]
 
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         remotes = registry.get_virtual_remotes()
         assert len(remotes) == 1
@@ -592,7 +592,7 @@ class TestDeviceRegistryIntegration:
     def test_concurrent_operations(self) -> None:
         """Test that concurrent operations work correctly."""
         central = _FakeCentral()
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         # Add multiple devices
         for i in range(10):
@@ -612,7 +612,7 @@ class TestDeviceRegistryIntegration:
     def test_full_lifecycle(self) -> None:
         """Test full lifecycle of device registry operations."""
         central = _FakeCentral(name="integration_test")
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         # Start empty
         assert registry.device_count == 0
@@ -670,7 +670,7 @@ class TestDeviceRegistryIntegration:
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
 
-        registry = DeviceRegistry(central=central)  # type: ignore[arg-type]
+        registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
         registry.add_device(device=device1)  # type: ignore[arg-type]
         registry.add_device(device=device2)  # type: ignore[arg-type]
 

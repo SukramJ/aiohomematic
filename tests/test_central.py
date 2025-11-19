@@ -1210,10 +1210,10 @@ class TestCentralEventHandling:
         central._event_coordinator = event_coordinator  # type: ignore[attr-defined]
         central._looper = mock_looper  # type: ignore[attr-defined]
 
-        # Mock has_client on event_coordinator's central reference
-        mock_central_ref = MagicMock()
-        mock_central_ref.has_client = lambda interface_id: True
-        event_coordinator._central = mock_central_ref  # type: ignore[attr-defined]
+        # Mock client_provider for event_coordinator's dependency injection
+        mock_client_provider = MagicMock()
+        mock_client_provider.has_client = lambda interface_id: True
+        event_coordinator._client_provider = mock_client_provider  # type: ignore[attr-defined]
 
         # Exercise the path; should complete without exceptions
         await hmcu.CentralUnit.data_point_event(  # call unbound to avoid missing bound attributes
@@ -1282,7 +1282,7 @@ class TestCentralDeviceCreation:
         from aiohomematic.central.device_registry import DeviceRegistry
 
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
-        central._device_registry = DeviceRegistry(central=central)
+        central._device_registry = DeviceRegistry(central_info=central, client_provider=central)
         central._clients = {"if1": object()}  # type: ignore[attr-defined]
 
         # Provide minimal config for CentralUnit.name property access inside method
@@ -1303,6 +1303,13 @@ class TestCentralDeviceCreation:
         mock_client_coordinator = MagicMock()
         mock_client_coordinator.has_clients = True
         central._client_coordinator = mock_client_coordinator  # type: ignore[attr-defined]
+
+        # Add coordinator_provider to device_coordinator
+        mock_coordinator_provider = MagicMock()
+        mock_coordinator_provider.client_coordinator = mock_client_coordinator
+        device_coordinator._coordinator_provider = mock_coordinator_provider  # type: ignore[attr-defined]
+        device_coordinator._central_info = central  # type: ignore[attr-defined]
+        device_coordinator._config_provider = central  # type: ignore[attr-defined]
 
         mock_cache_coordinator = MagicMock()
         central._cache_coordinator = mock_cache_coordinator  # type: ignore[attr-defined]

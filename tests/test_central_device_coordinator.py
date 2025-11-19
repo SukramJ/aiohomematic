@@ -178,15 +178,19 @@ class TestDeviceCoordinatorBasics:
     def test_device_coordinator_initialization(self) -> None:
         """DeviceCoordinator should initialize with central instance."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
-        assert coordinator._central == central
+        assert coordinator._central_info == central
         assert coordinator._device_add_semaphore is not None
 
     def test_device_registry_property(self) -> None:
         """Device registry property should return the registry."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         registry = coordinator.device_registry
         assert registry == central.device_registry
@@ -194,7 +198,9 @@ class TestDeviceCoordinatorBasics:
     def test_devices_property(self) -> None:
         """Devices property should return all devices from registry."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -214,7 +220,9 @@ class TestDeviceCoordinatorGetOperations:
     def test_get_channel_not_found(self) -> None:
         """Get channel should return None when channel doesn't exist."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         retrieved = coordinator.get_channel(channel_address="VCU9999999:1")
         assert retrieved is None
@@ -222,7 +230,9 @@ class TestDeviceCoordinatorGetOperations:
     def test_get_channel_success(self) -> None:
         """Get channel should return the channel when it exists."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         channel = _FakeChannel(address="VCU0000001:1")
         device = _FakeDevice(address="VCU0000001", channels={"VCU0000001:1": channel})
@@ -234,7 +244,9 @@ class TestDeviceCoordinatorGetOperations:
     def test_get_device_not_found(self) -> None:
         """Get device should return None when device doesn't exist."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         retrieved = coordinator.get_device(address="VCU9999999")
         assert retrieved is None
@@ -242,7 +254,9 @@ class TestDeviceCoordinatorGetOperations:
     def test_get_device_success(self) -> None:
         """Get device should return the device when it exists."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         central.device_registry.add_device(device=device)
@@ -253,7 +267,9 @@ class TestDeviceCoordinatorGetOperations:
     def test_get_virtual_remotes(self) -> None:
         """Get virtual remotes should return virtual remote devices."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         remotes = coordinator.get_virtual_remotes()
         assert isinstance(remotes, tuple)
@@ -261,7 +277,9 @@ class TestDeviceCoordinatorGetOperations:
     def test_identify_channel_not_found(self) -> None:
         """Identify channel should return None when no match found."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         identified = coordinator.identify_channel(text="No channel address here")
         assert identified is None
@@ -269,7 +287,9 @@ class TestDeviceCoordinatorGetOperations:
     def test_identify_channel_success(self) -> None:
         """Identify channel should find channel in text."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         channel = _FakeChannel(address="VCU0000001:1")
         device = _FakeDevice(address="VCU0000001", channels={"VCU0000001:1": channel})
@@ -295,7 +315,9 @@ class TestDeviceCoordinatorRemoveOperations:
 
         # Mock delete_devices at class level
         with patch.object(DeviceCoordinator, "delete_devices", new=AsyncMock()) as mock_delete:
-            coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = DeviceCoordinator(
+                central=central, coordinator_provider=central, central_info=central, config_provider=central
+            )  # type: ignore[arg-type]
             await coordinator.delete_device(interface_id="BidCos-RF", device_address="VCU0000001")
 
             # Should have called delete_devices with device and channel addresses
@@ -308,7 +330,9 @@ class TestDeviceCoordinatorRemoveOperations:
     async def test_delete_device_not_found(self) -> None:
         """Delete device should handle device not found gracefully."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         # Should not raise
         await coordinator.delete_device(interface_id="BidCos-RF", device_address="VCU9999999")
@@ -317,7 +341,9 @@ class TestDeviceCoordinatorRemoveOperations:
     async def test_delete_devices(self) -> None:
         """Delete devices should remove multiple devices."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -343,7 +369,9 @@ class TestDeviceCoordinatorRemoveOperations:
     def test_remove_device_not_registered(self) -> None:
         """Remove device should handle device not in registry gracefully."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU9999999")
 
@@ -353,7 +381,9 @@ class TestDeviceCoordinatorRemoveOperations:
     def test_remove_device_success(self) -> None:
         """Remove device should remove device from registry and caches."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
         device.remove = MagicMock()  # type: ignore[method-assign]
@@ -381,7 +411,9 @@ class TestDeviceCoordinatorDeviceCreation:
 
         # Mock _add_new_devices to ensure it's not called
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
-            coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = DeviceCoordinator(
+                central=central, coordinator_provider=central, central_info=central, config_provider=central
+            )  # type: ignore[arg-type]
             await coordinator.add_new_device_manually(
                 interface_id="NonExistent",
                 address="VCU0000001",
@@ -400,7 +432,9 @@ class TestDeviceCoordinatorDeviceCreation:
 
         # Mock _add_new_devices to ensure it's not called
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
-            coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = DeviceCoordinator(
+                central=central, coordinator_provider=central, central_info=central, config_provider=central
+            )  # type: ignore[arg-type]
             # Try to add device that doesn't exist
             await coordinator.add_new_device_manually(
                 interface_id="BidCos-RF",
@@ -420,7 +454,9 @@ class TestDeviceCoordinatorDeviceCreation:
 
         # Mock _add_new_devices
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
-            coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = DeviceCoordinator(
+                central=central, coordinator_provider=central, central_info=central, config_provider=central
+            )  # type: ignore[arg-type]
             await coordinator.add_new_device_manually(
                 interface_id="BidCos-RF",
                 address="VCU0000001",
@@ -436,7 +472,9 @@ class TestDeviceCoordinatorDeviceCreation:
 
         # Mock _add_new_devices
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
-            coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = DeviceCoordinator(
+                central=central, coordinator_provider=central, central_info=central, config_provider=central
+            )  # type: ignore[arg-type]
             device_descriptions = (
                 DeviceDescription(
                     interface_id="BidCos-RF",
@@ -477,7 +515,9 @@ class TestDeviceCoordinatorFirmwareOperations:
 
         # Mock refresh_device_descriptions_and_create_missing_devices
         with patch.object(DeviceCoordinator, "refresh_device_descriptions_and_create_missing_devices", new=AsyncMock()):
-            coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = DeviceCoordinator(
+                central=central, coordinator_provider=central, central_info=central, config_provider=central
+            )  # type: ignore[arg-type]
             await coordinator.refresh_firmware_data()
 
         # Should have refreshed firmware data for all devices
@@ -498,7 +538,9 @@ class TestDeviceCoordinatorFirmwareOperations:
         with patch.object(
             DeviceCoordinator, "refresh_device_descriptions_and_create_missing_devices", new=AsyncMock()
         ) as mock_refresh:
-            coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+            coordinator = DeviceCoordinator(
+                central=central, coordinator_provider=central, central_info=central, config_provider=central
+            )  # type: ignore[arg-type]
             await coordinator.refresh_firmware_data(device_address="VCU0000001")
 
         # Should have refreshed firmware data for the device
@@ -513,7 +555,9 @@ class TestDeviceCoordinatorCentralLinks:
     async def test_create_central_links(self) -> None:
         """Create central links should call create_central_links on all devices."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -534,7 +578,9 @@ class TestDeviceCoordinatorCentralLinks:
     async def test_remove_central_links(self) -> None:
         """Remove central links should call remove_central_links on all devices."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
@@ -558,7 +604,9 @@ class TestDeviceCoordinatorListDevices:
     def test_list_devices(self) -> None:
         """List devices should return device descriptions from cache."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         # Mock device descriptions cache
         expected_descriptions = [
@@ -588,7 +636,9 @@ class TestDeviceCoordinatorIntegration:
     async def test_full_device_lifecycle(self) -> None:
         """Test full device lifecycle (add, use, remove)."""
         central = _FakeCentral()
-        coordinator = DeviceCoordinator(central=central)  # type: ignore[arg-type]
+        coordinator = DeviceCoordinator(
+            central=central, coordinator_provider=central, central_info=central, config_provider=central
+        )  # type: ignore[arg-type]
 
         # Add device
         device = _FakeDevice(address="VCU0000001")

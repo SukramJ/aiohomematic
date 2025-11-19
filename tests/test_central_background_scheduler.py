@@ -123,9 +123,17 @@ class TestBackgroundSchedulerBasics:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
-        assert scheduler._central == central
+        assert scheduler._central_info == central
         assert scheduler._active is False
         assert scheduler._devices_created is False
         assert scheduler._scheduler_task is None
@@ -142,7 +150,15 @@ class TestBackgroundSchedulerBasics:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         assert scheduler._active is False
         assert scheduler._scheduler_task is None
 
@@ -165,7 +181,15 @@ class TestBackgroundSchedulerBasics:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Start once
         with patch.object(scheduler, "_run_scheduler_loop", return_value=AsyncMock()):
@@ -189,7 +213,15 @@ class TestBackgroundSchedulerBasics:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Start the scheduler
         with patch.object(scheduler, "_run_scheduler_loop", return_value=AsyncMock()):
@@ -214,7 +246,15 @@ class TestBackgroundSchedulerBasics:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         assert scheduler._active is False
 
         # Stopping when not running should be safe
@@ -233,7 +273,15 @@ class TestBackgroundSchedulerBasics:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Verify subscribe was called
         central.event_bus.subscribe.assert_called_once()
@@ -253,7 +301,15 @@ class TestBackgroundSchedulerEventHandling:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         assert scheduler._devices_created is False
 
         # Create a mock event
@@ -274,7 +330,15 @@ class TestBackgroundSchedulerEventHandling:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         assert scheduler._devices_created is False
 
         # Create a mock event with different system event
@@ -304,7 +368,15 @@ class TestBackgroundSchedulerJobExecution:
         # Make all_clients_active raise an exception
         type(central).all_clients_active = PropertyMock(side_effect=RuntimeError("unexpected error"))
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Should handle the exception gracefully
         await scheduler._check_connection()
@@ -324,7 +396,15 @@ class TestBackgroundSchedulerJobExecution:
         central.config.enable_device_firmware_check = True
         central.all_clients_active = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Mock the central method to raise NoConnectionException
         central.all_clients_active = False
@@ -346,7 +426,15 @@ class TestBackgroundSchedulerJobExecution:
         central.config.enable_device_firmware_check = True
         central.all_clients_active = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Should complete without errors
         await scheduler._check_connection()
@@ -364,15 +452,23 @@ class TestBackgroundSchedulerJobExecution:
         central.config.enable_device_firmware_check = False
         central.available = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Mock the fetch method
-        scheduler._central.fetch_device_firmware_update_data = AsyncMock()
+        scheduler._device_data_refresher.fetch_device_firmware_update_data = AsyncMock()
 
         await scheduler._fetch_device_firmware_update_data()
 
         # Should not be called
-        scheduler._central.fetch_device_firmware_update_data.assert_not_called()
+        scheduler._device_data_refresher.fetch_device_firmware_update_data.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_fetch_device_firmware_skips_when_unavailable(self) -> None:
@@ -387,15 +483,23 @@ class TestBackgroundSchedulerJobExecution:
         central.config.enable_device_firmware_check = True
         central.available = False
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Mock the fetch method
-        scheduler._central.fetch_device_firmware_update_data = AsyncMock()
+        scheduler._device_data_refresher.fetch_device_firmware_update_data = AsyncMock()
 
         await scheduler._fetch_device_firmware_update_data()
 
         # Should not be called
-        scheduler._central.fetch_device_firmware_update_data.assert_not_called()
+        scheduler._device_data_refresher.fetch_device_firmware_update_data.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_refresh_client_data(self) -> None:
@@ -418,7 +522,15 @@ class TestBackgroundSchedulerJobExecution:
         central.load_and_refresh_data_point_data = AsyncMock()
         central.set_last_event_seen_for_interface = MagicMock()
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         await scheduler._refresh_client_data()
 
@@ -440,7 +552,15 @@ class TestBackgroundSchedulerJobExecution:
         central.available = True
         central.fetch_program_data = AsyncMock()
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         scheduler._devices_created = True
 
         await scheduler._refresh_program_data()
@@ -462,7 +582,15 @@ class TestBackgroundSchedulerJobExecution:
         central.available = True
         central.fetch_sysvar_data = AsyncMock()
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         scheduler._devices_created = True
 
         await scheduler._refresh_sysvar_data()
@@ -532,7 +660,15 @@ class TestSchedulerLoopExecution:
         async def test_task() -> None:
             executions.append("executed")
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Replace the connection checker with our test task
         past_time = datetime.now() - timedelta(seconds=10)
@@ -558,7 +694,15 @@ class TestSchedulerLoopExecution:
         central.config.enable_device_firmware_check = True
         central.state = CentralUnitState.INITIALIZING
 
-        BackgroundScheduler(central=central)
+        BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # The loop should return early if state is not RUNNING
         # We'll test this by checking that the loop doesn't execute jobs
@@ -577,7 +721,15 @@ class TestSchedulerLoopExecution:
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         # Start the scheduler
         with patch.object(scheduler, "_run_scheduler_loop", return_value=AsyncMock()):
@@ -609,7 +761,15 @@ class TestSchedulerJobFiltering:
         central.available = True
         central.poll_clients = []
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         central.load_and_refresh_data_point_data = AsyncMock()
 
         await scheduler._refresh_client_data()
@@ -631,7 +791,15 @@ class TestSchedulerJobFiltering:
         central.available = True
         central.poll_clients = None
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         central.load_and_refresh_data_point_data = AsyncMock()
 
         await scheduler._refresh_client_data()
@@ -652,7 +820,15 @@ class TestSchedulerJobFiltering:
         central.config.enable_device_firmware_check = True
         central.available = False
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         central.load_and_refresh_data_point_data = AsyncMock()
 
         await scheduler._refresh_client_data()
@@ -674,7 +850,15 @@ class TestSchedulerJobFiltering:
         central.config.enable_program_scan = True
         central.available = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         assert scheduler._devices_created is False
         central.fetch_program_data = AsyncMock()
 
@@ -697,7 +881,15 @@ class TestSchedulerJobFiltering:
         central.config.enable_program_scan = False
         central.available = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         central.fetch_program_data = AsyncMock()
 
         await scheduler._refresh_program_data()
@@ -719,7 +911,15 @@ class TestSchedulerJobFiltering:
         central.config.enable_sysvar_scan = True
         central.available = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         assert scheduler._devices_created is False
         central.fetch_sysvar_data = AsyncMock()
 
@@ -742,7 +942,15 @@ class TestSchedulerJobFiltering:
         central.config.enable_sysvar_scan = False
         central.available = True
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         central.fetch_sysvar_data = AsyncMock()
 
         await scheduler._refresh_sysvar_data()
@@ -768,7 +976,15 @@ class TestSchedulerFirmwareChecks:
         central.available = True
         central.refresh_firmware_data = AsyncMock()
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         scheduler._devices_created = True
 
         await scheduler._fetch_device_firmware_update_data()
@@ -789,7 +1005,15 @@ class TestSchedulerFirmwareChecks:
         central.available = True
         central.refresh_firmware_data_by_state = AsyncMock()
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         scheduler._devices_created = True
 
         await scheduler._fetch_device_firmware_update_data_in_delivery()
@@ -810,7 +1034,15 @@ class TestSchedulerFirmwareChecks:
         central.available = True
         central.refresh_firmware_data_by_state = AsyncMock()
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
         scheduler._devices_created = True
 
         await scheduler._fetch_device_firmware_update_data_in_update()
@@ -911,7 +1143,15 @@ class TestSchedulerErrorRecovery:
         central.load_and_refresh_data_point_data = AsyncMock()
         central.set_last_event_seen_for_interface = MagicMock()
 
-        scheduler = BackgroundScheduler(central=central)
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordination=central,
+            device_data_refresher=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+            state_provider=central,
+        )
 
         await scheduler._refresh_client_data()
 

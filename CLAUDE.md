@@ -55,10 +55,18 @@ voluptuous>=0.15.0      # Configuration/schema validation
 ```
 /home/user/aiohomematic/
 ├── aiohomematic/                    # Main package (67 files, ~26.8K LOC)
-│   ├── central/                     # Central orchestration (3 files)
+│   ├── central/                     # Central orchestration (11 files)
 │   │   ├── __init__.py             # CentralUnit, CentralConfig
+│   │   ├── cache_coordinator.py    # Cache management (DI: 8 protocols)
+│   │   ├── client_coordinator.py   # Client lifecycle (Hybrid DI)
+│   │   ├── device_coordinator.py   # Device operations (DI: 3 protocols)
+│   │   ├── device_registry.py      # Device storage (DI: 2 protocols)
+│   │   ├── event_coordinator.py    # Event handling (DI: 2 protocols)
+│   │   ├── hub_coordinator.py      # Hub entities (Hybrid DI)
+│   │   ├── scheduler.py            # Background tasks (DI: 7 protocols)
 │   │   ├── decorators.py           # RPC function decorators
-│   │   └── rpc_server.py           # XML-RPC callback server
+│   │   ├── rpc_server.py           # XML-RPC callback server
+│   │   └── event_bus.py            # Modern event system
 │   │
 │   ├── client/                      # Protocol adapters (4 files)
 │   │   ├── __init__.py             # Client abstractions
@@ -101,6 +109,7 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   │   ├── device.py               # Device & Channel classes
 │   │   ├── data_point.py           # Base DataPoint class
 │   │   ├── event.py                # Event representation
+│   │   ├── interfaces.py           # Protocol interfaces for DI
 │   │   ├── support.py              # Model utilities
 │   │   └── week_profile.py         # Weekly schedule abstraction
 │   │
@@ -601,10 +610,56 @@ def create_data_points_and_events(
     ...
 ```
 
-#### 2. Dependency Injection
+#### 2. Protocol-Based Dependency Injection
+
+aiohomematic uses a three-tier dependency injection architecture to reduce coupling:
+
+**Tier 1: Full DI (Infrastructure Layer)** - Components receive only protocol interfaces:
 
 ```python
-# Central is injected into objects that need it
+# Example: CacheCoordinator with 8 protocol interfaces
+class CacheCoordinator:
+    def __init__(
+        self,
+        *,
+        central_info: CentralInfo,
+        device_provider: DeviceProvider,
+        client_provider: ClientProvider,
+        data_point_provider: DataPointProvider,
+        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProvider,
+        task_scheduler: TaskScheduler,
+        session_recorder_active: bool,
+    ) -> None:
+        # Zero references to CentralUnit - only protocol interfaces
+        self._central_info: Final = central_info
+        self._device_provider: Final = device_provider
+        # ...
+```
+
+**Tier 2: Hybrid DI (Coordinator Layer)** - Minimal central for factories only:
+
+```python
+# Example: ClientCoordinator keeps central for client factory
+class ClientCoordinator:
+    def __init__(
+        self,
+        *,
+        central: CentralUnit,  # Required for client factory function
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        coordinator_provider: CoordinatorProvider,
+        system_info_provider: SystemInfoProvider,
+    ) -> None:
+        self._central: Final = central  # Only for factory
+        self._config_provider: Final = config_provider
+        # Other operations use protocol interfaces
+```
+
+**Tier 3: Provider Properties (Model Layer)** - Maintains backward compatibility:
+
+```python
+# Example: Device uses provider properties
 class Device:
     def __init__(
         self,
@@ -614,7 +669,28 @@ class Device:
         ...
     ):
         self._central = central
+
+    @property
+    def _central_info(self) -> CentralInfo:
+        """Access central info through property."""
+        return self._central
 ```
+
+**Protocol Interfaces** are defined in `aiohomematic/model/interfaces.py` using `@runtime_checkable`:
+
+```python
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class CentralInfo(Protocol):
+    """Protocol for central system information."""
+    @property
+    def name(self) -> str: ...
+    @property
+    def model(self) -> str: ...
+```
+
+CentralUnit implements all protocols without explicit inheritance through structural subtyping.
 
 #### 3. Observer Pattern
 

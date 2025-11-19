@@ -13,16 +13,71 @@ This document describes the high‑level architecture of aiohomematic, focusing 
   - visibility: ParameterVisibilityCache applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
 - Support (aiohomematic/support.py and helpers): Cross‑cutting utilities: URI/header construction for XML‑RPC, input validation, hashing, network helpers, conversion helpers, and small abstractions used across central and client. aiohomematic/async_support.py provides helpers for periodic tasks.
 
+## Dependency Injection Architecture
+
+aiohomematic uses a **protocol-based dependency injection** pattern to reduce coupling and improve testability. The architecture follows a three-tier strategy:
+
+### Tier 1: Full Dependency Injection (Infrastructure Layer)
+
+Components receive only protocol interfaces via constructor injection, with **zero references** to CentralUnit:
+
+- **CacheCoordinator**: Receives 8 protocol interfaces (CentralInfo, DeviceProvider, ClientProvider, etc.)
+- **DeviceRegistry**: Receives CentralInfo + ClientProvider
+- **ParameterVisibilityCache**: Receives ConfigProvider
+- **EventCoordinator**: Receives ClientProvider + TaskScheduler
+- **DeviceCoordinator**: Receives 3 protocol interfaces
+- **BackgroundScheduler**: Receives 7 protocol interfaces
+
+**Benefits**: Complete decoupling from CentralUnit, protocol-based mocking for tests, clear dependency contracts.
+
+### Tier 2: Hybrid Dependency Injection (Coordinator Layer)
+
+Components keep minimal CentralUnit reference only for factory functions, while using protocol interfaces for all other operations:
+
+- **ClientCoordinator**: Keeps central for client factory, uses 4 protocol interfaces for operations
+- **HubCoordinator**: Keeps central for Hub construction, uses 3 protocol interfaces
+- **Hub**: Keeps central for data point factories, uses 5 protocol interfaces
+
+**Rationale**: Factory functions require full CentralUnit context; all other operations are properly decoupled.
+
+### Tier 3: Provider Properties (Model Layer)
+
+Model classes use provider properties for adequate decoupling:
+
+- **Device**, **Channel**, **DataPoint** classes use `@property` decorators to access central services
+- Maintains backward compatibility and ergonomic API
+
+### Protocol Interfaces
+
+Key protocol interfaces defined in `aiohomematic/model/interfaces.py`:
+
+- **CentralInfo**: System identification (name, model, version)
+- **ConfigProvider**: Configuration access
+- **ClientProvider**: Client lookup by interface_id
+- **DeviceProvider**: Device registry access
+- **DataPointProvider**: Data point lookup
+- **EventBusProvider**: Event system access
+- **TaskScheduler**: Background task scheduling
+- **PrimaryClientProvider**: Primary client access
+
+These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.
+
 ## Responsibilities and boundaries
 
 - Central vs Client
   - Central owns system composition: it creates and starts/stops clients per configured interface, starts the XML‑RPC callback server, and maintains the runtime model and caches.
+  - Central implements all protocol interfaces and injects them into coordinators during construction.
   - Client owns protocol details: it knows how to talk to the backend via XML‑RPC or JSON‑RPC, how to fetch lists and paramsets, and how to write values. Central should not embed protocol specifics; instead it calls client methods.
 - Model vs Central/Client
   - Model is pure domain representation plus transformation from paramset descriptions to concrete data points/events. It must not perform network I/O. It consumes metadata provided by Central/Client and exposes typed operations on DataPoints (which then delegate to the client for I/O through the device/channel back‑reference).
+  - Model layer uses provider properties for loose coupling to central services.
+- Coordinators
+  - Infrastructure coordinators (CacheCoordinator, DeviceCoordinator, etc.) use full dependency injection with protocol interfaces.
+  - Factory coordinators (ClientCoordinator, HubCoordinator) use hybrid DI: protocols for operations, minimal central reference for factories.
 - Caches
   - Persistent caches are loaded/saved by Central during startup/shutdown and used by Clients to avoid redundant metadata fetches.
   - Dynamic caches are updated by Clients and Central when values change, and consulted to answer quick queries or de‑duplicate work.
+  - All cache classes use dependency injection to receive only required interfaces.
 - Support
   - Shared, stateless helpers. No long‑lived state; safe to import anywhere.
 

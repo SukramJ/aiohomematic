@@ -216,15 +216,54 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         self._json_rpc_client: AioJsonRpcAioHttpClient | None = None
 
         # Initialize coordinators
-        self._cache_coordinator: Final = CacheCoordinator(central=self)
-        self._event_coordinator: Final = EventCoordinator(central=self)
-        self._device_registry: Final = DeviceRegistry(central=self)
-        self._device_coordinator: Final = DeviceCoordinator(central=self)
-        self._client_coordinator: Final = ClientCoordinator(central=self)
-        self._hub_coordinator: Final = HubCoordinator(central=self)
+        self._cache_coordinator: Final = CacheCoordinator(
+            central_info=self,
+            device_provider=self,  # type: ignore[arg-type]
+            client_provider=self,
+            data_point_provider=self,
+            primary_client_provider=self,
+            config_provider=self,
+            task_scheduler=self.looper,
+            session_recorder_active=self.config.session_recorder_start,
+        )
+        self._event_coordinator: Final = EventCoordinator(
+            client_provider=self,
+            task_scheduler=self.looper,
+        )
+        self._device_registry: Final = DeviceRegistry(
+            central_info=self,
+            client_provider=self,
+        )
+        self._device_coordinator: Final = DeviceCoordinator(
+            central=self,
+            coordinator_provider=self,
+            central_info=self,
+            config_provider=self,
+        )
+        self._client_coordinator: Final = ClientCoordinator(
+            central=self,  # Required for client factory
+            config_provider=self,
+            central_info=self,
+            coordinator_provider=self,
+            system_info_provider=self,
+        )
+        self._hub_coordinator: Final = HubCoordinator(
+            central=self,  # Required for Hub construction
+            central_info=self,
+            event_bus_provider=self,
+            primary_client_provider=self,
+        )
 
         CENTRAL_INSTANCES[self.name] = self
-        self._scheduler: Final = BackgroundScheduler(central=self)
+        self._scheduler: Final = BackgroundScheduler(
+            central_info=self,
+            config_provider=self,
+            client_coordination=self,
+            device_data_refresher=self,
+            hub_data_fetcher=self,
+            event_bus_provider=self,
+            state_provider=self,
+        )
         self._version: str | None = None
         self._rpc_callback_ip: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4

@@ -42,7 +42,7 @@ from datetime import UTC, datetime
 import json
 import logging
 import os
-from typing import Any, Final, Self
+from typing import Any, Final, Self, cast
 import zipfile
 
 import orjson
@@ -67,6 +67,7 @@ from aiohomematic.const import (
     RPCType,
 )
 from aiohomematic.model.device import Device
+from aiohomematic.model.interfaces import CentralInfo, ConfigProvider, DeviceProvider, TaskScheduler
 from aiohomematic.support import (
     check_or_create_directory,
     create_random_device_addresses,
@@ -85,7 +86,10 @@ class BasePersistentFile(ABC):
     """Cache for files."""
 
     __slots__ = (
-        "_central",
+        "_config_provider",
+        "_task_scheduler",
+        "_central_info",
+        "_device_provider",
         "_directory",
         "_file_postfix",
         "_persistent_content",
@@ -102,15 +106,21 @@ class BasePersistentFile(ABC):
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        config_provider: ConfigProvider,
+        task_scheduler: TaskScheduler,
+        central_info: CentralInfo,
+        device_provider: DeviceProvider,
         persistent_content: dict[str, Any],
     ) -> None:
         """Initialize the base class of the persistent content."""
         self._save_load_semaphore: Final = asyncio.Semaphore()
-        self._central: Final = central
+        self._config_provider: Final = config_provider
+        self._task_scheduler: Final = task_scheduler
+        self._central_info: Final = central_info
+        self._device_provider: Final = device_provider
         self._persistent_content: Final = persistent_content
         self._directory: Final = _get_file_path(
-            storage_directory=central.config.storage_directory, sub_directory=self._sub_directory
+            storage_directory=config_provider.config.storage_directory, sub_directory=self._sub_directory
         )
         self.last_save_triggered: datetime = INIT_DATETIME
         self.last_hash_saved = hash_sha256(value=persistent_content)
@@ -121,7 +131,7 @@ class BasePersistentFile(ABC):
         self.last_save_triggered = datetime.now()
         return (
             check_or_create_directory(directory=self._directory)
-            and self._central.config.use_caches
+            and self._config_provider.config.use_caches
             and self.content_hash != self.last_hash_saved
         )
 
@@ -139,11 +149,11 @@ class BasePersistentFile(ABC):
         """Remove stored file from disk."""
 
         def _perform_clear() -> None:
-            delete_file(directory=self._directory, file_name=f"{self._central.name}*.json".lower())
+            delete_file(directory=self._directory, file_name=f"{self._central_info.name}*.json".lower())
             self._persistent_content.clear()
 
         async with self._save_load_semaphore:
-            await self._central.looper.async_add_executor_job(_perform_clear, name="clear-persistent-content")
+            await self._task_scheduler.async_add_executor_job(_perform_clear, name="clear-persistent-content")
 
     async def load(self, *, file_path: str | None = None) -> DataOperationResult:
         """
@@ -182,8 +192,9 @@ class BasePersistentFile(ABC):
             return DataOperationResult.LOAD_SUCCESS
 
         async with self._save_load_semaphore:
-            return await self._central.looper.async_add_executor_job(
-                _perform_load, name=f"load-persistent-content-{self._get_file_name()}"
+            return cast(
+                DataOperationResult,
+                await self._task_scheduler.async_add_executor_job(_perform_load, name="load-persistent-content"),
             )
 
     async def save(self, *, randomize_output: bool = False, use_ts_in_file_name: bool = False) -> DataOperationResult:
@@ -215,8 +226,9 @@ class BasePersistentFile(ABC):
             return DataOperationResult.SAVE_SUCCESS
 
         async with self._save_load_semaphore:
-            return await self._central.looper.async_add_executor_job(
-                _perform_save, name=f"save-persistent-content-{self._get_file_name()}"
+            return cast(
+                DataOperationResult,
+                await self._task_scheduler.async_add_executor_job(_perform_save, name="save-persistent-content"),
             )
 
     def _get_file_name(
@@ -226,7 +238,7 @@ class BasePersistentFile(ABC):
     ) -> str:
         """Return the file name."""
         return _get_file_name(
-            central_name=self._central.name,
+            central_name=self._central_info.name,
             file_name=self._file_postfix,
             ts=datetime.now() if use_ts_in_file_name else None,
         )
@@ -244,7 +256,7 @@ class BasePersistentFile(ABC):
         if not randomize_output:
             return content
 
-        addresses = [device.address for device in self._central.devices]
+        addresses = [device.address for device in self._device_provider.devices]
         text = content.decode(encoding=UTF_8)
         for device_address, rnd_address in create_random_device_addresses(addresses=addresses).items():
             text = text.replace(device_address, rnd_address)
@@ -268,7 +280,10 @@ class DeviceDescriptionCache(BasePersistentFile):
         # {interface_id, [device_descriptions]}
         self._raw_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         super().__init__(
-            central=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            central_info=central,
+            device_provider=cast(DeviceProvider, central),
             persistent_content=self._raw_device_descriptions,
         )
         # {interface_id, {device_address, [channel_address]}}
@@ -342,8 +357,8 @@ class DeviceDescriptionCache(BasePersistentFile):
 
     async def load(self, *, file_path: str | None = None) -> DataOperationResult:
         """Load device data from disk into _device_description_cache."""
-        if not self._central.config.use_caches:
-            _LOGGER.debug("load: not caching paramset descriptions for %s", self._central.name)
+        if not self._config_provider.config.use_caches:
+            _LOGGER.debug("load: not caching paramset descriptions for %s", self._central_info.name)
             return DataOperationResult.NO_LOAD
         if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
             for (
@@ -410,7 +425,10 @@ class ParamsetDescriptionCache(BasePersistentFile):
             defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         )
         super().__init__(
-            central=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            central_info=central,
+            device_provider=cast(DeviceProvider, central),
             persistent_content=self._raw_paramset_descriptions,
         )
 
@@ -490,8 +508,8 @@ class ParamsetDescriptionCache(BasePersistentFile):
 
     async def load(self, *, file_path: str | None = None) -> DataOperationResult:
         """Load paramset descriptions from disk into paramset cache."""
-        if not self._central.config.use_caches:
-            _LOGGER.debug("load: not caching device descriptions for %s", self._central.name)
+        if not self._config_provider.config.use_caches:
+            _LOGGER.debug("load: not caching device descriptions for %s", self._central_info.name)
             return DataOperationResult.NO_LOAD
         if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
             self._init_address_parameter_list()
@@ -569,7 +587,10 @@ class SessionRecorder(BasePersistentFile):
             lambda: defaultdict(lambda: defaultdict(dict))
         )
         super().__init__(
-            central=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            central_info=central,
+            device_provider=cast(DeviceProvider, central),
             persistent_content=self._store,
         )
 
@@ -599,14 +620,14 @@ class SessionRecorder(BasePersistentFile):
         self._store.clear()
         self._active = True
         if on_time > 0:
-            self._central.looper.create_task(
+            self._task_scheduler.create_task(
                 target=self._deactivate_after_delay(
                     delay=on_time,
                     auto_save=auto_save,
                     randomize_output=randomize_output,
                     use_ts_in_file_name=use_ts_in_file_name,
                 ),
-                name=f"session_recorder_{self._central.name}",
+                name=f"session_recorder_{self._central_info.name}",
             )
         return True
 
@@ -663,14 +684,14 @@ class SessionRecorder(BasePersistentFile):
             _LOGGER.info(i18n.tr("log.store.session_recorder.deactivate.already_running"))
             return False
         if delay > 0:
-            self._central.looper.create_task(
+            self._task_scheduler.create_task(
                 target=self._deactivate_after_delay(
                     delay=delay,
                     auto_save=auto_save,
                     randomize_output=randomize_output,
                     use_ts_in_file_name=use_ts_in_file_name,
                 ),
-                name=f"session_recorder_{self._central.name}",
+                name=f"session_recorder_{self._central_info.name}",
             )
         else:
             self._active = False

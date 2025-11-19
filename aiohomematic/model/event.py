@@ -102,7 +102,9 @@ class GenericEvent(BaseParameterDataPointAny):
     @loop_check
     def emit_event(self, *, value: Any) -> None:
         """Do what is needed to emit an event."""
-        self._central.emit_homematic_callback(event_type=self.event_type, event_data=self.get_event_data(value=value))
+        self._event_emitter.emit_homematic_callback(
+            event_type=self.event_type, event_data=self.get_event_data(value=value)
+        )
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""

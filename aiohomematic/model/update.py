@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from functools import partial
 from typing import Final
 
 from aiohomematic.const import (
@@ -118,8 +117,14 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
                 )
             self._custom_id = custom_id
 
-        if self._device.register_firmware_update_callback(cb=cb) is not None:
-            return partial(self._unregister_data_point_updated_callback, cb=cb, custom_id=custom_id)
+        if unsubscribe := self._device.register_firmware_update_callback(cb=cb):
+            # Wrap unsubscribe to also reset custom_id
+            def wrapped_unsubscribe() -> None:
+                unsubscribe()
+                if custom_id != InternalCustomID.DEFAULT:
+                    self._custom_id = None
+
+            return wrapped_unsubscribe
         return None
 
     @inspector
@@ -139,9 +144,3 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self._device.model}"
-
-    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
-        """Unregister update callback."""
-        if custom_id is not None:
-            self._custom_id = None
-        self._device.unregister_firmware_update_callback(cb=cb)

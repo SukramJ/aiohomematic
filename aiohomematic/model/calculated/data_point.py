@@ -329,5 +329,3 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         for unregister in self._unregister_callbacks:
             if unregister is not None:
                 unregister()
-
-        super()._unregister_data_point_updated_callback(cb=cb, custom_id=custom_id)

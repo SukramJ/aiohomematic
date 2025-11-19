@@ -118,8 +118,8 @@ class TestDataPointCallbacks:
         device_updated_mock = MagicMock()
         device_removed_mock = MagicMock()
 
-        switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
-        switch.register_device_removed_callback(cb=device_removed_mock)
+        unregister_updated = switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
+        unregister_removed = switch.register_device_removed_callback(cb=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
         await central.data_point_event(
@@ -142,8 +142,11 @@ class TestDataPointCallbacks:
         assert event.system_event == "deleteDevices"
         assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
         assert event.data.get("addresses") == ["VCU2128127"]
-        switch._unregister_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
-        switch._unregister_device_removed_callback(cb=device_removed_mock)
+        # Call the unregister callbacks to clean up
+        if unregister_updated:
+            unregister_updated()
+        if unregister_removed:
+            unregister_removed()
 
         device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
         device_removed_mock.assert_called_with()

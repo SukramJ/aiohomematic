@@ -50,6 +50,9 @@ __all__ = [
     "get_value_from_value_list",
     "is_binary_sensor",
 ]
+
+from aiohomematic.model.interfaces import ConfigProvider
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 # dict with binary_sensor relevant value lists and the corresponding TRUE value
@@ -436,7 +439,7 @@ def get_custom_data_point_name(
 
 
 def generate_unique_id(
-    config_provider: Any,
+    config_provider: ConfigProvider,
     address: str,
     parameter: str | None = None,
     prefix: str | None = None,
@@ -463,7 +466,7 @@ def generate_unique_id(
 
 
 def generate_channel_unique_id(
-    config_provider: Any,
+    config_provider: ConfigProvider,
     address: str,
 ) -> str:
     """Build unique identifier for a channel from address."""
@@ -481,7 +484,7 @@ def _get_base_name_from_channel_or_device(channel: hmd.Channel) -> str | None:
     name = channel.device._device_details_provider.get_name(address=channel.address)
     if name is None or name == default_channel_name:
         return channel.device.name if channel.no is None else f"{channel.device.name}:{channel.no}"
-    return name  # type: ignore[no-any-return]
+    return name
 
 
 def _check_channel_name_with_channel_no(name: str) -> bool:

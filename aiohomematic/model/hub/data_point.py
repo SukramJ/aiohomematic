@@ -135,7 +135,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        return self._central_info.available  # type: ignore[no-any-return]
+        return self._central_info.available
 
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""

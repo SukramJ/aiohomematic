@@ -14,12 +14,29 @@ from abc import abstractmethod
 from collections.abc import Callable, Collection, Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from aiohomematic.const import BackendSystemEvent, DeviceFirmwareState, EventType, SystemInformation
+from aiohomematic.const import BackendSystemEvent, DeviceDescription, DeviceFirmwareState, EventType, SystemInformation
 
 
 @runtime_checkable
 class ParameterVisibilityProvider(Protocol):
     """Protocol for accessing parameter visibility information."""
+
+    @abstractmethod
+    def is_relevant_paramset(
+        self,
+        *,
+        channel: Any,
+        paramset_key: str,
+    ) -> bool:
+        """
+        Return if a paramset is relevant.
+
+        Required to load MASTER paramsets, which are not initialized by default.
+        """
+
+    @abstractmethod
+    def model_is_ignored(self, *, model: Any) -> bool:
+        """Check if a model should be ignored for custom data points."""
 
     @abstractmethod
     def parameter_is_hidden(
@@ -41,6 +58,17 @@ class ParameterVisibilityProvider(Protocol):
         custom_only: bool = False,
     ) -> bool:
         """Check if a parameter is un-ignored (visible)."""
+
+    @abstractmethod
+    def should_skip_parameter(
+        self,
+        *,
+        channel: Any,
+        paramset_key: str,
+        parameter: str,
+        parameter_is_un_ignored: bool,
+    ) -> bool:
+        """Determine if a parameter should be skipped."""
 
 
 @runtime_checkable
@@ -71,7 +99,7 @@ class DeviceDetailsProvider(Protocol):
     """Protocol for accessing device details."""
 
     @abstractmethod
-    def get_address_id(self, *, address: str) -> int:
+    def get_address_id(self, *, address: str) -> str:
         """Get numeric ID for an address."""
 
     @abstractmethod
@@ -105,7 +133,7 @@ class DeviceDescriptionProvider(Protocol):
         *,
         interface_id: str,
         device_address: str,
-    ) -> dict[str, Any]:
+    ) -> DeviceDescription:
         """Get device description."""
 
     @abstractmethod
@@ -114,7 +142,7 @@ class DeviceDescriptionProvider(Protocol):
         *,
         interface_id: str,
         device_address: str,
-    ) -> dict[str, dict[str, Any]]:
+    ) -> Mapping[str, DeviceDescription]:
         """Get device with all channel descriptions."""
 
 
@@ -141,6 +169,10 @@ class ParamsetDescriptionProvider(Protocol):
         parameter: str,
     ) -> dict[str, Any] | None:
         """Get parameter data from paramset description."""
+
+    @abstractmethod
+    def is_in_multiple_channels(self, *, channel_address: str, parameter: str) -> bool:
+        """Check if parameter is in multiple channels per device."""
 
 
 @runtime_checkable
@@ -234,6 +266,11 @@ class CentralInfo(Protocol):
     @abstractmethod
     def available(self) -> bool:
         """Check if central is available."""
+
+    @property
+    @abstractmethod
+    def info_payload(self) -> Mapping[str, Any]:
+        """Return the info payload."""
 
     @property
     @abstractmethod

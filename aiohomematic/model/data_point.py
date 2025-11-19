@@ -66,6 +66,13 @@ from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.model import device as hmd
+from aiohomematic.model.interfaces import (
+    CentralInfo,
+    EventBusProvider,
+    ParameterVisibilityProvider,
+    ParamsetDescriptionProvider,
+    TaskScheduler,
+)
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
 from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
@@ -166,11 +173,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self,
         *,
         unique_id: str,
-        central_info: Any,  # CentralInfo
-        event_bus_provider: Any,  # EventBusProvider
-        task_scheduler: Any,  # TaskScheduler
-        paramset_description_provider: Any,  # ParamsetDescriptionProvider
-        parameter_visibility_provider: Any,  # ParameterVisibilityProvider
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        task_scheduler: TaskScheduler,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
     ) -> None:
         """Init the callback data_point."""
         self._central_info: Final = central_info

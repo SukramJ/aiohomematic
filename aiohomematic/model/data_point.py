@@ -35,7 +35,7 @@ from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
 import voluptuous as vol
 
-from aiohomematic import central as hmcu, client as hmcl, i18n, support as hms, validator as val
+from aiohomematic import client as hmcl, i18n, support as hms, validator as val
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent, DeviceRemovedEvent
 from aiohomematic.const import (
@@ -142,15 +142,19 @@ class CallbackDataPoint(ABC, LogContextMixin):
         "_cached_enabled_default",
         "_cached_service_methods",
         "_cached_service_method_names",
-        "_central",
+        "_central_info",
         "_custom_id",
         "_emitted_event_at",
+        "_event_bus_provider",
         "_modified_at",
+        "_paramset_description_provider",
+        "_parameter_visibility_provider",
         "_path_data",
         "_refreshed_at",
         "_registered_custom_ids",
         "_signature",
         "_subscription_counts",
+        "_task_scheduler",
         "_temporary_modified_at",
         "_temporary_refreshed_at",
         "_unique_id",
@@ -158,9 +162,22 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     _category = DataPointCategory.UNDEFINED
 
-    def __init__(self, *, central: hmcu.CentralUnit, unique_id: str) -> None:
+    def __init__(
+        self,
+        *,
+        unique_id: str,
+        central_info: Any,  # CentralInfo
+        event_bus_provider: Any,  # EventBusProvider
+        task_scheduler: Any,  # TaskScheduler
+        paramset_description_provider: Any,  # ParamsetDescriptionProvider
+        parameter_visibility_provider: Any,  # ParameterVisibilityProvider
+    ) -> None:
         """Init the callback data_point."""
-        self._central: Final = central
+        self._central_info: Final = central_info
+        self._event_bus_provider: Final = event_bus_provider
+        self._task_scheduler: Final = task_scheduler
+        self._paramset_description_provider: Final = paramset_description_provider
+        self._parameter_visibility_provider: Final = parameter_visibility_provider
         self._unique_id: Final = unique_id
         self._registered_custom_ids: set[str] = set()
         self._subscription_counts: dict[str, int] = {}
@@ -183,29 +200,17 @@ class CallbackDataPoint(ABC, LogContextMixin):
         return cls._category
 
     @property
-    def _central_info(self) -> Any:
-        """
-        Return the central info provider.
-
-        This property documents that components only depend on central information
-        (name, availability, model) from CentralUnit, not the full API.
-
-        Type: CentralInfo protocol (from model.interfaces)
-        """
-        return self._central
-
-    @property
     def _event_emitter(self) -> Any:
         """
         Return the event emitter.
 
         This property documents that components only depend on event emission
         functionality from CentralUnit, not the full API.
-        Returns CentralUnit itself (which implements EventEmitter protocol).
+        Returns event bus provider (which implements EventEmitter protocol).
 
         Type: EventEmitter protocol (from model.interfaces)
         """
-        return self._central
+        return self._event_bus_provider
 
     @property
     def _paramset_provider(self) -> Any:
@@ -214,11 +219,10 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         This property documents that CallbackDataPoint only depends on
         paramset_descriptions functionality from CentralUnit, not the full API.
-        Returns the ParamsetDescriptionCache from central.
 
         Type: ParamsetDescriptionProvider protocol (from model.interfaces)
         """
-        return self._central.paramset_descriptions
+        return self._paramset_description_provider
 
     @property
     def _should_emit_data_point_updated_callback(self) -> bool:
@@ -232,21 +236,15 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         This property documents that CallbackDataPoint only depends on
         parameter_visibility functionality from CentralUnit, not the full API.
-        Returns the ParameterVisibilityCache from central.
 
         Type: ParameterVisibilityProvider protocol (from model.interfaces)
         """
-        return self._central.parameter_visibility
+        return self._parameter_visibility_provider
 
     @property
     def category(self) -> DataPointCategory:
         """Return, the category of the data point."""
         return self._category
-
-    @property
-    def central(self) -> hmcu.CentralUnit:
-        """Return the central unit."""
-        return self._central
 
     @property
     def custom_id(self) -> str | None:
@@ -388,7 +386,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 ckw: dict[str, Any],
             ) -> None:  # noqa: E731
                 """Publish callback event with custom id."""
-                await self._central.event_bus.publish(
+                await self._event_bus_provider.event_bus.publish(
                     event=DataPointUpdatedCallbackEvent(
                         timestamp=datetime.now(),
                         unique_id=self._unique_id,
@@ -401,7 +399,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 """Call publish with custom id and kwargs."""
                 await _publish(cid, ckw)
 
-            self._central.looper.create_task(
+            self._task_scheduler.create_task(
                 target=_publish_wrapper,
                 name=f"emit-callback-event-{self._unique_id}-{custom_id}",
             )
@@ -412,14 +410,14 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         # Publish to EventBus asynchronously
         async def _publish_device_removed() -> None:
-            await self._central.event_bus.publish(
+            await self._event_bus_provider.event_bus.publish(
                 event=DeviceRemovedEvent(
                     timestamp=datetime.now(),
                     unique_id=self._unique_id,
                 )
             )
 
-        self._central.looper.create_task(
+        self._task_scheduler.create_task(
             target=_publish_device_removed,
             name=f"emit-device-removed-{self._unique_id}",
         )
@@ -450,7 +448,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
                 cb(**event.kwargs)
 
-        unsubscribe = self._central.event_bus.subscribe(
+        unsubscribe = self._event_bus_provider.event_bus.subscribe(
             event_type=DataPointUpdatedCallbackEvent,
             handler=event_handler,
         )
@@ -482,7 +480,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
             if event.unique_id == self._unique_id:
                 cb()
 
-        return self._central.event_bus.subscribe(
+        return self._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]
             event_type=DeviceRemovedEvent,
             handler=event_handler,
         )
@@ -552,7 +550,14 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         PayloadMixin.__init__(self)
         self._channel: Final[hmd.Channel] = channel
         self._device: Final[hmd.Device] = channel.device
-        super().__init__(central=channel.central, unique_id=unique_id)
+        super().__init__(
+            unique_id=unique_id,
+            central_info=channel.device._central_info,
+            event_bus_provider=channel.device._event_bus_provider,
+            task_scheduler=channel.device._task_scheduler,
+            paramset_description_provider=channel.device._paramset_description_provider,
+            parameter_visibility_provider=channel.device._parameter_visibility_provider,
+        )
         self._is_in_multiple_channels: Final = is_in_multiple_channels
         self._client: Final[hmcl.Client] = channel.device.client
         self._forced_usage: DataPointUsage | None = None
@@ -717,12 +722,12 @@ class BaseParameterDataPoint[
         super().__init__(
             channel=channel,
             unique_id=generate_unique_id(
-                central=channel.central,
+                config_provider=channel.device._config_provider,
                 address=channel.address,
                 parameter=parameter,
                 prefix=unique_id_prefix,
             ),
-            is_in_multiple_channels=channel.device.central.paramset_descriptions.is_in_multiple_channels(
+            is_in_multiple_channels=channel.device._paramset_description_provider.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter
             ),
         )
@@ -1116,7 +1121,6 @@ class CallParameterCollector:
     """Create a Paramset based on given generic data point."""
 
     __slots__ = (
-        "_central",
         "_client",
         "_paramsets",
     )
@@ -1124,7 +1128,6 @@ class CallParameterCollector:
     def __init__(self, *, client: hmcl.Client) -> None:
         """Init the generator."""
         self._client: Final = client
-        self._central: Final = client.central
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}
         self._paramsets: Final[dict[ParamsetKey, dict[int, dict[str, dict[str, Any]]]]] = {}
 

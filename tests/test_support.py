@@ -96,12 +96,17 @@ class TestGenerateUniqueId:
     ) -> None:
         """Test generate_unique_id."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL") == "vcu2128127_level"
         assert (
-            generate_unique_id(central=central, address="VCU2128127", parameter="LEVEL", prefix="PREFIX")
+            generate_unique_id(config_provider=central, address="VCU2128127", parameter="LEVEL") == "vcu2128127_level"
+        )
+        assert (
+            generate_unique_id(config_provider=central, address="VCU2128127", parameter="LEVEL", prefix="PREFIX")
             == "prefix_vcu2128127_level"
         )
-        assert generate_unique_id(central=central, address="INT0001", parameter="LEVEL") == "test1234_int0001_level"
+        assert (
+            generate_unique_id(config_provider=central, address="INT0001", parameter="LEVEL")
+            == "test1234_int0001_level"
+        )
 
 
 class TestXmlRpcHelpers:
@@ -330,9 +335,19 @@ class TestNamingHelpers:
     ) -> None:
         """Test get_device_name."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "HmIP-BSM_VCU2128127"
+        assert (
+            get_device_name(
+                device_details_provider=central.device_details, device_address="VCU2128127", model="HmIP-BSM"
+            )
+            == "HmIP-BSM_VCU2128127"
+        )
         central.device_details.add_name(address="VCU2128127", name="Roof")
-        assert get_device_name(central=central, device_address="VCU2128127", model="HmIP-BSM") == "Roof"
+        assert (
+            get_device_name(
+                device_details_provider=central.device_details, device_address="VCU2128127", model="HmIP-BSM"
+            )
+            == "Roof"
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

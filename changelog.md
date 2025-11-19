@@ -1,3 +1,9 @@
+# Version 2025.11.21 (2025-11-19)
+
+## What's Changed
+
+- De-couple from central unit pt2
+
 # Version 2025.11.20 (2025-11-19)
 
 ## What's Changed

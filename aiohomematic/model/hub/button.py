@@ -25,4 +25,4 @@ class ProgramDpButton(GenericProgramDataPoint):
     @inspector
     async def press(self) -> None:
         """Handle the button press."""
-        await self.central.execute_program(pid=self.pid)
+        await self._hub_data_fetcher.execute_program(pid=self.pid)

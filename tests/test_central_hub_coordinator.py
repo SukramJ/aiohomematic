@@ -119,6 +119,10 @@ class _FakeCentral:
         self.event_bus = MagicMock()
         self.event_bus.subscribe_sysvar_event_callback = MagicMock(return_value=lambda: None)
         self._primary_client: _FakeClient | None = None
+        # Add protocol interfaces required by HubCoordinator
+        self.looper = MagicMock()
+        self.paramset_descriptions = MagicMock()
+        self.parameter_visibility = MagicMock()
 
     @property
     def primary_client(self) -> _FakeClient | None:

@@ -102,10 +102,16 @@ from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from aiohomematic.model.hub.text import SysvarDpText
 from aiohomematic.model.interfaces import (
     CentralInfo,
+    ChannelLookup,
     ConfigProvider,
+    EventBusProvider,
     EventEmitter,
+    HubDataFetcher,
     HubDataPointManager,
+    ParameterVisibilityProvider,
+    ParamsetDescriptionProvider,
     PrimaryClientProvider,
+    TaskScheduler,
 )
 
 __all__ = [
@@ -152,6 +158,12 @@ class Hub:
         "_hub_data_point_manager",
         "_primary_client_provider",
         "_event_emitter",
+        "_event_bus_provider",
+        "_task_scheduler",
+        "_paramset_description_provider",
+        "_parameter_visibility_provider",
+        "_channel_lookup",
+        "_hub_data_fetcher",
     )
 
     def __init__(
@@ -163,6 +175,12 @@ class Hub:
         hub_data_point_manager: HubDataPointManager,
         primary_client_provider: PrimaryClientProvider,
         event_emitter: EventEmitter,
+        event_bus_provider: EventBusProvider,
+        task_scheduler: TaskScheduler,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        channel_lookup: ChannelLookup,
+        hub_data_fetcher: HubDataFetcher,
     ) -> None:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
@@ -174,6 +192,12 @@ class Hub:
         self._hub_data_point_manager: Final = hub_data_point_manager
         self._primary_client_provider: Final = primary_client_provider
         self._event_emitter: Final = event_emitter
+        self._event_bus_provider: Final = event_bus_provider
+        self._task_scheduler: Final = task_scheduler
+        self._paramset_description_provider: Final = paramset_description_provider
+        self._parameter_visibility_provider: Final = parameter_visibility_provider
+        self._channel_lookup: Final = channel_lookup
+        self._hub_data_fetcher: Final = hub_data_fetcher
 
     @property
     def _config(self) -> Any:
@@ -210,8 +234,30 @@ class Hub:
         """Create program as data_point."""
         program_dp = ProgramDpType(
             pid=data.pid,
-            button=ProgramDpButton(central=self._central, data=data),
-            switch=ProgramDpSwitch(central=self._central, data=data),
+            button=ProgramDpButton(
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+                channel_lookup=self._channel_lookup,
+                primary_client_provider=self._primary_client_provider,
+                hub_data_fetcher=self._hub_data_fetcher,
+                data=data,
+            ),
+            switch=ProgramDpSwitch(
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+                channel_lookup=self._channel_lookup,
+                primary_client_provider=self._primary_client_provider,
+                hub_data_fetcher=self._hub_data_fetcher,
+                data=data,
+            ),
         )
         self._hub_data_point_manager.add_program_data_point(program_dp=program_dp)
         return program_dp
@@ -226,19 +272,31 @@ class Hub:
         """Create sysvar data_point."""
         data_type = data.data_type
         extended_sysvar = data.extended_sysvar
+        # Common protocol interfaces for all sysvar data points
+        protocols = {
+            "config_provider": self._config_provider,
+            "central_info": self._central_info,
+            "event_bus_provider": self._event_bus_provider,
+            "task_scheduler": self._task_scheduler,
+            "paramset_description_provider": self._paramset_description_provider,
+            "parameter_visibility_provider": self._parameter_visibility_provider,
+            "channel_lookup": self._channel_lookup,
+            "primary_client_provider": self._primary_client_provider,
+            "data": data,
+        }
         if data_type:
             if data_type in (SysvarType.ALARM, SysvarType.LOGIC):
                 if extended_sysvar:
-                    return SysvarDpSwitch(central=self._central, data=data)
-                return SysvarDpBinarySensor(central=self._central, data=data)
+                    return SysvarDpSwitch(**protocols)  # type: ignore[arg-type]
+                return SysvarDpBinarySensor(**protocols)  # type: ignore[arg-type]
             if data_type == SysvarType.LIST and extended_sysvar:
-                return SysvarDpSelect(central=self._central, data=data)
+                return SysvarDpSelect(**protocols)  # type: ignore[arg-type]
             if data_type in (SysvarType.FLOAT, SysvarType.INTEGER) and extended_sysvar:
-                return SysvarDpNumber(central=self._central, data=data)
+                return SysvarDpNumber(**protocols)  # type: ignore[arg-type]
             if data_type == SysvarType.STRING and extended_sysvar:
-                return SysvarDpText(central=self._central, data=data)
+                return SysvarDpText(**protocols)  # type: ignore[arg-type]
 
-        return SysvarDpSensor(central=self._central, data=data)
+        return SysvarDpSensor(**protocols)  # type: ignore[arg-type]
 
     def _identify_missing_program_ids(self, *, programs: tuple[ProgramData, ...]) -> set[str]:
         """Identify missing programs."""

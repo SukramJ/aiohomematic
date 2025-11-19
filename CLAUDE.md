@@ -656,24 +656,60 @@ class ClientCoordinator:
         # Other operations use protocol interfaces
 ```
 
-**Tier 3: Provider Properties (Model Layer)** - Maintains backward compatibility:
+**Tier 3: Full DI (Model Layer)** - Device, Channel, and DataPoint classes use full DI:
 
 ```python
-# Example: Device uses provider properties
+# Example: Device with 16 protocol interfaces
 class Device:
     def __init__(
         self,
         *,
-        central: CentralUnit,
-        address: str,
-        ...
-    ):
-        self._central = central
+        interface_id: str,
+        device_address: str,
+        device_details_provider: DeviceDetailsProvider,
+        device_description_provider: DeviceDescriptionProvider,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        client_provider: ClientProvider,
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        task_scheduler: TaskScheduler,
+        file_operations: FileOperations,
+        device_data_refresher: DeviceDataRefresher,
+        data_cache_provider: DataCacheProvider,
+        channel_lookup: ChannelLookup,
+        event_subscription_manager: EventSubscriptionManager,
+    ) -> None:
+        # Stores all protocol interfaces directly
+        self._central_info: Final = central_info
+        self._event_bus_provider: Final = event_bus_provider
+        # ... (all protocol interfaces stored)
 
-    @property
-    def _central_info(self) -> CentralInfo:
-        """Access central info through property."""
-        return self._central
+# Channel accesses protocol interfaces through its parent Device:
+class Channel:
+    def __init__(self, *, device: Device, channel_address: str) -> None:
+        self._device: Final = device
+        # Accesses protocol interfaces via self._device._xxx_provider
+
+# DataPoint classes receive protocol interfaces from channel.device:
+class BaseDataPoint:
+    def __init__(
+        self,
+        *,
+        channel: Channel,
+        unique_id: str,
+        is_in_multiple_channels: bool,
+    ) -> None:
+        # Extracts and passes protocol interfaces to CallbackDataPoint
+        super().__init__(
+            unique_id=unique_id,
+            central_info=channel.device._central_info,
+            event_bus_provider=channel.device._event_bus_provider,
+            task_scheduler=channel.device._task_scheduler,
+            paramset_description_provider=channel.device._paramset_description_provider,
+            parameter_visibility_provider=channel.device._parameter_visibility_provider,
+        )
 ```
 
 **Protocol Interfaces** are defined in `aiohomematic/model/interfaces.py` using `@runtime_checkable`:
@@ -690,7 +726,27 @@ class CentralInfo(Protocol):
     def model(self) -> str: ...
 ```
 
-CentralUnit implements all protocols without explicit inheritance through structural subtyping.
+**Key Protocol Interfaces** defined in `aiohomematic/model/interfaces.py`:
+
+- **CentralInfo**: System identification (name, model, version)
+- **ConfigProvider**: Configuration access (config property)
+- **ClientProvider**: Client lookup by interface_id
+- **DeviceProvider**: Device registry access
+- **DataPointProvider**: Data point lookup
+- **EventBusProvider**: Event system access (event_bus property)
+- **TaskScheduler**: Background task scheduling (create_task method)
+- **PrimaryClientProvider**: Primary client access
+- **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
+- **DeviceDescriptionProvider**: Device descriptions lookup
+- **ParamsetDescriptionProvider**: Paramset descriptions and multi-channel checks
+- **ParameterVisibilityProvider**: Parameter visibility rules
+- **FileOperations**: File I/O operations
+- **DeviceDataRefresher**: Device data refresh operations
+- **DataCacheProvider**: Data cache access (get_data method)
+- **ChannelLookup**: Channel lookup by address
+- **EventSubscriptionManager**: Event subscription management
+
+CentralUnit implements all protocols without explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 
 #### 3. Observer Pattern
 

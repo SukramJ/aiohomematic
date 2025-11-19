@@ -203,7 +203,8 @@ def _safe_create_data_point(
 
 def _check_switch_to_sensor(*, data_point: GenericDataPointAny) -> bool:
     """Check if parameter of a device should be wrapped to a different category."""
-    if data_point.device.central.parameter_visibility.parameter_is_un_ignored(
+    # pylint: disable=protected-access
+    if data_point.device._parameter_visibility_provider.parameter_is_un_ignored(
         channel=data_point.channel,
         paramset_key=data_point.paramset_key,
         parameter=data_point.parameter,

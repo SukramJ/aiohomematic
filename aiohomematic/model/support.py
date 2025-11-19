@@ -11,7 +11,6 @@ from functools import lru_cache
 import logging
 from typing import Any, Final
 
-from aiohomematic import central as hmcu
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CDPD,
@@ -166,10 +165,10 @@ def check_length_and_log(name: str | None, value: Any) -> Any:
     return value
 
 
-def get_device_name(central: hmcu.CentralUnit, device_address: str, model: str) -> str:
+def get_device_name(device_details_provider: Any, device_address: str, model: str) -> str:
     """Return the cached name for a device, or an auto-generated."""
-    if name := central.device_details.get_name(address=device_address):
-        return name
+    if name := device_details_provider.get_name(address=device_address):
+        return name  # type: ignore[no-any-return]
 
     _LOGGER.debug(
         "GET_DEVICE_NAME: Using auto-generated name for %s %s",
@@ -310,7 +309,8 @@ def get_data_point_name_data(
         if _check_channel_name_with_channel_no(name=channel_name):
             c_name = channel_name.split(ADDRESS_SEPARATOR)[0]
             c_postfix = ""
-            if channel.central.paramset_descriptions.is_in_multiple_channels(
+            # pylint: disable=protected-access
+            if channel.device._paramset_description_provider.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter
             ):
                 c_postfix = "" if channel.no in (0, None) else f" ch{channel.no}"
@@ -436,7 +436,7 @@ def get_custom_data_point_name(
 
 
 def generate_unique_id(
-    central: hmcu.CentralUnit,
+    config_provider: Any,
     address: str,
     parameter: str | None = None,
     prefix: str | None = None,
@@ -458,28 +458,30 @@ def generate_unique_id(
         or address.startswith("INT000")
         or address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES
     ):
-        return f"{central.config.central_id}_{unique_id}".lower()
+        return f"{config_provider.config.central_id}_{unique_id}".lower()
     return f"{unique_id}".lower()
 
 
 def generate_channel_unique_id(
-    central: hmcu.CentralUnit,
+    config_provider: Any,
     address: str,
 ) -> str:
     """Build unique identifier for a channel from address."""
     unique_id = address.replace(ADDRESS_SEPARATOR, "_").replace("-", "_")
     if address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES:
-        return f"{central.config.central_id}_{unique_id}".lower()
+        return f"{config_provider.config.central_id}_{unique_id}".lower()
     return unique_id.lower()
 
 
 def _get_base_name_from_channel_or_device(channel: hmd.Channel) -> str | None:
     """Get the name from channel if it's not default, otherwise from device."""
     default_channel_name = f"{channel.device.model} {channel.address}"
-    name = channel.central.device_details.get_name(address=channel.address)
+    # Access device details provider through channel's device
+    # pylint: disable=protected-access
+    name = channel.device._device_details_provider.get_name(address=channel.address)
     if name is None or name == default_channel_name:
         return channel.device.name if channel.no is None else f"{channel.device.name}:{channel.no}"
-    return name
+    return name  # type: ignore[no-any-return]
 
 
 def _check_channel_name_with_channel_no(name: str) -> bool:

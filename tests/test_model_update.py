@@ -18,10 +18,47 @@ class _FakeCentral:
     def __init__(self) -> None:
         self.config = type("Cfg", (), {"central_id": "CentralTest"})()
         self._refreshed: list[str] = []
+        self.name = "CentralTest"
+        self.available = True
 
     async def refresh_firmware_data(self, *, device_address: str) -> None:  # noqa: D401
         """Record that refresh was invoked."""
         self._refreshed.append(device_address)
+
+
+class _FakeConfigProvider:
+    def __init__(self, *, central: _FakeCentral) -> None:
+        self.config = central.config
+
+
+class _FakeCentralInfo:
+    def __init__(self, *, central: _FakeCentral) -> None:
+        self.name = central.name
+        self.available = central.available
+
+
+class _FakeEventBusProvider:
+    pass
+
+
+class _FakeTaskScheduler:
+    pass
+
+
+class _FakeParamsetDescriptionProvider:
+    pass
+
+
+class _FakeParameterVisibilityProvider:
+    pass
+
+
+class _FakeDeviceDataRefresher:
+    def __init__(self, *, central: _FakeCentral) -> None:
+        self._central = central
+
+    async def refresh_firmware_data(self, *, device_address: str) -> None:
+        await self._central.refresh_firmware_data(device_address=device_address)
 
 
 class _FakeDevice:
@@ -36,6 +73,14 @@ class _FakeDevice:
         self.available_firmware = None
         self.interface = Interface.BIDCOS_RF
         self._callbacks: list[FirmwareUpdateCallback] = []
+        # Add protocol interface attributes for DI
+        self._config_provider = _FakeConfigProvider(central=self.central)
+        self._central_info = _FakeCentralInfo(central=self.central)
+        self._event_bus_provider = _FakeEventBusProvider()
+        self._task_scheduler = _FakeTaskScheduler()
+        self._paramset_description_provider = _FakeParamsetDescriptionProvider()
+        self._parameter_visibility_provider = _FakeParameterVisibilityProvider()
+        self._device_data_refresher = _FakeDeviceDataRefresher(central=self.central)
 
     def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
         self._callbacks.append(cb)

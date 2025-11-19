@@ -235,9 +235,22 @@ class DeviceCoordinator:
                 device: Device | None = None
                 try:
                     device = Device(
-                        central=cast(Any, self._central),  # Central is CentralUnit at runtime
                         interface_id=interface_id,
                         device_address=device_address,
+                        device_details_provider=cast(Any, self._central.device_details),
+                        device_description_provider=cast(Any, self._central.device_descriptions),
+                        paramset_description_provider=cast(Any, self._central.paramset_descriptions),
+                        parameter_visibility_provider=cast(Any, self._central.parameter_visibility),
+                        client_provider=cast(Any, self._central),
+                        config_provider=cast(Any, self._central),
+                        central_info=cast(Any, self._central),
+                        event_bus_provider=cast(Any, self._central),
+                        task_scheduler=cast(Any, self._central.looper),
+                        file_operations=cast(Any, self._central),
+                        device_data_refresher=cast(Any, self._central),
+                        data_cache_provider=cast(Any, self._central.data_cache),
+                        channel_lookup=cast(Any, self._central),
+                        event_subscription_manager=cast(Any, self._central),
                     )
                 except Exception as exc:
                     _LOGGER.error(  # i18n-log: ignore

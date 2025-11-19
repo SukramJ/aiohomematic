@@ -523,7 +523,11 @@ class BaseCustomDpClimate(CustomDataPoint):
             )
         )
 
-        if OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY not in self._device.central.config.optional_settings:
+        # pylint: disable=protected-access
+        if (
+            OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY
+            not in self._device._config_provider.config.optional_settings
+        ):
             return
 
         for ch in self._device.channels.values():

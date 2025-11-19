@@ -646,7 +646,7 @@ class TestClientClasses:
 
         # ClientJsonCCU methods
         assert await client_json.check_connection_availability(handle_ping_pong=False) is True
-        assert await client_json.get_device_description(device_address="dev1") is not None
+        assert await client_json.get_device_description(address="dev1") is not None
         assert await client_json.get_paramset(address="dev1:1", paramset_key=ParamsetKey.VALUES) == {"LEVEL": 1}
         assert (
             await client_json.get_value(channel_address="dev1:1", paramset_key=ParamsetKey.VALUES, parameter="LEVEL")
@@ -733,7 +733,7 @@ class TestClientClasses:
             raise ClientException("fail")
 
         monkeypatch.setattr(central.json_rpc_client, "get_device_description", raise_bhe)
-        assert await client_json.get_device_description(device_address="dev1") is None
+        assert await client_json.get_device_description(address="dev1") is None
 
     @pytest.mark.asyncio
     async def test_fetch_all_device_data_exception_event(self, monkeypatch: pytest.MonkeyPatch) -> None:

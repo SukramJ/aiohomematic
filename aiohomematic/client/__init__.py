@@ -339,7 +339,7 @@ class Client(ABC, LogContextMixin):
     async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
         """Get all device descriptions from the backend."""
         all_device_description: list[DeviceDescription] = []
-        if main_dd := await self.get_device_description(device_address=device_address):
+        if main_dd := await self.get_device_description(address=device_address):
             all_device_description.append(main_dd)
         else:
             _LOGGER.warning(  # i18n-log: ignore
@@ -349,7 +349,7 @@ class Client(ABC, LogContextMixin):
 
         if main_dd:
             for channel_address in main_dd["CHILDREN"]:
-                if channel_dd := await self.get_device_description(device_address=channel_address):
+                if channel_dd := await self.get_device_description(address=channel_address):
                     all_device_description.append(channel_dd)
                 else:
                     _LOGGER.warning(  # i18n-log: ignore
@@ -396,12 +396,12 @@ class Client(ABC, LogContextMixin):
         """Get all system variables from the backend."""
 
     @inspector(re_raise=False)
-    async def get_device_description(self, *, device_address: str) -> DeviceDescription | None:
+    async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
         try:
             if device_description := cast(
                 DeviceDescription | None,
-                await self._proxy_read.getDeviceDescription(device_address),
+                await self._proxy_read.getDeviceDescription(address),
             ):
                 return device_description
         except BaseHomematicException as bhexc:
@@ -1366,11 +1366,11 @@ class ClientJsonCCU(ClientCCU):
         return await self._json_rpc_client.is_present(interface=self.interface)
 
     @inspector(re_raise=False)
-    async def get_device_description(self, *, device_address: str) -> DeviceDescription | None:
+    async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
         try:
             if device_description := await self._json_rpc_client.get_device_description(
-                interface=self.interface, address=device_address
+                interface=self.interface, address=address
             ):
                 return device_description
         except BaseHomematicException as bhexc:

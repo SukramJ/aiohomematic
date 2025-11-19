@@ -132,7 +132,7 @@ class DeviceDescriptionProvider(Protocol):
         self,
         *,
         interface_id: str,
-        device_address: str,
+        address: str,
     ) -> DeviceDescription:
         """Get device description."""
 

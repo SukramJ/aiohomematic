@@ -419,7 +419,7 @@ class DeviceCoordinator:
 
         if (
             device_address
-            and (device_description := await client.get_device_description(device_address=device_address)) is not None
+            and (device_description := await client.get_device_description(address=device_address)) is not None
         ):
             device_descriptions = (device_description,)
         else:

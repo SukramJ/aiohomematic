@@ -212,7 +212,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._interface: Final = device_details_provider.get_interface(address=device_address)
         self._client: Final = client_provider.get_client(interface_id=interface_id)
         self._description = self._device_description_provider.get_device_description(
-            interface_id=interface_id, device_address=device_address
+            interface_id=interface_id, address=device_address
         )
         _LOGGER.debug(
             "__INIT__: Initializing device: %s, %s",
@@ -732,7 +732,7 @@ class Device(LogContextMixin, PayloadMixin):
         old_firmware_updatable = self.firmware_updatable
 
         self._description = self._device_description_provider.get_device_description(
-            interface_id=self._interface_id, device_address=self._address
+            interface_id=self._interface_id, address=self._address
         )
 
         if (
@@ -868,7 +868,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
         self._description: DeviceDescription = self._device._device_description_provider.get_device_description(
-            interface_id=self._device.interface_id, device_address=channel_address
+            interface_id=self._device.interface_id, address=channel_address
         )
         self._type_name: Final[str] = self._description["TYPE"]
         self._is_schedule_channel: Final[bool] = WEEK_PROFILE_PATTERN.match(self._type_name) is not None

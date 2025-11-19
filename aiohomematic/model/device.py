@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Any, Final, cast
 import orjson
 
 from aiohomematic import client as hmcl, i18n
+from aiohomematic.central.event_bus import DeviceUpdatedEvent, FirmwareUpdatedEvent, LinkPeerChangedEvent
 
 if TYPE_CHECKING:
     from aiohomematic import central as hmcu
@@ -585,7 +586,7 @@ class Device(LogContextMixin, PayloadMixin):
         # Publish to EventBus asynchronously
         self._central.looper.create_task(
             target=lambda: self._central.event_bus.publish(
-                event=hmcu.event_bus.DeviceUpdatedEvent(
+                event=DeviceUpdatedEvent(
                     timestamp=datetime.now(),
                     device_address=self._address,
                 )
@@ -758,7 +759,7 @@ class Device(LogContextMixin, PayloadMixin):
             # Publish to EventBus asynchronously
             self._central.looper.create_task(
                 target=lambda: self._central.event_bus.publish(
-                    event=hmcu.event_bus.FirmwareUpdatedEvent(
+                    event=FirmwareUpdatedEvent(
                         timestamp=datetime.now(),
                         device_address=self._address,
                     )
@@ -770,12 +771,12 @@ class Device(LogContextMixin, PayloadMixin):
         """Register update callback."""
 
         # Create adapter that filters for this device's events
-        def event_handler(event: hmcu.event_bus.DeviceUpdatedEvent) -> None:
+        def event_handler(event: DeviceUpdatedEvent) -> None:
             if event.device_address == self._address:
                 cb()
 
         return self._central.event_bus.subscribe(
-            event_type=hmcu.event_bus.DeviceUpdatedEvent,
+            event_type=DeviceUpdatedEvent,
             handler=event_handler,
         )
 
@@ -783,12 +784,12 @@ class Device(LogContextMixin, PayloadMixin):
         """Register firmware update callback."""
 
         # Create adapter that filters for this device's events
-        def event_handler(event: hmcu.event_bus.FirmwareUpdatedEvent) -> None:
+        def event_handler(event: FirmwareUpdatedEvent) -> None:
             if event.device_address == self._address:
                 cb()
 
         return self._central.event_bus.subscribe(
-            event_type=hmcu.event_bus.FirmwareUpdatedEvent,
+            event_type=FirmwareUpdatedEvent,
             handler=event_handler,
         )
 
@@ -1210,7 +1211,7 @@ class Channel(LogContextMixin, PayloadMixin):
         # pylint: disable=protected-access
         self._device._central.looper.create_task(
             target=lambda: self._device._central.event_bus.publish(
-                event=hmcu.event_bus.LinkPeerChangedEvent(
+                event=LinkPeerChangedEvent(
                     timestamp=datetime.now(),
                     channel_address=self._address,
                 )
@@ -1372,12 +1373,12 @@ class Channel(LogContextMixin, PayloadMixin):
         """Register the link peer changed callback."""
 
         # Create adapter that filters for this channel's events
-        def event_handler(event: hmcu.event_bus.LinkPeerChangedEvent) -> None:
+        def event_handler(event: LinkPeerChangedEvent) -> None:
             if event.channel_address == self._address:
                 cb()
 
         return self._device._central.event_bus.subscribe(  # pylint: disable=protected-access
-            event_type=hmcu.event_bus.LinkPeerChangedEvent,
+            event_type=LinkPeerChangedEvent,
             handler=event_handler,
         )
 

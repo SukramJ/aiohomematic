@@ -37,6 +37,7 @@ import voluptuous as vol
 
 from aiohomematic import central as hmcu, client as hmcl, i18n, support as hms, validator as val
 from aiohomematic.async_support import loop_check
+from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent, DeviceRemovedEvent
 from aiohomematic.const import (
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
@@ -149,6 +150,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         "_refreshed_at",
         "_registered_custom_ids",
         "_signature",
+        "_subscription_counts",
         "_temporary_modified_at",
         "_temporary_refreshed_at",
         "_unique_id",
@@ -161,6 +163,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._central: Final = central
         self._unique_id: Final = unique_id
         self._registered_custom_ids: set[str] = set()
+        self._subscription_counts: dict[str, int] = {}
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
         self._emitted_event_at: datetime = INIT_DATETIME
@@ -386,7 +389,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
             ) -> None:  # noqa: E731
                 """Publish callback event with custom id."""
                 await self._central.event_bus.publish(
-                    event=hmcu.event_bus.DataPointUpdatedCallbackEvent(
+                    event=DataPointUpdatedCallbackEvent(
                         timestamp=datetime.now(),
                         unique_id=self._unique_id,
                         custom_id=cid,
@@ -405,7 +408,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         # Publish to EventBus asynchronously
         self._central.looper.create_task(
             target=lambda: self._central.event_bus.publish(
-                event=hmcu.event_bus.DeviceRemovedEvent(
+                event=DeviceRemovedEvent(
                     timestamp=datetime.now(),
                     unique_id=self._unique_id,
                 )
@@ -435,33 +438,31 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._registered_custom_ids.add(custom_id)
 
         # Create adapter that filters for this data point's events with matching custom_id
-        def event_handler(event: hmcu.event_bus.DataPointUpdatedCallbackEvent) -> None:
+        def event_handler(event: DataPointUpdatedCallbackEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
                 cb(**event.kwargs)
 
         unsubscribe = self._central.event_bus.subscribe(
-            event_type=hmcu.event_bus.DataPointUpdatedCallbackEvent,
+            event_type=DataPointUpdatedCallbackEvent,
             handler=event_handler,
         )
 
         # Track subscription count per custom_id for proper cleanup
-        subscription_count_key = f"_subscription_count_{custom_id}"
-        current_count = getattr(self, subscription_count_key, 0)
-        setattr(self, subscription_count_key, current_count + 1)
+        current_count = self._subscription_counts.get(custom_id, 0)
+        self._subscription_counts[custom_id] = current_count + 1
 
         # Wrap unsubscribe to also remove from tracking when last subscription is removed
         def wrapped_unsubscribe() -> None:
             unsubscribe()
             # Decrement subscription count
-            count = getattr(self, subscription_count_key, 1)
+            count = self._subscription_counts.get(custom_id, 1)
             count -= 1
             if count <= 0:
                 # Last subscription for this custom_id, remove from tracking
                 self._registered_custom_ids.discard(custom_id)
-                if hasattr(self, subscription_count_key):
-                    delattr(self, subscription_count_key)
+                self._subscription_counts.pop(custom_id, None)
             else:
-                setattr(self, subscription_count_key, count)
+                self._subscription_counts[custom_id] = count
 
         return wrapped_unsubscribe
 
@@ -469,12 +470,12 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Register the device removed callback."""
 
         # Create adapter that filters for this data point's events
-        def event_handler(event: hmcu.event_bus.DeviceRemovedEvent) -> None:
+        def event_handler(event: DeviceRemovedEvent) -> None:
             if event.unique_id == self._unique_id:
                 cb()
 
         return self._central.event_bus.subscribe(
-            event_type=hmcu.event_bus.DeviceRemovedEvent,
+            event_type=DeviceRemovedEvent,
             handler=event_handler,
         )
 
@@ -515,6 +516,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
         """Unregister data_point updated callback (placeholder for compatibility)."""
+
+    def _unregister_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> None:
+        """Unregister device removed callback (placeholder for compatibility)."""
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):

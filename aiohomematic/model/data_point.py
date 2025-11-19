@@ -522,12 +522,6 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Set temporary_refreshed_at to current datetime."""
         self._temporary_refreshed_at = refreshed_at
 
-    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
-        """Unregister data_point updated callback (placeholder for compatibility)."""
-
-    def _unregister_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> None:
-        """Unregister device removed callback (placeholder for compatibility)."""
-
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
     """Base class for regular data point."""

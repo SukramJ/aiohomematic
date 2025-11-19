@@ -819,12 +819,6 @@ class Device(LogContextMixin, PayloadMixin):
             for dp in self.generic_data_points:
                 dp.emit_data_point_updated_event()
 
-    def unregister_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> None:
-        """Unregister update callback (placeholder for compatibility)."""
-
-    def unregister_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> None:
-        """Unregister firmware update callback (placeholder for compatibility)."""
-
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Update the firmware of the Homematic device."""
@@ -1187,7 +1181,6 @@ class Channel(LogContextMixin, PayloadMixin):
             self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
             self._generic_data_points[data_point.dpk] = data_point
-            self._device.register_device_updated_callback(cb=data_point.emit_data_point_updated_event)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = data_point
         if isinstance(data_point, GenericEvent):
@@ -1457,7 +1450,6 @@ class Channel(LogContextMixin, PayloadMixin):
             del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):
             del self._generic_data_points[data_point.dpk]
-            self._device.unregister_device_updated_callback(cb=data_point.emit_data_point_updated_event)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = None
         if isinstance(data_point, GenericEvent):

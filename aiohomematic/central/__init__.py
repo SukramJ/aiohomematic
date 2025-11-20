@@ -143,6 +143,16 @@ from aiohomematic.exceptions import (
     BaseHomematicException,
     NoClientsException,
 )
+from aiohomematic.interfaces import (
+    ChannelLookup,
+    ClientProvider,
+    ConfigProvider,
+    CoordinatorProvider,
+    DeviceDataRefresher,
+    EventBusProvider,
+    EventSubscriptionManager,
+    FileOperations,
+)
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
 from aiohomematic.model.device import Channel, Device
@@ -194,7 +204,18 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 )
 
 
-class CentralUnit(LogContextMixin, PayloadMixin):
+class CentralUnit(
+    LogContextMixin,
+    PayloadMixin,
+    ChannelLookup,
+    ClientProvider,
+    ConfigProvider,
+    CoordinatorProvider,
+    DeviceDataRefresher,
+    EventBusProvider,
+    EventSubscriptionManager,
+    FileOperations,
+):
     """Central unit that collects everything to handle communication from/to the backend."""
 
     def __init__(self, *, central_config: CentralConfig) -> None:

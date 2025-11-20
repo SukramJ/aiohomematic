@@ -51,7 +51,9 @@ from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_para
 from aiohomematic.interfaces import (
     CentralInfo,
     ClientProvider,
+    DataCacheProvider,
     DataPointProvider,
+    DeviceDetailsProvider,
     DeviceProvider,
     EventEmitter,
     PrimaryClientProvider,
@@ -156,7 +158,7 @@ class CommandCache:
                 del self._last_send_command[dpk]
 
 
-class DeviceDetailsCache:
+class DeviceDetailsCache(DeviceDetailsProvider):
     """Cache for device/channel details."""
 
     __slots__ = (
@@ -294,7 +296,7 @@ class DeviceDetailsCache:
         return _device_rooms
 
 
-class CentralDataCache:
+class CentralDataCache(DataCacheProvider):
     """Central cache for device/channel initial data."""
 
     __slots__ = (

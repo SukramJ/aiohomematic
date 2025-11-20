@@ -48,7 +48,11 @@ if TYPE_CHECKING:
 
 @runtime_checkable
 class ParameterVisibilityProvider(Protocol):
-    """Protocol for accessing parameter visibility information."""
+    """
+    Protocol for accessing parameter visibility information.
+
+    Implemented by ParameterVisibilityCache
+    """
 
     @abstractmethod
     def is_relevant_paramset(self, *, channel: Channel, paramset_key: ParamsetKey) -> bool:
@@ -81,7 +85,11 @@ class ParameterVisibilityProvider(Protocol):
 
 @runtime_checkable
 class EventEmitter(Protocol):
-    """Protocol for emitting events to the system."""
+    """
+    Protocol for emitting events to the system.
+
+    Implemented by CentralUnit
+    """
 
     @abstractmethod
     def emit_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
@@ -94,7 +102,11 @@ class EventEmitter(Protocol):
 
 @runtime_checkable
 class DeviceDetailsProvider(Protocol):
-    """Protocol for accessing device details."""
+    """
+    Protocol for accessing device details.
+
+    Implemented by DeviceDescriptionCache
+    """
 
     @abstractmethod
     def get_address_id(self, *, address: str) -> str:
@@ -123,7 +135,11 @@ class DeviceDetailsProvider(Protocol):
 
 @runtime_checkable
 class DeviceDescriptionProvider(Protocol):
-    """Protocol for accessing device descriptions."""
+    """
+    Protocol for accessing device descriptions.
+
+    Implemented by DeviceDescriptionCache
+    """
 
     @abstractmethod
     def get_device_description(self, *, interface_id: str, address: str) -> DeviceDescription:
@@ -136,7 +152,11 @@ class DeviceDescriptionProvider(Protocol):
 
 @runtime_checkable
 class ParamsetDescriptionProvider(Protocol):
-    """Protocol for accessing paramset descriptions."""
+    """
+    Protocol for accessing paramset descriptions.
+
+    Implemented by ParamsetDescriptionCache
+    """
 
     @abstractmethod
     def get_channel_paramset_descriptions(
@@ -157,7 +177,11 @@ class ParamsetDescriptionProvider(Protocol):
 
 @runtime_checkable
 class EventSubscriptionManager(Protocol):
-    """Protocol for managing event subscriptions."""
+    """
+    Protocol for managing event subscriptions.
+
+    Implemented by CentralUnit
+    """
 
     @abstractmethod
     def add_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
@@ -170,7 +194,11 @@ class EventSubscriptionManager(Protocol):
 
 @runtime_checkable
 class HubDataPointManager(Protocol):
-    """Protocol for managing hub-level data points (programs/sysvars)."""
+    """
+    Protocol for managing hub-level data points (programs/sysvars).
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -209,7 +237,11 @@ class HubDataPointManager(Protocol):
 
 @runtime_checkable
 class TaskScheduler(Protocol):
-    """Protocol for scheduling async tasks."""
+    """
+    Protocol for scheduling async tasks.
+
+    Implemented by Looper
+    """
 
     @abstractmethod
     def async_add_executor_job[T](
@@ -224,7 +256,11 @@ class TaskScheduler(Protocol):
 
 @runtime_checkable
 class CentralInfo(Protocol):
-    """Protocol for accessing central system information."""
+    """
+    Protocol for accessing central system information.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -249,7 +285,11 @@ class CentralInfo(Protocol):
 
 @runtime_checkable
 class PrimaryClientProvider(Protocol):
-    """Protocol for accessing primary client."""
+    """
+    Protocol for accessing primary client.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -262,7 +302,11 @@ class PrimaryClientProvider(Protocol):
 
 @runtime_checkable
 class ClientProvider(Protocol):
-    """Protocol for accessing client instances."""
+    """
+    Protocol for accessing client instances.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -290,7 +334,11 @@ class ClientProvider(Protocol):
 
 @runtime_checkable
 class CoordinatorProvider(Protocol):
-    """Protocol for accessing coordinator instances."""
+    """
+    Protocol for accessing coordinator instances.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -325,7 +373,11 @@ class CoordinatorProvider(Protocol):
 
 @runtime_checkable
 class ConfigProvider(Protocol):
-    """Protocol for accessing configuration."""
+    """
+    Protocol for accessing configuration.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -335,7 +387,11 @@ class ConfigProvider(Protocol):
 
 @runtime_checkable
 class SystemInfoProvider(Protocol):
-    """Protocol for accessing system information."""
+    """
+    Protocol for accessing system information.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -345,7 +401,11 @@ class SystemInfoProvider(Protocol):
 
 @runtime_checkable
 class EventBusProvider(Protocol):
-    """Protocol for accessing event bus."""
+    """
+    Protocol for accessing event bus.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -355,7 +415,11 @@ class EventBusProvider(Protocol):
 
 @runtime_checkable
 class DataPointProvider(Protocol):
-    """Protocol for accessing data points."""
+    """
+    Protocol for accessing data points.
+
+    Implemented by CentralUnit
+    """
 
     @abstractmethod
     def get_readable_generic_data_points(
@@ -369,7 +433,11 @@ class DataPointProvider(Protocol):
 
 @runtime_checkable
 class DeviceProvider(Protocol):
-    """Protocol for accessing devices."""
+    """
+    Protocol for accessing devices.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -384,7 +452,11 @@ class DeviceProvider(Protocol):
 
 @runtime_checkable
 class ChannelLookup(Protocol):
-    """Protocol for looking up channels."""
+    """
+    Protocol for looking up channels.
+
+    Implemented by CentralUnit
+    """
 
     @abstractmethod
     def get_channel(self, *, channel_address: str) -> Channel | None:
@@ -397,7 +469,11 @@ class ChannelLookup(Protocol):
 
 @runtime_checkable
 class FileOperations(Protocol):
-    """Protocol for file save operations."""
+    """
+    Protocol for file save operations.
+
+    Implemented by CentralUnit
+    """
 
     @abstractmethod
     async def save_files(
@@ -408,7 +484,11 @@ class FileOperations(Protocol):
 
 @runtime_checkable
 class DeviceDataRefresher(Protocol):
-    """Protocol for refreshing device data."""
+    """
+    Protocol for refreshing device data.
+
+    Implemented by CentralUnit
+    """
 
     @abstractmethod
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
@@ -425,7 +505,11 @@ class DeviceDataRefresher(Protocol):
 
 @runtime_checkable
 class HubDataFetcher(Protocol):
-    """Protocol for fetching hub data."""
+    """
+    Protocol for fetching hub data.
+
+    Implemented by CentralUnit
+    """
 
     @abstractmethod
     async def execute_program(self, *, pid: str) -> bool:
@@ -446,7 +530,11 @@ class HubDataFetcher(Protocol):
 
 @runtime_checkable
 class ClientCoordination(Protocol):
-    """Protocol for client coordination operations."""
+    """
+    Protocol for client coordination operations.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -482,7 +570,11 @@ class ClientCoordination(Protocol):
 
 @runtime_checkable
 class CentralUnitStateProvider(Protocol):
-    """Protocol for accessing central unit state."""
+    """
+    Protocol for accessing central unit state.
+
+    Implemented by CentralUnit
+    """
 
     @property
     @abstractmethod
@@ -492,7 +584,11 @@ class CentralUnitStateProvider(Protocol):
 
 @runtime_checkable
 class DataCacheProvider(Protocol):
-    """Protocol for accessing data cache."""
+    """
+    Protocol for accessing data cache.
+
+    Implemented by CentralDataCache
+    """
 
     @abstractmethod
     def get_data(self, *, interface: Interface, channel_address: str, parameter: str) -> Any:

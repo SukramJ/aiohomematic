@@ -110,7 +110,7 @@ class DeviceDetailsProvider(Protocol):
 
     @abstractmethod
     def get_address_id(self, *, address: str) -> str:
-        """Get numeric ID for an address."""
+        """Get an ID for an address."""
 
     @abstractmethod
     def get_channel_rooms(self, *, channel_address: str) -> set[str]:

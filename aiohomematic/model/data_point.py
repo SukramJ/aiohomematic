@@ -559,11 +559,11 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
         self._device: Final[hmd.Device] = channel.device
         super().__init__(
             unique_id=unique_id,
-            central_info=channel.device._central_info,
-            event_bus_provider=channel.device._event_bus_provider,
-            task_scheduler=channel.device._task_scheduler,
-            paramset_description_provider=channel.device._paramset_description_provider,
-            parameter_visibility_provider=channel.device._parameter_visibility_provider,
+            central_info=channel.device.central_info,
+            event_bus_provider=channel.device.event_bus_provider,
+            task_scheduler=channel.device.task_scheduler,
+            paramset_description_provider=channel.device.paramset_description_provider,
+            parameter_visibility_provider=channel.device.parameter_visibility_provider,
         )
         self._is_in_multiple_channels: Final = is_in_multiple_channels
         self._client: Final[hmcl.Client] = channel.device.client
@@ -729,12 +729,12 @@ class BaseParameterDataPoint[
         super().__init__(
             channel=channel,
             unique_id=generate_unique_id(
-                config_provider=channel.device._config_provider,
+                config_provider=channel.device.config_provider,
                 address=channel.address,
                 parameter=parameter,
                 prefix=unique_id_prefix,
             ),
-            is_in_multiple_channels=channel.device._paramset_description_provider.is_in_multiple_channels(
+            is_in_multiple_channels=channel.device.paramset_description_provider.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter
             ),
         )

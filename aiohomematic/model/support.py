@@ -312,8 +312,7 @@ def get_data_point_name_data(
         if _check_channel_name_with_channel_no(name=channel_name):
             c_name = channel_name.split(ADDRESS_SEPARATOR)[0]
             c_postfix = ""
-            # pylint: disable=protected-access
-            if channel.device._paramset_description_provider.is_in_multiple_channels(
+            if channel.device.paramset_description_provider.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter
             ):
                 c_postfix = "" if channel.no in (0, None) else f" ch{channel.no}"
@@ -480,8 +479,7 @@ def _get_base_name_from_channel_or_device(channel: hmd.Channel) -> str | None:
     """Get the name from channel if it's not default, otherwise from device."""
     default_channel_name = f"{channel.device.model} {channel.address}"
     # Access device details provider through channel's device
-    # pylint: disable=protected-access
-    name = channel.device._device_details_provider.get_name(address=channel.address)
+    name = channel.device.device_details_provider.get_name(address=channel.address)
     if name is None or name == default_channel_name:
         return channel.device.name if channel.no is None else f"{channel.device.name}:{channel.no}"
     return name

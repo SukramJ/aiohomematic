@@ -639,8 +639,7 @@ def _create_custom_data_point(
     custom_config: CustomConfig,
 ) -> None:
     """Create custom data point."""
-    # pylint: disable=protected-access
-    unique_id = generate_unique_id(config_provider=channel.device._config_provider, address=channel.address)
+    unique_id = generate_unique_id(config_provider=channel.device.config_provider, address=channel.address)
 
     try:
         if (

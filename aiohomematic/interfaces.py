@@ -257,19 +257,6 @@ class PrimaryClientProvider(Protocol):
         """Get primary client."""
 
 
-@runtime_checkable
-class EventRegistry(Protocol):
-    """Protocol for registering event handlers."""
-
-    @abstractmethod
-    def add_event_handler(self, *, event_type: EventType, handler: Callable[[Any], None]) -> None:
-        """Add an event handler."""
-
-    @abstractmethod
-    def remove_event_handler(self, *, event_type: EventType, handler: Callable[[Any], None]) -> None:
-        """Remove an event handler."""
-
-
 # Coordinator-specific interfaces
 
 
@@ -391,7 +378,7 @@ class DeviceProvider(Protocol):
 
     @property
     @abstractmethod
-    def interfaces(self) -> tuple[Interface, ...]:
+    def interfaces(self) -> frozenset[Interface]:
         """Get all interfaces."""
 
 

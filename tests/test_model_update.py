@@ -74,13 +74,13 @@ class _FakeDevice:
         self.interface = Interface.BIDCOS_RF
         self._callbacks: list[FirmwareUpdateCallback] = []
         # Add protocol interface attributes for DI
-        self._config_provider = _FakeConfigProvider(central=self.central)
-        self._central_info = _FakeCentralInfo(central=self.central)
-        self._event_bus_provider = _FakeEventBusProvider()
-        self._task_scheduler = _FakeTaskScheduler()
-        self._paramset_description_provider = _FakeParamsetDescriptionProvider()
-        self._parameter_visibility_provider = _FakeParameterVisibilityProvider()
-        self._device_data_refresher = _FakeDeviceDataRefresher(central=self.central)
+        self.config_provider = _FakeConfigProvider(central=self.central)
+        self.central_info = _FakeCentralInfo(central=self.central)
+        self.event_bus_provider = _FakeEventBusProvider()
+        self.task_scheduler = _FakeTaskScheduler()
+        self.paramset_description_provider = _FakeParamsetDescriptionProvider()
+        self.parameter_visibility_provider = _FakeParameterVisibilityProvider()
+        self.device_data_refresher = _FakeDeviceDataRefresher(central=self.central)
 
     def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
         self._callbacks.append(cb)

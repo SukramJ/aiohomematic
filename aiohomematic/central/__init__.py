@@ -144,14 +144,24 @@ from aiohomematic.exceptions import (
     NoClientsException,
 )
 from aiohomematic.interfaces import (
+    CentralInfo,
+    CentralUnitStateProvider,
     ChannelLookup,
+    ClientCoordination,
     ClientProvider,
     ConfigProvider,
     CoordinatorProvider,
+    DataPointProvider,
     DeviceDataRefresher,
+    DeviceProvider,
     EventBusProvider,
+    EventEmitter,
     EventSubscriptionManager,
     FileOperations,
+    HubDataFetcher,
+    HubDataPointManager,
+    PrimaryClientProvider,
+    SystemInfoProvider,
 )
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
@@ -205,16 +215,26 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 
 
 class CentralUnit(
-    LogContextMixin,
     PayloadMixin,
+    CentralInfo,
+    CentralUnitStateProvider,
     ChannelLookup,
+    ClientCoordination,
     ClientProvider,
     ConfigProvider,
+    DataPointProvider,
+    PrimaryClientProvider,
+    DeviceProvider,
+    EventEmitter,
+    SystemInfoProvider,
     CoordinatorProvider,
     DeviceDataRefresher,
     EventBusProvider,
     EventSubscriptionManager,
     FileOperations,
+    HubDataFetcher,
+    HubDataPointManager,
+    LogContextMixin,
 ):
     """Central unit that collects everything to handle communication from/to the backend."""
 
@@ -239,7 +259,7 @@ class CentralUnit(
         # Initialize coordinators
         self._cache_coordinator: Final = CacheCoordinator(
             central_info=self,
-            device_provider=self,  # type: ignore[arg-type]
+            device_provider=self,
             client_provider=self,
             data_point_provider=self,
             primary_client_provider=self,

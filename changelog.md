@@ -3,6 +3,7 @@
 ## What's Changed
 
 - De-couple from central unit pt2
+- Improve typing in protocols/interfaces
 
 # Version 2025.11.20 (2025-11-19)
 

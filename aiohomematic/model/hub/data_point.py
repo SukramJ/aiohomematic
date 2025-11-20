@@ -54,8 +54,8 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         "_enabled_default",
         "_legacy_name",
         "_name_data",
-        "_state_uncertain",
         "_primary_client_provider",
+        "_state_uncertain",
     )
 
     def __init__(
@@ -322,11 +322,11 @@ class GenericProgramDataPoint(GenericHubDataPoint):
     """Class for a generic Homematic progran data point."""
 
     __slots__ = (
-        "_pid",
+        "_hub_data_fetcher",
         "_is_active",
         "_is_internal",
         "_last_execute_time",
-        "_hub_data_fetcher",
+        "_pid",
     )
 
     def __init__(

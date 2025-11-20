@@ -163,13 +163,13 @@ class DeviceDetailsCache(DeviceDetailsProvider):
 
     __slots__ = (
         "_central_info",
-        "_primary_client_provider",
         "_channel_rooms",
         "_device_channel_ids",
         "_device_rooms",
         "_functions",
         "_interface_cache",
         "_names_cache",
+        "_primary_client_provider",
         "_refreshed_at",
     )
 
@@ -300,10 +300,10 @@ class CentralDataCache(DataCacheProvider):
     """Central cache for device/channel initial data."""
 
     __slots__ = (
-        "_device_provider",
+        "_central_info",
         "_client_provider",
         "_data_point_provider",
-        "_central_info",
+        "_device_provider",
         "_refreshed_at",
         "_value_cache",
     )
@@ -398,8 +398,8 @@ class PingPongCache:
 
     __slots__ = (
         "_allowed_delta",
-        "_event_emitter",
         "_central_info",
+        "_event_emitter",
         "_interface_id",
         "_pending_pong_logged",
         "_pending_pongs",

@@ -41,14 +41,14 @@ class ClientCoordinator(ClientProvider):
     """Coordinator for client lifecycle and operations."""
 
     __slots__ = (
-        "_central",  # Only for factory functions
-        "_config_provider",
+        "_central",
         "_central_info",
-        "_coordinator_provider",
-        "_system_info_provider",
         "_clients",
         "_clients_started",
+        "_config_provider",
+        "_coordinator_provider",
         "_primary_client",
+        "_system_info_provider",
     )
 
     def __init__(

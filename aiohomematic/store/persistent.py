@@ -93,15 +93,15 @@ class BasePersistentFile(ABC):
     """Cache for files."""
 
     __slots__ = (
-        "_config_provider",
-        "_task_scheduler",
         "_central_info",
+        "_config_provider",
         "_device_provider",
         "_directory",
         "_file_postfix",
         "_persistent_content",
         "_save_load_semaphore",
         "_sub_directory",
+        "_task_scheduler",
         "_use_ts_in_file_names",
         "last_hash_saved",
         "last_save_triggered",
@@ -578,10 +578,10 @@ class SessionRecorder(BasePersistentFile):
 
     __slots__ = (
         "_active",
-        "_ttl",
         "_is_recording",
         "_refresh_on_get",
         "_store",
+        "_ttl",
     )
 
     _file_postfix = FILE_SESSION_RECORDER

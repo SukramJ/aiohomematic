@@ -150,20 +150,20 @@ class Hub:
     """The Homematic hub."""
 
     __slots__ = (
-        "_sema_fetch_sysvars",
-        "_sema_fetch_programs",
-        "_central",  # Only for data point factory functions
-        "_config_provider",
+        "_central",
         "_central_info",
-        "_hub_data_point_manager",
-        "_primary_client_provider",
-        "_event_emitter",
-        "_event_bus_provider",
-        "_task_scheduler",
-        "_paramset_description_provider",
-        "_parameter_visibility_provider",
         "_channel_lookup",
+        "_config_provider",
+        "_event_bus_provider",
+        "_event_emitter",
         "_hub_data_fetcher",
+        "_hub_data_point_manager",
+        "_parameter_visibility_provider",
+        "_paramset_description_provider",
+        "_primary_client_provider",
+        "_sema_fetch_programs",
+        "_sema_fetch_sysvars",
+        "_task_scheduler",
     )
 
     def __init__(

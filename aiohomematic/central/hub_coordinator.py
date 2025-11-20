@@ -36,8 +36,8 @@ class HubCoordinator:
     __slots__ = (
         "_central_info",
         "_event_bus_provider",
-        "_primary_client_provider",
         "_hub",
+        "_primary_client_provider",
         "_program_data_points",
         "_sysvar_data_points",
     )

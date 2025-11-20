@@ -52,9 +52,9 @@ class EventCoordinator:
 
     __slots__ = (
         "_client_provider",
-        "_task_scheduler",
         "_event_bus",
         "_last_event_seen_for_interface",
+        "_task_scheduler",
     )
 
     def __init__(

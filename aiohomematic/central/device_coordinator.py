@@ -68,10 +68,12 @@ class DeviceCoordinator:
     """Coordinator for device lifecycle and operations."""
 
     __slots__ = (
-        "_central",
-        "_coordinator_provider",
         "_central_info",
+        "_channel_lookup",
+        "_client_provider",
         "_config_provider",
+        "_coordinator_provider",
+        "_data_cache_provider",
         "_device_add_semaphore",
         "_device_data_refresher",
         "_device_description_provider",
@@ -82,10 +84,6 @@ class DeviceCoordinator:
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_task_scheduler",
-        "_data_cache_provider",
-        "_channel_lookup",
-        "_client_provider",
-        "_config_provider",
     )
 
     def __init__(

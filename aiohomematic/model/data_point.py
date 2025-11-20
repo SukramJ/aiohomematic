@@ -147,15 +147,15 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
     __slots__ = (
         "_cached_enabled_default",
-        "_cached_service_methods",
         "_cached_service_method_names",
+        "_cached_service_methods",
         "_central_info",
         "_custom_id",
         "_emitted_event_at",
         "_event_bus_provider",
         "_modified_at",
-        "_paramset_description_provider",
         "_parameter_visibility_provider",
+        "_paramset_description_provider",
         "_path_data",
         "_refreshed_at",
         "_registered_custom_ids",

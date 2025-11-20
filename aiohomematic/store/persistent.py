@@ -48,7 +48,7 @@ import zipfile
 import orjson
 from slugify import slugify
 
-from aiohomematic import central as hmcu, i18n
+from aiohomematic import i18n
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
@@ -106,10 +106,10 @@ class BasePersistentFile(ABC):
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
-        task_scheduler: TaskScheduler,
         central_info: CentralInfo,
+        config_provider: ConfigProvider,
         device_provider: DeviceProvider,
+        task_scheduler: TaskScheduler,
         persistent_content: dict[str, Any],
     ) -> None:
         """Initialize the base class of the persistent content."""
@@ -275,15 +275,22 @@ class DeviceDescriptionCache(BasePersistentFile):
     _file_postfix = FILE_DEVICES
     _sub_directory = SUB_DIRECTORY_CACHE
 
-    def __init__(self, *, central: hmcu.CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        central_info: CentralInfo,
+        config_provider: ConfigProvider,
+        device_provider: DeviceProvider,
+        task_scheduler: TaskScheduler,
+    ) -> None:
         """Initialize the device description cache."""
         # {interface_id, [device_descriptions]}
         self._raw_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         super().__init__(
-            config_provider=central,
-            task_scheduler=central.looper,
-            central_info=central,
-            device_provider=cast(DeviceProvider, central),
+            central_info=central_info,
+            config_provider=config_provider,
+            device_provider=device_provider,
+            task_scheduler=task_scheduler,
             persistent_content=self._raw_device_descriptions,
         )
         # {interface_id, {device_address, [channel_address]}}
@@ -418,17 +425,24 @@ class ParamsetDescriptionCache(BasePersistentFile):
     _file_postfix = FILE_PARAMSETS
     _sub_directory = SUB_DIRECTORY_CACHE
 
-    def __init__(self, *, central: hmcu.CentralUnit) -> None:
+    def __init__(
+        self,
+        *,
+        config_provider: ConfigProvider,
+        task_scheduler: TaskScheduler,
+        central_info: CentralInfo,
+        device_provider: DeviceProvider,
+    ) -> None:
         """Init the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
         self._raw_paramset_descriptions: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = (
             defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         )
         super().__init__(
-            config_provider=central,
-            task_scheduler=central.looper,
-            central_info=central,
-            device_provider=cast(DeviceProvider, central),
+            config_provider=config_provider,
+            task_scheduler=task_scheduler,
+            central_info=central_info,
+            device_provider=device_provider,
             persistent_content=self._raw_paramset_descriptions,
         )
 
@@ -569,7 +583,10 @@ class SessionRecorder(BasePersistentFile):
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        central_info: CentralInfo,
+        config_provider: ConfigProvider,
+        device_provider: DeviceProvider,
+        task_scheduler: TaskScheduler,
         active: bool,
         ttl_seconds: float,
         refresh_on_get: bool = False,
@@ -587,10 +604,10 @@ class SessionRecorder(BasePersistentFile):
             lambda: defaultdict(lambda: defaultdict(dict))
         )
         super().__init__(
-            config_provider=central,
-            task_scheduler=central.looper,
-            central_info=central,
-            device_provider=cast(DeviceProvider, central),
+            config_provider=config_provider,
+            task_scheduler=task_scheduler,
+            central_info=central_info,
+            device_provider=device_provider,
             persistent_content=self._store,
         )
 

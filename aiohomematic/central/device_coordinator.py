@@ -39,6 +39,7 @@ from aiohomematic.interfaces import (
     ConfigProvider,
     CoordinatorProvider,
     DataCacheProvider,
+    DataPointProvider,
     DeviceDataRefresher,
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
@@ -74,6 +75,7 @@ class DeviceCoordinator:
         "_config_provider",
         "_coordinator_provider",
         "_data_cache_provider",
+        "_data_point_provider",
         "_device_add_semaphore",
         "_device_data_refresher",
         "_device_description_provider",
@@ -95,6 +97,7 @@ class DeviceCoordinator:
         config_provider: ConfigProvider,
         coordinator_provider: CoordinatorProvider,
         data_cache_provider: DataCacheProvider,
+        data_point_provider: DataPointProvider,
         device_data_refresher: DeviceDataRefresher,
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
@@ -116,6 +119,7 @@ class DeviceCoordinator:
             config_provider: Provider for configuration access
             coordinator_provider: Provider for accessing other coordinators
             data_cache_provider: Provider for data cache access
+            data_point_provider: Provider for data point access
             device_data_refresher: Provider for device data refresh operations
             device_description_provider: Provider for device descriptions
             device_details_provider: Provider for device details
@@ -133,6 +137,7 @@ class DeviceCoordinator:
         self._config_provider: Final = config_provider
         self._coordinator_provider: Final = coordinator_provider
         self._data_cache_provider = data_cache_provider
+        self._data_point_provider = data_point_provider
         self._device_data_refresher = device_data_refresher
         self._device_description_provider = device_description_provider
         self._device_details_provider = device_details_provider
@@ -302,6 +307,7 @@ class DeviceCoordinator:
                         client_provider=self._client_provider,
                         config_provider=self._config_provider,
                         data_cache_provider=self._data_cache_provider,
+                        data_point_provider=self._data_point_provider,
                         device_data_refresher=self._device_data_refresher,
                         device_description_provider=self._device_description_provider,
                         device_details_provider=self._device_details_provider,

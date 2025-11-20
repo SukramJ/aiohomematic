@@ -76,6 +76,7 @@ from aiohomematic.interfaces import (
     ClientProvider,
     ConfigProvider,
     DataCacheProvider,
+    DataPointProvider,
     DeviceDataRefresher,
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
@@ -136,6 +137,7 @@ class Device(LogContextMixin, PayloadMixin):
         "_client_provider",
         "_config_provider",
         "_data_cache_provider",
+        "_data_point_provider",
         "_description",
         "_device_data_refresher",
         "_device_description_provider",
@@ -178,6 +180,7 @@ class Device(LogContextMixin, PayloadMixin):
         client_provider: ClientProvider,
         config_provider: ConfigProvider,
         data_cache_provider: DataCacheProvider,
+        data_point_provider: DataPointProvider,
         device_data_refresher: DeviceDataRefresher,
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
@@ -204,6 +207,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._file_operations: Final = file_operations
         self._device_data_refresher: Final = device_data_refresher
         self._data_cache_provider: Final = data_cache_provider
+        self._data_point_provider: Final = data_point_provider
         self._channel_lookup: Final = channel_lookup
         self._event_subscription_manager: Final = event_subscription_manager
         self._channel_group: Final[dict[int | None, int]] = {}
@@ -362,6 +366,11 @@ class Device(LogContextMixin, PayloadMixin):
     def data_cache_provider(self) -> DataCacheProvider:
         """Return the DataCacheProvider of the device."""
         return self._data_cache_provider
+
+    @property
+    def data_point_provider(self) -> DataPointProvider:
+        """Return the data point provider."""
+        return self._data_point_provider
 
     @property
     def default_schedule_channel(self) -> Channel | None:

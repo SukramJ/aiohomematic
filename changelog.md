@@ -1,3 +1,9 @@
+# Version 2025.11.22 (2025-11-19)
+
+## What's Changed
+
+- Add data_point_provider to DeviceCoordinator
+
 # Version 2025.11.21 (2025-11-19)
 
 ## What's Changed

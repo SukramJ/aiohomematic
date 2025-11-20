@@ -70,6 +70,22 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.interfaces import (
+    CentralInfo,
+    ChannelLookup,
+    ClientProvider,
+    ConfigProvider,
+    DataCacheProvider,
+    DeviceDataRefresher,
+    DeviceDescriptionProvider,
+    DeviceDetailsProvider,
+    EventBusProvider,
+    EventSubscriptionManager,
+    FileOperations,
+    ParameterVisibilityProvider,
+    ParamsetDescriptionProvider,
+    TaskScheduler,
+)
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
@@ -157,20 +173,20 @@ class Device(LogContextMixin, PayloadMixin):
         *,
         interface_id: str,
         device_address: str,
-        device_details_provider: Any,  # DeviceDetailsProvider
-        device_description_provider: Any,  # DeviceDescriptionProvider
-        paramset_description_provider: Any,  # ParamsetDescriptionProvider
-        parameter_visibility_provider: Any,  # ParameterVisibilityProvider
-        client_provider: Any,  # ClientProvider
-        config_provider: Any,  # ConfigProvider
-        central_info: Any,  # CentralInfo
-        event_bus_provider: Any,  # EventBusProvider
-        task_scheduler: Any,  # TaskScheduler
-        file_operations: Any,  # FileOperations
-        device_data_refresher: Any,  # DeviceDataRefresher
-        data_cache_provider: Any,  # DataCacheProvider
-        channel_lookup: Any,  # ChannelLookup
-        event_subscription_manager: Any,  # EventSubscriptionManager
+        central_info: CentralInfo,
+        channel_lookup: ChannelLookup,
+        client_provider: ClientProvider,
+        config_provider: ConfigProvider,
+        data_cache_provider: DataCacheProvider,
+        device_data_refresher: DeviceDataRefresher,
+        device_description_provider: DeviceDescriptionProvider,
+        device_details_provider: DeviceDetailsProvider,
+        event_bus_provider: EventBusProvider,
+        event_subscription_manager: EventSubscriptionManager,
+        file_operations: FileOperations,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        task_scheduler: TaskScheduler,
     ) -> None:
         """Initialize the device object."""
         PayloadMixin.__init__(self)
@@ -215,7 +231,7 @@ class Device(LogContextMixin, PayloadMixin):
             model=self._model
         )
         self._manufacturer = self._identify_manufacturer()
-        self._product_group: Final = self._client.get_product_group(model=self._model)
+        self._product_group: Final[ProductGroup] = self._client.get_product_group(model=self._model)
         # marker if device will be created as custom data_point
         self._has_custom_data_point_definition: Final = (
             hmed.data_point_definition_exists(model=self._model) and not self._ignore_for_custom_data_point
@@ -304,6 +320,16 @@ class Device(LogContextMixin, PayloadMixin):
         return tuple(data_points)
 
     @property
+    def central_info(self) -> CentralInfo:
+        """Return the central info of the device."""
+        return self._central_info
+
+    @property
+    def channel_lookup(self) -> ChannelLookup:
+        """Return the channel lookup provider."""
+        return self._channel_lookup
+
+    @property
     def channels(self) -> Mapping[str, Channel]:
         """Return the channels."""
         return self._channels
@@ -311,7 +337,7 @@ class Device(LogContextMixin, PayloadMixin):
     @property
     def client(self) -> hmcl.Client:
         """Return the client of the device."""
-        return self._client  # type: ignore[no-any-return]
+        return self._client
 
     @property
     def config_pending(self) -> bool:
@@ -321,11 +347,21 @@ class Device(LogContextMixin, PayloadMixin):
         return False
 
     @property
+    def config_provider(self) -> ConfigProvider:
+        """Return the config provider."""
+        return self._config_provider
+
+    @property
     def custom_data_points(self) -> tuple[hmce.CustomDataPoint, ...]:
         """Return the custom data points."""
         return tuple(
             channel.custom_data_point for channel in self._channels.values() if channel.custom_data_point is not None
         )
+
+    @property
+    def data_cache_provider(self) -> DataCacheProvider:
+        """Return the DataCacheProvider of the device."""
+        return self._data_cache_provider
 
     @property
     def default_schedule_channel(self) -> Channel | None:
@@ -334,6 +370,31 @@ class Device(LogContextMixin, PayloadMixin):
             if channel.is_schedule_channel:
                 return channel
         return None
+
+    @property
+    def device_data_refresher(self) -> DeviceDataRefresher:
+        """Return the device data refresher."""
+        return self._device_data_refresher
+
+    @property
+    def device_description_provider(self) -> DeviceDescriptionProvider:
+        """Return the device description provider."""
+        return self._device_description_provider
+
+    @property
+    def device_details_provider(self) -> DeviceDetailsProvider:
+        """Return the device details provider."""
+        return self._device_details_provider
+
+    @property
+    def event_bus_provider(self) -> EventBusProvider:
+        """Return the EventBusProvider of the device."""
+        return self._event_bus_provider
+
+    @property
+    def event_subscription_manager(self) -> EventSubscriptionManager:
+        """Return the event subscription manager."""
+        return self._event_subscription_manager
 
     @property
     def firmware_updatable(self) -> bool:
@@ -385,7 +446,7 @@ class Device(LogContextMixin, PayloadMixin):
     @property
     def id(self) -> str:
         """Return the id of the device."""
-        return self._id  # type: ignore[no-any-return]
+        return self._id
 
     @property
     def ignore_for_custom_data_point(self) -> bool:
@@ -407,7 +468,7 @@ class Device(LogContextMixin, PayloadMixin):
     @property
     def interface(self) -> Interface:
         """Return the interface of the device."""
-        return self._interface  # type: ignore[no-any-return]
+        return self._interface
 
     @property
     def is_updatable(self) -> bool:
@@ -422,14 +483,24 @@ class Device(LogContextMixin, PayloadMixin):
         }
 
     @property
+    def parameter_visibility_provider(self) -> ParameterVisibilityProvider:
+        """Return the parameter visibility provider."""
+        return self._parameter_visibility_provider
+
+    @property
+    def paramset_description_provider(self) -> ParamsetDescriptionProvider:
+        """Return the paramset description provider."""
+        return self._paramset_description_provider
+
+    @property
     def product_group(self) -> ProductGroup:
         """Return the product group of the device."""
-        return self._product_group  # type: ignore[no-any-return]
+        return self._product_group
 
     @property
     def rooms(self) -> set[str]:
         """Return all rooms of the device."""
-        return self._rooms  # type: ignore[no-any-return]
+        return self._rooms
 
     @property
     def rx_modes(self) -> tuple[RxMode, ...]:
@@ -447,6 +518,11 @@ class Device(LogContextMixin, PayloadMixin):
         if self._week_profile is None:
             return False
         return self._week_profile.supports_schedule
+
+    @property
+    def task_scheduler(self) -> TaskScheduler:
+        """Return the task scheduler."""
+        return self._task_scheduler
 
     @property
     def update_data_point(self) -> DpUpdate | None:
@@ -508,7 +584,7 @@ class Device(LogContextMixin, PayloadMixin):
     def room(self) -> str | None:
         """Return the room of the device, if only one assigned in the backend."""
         if self._rooms and len(self._rooms) == 1:
-            return list(self._rooms)[0]  # type: ignore[no-any-return]
+            return list(self._rooms)[0]
         if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
             return maintenance_channel.room
         return None
@@ -747,7 +823,7 @@ class Device(LogContextMixin, PayloadMixin):
             if event.device_address == self._address:
                 cb()
 
-        return self._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]
+        return self._event_bus_provider.event_bus.subscribe(
             event_type=DeviceUpdatedEvent,
             handler=event_handler,
         )
@@ -760,7 +836,7 @@ class Device(LogContextMixin, PayloadMixin):
             if event.device_address == self._address:
                 cb()
 
-        return self._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]
+        return self._event_bus_provider.event_bus.subscribe(
             event_type=FirmwareUpdatedEvent,
             handler=event_handler,
         )
@@ -797,7 +873,7 @@ class Device(LogContextMixin, PayloadMixin):
         if refresh_after_update_intervals:
             self._task_scheduler.create_task(target=refresh_data, name="refresh_firmware_data")
 
-        return update_result  # type: ignore[no-any-return]
+        return update_result
 
     def _identify_manufacturer(self) -> Manufacturer:
         """Identify the manufacturer of a device."""
@@ -848,10 +924,10 @@ class Channel(LogContextMixin, PayloadMixin):
 
         self._device: Final = device
         self._address: Final = channel_address
-        self._id: Final = self._device._device_details_provider.get_address_id(address=channel_address)
+        self._id: Final = self._device.device_details_provider.get_address_id(address=channel_address)
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
-        self._description: DeviceDescription = self._device._device_description_provider.get_device_description(
+        self._description: DeviceDescription = self._device.device_description_provider.get_device_description(
             interface_id=self._device.interface_id, address=channel_address
         )
         self._type_name: Final[str] = self._description["TYPE"]
@@ -859,7 +935,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
 
         self._unique_id: Final = generate_channel_unique_id(
-            config_provider=self._device._config_provider, address=channel_address
+            config_provider=self._device.config_provider, address=channel_address
         )
         self._group_no: int | None = None
         self._group_master: Channel | None = None
@@ -882,8 +958,8 @@ class Channel(LogContextMixin, PayloadMixin):
             target_roles=self._link_target_roles, channel_type_name=self._type_name
         )
         self._modified_at: datetime = INIT_DATETIME
-        self._rooms: Final = self._device._device_details_provider.get_channel_rooms(channel_address=channel_address)
-        self._function: Final = self._device._device_details_provider.get_function_text(address=self._address)
+        self._rooms: Final = self._device.device_details_provider.get_channel_rooms(channel_address=channel_address)
+        self._function: Final = self._device.device_details_provider.get_function_text(address=self._address)
         self.init_channel()
 
     def __str__(self) -> str:
@@ -898,63 +974,9 @@ class Channel(LogContextMixin, PayloadMixin):
         )
 
     @property
-    def _channel_lookup(self) -> Any:
-        """
-        Return the channel lookup provider.
-
-        Type: ChannelLookup protocol (1 method instead of 150+)
-        """
-        return self._device._channel_lookup  # pylint: disable=protected-access
-
-    @property
-    def _device_description_provider(self) -> Any:
-        """
-        Return the device description provider.
-
-        Type: DeviceDescriptionProvider protocol (2 methods instead of 150+)
-        """
-        return self._device._device_description_provider  # pylint: disable=protected-access
-
-    @property
-    def _device_details_provider(self) -> Any:
-        """
-        Return the device details provider.
-
-        Type: DeviceDetailsProvider protocol (3 methods instead of 150+)
-        """
-        return self._device._device_details_provider  # pylint: disable=protected-access
-
-    @property
-    def _event_subscription_manager(self) -> Any:
-        """
-        Return the event subscription manager.
-
-        Type: EventSubscriptionManager protocol (2 methods instead of 150+)
-        """
-        return self._device._event_subscription_manager  # pylint: disable=protected-access
-
-    @property
     def _has_key_press_events(self) -> bool:
         """Return if channel has KEYPRESS events."""
         return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
-
-    @property
-    def _paramset_provider(self) -> Any:
-        """
-        Return the paramset description provider.
-
-        Type: ParamsetDescriptionProvider protocol (2 methods instead of 150+)
-        """
-        return self._device._paramset_description_provider  # pylint: disable=protected-access
-
-    @property
-    def _task_scheduler(self) -> Any:
-        """
-        Return the task scheduler.
-
-        Type: TaskScheduler protocol (2 methods instead of 150+)
-        """
-        return self._device._task_scheduler  # pylint: disable=protected-access
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPoint[Any], ...]:
@@ -979,7 +1001,7 @@ class Channel(LogContextMixin, PayloadMixin):
     @property
     def function(self) -> str | None:
         """Return the function of the channel."""
-        return self._function  # type: ignore[no-any-return]
+        return self._function
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPointAny, ...]:
@@ -1014,7 +1036,7 @@ class Channel(LogContextMixin, PayloadMixin):
     @property
     def id(self) -> str:
         """Return the id of the channel."""
-        return self._id  # type: ignore[no-any-return]
+        return self._id
 
     @property
     def is_group_master(self) -> bool:
@@ -1045,7 +1067,7 @@ class Channel(LogContextMixin, PayloadMixin):
             channel
             for address in self._link_peer_addresses
             if self._link_peer_addresses
-            and (channel := self._channel_lookup.get_channel(channel_address=address)) is not None
+            and (channel := self._device.channel_lookup.get_channel(channel_address=address)) is not None
         )
 
     @property
@@ -1080,11 +1102,8 @@ class Channel(LogContextMixin, PayloadMixin):
     @property
     def paramset_descriptions(self) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Return the paramset descriptions of the channel."""
-        return cast(
-            Mapping[ParamsetKey, Mapping[str, ParameterData]],
-            self._paramset_provider.get_channel_paramset_descriptions(
-                interface_id=self._device.interface_id, channel_address=self._address
-            ),
+        return self._device.paramset_description_provider.get_channel_paramset_descriptions(
+            interface_id=self._device.interface_id, channel_address=self._address
         )
 
     @property
@@ -1095,7 +1114,7 @@ class Channel(LogContextMixin, PayloadMixin):
     @property
     def rooms(self) -> set[str]:
         """Return all rooms of the channel."""
-        return self._rooms  # type: ignore[no-any-return]
+        return self._rooms
 
     @property
     def type_name(self) -> str:
@@ -1116,7 +1135,7 @@ class Channel(LogContextMixin, PayloadMixin):
     def room(self) -> str | None:
         """Return the room of the device, if only one assigned in the backend."""
         if self._rooms and len(self._rooms) == 1:
-            return list(self._rooms)[0]  # type: ignore[no-any-return]
+            return list(self._rooms)[0]
         if self.is_group_master:
             return None
         if (master_channel := self.group_master) is not None:
@@ -1136,7 +1155,7 @@ class Channel(LogContextMixin, PayloadMixin):
     def add_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
-            self._event_subscription_manager.add_event_subscription(data_point=data_point)
+            self._device.event_subscription_manager.add_event_subscription(data_point=data_point)
         if isinstance(data_point, CalculatedDataPoint):
             self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
@@ -1169,16 +1188,15 @@ class Channel(LogContextMixin, PayloadMixin):
         """Do what is needed when the link peer has been changed for the device."""
 
         # Publish to EventBus asynchronously
-        # pylint: disable=protected-access
         async def _publish_link_peer_changed() -> None:
-            await self._device._event_bus_provider.event_bus.publish(
+            await self._device.event_bus_provider.event_bus.publish(
                 event=LinkPeerChangedEvent(
                     timestamp=datetime.now(),
                     channel_address=self._address,
                 )
             )
 
-        self._device._task_scheduler.create_task(
+        self._device.task_scheduler.create_task(
             target=_publish_link_peer_changed,
             name=f"link-peer-changed-{self._address}",
         )
@@ -1295,7 +1313,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def init_channel(self) -> None:
         """Init the channel."""
-        self._task_scheduler.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
+        self._device.task_scheduler.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
 
     async def init_link_peer(self) -> None:
         """Init the link partners."""
@@ -1341,7 +1359,7 @@ class Channel(LogContextMixin, PayloadMixin):
             if event.channel_address == self._address:
                 cb()
 
-        return self._device._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]  # pylint: disable=protected-access
+        return self._device.event_bus_provider.event_bus.subscribe(
             event_type=LinkPeerChangedEvent,
             handler=event_handler,
         )
@@ -1405,7 +1423,7 @@ class Channel(LogContextMixin, PayloadMixin):
     def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
-            self._event_subscription_manager.remove_event_subscription(data_point=data_point)
+            self._device.event_subscription_manager.remove_event_subscription(data_point=data_point)
         if isinstance(data_point, CalculatedDataPoint):
             del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):
@@ -1538,7 +1556,7 @@ class _ValueCache:
         if (
             dpk.paramset_key == ParamsetKey.VALUES
             and (
-                global_value := self._device._data_cache_provider.get_data(  # pylint: disable=protected-access
+                global_value := self._device.data_cache_provider.get_data(
                     interface=self._device.interface,
                     channel_address=dpk.channel_address,
                     parameter=dpk.parameter,
@@ -1590,9 +1608,9 @@ class _DefinitionExporter:
     def __init__(self, *, device: Device) -> None:
         """Init the device exporter."""
         self._client: Final = device.client
-        self._config_provider: Final = device._config_provider
-        self._device_description_provider: Final = device._device_description_provider
-        self._task_scheduler: Final = device._task_scheduler
+        self._config_provider: Final = device.config_provider
+        self._device_description_provider: Final = device.device_description_provider
+        self._task_scheduler: Final = device.task_scheduler
         self._storage_directory: Final = self._config_provider.config.storage_directory
         self._interface_id: Final = device.interface_id
         self._device_address: Final = device.address

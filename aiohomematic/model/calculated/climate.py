@@ -29,8 +29,8 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
     """Implementation of a calculated climate sensor."""
 
     __slots__ = (
-        "_dp_temperature",
         "_dp_humidity",
+        "_dp_temperature",
         "_dp_wind_speed",
     )
 

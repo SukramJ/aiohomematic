@@ -43,15 +43,15 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         self._device: Final = device
         super().__init__(
             unique_id=generate_unique_id(
-                config_provider=device._config_provider,
+                config_provider=device.config_provider,
                 address=device.address,
                 parameter="Update",
             ),
-            central_info=device._central_info,
-            event_bus_provider=device._event_bus_provider,
-            task_scheduler=device._task_scheduler,
-            paramset_description_provider=device._paramset_description_provider,
-            parameter_visibility_provider=device._parameter_visibility_provider,
+            central_info=device.central_info,
+            event_bus_provider=device.event_bus_provider,
+            task_scheduler=device.task_scheduler,
+            paramset_description_provider=device.paramset_description_provider,
+            parameter_visibility_provider=device.parameter_visibility_provider,
         )
         self._set_modified_at(modified_at=datetime.now())
 
@@ -111,8 +111,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     @inspector
     async def refresh_firmware_data(self) -> None:
         """Refresh device firmware data."""
-        # pylint: disable=protected-access
-        await self._device._device_data_refresher.refresh_firmware_data(device_address=self._device.address)
+        await self._device.device_data_refresher.refresh_firmware_data(device_address=self._device.address)
         self._set_modified_at(modified_at=datetime.now())
 
     def register_data_point_updated_callback(

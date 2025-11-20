@@ -119,7 +119,15 @@ class TestSessionRecording:
 
         # Create session recorder
         central = _CentralStub()
-        recorder = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        recorder = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         proxy = AioXmlRpcProxy(
             max_workers=1,

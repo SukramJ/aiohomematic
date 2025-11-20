@@ -16,10 +16,10 @@ The CacheCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Final
 
 from aiohomematic.const import DataOperationResult, Interface
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     ClientProvider,
     ConfigProvider,
@@ -60,13 +60,13 @@ class CacheCoordinator:
         self,
         *,
         central_info: CentralInfo,
-        device_provider: DeviceProvider,
         client_provider: ClientProvider,
-        data_point_provider: DataPointProvider,
-        primary_client_provider: PrimaryClientProvider,
         config_provider: ConfigProvider,
-        task_scheduler: TaskScheduler,
+        data_point_provider: DataPointProvider,
+        device_provider: DeviceProvider,
+        primary_client_provider: PrimaryClientProvider,
         session_recorder_active: bool,
+        task_scheduler: TaskScheduler,
     ) -> None:
         """
         Initialize the cache coordinator.
@@ -96,19 +96,26 @@ class CacheCoordinator:
             central_info=central_info,
             primary_client_provider=primary_client_provider,
         )
-        # Cast central to CentralUnit for cache classes that need it
-        central = cast(Any, central_info)
         self._device_descriptions: Final = DeviceDescriptionCache(
-            central=central,
+            central_info=central_info,
+            config_provider=config_provider,
+            device_provider=device_provider,
+            task_scheduler=task_scheduler,
         )
         self._paramset_descriptions: Final = ParamsetDescriptionCache(
-            central=central,
+            central_info=central_info,
+            config_provider=config_provider,
+            device_provider=device_provider,
+            task_scheduler=task_scheduler,
         )
         self._parameter_visibility: Final = ParameterVisibilityCache(
             config_provider=config_provider,
         )
         self._recorder: Final = SessionRecorder(
-            central=central,
+            central_info=central_info,
+            config_provider=config_provider,
+            device_provider=device_provider,
+            task_scheduler=task_scheduler,
             ttl_seconds=600,
             active=session_recorder_active,
         )

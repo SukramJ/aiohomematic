@@ -1293,7 +1293,6 @@ class TestCentralDeviceCreation:
 
         # Create device coordinator
         device_coordinator = DeviceCoordinator.__new__(DeviceCoordinator)  # type: ignore[call-arg]
-        device_coordinator._central = central  # type: ignore[attr-defined]
         device_coordinator._device_add_semaphore = None  # type: ignore[attr-defined]
         central._device_coordinator = device_coordinator  # type: ignore[attr-defined]
 

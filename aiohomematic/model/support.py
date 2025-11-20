@@ -50,6 +50,9 @@ __all__ = [
     "get_value_from_value_list",
     "is_binary_sensor",
 ]
+
+from aiohomematic.interfaces import ConfigProvider
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 # dict with binary_sensor relevant value lists and the corresponding TRUE value
@@ -309,8 +312,7 @@ def get_data_point_name_data(
         if _check_channel_name_with_channel_no(name=channel_name):
             c_name = channel_name.split(ADDRESS_SEPARATOR)[0]
             c_postfix = ""
-            # pylint: disable=protected-access
-            if channel.device._paramset_description_provider.is_in_multiple_channels(
+            if channel.device.paramset_description_provider.is_in_multiple_channels(
                 channel_address=channel.address, parameter=parameter
             ):
                 c_postfix = "" if channel.no in (0, None) else f" ch{channel.no}"
@@ -436,7 +438,7 @@ def get_custom_data_point_name(
 
 
 def generate_unique_id(
-    config_provider: Any,
+    config_provider: ConfigProvider,
     address: str,
     parameter: str | None = None,
     prefix: str | None = None,
@@ -463,7 +465,7 @@ def generate_unique_id(
 
 
 def generate_channel_unique_id(
-    config_provider: Any,
+    config_provider: ConfigProvider,
     address: str,
 ) -> str:
     """Build unique identifier for a channel from address."""
@@ -477,11 +479,10 @@ def _get_base_name_from_channel_or_device(channel: hmd.Channel) -> str | None:
     """Get the name from channel if it's not default, otherwise from device."""
     default_channel_name = f"{channel.device.model} {channel.address}"
     # Access device details provider through channel's device
-    # pylint: disable=protected-access
-    name = channel.device._device_details_provider.get_name(address=channel.address)
+    name = channel.device.device_details_provider.get_name(address=channel.address)
     if name is None or name == default_channel_name:
         return channel.device.name if channel.no is None else f"{channel.device.name}:{channel.no}"
-    return name  # type: ignore[no-any-return]
+    return name
 
 
 def _check_channel_name_with_channel_no(name: str) -> bool:

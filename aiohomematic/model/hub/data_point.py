@@ -32,7 +32,7 @@ from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin, parse_sys_var
 
 if TYPE_CHECKING:
-    from aiohomematic.model.interfaces import (
+    from aiohomematic.interfaces import (
         CentralInfo,
         ChannelLookup,
         ConfigProvider,
@@ -54,8 +54,8 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         "_enabled_default",
         "_legacy_name",
         "_name_data",
-        "_state_uncertain",
         "_primary_client_provider",
+        "_state_uncertain",
     )
 
     def __init__(
@@ -135,7 +135,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        return self._central_info.available  # type: ignore[no-any-return]
+        return self._central_info.available
 
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
@@ -322,11 +322,11 @@ class GenericProgramDataPoint(GenericHubDataPoint):
     """Class for a generic Homematic progran data point."""
 
     __slots__ = (
-        "_pid",
+        "_hub_data_fetcher",
         "_is_active",
         "_is_internal",
         "_last_execute_time",
-        "_hub_data_fetcher",
+        "_pid",
     )
 
     def __init__(

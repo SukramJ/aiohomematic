@@ -37,7 +37,7 @@ from aiohomematic.const import (
     DeviceFirmwareState,
 )
 from aiohomematic.exceptions import NoConnectionException
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     CentralUnitStateProvider,
     ClientCoordination,
@@ -395,7 +395,7 @@ class BackgroundScheduler:
                 any_executed = True
 
             if not self._active:
-                break  # type: ignore[unreachable]  # noqa: PLW0101
+                break  # type: ignore[unreachable]
 
             # Sleep logic: minimize CPU usage when idle
             if not any_executed:

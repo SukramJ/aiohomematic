@@ -693,8 +693,8 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
 
     _data_point: BaseCustomDpClimate
     __slots__ = (
-        "_min_temp",
         "_max_temp",
+        "_min_temp",
     )
 
     def __init__(self, *, data_point: cdp.CustomDataPoint) -> None:

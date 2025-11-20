@@ -16,12 +16,12 @@ The HubCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.decorators import inspector
+from aiohomematic.interfaces import CentralInfo, EventBusProvider, PrimaryClientProvider
 from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
-from aiohomematic.model.interfaces import CentralInfo, EventBusProvider, PrimaryClientProvider
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralUnit
@@ -36,8 +36,8 @@ class HubCoordinator:
     __slots__ = (
         "_central_info",
         "_event_bus_provider",
-        "_primary_client_provider",
         "_hub",
+        "_primary_client_provider",
         "_program_data_points",
         "_sysvar_data_points",
     )
@@ -75,8 +75,8 @@ class HubCoordinator:
             event_emitter=central,
             event_bus_provider=event_bus_provider,
             task_scheduler=central.looper,
-            paramset_description_provider=central.paramset_descriptions,  # type: ignore[arg-type]
-            parameter_visibility_provider=central.parameter_visibility,  # type: ignore[arg-type]
+            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.parameter_visibility,
             channel_lookup=central,
             hub_data_fetcher=self,  # HubCoordinator implements HubDataFetcher
         )
@@ -153,7 +153,7 @@ class HubCoordinator:
 
         """
         if client := self._primary_client_provider.primary_client:
-            return cast(bool, await client.execute_program(pid=pid))
+            return await client.execute_program(pid=pid)
         return False
 
     @inspector(re_raise=False)
@@ -326,7 +326,7 @@ class HubCoordinator:
 
         """
         if client := self._primary_client_provider.primary_client:
-            return cast(bool, await client.set_program_state(pid=pid, state=state))
+            return await client.set_program_state(pid=pid, state=state)
         return False
 
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> None:

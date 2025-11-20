@@ -48,15 +48,17 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from aiohomematic.model.device import Device
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     ClientProvider,
+    DataCacheProvider,
     DataPointProvider,
+    DeviceDetailsProvider,
     DeviceProvider,
     EventEmitter,
     PrimaryClientProvider,
 )
+from aiohomematic.model.device import Device
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -156,18 +158,18 @@ class CommandCache:
                 del self._last_send_command[dpk]
 
 
-class DeviceDetailsCache:
+class DeviceDetailsCache(DeviceDetailsProvider):
     """Cache for device/channel details."""
 
     __slots__ = (
         "_central_info",
-        "_primary_client_provider",
         "_channel_rooms",
         "_device_channel_ids",
         "_device_rooms",
         "_functions",
         "_interface_cache",
         "_names_cache",
+        "_primary_client_provider",
         "_refreshed_at",
     )
 
@@ -294,14 +296,14 @@ class DeviceDetailsCache:
         return _device_rooms
 
 
-class CentralDataCache:
+class CentralDataCache(DataCacheProvider):
     """Central cache for device/channel initial data."""
 
     __slots__ = (
-        "_device_provider",
+        "_central_info",
         "_client_provider",
         "_data_point_provider",
-        "_central_info",
+        "_device_provider",
         "_refreshed_at",
         "_value_cache",
     )
@@ -396,8 +398,8 @@ class PingPongCache:
 
     __slots__ = (
         "_allowed_delta",
-        "_event_emitter",
         "_central_info",
+        "_event_emitter",
         "_interface_id",
         "_pending_pong_logged",
         "_pending_pongs",

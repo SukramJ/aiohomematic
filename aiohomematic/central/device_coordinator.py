@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
 import logging
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
 from aiohomematic.const import (
@@ -32,12 +32,28 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
+from aiohomematic.interfaces import (
+    CentralInfo,
+    ChannelLookup,
+    ClientProvider,
+    ConfigProvider,
+    CoordinatorProvider,
+    DataCacheProvider,
+    DeviceDataRefresher,
+    DeviceDescriptionProvider,
+    DeviceDetailsProvider,
+    EventBusProvider,
+    EventSubscriptionManager,
+    FileOperations,
+    ParameterVisibilityProvider,
+    ParamsetDescriptionProvider,
+    TaskScheduler,
+)
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.device import Device
 from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.interfaces import CentralInfo, ConfigProvider, CoordinatorProvider
 from aiohomematic.support import extract_device_addresses_from_device_descriptions, extract_exc_args
 
 if TYPE_CHECKING:
@@ -52,42 +68,86 @@ class DeviceCoordinator:
     """Coordinator for device lifecycle and operations."""
 
     __slots__ = (
-        "_central",
-        "_coordinator_provider",
         "_central_info",
+        "_channel_lookup",
+        "_client_provider",
         "_config_provider",
+        "_coordinator_provider",
+        "_data_cache_provider",
         "_device_add_semaphore",
+        "_device_data_refresher",
+        "_device_description_provider",
+        "_device_details_provider",
+        "_event_bus_provider",
+        "_event_subscription_manager",
+        "_file_operations",
+        "_parameter_visibility_provider",
+        "_paramset_description_provider",
+        "_task_scheduler",
     )
 
     def __init__(
         self,
         *,
-        central: Any,  # CentralUnit at runtime, but avoid circular import
-        coordinator_provider: CoordinatorProvider,
         central_info: CentralInfo,
+        channel_lookup: ChannelLookup,
+        client_provider: ClientProvider,
         config_provider: ConfigProvider,
+        coordinator_provider: CoordinatorProvider,
+        data_cache_provider: DataCacheProvider,
+        device_data_refresher: DeviceDataRefresher,
+        device_description_provider: DeviceDescriptionProvider,
+        device_details_provider: DeviceDetailsProvider,
+        event_bus_provider: EventBusProvider,
+        event_subscription_manager: EventSubscriptionManager,
+        file_operations: FileOperations,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        task_scheduler: TaskScheduler,
     ) -> None:
         """
         Initialize the device coordinator.
 
         Args:
         ----
-            central: The central unit instance (required for device creation)
-            coordinator_provider: Provider for accessing other coordinators
             central_info: Provider for central system information
+            channel_lookup: Provider for channel lookup operations
+            client_provider: Provider for client access
             config_provider: Provider for configuration access
+            coordinator_provider: Provider for accessing other coordinators
+            data_cache_provider: Provider for data cache access
+            device_data_refresher: Provider for device data refresh operations
+            device_description_provider: Provider for device descriptions
+            device_details_provider: Provider for device details
+            event_bus_provider: Provider for event bus access
+            event_subscription_manager: Manager for event subscriptions
+            file_operations: Provider for file operations
+            parameter_visibility_provider: Provider for parameter visibility rules
+            paramset_description_provider: Provider for paramset descriptions
+            task_scheduler: Scheduler for async tasks
 
         """
-        self._central: Final = central
-        self._coordinator_provider: Final = coordinator_provider
         self._central_info: Final = central_info
+        self._channel_lookup = channel_lookup
+        self._client_provider = client_provider
         self._config_provider: Final = config_provider
+        self._coordinator_provider: Final = coordinator_provider
+        self._data_cache_provider = data_cache_provider
+        self._device_data_refresher = device_data_refresher
+        self._device_description_provider = device_description_provider
+        self._device_details_provider = device_details_provider
+        self._event_bus_provider = event_bus_provider
+        self._event_subscription_manager = event_subscription_manager
+        self._file_operations = file_operations
+        self._parameter_visibility_provider = parameter_visibility_provider
+        self._paramset_description_provider = paramset_description_provider
+        self._task_scheduler = task_scheduler
         self._device_add_semaphore: Final = asyncio.Semaphore()
 
     @property
     def device_registry(self) -> DeviceRegistry:
         """Return the device registry."""
-        return self._coordinator_provider.device_registry  # type: ignore[no-any-return]
+        return self._coordinator_provider.device_registry
 
     @property
     def devices(self) -> tuple[Device, ...]:
@@ -237,20 +297,20 @@ class DeviceCoordinator:
                     device = Device(
                         interface_id=interface_id,
                         device_address=device_address,
-                        device_details_provider=cast(Any, self._central.device_details),
-                        device_description_provider=cast(Any, self._central.device_descriptions),
-                        paramset_description_provider=cast(Any, self._central.paramset_descriptions),
-                        parameter_visibility_provider=cast(Any, self._central.parameter_visibility),
-                        client_provider=cast(Any, self._central),
-                        config_provider=cast(Any, self._central),
-                        central_info=cast(Any, self._central),
-                        event_bus_provider=cast(Any, self._central),
-                        task_scheduler=cast(Any, self._central.looper),
-                        file_operations=cast(Any, self._central),
-                        device_data_refresher=cast(Any, self._central),
-                        data_cache_provider=cast(Any, self._central.data_cache),
-                        channel_lookup=cast(Any, self._central),
-                        event_subscription_manager=cast(Any, self._central),
+                        central_info=self._central_info,
+                        channel_lookup=self._channel_lookup,
+                        client_provider=self._client_provider,
+                        config_provider=self._config_provider,
+                        data_cache_provider=self._data_cache_provider,
+                        device_data_refresher=self._device_data_refresher,
+                        device_description_provider=self._device_description_provider,
+                        device_details_provider=self._device_details_provider,
+                        event_bus_provider=self._event_bus_provider,
+                        event_subscription_manager=self._event_subscription_manager,
+                        file_operations=self._file_operations,
+                        parameter_visibility_provider=self._parameter_visibility_provider,
+                        paramset_description_provider=self._paramset_description_provider,
+                        task_scheduler=self._task_scheduler,
                     )
                 except Exception as exc:
                     _LOGGER.error(  # i18n-log: ignore
@@ -400,7 +460,7 @@ class DeviceCoordinator:
             interface_id=interface_id
         )
         _LOGGER.debug("LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result))
-        return cast(list[DeviceDescription], result)
+        return result
 
     async def refresh_device_descriptions_and_create_missing_devices(
         self, *, client: Client, refresh_only_existing: bool, device_address: str | None = None
@@ -419,7 +479,7 @@ class DeviceCoordinator:
 
         if (
             device_address
-            and (device_description := await client.get_device_description(device_address=device_address)) is not None
+            and (device_description := await client.get_device_description(address=device_address)) is not None
         ):
             device_descriptions = (device_description,)
         else:

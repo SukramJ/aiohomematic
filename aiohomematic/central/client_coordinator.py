@@ -28,7 +28,7 @@ from aiohomematic.const import (
     ProxyInitState,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.model.interfaces import CentralInfo, ConfigProvider, CoordinatorProvider, SystemInfoProvider
+from aiohomematic.interfaces import CentralInfo, ClientProvider, ConfigProvider, CoordinatorProvider, SystemInfoProvider
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -37,26 +37,26 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class ClientCoordinator:
+class ClientCoordinator(ClientProvider):
     """Coordinator for client lifecycle and operations."""
 
     __slots__ = (
-        "_central",  # Only for factory functions
-        "_config_provider",
+        "_central",
         "_central_info",
-        "_coordinator_provider",
-        "_system_info_provider",
         "_clients",
         "_clients_started",
+        "_config_provider",
+        "_coordinator_provider",
         "_primary_client",
+        "_system_info_provider",
     )
 
     def __init__(
         self,
         *,
         central: CentralUnit,  # Required for client factory function
-        config_provider: ConfigProvider,
         central_info: CentralInfo,
+        config_provider: ConfigProvider,
         coordinator_provider: CoordinatorProvider,
         system_info_provider: SystemInfoProvider,
     ) -> None:

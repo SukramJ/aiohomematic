@@ -143,6 +143,26 @@ from aiohomematic.exceptions import (
     BaseHomematicException,
     NoClientsException,
 )
+from aiohomematic.interfaces import (
+    CentralInfo,
+    CentralUnitStateProvider,
+    ChannelLookup,
+    ClientCoordination,
+    ClientProvider,
+    ConfigProvider,
+    CoordinatorProvider,
+    DataPointProvider,
+    DeviceDataRefresher,
+    DeviceProvider,
+    EventBusProvider,
+    EventEmitter,
+    EventSubscriptionManager,
+    FileOperations,
+    HubDataFetcher,
+    HubDataPointManager,
+    PrimaryClientProvider,
+    SystemInfoProvider,
+)
 from aiohomematic.model.custom import CustomDataPoint
 from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
 from aiohomematic.model.device import Channel, Device
@@ -194,7 +214,28 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 )
 
 
-class CentralUnit(LogContextMixin, PayloadMixin):
+class CentralUnit(
+    PayloadMixin,
+    CentralInfo,
+    CentralUnitStateProvider,
+    ChannelLookup,
+    ClientCoordination,
+    ClientProvider,
+    ConfigProvider,
+    DataPointProvider,
+    PrimaryClientProvider,
+    DeviceProvider,
+    EventEmitter,
+    SystemInfoProvider,
+    CoordinatorProvider,
+    DeviceDataRefresher,
+    EventBusProvider,
+    EventSubscriptionManager,
+    FileOperations,
+    HubDataFetcher,
+    HubDataPointManager,
+    LogContextMixin,
+):
     """Central unit that collects everything to handle communication from/to the backend."""
 
     def __init__(self, *, central_config: CentralConfig) -> None:
@@ -218,13 +259,13 @@ class CentralUnit(LogContextMixin, PayloadMixin):
         # Initialize coordinators
         self._cache_coordinator: Final = CacheCoordinator(
             central_info=self,
-            device_provider=self,  # type: ignore[arg-type]
             client_provider=self,
-            data_point_provider=self,
-            primary_client_provider=self,
             config_provider=self,
-            task_scheduler=self.looper,
+            data_point_provider=self,
+            device_provider=self,
+            primary_client_provider=self,
             session_recorder_active=self.config.session_recorder_start,
+            task_scheduler=self.looper,
         )
         self._event_coordinator: Final = EventCoordinator(
             client_provider=self,
@@ -235,15 +276,26 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             client_provider=self,
         )
         self._device_coordinator: Final = DeviceCoordinator(
-            central=self,
-            coordinator_provider=self,
             central_info=self,
+            channel_lookup=self,
+            client_provider=self,
             config_provider=self,
+            coordinator_provider=self,
+            data_cache_provider=self.data_cache,
+            device_data_refresher=self,
+            device_description_provider=self.device_descriptions,
+            device_details_provider=self.device_details,
+            event_bus_provider=self,
+            event_subscription_manager=self,
+            file_operations=self,
+            parameter_visibility_provider=self.parameter_visibility,
+            paramset_description_provider=self.paramset_descriptions,
+            task_scheduler=self.looper,
         )
         self._client_coordinator: Final = ClientCoordinator(
             central=self,  # Required for client factory
-            config_provider=self,
             central_info=self,
+            config_provider=self,
             coordinator_provider=self,
             system_info_provider=self,
         )

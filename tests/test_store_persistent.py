@@ -141,7 +141,12 @@ class TestDeviceDescriptionCache:
     async def test_add_device_updates_existing(self, tmp_path) -> None:
         """Test adding device with existing address updates description."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         dev_addr = "DEV1"
@@ -165,7 +170,12 @@ class TestDeviceDescriptionCache:
     async def test_find_device_description(self, tmp_path) -> None:
         """Test finding a specific device description."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ddc.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
@@ -181,7 +191,12 @@ class TestDeviceDescriptionCache:
     async def test_get_addresses_all_interfaces(self, tmp_path) -> None:
         """Test getting addresses across all interfaces."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         ddc.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
         ddc.add_device(interface_id="if2", device_description={"ADDRESS": "DEV2", "CHILDREN": [], "TYPE": "T2"})
@@ -194,7 +209,12 @@ class TestDeviceDescriptionCache:
     async def test_get_device_descriptions(self, tmp_path) -> None:
         """Test getting all device descriptions for an interface."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ddc.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
@@ -209,7 +229,12 @@ class TestDeviceDescriptionCache:
     async def test_get_raw_device_descriptions(self, tmp_path) -> None:
         """Test getting raw device descriptions list."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ddc.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
@@ -222,7 +247,12 @@ class TestDeviceDescriptionCache:
     async def test_has_device_descriptions(self, tmp_path) -> None:
         """Test checking if interface has device descriptions."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         ddc.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
 
@@ -254,7 +284,12 @@ class TestDeviceDescriptionCache:
         with zipfile.ZipFile(zip_path, "w") as zf:
             zf.write(plain_json, arcname=plain_json.name)
 
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
         load_result = await ddc.load(file_path=str(zip_path))
         assert load_result == DataOperationResult.LOAD_SUCCESS
 
@@ -270,14 +305,24 @@ class TestDeviceDescriptionCache:
     async def test_load_missing_file(self, tmp_path) -> None:
         """Test that loading missing file returns NO_LOAD."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
         assert await ddc.load(file_path=str(tmp_path / "does_not_exist.json")) == DataOperationResult.NO_LOAD
 
     @pytest.mark.asyncio
     async def test_load_with_caches_disabled(self, tmp_path) -> None:
         """Test that load returns NO_LOAD when caches are disabled."""
         central = _CentralStub("Test Central", str(tmp_path), use_caches=False)
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         result = await ddc.load()
         assert result == DataOperationResult.NO_LOAD
@@ -286,7 +331,12 @@ class TestDeviceDescriptionCache:
     async def test_remove_device(self, tmp_path) -> None:
         """Test removing a device updates internal maps."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         dev_addr = "ADDR"
@@ -307,7 +357,12 @@ class TestDeviceDescriptionCache:
     async def test_save_load_and_randomize(self, tmp_path) -> None:
         """Test save/load behavior with randomized output."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         # Add a device description and save
         iface = "if1"
@@ -348,7 +403,12 @@ class TestDeviceDescriptionCache:
     async def test_save_no_changes(self, tmp_path) -> None:
         """Test that save returns NO_SAVE when content hasn't changed."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(central=central)
+        ddc = DeviceDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
         # Initially unchanged -> NO_SAVE
         assert await ddc.save() == DataOperationResult.NO_SAVE
 
@@ -360,7 +420,12 @@ class TestParamsetDescriptionCache:
     async def test_add_and_query_paramsets(self, tmp_path) -> None:
         """Test adding paramset descriptions and querying them."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         dev_addr = "D1"
@@ -405,7 +470,12 @@ class TestParamsetDescriptionCache:
     async def test_get_channel_paramset_descriptions(self, tmp_path) -> None:
         """Test getting all paramsets for a channel."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ch = "D1:1"
@@ -431,7 +501,12 @@ class TestParamsetDescriptionCache:
     async def test_get_parameter_data(self, tmp_path) -> None:
         """Test getting specific parameter data."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ch = "D1:1"
@@ -458,7 +533,12 @@ class TestParamsetDescriptionCache:
     async def test_get_paramset_descriptions(self, tmp_path) -> None:
         """Test getting all paramset descriptions for a channel."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ch = "D1:1"
@@ -478,7 +558,12 @@ class TestParamsetDescriptionCache:
     async def test_is_in_multiple_channels_no_separator(self, tmp_path) -> None:
         """Test that channels without ADDRESS_SEPARATOR return False."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         # Channel without separator should return False
         assert pdc.is_in_multiple_channels(channel_address="INVALID", parameter="PARAM") is False
@@ -487,7 +572,12 @@ class TestParamsetDescriptionCache:
     async def test_is_in_multiple_channels_single_channel(self, tmp_path) -> None:
         """Test parameter that exists in only one channel."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ch = "D1:1"
@@ -504,7 +594,12 @@ class TestParamsetDescriptionCache:
     async def test_load_with_caches_disabled(self, tmp_path) -> None:
         """Test that load returns NO_LOAD when caches are disabled."""
         central = _CentralStub("C", str(tmp_path), use_caches=False)
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         result = await pdc.load()
         assert result == DataOperationResult.NO_LOAD
@@ -513,7 +608,12 @@ class TestParamsetDescriptionCache:
     async def test_remove_device(self, tmp_path) -> None:
         """Test removing device paramset descriptions."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         dev_addr = "D1"
@@ -549,7 +649,12 @@ class TestParamsetDescriptionCache:
     async def test_save_and_load(self, tmp_path) -> None:
         """Test save/load triggers parameter list initialization."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(central=central)
+        pdc = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
 
         iface = "if1"
         ch1 = "D1:1"
@@ -562,7 +667,12 @@ class TestParamsetDescriptionCache:
 
         # Save and reload
         assert await pdc.save() in (DataOperationResult.SAVE_SUCCESS, DataOperationResult.NO_SAVE)
-        pdc2 = ParamsetDescriptionCache(central=central)
+        pdc2 = ParamsetDescriptionCache(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+        )
         assert await pdc2.load() in (DataOperationResult.LOAD_SUCCESS, DataOperationResult.NO_LOAD)
 
 
@@ -573,7 +683,15 @@ class TestSessionRecorder:
     async def test_activate_deactivate(self, tmp_path) -> None:
         """Test activate/deactivate lifecycle."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=False, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=False,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         # Activate
         ok = await rec.activate(on_time=0, auto_save=False, randomize_output=False, use_ts_in_file_name=False)
@@ -589,7 +707,15 @@ class TestSessionRecorder:
     async def test_activate_with_delay(self, tmp_path) -> None:
         """Test activate with auto-deactivate delay."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=False, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=False,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         # Activate with 1 second delay
         ok = await rec.activate(on_time=1, auto_save=False, randomize_output=False, use_ts_in_file_name=False)
@@ -608,7 +734,15 @@ class TestSessionRecorder:
     async def test_add_json_rpc_session(self, tmp_path) -> None:
         """Test adding JSON-RPC session data."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         method = "test.method"
         params = {"x": 1}
@@ -624,7 +758,15 @@ class TestSessionRecorder:
     async def test_add_json_rpc_session_with_exception(self, tmp_path) -> None:
         """Test adding JSON-RPC session with exception."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         method = "test.method"
         params = {"x": 1}
@@ -640,7 +782,15 @@ class TestSessionRecorder:
     async def test_add_xml_rpc_session(self, tmp_path) -> None:
         """Test adding XML-RPC session data."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         method = "test.method"
         params = (1, 2, 3)
@@ -656,7 +806,15 @@ class TestSessionRecorder:
     async def test_add_xml_rpc_session_with_exception(self, tmp_path) -> None:
         """Test adding XML-RPC session with exception."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         method = "test.method"
         params = (1, 2)
@@ -672,7 +830,15 @@ class TestSessionRecorder:
     async def test_cleanup(self, tmp_path) -> None:
         """Test cleanup removes expired entries."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0.5, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0.5,
+            refresh_on_get=False,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"
@@ -693,7 +859,15 @@ class TestSessionRecorder:
     async def test_delete_entry(self, tmp_path) -> None:
         """Test deleting specific entry."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"
@@ -715,7 +889,15 @@ class TestSessionRecorder:
     async def test_get_latest_response_by_method(self, tmp_path) -> None:
         """Test getting latest responses by method."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"
@@ -734,7 +916,15 @@ class TestSessionRecorder:
     async def test_get_latest_response_by_params(self, tmp_path) -> None:
         """Test getting latest response for specific params."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"
@@ -752,13 +942,29 @@ class TestSessionRecorder:
         central = _CentralStub("C", str(tmp_path))
 
         with pytest.raises(ValueError):
-            SessionRecorder(central=central, active=False, ttl_seconds=-1, refresh_on_get=False)
+            SessionRecorder(
+                central_info=central,
+                config_provider=central,
+                device_provider=central,
+                task_scheduler=central.looper,
+                active=False,
+                ttl_seconds=-1,
+                refresh_on_get=False,
+            )
 
     @pytest.mark.asyncio
     async def test_peek_ts(self, tmp_path) -> None:
         """Test peeking at timestamp without modifying entry."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"
@@ -780,7 +986,15 @@ class TestSessionRecorder:
     async def test_refresh_on_get(self, tmp_path) -> None:
         """Test that refresh_on_get extends TTL."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=10, refresh_on_get=True)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=10,
+            refresh_on_get=True,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"
@@ -800,7 +1014,15 @@ class TestSessionRecorder:
     async def test_repr(self, tmp_path) -> None:
         """Test string representation."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         repr_str = repr(rec)
         assert "SessionRecorder" in repr_str
@@ -809,7 +1031,15 @@ class TestSessionRecorder:
     async def test_save_and_clear(self, tmp_path) -> None:
         """Test saving to disk and clearing."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         rec.set(rpc_type=str(RPCType.XML_RPC), method="m", params=(1, 2), response=123)
 
@@ -829,7 +1059,15 @@ class TestSessionRecorder:
     async def test_set_and_get_basic(self, tmp_path) -> None:
         """Test basic set and get operations."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0,
+            refresh_on_get=False,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"
@@ -847,7 +1085,15 @@ class TestSessionRecorder:
     async def test_ttl_expiration(self, tmp_path) -> None:
         """Test that entries expire after TTL."""
         central = _CentralStub("C", str(tmp_path))
-        rec = SessionRecorder(central=central, active=True, ttl_seconds=0.5, refresh_on_get=False)
+        rec = SessionRecorder(
+            central_info=central,
+            config_provider=central,
+            device_provider=central,
+            task_scheduler=central.looper,
+            active=True,
+            ttl_seconds=0.5,
+            refresh_on_get=False,
+        )
 
         rpc_type = str(RPCType.JSON_RPC)
         method = "test.method"

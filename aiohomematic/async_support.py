@@ -16,6 +16,7 @@ from typing import Any, Final, cast
 
 from aiohomematic.const import BLOCK_LOG_TIMEOUT
 from aiohomematic.exceptions import AioHomematicException
+from aiohomematic.model.interfaces import TaskScheduler
 import aiohomematic.support as hms
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import AsyncTaskFactoryAny, CallableAny, CoroutineAny
@@ -23,7 +24,7 @@ from aiohomematic.type_aliases import AsyncTaskFactoryAny, CallableAny, Coroutin
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class Looper:
+class Looper(TaskScheduler):
     """Helper class for event loop support."""
 
     def __init__(self) -> None:

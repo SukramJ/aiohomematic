@@ -235,10 +235,21 @@ class CentralUnit(LogContextMixin, PayloadMixin):
             client_provider=self,
         )
         self._device_coordinator: Final = DeviceCoordinator(
-            central=self,
-            coordinator_provider=self,
             central_info=self,
+            channel_lookup=self,
+            client_provider=self,
             config_provider=self,
+            coordinator_provider=self,
+            data_cache_provider=self.data_cache,
+            device_data_refresher=self,
+            device_description_provider=self.device_descriptions,
+            device_details_provider=self.device_details,
+            event_bus_provider=self,
+            event_subscription_manager=self,
+            file_operations=self,
+            parameter_visibility_provider=self.parameter_visibility,
+            paramset_description_provider=self.paramset_descriptions,
+            task_scheduler=self.looper,
         )
         self._client_coordinator: Final = ClientCoordinator(
             central=self,  # Required for client factory

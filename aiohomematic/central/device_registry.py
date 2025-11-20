@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.model.interfaces import CentralInfo, ClientProvider
+from aiohomematic.interfaces import CentralInfo, ClientProvider
 from aiohomematic.support import get_device_address
 
 if TYPE_CHECKING:

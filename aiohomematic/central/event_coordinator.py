@@ -36,9 +36,9 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
+from aiohomematic.interfaces import ClientProvider, TaskScheduler
 from aiohomematic.model.event import GenericEvent
 from aiohomematic.model.generic import GenericDataPoint
-from aiohomematic.model.interfaces import ClientProvider, TaskScheduler
 
 if TYPE_CHECKING:
     from aiohomematic.model.data_point import BaseParameterDataPointAny

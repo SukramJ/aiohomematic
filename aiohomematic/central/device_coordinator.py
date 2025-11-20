@@ -32,12 +32,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.model import create_data_points_and_events
-from aiohomematic.model.custom import create_custom_data_points
-from aiohomematic.model.data_point import CallbackDataPoint
-from aiohomematic.model.device import Device
-from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
     ClientProvider,
@@ -54,6 +49,11 @@ from aiohomematic.model.interfaces import (
     ParamsetDescriptionProvider,
     TaskScheduler,
 )
+from aiohomematic.model import create_data_points_and_events
+from aiohomematic.model.custom import create_custom_data_points
+from aiohomematic.model.data_point import CallbackDataPoint
+from aiohomematic.model.device import Device
+from aiohomematic.model.event import GenericEvent
 from aiohomematic.support import extract_device_addresses_from_device_descriptions, extract_exc_args
 
 if TYPE_CHECKING:

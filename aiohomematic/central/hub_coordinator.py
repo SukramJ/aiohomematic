@@ -20,8 +20,8 @@ from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.decorators import inspector
+from aiohomematic.interfaces import CentralInfo, EventBusProvider, PrimaryClientProvider
 from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
-from aiohomematic.model.interfaces import CentralInfo, EventBusProvider, PrimaryClientProvider
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralUnit

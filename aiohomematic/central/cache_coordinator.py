@@ -19,7 +19,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic.const import DataOperationResult, Interface
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     ClientProvider,
     ConfigProvider,

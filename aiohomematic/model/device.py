@@ -70,13 +70,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.model import week_profile as wp
-from aiohomematic.model.calculated import CalculatedDataPoint
-from aiohomematic.model.custom import data_point as hmce, definition as hmed
-from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.generic import DpBinarySensor, GenericDataPoint, GenericDataPointAny
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
     ClientProvider,
@@ -92,6 +86,12 @@ from aiohomematic.model.interfaces import (
     ParamsetDescriptionProvider,
     TaskScheduler,
 )
+from aiohomematic.model import week_profile as wp
+from aiohomematic.model.calculated import CalculatedDataPoint
+from aiohomematic.model.custom import data_point as hmce, definition as hmed
+from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
+from aiohomematic.model.event import GenericEvent
+from aiohomematic.model.generic import DpBinarySensor, GenericDataPoint, GenericDataPointAny
 from aiohomematic.model.support import (
     ChannelNameData,
     generate_channel_unique_id,

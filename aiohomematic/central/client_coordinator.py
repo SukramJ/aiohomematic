@@ -28,7 +28,7 @@ from aiohomematic.const import (
     ProxyInitState,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.model.interfaces import CentralInfo, ConfigProvider, CoordinatorProvider, SystemInfoProvider
+from aiohomematic.interfaces import CentralInfo, ConfigProvider, CoordinatorProvider, SystemInfoProvider
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:

@@ -92,15 +92,7 @@ from aiohomematic.const import (
     SysvarType,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
-from aiohomematic.model.hub.button import ProgramDpButton
-from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
-from aiohomematic.model.hub.number import SysvarDpNumber
-from aiohomematic.model.hub.select import SysvarDpSelect
-from aiohomematic.model.hub.sensor import SysvarDpSensor
-from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
-from aiohomematic.model.hub.text import SysvarDpText
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
     ConfigProvider,
@@ -113,6 +105,14 @@ from aiohomematic.model.interfaces import (
     PrimaryClientProvider,
     TaskScheduler,
 )
+from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
+from aiohomematic.model.hub.button import ProgramDpButton
+from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
+from aiohomematic.model.hub.number import SysvarDpNumber
+from aiohomematic.model.hub.select import SysvarDpSelect
+from aiohomematic.model.hub.sensor import SysvarDpSensor
+from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
+from aiohomematic.model.hub.text import SysvarDpText
 
 __all__ = [
     "GenericHubDataPoint",

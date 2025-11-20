@@ -66,8 +66,8 @@ from aiohomematic.const import (
     ParamsetKey,
     RPCType,
 )
+from aiohomematic.interfaces import CentralInfo, ConfigProvider, DeviceProvider, TaskScheduler
 from aiohomematic.model.device import Device
-from aiohomematic.model.interfaces import CentralInfo, ConfigProvider, DeviceProvider, TaskScheduler
 from aiohomematic.support import (
     check_or_create_directory,
     create_random_device_addresses,

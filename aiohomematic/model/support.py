@@ -51,7 +51,7 @@ __all__ = [
     "is_binary_sensor",
 ]
 
-from aiohomematic.model.interfaces import ConfigProvider
+from aiohomematic.interfaces import ConfigProvider
 
 _LOGGER: Final = logging.getLogger(__name__)
 

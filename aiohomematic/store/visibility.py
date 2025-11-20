@@ -40,9 +40,9 @@ from typing import Final, TypeAlias
 
 from aiohomematic import support as hms
 from aiohomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
+from aiohomematic.interfaces import ConfigProvider
 from aiohomematic.model import hmd
 from aiohomematic.model.custom import get_required_parameters
-from aiohomematic.model.interfaces import ConfigProvider
 from aiohomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)

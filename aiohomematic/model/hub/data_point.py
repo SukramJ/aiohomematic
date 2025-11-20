@@ -32,7 +32,7 @@ from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin, parse_sys_var
 
 if TYPE_CHECKING:
-    from aiohomematic.model.interfaces import (
+    from aiohomematic.interfaces import (
         CentralInfo,
         ChannelLookup,
         ConfigProvider,

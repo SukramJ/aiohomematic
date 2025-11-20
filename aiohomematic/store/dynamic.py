@@ -48,8 +48,7 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from aiohomematic.model.device import Device
-from aiohomematic.model.interfaces import (
+from aiohomematic.interfaces import (
     CentralInfo,
     ClientProvider,
     DataPointProvider,
@@ -57,6 +56,7 @@ from aiohomematic.model.interfaces import (
     EventEmitter,
     PrimaryClientProvider,
 )
+from aiohomematic.model.device import Device
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)

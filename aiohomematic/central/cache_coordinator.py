@@ -60,13 +60,13 @@ class CacheCoordinator:
         self,
         *,
         central_info: CentralInfo,
-        device_provider: DeviceProvider,
         client_provider: ClientProvider,
-        data_point_provider: DataPointProvider,
-        primary_client_provider: PrimaryClientProvider,
         config_provider: ConfigProvider,
-        task_scheduler: TaskScheduler,
+        data_point_provider: DataPointProvider,
+        device_provider: DeviceProvider,
+        primary_client_provider: PrimaryClientProvider,
         session_recorder_active: bool,
+        task_scheduler: TaskScheduler,
     ) -> None:
         """
         Initialize the cache coordinator.

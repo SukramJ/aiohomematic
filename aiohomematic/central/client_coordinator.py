@@ -55,8 +55,8 @@ class ClientCoordinator(ClientProvider):
         self,
         *,
         central: CentralUnit,  # Required for client factory function
-        config_provider: ConfigProvider,
         central_info: CentralInfo,
+        config_provider: ConfigProvider,
         coordinator_provider: CoordinatorProvider,
         system_info_provider: SystemInfoProvider,
     ) -> None:

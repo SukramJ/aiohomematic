@@ -259,13 +259,13 @@ class CentralUnit(
         # Initialize coordinators
         self._cache_coordinator: Final = CacheCoordinator(
             central_info=self,
-            device_provider=self,
             client_provider=self,
-            data_point_provider=self,
-            primary_client_provider=self,
             config_provider=self,
-            task_scheduler=self.looper,
+            data_point_provider=self,
+            device_provider=self,
+            primary_client_provider=self,
             session_recorder_active=self.config.session_recorder_start,
+            task_scheduler=self.looper,
         )
         self._event_coordinator: Final = EventCoordinator(
             client_provider=self,
@@ -294,8 +294,8 @@ class CentralUnit(
         )
         self._client_coordinator: Final = ClientCoordinator(
             central=self,  # Required for client factory
-            config_provider=self,
             central_info=self,
+            config_provider=self,
             coordinator_provider=self,
             system_info_provider=self,
         )

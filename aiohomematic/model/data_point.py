@@ -487,7 +487,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
             if event.unique_id == self._unique_id:
                 cb()
 
-        return self._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]
+        return self._event_bus_provider.event_bus.subscribe(
             event_type=DeviceRemovedEvent,
             handler=event_handler,
         )

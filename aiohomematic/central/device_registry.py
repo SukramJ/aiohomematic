@@ -155,9 +155,7 @@ class DeviceRegistry:
             Tuple of virtual remote Device instances
 
         """
-        return tuple(
-            cl.get_virtual_remote() for cl in self._client_provider.clients if cl.get_virtual_remote() is not None
-        )
+        return tuple(vr for cl in self._client_provider.clients if (vr := cl.get_virtual_remote()) is not None)
 
     def has_device(self, *, address: str) -> bool:
         """

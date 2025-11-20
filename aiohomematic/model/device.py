@@ -327,7 +327,7 @@ class Device(LogContextMixin, PayloadMixin):
     @property
     def client(self) -> hmcl.Client:
         """Return the client of the device."""
-        return self._client  # type: ignore[no-any-return]
+        return self._client
 
     @property
     def config_pending(self) -> bool:
@@ -423,7 +423,7 @@ class Device(LogContextMixin, PayloadMixin):
     @property
     def interface(self) -> Interface:
         """Return the interface of the device."""
-        return self._interface  # type: ignore[no-any-return]
+        return self._interface
 
     @property
     def is_updatable(self) -> bool:
@@ -763,7 +763,7 @@ class Device(LogContextMixin, PayloadMixin):
             if event.device_address == self._address:
                 cb()
 
-        return self._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]
+        return self._event_bus_provider.event_bus.subscribe(
             event_type=DeviceUpdatedEvent,
             handler=event_handler,
         )
@@ -776,7 +776,7 @@ class Device(LogContextMixin, PayloadMixin):
             if event.device_address == self._address:
                 cb()
 
-        return self._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]
+        return self._event_bus_provider.event_bus.subscribe(
             event_type=FirmwareUpdatedEvent,
             handler=event_handler,
         )
@@ -813,7 +813,7 @@ class Device(LogContextMixin, PayloadMixin):
         if refresh_after_update_intervals:
             self._task_scheduler.create_task(target=refresh_data, name="refresh_firmware_data")
 
-        return update_result  # type: ignore[no-any-return]
+        return update_result
 
     def _identify_manufacturer(self) -> Manufacturer:
         """Identify the manufacturer of a device."""
@@ -1096,11 +1096,8 @@ class Channel(LogContextMixin, PayloadMixin):
     @property
     def paramset_descriptions(self) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Return the paramset descriptions of the channel."""
-        return cast(
-            Mapping[ParamsetKey, Mapping[str, ParameterData]],
-            self._paramset_provider.get_channel_paramset_descriptions(
-                interface_id=self._device.interface_id, channel_address=self._address
-            ),
+        return self._paramset_provider.get_channel_paramset_descriptions(
+            interface_id=self._device.interface_id, channel_address=self._address
         )
 
     @property
@@ -1357,7 +1354,7 @@ class Channel(LogContextMixin, PayloadMixin):
             if event.channel_address == self._address:
                 cb()
 
-        return self._device._event_bus_provider.event_bus.subscribe(  # type: ignore[no-any-return]  # pylint: disable=protected-access
+        return self._device._event_bus_provider.event_bus.subscribe(  # pylint: disable=protected-access
             event_type=LinkPeerChangedEvent,
             handler=event_handler,
         )

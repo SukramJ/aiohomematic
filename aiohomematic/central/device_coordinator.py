@@ -87,7 +87,7 @@ class DeviceCoordinator:
     @property
     def device_registry(self) -> DeviceRegistry:
         """Return the device registry."""
-        return self._coordinator_provider.device_registry  # type: ignore[no-any-return]
+        return self._coordinator_provider.device_registry
 
     @property
     def devices(self) -> tuple[Device, ...]:
@@ -400,7 +400,7 @@ class DeviceCoordinator:
             interface_id=interface_id
         )
         _LOGGER.debug("LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result))
-        return cast(list[DeviceDescription], result)
+        return result
 
     async def refresh_device_descriptions_and_create_missing_devices(
         self, *, client: Client, refresh_only_existing: bool, device_address: str | None = None

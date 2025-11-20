@@ -11,18 +11,39 @@ instead of directly depending on CentralUnit. This allows for:
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Callable, Collection, Mapping
-from typing import Any, Protocol, runtime_checkable
+import asyncio
+from collections.abc import Callable, Mapping
+from concurrent.futures import ThreadPoolExecutor
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
     BackendSystemEvent,
+    CentralUnitState,
     DeviceDescription,
     DeviceFirmwareState,
+    EventKey,
     EventType,
     Interface,
+    ParameterData,
     ParamsetKey,
     SystemInformation,
 )
+from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
+
+if TYPE_CHECKING:
+    from aiohomematic.central import CentralConfig
+    from aiohomematic.central.cache_coordinator import CacheCoordinator
+    from aiohomematic.central.client_coordinator import ClientCoordinator
+    from aiohomematic.central.device_coordinator import DeviceCoordinator
+    from aiohomematic.central.device_registry import DeviceRegistry
+    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.event_coordinator import EventCoordinator
+    from aiohomematic.central.hub_coordinator import HubCoordinator
+    from aiohomematic.client import Client
+    from aiohomematic.model.data_point import BaseParameterDataPointAny
+    from aiohomematic.model.device import Channel, Device
+    from aiohomematic.model.generic import GenericDataPointAny
+    from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, ProgramDpType
 
 
 @runtime_checkable
@@ -30,12 +51,7 @@ class ParameterVisibilityProvider(Protocol):
     """Protocol for accessing parameter visibility information."""
 
     @abstractmethod
-    def is_relevant_paramset(
-        self,
-        *,
-        channel: Any,
-        paramset_key: ParamsetKey,
-    ) -> bool:
+    def is_relevant_paramset(self, *, channel: Channel, paramset_key: ParamsetKey) -> bool:
         """
         Return if a paramset is relevant.
 
@@ -43,38 +59,22 @@ class ParameterVisibilityProvider(Protocol):
         """
 
     @abstractmethod
-    def model_is_ignored(self, *, model: Any) -> bool:
+    def model_is_ignored(self, *, model: str) -> bool:
         """Check if a model should be ignored for custom data points."""
 
     @abstractmethod
-    def parameter_is_hidden(
-        self,
-        *,
-        channel: Any,
-        paramset_key: ParamsetKey,
-        parameter: str,
-    ) -> bool:
+    def parameter_is_hidden(self, *, channel: Channel, paramset_key: ParamsetKey, parameter: str) -> bool:
         """Check if a parameter is hidden."""
 
     @abstractmethod
     def parameter_is_un_ignored(
-        self,
-        *,
-        channel: Any,
-        paramset_key: ParamsetKey,
-        parameter: str,
-        custom_only: bool = False,
+        self, *, channel: Channel, paramset_key: ParamsetKey, parameter: str, custom_only: bool = False
     ) -> bool:
         """Check if a parameter is un-ignored (visible)."""
 
     @abstractmethod
     def should_skip_parameter(
-        self,
-        *,
-        channel: Any,
-        paramset_key: ParamsetKey,
-        parameter: str,
-        parameter_is_un_ignored: bool,
+        self, *, channel: Channel, paramset_key: ParamsetKey, parameter: str, parameter_is_un_ignored: bool
     ) -> bool:
         """Determine if a parameter should be skipped."""
 
@@ -84,21 +84,11 @@ class EventEmitter(Protocol):
     """Protocol for emitting events to the system."""
 
     @abstractmethod
-    def emit_backend_system_callback(
-        self,
-        *,
-        system_event: BackendSystemEvent,
-        **kwargs: Any,
-    ) -> None:
+    def emit_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
         """Emit a backend system callback event."""
 
     @abstractmethod
-    def emit_homematic_callback(
-        self,
-        *,
-        event_type: EventType,
-        event_data: dict[Any, Any],
-    ) -> None:
+    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
         """Emit a Homematic callback event."""
 
 
@@ -123,7 +113,7 @@ class DeviceDetailsProvider(Protocol):
         """Get function text for an address."""
 
     @abstractmethod
-    def get_interface(self, *, address: str) -> Any:  # Avoid circular import with Interface
+    def get_interface(self, *, address: str) -> Interface:
         """Get interface for an address."""
 
     @abstractmethod
@@ -136,21 +126,11 @@ class DeviceDescriptionProvider(Protocol):
     """Protocol for accessing device descriptions."""
 
     @abstractmethod
-    def get_device_description(
-        self,
-        *,
-        interface_id: str,
-        address: str,
-    ) -> DeviceDescription:
+    def get_device_description(self, *, interface_id: str, address: str) -> DeviceDescription:
         """Get device description."""
 
     @abstractmethod
-    def get_device_with_channels(
-        self,
-        *,
-        interface_id: str,
-        device_address: str,
-    ) -> Mapping[str, DeviceDescription]:
+    def get_device_with_channels(self, *, interface_id: str, device_address: str) -> Mapping[str, DeviceDescription]:
         """Get device with all channel descriptions."""
 
 
@@ -160,22 +140,14 @@ class ParamsetDescriptionProvider(Protocol):
 
     @abstractmethod
     def get_channel_paramset_descriptions(
-        self,
-        *,
-        interface_id: str,
-        channel_address: str,
-    ) -> Mapping[str, Mapping[str, Any]]:
+        self, *, interface_id: str, channel_address: str
+    ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
         """Get all paramset descriptions for a channel."""
 
     @abstractmethod
     def get_parameter_data(
-        self,
-        *,
-        interface_id: str,
-        channel_address: str,
-        paramset_key: ParamsetKey,
-        parameter: str,
-    ) -> dict[str, Any] | None:
+        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+    ) -> ParameterData | None:
         """Get parameter data from paramset description."""
 
     @abstractmethod
@@ -188,19 +160,11 @@ class EventSubscriptionManager(Protocol):
     """Protocol for managing event subscriptions."""
 
     @abstractmethod
-    def add_event_subscription(
-        self,
-        *,
-        data_point: Any,  # Avoid circular import
-    ) -> None:
+    def add_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """Add an event subscription for a data point."""
 
     @abstractmethod
-    def remove_event_subscription(
-        self,
-        *,
-        data_point: Any,  # Avoid circular import
-    ) -> None:
+    def remove_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """Remove an event subscription for a data point."""
 
 
@@ -210,28 +174,28 @@ class HubDataPointManager(Protocol):
 
     @property
     @abstractmethod
-    def program_data_points(self) -> Collection[Any]:
+    def program_data_points(self) -> tuple[GenericProgramDataPoint, ...]:
         """Get all program data points."""
 
     @property
     @abstractmethod
-    def sysvar_data_points(self) -> Collection[Any]:
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPoint, ...]:
         """Get all system variable data points."""
 
     @abstractmethod
-    def add_program_data_point(self, *, program_dp: Any) -> None:
+    def add_program_data_point(self, *, program_dp: ProgramDpType) -> None:
         """Add a program data point."""
 
     @abstractmethod
-    def add_sysvar_data_point(self, *, sysvar_data_point: Any) -> None:
+    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPoint) -> None:
         """Add a system variable data point."""
 
     @abstractmethod
-    def get_program_data_point(self, *, pid: str) -> Any | None:
+    def get_program_data_point(self, *, pid: str) -> ProgramDpType | None:
         """Get a program data point by ID."""
 
     @abstractmethod
-    def get_sysvar_data_point(self, *, vid: str) -> Any | None:
+    def get_sysvar_data_point(self, *, vid: str) -> GenericSysvarDataPoint | None:
         """Get a system variable data point by ID."""
 
     @abstractmethod
@@ -248,21 +212,13 @@ class TaskScheduler(Protocol):
     """Protocol for scheduling async tasks."""
 
     @abstractmethod
-    def async_add_executor_job(
-        self,
-        target: Callable[..., Any],
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        """Add a job to be executed in the executor pool."""
+    def async_add_executor_job[T](
+        self, target: Callable[..., T], *args: Any, name: str, executor: ThreadPoolExecutor | None = None
+    ) -> asyncio.Future[T]:
+        """Add an executor job from within the event_loop."""
 
     @abstractmethod
-    def create_task(
-        self,
-        *,
-        target: Any,
-        name: str,
-    ) -> None:
+    def create_task(self, *, target: CoroutineAny | AsyncTaskFactoryAny, name: str) -> None:
         """Create and schedule an async task."""
 
 
@@ -297,7 +253,7 @@ class PrimaryClientProvider(Protocol):
 
     @property
     @abstractmethod
-    def primary_client(self) -> Any:  # Avoid circular import
+    def primary_client(self) -> Client | None:
         """Get primary client."""
 
 
@@ -306,21 +262,11 @@ class EventRegistry(Protocol):
     """Protocol for registering event handlers."""
 
     @abstractmethod
-    def add_event_handler(
-        self,
-        *,
-        event_type: EventType,
-        handler: Callable[[Any], None],
-    ) -> None:
+    def add_event_handler(self, *, event_type: EventType, handler: Callable[[Any], None]) -> None:
         """Add an event handler."""
 
     @abstractmethod
-    def remove_event_handler(
-        self,
-        *,
-        event_type: EventType,
-        handler: Callable[[Any], None],
-    ) -> None:
+    def remove_event_handler(self, *, event_type: EventType, handler: Callable[[Any], None]) -> None:
         """Remove an event handler."""
 
 
@@ -333,7 +279,7 @@ class ClientProvider(Protocol):
 
     @property
     @abstractmethod
-    def clients(self) -> tuple[Any, ...]:  # Avoid circular import
+    def clients(self) -> tuple[Client, ...]:  # Avoid circular import
         """Get all clients."""
 
     @property
@@ -347,7 +293,7 @@ class ClientProvider(Protocol):
         """Get all interface IDs."""
 
     @abstractmethod
-    def get_client(self, *, interface_id: str) -> Any:  # Avoid circular import
+    def get_client(self, *, interface_id: str) -> Client:
         """Get client for the given interface."""
 
     @abstractmethod
@@ -361,32 +307,32 @@ class CoordinatorProvider(Protocol):
 
     @property
     @abstractmethod
-    def cache_coordinator(self) -> Any:  # Avoid circular import
+    def cache_coordinator(self) -> CacheCoordinator:
         """Get cache coordinator."""
 
     @property
     @abstractmethod
-    def client_coordinator(self) -> Any:  # Avoid circular import
+    def client_coordinator(self) -> ClientCoordinator:
         """Get client coordinator."""
 
     @property
     @abstractmethod
-    def device_coordinator(self) -> Any:  # Avoid circular import
+    def device_coordinator(self) -> DeviceCoordinator:
         """Get device coordinator."""
 
     @property
     @abstractmethod
-    def device_registry(self) -> Any:  # Avoid circular import
+    def device_registry(self) -> DeviceRegistry:
         """Get device registry."""
 
     @property
     @abstractmethod
-    def event_coordinator(self) -> Any:  # Avoid circular import
+    def event_coordinator(self) -> EventCoordinator:
         """Get event coordinator."""
 
     @property
     @abstractmethod
-    def hub_coordinator(self) -> Any:  # Avoid circular import
+    def hub_coordinator(self) -> HubCoordinator:
         """Get hub coordinator."""
 
 
@@ -396,7 +342,7 @@ class ConfigProvider(Protocol):
 
     @property
     @abstractmethod
-    def config(self) -> Any:  # Avoid circular import
+    def config(self) -> CentralConfig:  # Avoid circular import
         """Get central configuration."""
 
 
@@ -416,7 +362,7 @@ class EventBusProvider(Protocol):
 
     @property
     @abstractmethod
-    def event_bus(self) -> Any:  # Avoid circular import
+    def event_bus(self) -> EventBus:
         """Get event bus instance."""
 
 
@@ -430,7 +376,7 @@ class DataPointProvider(Protocol):
         *,
         paramset_key: ParamsetKey | None = None,
         interface: Interface | None = None,
-    ) -> tuple[Any, ...]:  # Avoid circular import
+    ) -> tuple[GenericDataPointAny, ...]:
         """Get readable generic data points."""
 
 
@@ -440,12 +386,12 @@ class DeviceProvider(Protocol):
 
     @property
     @abstractmethod
-    def devices(self) -> tuple[Any, ...]:  # Avoid circular import
+    def devices(self) -> tuple[Device, ...]:
         """Get all devices."""
 
     @property
     @abstractmethod
-    def interfaces(self) -> tuple[Any, ...]:  # Avoid circular import
+    def interfaces(self) -> tuple[Interface, ...]:
         """Get all interfaces."""
 
 
@@ -454,11 +400,11 @@ class ChannelLookup(Protocol):
     """Protocol for looking up channels."""
 
     @abstractmethod
-    def get_channel(self, *, channel_address: str) -> Any | None:  # Avoid circular import
+    def get_channel(self, *, channel_address: str) -> Channel | None:
         """Get channel by address."""
 
     @abstractmethod
-    def identify_channel(self, *, text: str) -> Any | None:  # Avoid circular import
+    def identify_channel(self, *, text: str) -> Channel | None:  # Avoid circular import
         """Identify a channel within a text string."""
 
 
@@ -468,10 +414,7 @@ class FileOperations(Protocol):
 
     @abstractmethod
     async def save_files(
-        self,
-        *,
-        save_device_descriptions: bool = False,
-        save_paramset_descriptions: bool = False,
+        self, *, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
     ) -> None:
         """Save persistent files to disk."""
 
@@ -530,11 +473,11 @@ class ClientCoordination(Protocol):
 
     @property
     @abstractmethod
-    def poll_clients(self) -> tuple[Any, ...] | None:
+    def poll_clients(self) -> tuple[Client, ...] | None:
         """Get clients that require polling."""
 
     @abstractmethod
-    def get_client(self, *, interface_id: str) -> Any:
+    def get_client(self, *, interface_id: str) -> Client:
         """Get client by interface ID."""
 
     @abstractmethod
@@ -556,7 +499,7 @@ class CentralUnitStateProvider(Protocol):
 
     @property
     @abstractmethod
-    def state(self) -> Any:  # Avoid circular import
+    def state(self) -> CentralUnitState:
         """Get current central state."""
 
 
@@ -565,11 +508,5 @@ class DataCacheProvider(Protocol):
     """Protocol for accessing data cache."""
 
     @abstractmethod
-    def get_data(
-        self,
-        *,
-        interface: Interface,
-        channel_address: str,
-        parameter: str,
-    ) -> Any:
+    def get_data(self, *, interface: Interface, channel_address: str, parameter: str) -> Any:
         """Get cached data for a parameter."""

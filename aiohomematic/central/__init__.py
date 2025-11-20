@@ -282,6 +282,7 @@ class CentralUnit(
             config_provider=self,
             coordinator_provider=self,
             data_cache_provider=self.data_cache,
+            data_point_provider=self,
             device_data_refresher=self,
             device_description_provider=self.device_descriptions,
             device_details_provider=self.device_details,

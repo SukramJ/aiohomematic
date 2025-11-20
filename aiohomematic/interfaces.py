@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.central.hub_coordinator import HubCoordinator
     from aiohomematic.client import Client
-    from aiohomematic.model.data_point import BaseParameterDataPointAny
+    from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
     from aiohomematic.model.device import Channel, Device
     from aiohomematic.model.generic import GenericDataPointAny
     from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, ProgramDpType
@@ -420,6 +420,10 @@ class DataPointProvider(Protocol):
 
     Implemented by CentralUnit
     """
+
+    @abstractmethod
+    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPoint | None:
+        """Return Homematic data_point by custom_id."""
 
     @abstractmethod
     def get_readable_generic_data_points(

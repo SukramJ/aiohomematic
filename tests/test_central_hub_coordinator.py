@@ -117,7 +117,7 @@ class _FakeCentral:
         self.config = MagicMock()
         self.event_coordinator = _FakeEventCoordinator()
         self.event_bus = MagicMock()
-        self.event_bus.subscribe_sysvar_event_callback = MagicMock(return_value=lambda: None)
+        self.event_bus.subscribe = MagicMock(return_value=lambda: None)
         self._primary_client: _FakeClient | None = None
         # Add protocol interfaces required by HubCoordinator
         self.looper = MagicMock()
@@ -331,11 +331,12 @@ class TestHubCoordinatorSysvarOperations:
         assert "123" in coordinator._sysvar_data_points
         assert coordinator._sysvar_data_points["123"] == sysvar_dp
 
-        # Should have subscribed via EventBus
-        central.event_bus.subscribe_sysvar_event_callback.assert_called_once_with(
-            state_path=sysvar_dp.state_path,
-            callback=sysvar_dp.event,
-        )
+        # Should have subscribed via EventBus (using the new pattern)
+        from aiohomematic.central.event_bus import SysvarUpdatedEvent
+
+        central.event_bus.subscribe.assert_called_once()
+        call_args = central.event_bus.subscribe.call_args
+        assert call_args.kwargs["event_type"] == SysvarUpdatedEvent
 
     @pytest.mark.asyncio
     async def test_fetch_sysvar_data(self) -> None:

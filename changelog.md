@@ -1,10 +1,16 @@
-# Version 2025.11.22 (2025-11-19)
+# Version 2025.11.23 (2025-11-21)
+
+## What's Changed
+
+- Clean up event bus implementation and remove legacy code
+
+# Version 2025.11.22 (2025-11-20)
 
 ## What's Changed
 
 - Add data_point_provider to DeviceCoordinator
 
-# Version 2025.11.21 (2025-11-19)
+# Version 2025.11.21 (2025-11-20)
 
 ## What's Changed
 

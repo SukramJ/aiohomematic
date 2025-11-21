@@ -1431,8 +1431,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
-        if isinstance(data_point, BaseParameterDataPoint):
-            self._device.event_subscription_manager.remove_event_subscription(data_point=data_point)
+        # EventBus subscriptions are automatically cleaned up via DeviceRemovedEvent
         if isinstance(data_point, CalculatedDataPoint):
             del self._calculated_data_points[data_point.dpk]
         if isinstance(data_point, GenericDataPoint):

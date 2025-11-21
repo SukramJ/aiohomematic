@@ -80,7 +80,6 @@ import logging
 from typing import Any, TypeVar, cast
 
 from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType
-from aiohomematic.type_aliases import DataPointEventCallback, SysvarEventCallback
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -367,58 +366,6 @@ class EventBus:
                 )
 
         return unsubscribe
-
-    def subscribe_datapoint_event_callback(
-        self, *, dpk: DataPointKey, callback: DataPointEventCallback
-    ) -> UnsubscribeCallback:
-        """
-        Subscribe to data point events for a specific data point key.
-
-        This is a compatibility wrapper for the old DataPointEventCallback protocol.
-        New code should use subscribe(DataPointUpdatedEvent, handler) with filtering.
-
-        Args:
-        ----
-            dpk: Data point key to filter for
-            callback: Legacy callback following DataPointEventCallback protocol
-
-        Returns:
-        -------
-            Unsubscribe callback
-
-        """
-
-        async def adapter(event: DataPointUpdatedEvent) -> None:
-            # Only call callback if this is the data point we're interested in
-            if event.dpk == dpk:
-                await callback(value=event.value, received_at=event.received_at)
-
-        return self.subscribe(event_type=DataPointUpdatedEvent, handler=adapter)
-
-    def subscribe_sysvar_event_callback(self, *, state_path: str, callback: SysvarEventCallback) -> UnsubscribeCallback:
-        """
-        Subscribe to system variable events for a specific state path.
-
-        This is a compatibility wrapper for the old SysvarEventCallback.
-        New code should use subscribe(SysvarUpdatedEvent, handler) with filtering.
-
-        Args:
-        ----
-            state_path: System variable state path to filter for
-            callback: Legacy callback following SysvarEventCallback signature
-
-        Returns:
-        -------
-            Unsubscribe callback
-
-        """
-
-        async def adapter(event: SysvarUpdatedEvent) -> None:
-            # Only call callback if this is the sysvar we're interested in
-            if event.state_path == state_path:
-                await callback(value=event.value, received_at=event.received_at)
-
-        return self.subscribe(event_type=SysvarUpdatedEvent, handler=adapter)
 
     async def _safe_call_handler(self, *, handler: EventHandler, event: Event) -> None:
         """

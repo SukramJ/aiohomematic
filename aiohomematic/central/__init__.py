@@ -946,10 +946,6 @@ class CentralUnit(
         """Remove device from central collections."""
         self._device_coordinator.remove_device(device=device)
 
-    def remove_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
-        """Remove event subscription from central collections."""
-        # EventBus subscriptions are automatically cleaned up when data points are deleted
-
     def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
         self._hub_coordinator.remove_program_data_point(pid=pid)

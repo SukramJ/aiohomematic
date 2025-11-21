@@ -3,6 +3,7 @@
 ## What's Changed
 
 - Clean up event bus implementation and remove legacy code
+- Extend API to re-add support for mqtt client
 
 # Version 2025.11.22 (2025-11-20)
 

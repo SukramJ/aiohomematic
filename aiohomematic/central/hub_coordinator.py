@@ -40,6 +40,7 @@ class HubCoordinator:
         "_hub",
         "_primary_client_provider",
         "_program_data_points",
+        "_state_path_to_name",
         "_sysvar_data_points",
     )
 
@@ -86,6 +87,12 @@ class HubCoordinator:
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {program_name, program_button}
         self._program_data_points: Final[dict[str, ProgramDpType]] = {}
+        self._state_path_to_name: Final[dict[str, str]] = {}
+
+    @property
+    def data_point_paths(self) -> tuple[str, ...]:
+        """Return the data point paths."""
+        return tuple(self._state_path_to_name.keys())
 
     @property
     def program_data_points(self) -> tuple[GenericProgramDataPoint, ...]:
@@ -110,6 +117,7 @@ class HubCoordinator:
 
         """
         self._program_data_points[program_dp.pid] = program_dp
+        self._state_path_to_name[program_dp.button.state_path] = program_dp.pid
         _LOGGER.debug(
             "ADD_PROGRAM_DATA_POINT: Added program %s to %s",
             program_dp.pid,
@@ -133,15 +141,15 @@ class HubCoordinator:
                 self._central_info.name,
             )
 
+            self._state_path_to_name[sysvar_data_point.state_path] = sysvar_data_point.vid
+
             # Add event subscription for this sysvar via EventBus with filtering
-            if sysvar_data_point.state_path:
+            async def event_handler(event: SysvarUpdatedEvent) -> None:
+                """Filter and handle sysvar events."""
+                if event.state_path == sysvar_data_point.state_path:
+                    await sysvar_data_point.event(value=event.value, received_at=event.received_at)
 
-                async def event_handler(event: SysvarUpdatedEvent) -> None:
-                    """Filter and handle sysvar events."""
-                    if event.state_path == sysvar_data_point.state_path:
-                        await sysvar_data_point.event(value=event.value, received_at=event.received_at)
-
-                self._event_bus_provider.event_bus.subscribe(event_type=SysvarUpdatedEvent, handler=event_handler)
+            self._event_bus_provider.event_bus.subscribe(event_type=SysvarUpdatedEvent, handler=event_handler)
 
     async def execute_program(self, *, pid: str) -> bool:
         """
@@ -206,7 +214,9 @@ class HubCoordinator:
             if (category is None or he.category == category) and (registered is None or he.is_registered == registered)
         )
 
-    def get_program_data_point(self, *, pid: str | None = None, legacy_name: str | None = None) -> ProgramDpType | None:
+    def get_program_data_point(
+        self, *, pid: str | None = None, legacy_name: str | None = None, state_path: str | None = None
+    ) -> ProgramDpType | None:
         """
         Return a program data point by ID or legacy name.
 
@@ -214,12 +224,16 @@ class HubCoordinator:
         ----
             pid: Program identifier
             legacy_name: Legacy name of the program
+            state_path: State path of the program
 
         Returns:
         -------
             Program data point or None if not found
 
         """
+        if state_path and (pid := self._state_path_to_name.get(state_path)):
+            return self.get_program_data_point(pid=pid)
+
         if pid and (program := self._program_data_points.get(pid)):
             return program
         if legacy_name:
@@ -246,7 +260,7 @@ class HubCoordinator:
         return None
 
     def get_sysvar_data_point(
-        self, *, vid: str | None = None, legacy_name: str | None = None
+        self, *, vid: str | None = None, legacy_name: str | None = None, state_path: str | None = None
     ) -> GenericSysvarDataPoint | None:
         """
         Return a system variable data point by ID or legacy name.
@@ -255,12 +269,16 @@ class HubCoordinator:
         ----
             vid: System variable identifier
             legacy_name: Legacy name of the system variable
+            state_path: State path of the system variable
 
         Returns:
         -------
             System variable data point or None if not found
 
         """
+        if state_path and (vid := self._state_path_to_name.get(state_path)):
+            return self.get_sysvar_data_point(vid=vid)
+
         if vid and (sysvar := self._sysvar_data_points.get(vid)):
             return sysvar
         if legacy_name:
@@ -287,7 +305,8 @@ class HubCoordinator:
         if (program_dp := self.get_program_data_point(pid=pid)) is not None:
             program_dp.button.emit_device_removed_event()
             program_dp.switch.emit_device_removed_event()
-            del self._program_data_points[pid]
+            self._program_data_points.pop(pid, None)
+            self._state_path_to_name.pop(program_dp.button.state_path, None)
             _LOGGER.debug(
                 "REMOVE_PROGRAM_DATA_POINT: Removed program %s from %s",
                 pid,
@@ -305,7 +324,8 @@ class HubCoordinator:
         """
         if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
             sysvar_dp.emit_device_removed_event()
-            del self._sysvar_data_points[vid]
+            self._sysvar_data_points.pop(vid, None)
+            self._state_path_to_name.pop(sysvar_dp.state_path, None)
 
             # Event subscription will be automatically cleaned up when sysvar_dp is deleted
 

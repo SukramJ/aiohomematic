@@ -707,10 +707,18 @@ class CentralUnit(
         """Return Homematic device."""
         return self._device_coordinator.get_device(address=address)
 
-    def get_event(self, *, channel_address: str, parameter: str) -> GenericEvent | None:
+    def get_event(
+        self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
+    ) -> GenericEvent | None:
         """Return the hm event."""
+        if channel_address is None:
+            for dev in self.devices:
+                if event := dev.get_generic_event(parameter=parameter, state_path=state_path):
+                    return event
+            return None
+
         if device := self.get_device(address=channel_address):
-            return device.get_generic_event(channel_address=channel_address, parameter=parameter)
+            return device.get_generic_event(channel_address=channel_address, parameter=parameter, state_path=state_path)
         return None
 
     def get_events(
@@ -726,12 +734,25 @@ class CentralUnit(
         return tuple(hm_channel_events)
 
     def get_generic_data_point(
-        self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
+        self,
+        *,
+        channel_address: str | None = None,
+        parameter: str | None = None,
+        paramset_key: ParamsetKey | None = None,
+        state_path: str | None = None,
     ) -> GenericDataPointAny | None:
         """Get data_point by channel_address and parameter."""
+        if channel_address is None:
+            for dev in self.devices:
+                if dp := dev.get_generic_data_point(
+                    parameter=parameter, paramset_key=paramset_key, state_path=state_path
+                ):
+                    return dp
+            return None
+
         if device := self.get_device(address=channel_address):
             return device.get_generic_data_point(
-                channel_address=channel_address, parameter=parameter, paramset_key=paramset_key
+                channel_address=channel_address, parameter=parameter, paramset_key=paramset_key, state_path=state_path
             )
         return None
 
@@ -842,6 +863,15 @@ class CentralUnit(
                 and ((paramset_key and ge.paramset_key == paramset_key) or paramset_key is None)
             )
         )
+
+    def get_state_paths(self, *, rpc_callback_supported: bool | None = None) -> tuple[str, ...]:
+        """Return the data point paths."""
+        data_point_paths: list[str] = []
+        for device in self._device_registry.devices:
+            if rpc_callback_supported is None or device.client.supports_rpc_callback == rpc_callback_supported:
+                data_point_paths.extend(device.data_point_paths)
+        data_point_paths.extend(self.hub_coordinator.data_point_paths)
+        return tuple(data_point_paths)
 
     async def get_system_variable(self, *, legacy_name: str) -> Any | None:
         """Get system variable from the backend."""

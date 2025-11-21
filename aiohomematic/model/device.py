@@ -368,6 +368,14 @@ class Device(LogContextMixin, PayloadMixin):
         return self._data_cache_provider
 
     @property
+    def data_point_paths(self) -> tuple[str, ...]:
+        """Return the data point paths."""
+        data_point_paths: list[str] = []
+        for channel in self._channels.values():
+            data_point_paths.extend(channel.data_point_paths)
+        return tuple(data_point_paths)
+
+    @property
     def data_point_provider(self) -> DataPointProvider:
         """Return the data point provider."""
         return self._data_point_provider
@@ -727,17 +735,38 @@ class Device(LogContextMixin, PayloadMixin):
         return events
 
     def get_generic_data_point(
-        self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None = None
+        self,
+        *,
+        channel_address: str | None = None,
+        parameter: str | None = None,
+        paramset_key: ParamsetKey | None = None,
+        state_path: str | None = None,
     ) -> GenericDataPointAny | None:
         """Return a generic data_point from device."""
+        if channel_address is None:
+            for ch in self._channels.values():
+                if dp := ch.get_generic_data_point(
+                    parameter=parameter, paramset_key=paramset_key, state_path=state_path
+                ):
+                    return dp
+            return None
+
         if channel := self.get_channel(channel_address=channel_address):
-            return channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key)
+            return channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key, state_path=state_path)
         return None
 
-    def get_generic_event(self, *, channel_address: str, parameter: str) -> GenericEvent | None:
+    def get_generic_event(
+        self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
+    ) -> GenericEvent | None:
         """Return a generic event from device."""
+        if channel_address is None:
+            for ch in self._channels.values():
+                if event := ch.get_generic_event(parameter=parameter, state_path=state_path):
+                    return event
+            return None
+
         if channel := self.get_channel(channel_address=channel_address):
-            return channel.get_generic_event(parameter=parameter)
+            return channel.get_generic_event(parameter=parameter, state_path=state_path)
         return None
 
     def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointAny, ...]:
@@ -923,6 +952,7 @@ class Channel(LogContextMixin, PayloadMixin):
         "_no",
         "_paramset_keys",
         "_rooms",
+        "_state_path_to_dpk",
         "_type_name",
         "_unique_id",
     )
@@ -953,6 +983,7 @@ class Channel(LogContextMixin, PayloadMixin):
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPointAny]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
+        self._state_path_to_dpk: Final[dict[str, DataPointKey]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
         self._link_source_roles: tuple[str, ...] = (
             tuple(source_roles.split(" ")) if (source_roles := self._description.get("LINK_SOURCE_ROLES")) else ()
@@ -996,6 +1027,11 @@ class Channel(LogContextMixin, PayloadMixin):
     def custom_data_point(self) -> hmce.CustomDataPoint | None:
         """Return the custom data point."""
         return self._custom_data_point
+
+    @property
+    def data_point_paths(self) -> tuple[str, ...]:
+        """Return the data point paths."""
+        return tuple(self._state_path_to_dpk.keys())
 
     @property
     def description(self) -> DeviceDescription:
@@ -1165,6 +1201,7 @@ class Channel(LogContextMixin, PayloadMixin):
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPoint):
             self._device.event_subscription_manager.add_event_subscription(data_point=data_point)
+            self._state_path_to_dpk[data_point.state_path] = data_point.dpk
         if isinstance(data_point, CalculatedDataPoint):
             self._calculated_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPoint):
@@ -1264,9 +1301,13 @@ class Channel(LogContextMixin, PayloadMixin):
         )
 
     def get_generic_data_point(
-        self, *, parameter: str, paramset_key: ParamsetKey | None = None
+        self, *, parameter: str | None = None, paramset_key: ParamsetKey | None = None, state_path: str | None = None
     ) -> GenericDataPointAny | None:
         """Return a generic data_point from device."""
+        if state_path is not None and (dpk := self._state_path_to_dpk.get(state_path)) is not None:
+            return self._generic_data_points.get(dpk)
+        if parameter is None:
+            return None
         if paramset_key:
             return self._generic_data_points.get(
                 DataPointKey(
@@ -1295,8 +1336,13 @@ class Channel(LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_generic_event(self, *, parameter: str) -> GenericEvent | None:
+    def get_generic_event(self, *, parameter: str | None = None, state_path: str | None = None) -> GenericEvent | None:
         """Return a generic event from device."""
+        if state_path is not None and (dpk := self._state_path_to_dpk.get(state_path)) is not None:
+            return self._generic_events.get(dpk)
+        if parameter is None:
+            return None
+
         return self._generic_events.get(
             DataPointKey(
                 interface_id=self._device.interface_id,
@@ -1389,6 +1435,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
         if self._custom_data_point:
             self._remove_data_point(data_point=self._custom_data_point)
+        self._state_path_to_dpk.clear()
 
     @inspector
     async def remove_central_link(self) -> None:
@@ -1432,14 +1479,16 @@ class Channel(LogContextMixin, PayloadMixin):
     def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
         # EventBus subscriptions are automatically cleaned up via DeviceRemovedEvent
+        if isinstance(data_point, BaseParameterDataPoint):
+            self._state_path_to_dpk.pop(data_point.state_path, None)
         if isinstance(data_point, CalculatedDataPoint):
-            del self._calculated_data_points[data_point.dpk]
+            self._calculated_data_points.pop(data_point.dpk, None)
         if isinstance(data_point, GenericDataPoint):
-            del self._generic_data_points[data_point.dpk]
+            self._generic_data_points.pop(data_point.dpk, None)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = None
         if isinstance(data_point, GenericEvent):
-            del self._generic_events[data_point.dpk]
+            self._generic_events.pop(data_point.dpk, None)
         data_point.emit_device_removed_event()
 
     def _set_modified_at(self) -> None:

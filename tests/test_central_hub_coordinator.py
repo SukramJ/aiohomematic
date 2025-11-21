@@ -21,6 +21,7 @@ class _FakeProgramDataPoint:
         self.category = category
         self.legacy_name = f"program_{name}"
         self.is_registered = True
+        self.state_path = f"/pd_{pid}/"
 
     def emit_device_removed_event(self) -> None:
         """Emit device removed event."""

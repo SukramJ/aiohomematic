@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any
 
 import pytest
 
@@ -572,98 +571,3 @@ class TestEventBusIntegration:
         assert len(sysvar_calls) == 1
         assert datapoint_calls[0] == dp_event
         assert sysvar_calls[0] == sv_event
-
-
-class TestLegacyCompatibility:
-    """Test legacy callback protocol compatibility."""
-
-    @pytest.mark.asyncio
-    async def test_subscribe_datapoint_event_callback_with_filtering(self) -> None:
-        """Legacy DataPointEventCallback should filter by DataPointKey."""
-        bus = EventBus()
-        received_calls = []
-
-        target_dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-
-        async def legacy_callback(*, value: Any, received_at: datetime) -> None:
-            received_calls.append({"value": value, "received_at": received_at})
-
-        # Subscribe for specific data point
-        bus.subscribe_datapoint_event_callback(dpk=target_dpk, callback=legacy_callback)
-
-        # Publish event for the target data point
-        received_time = datetime.now()
-        await bus.publish(
-            event=DataPointUpdatedEvent(
-                timestamp=datetime.now(),
-                dpk=target_dpk,
-                value=True,
-                received_at=received_time,
-            )
-        )
-
-        # Publish event for a different data point
-        other_dpk = DataPointKey(
-            interface_id="BidCos-RF",
-            channel_address="VCU0000002:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-        )
-        await bus.publish(
-            event=DataPointUpdatedEvent(
-                timestamp=datetime.now(),
-                dpk=other_dpk,
-                value=False,
-                received_at=datetime.now(),
-            )
-        )
-
-        # Only the first event should have triggered the callback
-        assert len(received_calls) == 1
-        assert received_calls[0]["value"] is True
-        assert received_calls[0]["received_at"] == received_time
-
-    @pytest.mark.asyncio
-    async def test_subscribe_sysvar_event_callback_with_filtering(self) -> None:
-        """Legacy SysvarEventCallback should filter by state_path."""
-        bus = EventBus()
-        received_calls = []
-
-        target_path = "sv_12345"
-
-        async def legacy_callback(*, value: Any, received_at: datetime) -> None:
-            received_calls.append({"value": value, "received_at": received_at})
-
-        # Subscribe for specific system variable
-        bus.subscribe_sysvar_event_callback(state_path=target_path, callback=legacy_callback)
-
-        # Publish event for target sysvar
-        received_time = datetime.now()
-        await bus.publish(
-            event=SysvarUpdatedEvent(
-                timestamp=datetime.now(),
-                state_path=target_path,
-                value=42,
-                received_at=received_time,
-            )
-        )
-
-        # Publish event for different sysvar
-        await bus.publish(
-            event=SysvarUpdatedEvent(
-                timestamp=datetime.now(),
-                state_path="sv_67890",
-                value=99,
-                received_at=datetime.now(),
-            )
-        )
-
-        # Only the first event should have triggered the callback
-        assert len(received_calls) == 1
-        assert received_calls[0]["value"] == 42
-        assert received_calls[0]["received_at"] == received_time

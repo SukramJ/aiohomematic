@@ -396,19 +396,19 @@ class TestEventSubscriptions:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_remove_event_subscription_nonexistent(
+    async def test_device_removed_event_cleanup(
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
-        """Test removing event subscription for non-existent data point."""
+        """Test that device removed events are emitted for data points."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         device = central.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
-                    # Try to remove event subscription
-                    central.remove_event_subscription(data_point=dp)
+                    # Verify emit_device_removed_event can be called
+                    dp.emit_device_removed_event()
 
 
 class TestCentralCollections:

@@ -19,6 +19,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
+from aiohomematic.central.event_bus import SysvarUpdatedEvent
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import CentralInfo, EventBusProvider, PrimaryClientProvider
 from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
@@ -132,12 +133,15 @@ class HubCoordinator:
                 self._central_info.name,
             )
 
-            # Add event subscription for this sysvar via EventBus
+            # Add event subscription for this sysvar via EventBus with filtering
             if sysvar_data_point.state_path:
-                self._event_bus_provider.event_bus.subscribe_sysvar_event_callback(
-                    state_path=sysvar_data_point.state_path,
-                    callback=sysvar_data_point.event,
-                )
+
+                async def event_handler(event: SysvarUpdatedEvent) -> None:
+                    """Filter and handle sysvar events."""
+                    if event.state_path == sysvar_data_point.state_path:
+                        await sysvar_data_point.event(value=event.value, received_at=event.received_at)
+
+                self._event_bus_provider.event_bus.subscribe(event_type=SysvarUpdatedEvent, handler=event_handler)
 
     async def execute_program(self, *, pid: str) -> bool:
         """

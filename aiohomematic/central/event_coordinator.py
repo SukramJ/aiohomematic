@@ -109,11 +109,14 @@ class EventCoordinator:
         if isinstance(data_point, GenericDataPoint | GenericEvent) and (
             data_point.is_readable or data_point.supports_events
         ):
-            # Subscribe data point's event method to EventBus using compatibility wrapper
-            self._event_bus.subscribe_datapoint_event_callback(
-                dpk=data_point.dpk,
-                callback=data_point.event,
-            )
+            # Subscribe data point's event method to EventBus with filtering
+
+            async def event_handler(event: DataPointUpdatedEvent) -> None:
+                """Filter and handle data point events."""
+                if event.dpk == data_point.dpk:
+                    await data_point.event(value=event.value, received_at=event.received_at)
+
+            self._event_bus.subscribe(event_type=DataPointUpdatedEvent, handler=event_handler)
 
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """

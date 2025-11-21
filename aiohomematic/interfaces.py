@@ -187,10 +187,6 @@ class EventSubscriptionManager(Protocol):
     def add_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
         """Add an event subscription for a data point."""
 
-    @abstractmethod
-    def remove_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
-        """Remove an event subscription for a data point."""
-
 
 @runtime_checkable
 class HubDataPointManager(Protocol):

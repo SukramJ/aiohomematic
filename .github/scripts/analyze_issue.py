@@ -157,6 +157,16 @@ def search_similar_issues(
     return unique_items[:5]  # Return top 5 overall
 
 
+def has_bot_comment(issue: Any) -> bool:
+    """Check if the bot has already commented on this issue."""
+    for comment in issue.get_comments():
+        if comment.user.type == "Bot" and "Automatische Issue-Analyse" in comment.body:
+            return True
+        if comment.user.type == "Bot" and "Automatic Issue Analysis" in comment.body:
+            return True
+    return False
+
+
 def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]) -> str:
     """Format the comment to post on the issue."""
     lang = analysis.get("language", "en")
@@ -237,8 +247,6 @@ def main() -> None:
     github_token = os.getenv("GITHUB_TOKEN") or ""
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY") or ""
     issue_number = int(os.getenv("ISSUE_NUMBER", "0"))
-    issue_title = os.getenv("ISSUE_TITLE", "")
-    issue_body = os.getenv("ISSUE_BODY", "")
     repo_name = os.getenv("REPO_NAME", "")
 
     if not all([github_token, anthropic_api_key, issue_number, repo_name]):
@@ -249,6 +257,10 @@ def main() -> None:
     gh = Github(auth=Auth.Token(github_token))
     repo = gh.get_repo(repo_name)
     issue = repo.get_issue(issue_number)
+
+    # Get issue details (either from env or from GitHub API)
+    issue_title = os.getenv("ISSUE_TITLE") or issue.title
+    issue_body = os.getenv("ISSUE_BODY") or issue.body or ""
 
     print(f"Analyzing issue #{issue_number}: {issue_title}")  # noqa: T201
 
@@ -269,6 +281,14 @@ def main() -> None:
             print(f"Found {len(similar_items)} similar items")  # noqa: T201
         except Exception as e:
             print(f"Error searching for similar issues: {e}")  # noqa: T201
+
+    # Check if bot has already commented (to avoid duplicates on edit)
+    is_manual_trigger = not os.getenv("ISSUE_TITLE")  # Manual trigger doesn't have ISSUE_TITLE in env
+    already_commented = has_bot_comment(issue)
+
+    if already_commented and not is_manual_trigger:
+        print("Bot has already commented on this issue, skipping to avoid duplicates")  # noqa: T201
+        return
 
     # Format and post comment
     comment_body = format_comment(analysis, similar_items)

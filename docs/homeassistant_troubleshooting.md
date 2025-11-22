@@ -16,7 +16,9 @@ Contents:
 ## 1) Quick symptom mapping
 
 - No devices/entities visible after setup
-  - Check connection details (host/IP, ports, auth), CCU reachability, and callback reachability from the CCU’s perspective.
+  - Check connection details (host/IP, ports, auth), CCU reachability, and callback reachability from the CCU's perspective.
+- New devices not detected or devices incompletely recognized
+  - Cache contains outdated device information, clear cache and restart Home Assistant.
 - Entities present but without state changes
   - Event callbacks not arriving (firewall/NAT/Docker port mapping), XML‑RPC blocked, invalid session.
 - Individual devices "unavailable" or stuck on old value
@@ -100,6 +102,13 @@ Contents:
   - Device is in configuration/pairing mode; MASTER parameters not consistent yet.
 - Solution
   - Complete configuration on device/CCU; wait until CONFIG_PENDING becomes False. aiohomematic will then automatically refresh MASTER parameters.
+
+### H) New devices not detected or devices incompletely recognized
+
+- Cause
+  - Cached device information is outdated or incomplete; CCU has new devices but the Home Assistant integration still uses old cache data; device configuration has changed but cache was not invalidated.
+- Solution
+  - Use the service `homematicip_local.clear_cache` to clear all cached data, then restart Home Assistant. This forces a fresh discovery of all devices and their parameters. The service can be called from Developer Tools > Services in Home Assistant. See the [integration documentation](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#homematicip_localclear_cache) for details.
 
 ---
 

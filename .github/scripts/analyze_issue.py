@@ -100,7 +100,7 @@ def get_claude_analysis(title: str, body: str, api_key: str) -> dict[str, Any]:
     prompt = CLAUDE_ANALYSIS_PROMPT.format(title=title, body=body or "(empty)", docs=docs_str)
 
     message = client.messages.create(
-        model="claude-3-5-sonnet-latest", max_tokens=2000, messages=[{"role": "user", "content": prompt}]
+        model="claude-sonnet-4-5", max_tokens=2000, messages=[{"role": "user", "content": prompt}]
     )
 
     # Parse the JSON response

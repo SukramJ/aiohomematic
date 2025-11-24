@@ -587,7 +587,7 @@ omit = [
   "aiohomematic/hmcli.py",
 ]
 parallel = true
-concurrency = ["thread", "greenlet"]
+concurrency = ["thread"]
 
 [tool.coverage.report]
 show_missing = true

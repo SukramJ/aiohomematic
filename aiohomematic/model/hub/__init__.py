@@ -269,6 +269,7 @@ class Hub:
             "config_provider": self._config_provider,
             "central_info": self._central_info,
             "event_bus_provider": self._event_bus_provider,
+            "event_emitter": self._event_emitter,
             "task_scheduler": self._task_scheduler,
             "paramset_description_provider": self._paramset_description_provider,
             "parameter_visibility_provider": self._parameter_visibility_provider,

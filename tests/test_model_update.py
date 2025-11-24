@@ -90,6 +90,7 @@ class _FakeDevice:
         self.config_provider = _FakeConfigProvider(central=self.central)
         self.central_info = _FakeCentralInfo(central=self.central)
         self.event_bus_provider = _FakeEventBusProvider()
+        self.event_emitter = type("EventEmitter", (), {})()
         self.task_scheduler = _FakeTaskScheduler()
         self.paramset_description_provider = _FakeParamsetDescriptionProvider()
         self.parameter_visibility_provider = _FakeParameterVisibilityProvider()

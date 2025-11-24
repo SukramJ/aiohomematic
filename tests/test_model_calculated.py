@@ -77,6 +77,7 @@ class _FakeDevice:
         self.config_provider = type("ConfigProvider", (), {"config": self.central.config})()
         self.central_info = type("CentralInfo", (), {"name": "CentralTest", "available": True})()
         self.event_bus_provider = type("EventBusProvider", (), {"event_bus": self.central.event_bus})()
+        self.event_emitter = type("EventEmitter", (), {})()
         self.task_scheduler = type("TaskScheduler", (), {})()
         self.paramset_description_provider = type(
             "ParamsetDescriptionProvider",

@@ -1,3 +1,10 @@
+# Version 2025.11.24 (2025-11-24)
+
+## What's Changed
+
+- Add ClientFactory for DI
+- Improve documentation
+
 # Version 2025.11.23 (2025-11-21)
 
 ## What's Changed

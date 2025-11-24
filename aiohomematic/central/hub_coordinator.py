@@ -21,11 +21,20 @@ from typing import TYPE_CHECKING, Any, Final
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import SysvarUpdatedEvent
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import CentralInfo, EventBusProvider, PrimaryClientProvider
+from aiohomematic.interfaces import (
+    CentralInfo,
+    ChannelLookup,
+    ConfigProvider,
+    EventBusProvider,
+    EventEmitter,
+    ParameterVisibilityProvider,
+    ParamsetDescriptionProvider,
+    PrimaryClientProvider,
+    TaskScheduler,
+)
 from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralUnit
     from aiohomematic.const import DataPointCategory
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -47,47 +56,56 @@ class HubCoordinator:
     def __init__(
         self,
         *,
-        central: CentralUnit,  # Required for Hub construction
         central_info: CentralInfo,
+        channel_lookup: ChannelLookup,
+        config_provider: ConfigProvider,
         event_bus_provider: EventBusProvider,
+        event_emitter: EventEmitter,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        paramset_description_provider: ParamsetDescriptionProvider,
         primary_client_provider: PrimaryClientProvider,
+        task_scheduler: TaskScheduler,
     ) -> None:
         """
         Initialize the hub coordinator.
 
         Args:
         ----
-            central: CentralUnit instance (required for Hub construction)
             central_info: Provider for central system information
+            channel_lookup: Provider for channel lookup operations
+            config_provider: Provider for configuration access
             event_bus_provider: Provider for event bus access
+            event_emitter: Provider for event emission
+            parameter_visibility_provider: Provider for parameter visibility rules
+            paramset_description_provider: Provider for paramset descriptions
             primary_client_provider: Provider for primary client access
+            task_scheduler: Scheduler for async tasks
 
         """
         self._central_info: Final = central_info
         self._event_bus_provider: Final = event_bus_provider
         self._primary_client_provider: Final = primary_client_provider
 
-        # Create Hub with protocol interfaces
-        self._hub: Hub = Hub(
-            central=central,  # Required for data point factory
-            config_provider=central,
-            central_info=central_info,
-            hub_data_point_manager=self,  # type: ignore[arg-type]  # HubCoordinator implements HubDataPointManager
-            primary_client_provider=primary_client_provider,
-            event_emitter=central,
-            event_bus_provider=event_bus_provider,
-            task_scheduler=central.looper,
-            paramset_description_provider=central.paramset_descriptions,
-            parameter_visibility_provider=central.parameter_visibility,
-            channel_lookup=central,
-            hub_data_fetcher=self,  # HubCoordinator implements HubDataFetcher
-        )
-
         # {sysvar_name, sysvar_data_point}
         self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
         # {program_name, program_button}
         self._program_data_points: Final[dict[str, ProgramDpType]] = {}
         self._state_path_to_name: Final[dict[str, str]] = {}
+
+        # Create Hub with protocol interfaces
+        self._hub: Final = Hub(
+            central_info=central_info,
+            channel_lookup=channel_lookup,
+            config_provider=config_provider,
+            event_bus_provider=event_bus_provider,
+            event_emitter=event_emitter,
+            hub_data_fetcher=self,  # HubCoordinator implements HubDataFetcher
+            hub_data_point_manager=self,  # type: ignore[arg-type]  # HubCoordinator implements HubDataPointManager
+            parameter_visibility_provider=parameter_visibility_provider,
+            paramset_description_provider=paramset_description_provider,
+            primary_client_provider=primary_client_provider,
+            task_scheduler=task_scheduler,
+        )
 
     @property
     def data_point_paths(self) -> tuple[str, ...]:

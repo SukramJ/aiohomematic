@@ -17,7 +17,7 @@ The ClientCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.const import (
@@ -28,11 +28,15 @@ from aiohomematic.const import (
     ProxyInitState,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces import CentralInfo, ClientProvider, ConfigProvider, CoordinatorProvider, SystemInfoProvider
+from aiohomematic.interfaces import (
+    CentralInfo,
+    ClientFactory,
+    ClientProvider,
+    ConfigProvider,
+    CoordinatorProvider,
+    SystemInfoProvider,
+)
 from aiohomematic.support import extract_exc_args
-
-if TYPE_CHECKING:
-    from aiohomematic.central import CentralUnit
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -41,8 +45,8 @@ class ClientCoordinator(ClientProvider):
     """Coordinator for client lifecycle and operations."""
 
     __slots__ = (
-        "_central",
         "_central_info",
+        "_client_factory",
         "_clients",
         "_clients_started",
         "_config_provider",
@@ -54,7 +58,7 @@ class ClientCoordinator(ClientProvider):
     def __init__(
         self,
         *,
-        central: CentralUnit,  # Required for client factory function
+        client_factory: ClientFactory,
         central_info: CentralInfo,
         config_provider: ConfigProvider,
         coordinator_provider: CoordinatorProvider,
@@ -65,17 +69,16 @@ class ClientCoordinator(ClientProvider):
 
         Args:
         ----
-            central: CentralUnit instance (required for client factory)
-            config_provider: Provider for configuration access
+            client_factory: Factory for creating client instances
             central_info: Provider for central system information
+            config_provider: Provider for configuration access
             coordinator_provider: Provider for accessing other coordinators
             system_info_provider: Provider for system information
 
         """
-        # Keep central reference only for client factory function
-        self._central: Final = central
-        self._config_provider: Final = config_provider
+        self._client_factory: Final = client_factory
         self._central_info: Final = central_info
+        self._config_provider: Final = config_provider
         self._coordinator_provider: Final = coordinator_provider
         self._system_info_provider: Final = system_info_provider
 
@@ -244,8 +247,7 @@ class ClientCoordinator(ClientProvider):
 
         """
         try:
-            if client := await hmcl.create_client(
-                central=self._central,
+            if client := await self._client_factory.create_client_instance(
                 interface_config=interface_config,
             ):
                 _LOGGER.debug(

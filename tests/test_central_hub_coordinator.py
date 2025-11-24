@@ -79,9 +79,8 @@ class _FakeEventCoordinator:
 class _FakeHub:
     """Minimal fake Hub for testing."""
 
-    def __init__(self, *, central: Any) -> None:
+    def __init__(self) -> None:
         """Initialize fake hub."""
-        self.central = central
 
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data."""
@@ -135,14 +134,21 @@ class TestHubCoordinatorBasics:
     """Test basic HubCoordinator functionality."""
 
     def test_hub_coordinator_initialization(self) -> None:
-        """HubCoordinator should initialize with central instance."""
+        """HubCoordinator should initialize with protocol interfaces."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         assert coordinator._hub is not None
-        assert coordinator._hub._central == central  # Central is stored in Hub
         assert len(coordinator._program_data_points) == 0
         assert len(coordinator._sysvar_data_points) == 0
 
@@ -150,7 +156,15 @@ class TestHubCoordinatorBasics:
         """Program data points property should return all program data points."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -165,7 +179,15 @@ class TestHubCoordinatorBasics:
         """Sysvar data points property should return all sysvar data points."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -183,7 +205,15 @@ class TestHubCoordinatorProgramOperations:
         """Add program data point should register the program."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -198,7 +228,15 @@ class TestHubCoordinatorProgramOperations:
         """Execute program should return False when no primary client."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         result = await coordinator.execute_program(pid="123")
@@ -211,7 +249,15 @@ class TestHubCoordinatorProgramOperations:
         central._primary_client = _FakeClient()
 
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         result = await coordinator.execute_program(pid="123")
@@ -222,10 +268,18 @@ class TestHubCoordinatorProgramOperations:
         """Fetch program data should call hub method."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
-        coordinator._hub = _FakeHub(central=central)
+        coordinator._hub = _FakeHub()
         coordinator._hub.fetch_program_data = AsyncMock()  # type: ignore[method-assign]
 
         await coordinator.fetch_program_data(scheduled=True)
@@ -236,7 +290,15 @@ class TestHubCoordinatorProgramOperations:
         """Get program data point should return program by legacy name."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -249,7 +311,15 @@ class TestHubCoordinatorProgramOperations:
         """Get program data point should return program by PID."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -262,7 +332,15 @@ class TestHubCoordinatorProgramOperations:
         """Get program data point should return None when not found."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         retrieved = coordinator.get_program_data_point(pid="999")
@@ -272,7 +350,15 @@ class TestHubCoordinatorProgramOperations:
         """Remove program data point should unregister the program."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -295,7 +381,15 @@ class TestHubCoordinatorProgramOperations:
         """Set program state should return False when no primary client."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         result = await coordinator.set_program_state(pid="123", state=True)
@@ -308,7 +402,15 @@ class TestHubCoordinatorProgramOperations:
         central._primary_client = _FakeClient()
 
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         result = await coordinator.set_program_state(pid="123", state=True)
@@ -322,7 +424,15 @@ class TestHubCoordinatorSysvarOperations:
         """Add sysvar data point should register the sysvar and subscribe to events."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -344,10 +454,18 @@ class TestHubCoordinatorSysvarOperations:
         """Fetch sysvar data should call hub method."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
-        coordinator._hub = _FakeHub(central=central)
+        coordinator._hub = _FakeHub()
         coordinator._hub.fetch_sysvar_data = AsyncMock()  # type: ignore[method-assign]
 
         await coordinator.fetch_sysvar_data(scheduled=True)
@@ -359,7 +477,15 @@ class TestHubCoordinatorSysvarOperations:
         """Get system variable should return None when no primary client."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         result = await coordinator.get_system_variable(legacy_name="test_var")
@@ -372,7 +498,15 @@ class TestHubCoordinatorSysvarOperations:
         central._primary_client = _FakeClient()
 
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         result = await coordinator.get_system_variable(legacy_name="test_var")
@@ -382,7 +516,15 @@ class TestHubCoordinatorSysvarOperations:
         """Get sysvar data point should return sysvar by legacy name."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -395,7 +537,15 @@ class TestHubCoordinatorSysvarOperations:
         """Get sysvar data point should return sysvar by VID."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -408,7 +558,15 @@ class TestHubCoordinatorSysvarOperations:
         """Get sysvar data point should return None when not found."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         retrieved = coordinator.get_sysvar_data_point(vid="999")
@@ -418,7 +576,15 @@ class TestHubCoordinatorSysvarOperations:
         """Remove sysvar data point should unregister the sysvar and emit removed event."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -440,7 +606,15 @@ class TestHubCoordinatorSysvarOperations:
         """Set system variable should log error when sysvar not found."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         # Should not raise
@@ -451,7 +625,15 @@ class TestHubCoordinatorSysvarOperations:
         """Set system variable should call data point method."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
@@ -471,7 +653,15 @@ class TestHubCoordinatorGetHubDataPoints:
         """Get hub data points should filter by category."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -488,7 +678,15 @@ class TestHubCoordinatorGetHubDataPoints:
         """Get hub data points should filter by registration status."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -511,7 +709,15 @@ class TestHubCoordinatorGetHubDataPoints:
         """Get hub data points should return all data points when no filter."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
@@ -532,10 +738,18 @@ class TestHubCoordinatorInitHub:
         """Init hub should fetch program and sysvar data."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
-        coordinator._hub = _FakeHub(central=central)
+        coordinator._hub = _FakeHub()
         coordinator._hub.fetch_program_data = AsyncMock()  # type: ignore[method-assign]
         coordinator._hub.fetch_sysvar_data = AsyncMock()  # type: ignore[method-assign]
 
@@ -554,7 +768,15 @@ class TestHubCoordinatorIntegration:
         central = _FakeCentral()
         central._primary_client = _FakeClient()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         # Add program
@@ -582,7 +804,15 @@ class TestHubCoordinatorIntegration:
         central = _FakeCentral()
         central._primary_client = _FakeClient()
         coordinator = HubCoordinator(
-            central=central, central_info=central, event_bus_provider=central, primary_client_provider=central
+            central_info=central,
+            channel_lookup=central,
+            config_provider=central,
+            event_bus_provider=central,
+            event_emitter=central,
+            parameter_visibility_provider=central.parameter_visibility,
+            paramset_description_provider=central.paramset_descriptions,
+            primary_client_provider=central,
+            task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
         # Add sysvar

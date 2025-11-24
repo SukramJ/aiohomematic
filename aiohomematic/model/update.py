@@ -49,6 +49,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             ),
             central_info=device.central_info,
             event_bus_provider=device.event_bus_provider,
+            event_emitter=device.event_emitter,
             task_scheduler=device.task_scheduler,
             paramset_description_provider=device.paramset_description_provider,
             parameter_visibility_provider=device.parameter_visibility_provider,

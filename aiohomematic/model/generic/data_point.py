@@ -149,7 +149,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         """Generate the usage for the data_point."""
         if self._forced_usage:
             return self._forced_usage
-        if self._visibility_provider.parameter_is_hidden(
+        if self._parameter_visibility_provider.parameter_is_hidden(
             channel=self._channel,
             paramset_key=self._paramset_key,
             parameter=self._parameter,

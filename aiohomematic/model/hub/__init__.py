@@ -79,7 +79,7 @@ import asyncio
 from collections.abc import Collection, Mapping, Set as AbstractSet
 from datetime import datetime
 import logging
-from typing import Any, Final, NamedTuple
+from typing import Final, NamedTuple
 
 from aiohomematic.const import (
     HUB_CATEGORIES,
@@ -194,15 +194,10 @@ class Hub:
         self._channel_lookup: Final = channel_lookup
         self._hub_data_fetcher: Final = hub_data_fetcher
 
-    @property
-    def _config(self) -> Any:
-        """Return configuration (for backward compatibility in fetch methods)."""
-        return self._config_provider.config
-
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
-        if self._config.enable_program_scan:
+        if self._config_provider.config.enable_program_scan:
             _LOGGER.debug(
                 "FETCH_PROGRAM_DATA: %s fetching of programs for %s",
                 "Scheduled" if scheduled else "Manual",
@@ -215,7 +210,7 @@ class Hub:
     @inspector(re_raise=False)
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
-        if self._config.enable_sysvar_scan:
+        if self._config_provider.config.enable_sysvar_scan:
             _LOGGER.debug(
                 "FETCH_SYSVAR_DATA: %s fetching of system variables for %s",
                 "Scheduled" if scheduled else "Manual",
@@ -233,6 +228,7 @@ class Hub:
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
+                event_emitter=self._event_emitter,
                 task_scheduler=self._task_scheduler,
                 paramset_description_provider=self._paramset_description_provider,
                 parameter_visibility_provider=self._parameter_visibility_provider,
@@ -245,6 +241,7 @@ class Hub:
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
+                event_emitter=self._event_emitter,
                 task_scheduler=self._task_scheduler,
                 paramset_description_provider=self._paramset_description_provider,
                 parameter_visibility_provider=self._parameter_visibility_provider,
@@ -326,7 +323,7 @@ class Hub:
         """Retrieve all program data and update program values."""
         if not (client := self._primary_client_provider.primary_client):
             return
-        if (programs := await client.get_all_programs(markers=self._config.program_markers)) is None:
+        if (programs := await client.get_all_programs(markers=self._config_provider.config.program_markers)) is None:
             _LOGGER.debug("UPDATE_PROGRAM_DATA_POINTS: Unable to retrieve programs for %s", self._central_info.name)
             return
 
@@ -360,7 +357,9 @@ class Hub:
         """Retrieve all variable data and update hmvariable values."""
         if not (client := self._primary_client_provider.primary_client):
             return
-        if (variables := await client.get_all_system_variables(markers=self._config.sysvar_markers)) is None:
+        if (
+            variables := await client.get_all_system_variables(markers=self._config_provider.config.sysvar_markers)
+        ) is None:
             _LOGGER.debug("UPDATE_SYSVAR_DATA_POINTS: Unable to retrieve sysvars for %s", self._central_info.name)
             return
 

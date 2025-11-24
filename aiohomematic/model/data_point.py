@@ -68,6 +68,7 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.interfaces import (
     CentralInfo,
     EventBusProvider,
+    EventEmitter,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,
@@ -158,6 +159,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         "_custom_id",
         "_emitted_event_at",
         "_event_bus_provider",
+        "_event_emitter",
         "_modified_at",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
@@ -180,6 +182,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         unique_id: str,
         central_info: CentralInfo,
         event_bus_provider: EventBusProvider,
+        event_emitter: EventEmitter,
         task_scheduler: TaskScheduler,
         paramset_description_provider: ParamsetDescriptionProvider,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -187,6 +190,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Initialize the callback data point."""
         self._central_info: Final = central_info
         self._event_bus_provider: Final = event_bus_provider
+        self._event_emitter: Final = event_emitter
         self._task_scheduler: Final = task_scheduler
         self._paramset_description_provider: Final = paramset_description_provider
         self._parameter_visibility_provider: Final = parameter_visibility_provider
@@ -212,46 +216,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
         return cls._category
 
     @property
-    def _event_emitter(self) -> Any:
-        """
-        Return the event emitter.
-
-        This property documents that components only depend on event emission
-        functionality from CentralUnit, not the full API.
-        Returns event bus provider (which implements EventEmitter protocol).
-
-        Type: EventEmitter protocol (from model.interfaces)
-        """
-        return self._event_bus_provider
-
-    @property
-    def _paramset_provider(self) -> Any:
-        """
-        Return the paramset description provider.
-
-        This property documents that CallbackDataPoint only depends on
-        paramset_descriptions functionality from CentralUnit, not the full API.
-
-        Type: ParamsetDescriptionProvider protocol (from model.interfaces)
-        """
-        return self._paramset_description_provider
-
-    @property
     def _should_emit_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
         return True
-
-    @property
-    def _visibility_provider(self) -> Any:
-        """
-        Return the parameter visibility provider.
-
-        This property documents that CallbackDataPoint only depends on
-        parameter_visibility functionality from CentralUnit, not the full API.
-
-        Type: ParameterVisibilityProvider protocol (from model.interfaces)
-        """
-        return self._parameter_visibility_provider
 
     @property
     def category(self) -> DataPointCategory:
@@ -571,6 +538,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
             unique_id=unique_id,
             central_info=channel.device.central_info,
             event_bus_provider=channel.device.event_bus_provider,
+            event_emitter=channel.device.event_emitter,
             task_scheduler=channel.device.task_scheduler,
             paramset_description_provider=channel.device.paramset_description_provider,
             parameter_visibility_provider=channel.device.parameter_visibility_provider,
@@ -753,7 +721,7 @@ class BaseParameterDataPoint[
                 channel_address=channel.address, parameter=parameter
             ),
         )
-        self._is_un_ignored: Final[bool] = self._visibility_provider.parameter_is_un_ignored(
+        self._is_un_ignored: Final[bool] = self._parameter_visibility_provider.parameter_is_un_ignored(
             channel=channel,
             paramset_key=self._paramset_key,
             parameter=self._parameter,
@@ -1009,7 +977,7 @@ class BaseParameterDataPoint[
 
     def update_parameter_data(self) -> None:
         """Update parameter data."""
-        if parameter_data := self._paramset_provider.get_parameter_data(
+        if parameter_data := self._paramset_description_provider.get_parameter_data(
             interface_id=self._device.interface_id,
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,

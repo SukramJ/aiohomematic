@@ -81,6 +81,7 @@ from aiohomematic.interfaces import (
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
     EventBusProvider,
+    EventEmitter,
     EventSubscriptionManager,
     FileOperations,
     ParameterVisibilityProvider,
@@ -148,6 +149,7 @@ class Device(LogContextMixin, PayloadMixin):
         "_device_description_provider",
         "_device_details_provider",
         "_event_bus_provider",
+        "_event_emitter",
         "_event_subscription_manager",
         "_file_operations",
         "_forced_availability",
@@ -190,6 +192,7 @@ class Device(LogContextMixin, PayloadMixin):
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
         event_bus_provider: EventBusProvider,
+        event_emitter: EventEmitter,
         event_subscription_manager: EventSubscriptionManager,
         file_operations: FileOperations,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -208,6 +211,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._config_provider: Final = config_provider
         self._central_info: Final = central_info
         self._event_bus_provider: Final = event_bus_provider
+        self._event_emitter: Final = event_emitter
         self._task_scheduler: Final = task_scheduler
         self._file_operations: Final = file_operations
         self._device_data_refresher: Final = device_data_refresher
@@ -412,6 +416,11 @@ class Device(LogContextMixin, PayloadMixin):
     def event_bus_provider(self) -> EventBusProvider:
         """Return the EventBusProvider of the device."""
         return self._event_bus_provider
+
+    @property
+    def event_emitter(self) -> EventEmitter:
+        """Return the EventEmitter of the device."""
+        return self._event_emitter
 
     @property
     def event_subscription_manager(self) -> EventSubscriptionManager:

@@ -44,6 +44,7 @@ from aiohomematic.interfaces import (
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
     EventBusProvider,
+    EventEmitter,
     EventSubscriptionManager,
     FileOperations,
     ParameterVisibilityProvider,
@@ -81,6 +82,7 @@ class DeviceCoordinator:
         "_device_description_provider",
         "_device_details_provider",
         "_event_bus_provider",
+        "_event_emitter",
         "_event_subscription_manager",
         "_file_operations",
         "_parameter_visibility_provider",
@@ -102,6 +104,7 @@ class DeviceCoordinator:
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
         event_bus_provider: EventBusProvider,
+        event_emitter: EventEmitter,
         event_subscription_manager: EventSubscriptionManager,
         file_operations: FileOperations,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -124,6 +127,7 @@ class DeviceCoordinator:
             device_description_provider: Provider for device descriptions
             device_details_provider: Provider for device details
             event_bus_provider: Provider for event bus access
+            event_emitter: Provider for event emitter access
             event_subscription_manager: Manager for event subscriptions
             file_operations: Provider for file operations
             parameter_visibility_provider: Provider for parameter visibility rules
@@ -142,6 +146,7 @@ class DeviceCoordinator:
         self._device_description_provider = device_description_provider
         self._device_details_provider = device_details_provider
         self._event_bus_provider = event_bus_provider
+        self._event_emitter = event_emitter
         self._event_subscription_manager = event_subscription_manager
         self._file_operations = file_operations
         self._parameter_visibility_provider = parameter_visibility_provider
@@ -312,6 +317,7 @@ class DeviceCoordinator:
                         device_description_provider=self._device_description_provider,
                         device_details_provider=self._device_details_provider,
                         event_bus_provider=self._event_bus_provider,
+                        event_emitter=self._event_emitter,
                         event_subscription_manager=self._event_subscription_manager,
                         file_operations=self._file_operations,
                         parameter_visibility_provider=self._parameter_visibility_provider,

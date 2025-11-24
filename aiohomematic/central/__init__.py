@@ -289,6 +289,7 @@ class CentralUnit(
             device_description_provider=self.device_descriptions,
             device_details_provider=self.device_details,
             event_bus_provider=self,
+            event_emitter=self,
             event_subscription_manager=self,
             file_operations=self,
             parameter_visibility_provider=self.parameter_visibility,

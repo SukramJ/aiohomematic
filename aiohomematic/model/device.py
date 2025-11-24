@@ -419,7 +419,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     @property
     def event_publisher(self) -> EventPublisher:
-        """Return the EventEmitter of the device."""
+        """Return the EventPublisher of the device."""
         return self._event_publisher
 
     @property

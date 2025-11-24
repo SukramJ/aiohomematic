@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module with support for loop interaction."""
+"""
+Async event loop utilities and task management.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -28,7 +32,7 @@ class Looper(TaskScheduler):
     """Helper class for event loop support."""
 
     def __init__(self) -> None:
-        """Init the loop helper."""
+        """Initialize the loop helper."""
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
         self._loop = asyncio.get_event_loop()
 
@@ -186,7 +190,6 @@ def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     Always wraps the function, but only performs loop checks when debug is enabled.
     This allows tests to monkeypatch aiohomematic.support.debug_enabled at runtime.
     """
-
     _with_loop: set[CallableAny] = set()
 
     @wraps(func)

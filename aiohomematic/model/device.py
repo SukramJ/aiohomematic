@@ -124,7 +124,12 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class Device(LogContextMixin, PayloadMixin):
-    """Object to hold information about a device and associated data points."""
+    """
+    Represents a Homematic device with channels and data points.
+
+    Manages device lifecycle, channel hierarchy, firmware state, and
+    provides access to all associated data points and metadata.
+    """
 
     __slots__ = (
         "_address",
@@ -672,7 +677,6 @@ class Device(LogContextMixin, PayloadMixin):
 
     async def finalize_init(self) -> None:
         """Finalize the device init action after model setup."""
-
         await self.load_value_cache()
         for channel in self._channels.values():
             await channel.finalize_init()
@@ -802,7 +806,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     @inspector
     async def load_value_cache(self) -> None:
-        """Init the parameter cache."""
+        """Initialize the parameter cache."""
         if len(self.generic_data_points) > 0:
             await self._value_cache.init_base_data_points()
         if len(self.generic_events) > 0:
@@ -810,7 +814,6 @@ class Device(LogContextMixin, PayloadMixin):
 
     async def on_config_changed(self) -> None:
         """Do what is needed on device config change."""
-
         for channel in self._channels.values():
             await channel.on_config_changed()
         if self._update_data_point:
@@ -926,7 +929,12 @@ class Device(LogContextMixin, PayloadMixin):
 
 
 class Channel(LogContextMixin, PayloadMixin):
-    """Object to hold information about a channel and associated data points."""
+    """
+    Represents a device channel containing data points and events.
+
+    Channels group related parameters and provide the organizational structure
+    for data points within a device.
+    """
 
     __slots__ = (
         "_address",
@@ -1367,11 +1375,11 @@ class Channel(LogContextMixin, PayloadMixin):
         return category in self._link_target_categories
 
     def init_channel(self) -> None:
-        """Init the channel."""
+        """Initialize the channel."""
         self._device.task_scheduler.create_task(target=self.init_link_peer(), name=f"init_channel_{self._address}")
 
     async def init_link_peer(self) -> None:
-        """Init the link partners."""
+        """Initialize the link partners."""
         if self._link_source_categories and self._device.model not in VIRTUAL_REMOTE_MODELS:
             link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
             if self._link_peer_addresses != link_peer_addresses:
@@ -1507,7 +1515,7 @@ class _ValueCache:
     _NO_VALUE_CACHE_ENTRY: Final = "NO_VALUE_CACHE_ENTRY"
 
     def __init__(self, *, device: Device) -> None:
-        """Init the value cache."""
+        """Initialize the value cache."""
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
         # {key, CacheEntry}
@@ -1521,7 +1529,6 @@ class _ValueCache:
         direct_call: bool = False,
     ) -> Any:
         """Load data."""
-
         async with self._sema_get_or_load_value:
             if direct_call is False and (cached_value := self._get_value_from_cache(dpk=dpk)) != NO_CACHE_ENTRY:
                 return NO_CACHE_ENTRY if cached_value == self._NO_VALUE_CACHE_ENTRY else cached_value
@@ -1663,7 +1670,7 @@ class _DefinitionExporter:
     )
 
     def __init__(self, *, device: Device) -> None:
-        """Init the device exporter."""
+        """Initialize the device exporter."""
         self._client: Final = device.client
         self._config_provider: Final = device.config_provider
         self._device_description_provider: Final = device.device_description_provider

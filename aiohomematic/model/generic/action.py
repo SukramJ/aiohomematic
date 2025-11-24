@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
 """
-Module for action data points.
+Generic action data points for triggering operations.
+
+Public API of this module is defined by __all__.
 
 Actions are used to send data for write only parameters to backend.
 """

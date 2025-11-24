@@ -1,4 +1,33 @@
-"""Factories for tests."""
+"""
+Test factories for creating CentralUnit and Client instances.
+
+This module provides factory classes that simplify the creation of test instances
+with pre-configured mocks and session playback. Factories handle the complexity of
+setting up CentralConfig, InterfaceConfig, and mock RPC clients.
+
+Key Classes
+-----------
+- **FactoryWithClient**: Factory for creating a CentralUnit with a single mocked client.
+- **CentralClientFactory**: Factory for creating central with multiple clients.
+
+Usage Pattern
+-------------
+Factories use the builder pattern with fluent configuration:
+
+    factory = FactoryWithClient(
+        player=session_player,
+        do_mock_client=True,
+        ignore_devices_on_create=["VCU0000099"],
+    )
+    central, client = await factory()
+
+    # Use central and client for testing
+    await central.start()
+    # ... test operations ...
+    await central.stop()
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 

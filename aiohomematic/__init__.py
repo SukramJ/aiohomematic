@@ -1,21 +1,70 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
 """
-AioHomematic: a Python 3 library to interact with Homematic and HomematicIP backends.
+AioHomematic: async Python library for Homematic and HomematicIP backends.
 
-Public API at the top-level package is defined by __all__.
+Overview
+--------
+This package provides a comprehensive async library for interacting with Homematic CCU
+and HomematicIP systems. It enables device discovery, data point manipulation, event
+handling, and management of programs and system variables.
 
-This package provides a high-level API to discover devices and channels, read and write
-parameters (data points), receive events, and manage programs and system variables.
+The library is designed for integration with Home Assistant but can be used standalone.
+It features automatic entity discovery, flexible customization through device-specific
+implementations, and fast startup through intelligent caching.
 
-Key layers and responsibilities:
-- aiohomematic.central: Orchestrates clients, store, device creation and events.
-- aiohomematic.client: Interface-specific clients (JSON-RPC/XML-RPC, Homegear) handling IO.
-- aiohomematic.model: Data point abstraction for generic, hub, and calculated entities.
-- aiohomematic.store: Persistent and runtime store for descriptions, values, and metadata.
+Architecture
+------------
+The library is organized into four main layers:
 
-Typical usage is to construct a CentralConfig, create a CentralUnit and start it, then
-consume data points and events or issue write commands via the exposed API.
+- **aiohomematic.central**: Central orchestration managing client lifecycles, device
+  creation, event handling, and background tasks.
+- **aiohomematic.client**: Protocol adapters (JSON-RPC/XML-RPC) for backend communication.
+- **aiohomematic.model**: Runtime representation of devices, channels, and data points
+  with generic, custom, calculated, and hub entity types.
+- **aiohomematic.store**: Persistence layer for device descriptions, paramsets, and
+  runtime caches.
+
+Public API
+----------
+- `__version__`: Library version string.
+
+The primary entry point is `CentralConfig` and `CentralUnit` from `aiohomematic.central`.
+
+Quick start
+-----------
+Typical usage pattern:
+
+    from aiohomematic.central import CentralConfig
+    from aiohomematic.client import InterfaceConfig, Interface
+
+    config = CentralConfig(
+        name="ccu-main",
+        host="192.168.1.100",
+        username="admin",
+        password="secret",
+        central_id="unique-id",
+        interface_configs={
+            InterfaceConfig(
+                central_name="ccu-main",
+                interface=Interface.HMIP_RF,
+                port=2010,
+            ),
+        },
+    )
+
+    central = config.create_central()
+    await central.start()
+
+    # Access devices and data points
+    device = central.get_device_by_address("VCU0000001")
+
+    await central.stop()
+
+Notes
+-----
+Public API at the top-level package is defined by `__all__`.
+
 """
 
 from __future__ import annotations

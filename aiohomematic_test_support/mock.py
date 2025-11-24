@@ -1,4 +1,37 @@
-"""Mocks for tests."""
+"""
+Mock implementations for RPC clients with session playback.
+
+This module provides mock RPC proxy implementations that replay pre-recorded
+backend responses from session data files. This enables deterministic, fast
+testing without live Homematic backend dependencies.
+
+Key Classes
+-----------
+- **SessionPlayer**: Loads and plays back recorded RPC session data from ZIP archives.
+- **get_mock**: Creates mock instances of data points and devices with configurable
+  method/property exclusions.
+- **get_xml_rpc_proxy**: Returns mock XML-RPC proxy with session playback.
+- **get_client_session**: Returns mock aiohttp ClientSession for JSON-RPC tests.
+
+Session Playback
+----------------
+Session data is stored in ZIP archives containing JSON files with recorded
+RPC method calls and responses. The SessionPlayer replays these responses
+when tests invoke RPC methods:
+
+    player = SessionPlayer(session_data_path="tests/data/ccu_full.zip")
+    proxy = get_xml_rpc_proxy(player=player, interface="BidCos-RF")
+
+    # Calls return pre-recorded responses
+    devices = await proxy.listDevices()
+
+This approach provides:
+- Fast test execution (no network I/O)
+- Reproducible results (same responses every time)
+- Offline testing (no backend required)
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -491,7 +524,6 @@ class SessionPlayer:
         When a ZIP archive is provided, the first JSON member inside the archive
         will be loaded.
         """
-
         if self.supports_file_id(file_id=file_id):
             return DataOperationResult.NO_LOAD
 

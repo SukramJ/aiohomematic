@@ -3,17 +3,54 @@
 """
 Data point and event model for AioHomematic.
 
-This package wires together the model subpackages that turn device/channel
-parameter descriptions into concrete data points and events:
-- generic: Default data point types (switch, number, sensor, select, etc.).
-- custom: Higher-level composites and device-specific behaviors.
-- calculated: Derived metrics (e.g., dew point, apparent temperature).
-- hub: Program and system variable data points from the backend hub.
+Overview
+--------
+This package provides the runtime model layer that transforms device and channel
+parameter descriptions from Homematic backends into typed data point objects and
+events. It orchestrates the creation of entity hierarchies (devices, channels,
+data points) and manages their lifecycle.
 
-The create_data_points_and_events entrypoint inspects a device’s paramset
-information, applies visibility rules, creates events where appropriate, and
-instantiates the required data point objects. It is invoked during device
-initialization to populate the runtime model used by the central unit.
+The model layer is purely domain-focused with no I/O operations. All backend
+communication is delegated to the client layer through protocol interfaces.
+
+Subpackages
+-----------
+The model is organized into specialized entity types:
+
+- **generic**: Default data point implementations (switch, number, sensor, select,
+  binary_sensor, button, action, text) for standard parameter types.
+- **custom**: Device-specific implementations providing higher-level abstractions
+  (climate, cover, light, lock, siren, valve) for complex multi-parameter devices.
+- **calculated**: Derived data points computing values from other data points
+  (e.g., dew point, apparent temperature, battery level percentage).
+- **hub**: Backend system entities including programs and system variables exposed
+  by the CCU/Homegear hub.
+
+Public API
+----------
+- `create_data_points_and_events`: Main factory function for populating device
+  channels with data points and events based on paramset descriptions.
+
+Workflow
+--------
+During device initialization, `create_data_points_and_events` is invoked for each
+device. It performs the following steps:
+
+1. Iterates through all device channels and their paramset descriptions.
+2. Applies visibility rules to filter relevant parameters.
+3. Creates event objects for parameters supporting EVENT operations.
+4. Creates appropriate data point instances (generic or custom).
+5. Instantiates calculated data points based on available source data points.
+
+The resulting data point objects are registered with their parent channels and
+become accessible through the central unit's query API.
+
+Notes
+-----
+The entrypoint function is decorated with `@inspector` for automatic exception
+handling and logging. All data point creation follows the factory pattern with
+type selection based on parameter metadata and device profiles.
+
 """
 
 from __future__ import annotations
@@ -91,7 +128,6 @@ def _process_parameter(
     parameter_is_un_ignored: bool,
 ) -> None:
     """Process individual parameter to create data points and events."""
-
     if paramset_key == ParamsetKey.MASTER and parameter_data["OPERATIONS"] == 0:
         # required to fix hm master paramset operation values
         parameter_data["OPERATIONS"] = 3

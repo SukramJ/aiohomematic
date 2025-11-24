@@ -397,7 +397,7 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC):
     )
 
     def __init__(self, *, data_point: cdp.CustomDataPoint) -> None:
-        """Init the device schedule."""
+        """Initialize the device schedule."""
         self._data_point = data_point
         self._device: Final = data_point.device
         self._client: Final = data_point.device.client
@@ -698,7 +698,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
     )
 
     def __init__(self, *, data_point: cdp.CustomDataPoint) -> None:
-        """Init the climate week profile."""
+        """Initialize the climate week profile."""
         super().__init__(data_point=data_point)
         self._min_temp: Final[float] = self._data_point.min_temp
         self._max_temp: Final[float] = self._data_point.max_temp
@@ -859,7 +859,6 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
     @inspector
     async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device."""
-
         if self._data_point.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
             raise ValidationException(i18n.tr("exception.model.week_profile.copy_schedule.profile_count_mismatch"))
         raw_schedule = await self._get_raw_schedule()
@@ -1153,7 +1152,6 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         - Periods at the beginning or end of day at `base_temperature` are not
           emitted in the simple representation.
         """
-
         simple_profile: CLIMATE_SIMPLE_PROFILE_DICT = {}
         for weekday, weekday_data in profile_data.items():
             simple_profile[weekday] = self._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
@@ -1167,7 +1165,6 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
 
         Inverse of `_validate_and_convert_simple_to_schedule`.
         """
-
         simple_schedule: CLIMATE_SIMPLE_SCHEDULE_DICT = {}
         for profile, profile_data in schedule_data.items():
             simple_schedule[profile] = self._validate_and_convert_profile_to_simple(profile_data=profile_data)
@@ -1286,7 +1283,6 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
 
         Inverse of `_validate_and_convert_simple_to_weekday`.
         """
-
         base_temperature = identify_base_temperature(weekday_data=weekday_data)
 
         # filter out irrelevant entries
@@ -1638,7 +1634,6 @@ def create_empty_schedule_group(category: DataPointCategory | None = None) -> DE
         defaults according to the given `category`.
 
     """
-
     empty_schedule_group = {
         ScheduleField.ASTRO_OFFSET: 0,
         ScheduleField.ASTRO_TYPE: AstroType.SUNRISE,

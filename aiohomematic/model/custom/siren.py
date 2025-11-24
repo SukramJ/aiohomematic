@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the siren category."""
+"""
+Custom siren data points for alarm and notification devices.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -143,7 +147,6 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         **kwargs: Unpack[SirenOnArgs],
     ) -> None:
         """Turn the device on."""
-
         acoustic_alarm = kwargs.get("acoustic_alarm", self._dp_acoustic_alarm_selection.default)
         if self.available_tones and acoustic_alarm and acoustic_alarm not in self.available_tones:
             raise ValidationException(
@@ -171,7 +174,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         await self._dp_duration.send_value(value=duration, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_acoustic_alarm_active: DpBinarySensor = self._get_data_point(
@@ -236,7 +239,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.ON, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_smoke_detector_alarm_status: DpSensor[str | None] = self._get_data_point(

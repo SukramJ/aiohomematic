@@ -21,7 +21,7 @@ class BaseHomematicException(Exception):
     """aiohomematic base exception."""
 
     def __init__(self, name: str, *args: Any) -> None:
-        """Init the AioHomematicException."""
+        """Initialize the AioHomematicException."""
         if args and isinstance(args[0], BaseException):
             self.name = args[0].__class__.__name__
             args = _reduce_args(args=args[0].args)
@@ -34,7 +34,7 @@ class ClientException(BaseHomematicException):
     """aiohomematic Client exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the ClientException."""
+        """Initialize the ClientException."""
         super().__init__("ClientException", *args)
 
 
@@ -42,7 +42,7 @@ class UnsupportedException(BaseHomematicException):
     """aiohomematic unsupported exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the UnsupportedException."""
+        """Initialize the UnsupportedException."""
         super().__init__("UnsupportedException", *args)
 
 
@@ -50,7 +50,7 @@ class ValidationException(BaseHomematicException):
     """aiohomematic validation exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the ValidationException."""
+        """Initialize the ValidationException."""
         super().__init__("ValidationException", *args)
 
 
@@ -58,7 +58,7 @@ class NoConnectionException(BaseHomematicException):
     """aiohomematic NoConnectionException exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the NoConnection."""
+        """Initialize the NoConnection."""
         super().__init__("NoConnectionException", *args)
 
 
@@ -66,7 +66,7 @@ class NoClientsException(BaseHomematicException):
     """aiohomematic NoClientsException exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the NoClientsException."""
+        """Initialize the NoClientsException."""
         super().__init__("NoClientsException", *args)
 
 
@@ -74,7 +74,7 @@ class AuthFailure(BaseHomematicException):
     """aiohomematic AuthFailure exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the AuthFailure."""
+        """Initialize the AuthFailure."""
         super().__init__("AuthFailure", *args)
 
 
@@ -82,7 +82,7 @@ class AioHomematicException(BaseHomematicException):
     """aiohomematic AioHomematicException exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the AioHomematicException."""
+        """Initialize the AioHomematicException."""
         super().__init__("AioHomematicException", *args)
 
 
@@ -90,7 +90,7 @@ class AioHomematicConfigException(BaseHomematicException):
     """aiohomematic AioHomematicConfigException exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the AioHomematicConfigException."""
+        """Initialize the AioHomematicConfigException."""
         super().__init__("AioHomematicConfigException", *args)
 
 
@@ -98,7 +98,7 @@ class InternalBackendException(BaseHomematicException):
     """aiohomematic InternalBackendException exception."""
 
     def __init__(self, *args: Any) -> None:
-        """Init the InternalBackendException."""
+        """Initialize the InternalBackendException."""
         super().__init__("InternalBackendException", *args)
 
 
@@ -122,7 +122,6 @@ def log_exception[**P, R](
         func: Callable[P, R | Awaitable[R]],
     ) -> Callable[P, R | Awaitable[R]]:
         """Decorate log exception method."""
-
         function_name = func.__name__
 
         @wraps(func)

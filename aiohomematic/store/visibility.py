@@ -363,7 +363,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
         *,
         config_provider: ConfigProvider,
     ) -> None:
-        """Init the parameter visibility cache."""
+        """Initialize the parameter visibility cache."""
         self._config_provider = config_provider
         self._storage_directory: Final = config_provider.config.storage_directory
         self._required_parameters: Final = get_required_parameters()
@@ -623,7 +623,6 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
 
         model, channel_no, paramset_key, parameter
         """
-
         model: TModelName | None = None
         channel_no: TUnIgnoreChannelNo = None
         paramset_key: ParamsetKey | None = None
@@ -727,7 +726,6 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
         This can be either be the users un_ignore file, or in the
         predefined _UN_IGNORE_PARAMETERS_BY_DEVICE.
         """
-
         # check if parameter is in custom_un_ignore
         if paramset_key == ParamsetKey.VALUES and parameter in self._custom_un_ignore_values_parameters:
             return True

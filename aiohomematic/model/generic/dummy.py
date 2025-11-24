@@ -59,7 +59,6 @@ class DpDummy(GenericDataPointAny):
         runtime behavior that would contact the backend is disabled via
         overrides below.
         """
-
         super().__init__(
             channel=channel,
             paramset_key=ParamsetKey.DUMMY,

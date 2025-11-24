@@ -24,3 +24,4 @@ venv
 *.out.txt
 /aiohomematic_test_support/aiohomematic_test_support.egg-info
 /aiohomematic_test_support/dist
+/docs/_build/doctrees

@@ -38,12 +38,11 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
 
     def __init__(self, *, channel: hmd.Channel) -> None:
         """Initialize the data point."""
-
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         super()._init_data_point_fields()
 
         self._dp_temperature: DpSensor[float | None] = (
@@ -109,7 +108,7 @@ class ApparentTemperature(BaseClimateSensor[float | None]):
         return None
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         super()._init_data_point_fields()
 
         self._dp_wind_speed: DpSensor[float | None] = self._add_data_point(

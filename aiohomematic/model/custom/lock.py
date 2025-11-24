@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the lock category."""
+"""
+Custom lock data points for door locks and access control.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -147,7 +151,7 @@ class CustomDpIpLock(BaseCustomDpLock):
         await self._dp_lock_target_level.send_value(value=_LockTargetLevel.UNLOCKED, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_lock_state: DpSensor[str | None] = self._get_data_point(
@@ -197,7 +201,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
         await self._dp_button_lock.turn_off(collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_button_lock: DpSwitch = self._get_data_point(field=Field.BUTTON_LOCK, data_point_type=DpSwitch)
@@ -258,7 +262,7 @@ class CustomDpRfLock(BaseCustomDpLock):
         await self._dp_state.send_value(value=True, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)

@@ -572,7 +572,7 @@ class Client(ABC, LogContextMixin):
 
     @inspector
     async def init_client(self) -> None:
-        """Init the client."""
+        """Initialize the client."""
         self._system_information = await self._get_system_information()
         if self.supports_rpc_callback:
             self._proxy = await self._config.create_rpc_proxy(
@@ -586,8 +586,7 @@ class Client(ABC, LogContextMixin):
             )
 
     async def initialize_proxy(self) -> ProxyInitState:
-        """Init the proxy has to tell the backend where to send the events."""
-
+        """Initialize the proxy has to tell the backend where to send the events."""
         if not self.supports_rpc_callback:
             if device_descriptions := await self.list_devices():
                 await self.central.add_new_devices(
@@ -1810,7 +1809,7 @@ class ClientConfig:
 
 
 class InterfaceConfig:
-    """interface config for a Client."""
+    """Configuration for a single Homematic interface connection."""
 
     def __init__(
         self,
@@ -1820,7 +1819,7 @@ class InterfaceConfig:
         port: int,
         remote_path: str | None = None,
     ) -> None:
-        """Init the interface config."""
+        """Initialize the interface configuration."""
         self.interface: Final[Interface] = interface
 
         self.rpc_server: Final[RpcServerType] = INTERFACE_RPC_SERVER_TYPE[interface]

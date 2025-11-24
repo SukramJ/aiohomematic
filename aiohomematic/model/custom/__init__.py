@@ -142,7 +142,6 @@ _LOGGER: Final = logging.getLogger(__name__)
 @inspector
 def create_custom_data_points(*, device: hmd.Device) -> None:
     """Decides which data point category should be used, and creates the required data points."""
-
     if device.ignore_for_custom_data_point:
         _LOGGER.debug(
             "CREATE_CUSTOM_DATA_POINTS: Ignoring for custom data point: %s, %s, %s due to ignored",

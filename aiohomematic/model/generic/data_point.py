@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Generic python representation of a backend parameter."""
+"""
+Base implementation for generic data points.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -38,7 +42,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         parameter: str,
         parameter_data: ParameterData,
     ) -> None:
-        """Init the generic data_point."""
+        """Initialize the generic data_point."""
         super().__init__(
             channel=channel,
             paramset_key=paramset_key,

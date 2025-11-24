@@ -20,7 +20,7 @@ repos:
         always_run: true
         pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.14.5
+    rev: v0.14.6
     hooks:
       - id: ruff
         args:
@@ -38,7 +38,7 @@ repos:
         exclude_types: [csv, json]
         exclude: ^tests/fixtures/|aiohomematic/rega_scripts|.github/ISSUE_TEMPLATE/bug_report_de.yml|.github/scripts/analyze_issue.py
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
+    rev: 1.9.2
     hooks:
       - id: bandit
         args:

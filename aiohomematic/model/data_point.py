@@ -8,13 +8,13 @@ representing Homematic parameters as data points, handling their lifecycle,
 I/O, and event propagation.
 
 Highlights:
-- CallbackDataPoint: Base for objects that expose callbacks and timestamps
-  (modified/refreshed) and manage registration of update and removal listeners.
+- CallbackDataPoint: Base for objects that expose subscriptions and timestamps
+  (modified/refreshed) and manage subscription to update and removal events.
 - BaseDataPoint/ BaseParameterDataPoint: Concrete foundations for channel-bound
   data points, including type/flag handling, unit and multiplier normalization,
   value conversion, temporary write buffering, and path/name metadata.
 - CallParameterCollector: Helper to batch multiple set/put operations and wait
-  for callbacks, optimizing command dispatch.
+  for events, optimizing command dispatch.
 - bind_collector: Decorator to bind a collector to service methods conveniently.
 
 The classes here are used by generic, custom, calculated, and hub data point
@@ -145,7 +145,7 @@ EVENT_DATA_SCHEMA = vol.Schema(
 
 class CallbackDataPoint(ABC, LogContextMixin):
     """
-    Base class for data points supporting callbacks and subscriptions.
+    Base class for data points supporting subscriptions.
 
     Provides event handling, subscription management, and timestamp tracking
     for data point updates and refreshes.
@@ -367,7 +367,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
                 cid: str,
                 ckw: dict[str, Any],
             ) -> None:  # noqa: E731
-                """Publish callback event with custom id."""
+                """Publish data point updated event with custom id."""
                 await self._event_bus_provider.event_bus.publish(
                     event=DataPointUpdatedCallbackEvent(
                         timestamp=datetime.now(),
@@ -383,7 +383,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
             self._task_scheduler.create_task(
                 target=_publish_wrapper,
-                name=f"publish-callback-event-{self._unique_id}-{custom_id}",
+                name=f"publish-dp-updated-event-{self._unique_id}-{custom_id}",
             )
 
     @loop_check

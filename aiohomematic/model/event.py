@@ -8,7 +8,7 @@ button presses, device errors, and impulse notifications to applications.
 
 Included classes:
 - GenericEvent: Base event that integrates with the common data point API
-  (category, usage, names/paths, callbacks) and provides publish_event handling.
+  (category, usage, names/paths, subscriptions) and provides publish_event handling.
 - ClickEvent: Represents key press events (EventType.KEYPRESS).
 - DeviceErrorEvent: Represents device error signaling with special value change
   semantics before publishing an event (EventType.DEVICE_ERROR).

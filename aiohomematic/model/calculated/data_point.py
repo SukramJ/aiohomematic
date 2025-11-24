@@ -34,7 +34,7 @@ from aiohomematic.model.support import (
     get_data_point_name_data,
 )
 from aiohomematic.property_decorators import config_property, hm_property, state_property
-from aiohomematic.type_aliases import DataPointUpdatedCallback, ParamType, UnregisterCallback
+from aiohomematic.type_aliases import ParamType, UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -259,6 +259,12 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.emit_data_point_updated_event()
 
+    def unsubscribe_from_data_point_updated(self) -> None:
+        """Unregister all internal update callbacks."""
+        for unregister in self._unregister_callbacks:
+            if unregister is not None:
+                unregister()
+
     def _add_data_point[DataPointT: hmge.GenericDataPointAny](
         self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
     ) -> DataPointT:
@@ -330,9 +336,3 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
             "POST_INIT_DATA_POINT_FIELDS: Post action after initialisation of the data point fields for %s",
             self.full_name,
         )
-
-    def _unsubscribe_from_data_point_updated(self, *, handler: DataPointUpdatedCallback, custom_id: str) -> None:
-        """Unregister update callback."""
-        for unregister in self._unregister_callbacks:
-            if unregister is not None:
-                unregister()

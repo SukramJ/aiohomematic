@@ -1486,6 +1486,10 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
         """Remove a data_point from a channel."""
+        # Clean up internal subscriptions for custom/calculated data points
+        if isinstance(data_point, (hmce.CustomDataPoint, CalculatedDataPoint)):
+            data_point.unsubscribe_from_data_point_updated()
+
         # EventBus subscriptions are automatically cleaned up via DeviceRemovedEvent
         if isinstance(data_point, BaseParameterDataPoint):
             self._state_path_to_dpk.pop(data_point.state_path, None)

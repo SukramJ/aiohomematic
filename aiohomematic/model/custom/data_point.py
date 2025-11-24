@@ -28,7 +28,7 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.property_decorators import state_property
 from aiohomematic.support import get_channel_address
-from aiohomematic.type_aliases import DataPointUpdatedCallback, UnregisterCallback
+from aiohomematic.type_aliases import UnregisterCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -203,6 +203,12 @@ class CustomDataPoint(BaseDataPoint):
         if self._device.week_profile:
             await self._device.week_profile.set_schedule(schedule_data=schedule_data)
 
+    def unsubscribe_from_data_point_updated(self) -> None:
+        """Unregister all internal update callbacks."""
+        for unregister in self._unregister_callbacks:
+            if unregister is not None:
+                unregister()
+
     def _add_data_point(
         self,
         *,
@@ -363,9 +369,3 @@ class CustomDataPoint(BaseDataPoint):
             "POST_INIT_DATA_POINT_FIELDS: Post action after initialisation of the data point fields for %s",
             self.full_name,
         )
-
-    def _unsubscribe_from_data_point_updated(self, *, handler: DataPointUpdatedCallback, custom_id: str) -> None:
-        """Unregister update callback."""
-        for unregister in self._unregister_callbacks:
-            if unregister is not None:
-                unregister()

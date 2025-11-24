@@ -64,7 +64,7 @@ Orderly teardown at different levels:
 - Device removal:
   - `Device.remove()` initiates teardown for all channels and data structures of the device.
 - Callback de‑registration:
-  - DataPoints/Updates register callbacks (e.g., `register_data_point_updated_callback`). On removal these are properly cleaned up via returned unregister functions or explicit unregister.
+  - DataPoints/Updates register callbacks (e.g., `register_data_point_updated_callback`). On removal these are properly cleaned up via returned unsubscribe functions or explicit unsubscribe.
 - Central stop:
   - When the integration shuts down, the Central stops the RPC clients, cancels subscriptions, and closes sessions. HA does not automatically remove entities unless devices are considered permanently deleted (see next point).
 - Device mutations (delete/re‑pairing):

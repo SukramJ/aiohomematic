@@ -124,7 +124,7 @@ class _FakeGenericDP:
         self.is_valid = True
         self.state_uncertain = False
         self.published_event_recently = True
-        self._unregistered: list[bool] = []
+        self._unsubscribed: list[bool] = []
 
     @property
     def is_readable(self) -> bool:
@@ -146,10 +146,10 @@ class _FakeGenericDP:
     def subscribe_to_internal_data_point_updated(self, *, handler: Callable) -> Callable[[], None]:
         self.published_event_recently = False  # simulate change later
 
-        def _unregister() -> None:
-            self._unregistered.append(True)
+        def _unsubscribe() -> None:
+            self._unsubscribed.append(True)
 
-        return _unregister
+        return _unsubscribe
 
 
 class _FakeChannel:
@@ -256,7 +256,7 @@ class TestCalculatedDataPoint:
         # Simulate unregister via internal method which loops over stored unregisters
         calc.unsubscribe_from_data_point_updated()
         # Ensure at least one unregister was called on a source dp
-        assert any(dp._unregistered for dp in (dp1, dp2, dp3))
+        assert any(dp._unsubscribed for dp in (dp1, dp2, dp3))
 
     def test_calculated_datapoint_add_missing_returns_placeholder(self) -> None:
         """Test when a requested source DP is missing, a placeholder (DpDummy) is returned and stored."""

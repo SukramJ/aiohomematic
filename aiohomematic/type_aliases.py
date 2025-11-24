@@ -17,8 +17,8 @@ type ParamType = bool | int | float | str | None
 # Generic zero-argument callback that returns nothing
 ZeroArgHandler: TypeAlias = Callable[[], None]
 
-# Unregister callbacks used throughout the project either return a zero-arg
-# callback to unregister or None when registration did not occur.
+# Unsubscribe handler used throughout the project either return a zero-arg
+# handler to unsubscribe or None when subscription did not occur.
 UnsubscribeHandler: TypeAlias = ZeroArgHandler | None
 
 # Device- and channel-scoped callbacks

@@ -216,7 +216,7 @@ class CustomDataPoint(BaseDataPoint):
         data_point: hmge.GenericDataPointAny | None,
         is_visible: bool | None = None,
     ) -> None:
-        """Add data point to collection and register callback."""
+        """Add data point to collection and subscribed handler."""
         if not data_point:
             return
         if is_visible is True and data_point.is_forced_sensor is False:

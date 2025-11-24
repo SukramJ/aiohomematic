@@ -156,16 +156,16 @@ async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralU
 
     central = await get_pydev_ccu_central_unit_full(port=const.CCU_PORT)
 
-    unregister_homematic_callback = central.event_bus.subscribe(event_type=HomematicEvent, handler=homematic_callback)
-    unregister_backend_system_callback = central.event_bus.subscribe(
+    unsubscribe_homematic_callback = central.event_bus.subscribe(event_type=HomematicEvent, handler=homematic_callback)
+    unsubscribe_backend_system_callback = central.event_bus.subscribe(
         event_type=BackendSystemEventData, handler=backend_system_callback
     )
 
     try:
         yield central
     finally:
-        unregister_homematic_callback()
-        unregister_backend_system_callback()
+        unsubscribe_homematic_callback()
+        unsubscribe_backend_system_callback()
         await central.stop()
         await central.clear_files()
 

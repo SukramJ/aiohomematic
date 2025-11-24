@@ -114,7 +114,7 @@ bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler2)  # Will still 
 ```python
 # Old way: manage callbacks manually
 central.subscribe_backend_system_callback(cb=callback)
-# Later: need to call _unregister_backend_system_callback
+# Later: need to call _unsubscribe_backend_system_callback
 
 # New way: returned callable
 unsubscribe = central.event_bus.subscribe(event_type=BackendSystemEventData, handler=callback)

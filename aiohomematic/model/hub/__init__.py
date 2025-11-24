@@ -55,7 +55,7 @@ Backend Specifics and Cleanup
 
 Categories and New Data Point Discovery
 - Newly created hub data points are grouped into HUB_CATEGORIES and returned as
-  a mapping, so subscribers can register and present them appropriately.
+  a mapping, so subscribers can subscribe and present them appropriately.
 
 Related Modules
 - aiohomematic.model.hub.data_point: Base types for hub-level data points.

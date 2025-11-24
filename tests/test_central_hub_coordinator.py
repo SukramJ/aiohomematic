@@ -347,7 +347,7 @@ class TestHubCoordinatorProgramOperations:
         assert retrieved is None
 
     def test_remove_program_data_point(self) -> None:
-        """Remove program data point should unregister the program."""
+        """Remove program data point should unsubscribe the program."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
             central_info=central,
@@ -573,7 +573,7 @@ class TestHubCoordinatorSysvarOperations:
         assert retrieved is None
 
     def test_remove_sysvar_data_point(self) -> None:
-        """Remove sysvar data point should unregister the sysvar and publish removed event."""
+        """Remove sysvar data point should unsubscribe the sysvar and publish removed event."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
             central_info=central,

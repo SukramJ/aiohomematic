@@ -534,7 +534,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             return
 
         for ch in self._device.channels.values():
-            # register link-peer change callback; store unregister handle
+            # register link-peer change callback; store unsubscribe handle
             if (unreg := ch.subscribe_to_link_peer_changed(handler=self._on_link_peer_changed)) is not None:
                 self._unsubscribe_handlers.append(unreg)
         # pre-populate peer references (if any) once

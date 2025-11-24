@@ -99,10 +99,10 @@ class _FakeDevice:
     def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeHandler:
         self._handlers.append(handler)
 
-        def _unregister() -> None:
+        def _unsubscribe() -> None:
             self._handlers.remove(handler)
 
-        return _unregister
+        return _unsubscribe
 
     def unsubscribe_from_firmware_update_handler(self, *, handler: FirmwareUpdateHandler) -> None:
         if handler in self._handlers:
@@ -138,7 +138,7 @@ class TestUpdateDataPoint:
         dev.available_firmware = "2.0.0"
         assert dp.latest_firmware == "2.0.0"
 
-    async def test_update_register_unregister_and_actions(self, monkeypatch: Any) -> None:
+    async def test_update_register_unsubscribe_and_actions(self, monkeypatch: Any) -> None:
         """Test DpUpdate callback registration and firmware update actions."""
         dev = _FakeDevice()
         dp = DpUpdate(device=dev)  # type: ignore[arg-type]

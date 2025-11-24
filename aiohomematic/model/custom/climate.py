@@ -534,7 +534,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             return
 
         for ch in self._device.channels.values():
-            # register link-peer change callback; store unsubscribe handle
+            # subscribe to link-peer change events; store unsubscribe handle
             if (unreg := ch.subscribe_to_link_peer_changed(handler=self._on_link_peer_changed)) is not None:
                 self._unsubscribe_handlers.append(unreg)
         # pre-populate peer references (if any) once
@@ -544,7 +544,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """
         Refresh peer data point references used for `activity` fallback.
 
-        - Unregister any previously registered peer callbacks.
+        - Unsubscribe from any previously subscribed peer updates.
         - Grab its `STATE` and `LEVEL` generic data points from any available linked channel (if available).
         - Subscribe to their updates to keep `activity` current.
         """
@@ -805,7 +805,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         """Post action after initialisation of the data point fields."""
         super()._post_init_data_point_fields()
 
-        # register callback for control_mode to track manual target temp
+        # subscribe to control_mode updates to track manual target temp
         self._unsubscribe_handlers.append(
             self._dp_control_mode.subscribe_to_data_point_updated(
                 handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
@@ -1085,7 +1085,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         """Post action after initialisation of the data point fields."""
         super()._post_init_data_point_fields()
 
-        # register callback for set_point_mode to track manual target temp
+        # subscribe to set_point_mode updates to track manual target temp
         self._unsubscribe_handlers.append(
             self._dp_set_point_mode.subscribe_to_data_point_updated(
                 handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP

@@ -260,7 +260,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         self.publish_data_point_updated_event()
 
     def unsubscribe_from_data_point_updated(self) -> None:
-        """Unregister all internal update callbacks."""
+        """Unsubscribe from all internal update subscriptions."""
         for unreg in self._unsubscribe_handlers:
             if unreg is not None:
                 unreg()

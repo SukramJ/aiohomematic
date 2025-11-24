@@ -253,7 +253,7 @@ class TestCalculatedDataPoint:
         unregister()
 
         # Simulate unregister via internal method which loops over stored unregisters
-        calc._unregister_data_point_updated_callback(cb=dummy_cb, custom_id="x")
+        calc._unsubscribe_from_data_point_updated(handler=dummy_cb, custom_id="x")
         # Ensure at least one unregister was called on a source dp
         assert any(dp._unregistered for dp in (dp1, dp2, dp3))
 
@@ -324,7 +324,7 @@ class TestCalculatedDataPoint:
         def dummy_cb2(**kwargs: Any) -> None:  # noqa: D401
             """Execute dummy callback for unregister path (None branch)."""
 
-        calc._unregister_data_point_updated_callback(cb=dummy_cb2, custom_id="y")
+        calc._unsubscribe_from_data_point_updated(handler=dummy_cb2, custom_id="y")
 
 
 class TestOperatingVoltageLevel:

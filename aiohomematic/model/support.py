@@ -74,7 +74,7 @@ class ChannelNameData:
     )
 
     def __init__(self, *, device_name: str, channel_name: str) -> None:
-        """Init the DataPointNameData class."""
+        """Initialize the DataPointNameData class."""
         self.device_name: Final = device_name
         self.channel_name: Final = self._get_channel_name(device_name=device_name, channel_name=channel_name)
         self.full_name = f"{device_name} {self.channel_name}".strip() if self.channel_name else device_name
@@ -105,7 +105,7 @@ class DataPointNameData(ChannelNameData):
     )
 
     def __init__(self, *, device_name: str, channel_name: str, parameter_name: str | None = None) -> None:
-        """Init the DataPointNameData class."""
+        """Initialize the DataPointNameData class."""
         super().__init__(device_name=device_name, channel_name=channel_name)
 
         self.name: Final = self._get_data_point_name(
@@ -145,7 +145,7 @@ class HubNameData:
     )
 
     def __init__(self, *, name: str, central_name: str | None = None, channel_name: str | None = None) -> None:
-        """Init the DataPointNameData class."""
+        """Initialize the DataPointNameData class."""
         self.name: Final = name
         self.full_name = (
             f"{channel_name} {self.name}".strip() if channel_name else f"{central_name} {self.name}".strip()
@@ -233,7 +233,7 @@ class DataPointPathData(PathData):
         kind: str,
         name: str | None = None,
     ):
-        """Init the path data."""
+        """Initialize the path data."""
         path_item: Final = f"{address.upper()}/{channel_no}/{kind.upper()}"
         self._set_path: Final = (
             f"{VIRTDEV_SET_PATH_ROOT if interface == Interface.CCU_JACK else SET_PATH_ROOT}/{path_item}"
@@ -262,7 +262,7 @@ class ProgramPathData(PathData):
     )
 
     def __init__(self, *, pid: str):
-        """Init the path data."""
+        """Initialize the path data."""
         self._set_path: Final = f"{PROGRAM_SET_PATH_ROOT}/{pid}"
         self._state_path: Final = f"{PROGRAM_STATE_PATH_ROOT}/{pid}"
 
@@ -286,7 +286,7 @@ class SysvarPathData(PathData):
     )
 
     def __init__(self, *, vid: str):
-        """Init the path data."""
+        """Initialize the path data."""
         self._set_path: Final = f"{SYSVAR_SET_PATH_ROOT}/{vid}"
         self._state_path: Final = f"{SYSVAR_STATE_PATH_ROOT}/{vid}"
 

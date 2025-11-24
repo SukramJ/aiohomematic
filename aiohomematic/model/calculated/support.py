@@ -44,7 +44,6 @@ def calculate_enthalpy(
     pressure_hPa: Air pressure (default: 1013.25 hPa)
 
     """
-
     # Saturation vapor pressure according to Magnus in hPa
     e_s = 6.112 * math.exp((17.62 * temperature) / (243.12 + temperature))
     e = humidity / 100.0 * e_s  # aktueller Dampfdruck in hPa
@@ -68,7 +67,6 @@ def _calculate_heat_index(*, temperature: float, humidity: int) -> float:
     [4] https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3801457/
 
     """
-
     # SI units (Celsius)
     c1 = -8.78469475556
     c2 = 1.61139411

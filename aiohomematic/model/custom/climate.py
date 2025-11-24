@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the climate category."""
+"""
+Custom climate data points for thermostats and HVAC controls.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -478,7 +482,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_humidity: DpSensor[int | None] = self._get_data_point(
@@ -760,7 +764,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                 )
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_boost_mode: DpAction = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpAction)
@@ -1038,7 +1042,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_active_profile: DpInteger = self._get_data_point(field=Field.ACTIVE_PROFILE, data_point_type=DpInteger)

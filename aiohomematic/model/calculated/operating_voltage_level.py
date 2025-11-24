@@ -122,7 +122,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         return None
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         super()._init_data_point_fields()
 
         self._battery_data = _get_battery_data(model=self._channel.device.model)

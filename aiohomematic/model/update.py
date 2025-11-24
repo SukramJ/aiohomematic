@@ -38,7 +38,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     _category = DataPointCategory.UPDATE
 
     def __init__(self, *, device: hmd.Device) -> None:
-        """Init the callback data_point."""
+        """Initialize the callback data_point."""
         PayloadMixin.__init__(self)
         self._device: Final = device
         super().__init__(

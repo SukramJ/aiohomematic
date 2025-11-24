@@ -253,7 +253,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     @staticmethod
     def _convert_parameter_data(*, json_data: dict[str, Any]) -> ParameterData:
         """Convert json data to parameter data."""
-
         _type = json_data["TYPE"]
         _value_list = json_data.get("VALUE_LIST", ())
 
@@ -636,7 +635,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
     async def get_system_information(self) -> SystemInformation:
         """Get system information of the the backend."""
-
         if (auth_enabled := await self._get_auth_enabled()) is not None and (
             system_information := SystemInformation(
                 auth_enabled=auth_enabled,

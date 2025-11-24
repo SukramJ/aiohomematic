@@ -123,7 +123,6 @@ def inspector[**P, R](  # noqa: C901
         @wraps(func)
         def wrap_sync_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap sync functions with minimized per-call overhead."""
-
             # Fast-path: avoid logger check and time call unless explicitly enabled
             start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
             start = monotonic() if start_needed else None
@@ -165,7 +164,6 @@ def inspector[**P, R](  # noqa: C901
         @wraps(func)
         async def wrap_async_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap async functions with minimized per-call overhead."""
-
             start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
             start = monotonic() if start_needed else None
 
@@ -271,7 +269,6 @@ def measure_execution_time[CallableT: CallableAny](func: CallableT) -> CallableT
     @wraps(func)
     async def async_measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
-
         start = monotonic() if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
         try:
             return await func(*args, **kwargs)
@@ -282,7 +279,6 @@ def measure_execution_time[CallableT: CallableAny](func: CallableT) -> CallableT
     @wraps(func)
     def measure_wrapper(*args: Any, **kwargs: Any) -> Any:
         """Wrap method."""
-
         start = monotonic() if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG) else None
         try:
             return func(*args, **kwargs)

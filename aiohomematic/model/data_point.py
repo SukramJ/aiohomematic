@@ -143,7 +143,12 @@ EVENT_DATA_SCHEMA = vol.Schema(
 
 
 class CallbackDataPoint(ABC, LogContextMixin):
-    """Base class for callback data point."""
+    """
+    Base class for data points supporting callbacks and subscriptions.
+
+    Provides event handling, subscription management, and timestamp tracking
+    for data point updates and refreshes.
+    """
 
     __slots__ = (
         "_cached_enabled_default",
@@ -179,7 +184,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         paramset_description_provider: ParamsetDescriptionProvider,
         parameter_visibility_provider: ParameterVisibilityProvider,
     ) -> None:
-        """Init the callback data_point."""
+        """Initialize the callback data point."""
         self._central_info: Final = central_info
         self._event_bus_provider: Final = event_bus_provider
         self._task_scheduler: Final = task_scheduler
@@ -529,7 +534,12 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
 
 class BaseDataPoint(CallbackDataPoint, PayloadMixin):
-    """Base class for regular data point."""
+    """
+    Base class for channel-bound data points.
+
+    Extends CallbackDataPoint with channel/device associations and provides
+    the foundation for generic, custom, and calculated data point implementations.
+    """
 
     __slots__ = (
         "_cached_dpk",
@@ -656,7 +666,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 
     @abstractmethod
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the data_point data."""
+        """Initialize the data_point data."""
 
     async def on_config_changed(self) -> None:
         """Do what is needed on device config change."""
@@ -684,7 +694,12 @@ class BaseParameterDataPoint[
     ParameterT: ParamType,
     InputParameterT: ParamType,
 ](BaseDataPoint):
-    """Base class for stateless data point."""
+    """
+    Base class for parameter-backed data points with typed values.
+
+    Provides value handling, unit conversion, validation, and RPC communication
+    for data points mapped to Homematic device parameters.
+    """
 
     __slots__ = (
         "_cached__enabled_by_channel_operation_mode",
@@ -959,7 +974,7 @@ class BaseParameterDataPoint[
         return cast(dict[EventKey, Any], EVENT_DATA_SCHEMA(event_data))
 
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the data_point data."""
+        """Initialize the data_point data."""
         if (self._ignore_on_initial_load or self._channel.device.ignore_on_initial_load) and call_source in (
             CallSource.HM_INIT,
             CallSource.HA_INIT,
@@ -1133,7 +1148,7 @@ class CallParameterCollector:
     )
 
     def __init__(self, *, client: hmcl.Client) -> None:
-        """Init the generator."""
+        """Initialize the generator."""
         self._client: Final = client
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}
         self._paramsets: Final[dict[ParamsetKey, dict[int, dict[str, dict[str, Any]]]]] = {}

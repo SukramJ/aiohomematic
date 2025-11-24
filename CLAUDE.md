@@ -373,6 +373,152 @@ ruff format
 ruff format --check
 ```
 
+### Docstring Standards
+
+**IMPORTANT**: All code must follow the project's docstring conventions for consistency and maintainability.
+
+#### Documentation Resources
+
+- **[docs/docstring_standards.md](docs/docstring_standards.md)** - Complete docstring style guide with rules, patterns, and anti-patterns
+- **[docs/docstring_templates.md](docs/docstring_templates.md)** - Ready-to-use templates for common code patterns
+- **[docs/docstring_audit.md](docs/docstring_audit.md)** - Module categorization and improvement roadmap
+
+#### Key Principles
+
+1. **Short and Precise**: Docstrings should be concise yet informative
+2. **Programmer-Focused**: Write for developers using or maintaining the code
+3. **Type Hints First**: Rely on type annotations; avoid repeating type information
+4. **Consistency**: Follow established patterns for similar constructs
+
+#### Quick Rules
+
+**Punctuation**: Always end docstrings with a period (`.`)
+
+**Verb Usage**:
+
+- Functions/Methods: Use imperative mood ("Return the device", not "Returns" or "Gets")
+- Classes: Use declarative statements ("Represents a device")
+
+**Module Docstrings** - Three tiers:
+
+```python
+# Tier 1 (Core APIs): Comprehensive with sections
+"""
+Module description.
+
+Overview
+--------
+Detailed explanation...
+
+Public API
+----------
+- Class: Description
+- function: Description
+
+Quick start
+-----------
+Usage example...
+"""
+
+# Tier 2 (Coordinators): Medium detail
+"""
+Module description.
+
+Key features:
+- Feature 1
+- Feature 2
+"""
+
+# Tier 3 (Utilities): Brief
+"""
+Module description.
+
+Public API of this module is defined by __all__.
+"""
+```
+
+**Method Docstrings**:
+
+```python
+# Simple methods (one-line)
+def get_device(self, address: str) -> Device | None:
+    """Return device by address."""
+
+# Complex methods (with Args/Returns)
+def create_device(
+    self,
+    *,
+    interface_id: str,
+    device_address: str,
+) -> Device:
+    """
+    Create and register a new device instance.
+
+    Args:
+        interface_id: Interface identifier
+        device_address: Unique device address
+
+    Returns:
+        Created device instance.
+    """
+```
+
+**Property Docstrings**:
+
+```python
+@property
+def device_address(self) -> str:
+    """Return the device address."""
+```
+
+#### Common Anti-Patterns to Avoid
+
+❌ **Don't repeat type information**:
+
+```python
+# Bad
+def get_address(self) -> str:
+    """Return the address as a string."""
+
+# Good
+def get_address(self) -> str:
+    """Return the device address."""
+```
+
+❌ **Don't use inconsistent verbs**:
+
+```python
+# Bad
+def get_device(...): """Gets device."""
+def fetch_value(...): """Fetches value."""
+
+# Good
+def get_device(...): """Return device by address."""
+def fetch_value(...): """Return parameter value."""
+```
+
+❌ **Don't forget periods**:
+
+```python
+# Bad
+"""Clear the cache"""
+
+# Good
+"""Clear the cache."""
+```
+
+#### Linter Integration
+
+Docstring formatting is validated by ruff with pydocstyle rules:
+
+```bash
+# Check docstring compliance
+ruff check --select D
+
+# Auto-fix formatting issues
+ruff check --fix --select D
+```
+
 ---
 
 ## Testing Guidelines
@@ -1198,15 +1344,18 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 
 ### Documentation Files
 
-| File                              | Purpose                      |
-| --------------------------------- | ---------------------------- |
-| `README.md`                       | Project overview, quickstart |
-| `changelog.md`                    | Release history              |
-| `docs/architecture.md`            | Architecture overview        |
-| `docs/data_flow.md`               | Data flow diagrams           |
-| `docs/extension_points.md`        | How to extend the library    |
-| `docs/sequence_diagrams.md`       | Sequence diagrams            |
-| `docs/homeassistant_lifecycle.md` | Home Assistant integration   |
+| File                              | Purpose                           |
+| --------------------------------- | --------------------------------- |
+| `README.md`                       | Project overview, quickstart      |
+| `changelog.md`                    | Release history                   |
+| `docs/architecture.md`            | Architecture overview             |
+| `docs/data_flow.md`               | Data flow diagrams                |
+| `docs/extension_points.md`        | How to extend the library         |
+| `docs/sequence_diagrams.md`       | Sequence diagrams                 |
+| `docs/homeassistant_lifecycle.md` | Home Assistant integration        |
+| `docs/docstring_standards.md`     | Docstring style guide and rules   |
+| `docs/docstring_templates.md`     | Ready-to-use docstring templates  |
+| `docs/docstring_audit.md`         | Module categorization and roadmap |
 
 ### Test Files
 

@@ -241,7 +241,7 @@ class CentralUnit(
     """Central unit that collects everything to handle communication from/to the backend."""
 
     def __init__(self, *, central_config: CentralConfig) -> None:
-        """Init the central unit."""
+        """Initialize the central unit."""
         self._state: CentralUnitState = CentralUnitState.NEW
         self._connection_state: Final = CentralConnectionState()
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
@@ -1046,7 +1046,6 @@ class CentralUnit(
 
     async def start(self) -> None:
         """Start processing of the central unit."""
-
         _LOGGER.debug("START: Central %s is %s", self.name, self._state)
         if self._state == CentralUnitState.INITIALIZING:
             _LOGGER.debug("START: Central %s already starting", self.name)
@@ -1229,7 +1228,7 @@ class CentralUnit(
 
 
 class CentralConfig:
-    """Config for a Client."""
+    """Configuration for CentralUnit initialization and behavior."""
 
     def __init__(
         self,
@@ -1268,7 +1267,7 @@ class CentralConfig:
         verify_tls: bool = DEFAULT_VERIFY_TLS,
         locale: str = DEFAULT_LOCALE,
     ) -> None:
-        """Init the client config."""
+        """Initialize the central configuration."""
         self._interface_configs: Final = interface_configs
         self._optional_settings: Final = frozenset(optional_settings or ())
         self.requires_xml_rpc_server: Final = any(
@@ -1406,7 +1405,7 @@ class CentralConnectionState:
     """The central connection status."""
 
     def __init__(self) -> None:
-        """Init the CentralConnectionStatus."""
+        """Initialize the CentralConnectionStatus."""
         self._json_issues: Final[list[str]] = []
         self._rpc_proxy_issues: Final[list[str]] = []
 
@@ -1533,7 +1532,6 @@ def _get_new_data_points(
     new_devices: set[Device],
 ) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPoint]]:
     """Return new data points by category."""
-
     data_points_by_category: dict[DataPointCategory, set[CallbackDataPoint]] = {
         category: set() for category in CATEGORIES if category != DataPointCategory.EVENT
     }

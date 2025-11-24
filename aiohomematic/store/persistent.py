@@ -440,7 +440,7 @@ class ParamsetDescriptionCache(BasePersistentFile, ParamsetDescriptionProvider):
         central_info: CentralInfo,
         device_provider: DeviceProvider,
     ) -> None:
-        """Init the paramset description cache."""
+        """Initialize the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
         self._raw_paramset_descriptions: Final[dict[str, dict[str, dict[ParamsetKey, dict[str, ParameterData]]]]] = (
             defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
@@ -598,7 +598,7 @@ class SessionRecorder(BasePersistentFile):
         ttl_seconds: float,
         refresh_on_get: bool = False,
     ):
-        """Init the cache."""
+        """Initialize the cache."""
         self._active = active
         if ttl_seconds < 0:
             raise ValueError(i18n.tr("exception.store.session_recorder.ttl_positive"))

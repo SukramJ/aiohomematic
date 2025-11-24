@@ -128,7 +128,7 @@ class BaseRpcProxy(ABC):
 
     @abstractmethod
     async def do_init(self) -> None:
-        """Init the rpc proxy."""
+        """Initialize the rpc proxy."""
 
     async def stop(self) -> None:
         """Stop depending services."""
@@ -188,7 +188,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         )
 
     async def do_init(self) -> None:
-        """Init the xml rpc proxy."""
+        """Initialize the xml rpc proxy."""
         if supported_methods := await self.system.listMethods():
             # ping is missing in VirtualDevices interface but can be used.
             supported_methods.append(_RpcMethod.PING)

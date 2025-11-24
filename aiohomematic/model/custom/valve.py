@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the valve category."""
+"""
+Custom valve data points for heating valve controls.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -82,7 +86,7 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
         await self._dp_state.turn_on(collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)

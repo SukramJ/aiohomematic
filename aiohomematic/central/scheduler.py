@@ -286,7 +286,6 @@ class BackgroundScheduler:
 
     async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
         """Fetch firmware update data for devices in delivery state."""
-
         if (
             not self._config_provider.config.enable_device_firmware_check
             or not self._central_info.available
@@ -307,7 +306,6 @@ class BackgroundScheduler:
 
     async def _fetch_device_firmware_update_data_in_update(self) -> None:
         """Fetch firmware update data for devices in update state."""
-
         if (
             not self._config_provider.config.enable_device_firmware_check
             or not self._central_info.available
@@ -376,7 +374,6 @@ class BackgroundScheduler:
 
     async def _run_scheduler_loop(self) -> None:
         """Execute the main scheduler loop that runs jobs based on their schedule."""
-
         while self._active:
             # Wait until central is running
             if self._state_provider.state != CentralUnitState.RUNNING:

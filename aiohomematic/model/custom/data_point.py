@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module with base class for custom data points."""
+"""
+Base implementation for custom device-specific data points.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -187,7 +191,7 @@ class CustomDataPoint(BaseDataPoint):
         return False
 
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the data point values."""
+        """Initialize the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         if self._device.week_profile and self.usage == DataPointUsage.CDP_PRIMARY:
@@ -286,14 +290,14 @@ class CustomDataPoint(BaseDataPoint):
         return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix}"
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         _LOGGER.debug(
             "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
             self.full_name,
         )
 
     def _init_data_points(self) -> None:
-        """Init data point collection."""
+        """Initialize data point collection."""
         # Add repeating fields
         for field_name, parameter in self._device_def.get(CDPD.REPEATABLE_FIELDS, {}).items():
             if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):

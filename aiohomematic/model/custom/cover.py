@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the cover category."""
+"""
+Custom cover data points for blinds, shutters, and garage doors.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -198,7 +202,7 @@ class CustomDpCover(CustomDataPoint):
         await self._dp_stop.send_value(value=True, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         super()._init_data_point_fields()
 
         self._command_processing_lock = asyncio.Lock()
@@ -422,7 +426,7 @@ class CustomDpBlind(CustomDpCover):
         return None
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         super()._init_data_point_fields()
 
         self._dp_group_level_2: DpSensor[float | None] = self._get_data_point(
@@ -534,7 +538,7 @@ class CustomDpIpBlind(CustomDpBlind):
         return None
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         super()._init_data_point_fields()
 
         self._dp_operation_mode: DpSelect = self._get_data_point(field=Field.OPERATION_MODE, data_point_type=DpSelect)
@@ -638,7 +642,7 @@ class CustomDpGarage(CustomDataPoint):
         await self._dp_door_command.send_value(value=_GarageDoorCommand.PARTIAL_OPEN, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         super()._init_data_point_fields()
 
         self._dp_door_state: DpSensor[str | None] = self._get_data_point(

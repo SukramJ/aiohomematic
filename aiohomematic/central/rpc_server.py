@@ -32,7 +32,7 @@ class RPCFunctions:
     __kwonly_check__ = False
 
     def __init__(self, *, rpc_server: RpcServer) -> None:
-        """Init RPCFunctions."""
+        """Initialize RPCFunctions."""
         self._rpc_server: Final = rpc_server
 
     def deleteDevices(self, interface_id: str, addresses: list[str], /) -> None:
@@ -184,7 +184,7 @@ class RpcServer(threading.Thread):
     _instances: Final[dict[tuple[str, int], RpcServer]] = {}
 
     def __init__(self, *, server: SimpleXMLRPCServer) -> None:
-        """Init XmlRPC server."""
+        """Initialize XmlRPC server."""
         self._server = server
         self._server.register_introspection_functions()
         self._server.register_multicall_functions()
@@ -267,8 +267,7 @@ class XmlRpcServer(RpcServer):
         ip_addr: str,
         port: int,
     ) -> None:
-        """Init XmlRPC server."""
-
+        """Initialize XmlRPC server."""
         if self._initialized:
             return
         super().__init__(

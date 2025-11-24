@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the light category."""
+"""
+Custom light data points for dimmers and colored lighting.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -276,7 +280,7 @@ class CustomDpDimmer(CustomDataPoint):
         await self._dp_level.send_value(value=level, collector=collector)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
@@ -337,7 +341,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_color: DpInteger = self._get_data_point(field=Field.COLOR, data_point_type=DpInteger)
@@ -389,7 +393,7 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_effect: DpInteger = self._get_data_point(field=Field.PROGRAM, data_point_type=DpInteger)
@@ -419,7 +423,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_color_level: DpFloat = self._get_data_point(field=Field.COLOR_LEVEL, data_point_type=DpFloat)
@@ -552,7 +556,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_activity_state: DpSensor[str | None] = self._get_data_point(
@@ -661,7 +665,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_color_temperature_kelvin: DpInteger = self._get_data_point(
@@ -779,7 +783,7 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
     def _init_data_point_fields(self) -> None:
-        """Init the data_point fields."""
+        """Initialize the data_point fields."""
         super()._init_data_point_fields()
 
         self._dp_color: DpSelect = self._get_data_point(field=Field.COLOR, data_point_type=DpSelect)

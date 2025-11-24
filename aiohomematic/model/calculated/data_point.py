@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module with base class for calculated data points."""
+"""
+Base implementation for calculated data points deriving values from other data points.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 
@@ -250,7 +254,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         return False
 
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
-        """Init the data point values."""
+        """Initialize the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.emit_data_point_updated_event()
@@ -314,7 +318,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         return f"{self._category}/{self._channel.device.model}/{self._calculated_parameter}"
 
     def _init_data_point_fields(self) -> None:
-        """Init the data point fields."""
+        """Initialize the data point fields."""
         _LOGGER.debug(
             "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
             self.full_name,

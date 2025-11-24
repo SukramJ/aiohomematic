@@ -109,7 +109,6 @@ class _GenericProperty[GETTER, SETTER](property):
 
     def __delete__(self, instance: Any, /) -> None:
         """Delete the attribute and invalidate cache if enabled."""
-
         # Delete the cached value so it can be recomputed on next access.
         if self._cached:
             try:

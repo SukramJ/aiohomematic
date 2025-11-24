@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the sensor category."""
+"""
+Generic sensor data points for numeric and text values.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 

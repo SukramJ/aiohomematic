@@ -67,7 +67,6 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
 
         async def _exec_backend_system_callback(*args: Any, **kwargs: Any) -> None:
             """Execute the callback for a system event."""
-
             if not ((len(args) > 1 and not kwargs) or (len(args) == 1 and kwargs)):
                 _LOGGER.error(  # i18n-log: ignore
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: *args not supported for callback_system_event"

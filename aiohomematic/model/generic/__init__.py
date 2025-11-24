@@ -40,6 +40,7 @@ Exports
 - Factory: create_data_point_and_append_to_channel.
 
 See Also
+--------
 - aiohomematic.model.custom: Custom data points for specific devices/features.
 - aiohomematic.model.calculated: Calculated/derived data points.
 - aiohomematic.model.device: Device and channel abstractions used here.

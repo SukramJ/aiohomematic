@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""The module contains device descriptions for custom data points."""
+"""
+Device profile definitions for custom data point implementations.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 

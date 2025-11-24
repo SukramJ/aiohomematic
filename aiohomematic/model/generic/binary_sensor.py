@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
-"""Module for data points implemented using the binary_sensor category."""
+"""
+Generic binary sensor data points for boolean state values.
+
+Public API of this module is defined by __all__.
+"""
 
 from __future__ import annotations
 

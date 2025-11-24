@@ -34,7 +34,7 @@ class TestDataPointDefinition:
 
 
 class TestDataPointCallbacks:
-    """Tests for data point callback functionality."""
+    """Tests for data point handler functionality."""
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -52,7 +52,7 @@ class TestDataPointCallbacks:
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test CustomDpSwitch callback registration and events."""
+        """Test CustomDpSwitch handler registration and events."""
         central, _, factory = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         assert switch.usage == DataPointUsage.CDP_PRIMARY
@@ -108,7 +108,7 @@ class TestDataPointCallbacks:
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test generic data point callback registration and events."""
+        """Test generic data point handler registration and events."""
         central, _, factory = central_client_factory_with_homegear_client
         switch: DpSwitch = cast(
             DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
@@ -142,7 +142,7 @@ class TestDataPointCallbacks:
         assert event.system_event == "deleteDevices"
         assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
         assert event.data.get("addresses") == ["VCU2128127"]
-        # Call the unregister callbacks to clean up
+        # Call the unregister handler to clean up
         if unregister_updated:
             unregister_updated()
         if unregister_removed:

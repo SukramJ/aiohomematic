@@ -2,7 +2,7 @@
 Tests for aiohomematic.model.update.DpUpdate behavior using fakes.
 
 Covers properties, latest_firmware selection, in_progress state, register/unregister
-of callbacks, and refresh/update methods.
+of handlers, and refresh/update methods.
 """
 
 from __future__ import annotations

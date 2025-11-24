@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
 """
-Shared typing aliases for callbacks and common callable shapes.
+Shared typing aliases for handlers and common callable shapes.
 
 This module centralizes `Callable[...]` type aliases to avoid repeating
 signatures across the code base and to satisfy mypy strict rules.
@@ -14,20 +14,20 @@ from typing import Any, TypeAlias
 
 type ParamType = bool | int | float | str | None
 
-# Generic zero-argument callback that returns nothing
+# Generic zero-argument handler that returns nothing
 ZeroArgHandler: TypeAlias = Callable[[], None]
 
 # Unsubscribe handler used throughout the project either return a zero-arg
 # handler to unsubscribe or None when subscription did not occur.
 UnsubscribeHandler: TypeAlias = ZeroArgHandler | None
 
-# Device- and channel-scoped callbacks
+# Device- and channel-scoped handlers
 DeviceRemovedHandler: TypeAlias = ZeroArgHandler
 DeviceUpdatedHandler: TypeAlias = ZeroArgHandler
 FirmwareUpdateHandler: TypeAlias = ZeroArgHandler
 LinkPeerChangedHandler: TypeAlias = ZeroArgHandler
 
-# Data point update callbacks may accept various keyword arguments depending on
+# Data point update handlers may accept various keyword arguments depending on
 # the data point type, hence we keep them variadic.
 DataPointUpdatedHandler: TypeAlias = Callable[..., None]
 

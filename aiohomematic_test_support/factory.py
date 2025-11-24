@@ -136,7 +136,7 @@ class FactoryWithClient:
             optional_settings=(OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
         ).create_central()
 
-        # Subscribe to events via event bus instead of deprecated callbacks
+        # Subscribe to events via event bus
         def _system_event_handler(event: BackendSystemEventData) -> None:
             """Handle backend system events."""
             self.system_event_mock(event)

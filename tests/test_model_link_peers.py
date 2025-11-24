@@ -126,7 +126,7 @@ class TestChannelLinkPeers:
         await ch.init_link_peer()
         await central.looper.block_till_done()
 
-        # Ensure callback fired once and addresses are set
+        # Ensure event fired once and addresses are set
         assert calls == ["changed"]
         assert ch.link_peer_addresses == (peer_addr_single,)
 
@@ -135,6 +135,6 @@ class TestChannelLinkPeers:
         assert peer_ch is not None
         assert peer_ch.address == peer_addr_single
 
-        # Cleanup callback
+        # Cleanup handler
         if unreg:
             unreg()

@@ -885,7 +885,7 @@ class Device(LogContextMixin, PayloadMixin):
                 dp.publish_data_point_updated_event()
 
     def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeHandler:
-        """Register update callback."""
+        """Subscribe update handler."""
 
         # Create adapter that filters for this device's events
         def event_handler(event: DeviceUpdatedEvent) -> None:
@@ -898,7 +898,7 @@ class Device(LogContextMixin, PayloadMixin):
         )
 
     def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeHandler:
-        """Register firmware update callback."""
+        """Subscribe firmware update handler."""
 
         # Create adapter that filters for this device's events
         def event_handler(event: FirmwareUpdatedEvent) -> None:

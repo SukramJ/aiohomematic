@@ -32,7 +32,7 @@ class TestLooper:
         t = looper._async_create_task(do_work(), name="work")  # noqa: SLF001
         assert t in looper._tasks  # noqa: SLF001
         assert await t == "ok"
-        # After completion the done callback should have removed the task
+        # After completion the done handler should have removed the task
         assert t not in looper._tasks  # noqa: SLF001
 
     @pytest.mark.asyncio
@@ -114,7 +114,7 @@ class TestLooper:
         # Should be tracked until done
         assert future in looper._tasks  # noqa: SLF001
         assert await future == 10
-        # After completion the done callback should have removed it
+        # After completion the done handler should have removed it
         assert future not in looper._tasks  # noqa: SLF001
 
     @pytest.mark.asyncio

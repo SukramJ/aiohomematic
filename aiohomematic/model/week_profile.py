@@ -972,7 +972,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         return _filter_weekday_entries(weekday_data=self._schedule_cache.get(profile, {}).get(weekday, {}))
 
     async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
-        """Reload schedules from CCU and update cache, publish callbacks if changed."""
+        """Reload schedules from CCU and update cache, publish events if changed."""
         if not self.supports_schedule:
             return
 
@@ -991,10 +991,10 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         self._schedule_cache = new_schedule
         if old_schedule != new_schedule:
             _LOGGER.debug(
-                "RELOAD_AND_CACHE_SCHEDULE: Schedule changed for %s, publishing callbacks",
+                "RELOAD_AND_CACHE_SCHEDULE: Schedule changed for %s, publishing events",
                 self._device.name,
             )
-            # Publish data point updated event to trigger callbacks
+            # Publish data point updated event to trigger handlers
             self._data_point.publish_data_point_updated_event()
 
     @inspector

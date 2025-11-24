@@ -7,6 +7,7 @@ of callbacks, and refresh/update methods.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from aiohomematic.const import HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES, HMIP_FIRMWARE_UPDATE_READY_STATES, Interface
@@ -37,8 +38,20 @@ class _FakeCentralInfo:
         self.available = central.available
 
 
+class _FakeEventBus:
+    """Minimal fake EventBus for testing."""
+
+    async def publish(self, *, event: Any) -> None:  # noqa: ARG002
+        """Do nothing for publish in tests."""
+
+    def subscribe(self, *, event_type: type, handler: Callable[..., Any]) -> Callable[[], None]:  # noqa: ARG002
+        """Return a no-op unsubscribe function."""
+        return lambda: None
+
+
 class _FakeEventBusProvider:
-    pass
+    def __init__(self) -> None:
+        self.event_bus = _FakeEventBus()
 
 
 class _FakeTaskScheduler:
@@ -68,9 +81,9 @@ class _FakeDevice:
         self.model = "HmIP-XYZ"
         self.name = "My Device"
         self.available = True
-        self.firmware = "1.0.0"
-        self.firmware_update_state = None
-        self.available_firmware = None
+        self.firmware: str | None = "1.0.0"
+        self.firmware_update_state: str | None = None
+        self.available_firmware: str | None = None
         self.interface = Interface.BIDCOS_RF
         self._callbacks: list[FirmwareUpdateCallback] = []
         # Add protocol interface attributes for DI
@@ -105,7 +118,7 @@ class TestUpdateDataPoint:
     async def test_update_properties_and_latest_firmware_and_in_progress(self) -> None:
         """Test DpUpdate device properties and latest firmware computation."""
         dev = _FakeDevice()
-        dp = DpUpdate(device=dev)
+        dp = DpUpdate(device=dev)  # type: ignore[arg-type]
 
         # Basic properties
         assert dp.available is True
@@ -124,10 +137,10 @@ class TestUpdateDataPoint:
         dev.available_firmware = "2.0.0"
         assert dp.latest_firmware == "2.0.0"
 
-    async def test_update_register_unregister_and_actions(self, monkeypatch) -> None:
+    async def test_update_register_unregister_and_actions(self, monkeypatch: Any) -> None:
         """Test DpUpdate callback registration and firmware update actions."""
         dev = _FakeDevice()
-        dp = DpUpdate(device=dev)
+        dp = DpUpdate(device=dev)  # type: ignore[arg-type]
 
         called: dict[str, Any] = {"count": 0}
 
@@ -135,12 +148,12 @@ class TestUpdateDataPoint:
             """Execute dummy callback."""
             called["count"] += 1
 
+        # Test subscription using EventBus architecture
         unregister = dp.subscribe_to_data_point_updated(handler=cb, custom_id="CID")
         assert callable(unregister)
-        # The device should have the callback stored
-        assert dev._callbacks
-        unregister()  # remove from device
-        assert not dev._callbacks
+        # With EventBus, subscriptions are managed by the event bus, not device callbacks
+        # Just verify that unregister works without error
+        unregister()
 
         # refresh_firmware_data should forward to central and update modified_at
         before = dp.modified_at

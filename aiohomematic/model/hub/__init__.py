@@ -32,7 +32,7 @@ Lifecycle and Flow
    - It identifies removed items and cleans up corresponding data points.
    - It updates existing data points or creates new ones as needed.
 3. For newly created hub data points, a BackendSystemEvent.HUB_REFRESHED event
-   is emitted with a categorized mapping of the new points for consumers.
+   is published with a categorized mapping of the new points for consumers.
 
 Type Mapping for System Variables
 - Based on SysvarType and the extended_sysvar flag, system variables are
@@ -96,7 +96,7 @@ from aiohomematic.interfaces import (
     ChannelLookup,
     ConfigProvider,
     EventBusProvider,
-    EventEmitter,
+    EventPublisher,
     HubDataFetcher,
     HubDataPointManager,
     ParameterVisibilityProvider,
@@ -153,7 +153,7 @@ class Hub:
         "_channel_lookup",
         "_config_provider",
         "_event_bus_provider",
-        "_event_emitter",
+        "_event_publisher",
         "_hub_data_fetcher",
         "_hub_data_point_manager",
         "_parameter_visibility_provider",
@@ -171,7 +171,7 @@ class Hub:
         central_info: CentralInfo,
         hub_data_point_manager: HubDataPointManager,
         primary_client_provider: PrimaryClientProvider,
-        event_emitter: EventEmitter,
+        event_publisher: EventPublisher,
         event_bus_provider: EventBusProvider,
         task_scheduler: TaskScheduler,
         paramset_description_provider: ParamsetDescriptionProvider,
@@ -186,7 +186,7 @@ class Hub:
         self._central_info: Final = central_info
         self._hub_data_point_manager: Final = hub_data_point_manager
         self._primary_client_provider: Final = primary_client_provider
-        self._event_emitter: Final = event_emitter
+        self._event_publisher: Final = event_publisher
         self._event_bus_provider: Final = event_bus_provider
         self._task_scheduler: Final = task_scheduler
         self._paramset_description_provider: Final = paramset_description_provider
@@ -228,7 +228,7 @@ class Hub:
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
-                event_emitter=self._event_emitter,
+                event_publisher=self._event_publisher,
                 task_scheduler=self._task_scheduler,
                 paramset_description_provider=self._paramset_description_provider,
                 parameter_visibility_provider=self._parameter_visibility_provider,
@@ -241,7 +241,7 @@ class Hub:
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
-                event_emitter=self._event_emitter,
+                event_publisher=self._event_publisher,
                 task_scheduler=self._task_scheduler,
                 paramset_description_provider=self._paramset_description_provider,
                 parameter_visibility_provider=self._parameter_visibility_provider,
@@ -269,7 +269,7 @@ class Hub:
             "config_provider": self._config_provider,
             "central_info": self._central_info,
             "event_bus_provider": self._event_bus_provider,
-            "event_emitter": self._event_emitter,
+            "event_publisher": self._event_publisher,
             "task_scheduler": self._task_scheduler,
             "paramset_description_provider": self._paramset_description_provider,
             "parameter_visibility_provider": self._parameter_visibility_provider,
@@ -349,7 +349,7 @@ class Hub:
                 new_programs.append(program_dp.switch)
 
         if new_programs:
-            self._event_emitter.emit_backend_system_callback(
+            self._event_publisher.publish_backend_system_event(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_programs),
             )
@@ -387,7 +387,7 @@ class Hub:
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 
         if new_sysvars:
-            self._event_emitter.emit_backend_system_callback(
+            self._event_publisher.publish_backend_system_event(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )

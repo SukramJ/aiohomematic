@@ -170,11 +170,11 @@ get_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool =
 
 set_schedule(*, schedule_data: CLIMATE_SCHEDULE_DICT) -> None
     Persists complete schedule to device.
-    Updates cache and emits change events.
+    Updates cache and publishes change events.
 
 set_profile(*, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT) -> None
     Persists single profile to device.
-    Validates, updates cache, and emits change events.
+    Validates, updates cache, and publishes change events.
 
 set_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, weekday_data: CLIMATE_WEEKDAY_DICT) -> None
     Persists single weekday schedule to device.
@@ -287,7 +287,7 @@ Setting a Schedule:
    - Fill to exactly 13 slots
 3. System validates (temperature ranges, time ranges, sequence)
 4. System persists to device
-5. Cache is updated, events are emitted
+5. Cache is updated, events are published
 
 Using Simple Format:
 --------------------
@@ -636,7 +636,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
             no: group_data for no, group_data in new_schedule_data.items() if is_schedule_active(group_data=group_data)
         }
         if old_schedule != self._schedule_cache:
-            self._data_point.emit_data_point_updated_event()
+            self._data_point.publish_data_point_updated_event()
 
     @inspector
     async def set_schedule(self, *, schedule_data: DEFAULT_SCHEDULE_DICT) -> None:
@@ -646,7 +646,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         old_schedule = self._schedule_cache
         self._schedule_cache.update(schedule_data)
         if old_schedule != self._schedule_cache:
-            self._data_point.emit_data_point_updated_event()
+            self._data_point.publish_data_point_updated_event()
 
         await self._client.put_paramset(
             channel_address=sca,
@@ -972,7 +972,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         return _filter_weekday_entries(weekday_data=self._schedule_cache.get(profile, {}).get(weekday, {}))
 
     async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
-        """Reload schedules from CCU and update cache, emit callbacks if changed."""
+        """Reload schedules from CCU and update cache, publish callbacks if changed."""
         if not self.supports_schedule:
             return
 
@@ -991,11 +991,11 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         self._schedule_cache = new_schedule
         if old_schedule != new_schedule:
             _LOGGER.debug(
-                "RELOAD_AND_CACHE_SCHEDULE: Schedule changed for %s, emitting callbacks",
+                "RELOAD_AND_CACHE_SCHEDULE: Schedule changed for %s, publishing callbacks",
                 self._device.name,
             )
-            # Emit data point updated event to trigger callbacks
-            self._data_point.emit_data_point_updated_event()
+            # Publish data point updated event to trigger callbacks
+            self._data_point.publish_data_point_updated_event()
 
     @inspector
     async def set_profile(
@@ -1015,11 +1015,11 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         """Set the complete schedule dictionary to device."""
         sca = self._validate_and_get_schedule_channel_address()
 
-        # Update cache and emit event
+        # Update cache and publish event
         old_schedule = self._schedule_cache
         self._schedule_cache.update(schedule_data)
         if old_schedule != self._schedule_cache:
-            self._data_point.emit_data_point_updated_event()
+            self._data_point.publish_data_point_updated_event()
 
         # Write to device
         await self._client.put_paramset(
@@ -1078,7 +1078,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             if profile not in self._schedule_cache:
                 self._schedule_cache[profile] = {}
             self._schedule_cache[profile][weekday] = weekday_data
-            self._data_point.emit_data_point_updated_event()
+            self._data_point.publish_data_point_updated_event()
 
         sca = self._validate_and_get_schedule_channel_address()
         await self._client.put_paramset(
@@ -1129,7 +1129,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             self._validate_profile(profile=profile, profile_data=profile_data)
         if profile_data != self._schedule_cache.get(profile, {}):
             self._schedule_cache[profile] = profile_data
-            self._data_point.emit_data_point_updated_event()
+            self._data_point.publish_data_point_updated_event()
 
         await self._client.put_paramset(
             channel_address=target_channel_address,
@@ -1150,7 +1150,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         - For each weekday, collapses consecutive slots that have the same
           non-base temperature into a single entry with `STARTTIME`, `ENDTIME`.
         - Periods at the beginning or end of day at `base_temperature` are not
-          emitted in the simple representation.
+          published in the simple representation.
         """
         simple_profile: CLIMATE_SIMPLE_PROFILE_DICT = {}
         for weekday, weekday_data in profile_data.items():

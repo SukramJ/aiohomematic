@@ -78,8 +78,8 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             Parameter.UN_REACH,
             Parameter.STICKY_UN_REACH,
         ):
-            self._device.emit_device_updated_callback()
-            self._event_emitter.emit_homematic_callback(
+            self._device.publish_device_updated_event()
+            self._event_publisher.publish_homematic_event(
                 event_type=EventType.DEVICE_AVAILABILITY,
                 event_data=self.get_event_data(value=new_value),
             )

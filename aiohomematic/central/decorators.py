@@ -59,7 +59,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
             except Exception as exc:
                 _LOGGER.warning(
                     i18n.tr(
-                        "exception.central.decorators.backend_system_callback.identify_central_failed",
+                        "exception.central.decorators.backend_system_handler.identify_central_failed",
                         reason=extract_exc_args(exc=exc),
                     )
                 )
@@ -76,14 +76,14 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
                 interface_id: str = args[0] if len(args) > 0 else str(kwargs[_INTERFACE_ID])
                 if client := hmcl.get_client(interface_id=interface_id):
                     client.modified_at = datetime.now()
-                    client.central.emit_backend_system_callback(system_event=system_event, **kwargs)
+                    client.central.publish_backend_system_event(system_event=system_event, **kwargs)
             except Exception as exc:  # pragma: no cover
                 _LOGGER.error(  # i18n-log: ignore
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Unable to reduce kwargs for backend_system_callback"
                 )
                 raise AioHomematicException(
                     i18n.tr(
-                        "exception.central.decorators.backend_system_callback.args_exception",
+                        "exception.central.decorators.backend_system_handler.args_exception",
                         reason=extract_exc_args(exc=exc),
                     )
                 ) from exc
@@ -116,7 +116,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
 
             if client := hmcl.get_client(interface_id=interface_id):
                 client.modified_at = datetime.now()
-                client.central.emit_backend_parameter_callback(
+                client.central.publish_backend_parameter_event(
                     interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
                 )
         except Exception as exc:  # pragma: no cover
@@ -125,7 +125,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
             )
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.central.decorators.event_callback.args_exception",
+                    "exception.central.decorators.event_handler.args_exception",
                     reason=extract_exc_args(exc=exc),
                 )
             ) from exc

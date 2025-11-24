@@ -400,15 +400,15 @@ class TestEventSubscriptions:
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
-        """Test that device removed events are emitted for data points."""
+        """Test that device removed events are published for data points."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         device = central.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
-                    # Verify emit_device_removed_event can be called
-                    dp.emit_device_removed_event()
+                    # Verify publish_device_removed_event can be called
+                    dp.publish_device_removed_event()
 
 
 class TestCentralCollections:

@@ -18,7 +18,7 @@ Public API (selected)
 ---------------------
 - CentralUnit: The main coordination class. Manages client creation/lifecycle,
   connection state, device and channel discovery, data point and event handling,
-  sysvar/program access, cache loading/saving, and dispatching callbacks.
+  sysvar/program access, cache loading/saving, and dispatching handlers.
 - CentralConfig: Configuration builder/holder for CentralUnit instances, including
   connection parameters, feature toggles, and cache behavior.
 - CentralConnectionState: Tracks connection issues per transport/client.
@@ -156,7 +156,7 @@ from aiohomematic.interfaces import (
     DeviceDataRefresher,
     DeviceProvider,
     EventBusProvider,
-    EventEmitter,
+    EventPublisher,
     EventSubscriptionManager,
     FileOperations,
     HubDataFetcher,
@@ -229,7 +229,7 @@ class CentralUnit(
     DeviceDataRefresher,
     DeviceProvider,
     EventBusProvider,
-    EventEmitter,
+    EventPublisher,
     EventSubscriptionManager,
     FileOperations,
     HubDataFetcher,
@@ -289,7 +289,7 @@ class CentralUnit(
             device_description_provider=self.device_descriptions,
             device_details_provider=self.device_details,
             event_bus_provider=self,
-            event_emitter=self,
+            event_publisher=self,
             event_subscription_manager=self,
             file_operations=self,
             parameter_visibility_provider=self.parameter_visibility,
@@ -308,7 +308,7 @@ class CentralUnit(
             channel_lookup=self,
             config_provider=self,
             event_bus_provider=self,
-            event_emitter=self,
+            event_publisher=self,
             parameter_visibility_provider=self.parameter_visibility,
             paramset_description_provider=self.paramset_descriptions,
             primary_client_provider=self,
@@ -617,7 +617,7 @@ class CentralUnit(
 
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
-        """If a device emits some sort event, we will handle it here."""
+        """If a device publishes some sort event, we will handle it here."""
         await self._event_coordinator.data_point_event(
             interface_id=interface_id,
             channel_address=channel_address,
@@ -633,55 +633,6 @@ class CentralUnit(
     async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
         """Delete devices from central."""
         await self._device_coordinator.delete_devices(interface_id=interface_id, addresses=addresses)
-
-    @loop_check
-    def emit_backend_parameter_callback(
-        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
-    ) -> None:
-        """
-        Emit backend_parameter callback in central.
-
-        Re-emitted events from the backend for parameter updates.
-        """
-        self._event_coordinator.emit_backend_parameter_callback(
-            interface_id=interface_id,
-            channel_address=channel_address,
-            parameter=parameter,
-            value=value,
-        )
-
-    @loop_check
-    def emit_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """
-        Emit system_event callback in central.
-
-        e.g. DEVICES_CREATED, HUB_REFRESHED
-        """
-        self._event_coordinator.emit_backend_system_callback(system_event=system_event, **kwargs)
-
-    @loop_check
-    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
-        """
-        Emit homematic_callback in central.
-
-        # Events like INTERFACE, KEYPRESS, ...
-        """
-        self._event_coordinator.emit_homematic_callback(event_type=event_type, event_data=event_data)
-
-    @loop_check
-    def emit_interface_event(
-        self,
-        *,
-        interface_id: str,
-        interface_event_type: InterfaceEventType,
-        data: dict[str, Any],
-    ) -> None:
-        """Emit an event about the interface status."""
-        self._event_coordinator.emit_interface_event(
-            interface_id=interface_id,
-            interface_event_type=interface_event_type,
-            data=data,
-        )
 
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
@@ -983,6 +934,55 @@ class CentralUnit(
             await self.data_cache.load(interface=interface)
         await self.data_cache.refresh_data_point_data(
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
+        )
+
+    @loop_check
+    def publish_backend_parameter_event(
+        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
+    ) -> None:
+        """
+        Publish backend_parameter callback in central.
+
+        Re-published events from the backend for parameter updates.
+        """
+        self._event_coordinator.publish_backend_parameter_event(
+            interface_id=interface_id,
+            channel_address=channel_address,
+            parameter=parameter,
+            value=value,
+        )
+
+    @loop_check
+    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+        """
+        Publish system_event callback in central.
+
+        e.g. DEVICES_CREATED, HUB_REFRESHED
+        """
+        self._event_coordinator.publish_backend_system_event(system_event=system_event, **kwargs)
+
+    @loop_check
+    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+        """
+        Publish homematic_event in central.
+
+        # Events like INTERFACE, KEYPRESS, ...
+        """
+        self._event_coordinator.publish_homematic_event(event_type=event_type, event_data=event_data)
+
+    @loop_check
+    def publish_interface_event(
+        self,
+        *,
+        interface_id: str,
+        interface_event_type: InterfaceEventType,
+        data: dict[str, Any],
+    ) -> None:
+        """Publish an event about the interface status."""
+        self._event_coordinator.publish_interface_event(
+            interface_id=interface_id,
+            interface_event_type=interface_event_type,
+            data=data,
         )
 
     @inspector(re_raise=False)

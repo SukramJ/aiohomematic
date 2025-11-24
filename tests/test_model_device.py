@@ -208,7 +208,7 @@ class TestDeviceAvailability:
         ),
         [(TEST_DEVICES, True, None, None)],
     )
-    async def test_forced_availability_and_callbacks(
+    async def test_forced_availability_and_handlers(
         self, central_client_factory_with_homegear_client, monkeypatch
     ) -> None:
         """Test Device.set_forced_availability toggles and UNREACH/STICKY_UNREACH precedence with callbacks."""
@@ -278,10 +278,10 @@ class TestDeviceFirmware:
         device = central.get_device(address="VCU2128127")
 
         # Register firmware callback
-        emitted: list[int] = []
+        published: list[int] = []
 
         def fw_cb() -> None:
-            emitted.append(1)
+            published.append(1)
 
         remove_fw = device.subscribe_to_firmware_updated(handler=fw_cb)
         assert callable(remove_fw)
@@ -303,7 +303,7 @@ class TestDeviceFirmware:
 
         device.refresh_firmware_data()
         await central.looper.block_till_done()
-        assert not emitted
+        assert not published
 
         # Now change available firmware and state to trigger callback
         current_desc["AVAILABLE_FIRMWARE"] = "99.99"
@@ -311,7 +311,7 @@ class TestDeviceFirmware:
 
         device.refresh_firmware_data()
         await central.looper.block_till_done()
-        assert emitted
+        assert published
 
         # Duplicate registration now returns a new unsubscribe function (from event bus)
         remove_fw2 = device.subscribe_to_firmware_updated(handler=fw_cb)
@@ -581,12 +581,12 @@ class TestDeviceDataPoints:
             ch_no = next(int(addr.split(":")[1]) for addr, ch in device.channels.items() if ch.custom_data_point)
             assert device.get_custom_data_point(channel_no=ch_no) is not None
 
-        # emit_device_updated_callback handles exception in handler
+        # publish_device_updated_event handles exception in handler
         def exploding() -> None:
             raise RuntimeError("boom")
 
         device.subscribe_to_device_updated(handler=exploding)
-        device.emit_device_updated_callback()
+        device.publish_device_updated_event()
 
         # Channel operation_mode when dp present vs None
         ch = next(iter(device.channels.values()))

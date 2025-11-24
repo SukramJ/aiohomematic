@@ -743,7 +743,7 @@ class TestCentralCallbacksAndServices:
         import asyncio
 
         central, _, factory = central_client_factory_with_homegear_client
-        central.emit_interface_event(
+        central.publish_interface_event(
             interface_id="SOME_ID",
             interface_event_type=InterfaceEventType.CALLBACK,
             data={EventKey.AVAILABLE: False},

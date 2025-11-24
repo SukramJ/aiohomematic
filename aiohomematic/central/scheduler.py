@@ -153,14 +153,14 @@ class BackgroundScheduler:
         self._active = False
         self._devices_created = False
         self._scheduler_task: asyncio.Task[None] | None = None
-        self._unsubscribe_callback: Callable[[], None] | None = None
+        self._unsubscribe_handler: Callable[[], None] | None = None
 
         # Subscribe to DEVICES_CREATED event
         # Create a wrapper to match the EventHandler signature (positional event argument)
         def _event_handler(event: BackendSystemEventData) -> None:
             self._on_backend_system_event(event=event)
 
-        self._unsubscribe_callback = self._event_bus_provider.event_bus.subscribe(
+        self._unsubscribe_handler = self._event_bus_provider.event_bus.subscribe(
             event_type=BackendSystemEventData,
             handler=_event_handler,
         )
@@ -216,9 +216,9 @@ class BackgroundScheduler:
         self._active = False
 
         # Unsubscribe from events
-        if self._unsubscribe_callback:
-            self._unsubscribe_callback()
-            self._unsubscribe_callback = None
+        if self._unsubscribe_handler:
+            self._unsubscribe_handler()
+            self._unsubscribe_handler = None
 
         # Cancel scheduler task
         if self._scheduler_task and not self._scheduler_task.done():

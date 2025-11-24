@@ -695,8 +695,8 @@ class TestCustomDpIpThermostat:
         peer_channel = central.get_channel(channel_address=peer_address)
         peer_channel._link_target_categories = (DataPointCategory.CLIMATE,)
         climate._channel._link_peer_addresses = (peer_address,)  # type: ignore[attr-defined]
-        # Emit peer-changed so the thermostat refreshes its peer DP references
-        climate._channel.emit_link_peer_changed_event()
+        # Publish peer-changed so the thermostat refreshes its peer DP references
+        climate._channel.publish_link_peer_changed_event()
         await central.looper.block_till_done()
 
         assert climate.activity == ClimateActivity.IDLE

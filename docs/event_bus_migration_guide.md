@@ -24,9 +24,9 @@ The aiohomematic library has introduced a new **EventBus** system that replaces 
 
 ```python
 # Multiple different callback registration methods
-central.register_backend_system_callback(cb=system_callback)
-central.register_backend_parameter_callback(cb=parameter_callback)
-central.register_homematic_callback(cb=homematic_callback)
+central.subscribe_backend_system_callback(cb=system_callback)
+central.subscribe_backend_parameter_callback(cb=parameter_callback)
+central.subscribe_homematic_callback(cb=homematic_callback)
 ```
 
 **After (EventBus API):**
@@ -51,11 +51,11 @@ central.event_bus.subscribe(event_type=HomematicEvent, handler=homematic_handler
 
 **CentralUnit Callbacks - REMOVED as of v2025.11.16:**
 
-| Method                                          | Status      | Migration                                                                 |
-| ----------------------------------------------- | ----------- | ------------------------------------------------------------------------- |
-| `central.register_backend_parameter_callback()` | **REMOVED** | Use `central.event_bus.subscribe(event_type=BackendParameterEvent, ...)`  |
-| `central.register_backend_system_callback()`    | **REMOVED** | Use `central.event_bus.subscribe(event_type=BackendSystemEventData, ...)` |
-| `central.register_homematic_callback()`         | **REMOVED** | Use `central.event_bus.subscribe(event_type=HomematicEvent, ...)`         |
+| Method                                           | Status      | Migration                                                                 |
+| ------------------------------------------------ | ----------- | ------------------------------------------------------------------------- |
+| `central.subscribe_backend_parameter_callback()` | **REMOVED** | Use `central.event_bus.subscribe(event_type=BackendParameterEvent, ...)`  |
+| `central.subscribe_backend_system_callback()`    | **REMOVED** | Use `central.event_bus.subscribe(event_type=BackendSystemEventData, ...)` |
+| `central.subscribe_homematic_callback()`         | **REMOVED** | Use `central.event_bus.subscribe(event_type=HomematicEvent, ...)`         |
 
 **What Changed:**
 
@@ -76,11 +76,11 @@ central.event_bus.subscribe(event_type=HomematicEvent, handler=homematic_handler
 
 Device, Channel, and DataPoint classes still expose their callback registration methods. These are implemented as adapters that subscribe to EventBus internally:
 
-- `device.register_device_updated_callback()`
-- `device.register_firmware_update_callback()`
-- `channel.register_link_peer_changed_callback()`
-- `data_point.register_data_point_updated_callback()`
-- `data_point.register_device_removed_callback()`
+- `device.subscribe_device_updated_callback()`
+- `device.subscribe_firmware_update_callback()`
+- `channel.subscribe_link_peer_changed_callback()`
+- `data_point.subscribe_data_point_updated_callback()`
+- `data_point.subscribe_device_removed_callback()`
 
 **Status**: These adapters will remain available for extended backward compatibility. Migration is recommended but not immediately required for these.
 
@@ -113,7 +113,7 @@ bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler2)  # Will still 
 
 ```python
 # Old way: manage callbacks manually
-central.register_backend_system_callback(cb=callback)
+central.subscribe_backend_system_callback(cb=callback)
 # Later: need to call _unregister_backend_system_callback
 
 # New way: returned callable
@@ -159,7 +159,7 @@ async def async_setup_entry(hass, entry):
     central = create_central(...)
 
     # Keep existing legacy callbacks (for now)
-    central.register_backend_system_callback(cb=_system_callback)
+    central.subscribe_backend_system_callback(cb=_system_callback)
 
     # Add new EventBus subscriptions
     unsubscribe_system = central.event_bus.subscribe(
@@ -206,7 +206,7 @@ def system_callback(*, system_event: BackendSystemEvent, **kwargs) -> None:
         device_count = kwargs.get("device_count", 0)
         # Handle event
 
-central.register_backend_system_callback(cb=system_callback)
+central.subscribe_backend_system_callback(cb=system_callback)
 ```
 
 **EventBus API:**
@@ -245,7 +245,7 @@ def parameter_callback(
 ) -> None:
     # Handle parameter update
 
-central.register_backend_parameter_callback(cb=parameter_callback)
+central.subscribe_backend_parameter_callback(cb=parameter_callback)
 ```
 
 **EventBus API:**
@@ -359,7 +359,7 @@ def homematic_callback(
         address = event_data[EventKey.ADDRESS]
         # Handle keypress
 
-central.register_homematic_callback(cb=homematic_callback)
+central.subscribe_homematic_callback(cb=homematic_callback)
 ```
 
 **EventBus API:**

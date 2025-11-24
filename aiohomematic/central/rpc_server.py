@@ -69,7 +69,7 @@ class RPCFunctions:
         )
 
     def event(self, interface_id: str, channel_address: str, parameter: str, value: Any, /) -> None:
-        """If a device emits some sort event, we will handle it here."""
+        """If a device publishes some sort event, we will handle it here."""
         if central := self.get_central(interface_id=interface_id):
             central.looper.create_task(
                 target=cast(

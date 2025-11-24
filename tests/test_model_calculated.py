@@ -77,7 +77,7 @@ class _FakeDevice:
         self.config_provider = type("ConfigProvider", (), {"config": self.central.config})()
         self.central_info = type("CentralInfo", (), {"name": "CentralTest", "available": True})()
         self.event_bus_provider = type("EventBusProvider", (), {"event_bus": self.central.event_bus})()
-        self.event_emitter = type("EventEmitter", (), {})()
+        self.event_publisher = type("EventEmitter", (), {})()
         self.task_scheduler = type("TaskScheduler", (), {})()
         self.paramset_description_provider = type(
             "ParamsetDescriptionProvider",
@@ -123,7 +123,7 @@ class _FakeGenericDP:
         self._refreshed_at = INIT_DATETIME
         self.is_valid = True
         self.state_uncertain = False
-        self.emitted_event_recently = True
+        self.published_event_recently = True
         self._unregistered: list[bool] = []
 
     @property
@@ -144,7 +144,7 @@ class _FakeGenericDP:
         self._refreshed_at = base + timedelta(seconds=refreshed_delta)
 
     def subscribe_to_internal_data_point_updated(self, *, handler: Callable) -> Callable[[], None]:
-        self.emitted_event_recently = False  # simulate change later
+        self.published_event_recently = False  # simulate change later
 
         def _unregister() -> None:
             self._unregistered.append(True)
@@ -176,7 +176,7 @@ class _MyCalc(CalculatedDataPoint[float | None]):
     def __init__(self, *, channel: _FakeChannel) -> None:  # type: ignore[override]
         super().__init__(channel=channel)  # type: ignore[arg-type]
 
-    # Make two VALUES data points relevant so _should_emit_data_point_updated_callback checks the branch
+    # Make two VALUES data points relevant so _should_publish_data_point_updated_callback checks the branch
     @property
     def _relevant_values_data_points(self) -> tuple[_FakeGenericDP, ...]:  # type: ignore[override]
         return tuple(dp for dp in self._data_points if dp.paramset_key == ParamsetKey.VALUES)  # type: ignore[attr-defined]
@@ -234,12 +234,12 @@ class TestCalculatedDataPoint:
         assert calc.is_valid is True
         assert calc.state_uncertain is False
 
-        # _should_emit_data_point_updated_callback with >1 VALUES DPs requires all emitted_event_recently True
+        # _should_publish_data_point_updated_callback with >1 VALUES DPs requires all published_event_recently True
         # We set them via registration to False, so result should be False until we flip them
-        assert calc._should_emit_data_point_updated_callback is False
-        dp1.emitted_event_recently = True
-        dp2.emitted_event_recently = True
-        assert calc._should_emit_data_point_updated_callback is True
+        assert calc._should_publish_data_point_updated_callback is False
+        dp1.published_event_recently = True
+        dp2.published_event_recently = True
+        assert calc._should_publish_data_point_updated_callback is True
 
         # is_state_change should be False when not uncertain
         assert calc.is_state_change() is False
@@ -306,12 +306,12 @@ class TestCalculatedDataPoint:
         dp.state_uncertain = True
         assert calc.is_state_change() is True
 
-        # load_data_point_value should iterate and call emit callback safely
+        # load_data_point_value should iterate and call publish callback safely
         def _noop(**_kwargs: Any) -> None:  # noqa: D401, ANN001
             """Do nothing. Synchronous no-op callback to satisfy the call inside load."""
             return
 
-        monkeypatch.setattr(calc, "emit_data_point_updated_event", _noop)
+        monkeypatch.setattr(calc, "publish_data_point_updated_event", _noop)
         import asyncio
 
         asyncio.run(
@@ -319,7 +319,7 @@ class TestCalculatedDataPoint:
         )
 
         # Add a None into unregister callbacks list to hit the branch not calling it
-        calc._unregister_callbacks.append(None)  # type: ignore[arg-type]
+        calc._unsubscribe_handlers.append(None)  # type: ignore[arg-type]
 
         # And then call unregister to iterate over both a callable and a None
         calc.unsubscribe_from_data_point_updated()

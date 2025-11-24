@@ -23,8 +23,8 @@ class _FakeProgramDataPoint:
         self.is_registered = True
         self.state_path = f"/pd_{pid}/"
 
-    def emit_device_removed_event(self) -> None:
-        """Emit device removed event."""
+    def publish_device_removed_event(self) -> None:
+        """Publish device removed event."""
 
 
 class _FakeProgramDpType:
@@ -49,11 +49,11 @@ class _FakeSysvarDataPoint:
         self.state_path = f"sv_{vid}"
         self.is_registered = True
 
-    def emit_device_removed_event(self) -> None:
-        """Emit device removed event."""
-
     async def event(self, *, value: Any, received_at: Any) -> None:
         """Handle event."""
+
+    def publish_device_removed_event(self) -> None:
+        """Publish device removed event."""
 
     async def send_variable(self, *, value: Any) -> None:
         """Send variable."""
@@ -141,7 +141,7 @@ class TestHubCoordinatorBasics:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -160,7 +160,7 @@ class TestHubCoordinatorBasics:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -183,7 +183,7 @@ class TestHubCoordinatorBasics:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -209,7 +209,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -232,7 +232,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -253,7 +253,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -272,7 +272,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -294,7 +294,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -315,7 +315,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -336,7 +336,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -354,7 +354,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -362,8 +362,8 @@ class TestHubCoordinatorProgramOperations:
         )  # type: ignore[arg-type]
 
         program_dp = _FakeProgramDpType(pid="123")
-        program_dp.button.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
-        program_dp.switch.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
+        program_dp.button.publish_device_removed_event = MagicMock()  # type: ignore[method-assign]
+        program_dp.switch.publish_device_removed_event = MagicMock()  # type: ignore[method-assign]
 
         coordinator.add_program_data_point(program_dp=program_dp)
         assert "123" in coordinator._program_data_points
@@ -372,9 +372,9 @@ class TestHubCoordinatorProgramOperations:
 
         # Should be removed
         assert "123" not in coordinator._program_data_points
-        # Device removed events should have been emitted
-        program_dp.button.emit_device_removed_event.assert_called_once()
-        program_dp.switch.emit_device_removed_event.assert_called_once()
+        # Device removed events should have been published
+        program_dp.button.publish_device_removed_event.assert_called_once()
+        program_dp.switch.publish_device_removed_event.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_set_program_state_no_client(self) -> None:
@@ -385,7 +385,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -406,7 +406,7 @@ class TestHubCoordinatorProgramOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -428,7 +428,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -458,7 +458,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -481,7 +481,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -502,7 +502,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -520,7 +520,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -541,7 +541,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -562,7 +562,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -573,14 +573,14 @@ class TestHubCoordinatorSysvarOperations:
         assert retrieved is None
 
     def test_remove_sysvar_data_point(self) -> None:
-        """Remove sysvar data point should unregister the sysvar and emit removed event."""
+        """Remove sysvar data point should unregister the sysvar and publish removed event."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -588,7 +588,7 @@ class TestHubCoordinatorSysvarOperations:
         )  # type: ignore[arg-type]
 
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
-        sysvar_dp.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
+        sysvar_dp.publish_device_removed_event = MagicMock()  # type: ignore[method-assign]
 
         coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_dp)
         assert "123" in coordinator._sysvar_data_points
@@ -597,8 +597,8 @@ class TestHubCoordinatorSysvarOperations:
 
         # Should be removed
         assert "123" not in coordinator._sysvar_data_points
-        # Device removed event should have been emitted
-        sysvar_dp.emit_device_removed_event.assert_called_once()
+        # Device removed event should have been published
+        sysvar_dp.publish_device_removed_event.assert_called_once()
         # Event subscription is automatically cleaned up when sysvar_dp is deleted
 
     @pytest.mark.asyncio
@@ -610,7 +610,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -629,7 +629,7 @@ class TestHubCoordinatorSysvarOperations:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -657,7 +657,7 @@ class TestHubCoordinatorGetHubDataPoints:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -682,7 +682,7 @@ class TestHubCoordinatorGetHubDataPoints:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -713,7 +713,7 @@ class TestHubCoordinatorGetHubDataPoints:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -742,7 +742,7 @@ class TestHubCoordinatorInitHub:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -772,7 +772,7 @@ class TestHubCoordinatorIntegration:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -781,8 +781,8 @@ class TestHubCoordinatorIntegration:
 
         # Add program
         program_dp = _FakeProgramDpType(pid="123")
-        program_dp.button.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
-        program_dp.switch.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
+        program_dp.button.publish_device_removed_event = MagicMock()  # type: ignore[method-assign]
+        program_dp.switch.publish_device_removed_event = MagicMock()  # type: ignore[method-assign]
 
         coordinator.add_program_data_point(program_dp=program_dp)
 
@@ -808,7 +808,7 @@ class TestHubCoordinatorIntegration:
             channel_lookup=central,
             config_provider=central,
             event_bus_provider=central,
-            event_emitter=central,
+            event_publisher=central,
             parameter_visibility_provider=central.parameter_visibility,
             paramset_description_provider=central.paramset_descriptions,
             primary_client_provider=central,
@@ -817,7 +817,7 @@ class TestHubCoordinatorIntegration:
 
         # Add sysvar
         sysvar_dp = _FakeSysvarDataPoint(vid="123", name="test", category=DataPointCategory.HUB_SENSOR)
-        sysvar_dp.emit_device_removed_event = MagicMock()  # type: ignore[method-assign]
+        sysvar_dp.publish_device_removed_event = MagicMock()  # type: ignore[method-assign]
         sysvar_dp.send_variable = AsyncMock()  # type: ignore[method-assign]
 
         coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_dp)

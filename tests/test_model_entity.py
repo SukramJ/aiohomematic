@@ -48,7 +48,7 @@ class TestDataPointCallbacks:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_custom_data_point_callback(
+    async def test_custom_data_point_handler(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
@@ -60,10 +60,10 @@ class TestDataPointCallbacks:
         device_updated_mock = MagicMock()
         device_removed_mock = MagicMock()
 
-        unregister_data_point_updated_callback = switch.subscribe_to_data_point_updated(
+        unregister_data_point_updated_handler = switch.subscribe_to_data_point_updated(
             handler=device_updated_mock, custom_id="some_id"
         )
-        unregister_device_removed_callback = switch.subscribe_to_device_removed(handler=device_removed_mock)
+        unregister_device_removed_handler = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
         await central.data_point_event(
@@ -86,8 +86,8 @@ class TestDataPointCallbacks:
         assert event.system_event == "deleteDevices"
         assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
         assert event.data.get("addresses") == ["VCU2128127"]
-        unregister_data_point_updated_callback()
-        unregister_device_removed_callback()
+        unregister_data_point_updated_handler()
+        unregister_device_removed_handler()
 
         device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
         device_removed_mock.assert_called_with()
@@ -104,7 +104,7 @@ class TestDataPointCallbacks:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_generic_data_point_callback(
+    async def test_generic_data_point_handler(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:

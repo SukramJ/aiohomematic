@@ -810,7 +810,7 @@ class HubCoordinator:
         channel_lookup: ChannelLookup,
         config_provider: ConfigProvider,
         event_bus_provider: EventBusProvider,
-        event_emitter: EventEmitter,
+        event_publisher: EventEmitter,
         # ... more protocol interfaces
     ) -> None:
         # Creates Hub using protocol interfaces - no CentralUnit reference
@@ -902,7 +902,7 @@ class CentralInfo(Protocol):
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
 - **EventBusProvider**: Event system access (event_bus property)
-- **EventEmitter**: Event emission (emit_backend_system_callback, emit_homematic_callback)
+- **EventEmitter**: Event emission (publish_backend_system_handler, publish_homematic_handler)
 - **TaskScheduler**: Background task scheduling (create_task method)
 - **PrimaryClientProvider**: Primary client access
 - **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
@@ -928,7 +928,7 @@ def subscribe(
     callback: Callable[[str, Any], None],
 ) -> None:
     """Subscribe to value changes."""
-    self._callbacks.append(callback)
+    self._handlers.append(callback)
 
 # Usage
 data_point.subscribe(lambda name, value: print(f"{name} = {value}"))
@@ -987,20 +987,20 @@ unsubscribe()
 - `handler` parameter - Use `handler=` instead of `cb=`
 - `unsubscribe()` - All subscriptions return an unsubscribe callable
 
-**BREAKING CHANGE (v2025.11.24)**: Method names have been changed from `register_*_callback` to `subscribe_to_*`:
+**BREAKING CHANGE (v2025.11.24)**: Method names have been changed from `register_*_handler` to `subscribe_to_*`:
 
-- `register_device_updated_callback()` → `subscribe_to_device_updated()`
-- `register_firmware_update_callback()` → `subscribe_to_firmware_updated()`
-- `register_data_point_updated_callback()` → `subscribe_to_data_point_updated()`
-- `register_device_removed_callback()` → `subscribe_to_device_removed()`
-- `register_link_peer_changed_callback()` → `subscribe_to_link_peer_changed()`
-- `register_internal_data_point_updated_callback()` → `subscribe_to_internal_data_point_updated()`
+- `register_device_updated_handler()` → `subscribe_to_device_updated()`
+- `register_firmware_update_handler()` → `subscribe_to_firmware_updated()`
+- `register_data_point_updated_handler()` → `subscribe_to_data_point_updated()`
+- `register_device_removed_handler()` → `subscribe_to_device_removed()`
+- `register_link_peer_changed_handler()` → `subscribe_to_link_peer_changed()`
+- `register_internal_data_point_updated_handler()` → `subscribe_to_internal_data_point_updated()`
 
 **CentralUnit Callbacks Removed**: System-level callbacks have been removed:
 
-- `register_backend_system_callback()` - REMOVED
-- `register_backend_parameter_callback()` - REMOVED
-- `register_homematic_callback()` - REMOVED
+- `register_backend_system_handler()` - REMOVED
+- `register_backend_parameter_handler()` - REMOVED
+- `register_homematic_handler()` - REMOVED
 
 Use `central.event_bus.subscribe()` instead. See [EventBus Migration Guide](docs/event_bus_migration_guide.md) for details.
 

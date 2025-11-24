@@ -34,7 +34,7 @@ from aiohomematic.model.support import (
     get_data_point_name_data,
 )
 from aiohomematic.property_decorators import config_property, hm_property, state_property
-from aiohomematic.type_aliases import ParamType, UnregisterCallback
+from aiohomematic.type_aliases import ParamType, UnsubscribeHandler
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         "_service",
         "_type",
         "_unit",
-        "_unregister_callbacks",
+        "_unsubscribe_handlers",
         "_values",
         "_visible",
     )
@@ -65,7 +65,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         channel: hmd.Channel,
     ) -> None:
         """Initialize the data point."""
-        self._unregister_callbacks: list[UnregisterCallback] = []
+        self._unsubscribe_handlers: list[UnsubscribeHandler] = []
         unique_id = generate_unique_id(
             config_provider=channel.device.config_provider,
             address=channel.address,
@@ -112,9 +112,9 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         return tuple(dp for dp in self._readable_data_points if dp.paramset_key == ParamsetKey.VALUES)
 
     @property
-    def _should_emit_data_point_updated_callback(self) -> bool:
+    def _should_publish_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
-        if self.emitted_event_recently:  # pylint: disable=using-constant-test
+        if self.published_event_recently:  # pylint: disable=using-constant-test
             return False
 
         if (relevant_values_data_point := self._relevant_values_data_points) is not None and len(
@@ -122,7 +122,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         ) <= 1:
             return True
 
-        return all(dp.emitted_event_recently for dp in relevant_values_data_point)
+        return all(dp.published_event_recently for dp in relevant_values_data_point)
 
     @property
     def data_point_name_postfix(self) -> str:
@@ -257,11 +257,11 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         """Initialize the data point values."""
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
-        self.emit_data_point_updated_event()
+        self.publish_data_point_updated_event()
 
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unregister all internal update callbacks."""
-        for unregister in self._unregister_callbacks:
+        for unregister in self._unsubscribe_handlers:
             if unregister is not None:
                 unregister()
 
@@ -271,8 +271,10 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         """Add a new data point."""
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
             self._data_points.append(generic_data_point)
-            self._unregister_callbacks.append(
-                generic_data_point.subscribe_to_internal_data_point_updated(handler=self.emit_data_point_updated_event)
+            self._unsubscribe_handlers.append(
+                generic_data_point.subscribe_to_internal_data_point_updated(
+                    handler=self.publish_data_point_updated_event
+                )
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(
@@ -293,8 +295,10 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
             channel_address=channel_address, parameter=parameter, paramset_key=paramset_key
         ):
             self._data_points.append(generic_data_point)
-            self._unregister_callbacks.append(
-                generic_data_point.subscribe_to_internal_data_point_updated(handler=self.emit_data_point_updated_event)
+            self._unsubscribe_handlers.append(
+                generic_data_point.subscribe_to_internal_data_point_updated(
+                    handler=self.publish_data_point_updated_event
+                )
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(

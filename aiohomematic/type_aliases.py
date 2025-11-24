@@ -10,27 +10,26 @@ signatures across the code base and to satisfy mypy strict rules.
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine, Mapping
-from datetime import datetime
-from typing import Any, Protocol, TypeAlias
+from typing import Any, TypeAlias
 
 type ParamType = bool | int | float | str | None
 
 # Generic zero-argument callback that returns nothing
-ZeroArgCallback: TypeAlias = Callable[[], None]
+ZeroArgHandler: TypeAlias = Callable[[], None]
 
 # Unregister callbacks used throughout the project either return a zero-arg
 # callback to unregister or None when registration did not occur.
-UnregisterCallback: TypeAlias = ZeroArgCallback | None
+UnsubscribeHandler: TypeAlias = ZeroArgHandler | None
 
 # Device- and channel-scoped callbacks
-DeviceRemovedCallback: TypeAlias = ZeroArgCallback
-DeviceUpdatedCallback: TypeAlias = ZeroArgCallback
-FirmwareUpdateCallback: TypeAlias = ZeroArgCallback
-LinkPeerChangedCallback: TypeAlias = ZeroArgCallback
+DeviceRemovedHandler: TypeAlias = ZeroArgHandler
+DeviceUpdatedHandler: TypeAlias = ZeroArgHandler
+FirmwareUpdateHandler: TypeAlias = ZeroArgHandler
+LinkPeerChangedHandler: TypeAlias = ZeroArgHandler
 
 # Data point update callbacks may accept various keyword arguments depending on
 # the data point type, hence we keep them variadic.
-DataPointUpdatedCallback: TypeAlias = Callable[..., None]
+DataPointUpdatedHandler: TypeAlias = Callable[..., None]
 
 # Common async/sync callable shapes
 # Factory that returns a coroutine that resolves to None
@@ -50,13 +49,3 @@ ServiceMethodMap: TypeAlias = Mapping[str, ServiceMethod]
 
 # Factory used by custom data point creation (make_ce_func)
 CustomDataPointFactory: TypeAlias = Callable[..., None]
-
-
-class DataPointEventCallback(Protocol):
-    """Protocol for backend parameter callback."""
-
-    async def __call__(self, *, value: Any, received_at: datetime) -> None: ...  # noqa: D102
-
-
-# Sysvar event callbacks (hub/sysvar) vary by implementation; keep variadic
-SysvarEventCallback: TypeAlias = Callable[..., Coroutine[Any, Any, None]]

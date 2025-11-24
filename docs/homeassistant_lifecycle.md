@@ -76,9 +76,9 @@ Orderly teardown at different levels:
 
 Signals/callbacks relevant for integration developers:
 
-- Device availability: `EventType.DEVICE_AVAILABILITY` as well as `Device.register_device_updated_callback()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
+- Device availability: `EventType.DEVICE_AVAILABILITY` as well as `Device.subscribe_device_updated_callback()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
 - DataPoint updates: DataPoints call registered callbacks after `write_value`; HA uses this to update entity state.
-- Firmware: `DpUpdate.register_data_point_updated_callback()` reflects firmware changes and progress.
+- Firmware: `DpUpdate.subscribe_data_point_updated_callback()` reflects firmware changes and progress.
 
 ---
 

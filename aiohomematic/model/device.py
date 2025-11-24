@@ -81,7 +81,7 @@ from aiohomematic.interfaces import (
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
     EventBusProvider,
-    EventEmitter,
+    EventPublisher,
     EventSubscriptionManager,
     FileOperations,
     ParameterVisibilityProvider,
@@ -113,10 +113,10 @@ from aiohomematic.support import (
     get_rx_modes,
 )
 from aiohomematic.type_aliases import (
-    DeviceUpdatedCallback,
-    FirmwareUpdateCallback,
-    LinkPeerChangedCallback,
-    UnregisterCallback,
+    DeviceUpdatedHandler,
+    FirmwareUpdateHandler,
+    LinkPeerChangedHandler,
+    UnsubscribeHandler,
 )
 
 __all__ = ["Channel", "Device"]
@@ -149,7 +149,7 @@ class Device(LogContextMixin, PayloadMixin):
         "_device_description_provider",
         "_device_details_provider",
         "_event_bus_provider",
-        "_event_emitter",
+        "_event_publisher",
         "_event_subscription_manager",
         "_file_operations",
         "_forced_availability",
@@ -192,7 +192,7 @@ class Device(LogContextMixin, PayloadMixin):
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
         event_bus_provider: EventBusProvider,
-        event_emitter: EventEmitter,
+        event_publisher: EventPublisher,
         event_subscription_manager: EventSubscriptionManager,
         file_operations: FileOperations,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -211,7 +211,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._config_provider: Final = config_provider
         self._central_info: Final = central_info
         self._event_bus_provider: Final = event_bus_provider
-        self._event_emitter: Final = event_emitter
+        self._event_publisher: Final = event_publisher
         self._task_scheduler: Final = task_scheduler
         self._file_operations: Final = file_operations
         self._device_data_refresher: Final = device_data_refresher
@@ -418,9 +418,9 @@ class Device(LogContextMixin, PayloadMixin):
         return self._event_bus_provider
 
     @property
-    def event_emitter(self) -> EventEmitter:
+    def event_publisher(self) -> EventPublisher:
         """Return the EventEmitter of the device."""
-        return self._event_emitter
+        return self._event_publisher
 
     @property
     def event_subscription_manager(self) -> EventSubscriptionManager:
@@ -651,25 +651,6 @@ class Device(LogContextMixin, PayloadMixin):
             for channel in self._channels.values():
                 await channel.create_central_link()
 
-    @loop_check
-    def emit_device_updated_callback(self) -> None:
-        """Do what is needed when the state of the device has been updated."""
-        self._set_modified_at()
-
-        # Publish to EventBus asynchronously
-        async def _publish_device_updated() -> None:
-            await self._event_bus_provider.event_bus.publish(
-                event=DeviceUpdatedEvent(
-                    timestamp=datetime.now(),
-                    device_address=self._address,
-                )
-            )
-
-        self._task_scheduler.create_task(
-            target=_publish_device_updated,
-            name=f"device-updated-{self._address}",
-        )
-
     @inspector
     async def export_device_definition(self) -> None:
         """Export the device definition for current device."""
@@ -832,7 +813,26 @@ class Device(LogContextMixin, PayloadMixin):
             await self._week_profile.reload_and_cache_schedule()
 
         await self._file_operations.save_files(save_paramset_descriptions=True)
-        self.emit_device_updated_callback()
+        self.publish_device_updated_event()
+
+    @loop_check
+    def publish_device_updated_event(self) -> None:
+        """Do what is needed when the state of the device has been updated."""
+        self._set_modified_at()
+
+        # Publish to EventBus asynchronously
+        async def _publish_device_updated() -> None:
+            await self._event_bus_provider.event_bus.publish(
+                event=DeviceUpdatedEvent(
+                    timestamp=datetime.now(),
+                    device_address=self._address,
+                )
+            )
+
+        self._task_scheduler.create_task(
+            target=_publish_device_updated,
+            name=f"device-updated-{self._address}",
+        )
 
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
@@ -882,9 +882,9 @@ class Device(LogContextMixin, PayloadMixin):
         if self._forced_availability != forced_availability:
             self._forced_availability = forced_availability
             for dp in self.generic_data_points:
-                dp.emit_data_point_updated_event()
+                dp.publish_data_point_updated_event()
 
-    def subscribe_to_device_updated(self, *, handler: DeviceUpdatedCallback) -> UnregisterCallback:
+    def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeHandler:
         """Register update callback."""
 
         # Create adapter that filters for this device's events
@@ -897,7 +897,7 @@ class Device(LogContextMixin, PayloadMixin):
             handler=event_handler,
         )
 
-    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateCallback) -> UnregisterCallback:
+    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeHandler:
         """Register firmware update callback."""
 
         # Create adapter that filters for this device's events
@@ -1246,24 +1246,6 @@ class Channel(LogContextMixin, PayloadMixin):
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
             )
 
-    @loop_check
-    def emit_link_peer_changed_event(self) -> None:
-        """Do what is needed when the link peer has been changed for the device."""
-
-        # Publish to EventBus asynchronously
-        async def _publish_link_peer_changed() -> None:
-            await self._device.event_bus_provider.event_bus.publish(
-                event=LinkPeerChangedEvent(
-                    timestamp=datetime.now(),
-                    channel_address=self._address,
-                )
-            )
-
-        self._device.task_scheduler.create_task(
-            target=_publish_link_peer_changed,
-            name=f"link-peer-changed-{self._address}",
-        )
-
     async def finalize_init(self) -> None:
         """Finalize the channel init action after model setup."""
         for ge in self._generic_data_points.values():
@@ -1393,7 +1375,7 @@ class Channel(LogContextMixin, PayloadMixin):
             link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
             if self._link_peer_addresses != link_peer_addresses:
                 self._link_peer_addresses = link_peer_addresses
-                self.emit_link_peer_changed_event()
+                self.publish_link_peer_changed_event()
 
     async def load_values(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Load data for the channel."""
@@ -1423,6 +1405,24 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._custom_data_point:
             await self._custom_data_point.on_config_changed()
 
+    @loop_check
+    def publish_link_peer_changed_event(self) -> None:
+        """Do what is needed when the link peer has been changed for the device."""
+
+        # Publish to EventBus asynchronously
+        async def _publish_link_peer_changed() -> None:
+            await self._device.event_bus_provider.event_bus.publish(
+                event=LinkPeerChangedEvent(
+                    timestamp=datetime.now(),
+                    channel_address=self._address,
+                )
+            )
+
+        self._device.task_scheduler.create_task(
+            target=_publish_link_peer_changed,
+            name=f"link-peer-changed-{self._address}",
+        )
+
     def remove(self) -> None:
         """Remove data points from collections and central."""
         for event in self.generic_events:
@@ -1449,7 +1449,7 @@ class Channel(LogContextMixin, PayloadMixin):
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
 
-    def subscribe_to_link_peer_changed(self, *, handler: LinkPeerChangedCallback) -> UnregisterCallback:
+    def subscribe_to_link_peer_changed(self, *, handler: LinkPeerChangedHandler) -> UnsubscribeHandler:
         """Subscribe to the link peer changed event."""
 
         # Create adapter that filters for this channel's events
@@ -1510,7 +1510,7 @@ class Channel(LogContextMixin, PayloadMixin):
             self._custom_data_point = None
         if isinstance(data_point, GenericEvent):
             self._generic_events.pop(data_point.dpk, None)
-        data_point.emit_device_removed_event()
+        data_point.publish_device_removed_event()
 
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()

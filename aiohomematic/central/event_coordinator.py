@@ -174,13 +174,28 @@ class EventCoordinator:
             )
         )
 
-    def emit_backend_parameter_callback(
+    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
+        """
+        Return the last event seen for an interface.
+
+        Args:
+        ----
+            interface_id: Interface identifier
+
+        Returns:
+        -------
+            Datetime of last event or None if no event seen yet
+
+        """
+        return self._last_event_seen_for_interface.get(interface_id)
+
+    def publish_backend_parameter_event(
         self, *, interface_id: str, channel_address: str, parameter: str, value: Any
     ) -> None:
         """
-        Emit backend parameter callback.
+        Publish backend parameter callback.
 
-        Re-emitted events from the backend for parameter updates.
+        Re-published events from the backend for parameter updates.
 
         Args:
         ----
@@ -205,9 +220,9 @@ class EventCoordinator:
         )
 
     @loop_check
-    def emit_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
         """
-        Emit system event callback.
+        Publish system event handlers.
 
         System-level events like DEVICES_CREATED, HUB_REFRESHED, etc.
 
@@ -226,9 +241,9 @@ class EventCoordinator:
         )
 
     @loop_check
-    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
         """
-        Emit Homematic callback.
+        Publish Homematic callback.
 
         Events like INTERFACE, KEYPRESS, etc.
 
@@ -247,7 +262,7 @@ class EventCoordinator:
         )
 
     @loop_check
-    def emit_interface_event(
+    def publish_interface_event(
         self,
         *,
         interface_id: str,
@@ -255,7 +270,7 @@ class EventCoordinator:
         data: dict[str, Any],
     ) -> None:
         """
-        Emit an event about the interface status.
+        Publish an event about the interface status.
 
         Args:
         ----
@@ -274,25 +289,10 @@ class EventCoordinator:
             EventKey.DATA: data,
         }
 
-        self.emit_homematic_callback(
+        self.publish_homematic_event(
             event_type=EventType.INTERFACE,
             event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
-
-    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
-        """
-        Return the last event seen for an interface.
-
-        Args:
-        ----
-            interface_id: Interface identifier
-
-        Returns:
-        -------
-            Datetime of last event or None if no event seen yet
-
-        """
-        return self._last_event_seen_for_interface.get(interface_id)
 
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """

@@ -26,7 +26,7 @@ from aiohomematic.interfaces import (
     ChannelLookup,
     ConfigProvider,
     EventBusProvider,
-    EventEmitter,
+    EventPublisher,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     PrimaryClientProvider,
@@ -60,7 +60,7 @@ class HubCoordinator:
         channel_lookup: ChannelLookup,
         config_provider: ConfigProvider,
         event_bus_provider: EventBusProvider,
-        event_emitter: EventEmitter,
+        event_publisher: EventPublisher,
         parameter_visibility_provider: ParameterVisibilityProvider,
         paramset_description_provider: ParamsetDescriptionProvider,
         primary_client_provider: PrimaryClientProvider,
@@ -75,7 +75,7 @@ class HubCoordinator:
             channel_lookup: Provider for channel lookup operations
             config_provider: Provider for configuration access
             event_bus_provider: Provider for event bus access
-            event_emitter: Provider for event emission
+            event_publisher: Provider for event emission
             parameter_visibility_provider: Provider for parameter visibility rules
             paramset_description_provider: Provider for paramset descriptions
             primary_client_provider: Provider for primary client access
@@ -98,7 +98,7 @@ class HubCoordinator:
             channel_lookup=channel_lookup,
             config_provider=config_provider,
             event_bus_provider=event_bus_provider,
-            event_emitter=event_emitter,
+            event_publisher=event_publisher,
             hub_data_fetcher=self,  # HubCoordinator implements HubDataFetcher
             hub_data_point_manager=self,  # type: ignore[arg-type]  # HubCoordinator implements HubDataPointManager
             parameter_visibility_provider=parameter_visibility_provider,
@@ -321,8 +321,8 @@ class HubCoordinator:
 
         """
         if (program_dp := self.get_program_data_point(pid=pid)) is not None:
-            program_dp.button.emit_device_removed_event()
-            program_dp.switch.emit_device_removed_event()
+            program_dp.button.publish_device_removed_event()
+            program_dp.switch.publish_device_removed_event()
             self._program_data_points.pop(pid, None)
             self._state_path_to_name.pop(program_dp.button.state_path, None)
             _LOGGER.debug(
@@ -341,7 +341,7 @@ class HubCoordinator:
 
         """
         if (sysvar_dp := self.get_sysvar_data_point(vid=vid)) is not None:
-            sysvar_dp.emit_device_removed_event()
+            sysvar_dp.publish_device_removed_event()
             self._sysvar_data_points.pop(vid, None)
             self._state_path_to_name.pop(sysvar_dp.state_path, None)
 

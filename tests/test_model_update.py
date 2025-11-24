@@ -12,7 +12,7 @@ from typing import Any
 
 from aiohomematic.const import HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES, HMIP_FIRMWARE_UPDATE_READY_STATES, Interface
 from aiohomematic.model.update import DpUpdate
-from aiohomematic.type_aliases import FirmwareUpdateCallback, UnregisterCallback
+from aiohomematic.type_aliases import FirmwareUpdateHandler, UnsubscribeHandler
 
 
 class _FakeCentral:
@@ -85,28 +85,28 @@ class _FakeDevice:
         self.firmware_update_state: str | None = None
         self.available_firmware: str | None = None
         self.interface = Interface.BIDCOS_RF
-        self._callbacks: list[FirmwareUpdateCallback] = []
+        self._handlers: list[FirmwareUpdateHandler] = []
         # Add protocol interface attributes for DI
         self.config_provider = _FakeConfigProvider(central=self.central)
         self.central_info = _FakeCentralInfo(central=self.central)
         self.event_bus_provider = _FakeEventBusProvider()
-        self.event_emitter = type("EventEmitter", (), {})()
+        self.event_publisher = type("EventEmitter", (), {})()
         self.task_scheduler = _FakeTaskScheduler()
         self.paramset_description_provider = _FakeParamsetDescriptionProvider()
         self.parameter_visibility_provider = _FakeParameterVisibilityProvider()
         self.device_data_refresher = _FakeDeviceDataRefresher(central=self.central)
 
-    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateCallback) -> UnregisterCallback:
-        self._callbacks.append(handler)
+    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeHandler:
+        self._handlers.append(handler)
 
         def _unregister() -> None:
-            self._callbacks.remove(handler)
+            self._handlers.remove(handler)
 
         return _unregister
 
-    def unsubscribe_from_firmware_update_callback(self, *, handler: FirmwareUpdateCallback) -> None:
-        if handler in self._callbacks:
-            self._callbacks.remove(handler)
+    def unsubscribe_from_firmware_update_handler(self, *, handler: FirmwareUpdateHandler) -> None:
+        if handler in self._handlers:
+            self._handlers.remove(handler)
 
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:  # noqa: D401
         """Pretend to start an update and return success."""

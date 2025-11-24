@@ -28,7 +28,7 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.property_decorators import state_property
 from aiohomematic.support import get_channel_address
-from aiohomematic.type_aliases import UnregisterCallback
+from aiohomematic.type_aliases import UnsubscribeHandler
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class CustomDataPoint(BaseDataPoint):
         "_extended",
         "_group_no",
         "_schedule_channel_no",
-        "_unregister_callbacks",
+        "_unsubscribe_handlers",
     )
 
     def __init__(
@@ -61,7 +61,7 @@ class CustomDataPoint(BaseDataPoint):
         custom_config: CustomConfig,
     ) -> None:
         """Initialize the data point."""
-        self._unregister_callbacks: list[UnregisterCallback] = []
+        self._unsubscribe_handlers: list[UnsubscribeHandler] = []
         self._device_profile: Final = device_profile
         # required for name in BaseDataPoint
         self._device_def: Final = device_def
@@ -196,7 +196,7 @@ class CustomDataPoint(BaseDataPoint):
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         if self._device.week_profile and self.usage == DataPointUsage.CDP_PRIMARY:
             await self._device.week_profile.reload_and_cache_schedule()
-        self.emit_data_point_updated_event()
+        self.publish_data_point_updated_event()
 
     async def set_schedule(self, *, schedule_data: dict[Any, Any]) -> None:
         """Set schedule on device week profile."""
@@ -205,7 +205,7 @@ class CustomDataPoint(BaseDataPoint):
 
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unregister all internal update callbacks."""
-        for unregister in self._unregister_callbacks:
+        for unregister in self._unsubscribe_handlers:
             if unregister is not None:
                 unregister()
 
@@ -224,8 +224,8 @@ class CustomDataPoint(BaseDataPoint):
         elif is_visible is False and data_point.is_forced_sensor is False:
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
-        self._unregister_callbacks.append(
-            data_point.subscribe_to_internal_data_point_updated(handler=self.emit_data_point_updated_event)
+        self._unsubscribe_handlers.append(
+            data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
         )
         self._data_points[field] = data_point
 

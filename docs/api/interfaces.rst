@@ -89,10 +89,10 @@ DataPointProvider
 Event Protocols
 ---------------
 
-EventEmitter
-~~~~~~~~~~~~
+EventPublisher
+~~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.EventEmitter
+.. autoclass:: aiohomematic.interfaces.EventPublisher
    :members:
    :undoc-members:
    :show-inheritance:

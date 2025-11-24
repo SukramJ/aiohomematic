@@ -437,10 +437,10 @@ class CallbackDataPoint(ABC, LogContextMixin):
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""
 
-    def register_data_point_updated_callback(
-        self, *, cb: DataPointUpdatedCallback, custom_id: str
+    def subscribe_to_data_point_updated(
+        self, *, handler: DataPointUpdatedCallback, custom_id: str
     ) -> UnregisterCallback:
-        """Register data_point updated callback."""
+        """Subscribe to data_point updated event."""
         if custom_id not in InternalCustomID:
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise AioHomematicException(
@@ -458,7 +458,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         # Create adapter that filters for this data point's events with matching custom_id
         def event_handler(event: DataPointUpdatedCallbackEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
-                cb(**event.kwargs)
+                handler(**event.kwargs)
 
         unsubscribe = self._event_bus_provider.event_bus.subscribe(
             event_type=DataPointUpdatedCallbackEvent,
@@ -484,22 +484,22 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         return wrapped_unsubscribe
 
-    def register_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> UnregisterCallback:
-        """Register the device removed callback."""
+    def subscribe_to_device_removed(self, *, handler: DeviceRemovedCallback) -> UnregisterCallback:
+        """Subscribe to the device removed event."""
 
         # Create adapter that filters for this data point's events
         def event_handler(event: DeviceRemovedEvent) -> None:
             if event.unique_id == self._unique_id:
-                cb()
+                handler()
 
         return self._event_bus_provider.event_bus.subscribe(
             event_type=DeviceRemovedEvent,
             handler=event_handler,
         )
 
-    def register_internal_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback) -> UnregisterCallback:
-        """Register internal data_point updated callback."""
-        return self.register_data_point_updated_callback(cb=cb, custom_id=InternalCustomID.DEFAULT)
+    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedCallback) -> UnregisterCallback:
+        """Subscribe to internal data_point updated event."""
+        return self.subscribe_to_data_point_updated(handler=handler, custom_id=InternalCustomID.DEFAULT)
 
     @abstractmethod
     def _get_path_data(self) -> PathData:

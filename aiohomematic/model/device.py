@@ -856,32 +856,6 @@ class Device(LogContextMixin, PayloadMixin):
                 name=f"firmware-updated-{self._address}",
             )
 
-    def register_device_updated_callback(self, *, cb: DeviceUpdatedCallback) -> UnregisterCallback:
-        """Register update callback."""
-
-        # Create adapter that filters for this device's events
-        def event_handler(event: DeviceUpdatedEvent) -> None:
-            if event.device_address == self._address:
-                cb()
-
-        return self._event_bus_provider.event_bus.subscribe(
-            event_type=DeviceUpdatedEvent,
-            handler=event_handler,
-        )
-
-    def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
-        """Register firmware update callback."""
-
-        # Create adapter that filters for this device's events
-        def event_handler(event: FirmwareUpdatedEvent) -> None:
-            if event.device_address == self._address:
-                cb()
-
-        return self._event_bus_provider.event_bus.subscribe(
-            event_type=FirmwareUpdatedEvent,
-            handler=event_handler,
-        )
-
     def remove(self) -> None:
         """Remove data points from collections and central."""
         for channel in self._channels.values():
@@ -900,6 +874,32 @@ class Device(LogContextMixin, PayloadMixin):
             self._forced_availability = forced_availability
             for dp in self.generic_data_points:
                 dp.emit_data_point_updated_event()
+
+    def subscribe_to_device_updated(self, *, handler: DeviceUpdatedCallback) -> UnregisterCallback:
+        """Register update callback."""
+
+        # Create adapter that filters for this device's events
+        def event_handler(event: DeviceUpdatedEvent) -> None:
+            if event.device_address == self._address:
+                handler()
+
+        return self._event_bus_provider.event_bus.subscribe(
+            event_type=DeviceUpdatedEvent,
+            handler=event_handler,
+        )
+
+    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateCallback) -> UnregisterCallback:
+        """Register firmware update callback."""
+
+        # Create adapter that filters for this device's events
+        def event_handler(event: FirmwareUpdatedEvent) -> None:
+            if event.device_address == self._address:
+                handler()
+
+        return self._event_bus_provider.event_bus.subscribe(
+            event_type=FirmwareUpdatedEvent,
+            handler=event_handler,
+        )
 
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
@@ -1414,19 +1414,6 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._custom_data_point:
             await self._custom_data_point.on_config_changed()
 
-    def register_link_peer_changed_callback(self, *, cb: LinkPeerChangedCallback) -> UnregisterCallback:
-        """Register the link peer changed callback."""
-
-        # Create adapter that filters for this channel's events
-        def event_handler(event: LinkPeerChangedEvent) -> None:
-            if event.channel_address == self._address:
-                cb()
-
-        return self._device.event_bus_provider.event_bus.subscribe(
-            event_type=LinkPeerChangedEvent,
-            handler=event_handler,
-        )
-
     def remove(self) -> None:
         """Remove data points from collections and central."""
         for event in self.generic_events:
@@ -1452,6 +1439,19 @@ class Channel(LogContextMixin, PayloadMixin):
             await self._device.client.report_value_usage(
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
+
+    def subscribe_to_link_peer_changed(self, *, handler: LinkPeerChangedCallback) -> UnregisterCallback:
+        """Subscribe to the link peer changed event."""
+
+        # Create adapter that filters for this channel's events
+        def event_handler(event: LinkPeerChangedEvent) -> None:
+            if event.channel_address == self._address:
+                handler()
+
+        return self._device.event_bus_provider.event_bus.subscribe(
+            event_type=LinkPeerChangedEvent,
+            handler=event_handler,
+        )
 
     async def _has_central_link(self) -> bool:
         """Check if central link exists."""

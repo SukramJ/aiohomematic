@@ -57,7 +57,7 @@ class TestChannelLinkPeers:
         def _on_changed() -> None:
             calls.append("changed")
 
-        ch.register_link_peer_changed_callback(cb=_on_changed)
+        ch.subscribe_to_link_peer_changed(handler=_on_changed)
 
         # 1st init: should emit
         await ch.init_link_peer()
@@ -120,7 +120,7 @@ class TestChannelLinkPeers:
         def _on_changed() -> None:
             calls.append("changed")
 
-        unreg = ch.register_link_peer_changed_callback(cb=_on_changed)
+        unreg = ch.subscribe_to_link_peer_changed(handler=_on_changed)
 
         # Trigger init
         await ch.init_link_peer()

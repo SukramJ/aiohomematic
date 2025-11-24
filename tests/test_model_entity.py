@@ -60,10 +60,10 @@ class TestDataPointCallbacks:
         device_updated_mock = MagicMock()
         device_removed_mock = MagicMock()
 
-        unregister_data_point_updated_callback = switch.register_data_point_updated_callback(
-            cb=device_updated_mock, custom_id="some_id"
+        unregister_data_point_updated_callback = switch.subscribe_to_data_point_updated(
+            handler=device_updated_mock, custom_id="some_id"
         )
-        unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
+        unregister_device_removed_callback = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
         await central.data_point_event(
@@ -118,8 +118,8 @@ class TestDataPointCallbacks:
         device_updated_mock = MagicMock()
         device_removed_mock = MagicMock()
 
-        unregister_updated = switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
-        unregister_removed = switch.register_device_removed_callback(cb=device_removed_mock)
+        unregister_updated = switch.subscribe_to_data_point_updated(handler=device_updated_mock, custom_id="some_id")
+        unregister_removed = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
         await central.data_point_event(

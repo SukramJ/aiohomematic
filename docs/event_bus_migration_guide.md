@@ -40,38 +40,53 @@ central.event_bus.subscribe(event_type=HomematicEvent, handler=homematic_handler
 
 ### Compatibility
 
-- **Backward Compatible**: The legacy callback APIs still work and will continue to work
-- **Dual System**: Both systems run in parallel during migration
-- **No Breaking Changes**: Existing integrations continue to work without modification
-- **Gradual Migration**: You can migrate one callback at a time
+⚠️ **BREAKING CHANGE IN v2025.11.16+**:
 
-### ⚠️ Deprecation Notice
+- **CentralUnit Callbacks Removed**: `register_backend_system_callback()`, `register_backend_parameter_callback()`, and `register_homematic_callback()` have been completely removed from CentralUnit
+- **Device/Channel/DataPoint Callbacks**: Still available as backward-compatible adapters that delegate to EventBus
+- **Migration Required**: Integrations using CentralUnit callbacks must migrate to EventBus immediately
+- **Gradual Migration Path**: Device/Channel/DataPoint callback adapters will remain for extended backward compatibility
 
-**As of aiohomematic 2025.11.16**, the following legacy callback registration methods are **deprecated**:
+### ⚠️ Breaking Changes
 
-- `central.register_backend_parameter_callback()`
-- `central.register_backend_system_callback()`
-- `central.register_homematic_callback()`
+**CentralUnit Callbacks - REMOVED as of v2025.11.16:**
 
-**Deprecation Timeline:**
+| Method                                          | Status      | Migration                                                                 |
+| ----------------------------------------------- | ----------- | ------------------------------------------------------------------------- |
+| `central.register_backend_parameter_callback()` | **REMOVED** | Use `central.event_bus.subscribe(event_type=BackendParameterEvent, ...)`  |
+| `central.register_backend_system_callback()`    | **REMOVED** | Use `central.event_bus.subscribe(event_type=BackendSystemEventData, ...)` |
+| `central.register_homematic_callback()`         | **REMOVED** | Use `central.event_bus.subscribe(event_type=HomematicEvent, ...)`         |
 
-| Version        | Status            | Action                                   |
-| -------------- | ----------------- | ---------------------------------------- |
-| **2025.11.16** | **Deprecated**    | Legacy methods emit `DeprecationWarning` |
-| **2026.Q1**    | Support continues | Legacy methods continue to work          |
-| **2026.Q2**    | Final warning     | Removal date announced                   |
-| **2026.Q3+**   | Removed           | Legacy methods removed from codebase     |
+**What Changed:**
 
-**What This Means:**
+- ❌ **Removed**: CentralUnit no longer exposes callback registration methods
+- ✅ **Available**: EventBus API provides replacements
+- ✅ **Migration Period**: You can migrate callbacks one at a time
+- ⚠️ **Action Required**: Update integrations immediately to use EventBus
 
-- ✅ **Now**: Legacy callbacks still work but emit deprecation warnings
-- ✅ **Migration Period**: You have time to migrate (≈6+ months)
-- ⚠️ **Action Required**: Plan migration to EventBus API
-- ❌ **Future**: Legacy callbacks will be removed
+**Timeline:**
+
+| Version        | Status              | Action                                           |
+| -------------- | ------------------- | ------------------------------------------------ |
+| **2025.11.16** | **BREAKING CHANGE** | Legacy CentralUnit callbacks removed             |
+| **2026.Q1+**   | Stable              | EventBus is the standard API                     |
+| **Future**     | Possible removal    | Device/Channel/DataPoint callback adapters (TBD) |
+
+**Device/Channel/DataPoint Callbacks - BACKWARD COMPATIBLE:**
+
+Device, Channel, and DataPoint classes still expose their callback registration methods. These are implemented as adapters that subscribe to EventBus internally:
+
+- `device.register_device_updated_callback()`
+- `device.register_firmware_update_callback()`
+- `channel.register_link_peer_changed_callback()`
+- `data_point.register_data_point_updated_callback()`
+- `data_point.register_device_removed_callback()`
+
+**Status**: These adapters will remain available for extended backward compatibility. Migration is recommended but not immediately required for these.
 
 **Recommended Action:**
 
-Migrate to the EventBus API as soon as practical. See [Migration Strategy](#migration-strategy) below.
+Migrate CentralUnit callback usage to EventBus API immediately. See [Migration Strategy](#migration-strategy) below.
 
 ---
 

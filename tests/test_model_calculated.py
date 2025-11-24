@@ -137,18 +137,18 @@ class _FakeGenericDP:
     def refreshed_at(self) -> datetime:
         return self._refreshed_at
 
-    def register_internal_data_point_updated_callback(self, *, cb: Callable) -> Callable[[], None]:
+    def set_times(self, *, modified_delta: int, refreshed_delta: int) -> None:
+        base = datetime.now()
+        self._modified_at = base + timedelta(seconds=modified_delta)
+        self._refreshed_at = base + timedelta(seconds=refreshed_delta)
+
+    def subscribe_to_internal_data_point_updated(self, *, handler: Callable) -> Callable[[], None]:
         self.emitted_event_recently = False  # simulate change later
 
         def _unregister() -> None:
             self._unregistered.append(True)
 
         return _unregister
-
-    def set_times(self, *, modified_delta: int, refreshed_delta: int) -> None:
-        base = datetime.now()
-        self._modified_at = base + timedelta(seconds=modified_delta)
-        self._refreshed_at = base + timedelta(seconds=refreshed_delta)
 
 
 class _FakeChannel:
@@ -248,7 +248,7 @@ class TestCalculatedDataPoint:
         def dummy_cb(**kwargs: Any) -> None:  # noqa: D401
             """Execute dummy callback for unregister path."""
 
-        unregister = calc.register_internal_data_point_updated_callback(cb=dummy_cb)
+        unregister = calc.subscribe_to_internal_data_point_updated(handler=dummy_cb)
         assert unregister is not None
         unregister()
 

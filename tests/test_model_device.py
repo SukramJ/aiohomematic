@@ -219,7 +219,7 @@ class TestDeviceAvailability:
         assert device.available is True
 
         # Register a no-op device-updated callback to exercise registration/removal
-        remove = device.register_device_updated_callback(cb=lambda: None)
+        remove = device.subscribe_to_device_updated(handler=lambda: None)
         assert callable(remove)
 
         # set forced availability toggles and should not crash
@@ -283,7 +283,7 @@ class TestDeviceFirmware:
         def fw_cb() -> None:
             emitted.append(1)
 
-        remove_fw = device.register_firmware_update_callback(cb=fw_cb)
+        remove_fw = device.subscribe_to_firmware_updated(handler=fw_cb)
         assert callable(remove_fw)
 
         # First refresh with unchanged data -> no callback
@@ -314,7 +314,7 @@ class TestDeviceFirmware:
         assert emitted
 
         # Duplicate registration now returns a new unsubscribe function (from event bus)
-        remove_fw2 = device.register_firmware_update_callback(cb=fw_cb)
+        remove_fw2 = device.subscribe_to_firmware_updated(handler=fw_cb)
         assert callable(remove_fw2)
         remove_fw()
         remove_fw2()
@@ -585,7 +585,7 @@ class TestDeviceDataPoints:
         def exploding() -> None:
             raise RuntimeError("boom")
 
-        device.register_device_updated_callback(cb=exploding)
+        device.subscribe_to_device_updated(handler=exploding)
         device.emit_device_updated_callback()
 
         # Channel operation_mode when dp present vs None

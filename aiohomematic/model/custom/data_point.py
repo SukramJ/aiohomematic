@@ -219,7 +219,7 @@ class CustomDataPoint(BaseDataPoint):
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unregister_callbacks.append(
-            data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
+            data_point.subscribe_to_internal_data_point_updated(handler=self.emit_data_point_updated_event)
         )
         self._data_points[field] = data_point
 
@@ -364,7 +364,7 @@ class CustomDataPoint(BaseDataPoint):
             self.full_name,
         )
 
-    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
+    def _unsubscribe_from_data_point_updated(self, *, handler: DataPointUpdatedCallback, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:

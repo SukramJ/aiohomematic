@@ -1919,8 +1919,8 @@ async def _track_single_data_point_state_change_or_timeout(
             )
             return
         if (
-            unreg := dp.register_data_point_updated_callback(
-                cb=_async_event_changed, custom_id=InternalCustomID.DEFAULT
+            unreg := dp.subscribe_to_data_point_updated(
+                handler=_async_event_changed, custom_id=InternalCustomID.DEFAULT
             )
         ) is None:
             return

@@ -1,3 +1,9 @@
+# Version 2025.11.25 (2025-11-24)
+
+## What's Changed
+
+- Switch from legacy wrapper to event bus naming
+
 # Version 2025.11.24 (2025-11-24)
 
 ## What's Changed

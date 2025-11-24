@@ -114,18 +114,18 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         await self._device.device_data_refresher.refresh_firmware_data(device_address=self._device.address)
         self._set_modified_at(modified_at=datetime.now())
 
-    def register_data_point_updated_callback(
-        self, *, cb: DataPointUpdatedCallback, custom_id: str
+    def unsubscribe_from_data_point_updated(
+        self, *, handler: DataPointUpdatedCallback, custom_id: str
     ) -> UnregisterCallback:
-        """Register update callback."""
+        """Subscribe to data point updates via EventBus."""
         if custom_id != InternalCustomID.DEFAULT:
             if self._custom_id is not None:
                 raise AioHomematicException(  # i18n-exc: ignore
-                    f"REGISTER_UPDATE_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
+                    f"SUBSCRIBE failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
                 )
             self._custom_id = custom_id
 
-        if unsubscribe := self._device.register_firmware_update_callback(cb=cb):
+        if unsubscribe := self._device.subscribe_to_firmware_updated(handler=handler):
             # Wrap unsubscribe to also reset custom_id
             def wrapped_unsubscribe() -> None:
                 unsubscribe()

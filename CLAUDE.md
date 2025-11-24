@@ -947,6 +947,63 @@ class DataPoint:
         return self._value
 ```
 
+#### 5. EventBus Pattern
+
+The project uses a unified **EventBus** system for internal event communication. All subscription methods use the modern `subscribe_to_*` API:
+
+```python
+# EventBus API - Direct subscription
+from aiohomematic.central.event_bus import DataPointUpdatedEvent
+
+async def on_datapoint_update(event: DataPointUpdatedEvent) -> None:
+    print(f"DataPoint {event.dpk} = {event.value}")
+
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointUpdatedEvent,
+    handler=on_datapoint_update
+)
+unsubscribe()
+
+# Model API - Subscription via Device/Channel/DataPoint
+def on_device_updated():
+    print("Device state changed")
+
+unsubscribe = device.subscribe_to_device_updated(handler=on_device_updated)
+unsubscribe()
+
+def on_value_changed(**kwargs):
+    print(f"Value changed: {kwargs}")
+
+unsubscribe = data_point.subscribe_to_data_point_updated(
+    handler=on_value_changed,
+    custom_id="my-app"
+)
+unsubscribe()
+```
+
+**Method Naming:**
+
+- `subscribe_to_*` - All subscription methods use this modern naming
+- `handler` parameter - Use `handler=` instead of `cb=`
+- `unsubscribe()` - All subscriptions return an unsubscribe callable
+
+**BREAKING CHANGE (v2025.11.24)**: Method names have been changed from `register_*_callback` to `subscribe_to_*`:
+
+- `register_device_updated_callback()` → `subscribe_to_device_updated()`
+- `register_firmware_update_callback()` → `subscribe_to_firmware_updated()`
+- `register_data_point_updated_callback()` → `subscribe_to_data_point_updated()`
+- `register_device_removed_callback()` → `subscribe_to_device_removed()`
+- `register_link_peer_changed_callback()` → `subscribe_to_link_peer_changed()`
+- `register_internal_data_point_updated_callback()` → `subscribe_to_internal_data_point_updated()`
+
+**CentralUnit Callbacks Removed**: System-level callbacks have been removed:
+
+- `register_backend_system_callback()` - REMOVED
+- `register_backend_parameter_callback()` - REMOVED
+- `register_homematic_callback()` - REMOVED
+
+Use `central.event_bus.subscribe()` instead. See [EventBus Migration Guide](docs/event_bus_migration_guide.md) for details.
+
 ### Concurrency Model
 
 - **Async I/O**: All network operations use asyncio

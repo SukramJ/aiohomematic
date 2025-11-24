@@ -475,12 +475,12 @@ class _EventDP:
 
     def __init__(self, *, should_match: bool = False) -> None:
         self.supports_events = True
-        self._cb: Any | None = None
+        self._handler: Any | None = None
         self.value = 0.0 if should_match else 1.0
         self.unsub_called = False
 
-    def register_data_point_updated_callback(self, *, cb, custom_id):  # type: ignore[no-untyped-def]
-        self._cb = cb
+    def subscribe_to_data_point_updated(self, *, handler, custom_id):  # type: ignore[no-untyped-def]
+        self._handler = handler
 
         def _unsub():
             self.unsub_called = True

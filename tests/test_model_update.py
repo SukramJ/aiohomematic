@@ -82,17 +82,17 @@ class _FakeDevice:
         self.parameter_visibility_provider = _FakeParameterVisibilityProvider()
         self.device_data_refresher = _FakeDeviceDataRefresher(central=self.central)
 
-    def register_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> UnregisterCallback:
-        self._callbacks.append(cb)
+    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateCallback) -> UnregisterCallback:
+        self._callbacks.append(handler)
 
         def _unregister() -> None:
-            self._callbacks.remove(cb)
+            self._callbacks.remove(handler)
 
         return _unregister
 
-    def unregister_firmware_update_callback(self, *, cb: FirmwareUpdateCallback) -> None:
-        if cb in self._callbacks:
-            self._callbacks.remove(cb)
+    def unsubscribe_from_firmware_update_callback(self, *, handler: FirmwareUpdateCallback) -> None:
+        if handler in self._callbacks:
+            self._callbacks.remove(handler)
 
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:  # noqa: D401
         """Pretend to start an update and return success."""
@@ -135,7 +135,7 @@ class TestUpdateDataPoint:
             """Execute dummy callback."""
             called["count"] += 1
 
-        unregister = dp.register_data_point_updated_callback(cb=cb, custom_id="CID")
+        unregister = dp.subscribe_to_data_point_updated(handler=cb, custom_id="CID")
         assert callable(unregister)
         # The device should have the callback stored
         assert dev._callbacks

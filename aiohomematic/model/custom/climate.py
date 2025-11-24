@@ -522,8 +522,8 @@ class BaseCustomDpClimate(CustomDataPoint):
         super()._post_init_data_point_fields()
 
         self._unregister_callbacks.append(
-            self._dp_setpoint.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+            self._dp_setpoint.subscribe_to_data_point_updated(
+                handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
 
@@ -535,7 +535,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
         for ch in self._device.channels.values():
             # register link-peer change callback; store unregister handle
-            if (unreg := ch.register_link_peer_changed_callback(cb=self._on_link_peer_changed)) is not None:
+            if (unreg := ch.subscribe_to_link_peer_changed(handler=self._on_link_peer_changed)) is not None:
                 self._unregister_callbacks.append(unreg)
         # pre-populate peer references (if any) once
         self._refresh_link_peer_activity_sources()
@@ -585,8 +585,8 @@ class BaseCustomDpClimate(CustomDataPoint):
         for dp in (self._peer_level_dp, self._peer_state_dp):
             if dp is None:
                 continue
-            unreg = dp.register_data_point_updated_callback(
-                cb=self.emit_data_point_updated_event, custom_id=InternalCustomID.LINK_PEER
+            unreg = dp.subscribe_to_data_point_updated(
+                handler=self.emit_data_point_updated_event, custom_id=InternalCustomID.LINK_PEER
             )
             if unreg is not None:
                 # Track for both refresh-time cleanup and object removal cleanup
@@ -807,8 +807,8 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
 
         # register callback for control_mode to track manual target temp
         self._unregister_callbacks.append(
-            self._dp_control_mode.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+            self._dp_control_mode.subscribe_to_data_point_updated(
+                handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
 
@@ -1087,8 +1087,8 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
         # register callback for set_point_mode to track manual target temp
         self._unregister_callbacks.append(
-            self._dp_set_point_mode.register_data_point_updated_callback(
-                cb=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+            self._dp_set_point_mode.subscribe_to_data_point_updated(
+                handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
 

@@ -266,7 +266,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
             self._data_points.append(generic_data_point)
             self._unregister_callbacks.append(
-                generic_data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
+                generic_data_point.subscribe_to_internal_data_point_updated(handler=self.emit_data_point_updated_event)
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(
@@ -288,7 +288,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
         ):
             self._data_points.append(generic_data_point)
             self._unregister_callbacks.append(
-                generic_data_point.register_internal_data_point_updated_callback(cb=self.emit_data_point_updated_event)
+                generic_data_point.subscribe_to_internal_data_point_updated(handler=self.emit_data_point_updated_event)
             )
             return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
         return cast(
@@ -331,7 +331,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
             self.full_name,
         )
 
-    def _unregister_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback, custom_id: str) -> None:
+    def _unsubscribe_from_data_point_updated(self, *, handler: DataPointUpdatedCallback, custom_id: str) -> None:
         """Unregister update callback."""
         for unregister in self._unregister_callbacks:
             if unregister is not None:

@@ -1647,8 +1647,8 @@ class TestScheduleCache:
             callback_called = True
             callback_args = kwargs
 
-        unreg = climate.register_data_point_updated_callback(
-            cb=schedule_changed_callback, custom_id="test_schedule_change"
+        unreg = climate.subscribe_to_data_point_updated(
+            handler=schedule_changed_callback, custom_id="test_schedule_change"
         )
 
         # Get a schedule profile to populate the cache
@@ -1935,7 +1935,7 @@ class TestScheduleCache:
             nonlocal reload_callback_count
             reload_callback_count += 1
 
-        unreg = climate.register_data_point_updated_callback(cb=reload_callback, custom_id="test_reload")
+        unreg = climate.subscribe_to_data_point_updated(handler=reload_callback, custom_id="test_reload")
 
         # Test 1: Initial load should populate cache
         climate.device.week_profile._schedule_cache = {}
@@ -2019,7 +2019,7 @@ class TestScheduleCache:
             nonlocal callback_count
             callback_count += 1
 
-        unreg = climate.register_data_point_updated_callback(cb=cache_update_callback, custom_id="test_cache_update")
+        unreg = climate.subscribe_to_data_point_updated(handler=cache_update_callback, custom_id="test_cache_update")
 
         # Test 1: set_schedule_weekday should update cache
         from copy import deepcopy

@@ -919,19 +919,23 @@ class CentralInfo(Protocol):
 
 CentralUnit implements all protocols without explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 
-#### 3. Observer Pattern
+#### 3. Observer Pattern (EventBus-based)
 
 ```python
-# DataPoints support subscription
-def subscribe(
-    self,
-    callback: Callable[[str, Any], None],
-) -> None:
-    """Subscribe to value changes."""
-    self._handlers.append(callback)
+# DataPoints publish events via EventBus
+# Subscribers receive notifications through the modern subscribe_to_* API
 
-# Usage
-data_point.subscribe(lambda name, value: print(f"{name} = {value}"))
+# Subscribe to data point updates
+def on_value_changed(**kwargs):
+    print(f"Value changed: {kwargs}")
+
+unsubscribe = data_point.subscribe_to_data_point_updated(
+    handler=on_value_changed,
+    custom_id="my-app"
+)
+
+# Clean up subscription when done
+unsubscribe()
 ```
 
 #### 4. Decorator Pattern

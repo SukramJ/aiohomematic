@@ -118,13 +118,13 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 - Reads
   - Central or a consumer requests a value: Client.get_value(channel_address, paramset_key, parameter) performs the appropriate RPC call (XML‑RPC or JSON‑RPC) and returns a converted value (model.support.convert_value is used where necessary). Results may be stored in dynamic caches.
 - Writes
-  - A consumer calls DataPoint.set_value(...), which delegates to the owning Device/Channel/Client. Client.\_set_value/\_exec_set_value sends the RPC write. Optionally the system waits for a callback confirming the new value; otherwise the value may be written into a temporary cache and later reconciled.
+  - A consumer calls DataPoint.set_value(...), which delegates to the owning Device/Channel/Client. Client.\_set_value/\_exec_set_value sends the RPC write. Optionally the system waits for an event confirming the new value; otherwise the value may be written into a temporary cache and later reconciled.
 
 ## Event handling and data point updates
 
-1. The backend pushes events to the local XML‑RPC callback server (Central’s xml_rpc_server). Each event carries interface_id, channel_address, parameter, and value.
+1. The backend pushes events to the local XML‑RPC callback server (Central's xml_rpc_server). Each event carries interface_id, channel_address, parameter, and value.
 2. CentralUnit.data_point_event(interface_id, channel_address, parameter, value) is invoked via decorators wiring. Central looks up the target DataPoint by channel+parameter.
-3. The DataPoint’s internal state is updated; any subscribed handlers are notified. Central updates last event timestamps and connection health.
+3. The DataPoint's internal state is updated; events are published to subscribers via EventBus. Central updates last event timestamps and connection health.
 4. If events indicate new devices or configuration changes, Central may trigger scans to fetch updated descriptions and update the model accordingly.
 
 ## JSON‑RPC vs XML‑RPC data flow

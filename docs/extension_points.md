@@ -96,7 +96,7 @@ Calculated data points compute values from one or more underlying GenericDataPoi
 
 - aiohomematic.model.calculated.data_point.CalculatedDataPoint: Base class to inherit from
   - \_add_data_point(...) / \_add_device_data_point(...) for attaching sources
-  - fire_data_point_updated_callback is triggered when any source updates
+  - publish_data_point_updated_event is triggered when any source updates
   - Decorators: @state_property, @config_property, @cached_slot_property
 - aiohomematic.model.calculated.**init**
   - create_calculated_data_points(channel): factory that evaluates relevance and attaches instances to channels
@@ -124,7 +124,7 @@ Calculated data points compute values from one or more underlying GenericDataPoi
    - Add the class to \_CALCULATED_DATA_POINTS in aiohomematic.model.calculated.**init** so the factory can discover it:
      \_CALCULATED_DATA_POINTS = (ApparentTemperature, ..., YourNewCalculatedDP)
 3. Ensure correctness
-   - The base class manages subscriptions and updating. Call self.fire_data_point_updated_callback() if you maintain extra state.
+   - The base class manages subscriptions and updating. Call self.publish_data_point_updated_event() if you maintain extra state.
    - Use helper conversions in aiohomematic.model.calculated.support if your formula needs them.
 
 ### Minimal template:

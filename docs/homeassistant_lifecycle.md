@@ -42,7 +42,7 @@ Event and value processing during operation:
   - The DataPoint writes the new value via `write_value` and checks for state change (`is_state_change`).
   - Special handling:
     - `CONFIG_PENDING`: Transition from True→False triggers reloading the paramset descriptions and a refresh of readable MASTER parameters (see `GenericDataPoint.event`).
-    - Availability (`UN_REACH`, `STICKY_UN_REACH`): Triggers `fire_device_updated_callback` on the device and a central event `EventType.DEVICE_AVAILABILITY` so HA can adjust availability.
+    - Availability (`UN_REACH`, `STICKY_UN_REACH`): Triggers `publish_device_updated_event` on the device and publishes `EventType.DEVICE_AVAILABILITY` via EventBus so HA can adjust availability.
 - Reading/sending values:
   - Read: Via `DataPoint.load_data_point_value()` in conjunction with the device store/client. Cache is consulted to avoid unnecessary CCU calls.
   - Write: `GenericDataPoint.send_value()` validates, converts, de‑duplicates (no sending without a state change), and calls `client.set_value()`.
@@ -88,7 +88,7 @@ Signals/callbacks relevant for integration developers:
 - Tie an entity’s availability to `Device.available` (and consume the dedicated availability events).
 - When `CONFIG_PENDING` changes True→False: re‑load MASTER parameters (already triggered by aiohomematic; optionally request a refresh from HA if needed).
 - Only send write commands if target state differs from current (`send_value` already does this). Log errors/validation exceptions.
-- Account for reconnects: keep entities, update states on events. Do not register callbacks twice.
+- Account for reconnects: keep entities, update states on events. Do not subscribe twice to the same events.
 
 ---
 

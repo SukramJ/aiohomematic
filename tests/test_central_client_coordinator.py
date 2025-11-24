@@ -71,6 +71,13 @@ class _FakeCentral:
         self.system_information = MagicMock()
         self.system_information.available_interfaces = frozenset([Interface.BIDCOS_RF, Interface.HMIP_RF])
 
+    async def create_client_instance(self, *, interface_config: _FakeInterfaceConfig) -> _FakeClient:
+        """Create a client instance (implements ClientFactory protocol)."""
+        return _FakeClient(
+            interface_id=interface_config.interface_id,
+            interface=interface_config.interface,
+        )
+
 
 class TestClientCoordinatorBasics:
     """Test basic ClientCoordinator functionality."""
@@ -79,7 +86,7 @@ class TestClientCoordinatorBasics:
         """All clients active should be False when no clients exist."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -96,7 +103,7 @@ class TestClientCoordinatorBasics:
         ]
 
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -111,7 +118,7 @@ class TestClientCoordinatorBasics:
         """Available property should return True when all clients are available."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -130,7 +137,7 @@ class TestClientCoordinatorBasics:
         """Available property should return False when any client is unavailable."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -149,14 +156,14 @@ class TestClientCoordinatorBasics:
         """ClientCoordinator should initialize with central instance."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
             system_info_provider=central,
         )  # type: ignore[arg-type]
 
-        assert coordinator._central == central
+        assert coordinator._client_factory == central
         assert len(coordinator._clients) == 0
         assert coordinator._clients_started is False
         assert coordinator._primary_client is None
@@ -165,7 +172,7 @@ class TestClientCoordinatorBasics:
         """Clients property should return tuple of all clients."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -188,7 +195,7 @@ class TestClientCoordinatorBasics:
         """Clients started property should track start state."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -204,7 +211,7 @@ class TestClientCoordinatorBasics:
         """Has clients property should return True when clients exist."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -222,7 +229,7 @@ class TestClientCoordinatorBasics:
         """Interface IDs property should return frozenset of all interface IDs."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -244,7 +251,7 @@ class TestClientCoordinatorBasics:
         """Interfaces property should return frozenset of all interfaces."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -266,7 +273,7 @@ class TestClientCoordinatorBasics:
         """Is alive property should return True when all callbacks are alive."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -285,7 +292,7 @@ class TestClientCoordinatorBasics:
         """Poll clients property should return clients that need polling."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -316,7 +323,7 @@ class TestClientCoordinatorGetClient:
 
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -330,7 +337,7 @@ class TestClientCoordinatorGetClient:
         """Get client should return the client when it exists."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -347,7 +354,7 @@ class TestClientCoordinatorGetClient:
         """Has client should return False when client doesn't exist."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -360,7 +367,7 @@ class TestClientCoordinatorGetClient:
         """Has client should return True when client exists."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -387,7 +394,7 @@ class TestClientCoordinatorLifecycle:
             patch.object(ClientCoordinator, "start_clients", new=AsyncMock(return_value=True)) as mock_start,
         ):
             coordinator = ClientCoordinator(
-                central=central,
+                client_factory=central,
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,
@@ -406,7 +413,7 @@ class TestClientCoordinatorLifecycle:
         # Mock _create_clients to return False
         with patch.object(ClientCoordinator, "_create_clients", new=AsyncMock(return_value=False)):
             coordinator = ClientCoordinator(
-                central=central,
+                client_factory=central,
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,
@@ -431,7 +438,7 @@ class TestClientCoordinatorLifecycle:
             patch.object(ClientCoordinator, "_init_clients", new=AsyncMock()) as mock_init,
         ):
             coordinator = ClientCoordinator(
-                central=central,
+                client_factory=central,
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,
@@ -450,7 +457,7 @@ class TestClientCoordinatorLifecycle:
         """Stop clients should deinitialize and stop all clients."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -490,7 +497,7 @@ class TestClientCoordinatorPrimaryClient:
         """Primary client should return None when no clients exist."""
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -505,7 +512,7 @@ class TestClientCoordinatorPrimaryClient:
 
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -528,7 +535,7 @@ class TestClientCoordinatorPrimaryClient:
 
         central = _FakeCentral()
         coordinator = ClientCoordinator(
-            central=central,
+            client_factory=central,
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
@@ -566,7 +573,7 @@ class TestClientCoordinatorIntegration:
             patch.object(ClientCoordinator, "_init_clients", new=AsyncMock()),
         ):
             coordinator = ClientCoordinator(
-                central=central,
+                client_factory=central,
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,

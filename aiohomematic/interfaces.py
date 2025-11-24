@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.central.hub_coordinator import HubCoordinator
-    from aiohomematic.client import Client
+    from aiohomematic.client import Client, InterfaceConfig
     from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
     from aiohomematic.model.device import Channel, Device
     from aiohomematic.model.generic import GenericDataPointAny
@@ -593,3 +593,31 @@ class DataCacheProvider(Protocol):
     @abstractmethod
     def get_data(self, *, interface: Interface, channel_address: str, parameter: str) -> Any:
         """Get cached data for a parameter."""
+
+
+@runtime_checkable
+class ClientFactory(Protocol):
+    """
+    Protocol for creating client instances.
+
+    Implemented by CentralUnit
+    """
+
+    @abstractmethod
+    async def create_client_instance(
+        self,
+        *,
+        interface_config: InterfaceConfig,
+    ) -> Client:
+        """
+        Create a client for the given interface configuration.
+
+        Args:
+        ----
+            interface_config: Configuration for the interface
+
+        Returns:
+        -------
+            Client instance for the interface
+
+        """

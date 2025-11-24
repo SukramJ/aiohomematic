@@ -58,11 +58,11 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   ├── central/                     # Central orchestration (11 files)
 │   │   ├── __init__.py             # CentralUnit, CentralConfig
 │   │   ├── cache_coordinator.py    # Cache management (DI: 8 protocols)
-│   │   ├── client_coordinator.py   # Client lifecycle (Hybrid DI)
-│   │   ├── device_coordinator.py   # Device operations (DI: 3 protocols)
+│   │   ├── client_coordinator.py   # Client lifecycle (DI: ClientFactory + 5 protocols)
+│   │   ├── device_coordinator.py   # Device operations (DI: 15 protocols)
 │   │   ├── device_registry.py      # Device storage (DI: 2 protocols)
 │   │   ├── event_coordinator.py    # Event handling (DI: 2 protocols)
-│   │   ├── hub_coordinator.py      # Hub entities (Hybrid DI)
+│   │   ├── hub_coordinator.py      # Hub entities (DI: 9 protocols)
 │   │   ├── scheduler.py            # Background tasks (DI: 7 protocols)
 │   │   ├── decorators.py           # RPC function decorators
 │   │   ├── rpc_server.py           # XML-RPC callback server
@@ -637,24 +637,45 @@ class CacheCoordinator:
         # ...
 ```
 
-**Tier 2: Hybrid DI (Coordinator Layer)** - Minimal central for factories only:
+**Tier 2: Full Protocol-Based DI (Coordinator Layer)** - Uses protocol interfaces exclusively:
 
 ```python
-# Example: ClientCoordinator keeps central for client factory
+# Example: ClientCoordinator uses ClientFactory protocol
 class ClientCoordinator:
     def __init__(
         self,
         *,
-        central: CentralUnit,  # Required for client factory function
-        config_provider: ConfigProvider,
+        client_factory: ClientFactory,  # Factory protocol, not CentralUnit
         central_info: CentralInfo,
+        config_provider: ConfigProvider,
         coordinator_provider: CoordinatorProvider,
         system_info_provider: SystemInfoProvider,
     ) -> None:
-        self._central: Final = central  # Only for factory
-        self._config_provider: Final = config_provider
-        # Other operations use protocol interfaces
+        self._client_factory: Final = client_factory
+        self._central_info: Final = central_info
+        # All operations use protocol interfaces
+
+# Example: HubCoordinator constructs Hub with protocol interfaces
+class HubCoordinator:
+    def __init__(
+        self,
+        *,
+        central_info: CentralInfo,
+        channel_lookup: ChannelLookup,
+        config_provider: ConfigProvider,
+        event_bus_provider: EventBusProvider,
+        event_emitter: EventEmitter,
+        # ... more protocol interfaces
+    ) -> None:
+        # Creates Hub using protocol interfaces - no CentralUnit reference
+        self._hub: Final = Hub(
+            central_info=central_info,
+            config_provider=config_provider,
+            # ... protocol interfaces only
+        )
 ```
+
+**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactory protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
 
 **Tier 3: Full DI (Model Layer)** - Device, Channel, and DataPoint classes use full DI:
 
@@ -726,14 +747,16 @@ class CentralInfo(Protocol):
     def model(self) -> str: ...
 ```
 
-**Key Protocol Interfaces** defined in `aiohomematic/model/interfaces.py`:
+**Key Protocol Interfaces** defined in `aiohomematic/interfaces.py`:
 
 - **CentralInfo**: System identification (name, model, version)
 - **ConfigProvider**: Configuration access (config property)
+- **ClientFactory**: Client instance creation (create_client_instance method)
 - **ClientProvider**: Client lookup by interface_id
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
 - **EventBusProvider**: Event system access (event_bus property)
+- **EventEmitter**: Event emission (emit_backend_system_callback, emit_homematic_callback)
 - **TaskScheduler**: Background task scheduling (create_task method)
 - **PrimaryClientProvider**: Primary client access
 - **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
@@ -745,6 +768,8 @@ class CentralInfo(Protocol):
 - **DataCacheProvider**: Data cache access (get_data method)
 - **ChannelLookup**: Channel lookup by address
 - **EventSubscriptionManager**: Event subscription management
+- **HubDataFetcher**: Hub data fetching operations
+- **HubDataPointManager**: Hub data point management (programs and sysvars)
 
 CentralUnit implements all protocols without explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 

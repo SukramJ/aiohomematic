@@ -148,6 +148,7 @@ from aiohomematic.interfaces import (
     CentralUnitStateProvider,
     ChannelLookup,
     ClientCoordination,
+    ClientFactory,
     ClientProvider,
     ConfigProvider,
     CoordinatorProvider,
@@ -220,6 +221,7 @@ class CentralUnit(
     CentralUnitStateProvider,
     ChannelLookup,
     ClientCoordination,
+    ClientFactory,
     ClientProvider,
     ConfigProvider,
     DataPointProvider,
@@ -294,17 +296,22 @@ class CentralUnit(
             task_scheduler=self.looper,
         )
         self._client_coordinator: Final = ClientCoordinator(
-            central=self,  # Required for client factory
+            client_factory=self,
             central_info=self,
             config_provider=self,
             coordinator_provider=self,
             system_info_provider=self,
         )
         self._hub_coordinator: Final = HubCoordinator(
-            central=self,  # Required for Hub construction
             central_info=self,
+            channel_lookup=self,
+            config_provider=self,
             event_bus_provider=self,
+            event_emitter=self,
+            parameter_visibility_provider=self.parameter_visibility,
+            paramset_description_provider=self.paramset_descriptions,
             primary_client_provider=self,
+            task_scheduler=self.looper,
         )
 
         CENTRAL_INSTANCES[self.name] = self
@@ -581,6 +588,31 @@ class CentralUnit(
     async def create_central_links(self) -> None:
         """Create a central links to support press events on all channels with click events."""
         await self._device_coordinator.create_central_links()
+
+    async def create_client_instance(
+        self,
+        *,
+        interface_config: hmcl.InterfaceConfig,
+    ) -> hmcl.Client:
+        """
+        Create a client for the given interface configuration.
+
+        This method implements the ClientFactory protocol to enable
+        dependency injection without requiring the full CentralUnit.
+
+        Args:
+        ----
+            interface_config: Configuration for the interface
+
+        Returns:
+        -------
+            Client instance for the interface
+
+        """
+        return await hmcl.create_client(
+            central=self,
+            interface_config=interface_config,
+        )
 
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:

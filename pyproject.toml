@@ -583,23 +583,65 @@ omit = [
   "aiohomematic/validator.py",
   "aiohomematic/exceptions.py",
   "aiohomematic/central/rpc_server.py",
+  "aiohomematic/__main__.py",
+  "aiohomematic/hmcli.py",
 ]
+parallel = true
+concurrency = ["thread"]
 
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+skip_covered = false
+sort = "cover"
+precision = 2
+fail_under = 85.0
+
+# Exclude patterns for lines that shouldn't be counted
 exclude_lines = [
     # Have to re-enable the standard pragma
     "pragma: no cover",
+
     # Don't complain about missing debug-only code:
     "def __repr__",
+    "if self\\.debug",
+    "if settings\\.DEBUG",
+
     # Don't complain if tests don't hit defensive assertion code:
     "raise AssertionError",
     "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if False:",
+    "if __name__ == .__main__.:",
+
     # TYPE_CHECKING and @overload blocks are never executed during pytest run
     "if TYPE_CHECKING:",
     "@overload",
+
+    # Abstract methods
+    "@abstractmethod",
+    "@abc.abstractmethod",
+
+    # Protocol methods (structural subtyping)
+    "\\.\\.\\.",
+
+    # Defensive programming
+    "except ImportError:",
 ]
+
+[tool.coverage.html]
+directory = "htmlcov"
+show_contexts = true
+
+[tool.coverage.json]
+output = "coverage.json"
+pretty_print = true
+show_contexts = true
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 
 [tool.mypy]

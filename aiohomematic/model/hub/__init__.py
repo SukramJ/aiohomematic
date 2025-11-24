@@ -81,7 +81,6 @@ from datetime import datetime
 import logging
 from typing import Any, Final, NamedTuple
 
-from aiohomematic import central as hmcu
 from aiohomematic.const import (
     HUB_CATEGORIES,
     Backend,
@@ -150,7 +149,6 @@ class Hub:
     """The Homematic hub."""
 
     __slots__ = (
-        "_central",
         "_central_info",
         "_channel_lookup",
         "_config_provider",
@@ -169,7 +167,6 @@ class Hub:
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,  # Required for data point factory functions
         config_provider: ConfigProvider,
         central_info: CentralInfo,
         hub_data_point_manager: HubDataPointManager,
@@ -185,8 +182,6 @@ class Hub:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
         self._sema_fetch_programs: Final = asyncio.Semaphore()
-        # Keep central reference only for data point factory functions
-        self._central: Final = central
         self._config_provider: Final = config_provider
         self._central_info: Final = central_info
         self._hub_data_point_manager: Final = hub_data_point_manager

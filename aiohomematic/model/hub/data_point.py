@@ -37,6 +37,7 @@ if TYPE_CHECKING:
         ChannelLookup,
         ConfigProvider,
         EventBusProvider,
+        EventPublisher,
         HubDataFetcher,
         ParameterVisibilityProvider,
         ParamsetDescriptionProvider,
@@ -64,6 +65,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         config_provider: ConfigProvider,
         central_info: CentralInfo,
         event_bus_provider: EventBusProvider,
+        event_publisher: EventPublisher,
         task_scheduler: TaskScheduler,
         paramset_description_provider: ParamsetDescriptionProvider,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -89,6 +91,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
             unique_id=unique_id,
             central_info=central_info,
             event_bus_provider=event_bus_provider,
+            event_publisher=event_publisher,
             task_scheduler=task_scheduler,
             paramset_description_provider=paramset_description_provider,
             parameter_visibility_provider=parameter_visibility_provider,
@@ -165,6 +168,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         config_provider: ConfigProvider,
         central_info: CentralInfo,
         event_bus_provider: EventBusProvider,
+        event_publisher: EventPublisher,
         task_scheduler: TaskScheduler,
         paramset_description_provider: ParamsetDescriptionProvider,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -178,6 +182,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             config_provider=config_provider,
             central_info=central_info,
             event_bus_provider=event_bus_provider,
+            event_publisher=event_publisher,
             task_scheduler=task_scheduler,
             paramset_description_provider=paramset_description_provider,
             parameter_visibility_provider=parameter_visibility_provider,
@@ -276,7 +281,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             self._previous_value = old_value
             self._current_value = new_value
         self._state_uncertain = False
-        self.emit_data_point_updated_event()
+        self.publish_data_point_updated_event()
 
     def _convert_value(self, *, old_value: Any, new_value: Any) -> Any:
         """Convert to value to SYSVAR_TYPE."""
@@ -315,7 +320,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
             self._set_temporary_modified_at(modified_at=write_at)
             self._temporary_value = temp_value
             self._state_uncertain = True
-        self.emit_data_point_updated_event()
+        self.publish_data_point_updated_event()
 
 
 class GenericProgramDataPoint(GenericHubDataPoint):
@@ -335,6 +340,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
         config_provider: ConfigProvider,
         central_info: CentralInfo,
         event_bus_provider: EventBusProvider,
+        event_publisher: EventPublisher,
         task_scheduler: TaskScheduler,
         paramset_description_provider: ParamsetDescriptionProvider,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -349,6 +355,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
             config_provider=config_provider,
             central_info=central_info,
             event_bus_provider=event_bus_provider,
+            event_publisher=event_publisher,
             task_scheduler=task_scheduler,
             paramset_description_provider=paramset_description_provider,
             parameter_visibility_provider=parameter_visibility_provider,
@@ -396,7 +403,7 @@ class GenericProgramDataPoint(GenericHubDataPoint):
             self._last_execute_time = data.last_execute_time
             do_update = True
         if do_update:
-            self.emit_data_point_updated_event()
+            self.publish_data_point_updated_event()
 
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""

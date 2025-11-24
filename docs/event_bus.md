@@ -12,7 +12,7 @@ The previous implementation had several issues:
 
 1. **Multiple Callback Dictionaries**: Different event types used different storage patterns:
 
-   - `_backend_system_callbacks: set[BackendSystemCallback]`
+   - `_backend_system_handlers: set[BackendSystemCallback]`
    - `_backend_parameter_callbacks: set[BackendParameterCallback]`
    - `_homematic_callbacks: set[HomematicCallback]`
    - `_data_point_key_event_subscriptions: dict[DataPointKey, list[DataPointEventCallback]]`
@@ -342,15 +342,15 @@ bus = EventBus(enable_event_logging=True)
 ```python
 class CentralUnit:
     def __init__(self):
-        self._backend_system_callbacks: set[BackendSystemCallback] = set()
-        self._backend_parameter_callbacks: set[BackendParameterCallback] = set()
-        self._homematic_callbacks: set[HomematicCallback] = set()
+        self._backend_system_handlers: set[BackendSystemHandler] = set()
+        self._backend_parameter_callbacks: set[BackendParameterHandler] = set()
+        self._homematic_callbacks: set[HomematicHandler] = set()
 
-    def register_backend_system_callback(self, cb: BackendSystemCallback):
-        self._backend_system_callbacks.add(cb)
+    def register_backend_system_event(self, handler: BackendSystemHandler):
+        self._backend_system_handlers.add(cb)
 
-    def emit_backend_system_callback(self, system_event: BackendSystemEvent, **kwargs):
-        for callback in self._backend_system_callbacks:
+    def publish_backend_system_event(self, system_event: BackendSystemEvent, **kwargs):
+        for callback in self._backend_system_handlers:
             try:
                 callback(system_event=system_event, **kwargs)
             except Exception as exc:
@@ -370,7 +370,7 @@ class CentralUnit:
             cb(system_event=event.system_event, **event.data)
         return self._event_bus.subscribe(event_type=BackendSystemEventData, handler=adapter)
 
-    async def emit_backend_system_event(self, event: BackendSystemEvent, **data):
+    async def publish_backend_system_event(self, event: BackendSystemEvent, **data):
         await self._event_bus.publish(event=BackendSystemEventData(
             timestamp=datetime.now(),
             system_event=event,

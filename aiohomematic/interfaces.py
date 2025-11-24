@@ -84,20 +84,20 @@ class ParameterVisibilityProvider(Protocol):
 
 
 @runtime_checkable
-class EventEmitter(Protocol):
+class EventPublisher(Protocol):
     """
-    Protocol for emitting events to the system.
+    Protocol for publishing events to the system.
 
     Implemented by CentralUnit
     """
 
     @abstractmethod
-    def emit_backend_system_callback(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """Emit a backend system callback event."""
+    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+        """Publish a backend system event."""
 
     @abstractmethod
-    def emit_homematic_callback(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
-        """Emit a Homematic callback event."""
+    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+        """Publish a Homematic event."""
 
 
 @runtime_checkable

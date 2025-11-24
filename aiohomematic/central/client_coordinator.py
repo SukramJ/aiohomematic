@@ -258,7 +258,7 @@ class ClientCoordinator(ClientProvider):
                 self._clients[client.interface_id] = client
                 return True
         except BaseHomematicException as bhexc:  # pragma: no cover
-            self._coordinator_provider.event_coordinator.emit_interface_event(
+            self._coordinator_provider.event_coordinator.publish_interface_event(
                 interface_id=interface_config.interface_id,
                 interface_event_type=InterfaceEventType.PROXY,
                 data={EventKey.AVAILABLE: False},

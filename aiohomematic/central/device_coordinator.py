@@ -44,6 +44,7 @@ from aiohomematic.interfaces import (
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
     EventBusProvider,
+    EventPublisher,
     EventSubscriptionManager,
     FileOperations,
     ParameterVisibilityProvider,
@@ -81,6 +82,7 @@ class DeviceCoordinator:
         "_device_description_provider",
         "_device_details_provider",
         "_event_bus_provider",
+        "_event_publisher",
         "_event_subscription_manager",
         "_file_operations",
         "_parameter_visibility_provider",
@@ -102,6 +104,7 @@ class DeviceCoordinator:
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
         event_bus_provider: EventBusProvider,
+        event_publisher: EventPublisher,
         event_subscription_manager: EventSubscriptionManager,
         file_operations: FileOperations,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -124,6 +127,7 @@ class DeviceCoordinator:
             device_description_provider: Provider for device descriptions
             device_details_provider: Provider for device details
             event_bus_provider: Provider for event bus access
+            event_publisher: Provider for event publisher access
             event_subscription_manager: Manager for event subscriptions
             file_operations: Provider for file operations
             parameter_visibility_provider: Provider for parameter visibility rules
@@ -142,6 +146,7 @@ class DeviceCoordinator:
         self._device_description_provider = device_description_provider
         self._device_details_provider = device_details_provider
         self._event_bus_provider = event_bus_provider
+        self._event_publisher = event_publisher
         self._event_subscription_manager = event_subscription_manager
         self._file_operations = file_operations
         self._parameter_visibility_provider = parameter_visibility_provider
@@ -312,6 +317,7 @@ class DeviceCoordinator:
                         device_description_provider=self._device_description_provider,
                         device_details_provider=self._device_details_provider,
                         event_bus_provider=self._event_bus_provider,
+                        event_publisher=self._event_publisher,
                         event_subscription_manager=self._event_subscription_manager,
                         file_operations=self._file_operations,
                         parameter_visibility_provider=self._parameter_visibility_provider,
@@ -347,7 +353,7 @@ class DeviceCoordinator:
                 await device.finalize_init()
             new_dps = _get_new_data_points(new_devices=new_devices)
             new_channel_events = _get_new_channel_events(new_devices=new_devices)
-            self._coordinator_provider.event_coordinator.emit_backend_system_callback(
+            self._coordinator_provider.event_coordinator.publish_backend_system_event(
                 system_event=BackendSystemEvent.DEVICES_CREATED,
                 new_data_points=new_dps,
                 new_channel_events=new_channel_events,
@@ -617,7 +623,7 @@ class DeviceCoordinator:
                     )
                 )
             ):
-                self._coordinator_provider.event_coordinator.emit_backend_system_callback(
+                self._coordinator_provider.event_coordinator.publish_backend_system_event(
                     system_event=BackendSystemEvent.DEVICES_DELAYED,
                     new_addresses=new_addresses,
                     interface_id=interface_id,

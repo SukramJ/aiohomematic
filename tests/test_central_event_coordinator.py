@@ -209,14 +209,14 @@ class TestEventCoordinatorDataPointEvent:
 
 
 class TestEventCoordinatorEmitMethods:
-    """Test emit callback methods."""
+    """Test publish callback methods."""
 
-    def test_emit_backend_parameter_callback(self) -> None:
-        """Emit backend parameter callback should publish to EventBus."""
+    def test_publish_backend_parameter_handler(self) -> None:
+        """Publish backend parameter callback should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
 
-        coordinator.emit_backend_parameter_callback(
+        coordinator.publish_backend_parameter_event(
             interface_id="BidCos-RF",
             channel_address="VCU0000001:1",
             parameter="STATE",
@@ -227,12 +227,12 @@ class TestEventCoordinatorEmitMethods:
         assert len(central.looper.tasks) == 1
         assert "event-bus-backend-param" in central.looper.tasks[0]["name"]
 
-    def test_emit_backend_system_callback(self) -> None:
-        """Emit backend system callback should publish to EventBus."""
+    def test_publish_backend_system_handler(self) -> None:
+        """Publish backend system callback should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
 
-        coordinator.emit_backend_system_callback(
+        coordinator.publish_backend_system_event(
             system_event=BackendSystemEvent.DEVICES_CREATED,
             interface_id="BidCos-RF",
         )
@@ -241,12 +241,12 @@ class TestEventCoordinatorEmitMethods:
         assert len(central.looper.tasks) == 1
         assert "event-bus-backend-system" in central.looper.tasks[0]["name"]
 
-    def test_emit_homematic_callback(self) -> None:
-        """Emit Homematic callback should publish to EventBus."""
+    def test_publish_homematic_handler(self) -> None:
+        """Publish Homematic callback should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
 
-        coordinator.emit_homematic_callback(
+        coordinator.publish_homematic_event(
             event_type=EventType.KEYPRESS,
             event_data={EventKey.INTERFACE_ID: "BidCos-RF", EventKey.ADDRESS: "VCU0000001:1"},
         )
@@ -255,12 +255,12 @@ class TestEventCoordinatorEmitMethods:
         assert len(central.looper.tasks) == 1
         assert "event-bus-homematic" in central.looper.tasks[0]["name"]
 
-    def test_emit_interface_event(self) -> None:
-        """Emit interface event should publish to EventBus."""
+    def test_publish_interface_event(self) -> None:
+        """Publish interface event should publish to EventBus."""
         central = _FakeCentral()
         coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
 
-        coordinator.emit_interface_event(
+        coordinator.publish_interface_event(
             interface_id="BidCos-RF",
             interface_event_type=InterfaceEventType.CALLBACK,
             data={EventKey.AVAILABLE: True},

@@ -810,7 +810,7 @@ class HubCoordinator:
         channel_lookup: ChannelLookup,
         config_provider: ConfigProvider,
         event_bus_provider: EventBusProvider,
-        event_emitter: EventEmitter,
+        event_publisher: EventPublisher,
         # ... more protocol interfaces
     ) -> None:
         # Creates Hub using protocol interfaces - no CentralUnit reference
@@ -902,7 +902,7 @@ class CentralInfo(Protocol):
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
 - **EventBusProvider**: Event system access (event_bus property)
-- **EventEmitter**: Event emission (emit_backend_system_callback, emit_homematic_callback)
+- **EventPublisher**: Event emission (publish_backend_system_event, publish_homematic_event)
 - **TaskScheduler**: Background task scheduling (create_task method)
 - **PrimaryClientProvider**: Primary client access
 - **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
@@ -919,19 +919,23 @@ class CentralInfo(Protocol):
 
 CentralUnit implements all protocols without explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 
-#### 3. Observer Pattern
+#### 3. Observer Pattern (EventBus-based)
 
 ```python
-# DataPoints support subscription
-def subscribe(
-    self,
-    callback: Callable[[str, Any], None],
-) -> None:
-    """Subscribe to value changes."""
-    self._callbacks.append(callback)
+# DataPoints publish events via EventBus
+# Subscribers receive notifications through the modern subscribe_to_* API
 
-# Usage
-data_point.subscribe(lambda name, value: print(f"{name} = {value}"))
+# Subscribe to data point updates
+def on_value_changed(**kwargs):
+    print(f"Value changed: {kwargs}")
+
+unsubscribe = data_point.subscribe_to_data_point_updated(
+    handler=on_value_changed,
+    custom_id="my-app"
+)
+
+# Clean up subscription when done
+unsubscribe()
 ```
 
 #### 4. Decorator Pattern
@@ -946,6 +950,46 @@ class DataPoint:
         """Get current value."""
         return self._value
 ```
+
+#### 5. EventBus Pattern
+
+The project uses a unified **EventBus** system for internal event communication. All subscription methods use the modern `subscribe_to_*` API:
+
+```python
+# EventBus API - Direct subscription
+from aiohomematic.central.event_bus import DataPointUpdatedEvent
+
+async def on_datapoint_update(event: DataPointUpdatedEvent) -> None:
+    print(f"DataPoint {event.dpk} = {event.value}")
+
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointUpdatedEvent,
+    handler=on_datapoint_update
+)
+unsubscribe()
+
+# Model API - Subscription via Device/Channel/DataPoint
+def on_device_updated():
+    print("Device state changed")
+
+unsubscribe = device.subscribe_to_device_updated(handler=on_device_updated)
+unsubscribe()
+
+def on_value_changed(**kwargs):
+    print(f"Value changed: {kwargs}")
+
+unsubscribe = data_point.subscribe_to_data_point_updated(
+    handler=on_value_changed,
+    custom_id="my-app"
+)
+unsubscribe()
+```
+
+**Method Naming:**
+
+- `subscribe_to_*` - All subscription methods use this modern naming
+- `handler` parameter - Use `handler=` instead of `cb=`
+- `unsubscribe()` - All subscriptions return an unsubscribe callable
 
 ### Concurrency Model
 

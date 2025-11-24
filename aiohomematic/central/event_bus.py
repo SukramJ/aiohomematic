@@ -54,7 +54,7 @@ Example Usage
 Migration Notes
 ---------------
 This EventBus replaces the following callback patterns in CentralUnit:
-- _backend_system_callbacks → BackendSystemEvent
+- _backend_system_handlers → BackendSystemEvent
 - _backend_parameter_callbacks → BackendParameterEvent
 - _homematic_callbacks → HomematicEvent
 - _data_point_key_event_subscriptions → DataPointUpdatedEvent
@@ -126,7 +126,7 @@ class DataPointUpdatedEvent(Event):
 
 @dataclass(frozen=True, slots=True)
 class BackendParameterEvent(Event):
-    """Raw parameter update event from backend (re-emitted from RPC callbacks)."""
+    """Raw parameter update event from backend (re-published from RPC callbacks)."""
 
     interface_id: str
     channel_address: str

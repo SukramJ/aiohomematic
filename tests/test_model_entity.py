@@ -34,7 +34,7 @@ class TestDataPointDefinition:
 
 
 class TestDataPointCallbacks:
-    """Tests for data point callback functionality."""
+    """Tests for data point handler functionality."""
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -48,11 +48,11 @@ class TestDataPointCallbacks:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_custom_data_point_callback(
+    async def test_custom_data_point_handler(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test CustomDpSwitch callback registration and events."""
+        """Test CustomDpSwitch handler registration and events."""
         central, _, factory = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         assert switch.usage == DataPointUsage.CDP_PRIMARY
@@ -60,10 +60,10 @@ class TestDataPointCallbacks:
         device_updated_mock = MagicMock()
         device_removed_mock = MagicMock()
 
-        unregister_data_point_updated_callback = switch.register_data_point_updated_callback(
-            cb=device_updated_mock, custom_id="some_id"
+        unregister_data_point_updated_handler = switch.subscribe_to_data_point_updated(
+            handler=device_updated_mock, custom_id="some_id"
         )
-        unregister_device_removed_callback = switch.register_device_removed_callback(cb=device_removed_mock)
+        unregister_device_removed_handler = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
         await central.data_point_event(
@@ -86,8 +86,8 @@ class TestDataPointCallbacks:
         assert event.system_event == "deleteDevices"
         assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
         assert event.data.get("addresses") == ["VCU2128127"]
-        unregister_data_point_updated_callback()
-        unregister_device_removed_callback()
+        unregister_data_point_updated_handler()
+        unregister_device_removed_handler()
 
         device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
         device_removed_mock.assert_called_with()
@@ -104,11 +104,11 @@ class TestDataPointCallbacks:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_generic_data_point_callback(
+    async def test_generic_data_point_handler(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test generic data point callback registration and events."""
+        """Test generic data point handler registration and events."""
         central, _, factory = central_client_factory_with_homegear_client
         switch: DpSwitch = cast(
             DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
@@ -118,8 +118,8 @@ class TestDataPointCallbacks:
         device_updated_mock = MagicMock()
         device_removed_mock = MagicMock()
 
-        unregister_updated = switch.register_data_point_updated_callback(cb=device_updated_mock, custom_id="some_id")
-        unregister_removed = switch.register_device_removed_callback(cb=device_removed_mock)
+        unregister_updated = switch.subscribe_to_data_point_updated(handler=device_updated_mock, custom_id="some_id")
+        unregister_removed = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
         await central.data_point_event(
@@ -142,7 +142,7 @@ class TestDataPointCallbacks:
         assert event.system_event == "deleteDevices"
         assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
         assert event.data.get("addresses") == ["VCU2128127"]
-        # Call the unregister callbacks to clean up
+        # Call the unregister handler to clean up
         if unregister_updated:
             unregister_updated()
         if unregister_removed:

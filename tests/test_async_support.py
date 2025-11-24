@@ -32,7 +32,7 @@ class TestLooper:
         t = looper._async_create_task(do_work(), name="work")  # noqa: SLF001
         assert t in looper._tasks  # noqa: SLF001
         assert await t == "ok"
-        # After completion the done callback should have removed the task
+        # After completion the done handler should have removed the task
         assert t not in looper._tasks  # noqa: SLF001
 
     @pytest.mark.asyncio
@@ -114,7 +114,7 @@ class TestLooper:
         # Should be tracked until done
         assert future in looper._tasks  # noqa: SLF001
         assert await future == 10
-        # After completion the done callback should have removed it
+        # After completion the done handler should have removed it
         assert future not in looper._tasks  # noqa: SLF001
 
     @pytest.mark.asyncio
@@ -125,7 +125,7 @@ class TestLooper:
         block_till_done without deadline should emit debug logs after exceeding BLOCK_LOG_TIMEOUT.
 
         We monkeypatch BLOCK_LOG_TIMEOUT to a tiny value to avoid waiting; then verify that debug logs
-        indicating waiting for tasks are emitted.
+        indicating waiting for tasks are published.
         """
         # Make timeout very small to trigger the debug logging quickly
         monkeypatch.setattr(asupp, "BLOCK_LOG_TIMEOUT", 0.01)
@@ -190,7 +190,7 @@ class TestLooper:
 
         We simulate quick loop iterations by monkeypatching _await_and_log_pending to return
         immediately and manipulate time and BLOCK_LOG_TIMEOUT so the outer loop crosses the
-        threshold and emits the debug logs.
+        threshold and publishes the debug logs.
         """
         looper = asupp.Looper()
 
@@ -357,7 +357,7 @@ class TestLooper:
             # wait_time small to trigger deadline path quickly
             await looper.block_till_done(wait_time=0.0)
 
-        # After deadline 0, task should still be pending and a warning emitted
+        # After deadline 0, task should still be pending and a warning published
         assert any("Shutdown timeout reached" in rec.message for rec in caplog.records)
 
         t.cancel()

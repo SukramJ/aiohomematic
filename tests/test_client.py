@@ -291,19 +291,19 @@ class _FakeCentral:
     def listen_port_xml_rpc(self) -> int:  # noqa: D401
         return self._listen_port_xml_rpc
 
-    def emit_homematic_callback(self, *, event_type: Any, event_data: dict[str, Any]) -> None:  # noqa: D401,ARG002,ANN401
-        return None
-
-    def emit_interface_event(
-        self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, str]
-    ):  # noqa: D401,ARG002,E501
-        return None
-
     def get_client(self, *, interface_id: str):  # noqa: D401,ARG002
         return self._clients.get(interface_id)
 
     def has_client(self, *, interface_id: str) -> bool:  # noqa: D401,ARG002
         return interface_id in self._clients
+
+    def publish_homematic_event(self, *, event_type: Any, event_data: dict[str, Any]) -> None:  # noqa: D401,ARG002,ANN401
+        return None
+
+    def publish_interface_event(
+        self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, str]
+    ):  # noqa: D401,ARG002,E501
+        return None
 
     def save_files(self, *, save_paramset_descriptions: bool = False) -> None:  # noqa: ARG002,D401
         return None
@@ -449,11 +449,6 @@ class _FakeCentral2:
     def add_device(self, addr: str, *, product_group: ProductGroup) -> None:
         self._devices[addr] = SimpleNamespace(product_group=product_group, interface_id="i")
 
-    def emit_interface_event(
-        self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, Any]
-    ):  # noqa: D401,E501
-        self._events.append((interface_id, interface_event_type, data))
-
     def get_channel(self, *, channel_address: str):  # noqa: D401,ANN001
         return self._channels.get(channel_address)
 
@@ -466,6 +461,11 @@ class _FakeCentral2:
     def get_last_event_seen_for_interface(self, *, interface_id: str):  # noqa: D401,ARG002
         return self._last_event
 
+    def publish_interface_event(
+        self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, Any]
+    ):  # noqa: D401,E501
+        self._events.append((interface_id, interface_event_type, data))
+
     async def save_files(self, *, save_paramset_descriptions: bool = False):  # noqa: ARG002,D401
         return None
 
@@ -475,12 +475,12 @@ class _EventDP:
 
     def __init__(self, *, should_match: bool = False) -> None:
         self.supports_events = True
-        self._cb: Any | None = None
+        self._handler: Any | None = None
         self.value = 0.0 if should_match else 1.0
         self.unsub_called = False
 
-    def register_data_point_updated_callback(self, *, cb, custom_id):  # type: ignore[no-untyped-def]
-        self._cb = cb
+    def subscribe_to_data_point_updated(self, *, handler, custom_id):  # type: ignore[no-untyped-def]
+        self._handler = handler
 
         def _unsub():
             self.unsub_called = True
@@ -737,7 +737,7 @@ class TestClientClasses:
 
     @pytest.mark.asyncio
     async def test_fetch_all_device_data_exception_event(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """fetch_all_device_data should emit interface event on ClientException and not raise when decorated with re_raise=False."""
+        """fetch_all_device_data should publish interface event on ClientException and not raise when decorated with re_raise=False."""
         central = _FakeCentral()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         from aiohomematic.client import ClientCCU as _ClientCCU, ClientConfig as _ClientConfig
@@ -751,13 +751,13 @@ class TestClientClasses:
 
         central.json_rpc_client.get_all_device_data = raise_client_exc  # type: ignore[assignment]
 
-        # Capture emit_interface_event calls
+        # Capture publish_interface_event calls
         called: dict[str, Any] = {}
 
         def _emit(**kwargs: Any) -> None:  # noqa: ANN001
             called.update(kwargs)
 
-        central.emit_interface_event = _emit  # type: ignore[assignment]
+        central.publish_interface_event = _emit  # type: ignore[assignment]
 
         # Should not raise due to inspector(re_raise=False)
         await client_ccu.fetch_all_device_data()

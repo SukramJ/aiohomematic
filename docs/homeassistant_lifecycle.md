@@ -42,7 +42,7 @@ Event and value processing during operation:
   - The DataPoint writes the new value via `write_value` and checks for state change (`is_state_change`).
   - Special handling:
     - `CONFIG_PENDING`: Transition from True→False triggers reloading the paramset descriptions and a refresh of readable MASTER parameters (see `GenericDataPoint.event`).
-    - Availability (`UN_REACH`, `STICKY_UN_REACH`): Triggers `fire_device_updated_callback` on the device and a central event `EventType.DEVICE_AVAILABILITY` so HA can adjust availability.
+    - Availability (`UN_REACH`, `STICKY_UN_REACH`): Triggers `publish_device_updated_event` on the device and publishes `EventType.DEVICE_AVAILABILITY` via EventBus so HA can adjust availability.
 - Reading/sending values:
   - Read: Via `DataPoint.load_data_point_value()` in conjunction with the device store/client. Cache is consulted to avoid unnecessary CCU calls.
   - Write: `GenericDataPoint.send_value()` validates, converts, de‑duplicates (no sending without a state change), and calls `client.set_value()`.
@@ -64,7 +64,7 @@ Orderly teardown at different levels:
 - Device removal:
   - `Device.remove()` initiates teardown for all channels and data structures of the device.
 - Callback de‑registration:
-  - DataPoints/Updates register callbacks (e.g., `register_data_point_updated_callback`). On removal these are properly cleaned up via returned unregister functions or explicit unregister.
+  - DataPoints/Updates register callbacks (e.g., `subscribe_to_data_point_updated`). On removal these are properly cleaned up via returned unsubscribe functions or explicit unsubscribe.
 - Central stop:
   - When the integration shuts down, the Central stops the RPC clients, cancels subscriptions, and closes sessions. HA does not automatically remove entities unless devices are considered permanently deleted (see next point).
 - Device mutations (delete/re‑pairing):
@@ -76,9 +76,9 @@ Orderly teardown at different levels:
 
 Signals/callbacks relevant for integration developers:
 
-- Device availability: `EventType.DEVICE_AVAILABILITY` as well as `Device.register_device_updated_callback()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
-- DataPoint updates: DataPoints call registered callbacks after `write_value`; HA uses this to update entity state.
-- Firmware: `DpUpdate.register_data_point_updated_callback()` reflects firmware changes and progress.
+- Device availability: `EventType.DEVICE_AVAILABILITY` as well as `Device.subscribe_to_device_updated()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
+- DataPoint updates: DataPoints publishes event after `write_value`; HA uses this to update entity state.
+- Firmware: `DpUpdate.subscribe_to_data_point_updated()` reflects firmware changes and progress.
 
 ---
 
@@ -88,7 +88,7 @@ Signals/callbacks relevant for integration developers:
 - Tie an entity’s availability to `Device.available` (and consume the dedicated availability events).
 - When `CONFIG_PENDING` changes True→False: re‑load MASTER parameters (already triggered by aiohomematic; optionally request a refresh from HA if needed).
 - Only send write commands if target state differs from current (`send_value` already does this). Log errors/validation exceptions.
-- Account for reconnects: keep entities, update states on events. Do not register callbacks twice.
+- Account for reconnects: keep entities, update states on events. Do not subscribe twice to the same events.
 
 ---
 

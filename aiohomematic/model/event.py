@@ -8,10 +8,10 @@ button presses, device errors, and impulse notifications to applications.
 
 Included classes:
 - GenericEvent: Base event that integrates with the common data point API
-  (category, usage, names/paths, callbacks) and provides emit_event handling.
+  (category, usage, names/paths, callbacks) and provides publish_event handling.
 - ClickEvent: Represents key press events (EventType.KEYPRESS).
 - DeviceErrorEvent: Represents device error signaling with special value change
-  semantics before emitting an event (EventType.DEVICE_ERROR).
+  semantics before publishing an event (EventType.DEVICE_ERROR).
 - ImpulseEvent: Represents impulse events (EventType.IMPULSE).
 
 Factory helpers:
@@ -99,19 +99,19 @@ class GenericEvent(BaseParameterDataPointAny):
             return self._get_data_point_usage()
         return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
 
-    @loop_check
-    def emit_event(self, *, value: Any) -> None:
-        """Do what is needed to emit an event."""
-        self._event_emitter.emit_homematic_callback(
-            event_type=self.event_type, event_data=self.get_event_data(value=value)
-        )
-
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
         if self.event_type in DATA_POINT_EVENTS:
-            self.emit_data_point_updated_event()
+            self.publish_data_point_updated_event()
         self._set_modified_at(modified_at=received_at)
-        self.emit_event(value=value)
+        self.publish_event(value=value)
+
+    @loop_check
+    def publish_event(self, *, value: Any) -> None:
+        """Do what is needed to publish an event."""
+        self._event_publisher.publish_homematic_event(
+            event_type=self.event_type, event_data=self.get_event_data(value=value)
+        )
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data_point."""
@@ -151,7 +151,7 @@ class DeviceErrorEvent(GenericEvent):
             isinstance(new_value, int)
             and ((old_value is None and new_value > 0) or (isinstance(old_value, int) and old_value != new_value))
         ):
-            self.emit_event(value=new_value)
+            self.publish_event(value=new_value)
 
 
 class ImpulseEvent(GenericEvent):

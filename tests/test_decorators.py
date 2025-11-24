@@ -70,7 +70,7 @@ class TestInspectorDecorator:
         res = await svc.add(DummyContext("E"), 1, 2)
         assert res == 3
 
-        # Performance message emitted
+        # Performance message published
         msgs = caplog.text
         assert "ADD" in msgs
 

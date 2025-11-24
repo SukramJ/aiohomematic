@@ -73,9 +73,9 @@ Trigger points
 ### Processing steps for a value event
 
 1. Identify DataPoint by channel_address and parameter.
-2. Convert incoming raw value to the DataPoint’s typed value when necessary (e.g., boolean normalization, levels).
+2. Convert incoming raw value to the DataPoint's typed value when necessary (e.g., boolean normalization, levels).
 3. Update in-memory value cache for DataPointKey and set modified/last-updated timestamps.
-4. Update DataPoint internal state and fire callbacks to subscribers (device_updated, firmware_update callbacks, and per-DataPoint listeners).
+4. Update DataPoint internal state and publish events to subscribers via EventBus (device_updated, firmware_updated, and data_point_updated events).
 5. Reconcile pending commands (if the new value matches a recent write) and adjust connection health markers.
 
 ### Error and edge cases

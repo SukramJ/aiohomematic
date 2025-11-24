@@ -68,6 +68,7 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.interfaces import (
     CentralInfo,
     EventBusProvider,
+    EventPublisher,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,
@@ -78,11 +79,11 @@ from aiohomematic.property_decorators import config_property, hm_property, state
 from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
 from aiohomematic.type_aliases import (
     CallableAny,
-    DataPointUpdatedCallback,
-    DeviceRemovedCallback,
+    DataPointUpdatedHandler,
+    DeviceRemovedHandler,
     ParamType,
     ServiceMethodMap,
-    UnregisterCallback,
+    UnsubscribeHandler,
 )
 
 __all__ = [
@@ -156,8 +157,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
         "_cached_service_methods",
         "_central_info",
         "_custom_id",
-        "_emitted_event_at",
+        "_published_event_at",
         "_event_bus_provider",
+        "_event_publisher",
         "_modified_at",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
@@ -180,6 +182,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         unique_id: str,
         central_info: CentralInfo,
         event_bus_provider: EventBusProvider,
+        event_publisher: EventPublisher,
         task_scheduler: TaskScheduler,
         paramset_description_provider: ParamsetDescriptionProvider,
         parameter_visibility_provider: ParameterVisibilityProvider,
@@ -187,6 +190,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Initialize the callback data point."""
         self._central_info: Final = central_info
         self._event_bus_provider: Final = event_bus_provider
+        self._event_publisher: Final = event_publisher
         self._task_scheduler: Final = task_scheduler
         self._paramset_description_provider: Final = paramset_description_provider
         self._parameter_visibility_provider: Final = parameter_visibility_provider
@@ -195,7 +199,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._subscription_counts: dict[str, int] = {}
         self._custom_id: str | None = None
         self._path_data = self._get_path_data()
-        self._emitted_event_at: datetime = INIT_DATETIME
+        self._published_event_at: datetime = INIT_DATETIME
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
         self._signature: Final = self._get_signature()
@@ -212,46 +216,9 @@ class CallbackDataPoint(ABC, LogContextMixin):
         return cls._category
 
     @property
-    def _event_emitter(self) -> Any:
-        """
-        Return the event emitter.
-
-        This property documents that components only depend on event emission
-        functionality from CentralUnit, not the full API.
-        Returns event bus provider (which implements EventEmitter protocol).
-
-        Type: EventEmitter protocol (from model.interfaces)
-        """
-        return self._event_bus_provider
-
-    @property
-    def _paramset_provider(self) -> Any:
-        """
-        Return the paramset description provider.
-
-        This property documents that CallbackDataPoint only depends on
-        paramset_descriptions functionality from CentralUnit, not the full API.
-
-        Type: ParamsetDescriptionProvider protocol (from model.interfaces)
-        """
-        return self._paramset_description_provider
-
-    @property
-    def _should_emit_data_point_updated_callback(self) -> bool:
+    def _should_publish_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
         return True
-
-    @property
-    def _visibility_provider(self) -> Any:
-        """
-        Return the parameter visibility provider.
-
-        This property documents that CallbackDataPoint only depends on
-        parameter_visibility functionality from CentralUnit, not the full API.
-
-        Type: ParameterVisibilityProvider protocol (from model.interfaces)
-        """
-        return self._parameter_visibility_provider
 
     @property
     def category(self) -> DataPointCategory:
@@ -262,11 +229,6 @@ class CallbackDataPoint(ABC, LogContextMixin):
     def custom_id(self) -> str | None:
         """Return the custom id."""
         return self._custom_id
-
-    @property
-    def emitted_event_at(self) -> datetime:
-        """Return the data point updated emitted an event at."""
-        return self._emitted_event_at
 
     @property
     @abstractmethod
@@ -282,6 +244,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
     def is_valid(self) -> bool:
         """Return, if the value of the data_point is valid based on the refreshed at datetime."""
         return self._refreshed_at > INIT_DATETIME
+
+    @property
+    def published_event_at(self) -> datetime:
+        """Return the data point updated published an event at."""
+        return self._published_event_at
 
     @property
     def set_path(self) -> str:
@@ -324,13 +291,6 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Return the availability of the device."""
 
     @state_property
-    def emitted_event_recently(self) -> bool:
-        """Return the data point emitted an event within 500 milliseconds."""
-        if self._emitted_event_at == INIT_DATETIME:
-            return False
-        return (datetime.now() - self._emitted_event_at).total_seconds() < 0.5
-
-    @state_property
     def modified_at(self) -> datetime:
         """Return the last update datetime value."""
         if self._temporary_modified_at > self._modified_at:
@@ -343,6 +303,13 @@ class CallbackDataPoint(ABC, LogContextMixin):
         if self._modified_at == INIT_DATETIME:
             return False
         return (datetime.now() - self._modified_at).total_seconds() < 0.5
+
+    @state_property
+    def published_event_recently(self) -> bool:
+        """Return the data point published an event within 500 milliseconds."""
+        if self._published_event_at == INIT_DATETIME:
+            return False
+        return (datetime.now() - self._published_event_at).total_seconds() < 0.5
 
     @state_property
     def refreshed_at(self) -> datetime:
@@ -378,12 +345,15 @@ class CallbackDataPoint(ABC, LogContextMixin):
         """Return all service methods."""
         return get_service_calls(obj=self)
 
+    async def finalize_init(self) -> None:
+        """Finalize the data point init action after model setup."""
+
     @loop_check
-    def emit_data_point_updated_event(self, **kwargs: Any) -> None:
+    def publish_data_point_updated_event(self, **kwargs: Any) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
-        if not self._should_emit_data_point_updated_callback:
+        if not self._should_publish_data_point_updated_callback:
             return
-        self._emitted_event_at = datetime.now()
+        self._published_event_at = datetime.now()
 
         # Add the data_point reference to kwargs once
         event_kwargs = {**kwargs, KWARGS_ARG_DATA_POINT: self}
@@ -413,11 +383,11 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
             self._task_scheduler.create_task(
                 target=_publish_wrapper,
-                name=f"emit-callback-event-{self._unique_id}-{custom_id}",
+                name=f"publish-callback-event-{self._unique_id}-{custom_id}",
             )
 
     @loop_check
-    def emit_device_removed_event(self) -> None:
+    def publish_device_removed_event(self) -> None:
         """Do what is needed when the data_point has been removed."""
 
         # Publish to EventBus asynchronously
@@ -431,34 +401,31 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         self._task_scheduler.create_task(
             target=_publish_device_removed,
-            name=f"emit-device-removed-{self._unique_id}",
+            name=f"publish-device-removed-{self._unique_id}",
         )
 
-    async def finalize_init(self) -> None:
-        """Finalize the data point init action after model setup."""
-
-    def register_data_point_updated_callback(
-        self, *, cb: DataPointUpdatedCallback, custom_id: str
-    ) -> UnregisterCallback:
-        """Register data_point updated callback."""
+    def subscribe_to_data_point_updated(
+        self, *, handler: DataPointUpdatedHandler, custom_id: str
+    ) -> UnsubscribeHandler:
+        """Subscribe to data_point updated event."""
         if custom_id not in InternalCustomID:
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise AioHomematicException(
                     i18n.tr(
-                        "exception.model.data_point.register_callback.already_registered",
+                        "exception.model.data_point.subscribe_handler.already_registered",
                         full_name=self.full_name,
                         custom_id=self._custom_id,
                     )
                 )
             self._custom_id = custom_id
 
-        # Track registration for emit method
+        # Track registration for publish method
         self._registered_custom_ids.add(custom_id)
 
         # Create adapter that filters for this data point's events with matching custom_id
         def event_handler(event: DataPointUpdatedCallbackEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
-                cb(**event.kwargs)
+                handler(**event.kwargs)
 
         unsubscribe = self._event_bus_provider.event_bus.subscribe(
             event_type=DataPointUpdatedCallbackEvent,
@@ -484,22 +451,22 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         return wrapped_unsubscribe
 
-    def register_device_removed_callback(self, *, cb: DeviceRemovedCallback) -> UnregisterCallback:
-        """Register the device removed callback."""
+    def subscribe_to_device_removed(self, *, handler: DeviceRemovedHandler) -> UnsubscribeHandler:
+        """Subscribe to the device removed event."""
 
         # Create adapter that filters for this data point's events
         def event_handler(event: DeviceRemovedEvent) -> None:
             if event.unique_id == self._unique_id:
-                cb()
+                handler()
 
         return self._event_bus_provider.event_bus.subscribe(
             event_type=DeviceRemovedEvent,
             handler=event_handler,
         )
 
-    def register_internal_data_point_updated_callback(self, *, cb: DataPointUpdatedCallback) -> UnregisterCallback:
-        """Register internal data_point updated callback."""
-        return self.register_data_point_updated_callback(cb=cb, custom_id=InternalCustomID.DEFAULT)
+    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeHandler:
+        """Subscribe to internal data_point updated event."""
+        return self.subscribe_to_data_point_updated(handler=handler, custom_id=InternalCustomID.DEFAULT)
 
     @abstractmethod
     def _get_path_data(self) -> PathData:
@@ -571,6 +538,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
             unique_id=unique_id,
             central_info=channel.device.central_info,
             event_bus_provider=channel.device.event_bus_provider,
+            event_publisher=channel.device.event_publisher,
             task_scheduler=channel.device.task_scheduler,
             paramset_description_provider=channel.device.paramset_description_provider,
             parameter_visibility_provider=channel.device.parameter_visibility_provider,
@@ -753,7 +721,7 @@ class BaseParameterDataPoint[
                 channel_address=channel.address, parameter=parameter
             ),
         )
-        self._is_un_ignored: Final[bool] = self._visibility_provider.parameter_is_un_ignored(
+        self._is_un_ignored: Final[bool] = self._parameter_visibility_provider.parameter_is_un_ignored(
             channel=channel,
             paramset_key=self._paramset_key,
             parameter=self._parameter,
@@ -1009,7 +977,7 @@ class BaseParameterDataPoint[
 
     def update_parameter_data(self) -> None:
         """Update parameter data."""
-        if parameter_data := self._paramset_provider.get_parameter_data(
+        if parameter_data := self._paramset_description_provider.get_parameter_data(
             interface_id=self._device.interface_id,
             channel_address=self._channel.address,
             paramset_key=self._paramset_key,
@@ -1028,7 +996,7 @@ class BaseParameterDataPoint[
             self._set_temporary_modified_at(modified_at=write_at)
             self._temporary_value = temp_value
             self._state_uncertain = True
-        self.emit_data_point_updated_event()
+        self.publish_data_point_updated_event()
 
     def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT, ParameterT]:
         """Update value of the data_point."""
@@ -1038,7 +1006,7 @@ class BaseParameterDataPoint[
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
-                self.emit_data_point_updated_event()
+                self.publish_data_point_updated_event()
             return (old_value, None)  # type: ignore[return-value]
 
         new_value = self._convert_value(value=value)
@@ -1049,7 +1017,7 @@ class BaseParameterDataPoint[
             self._previous_value = old_value
             self._current_value = new_value
         self._state_uncertain = False
-        self.emit_data_point_updated_event()
+        self.publish_data_point_updated_event()
         return (old_value, new_value)
 
     def _assign_parameter_data(self, *, parameter_data: ParameterData) -> None:

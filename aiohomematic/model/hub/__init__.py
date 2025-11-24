@@ -32,7 +32,7 @@ Lifecycle and Flow
    - It identifies removed items and cleans up corresponding data points.
    - It updates existing data points or creates new ones as needed.
 3. For newly created hub data points, a BackendSystemEvent.HUB_REFRESHED event
-   is emitted with a categorized mapping of the new points for consumers.
+   is published with a categorized mapping of the new points for consumers.
 
 Type Mapping for System Variables
 - Based on SysvarType and the extended_sysvar flag, system variables are
@@ -55,7 +55,7 @@ Backend Specifics and Cleanup
 
 Categories and New Data Point Discovery
 - Newly created hub data points are grouped into HUB_CATEGORIES and returned as
-  a mapping, so subscribers can register and present them appropriately.
+  a mapping, so subscribers can subscribe and present them appropriately.
 
 Related Modules
 - aiohomematic.model.hub.data_point: Base types for hub-level data points.
@@ -79,7 +79,7 @@ import asyncio
 from collections.abc import Collection, Mapping, Set as AbstractSet
 from datetime import datetime
 import logging
-from typing import Any, Final, NamedTuple
+from typing import Final, NamedTuple
 
 from aiohomematic.const import (
     HUB_CATEGORIES,
@@ -96,7 +96,7 @@ from aiohomematic.interfaces import (
     ChannelLookup,
     ConfigProvider,
     EventBusProvider,
-    EventEmitter,
+    EventPublisher,
     HubDataFetcher,
     HubDataPointManager,
     ParameterVisibilityProvider,
@@ -153,7 +153,7 @@ class Hub:
         "_channel_lookup",
         "_config_provider",
         "_event_bus_provider",
-        "_event_emitter",
+        "_event_publisher",
         "_hub_data_fetcher",
         "_hub_data_point_manager",
         "_parameter_visibility_provider",
@@ -171,7 +171,7 @@ class Hub:
         central_info: CentralInfo,
         hub_data_point_manager: HubDataPointManager,
         primary_client_provider: PrimaryClientProvider,
-        event_emitter: EventEmitter,
+        event_publisher: EventPublisher,
         event_bus_provider: EventBusProvider,
         task_scheduler: TaskScheduler,
         paramset_description_provider: ParamsetDescriptionProvider,
@@ -186,7 +186,7 @@ class Hub:
         self._central_info: Final = central_info
         self._hub_data_point_manager: Final = hub_data_point_manager
         self._primary_client_provider: Final = primary_client_provider
-        self._event_emitter: Final = event_emitter
+        self._event_publisher: Final = event_publisher
         self._event_bus_provider: Final = event_bus_provider
         self._task_scheduler: Final = task_scheduler
         self._paramset_description_provider: Final = paramset_description_provider
@@ -194,15 +194,10 @@ class Hub:
         self._channel_lookup: Final = channel_lookup
         self._hub_data_fetcher: Final = hub_data_fetcher
 
-    @property
-    def _config(self) -> Any:
-        """Return configuration (for backward compatibility in fetch methods)."""
-        return self._config_provider.config
-
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
-        if self._config.enable_program_scan:
+        if self._config_provider.config.enable_program_scan:
             _LOGGER.debug(
                 "FETCH_PROGRAM_DATA: %s fetching of programs for %s",
                 "Scheduled" if scheduled else "Manual",
@@ -215,7 +210,7 @@ class Hub:
     @inspector(re_raise=False)
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data for the hub."""
-        if self._config.enable_sysvar_scan:
+        if self._config_provider.config.enable_sysvar_scan:
             _LOGGER.debug(
                 "FETCH_SYSVAR_DATA: %s fetching of system variables for %s",
                 "Scheduled" if scheduled else "Manual",
@@ -233,6 +228,7 @@ class Hub:
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
                 task_scheduler=self._task_scheduler,
                 paramset_description_provider=self._paramset_description_provider,
                 parameter_visibility_provider=self._parameter_visibility_provider,
@@ -245,6 +241,7 @@ class Hub:
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
                 task_scheduler=self._task_scheduler,
                 paramset_description_provider=self._paramset_description_provider,
                 parameter_visibility_provider=self._parameter_visibility_provider,
@@ -272,6 +269,7 @@ class Hub:
             "config_provider": self._config_provider,
             "central_info": self._central_info,
             "event_bus_provider": self._event_bus_provider,
+            "event_publisher": self._event_publisher,
             "task_scheduler": self._task_scheduler,
             "paramset_description_provider": self._paramset_description_provider,
             "parameter_visibility_provider": self._parameter_visibility_provider,
@@ -326,7 +324,7 @@ class Hub:
         """Retrieve all program data and update program values."""
         if not (client := self._primary_client_provider.primary_client):
             return
-        if (programs := await client.get_all_programs(markers=self._config.program_markers)) is None:
+        if (programs := await client.get_all_programs(markers=self._config_provider.config.program_markers)) is None:
             _LOGGER.debug("UPDATE_PROGRAM_DATA_POINTS: Unable to retrieve programs for %s", self._central_info.name)
             return
 
@@ -351,7 +349,7 @@ class Hub:
                 new_programs.append(program_dp.switch)
 
         if new_programs:
-            self._event_emitter.emit_backend_system_callback(
+            self._event_publisher.publish_backend_system_event(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_programs),
             )
@@ -360,7 +358,9 @@ class Hub:
         """Retrieve all variable data and update hmvariable values."""
         if not (client := self._primary_client_provider.primary_client):
             return
-        if (variables := await client.get_all_system_variables(markers=self._config.sysvar_markers)) is None:
+        if (
+            variables := await client.get_all_system_variables(markers=self._config_provider.config.sysvar_markers)
+        ) is None:
             _LOGGER.debug("UPDATE_SYSVAR_DATA_POINTS: Unable to retrieve sysvars for %s", self._central_info.name)
             return
 
@@ -387,7 +387,7 @@ class Hub:
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 
         if new_sysvars:
-            self._event_emitter.emit_backend_system_callback(
+            self._event_publisher.publish_backend_system_event(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )

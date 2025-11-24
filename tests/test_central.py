@@ -564,7 +564,7 @@ class TestCentralDataPointsByCategory:
         def _device_changed(self, *args: Any, **kwargs: Any) -> None:
             """Handle device state changes."""
 
-        ebp_sensor[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
+        ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
         ebp_sensor2 = central.get_data_points(category=DataPointCategory.SENSOR, registered=False)
         assert ebp_sensor2
         assert len(ebp_sensor2) == 17
@@ -594,7 +594,7 @@ class TestCentralDataPointsByCategory:
         def _device_changed(self, *args: Any, **kwargs: Any) -> None:
             """Handle device state changes."""
 
-        ebp_sensor[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
+        ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
         ebp_sensor2 = central.get_hub_data_points(
             category=DataPointCategory.HUB_SENSOR,
             registered=False,
@@ -605,7 +605,7 @@ class TestCentralDataPointsByCategory:
         ebp_sensor3 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON)
         assert ebp_sensor3
         assert len(ebp_sensor3) == 2
-        ebp_sensor3[0].register_data_point_updated_callback(cb=_device_changed, custom_id="some_id")
+        ebp_sensor3[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
         ebp_sensor4 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON, registered=False)
         assert ebp_sensor4
         assert len(ebp_sensor4) == 1
@@ -743,7 +743,7 @@ class TestCentralCallbacksAndServices:
         import asyncio
 
         central, _, factory = central_client_factory_with_homegear_client
-        central.emit_interface_event(
+        central.publish_interface_event(
             interface_id="SOME_ID",
             interface_event_type=InterfaceEventType.CALLBACK,
             data={EventKey.AVAILABLE: False},

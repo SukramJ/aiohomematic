@@ -14,7 +14,7 @@ communication with Homematic interfaces:
 - CentralDataCache: Stores recently fetched device/channel parameter values from
   interfaces for quick lookup and periodic refresh.
 - PingPongCache: Tracks ping/pong timestamps to detect connection health issues
-  and emits interface events on mismatch thresholds.
+  and publishes interface events on mismatch thresholds.
 
 The store are intentionally ephemeral and cleared/aged according to the rules in
 constants to keep memory footprint predictable while improving responsiveness.
@@ -55,7 +55,7 @@ from aiohomematic.interfaces import (
     DataPointProvider,
     DeviceDetailsProvider,
     DeviceProvider,
-    EventEmitter,
+    EventPublisher,
     PrimaryClientProvider,
 )
 from aiohomematic.model.device import Device
@@ -399,7 +399,7 @@ class PingPongCache:
     __slots__ = (
         "_allowed_delta",
         "_central_info",
-        "_event_emitter",
+        "_event_publisher",
         "_interface_id",
         "_pending_pong_logged",
         "_pending_pongs",
@@ -414,7 +414,7 @@ class PingPongCache:
     def __init__(
         self,
         *,
-        event_emitter: EventEmitter,
+        event_publisher: EventPublisher,
         central_info: CentralInfo,
         interface_id: str,
         allowed_delta: int = PING_PONG_MISMATCH_COUNT,
@@ -422,7 +422,7 @@ class PingPongCache:
     ):
         """Initialize the cache with ttl."""
         assert ttl > 0
-        self._event_emitter: Final = event_emitter
+        self._event_publisher: Final = event_publisher
         self._central_info: Final = central_info
         self._interface_id: Final = interface_id
         self._allowed_delta: Final = allowed_delta
@@ -466,7 +466,7 @@ class PingPongCache:
             self._pending_seen_at.pop(pong_token, None)
             self._cleanup_pending_pongs()
             count = self._pending_pong_count
-            self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+            self._check_and_publish_pong_event(event_type=InterfaceEventType.PENDING_PONG)
             _LOGGER.debug(
                 "PING PONG CACHE: Reduce pending PING count: %s - %i for token: %s",
                 self._interface_id,
@@ -479,7 +479,7 @@ class PingPongCache:
             self._unknown_seen_at[pong_token] = time.monotonic()
             self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
-            self._check_and_emit_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
+            self._check_and_publish_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
             _LOGGER.debug(
                 "PING PONG CACHE: Increase unknown PONG count: %s - %i for token: %s",
                 self._interface_id,
@@ -490,15 +490,15 @@ class PingPongCache:
             self._schedule_unknown_pong_retry(token=pong_token, delay=15.0)
 
     def handle_send_ping(self, *, ping_token: str) -> None:
-        """Handle send ping token by tracking it as pending and emitting events."""
+        """Handle send ping token by tracking it as pending and publishing events."""
         self._pending_pongs.add(ping_token)
         self._pending_seen_at[ping_token] = time.monotonic()
         self._cleanup_pending_pongs()
         # Throttle event emission to every second ping to avoid spamming callbacks,
-        # but always emit when crossing the high threshold.
+        # but always publish when crossing the high threshold.
         count = self._pending_pong_count
         if (count > self._allowed_delta) or (count % 2 == 0):
-            self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+            self._check_and_publish_pong_event(event_type=InterfaceEventType.PENDING_PONG)
         _LOGGER.debug(
             "PING PONG CACHE: Increase pending PING count: %s - %i for token: %s",
             self._interface_id,
@@ -506,12 +506,12 @@ class PingPongCache:
             ping_token,
         )
 
-    def _check_and_emit_pong_event(self, *, event_type: InterfaceEventType) -> None:
-        """Emit an event about the pong status."""
+    def _check_and_publish_pong_event(self, *, event_type: InterfaceEventType) -> None:
+        """Publish an event about the pong status."""
 
-        def _emit_event(mismatch_count: int) -> None:
-            """Emit event."""
-            self._event_emitter.emit_homematic_callback(
+        def _publish_event(mismatch_count: int) -> None:
+            """Publish event."""
+            self._event_publisher.publish_homematic_event(
                 event_type=EventType.INTERFACE,
                 event_data=cast(
                     dict[EventKey, Any],
@@ -539,8 +539,8 @@ class PingPongCache:
         if event_type == InterfaceEventType.PENDING_PONG:
             self._cleanup_pending_pongs()
             if (count := self._pending_pong_count) > self._allowed_delta:
-                # Emit interface event to inform subscribers about high pending pong count.
-                _emit_event(mismatch_count=count)
+                # Publish interface event to inform subscribers about high pending pong count.
+                _publish_event(mismatch_count=count)
                 if self._pending_pong_logged is False:
                     _LOGGER.warning(
                         i18n.tr(
@@ -550,19 +550,19 @@ class PingPongCache:
                     )
                 self._pending_pong_logged = True
             # In low state:
-            # - If we previously logged a high state, emit a reset event (mismatch=0) exactly once.
+            # - If we previously logged a high state, publish a reset event (mismatch=0) exactly once.
             # - Otherwise, throttle emission to every second ping (even counts > 0) to avoid spamming.
             elif self._pending_pong_logged:
-                _emit_event(mismatch_count=0)
+                _publish_event(mismatch_count=0)
                 self._pending_pong_logged = False
             elif count > 0 and count % 2 == 0:
-                _emit_event(mismatch_count=count)
+                _publish_event(mismatch_count=count)
         elif event_type == InterfaceEventType.UNKNOWN_PONG:
             self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
             if self._unknown_pong_count > self._allowed_delta:
-                # Emit interface event to inform subscribers about high unknown pong count.
-                _emit_event(mismatch_count=count)
+                # Publish interface event to inform subscribers about high unknown pong count.
+                _publish_event(mismatch_count=count)
                 if self._unknown_pong_logged is False:
                     _LOGGER.warning(
                         i18n.tr(
@@ -573,7 +573,7 @@ class PingPongCache:
                 self._unknown_pong_logged = True
             else:
                 # For unknown pongs, only reset the logged flag when we drop below the threshold.
-                # We do not emit an event here since there is no explicit expectation for a reset notification.
+                # We do not publish an event here since there is no explicit expectation for a reset notification.
                 self._unknown_pong_logged = False
 
     def _cleanup_pending_pongs(self) -> None:
@@ -631,10 +631,10 @@ class PingPongCache:
                     self._unknown_pongs.remove(token)
                     self._unknown_seen_at.pop(token, None)
 
-                # Re-emit events to reflect new counts (respecting existing throttling)
-                self._check_and_emit_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+                # Re-publish events to reflect new counts (respecting existing throttling)
+                self._check_and_publish_pong_event(event_type=InterfaceEventType.PENDING_PONG)
                 if self._unknown_pong_count != unknown_before:
-                    self._check_and_emit_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
+                    self._check_and_publish_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
 
                 _LOGGER.debug(
                     "PING PONG CACHE: Retry reconciled PONG on %s for token: %s (pending now: %i, unknown now: %i)",

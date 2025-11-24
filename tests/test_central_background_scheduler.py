@@ -206,8 +206,8 @@ class TestBackgroundSchedulerBasics:
         """BackgroundScheduler.stop should deactivate the scheduler."""
         central = MagicMock()
         central.event_bus = MagicMock()
-        unsubscribe_callback = MagicMock()
-        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_callback)
+        unsubscribe_handler = MagicMock()
+        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_handler)
         central.config = MagicMock()
         central.config.periodic_refresh_interval = 60
         central.config.sys_scan_interval = 300
@@ -232,8 +232,8 @@ class TestBackgroundSchedulerBasics:
         await scheduler.stop()
 
         assert scheduler._active is False
-        unsubscribe_callback.assert_called_once()
-        assert scheduler._unsubscribe_callback is None
+        unsubscribe_handler.assert_called_once()
+        assert scheduler._unsubscribe_handler is None
 
     @pytest.mark.asyncio
     async def test_background_scheduler_stop_when_not_running(self) -> None:
@@ -266,8 +266,8 @@ class TestBackgroundSchedulerBasics:
         """BackgroundScheduler should subscribe to DEVICES_CREATED event."""
         central = MagicMock()
         central.event_bus = MagicMock()
-        unsubscribe_callback = MagicMock()
-        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_callback)
+        unsubscribe_handler = MagicMock()
+        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_handler)
         central.config = MagicMock()
         central.config.periodic_refresh_interval = 60
         central.config.sys_scan_interval = 300
@@ -285,7 +285,7 @@ class TestBackgroundSchedulerBasics:
 
         # Verify subscribe was called
         central.event_bus.subscribe.assert_called_once()
-        assert scheduler._unsubscribe_callback == unsubscribe_callback
+        assert scheduler._unsubscribe_handler == unsubscribe_handler
 
 
 class TestBackgroundSchedulerEventHandling:

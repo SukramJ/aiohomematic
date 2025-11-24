@@ -21,7 +21,7 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin
-from aiohomematic.type_aliases import DataPointUpdatedCallback, UnregisterCallback
+from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeHandler
 
 __all__ = ["DpUpdate"]
 
@@ -49,6 +49,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             ),
             central_info=device.central_info,
             event_bus_provider=device.event_bus_provider,
+            event_publisher=device.event_publisher,
             task_scheduler=device.task_scheduler,
             paramset_description_provider=device.paramset_description_provider,
             parameter_visibility_provider=device.parameter_visibility_provider,
@@ -114,18 +115,18 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         await self._device.device_data_refresher.refresh_firmware_data(device_address=self._device.address)
         self._set_modified_at(modified_at=datetime.now())
 
-    def register_data_point_updated_callback(
-        self, *, cb: DataPointUpdatedCallback, custom_id: str
-    ) -> UnregisterCallback:
-        """Register update callback."""
+    def unsubscribe_from_data_point_updated(
+        self, *, handler: DataPointUpdatedHandler, custom_id: str
+    ) -> UnsubscribeHandler:
+        """Subscribe to data point updates via EventBus."""
         if custom_id != InternalCustomID.DEFAULT:
             if self._custom_id is not None:
                 raise AioHomematicException(  # i18n-exc: ignore
-                    f"REGISTER_UPDATE_CALLBACK failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
+                    f"SUBSCRIBE failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
                 )
             self._custom_id = custom_id
 
-        if unsubscribe := self._device.register_firmware_update_callback(cb=cb):
+        if unsubscribe := self._device.subscribe_to_firmware_updated(handler=handler):
             # Wrap unsubscribe to also reset custom_id
             def wrapped_unsubscribe() -> None:
                 unsubscribe()

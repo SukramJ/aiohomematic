@@ -2,6 +2,7 @@
 
 ## What's Changed
 
+- Cleanup after event bus migration
 - Switch from legacy wrapper to event bus naming
 
 # Version 2025.11.24 (2025-11-24)

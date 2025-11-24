@@ -261,9 +261,9 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
 
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unregister all internal update callbacks."""
-        for unregister in self._unsubscribe_handlers:
-            if unregister is not None:
-                unregister()
+        for unreg in self._unsubscribe_handlers:
+            if unreg is not None:
+                unreg()
 
     def _add_data_point[DataPointT: hmge.GenericDataPointAny](
         self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]

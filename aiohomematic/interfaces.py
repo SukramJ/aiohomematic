@@ -93,11 +93,11 @@ class EventPublisher(Protocol):
 
     @abstractmethod
     def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """Publish a backend system callback event."""
+        """Publish a backend system event."""
 
     @abstractmethod
     def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
-        """Publish a Homematic callback event."""
+        """Publish a Homematic event."""
 
 
 @runtime_checkable

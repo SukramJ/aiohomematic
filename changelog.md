@@ -1,3 +1,10 @@
+# Version 2025.11.27 (2025-11-25)
+
+## What's Changed
+
+- Add backend detection
+- Use CentralConnectionState in AioJsonRpcAioHttpClient
+
 # Version 2025.11.26 (2025-11-25)
 
 ## What's Changed

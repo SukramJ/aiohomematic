@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.11.26"
+VERSION: Final = "2025.11.27"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -120,6 +120,14 @@ PATH_JSON_RPC: Final = "/api/homematic.cgi"
 PING_PONG_MISMATCH_COUNT: Final = 15
 PING_PONG_MISMATCH_COUNT_TTL: Final = 300
 PORT_ANY: Final = 0
+
+# Backend detection ports
+# Format: (non-TLS port, TLS port)
+DETECTION_PORT_BIDCOS_RF: Final = (2001, 42001)
+DETECTION_PORT_HMIP_RF: Final = (2010, 42010)
+DETECTION_PORT_BIDCOS_WIRED: Final = (2000, 42000)
+DETECTION_PORT_JSON_RPC: Final = ((80, False), (443, True))  # (port, tls)
+
 PROGRAM_ADDRESS: Final = "program"
 RECONNECT_WAIT: Final = 1 if _TEST_SPEEDUP else 120  # wait with reconnect after a first ping was successful
 REGA_SCRIPT_PATH: Final = "../rega_scripts"

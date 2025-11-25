@@ -190,7 +190,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         password: str,
         device_url: str,
         connection_state: hmcu.CentralConnectionState,
-        client_session: ClientSession | None,
+        client_session: ClientSession | None = None,
         tls: bool = False,
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
@@ -951,6 +951,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     _LOGGER.debug("POST: %s", exc)
                     raise exc
 
+                self._connection_state.remove_issue(issuer=self, iid=self._url)
                 return json_response
 
             message = i18n.tr("exception.client.json_post.http_status", status=response.status)
@@ -991,12 +992,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     f"{message}. Possible reason: 'Automatic forwarding to HTTPS' is enabled in the backend, "
                     f"but this integration is not configured to use TLS"
                 )
+            level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
                 logger=_LOGGER,
                 boundary="json-rpc",
                 action=str(method),
                 err=cccerr,
-                level=logging.ERROR,
+                level=level,
                 log_context=self.log_context,
             )
             raise ClientException(
@@ -1005,23 +1007,25 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except ClientConnectorError as cceerr:
             self.clear_session()
             message = f"ClientConnectorError[{cceerr}]"
+            level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
                 logger=_LOGGER,
                 boundary="json-rpc",
                 action=str(method),
                 err=cceerr,
-                level=logging.ERROR,
+                level=level,
                 log_context=self.log_context,
             )
             raise ClientException(i18n.tr("exception.client.json_post.connector_error", reason=message)) from cceerr
         except (ClientError, OSError) as err:
             self.clear_session()
+            level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
                 logger=_LOGGER,
                 boundary="json-rpc",
                 action=str(method),
                 err=err,
-                level=logging.ERROR,
+                level=level,
                 log_context=self.log_context,
             )
             raise NoConnectionException(err) from err

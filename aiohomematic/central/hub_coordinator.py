@@ -167,7 +167,9 @@ class HubCoordinator:
                 if event.state_path == sysvar_data_point.state_path:
                     await sysvar_data_point.event(value=event.value, received_at=event.received_at)
 
-            self._event_bus_provider.event_bus.subscribe(event_type=SysvarUpdatedEvent, handler=event_handler)
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=SysvarUpdatedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
+            )
 
     async def execute_program(self, *, pid: str) -> bool:
         """

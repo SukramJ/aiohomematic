@@ -162,6 +162,7 @@ class BackgroundScheduler:
 
         self._unsubscribe_handler = self._event_bus_provider.event_bus.subscribe(
             event_type=BackendSystemEventData,
+            event_key=None,
             handler=_event_handler,
         )
 

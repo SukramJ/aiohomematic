@@ -57,7 +57,9 @@ class _FakeCentral:
 
         # Provide minimal event_bus for callback registration
         class _EventBus:
-            def subscribe(self, *, event_type: Any, handler: Callable[[Any], None]) -> Callable[[], None]:  # noqa: D401, ANN001
+            def subscribe(
+                self, *, event_type: Any, event_key: Any, handler: Callable[[Any], None]
+            ) -> Callable[[], None]:  # noqa: D401, ANN001
                 """Mock subscribe that returns a no-op unsubscribe."""
                 return lambda: None
 

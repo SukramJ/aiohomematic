@@ -44,7 +44,7 @@ class _FakeEventBus:
     async def publish(self, *, event: Any) -> None:  # noqa: ARG002
         """Do nothing for publish in tests."""
 
-    def subscribe(self, *, event_type: type, handler: Callable[..., Any]) -> Callable[[], None]:  # noqa: ARG002
+    def subscribe(self, *, event_type: type, event_key: Any, handler: Callable[..., Any]) -> Callable[[], None]:  # noqa: ARG002
         """Return a no-op unsubscribe function."""
         return lambda: None
 

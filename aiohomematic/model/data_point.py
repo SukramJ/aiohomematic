@@ -25,6 +25,7 @@ parameter values across all supported devices.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import asyncio
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime, timedelta
@@ -355,36 +356,36 @@ class CallbackDataPoint(ABC, LogContextMixin):
             return
         self._published_event_at = datetime.now()
 
+        # Early exit if no subscribers
+        if not self._registered_custom_ids:
+            return
+
         # Add the data_point reference to kwargs once
         event_kwargs = {**kwargs, KWARGS_ARG_DATA_POINT: self}
 
-        # Publish events to EventBus asynchronously - one event per registered custom_id
-        for custom_id in self._registered_custom_ids:
-            # Add custom_id to kwargs for this specific event
-            custom_kwargs = {**event_kwargs, KWARGS_ARG_CUSTOM_ID: custom_id}
+        # Capture current custom_ids to avoid mutation during iteration
+        custom_ids = tuple(self._registered_custom_ids)
 
-            async def _publish(
-                cid: str,
-                ckw: dict[str, Any],
-            ) -> None:  # noqa: E731
-                """Publish data point updated event with custom id."""
-                await self._event_bus_provider.event_bus.publish(
+        async def _publish_all_events() -> None:
+            """Publish events to all registered custom_ids in a single task."""
+            publish_tasks = [
+                self._event_bus_provider.event_bus.publish(
                     event=DataPointUpdatedCallbackEvent(
                         timestamp=datetime.now(),
                         unique_id=self._unique_id,
                         custom_id=cid,
-                        kwargs=ckw,
+                        kwargs={**event_kwargs, KWARGS_ARG_CUSTOM_ID: cid},
                     )
                 )
+                for cid in custom_ids
+            ]
+            await asyncio.gather(*publish_tasks, return_exceptions=True)
 
-            async def _publish_wrapper(cid: str = custom_id, ckw: dict[str, Any] = custom_kwargs) -> None:  # noqa: E731
-                """Call publish with custom id and kwargs."""
-                await _publish(cid, ckw)
-
-            self._task_scheduler.create_task(
-                target=_publish_wrapper,
-                name=f"publish-dp-updated-event-{self._unique_id}-{custom_id}",
-            )
+        # Single task for all events instead of one task per custom_id
+        self._task_scheduler.create_task(
+            target=_publish_all_events,
+            name=f"publish-dp-updated-events-{self._unique_id}",
+        )
 
     @loop_check
     def publish_device_removed_event(self) -> None:
@@ -429,6 +430,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         unsubscribe = self._event_bus_provider.event_bus.subscribe(
             event_type=DataPointUpdatedCallbackEvent,
+            event_key=self._unique_id,
             handler=event_handler,
         )
 
@@ -461,6 +463,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
 
         return self._event_bus_provider.event_bus.subscribe(
             event_type=DeviceRemovedEvent,
+            event_key=self._unique_id,
             handler=event_handler,
         )
 

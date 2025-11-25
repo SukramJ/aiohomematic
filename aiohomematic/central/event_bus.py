@@ -71,6 +71,7 @@ And in Device/Channel/DataPoint:
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import asyncio
 from collections import defaultdict
 from collections.abc import Callable, Coroutine
@@ -79,7 +80,7 @@ from datetime import datetime
 import logging
 from typing import Any, TypeVar, cast
 
-from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType
+from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, ParamsetKey
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,15 +95,21 @@ UnsubscribeCallback = Callable[[], None]
 
 
 @dataclass(frozen=True, slots=True)
-class Event:
+class Event(ABC):
     """
     Base class for all events in the EventBus.
 
     All events are immutable dataclasses with slots for memory efficiency.
     The timestamp field is included in all events for debugging and auditing.
+    A key must be provided to uniquely identify the event.
     """
 
     timestamp: datetime
+
+    @property
+    @abstractmethod
+    def key(self) -> Any:
+        """Key identifier for this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,7 +117,7 @@ class DataPointUpdatedEvent(Event):
     """
     Fired when a data point value is updated from the backend.
 
-    This replaces the _data_point_key_event_subscriptions pattern.
+    Key is the DataPointKey.
 
     The dpk (DataPointKey) contains:
     - interface_id: Interface identifier (e.g., "BidCos-RF")
@@ -123,76 +130,165 @@ class DataPointUpdatedEvent(Event):
     value: Any
     received_at: datetime
 
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.dpk
+
 
 @dataclass(frozen=True, slots=True)
 class BackendParameterEvent(Event):
-    """Raw parameter update event from backend (re-published from RPC callbacks)."""
+    """
+    Raw parameter update event from backend (re-published from RPC callbacks).
+
+    Key is DataPointKey(
+                interface_id=self.interface_id,
+                channel_address=self.channel_address,
+                paramset_key=ParamsetKey.VALUES,
+                parameter=self.parameter,
+            )
+    """
 
     interface_id: str
     channel_address: str
     parameter: str
     value: Any
 
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return DataPointKey(
+            interface_id=self.interface_id,
+            channel_address=self.channel_address,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=self.parameter,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class BackendSystemEventData(Event):
-    """System-level events from backend (devices created, deleted, etc.)."""
+    """
+    System-level events from backend (devices created, deleted, etc.).
+
+    Key is None.
+    """
 
     system_event: BackendSystemEvent
     data: dict[str, Any]
 
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return None
+
 
 @dataclass(frozen=True, slots=True)
 class HomematicEvent(Event):
-    """Homematic-specific events (INTERFACE, KEYPRESS, etc.)."""
+    """
+    Homematic-specific events (INTERFACE, KEYPRESS, etc.).
+
+    Key is None.
+    """
 
     event_type: EventType
     event_data: dict[EventKey, Any]
 
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return None
+
 
 @dataclass(frozen=True, slots=True)
 class SysvarUpdatedEvent(Event):
-    """System variable value updated."""
+    """
+    System variable value updated.
+
+    Key is the state path.
+    """
 
     state_path: str
     value: Any
     received_at: datetime
 
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.state_path
+
 
 @dataclass(frozen=True, slots=True)
 class InterfaceEvent(Event):
-    """Interface-level event (connection state changes, etc.)."""
+    """
+    Interface-level event (connection state changes, etc.).
+
+    Key is interface_id.
+    """
 
     interface_id: str
     event_type: str
     data: dict[str, Any]
 
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
 
 @dataclass(frozen=True, slots=True)
 class DeviceUpdatedEvent(Event):
-    """Device state has been updated."""
+    """
+    Device state has been updated.
+
+    Key is device_address.
+    """
 
     device_address: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.device_address
 
 
 @dataclass(frozen=True, slots=True)
 class FirmwareUpdatedEvent(Event):
-    """Device firmware information has been updated."""
+    """
+    Device firmware information has been updated.
+
+    Key is device_address.
+    """
 
     device_address: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.device_address
 
 
 @dataclass(frozen=True, slots=True)
 class LinkPeerChangedEvent(Event):
-    """Channel link peer addresses have changed."""
+    """
+    Channel link peer addresses have changed.
+
+    Key is channel_address.
+    """
 
     channel_address: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.channel_address
 
 
 @dataclass(frozen=True, slots=True)
 class DataPointUpdatedCallbackEvent(Event):
     """
     Data point value updated callback event.
+
+    Key is unique_id.
 
     This event is fired when a data point's value changes and external
     consumers (like Home Assistant entities) need to be notified.
@@ -204,12 +300,26 @@ class DataPointUpdatedCallbackEvent(Event):
     custom_id: str
     kwargs: dict[str, Any]
 
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.unique_id
+
 
 @dataclass(frozen=True, slots=True)
 class DeviceRemovedEvent(Event):
-    """Device or data point has been removed."""
+    """
+    Device or data point has been removed.
+
+    Key is unique_id.
+    """
 
     unique_id: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.unique_id
 
 
 class EventBus:
@@ -239,9 +349,9 @@ class EventBus:
             enable_event_logging: If True, log all published events (debug only)
 
         """
-        self._subscriptions: defaultdict[type[Event], list[EventHandler]] = defaultdict(list)
+        self._subscriptions: dict[type[Event], dict[Any, list[EventHandler]]] = defaultdict(lambda: defaultdict(list))
         self._enable_event_logging = enable_event_logging
-        self._event_count: defaultdict[type[Event], int] = defaultdict(int)
+        self._event_count: dict[type[Event], int] = defaultdict(int)
 
     def clear_subscriptions(self, *, event_type: type[Event] | None = None) -> None:
         """
@@ -254,10 +364,10 @@ class EventBus:
         """
         if event_type is None:
             self._subscriptions.clear()
-            _LOGGER.debug("Cleared all event subscriptions")
+            _LOGGER.debug("CLEAR_SUBSCRIPTION: Cleared all event subscriptions")
         else:
             self._subscriptions[event_type].clear()
-            _LOGGER.debug("Cleared subscriptions for %s", event_type.__name__)
+            _LOGGER.debug("CLEAR_SUBSCRIPTION: Cleared subscriptions for %s", event_type.__name__)
 
     def get_event_stats(self) -> dict[str, int]:
         """
@@ -274,6 +384,8 @@ class EventBus:
         """
         Get the number of active subscriptions for an event type.
 
+        Counts all handlers across all event_keys for the given event_type.
+
         Args:
         ----
             event_type: The event class to query
@@ -283,7 +395,7 @@ class EventBus:
             Number of active subscribers
 
         """
-        return len(self._subscriptions.get(event_type, []))
+        return sum(len(handlers) for handlers in self._subscriptions.get(event_type, {}).values())
 
     async def publish(self, *, event: Event) -> None:
         """
@@ -298,16 +410,32 @@ class EventBus:
 
         """
         event_type = type(event)
-        if not (handlers := self._subscriptions.get(event_type, [])):
+
+        if not (
+            handlers := (
+                self._subscriptions.get(event_type, {}).get(event.key)
+                or self._subscriptions.get(event_type, {}).get(None)
+                or []
+            )
+        ):
             if self._enable_event_logging:
-                _LOGGER.debug("No subscribers for %s", event_type.__name__)
+                if isinstance(event, BackendParameterEvent):
+                    _LOGGER.debug(
+                        "PUBLISH: No subscribers for %s: %s [%s]",
+                        event_type.__name__,
+                        event.parameter,
+                        event.channel_address,
+                    )
+                else:
+                    _LOGGER.debug("PUBLISH: No subscribers for %s", event_type.__name__)
+
             return
 
         self._event_count[event_type] += 1
 
         if self._enable_event_logging:
             _LOGGER.debug(
-                "Publishing %s to %d handler(s) [count: %d]",
+                "PUBLISH: Publishing %s to %d handler(s) [count: %d]",
                 event_type.__name__,
                 len(handlers),
                 self._event_count[event_type],
@@ -321,6 +449,7 @@ class EventBus:
         self,
         *,
         event_type: type[T_Event],
+        event_key: Any,
         handler: Callable[[T_Event], None] | Callable[[T_Event], Coroutine[Any, Any, None]],
     ) -> UnsubscribeCallback:
         """
@@ -329,6 +458,7 @@ class EventBus:
         Args:
         ----
             event_type: The event class to listen for
+            event_key: The key for unique identification
             handler: Async or sync callback that accepts the event
 
         Returns:
@@ -347,22 +477,22 @@ class EventBus:
         """
         # Cast to generic handler type for storage
         generic_handler = cast(EventHandler, handler)
-        self._subscriptions[event_type].append(generic_handler)
+        self._subscriptions[event_type][event_key].append(generic_handler)
 
         _LOGGER.debug(
-            "Subscribed to %s (total subscribers: %d)",
+            "SUBSCRIBE: Subscribed to %s (total subscribers: %d)",
             event_type.__name__,
-            len(self._subscriptions[event_type]),
+            len(self._subscriptions[event_type][event_key]),
         )
 
         def unsubscribe() -> None:
             """Remove this specific handler from subscriptions."""
-            if generic_handler in self._subscriptions[event_type]:
-                self._subscriptions[event_type].remove(generic_handler)
+            if generic_handler in self._subscriptions[event_type][event_key]:
+                self._subscriptions[event_type][event_key].remove(generic_handler)
                 _LOGGER.debug(
-                    "Unsubscribed from %s (remaining: %d)",
+                    "SUBSCRIBE: Unsubscribed from %s (remaining: %d)",
                     event_type.__name__,
-                    len(self._subscriptions[event_type]),
+                    len(self._subscriptions[event_type][event_key]),
                 )
 
         return unsubscribe
@@ -386,7 +516,7 @@ class EventBus:
                 await result
         except Exception:
             _LOGGER.exception(  # i18n-log: ignore
-                "Error in event handler %s for event %s",
+                "_SAFE_CALL_HANDLER: Error in event handler %s for event %s",
                 handler.__name__ if hasattr(handler, "__name__") else handler,
                 type(event).__name__,
             )

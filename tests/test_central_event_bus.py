@@ -34,8 +34,8 @@ class TestEventBus:
         async def working_async_handler(event: BackendSystemEventData) -> None:
             calls.append(event)
 
-        bus.subscribe(event_type=BackendSystemEventData, handler=failing_async_handler)
-        bus.subscribe(event_type=BackendSystemEventData, handler=working_async_handler)
+        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=failing_async_handler)
+        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=working_async_handler)
 
         event = BackendSystemEventData(
             timestamp=datetime.now(),
@@ -59,8 +59,8 @@ class TestEventBus:
         def handler2(event: SysvarUpdatedEvent) -> None:
             pass
 
-        bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler1)
-        bus.subscribe(event_type=SysvarUpdatedEvent, handler=handler2)
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=None, handler=handler1)
+        bus.subscribe(event_type=SysvarUpdatedEvent, event_key=None, handler=handler2)
 
         # Clear all
         bus.clear_subscriptions()
@@ -79,8 +79,8 @@ class TestEventBus:
         def handler2(event: SysvarUpdatedEvent) -> None:
             pass
 
-        bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler1)
-        bus.subscribe(event_type=SysvarUpdatedEvent, handler=handler2)
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=None, handler=handler1)
+        bus.subscribe(event_type=SysvarUpdatedEvent, event_key=None, handler=handler2)
 
         assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 1
         assert bus.get_subscription_count(event_type=SysvarUpdatedEvent) == 1
@@ -107,8 +107,15 @@ class TestEventBus:
             await asyncio.sleep(0.01)
             execution_order.append("fast_end")
 
-        bus.subscribe(event_type=BackendParameterEvent, handler=slow_handler)
-        bus.subscribe(event_type=BackendParameterEvent, handler=fast_handler)
+        # BackendParameterEvent key is DataPointKey constructed from interface_id, channel_address, parameter
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        bus.subscribe(event_type=BackendParameterEvent, event_key=dpk, handler=slow_handler)
+        bus.subscribe(event_type=BackendParameterEvent, event_key=dpk, handler=fast_handler)
 
         event = BackendParameterEvent(
             timestamp=datetime.now(),
@@ -149,18 +156,20 @@ class TestEventBus:
         def handler(event: DataPointUpdatedEvent) -> None:
             pass
 
-        bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler)
+        # DataPointUpdatedEvent key is the dpk
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
 
         # Publish multiple events
         for i in range(5):
             event = DataPointUpdatedEvent(
                 timestamp=datetime.now(),
-                dpk=DataPointKey(
-                    interface_id="BidCos-RF",
-                    channel_address="VCU0000001:1",
-                    paramset_key=ParamsetKey.VALUES,
-                    parameter="STATE",
-                ),
+                dpk=dpk,
                 value=i,
                 received_at=datetime.now(),
             )
@@ -184,8 +193,9 @@ class TestEventBus:
         def working_handler(event: HomematicEvent) -> None:
             handler2_calls.append(event)
 
-        bus.subscribe(event_type=HomematicEvent, handler=failing_handler)
-        bus.subscribe(event_type=HomematicEvent, handler=working_handler)
+        # HomematicEvent key is None
+        bus.subscribe(event_type=HomematicEvent, event_key=None, handler=failing_handler)
+        bus.subscribe(event_type=HomematicEvent, event_key=None, handler=working_handler)
 
         event = HomematicEvent(
             timestamp=datetime.now(),
@@ -213,8 +223,15 @@ class TestEventBus:
         def handler2(event: BackendParameterEvent) -> None:
             handler2_calls.append(event)
 
-        bus.subscribe(event_type=BackendParameterEvent, handler=handler1)
-        bus.subscribe(event_type=BackendParameterEvent, handler=handler2)
+        # BackendParameterEvent key is DataPointKey constructed from fields
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        bus.subscribe(event_type=BackendParameterEvent, event_key=dpk, handler=handler1)
+        bus.subscribe(event_type=BackendParameterEvent, event_key=dpk, handler=handler2)
         assert bus.get_subscription_count(event_type=BackendParameterEvent) == 2
 
         event = BackendParameterEvent(
@@ -239,7 +256,14 @@ class TestEventBus:
         def handler(event: DataPointUpdatedEvent) -> None:
             pass
 
-        unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler)
+        # DataPointUpdatedEvent key is dpk
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
 
         # Unsubscribe multiple times should not raise
         unsubscribe()
@@ -271,11 +295,13 @@ class TestEventBus:
             await asyncio.sleep(0)  # Simulate async work
             received_events.append(event)
 
-        bus.subscribe(event_type=SysvarUpdatedEvent, handler=async_handler)
+        # SysvarUpdatedEvent key is state_path
+        state_path = "sv_12345"
+        bus.subscribe(event_type=SysvarUpdatedEvent, event_key=state_path, handler=async_handler)
 
         event = SysvarUpdatedEvent(
             timestamp=datetime.now(),
-            state_path="sv_12345",
+            state_path=state_path,
             value=42,
             received_at=datetime.now(),
         )
@@ -293,17 +319,19 @@ class TestEventBus:
         def handler(event: DataPointUpdatedEvent) -> None:
             received_events.append(event)
 
-        unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler)
+        # DataPointUpdatedEvent key is dpk
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
         assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 1
 
         event = DataPointUpdatedEvent(
             timestamp=datetime.now(),
-            dpk=DataPointKey(
-                interface_id="BidCos-RF",
-                channel_address="VCU0000001:1",
-                paramset_key=ParamsetKey.VALUES,
-                parameter="STATE",
-            ),
+            dpk=dpk,
             value=True,
             received_at=datetime.now(),
         )
@@ -325,17 +353,19 @@ class TestEventBus:
         def handler(event: DataPointUpdatedEvent) -> None:
             calls.append(event)
 
-        unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, handler=handler)
+        # DataPointUpdatedEvent key is dpk
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
         assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 1
 
         event = DataPointUpdatedEvent(
             timestamp=datetime.now(),
-            dpk=DataPointKey(
-                interface_id="BidCos-RF",
-                channel_address="VCU0000001:1",
-                paramset_key=ParamsetKey.VALUES,
-                parameter="STATE",
-            ),
+            dpk=dpk,
             value=True,
             received_at=datetime.now(),
         )
@@ -486,22 +516,31 @@ class TestEventBusIntegration:
         def monitor_backend(event: BackendSystemEventData) -> None:
             monitoring_all_events.append(event)
 
-        # Subscribe
-        bus.subscribe(event_type=DataPointUpdatedEvent, handler=ha_datapoint_handler)
-        bus.subscribe(event_type=BackendSystemEventData, handler=ha_backend_handler)
-        bus.subscribe(event_type=DataPointUpdatedEvent, handler=monitor_datapoint)
-        bus.subscribe(event_type=BackendSystemEventData, handler=monitor_backend)
+        # Create dpks for 3 devices - DataPointUpdatedEvent key is dpk
+        dpks = [
+            DataPointKey(
+                interface_id="BidCos-RF",
+                channel_address=f"VCU000000{i}:1",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STATE",
+            )
+            for i in range(3)
+        ]
+
+        # Subscribe to each dpk - simulates subscribing per data point
+        for dpk in dpks:
+            bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=ha_datapoint_handler)
+            bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=monitor_datapoint)
+
+        # BackendSystemEventData key is None
+        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=ha_backend_handler)
+        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=monitor_backend)
 
         # Simulate device updates
-        for i in range(3):
+        for i, dpk in enumerate(dpks):
             event = DataPointUpdatedEvent(
                 timestamp=datetime.now(),
-                dpk=DataPointKey(
-                    interface_id="BidCos-RF",
-                    channel_address=f"VCU000000{i}:1",
-                    paramset_key=ParamsetKey.VALUES,
-                    parameter="STATE",
-                ),
+                dpk=dpk,
                 value=i % 2 == 0,
                 received_at=datetime.now(),
             )
@@ -524,7 +563,6 @@ class TestEventBusIntegration:
         stats = bus.get_event_stats()
         assert stats["DataPointUpdatedEvent"] == 3
         assert stats["BackendSystemEventData"] == 1
-        assert stats["BackendSystemEventData"] == 1
 
     @pytest.mark.asyncio
     async def test_multiple_event_types_independent(self) -> None:
@@ -540,18 +578,21 @@ class TestEventBusIntegration:
         def sysvar_handler(event: SysvarUpdatedEvent) -> None:
             sysvar_calls.append(event)
 
-        bus.subscribe(event_type=DataPointUpdatedEvent, handler=datapoint_handler)
-        bus.subscribe(event_type=SysvarUpdatedEvent, handler=sysvar_handler)
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=datapoint_handler)
+        state_path = "sv_12345"
+        bus.subscribe(event_type=SysvarUpdatedEvent, event_key=state_path, handler=sysvar_handler)
 
         # Publish DataPointUpdatedEvent
         dp_event = DataPointUpdatedEvent(
             timestamp=datetime.now(),
-            dpk=DataPointKey(
-                interface_id="BidCos-RF",
-                channel_address="VCU0000001:1",
-                paramset_key=ParamsetKey.VALUES,
-                parameter="STATE",
-            ),
+            dpk=dpk,
             value=True,
             received_at=datetime.now(),
         )
@@ -560,7 +601,7 @@ class TestEventBusIntegration:
         # Publish SysvarUpdatedEvent
         sv_event = SysvarUpdatedEvent(
             timestamp=datetime.now(),
-            state_path="sv_12345",
+            state_path=state_path,
             value=100,
             received_at=datetime.now(),
         )

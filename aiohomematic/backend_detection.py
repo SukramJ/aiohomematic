@@ -22,6 +22,7 @@ from xmlrpc.client import ServerProxy
 from aiohttp import ClientSession
 
 from aiohomematic import i18n
+from aiohomematic.central import CentralConnectionState
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 from aiohomematic.const import (
     DETECTION_PORT_BIDCOS_RF,
@@ -325,6 +326,7 @@ async def _query_json_rpc_interfaces(
             username=username,
             password=password,
             device_url=device_url,
+            connection_state=CentralConnectionState(),
             client_session=client_session,
             tls=tls,
             verify_tls=verify_tls,

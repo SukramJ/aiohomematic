@@ -410,7 +410,14 @@ class EventBus:
 
         """
         event_type = type(event)
-        if not (handlers := self._subscriptions.get(event_type, {}).get(event.key, [])):
+
+        if not (
+            handlers := (
+                self._subscriptions.get(event_type, {}).get(event.key)
+                or self._subscriptions.get(event_type, {}).get(None)
+                or []
+            )
+        ):
             if self._enable_event_logging:
                 if isinstance(event, BackendParameterEvent):
                     _LOGGER.debug(
@@ -421,6 +428,7 @@ class EventBus:
                     )
                 else:
                     _LOGGER.debug("PUBLISH: No subscribers for %s", event_type.__name__)
+
             return
 
         self._event_count[event_type] += 1

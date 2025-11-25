@@ -189,8 +189,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         username: str,
         password: str,
         device_url: str,
-        connection_state: hmcu.CentralConnectionState,
-        client_session: ClientSession | None,
+        connection_state: hmcu.CentralConnectionState | None = None,
+        client_session: ClientSession | None = None,
         tls: bool = False,
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
@@ -202,7 +202,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             else client_session
         )
         self._is_internal_session: Final = bool(client_session is None)
-        self._connection_state: Final = connection_state
+        self._connection_state: Final[hmcu.CentralConnectionState | None] = connection_state
         self._username: Final = username
         self._password: Final = password
         self._looper = Looper()

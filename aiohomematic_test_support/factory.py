@@ -146,10 +146,12 @@ class FactoryWithClient:
             self.ha_event_mock(event)
 
         self._event_bus_unsubscribe_handlers.append(
-            central.event_bus.subscribe(event_type=BackendSystemEventData, handler=_system_event_handler)
+            central.event_bus.subscribe(
+                event_type=BackendSystemEventData, event_key=None, handler=_system_event_handler
+            )
         )
         self._event_bus_unsubscribe_handlers.append(
-            central.event_bus.subscribe(event_type=HomematicEvent, handler=_ha_event_handler)
+            central.event_bus.subscribe(event_type=HomematicEvent, event_key=None, handler=_ha_event_handler)
         )
 
         assert central
@@ -262,7 +264,7 @@ async def get_pydev_ccu_central_unit_full(
         program_markers=(),
         sysvar_markers=(),
     ).create_central()
-    central.event_bus.subscribe(event_type=BackendSystemEventData, handler=system_event_handler)
+    central.event_bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=system_event_handler)
     await central.start()
 
     # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available

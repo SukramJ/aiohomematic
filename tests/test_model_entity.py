@@ -74,10 +74,12 @@ class TestDataPointCallbacks:
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
         )
         assert switch.value is False
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
-        # Wait for async event bus publish to complete
+        # Wait for async event bus publish to complete for data point updates
         import asyncio
 
+        await asyncio.sleep(0.1)
+        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
+        # Wait for async event bus publish to complete for delete events
         await asyncio.sleep(0.1)
         # Verify the system event mock received a BackendSystemEventData event
         assert factory.system_event_mock.called
@@ -130,10 +132,12 @@ class TestDataPointCallbacks:
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
         )
         assert switch.value is False
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
-        # Wait for async event bus publish to complete
+        # Wait for async event bus publish to complete for data point updates
         import asyncio
 
+        await asyncio.sleep(0.1)
+        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
+        # Wait for async event bus publish to complete for delete events
         await asyncio.sleep(0.1)
         # Verify the system event mock received a BackendSystemEventData event
         assert factory.system_event_mock.called

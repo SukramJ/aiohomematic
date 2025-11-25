@@ -894,6 +894,7 @@ class Device(LogContextMixin, PayloadMixin):
 
         return self._event_bus_provider.event_bus.subscribe(
             event_type=DeviceUpdatedEvent,
+            event_key=self._address,
             handler=event_handler,
         )
 
@@ -907,6 +908,7 @@ class Device(LogContextMixin, PayloadMixin):
 
         return self._event_bus_provider.event_bus.subscribe(
             event_type=FirmwareUpdatedEvent,
+            event_key=self._address,
             handler=event_handler,
         )
 
@@ -1459,6 +1461,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
         return self._device.event_bus_provider.event_bus.subscribe(
             event_type=LinkPeerChangedEvent,
+            event_key=self._address,
             handler=event_handler,
         )
 

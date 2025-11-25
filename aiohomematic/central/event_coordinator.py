@@ -116,7 +116,7 @@ class EventCoordinator:
                 if event.dpk == data_point.dpk:
                     await data_point.event(value=event.value, received_at=event.received_at)
 
-            self._event_bus.subscribe(event_type=DataPointUpdatedEvent, handler=event_handler)
+            self._event_bus.subscribe(event_type=DataPointUpdatedEvent, event_key=data_point.dpk, handler=event_handler)
 
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """

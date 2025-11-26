@@ -154,6 +154,10 @@ class CommandCache:
             del self._last_send_command[dpk]
         return len(expired_keys)
 
+    def clear(self) -> None:
+        """Clear all cached command entries."""
+        self._last_send_command.clear()
+
     def get_last_value_send(self, *, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
         """Return the last send values."""
         if result := self._last_send_command.get(dpk):

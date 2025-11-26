@@ -159,6 +159,13 @@ class CacheCoordinator:
         self._device_details.clear()
         self._data_cache.clear()
 
+    def clear_on_stop(self) -> None:
+        """Clear in-memory caches on shutdown to free memory."""
+        _LOGGER.debug("CLEAR_ON_STOP: Clearing in-memory caches for %s", self._central_info.name)
+        self._device_details.clear()
+        self._data_cache.clear()
+        self._parameter_visibility.clear_memoization_caches()
+
     async def load_all(self) -> bool:
         """
         Load all persistent caches from disk.

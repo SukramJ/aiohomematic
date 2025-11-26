@@ -1161,6 +1161,16 @@ class CentralUnit(
         self._event_coordinator.event_bus.clear_subscriptions()
         _LOGGER.debug("STOP: EventBus subscriptions cleared")
 
+        # Clear all in-memory caches (device_details, data_cache, parameter_visibility)
+        self._cache_coordinator.clear_on_stop()
+        _LOGGER.debug("STOP: In-memory caches cleared")
+
+        # Clear client-level caches (command cache, ping-pong cache)
+        for client in self.clients:
+            client.last_value_send_cache.clear()
+            client.ping_pong_cache.clear()
+        _LOGGER.debug("STOP: Client caches cleared")
+
         # cancel outstanding tasks to speed up teardown
         self.looper.cancel_tasks()
         # wait until tasks are finished (with wait_time safeguard)

@@ -399,6 +399,11 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
         self._param_un_ignored_cache: dict[tuple[TModelName, TChannelNo, ParamsetKey, TParameterName, bool], bool] = {}
         self._init()
 
+    def clear_memoization_caches(self) -> None:
+        """Clear the per-instance memoization caches to free memory."""
+        self._param_ignored_cache.clear()
+        self._param_un_ignored_cache.clear()
+
     def is_relevant_paramset(
         self,
         *,

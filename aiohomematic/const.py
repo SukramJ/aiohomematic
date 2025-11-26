@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.11.28"
+VERSION: Final = "2025.11.29"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -65,7 +65,15 @@ CCU_PASSWORD_PATTERN: Final = re.compile(r"[A-Za-z0-9.!$():;#-]{0,}")
 # Pattern is bigger than needed
 CHANNEL_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{5,20}:[0-9]{1,3}$")
 DEVICE_ADDRESS_PATTERN: Final = re.compile(r"^[0-9a-zA-Z-]{5,20}$")
-ALLOWED_HOSTNAME_PATTERN: Final = re.compile(r"(?!-)[a-z0-9-]{1,63}(?<!-)$", re.IGNORECASE)
+
+HOSTNAME_PATTERN: Final = re.compile(
+    r"^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(?:\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*$"
+)
+IPV4_PATTERN: Final = re.compile(
+    r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+)
+IPV6_PATTERN: Final = re.compile(r"^\[?[0-9a-fA-F:]+\]?$")
+
 HTMLTAG_PATTERN: Final = re.compile(r"<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});")
 SCHEDULER_PROFILE_PATTERN: Final = re.compile(
     r"^P[1-6]_(ENDTIME|TEMPERATURE)_(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)_([1-9]|1[0-3])$"

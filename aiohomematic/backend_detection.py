@@ -33,7 +33,8 @@ from aiohomematic.const import (
     Backend,
     Interface,
 )
-from aiohomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, get_tls_context
+from aiohomematic.exceptions import AuthFailure
+from aiohomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, get_tls_context, validate_host
 
 __all__ = [
     "BackendDetectionResult",
@@ -72,6 +73,7 @@ class BackendDetectionResult:
     host: str
     version: str | None = None
     auth_enabled: bool | None = None
+    https_redirect_enabled: bool | None = None
 
 
 async def detect_backend(
@@ -92,7 +94,14 @@ async def detect_backend(
     Returns:
         BackendDetectionResult if a backend was found, None otherwise.
 
+    Raises:
+        ValidationException: If host format is invalid.
+        AuthFailure: If authentication fails with the provided credentials.
+
     """
+    # Validate input
+    validate_host(host=config.host)
+
     _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.starting", host=config.host))
 
     # Define ports to probe: (Interface, port, tls)
@@ -150,7 +159,8 @@ async def detect_backend(
             )
 
         # CCU: Query JSON-RPC for available interfaces
-        interfaces, auth_enabled = await _query_ccu_interfaces(
+        # This may raise AuthFailure if authentication fails
+        interfaces, auth_enabled, https_redirect_enabled = await _query_ccu_interfaces(
             host=config.host,
             username=config.username,
             password=config.password,
@@ -173,6 +183,7 @@ async def detect_backend(
             host=config.host,
             version=version,
             auth_enabled=auth_enabled,
+            https_redirect_enabled=https_redirect_enabled,
         )
 
     _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.no_backend_found", host=config.host))
@@ -271,7 +282,7 @@ async def _query_ccu_interfaces(
     password: str,
     verify_tls: bool,
     client_session: ClientSession | None,
-) -> tuple[tuple[Interface, ...], bool | None]:
+) -> tuple[tuple[Interface, ...], bool | None, bool | None]:
     """
     Query CCU for available interfaces via JSON-RPC.
 
@@ -279,7 +290,11 @@ async def _query_ccu_interfaces(
     Tries both HTTP (port 80) and HTTPS (port 443).
 
     Returns:
-        Tuple of (interfaces, auth_enabled). Returns empty tuple if query fails.
+        Tuple of (interfaces, auth_enabled, https_redirect_enabled).
+        Returns empty tuple if query fails.
+
+    Raises:
+        AuthFailure: If authentication fails with the provided credentials.
 
     """
     for port, tls in DETECTION_PORT_JSON_RPC:
@@ -295,7 +310,7 @@ async def _query_ccu_interfaces(
         if result is not None:
             return result
 
-    return ((), None)
+    return ((), None, None)
 
 
 async def _query_json_rpc_interfaces(
@@ -307,12 +322,15 @@ async def _query_json_rpc_interfaces(
     password: str,
     verify_tls: bool,
     client_session: ClientSession | None,
-) -> tuple[tuple[Interface, ...], bool | None] | None:
+) -> tuple[tuple[Interface, ...], bool | None, bool | None] | None:
     """
     Query interfaces via JSON-RPC on a specific port using AioJsonRpcAioHttpClient.
 
     Returns:
-        Tuple of (interfaces, auth_enabled) if successful, None if failed.
+        Tuple of (interfaces, auth_enabled, https_redirect_enabled) if successful, None if failed.
+
+    Raises:
+        AuthFailure: If authentication fails with the provided credentials.
 
     """
     scheme = "https" if tls else "http"
@@ -342,8 +360,12 @@ async def _query_json_rpc_interfaces(
             except ValueError:
                 _LOGGER.info(i18n.tr("log.backend_detection.json_rpc.unknown_interface", interface=iface_name))
 
-        return (tuple(interfaces), system_info.auth_enabled)  # noqa: TRY300
+        return (tuple(interfaces), system_info.auth_enabled, system_info.https_redirect_enabled)  # noqa: TRY300
 
+    except AuthFailure:
+        # Re-raise authentication failures so they can be handled by the caller
+        _LOGGER.warning(i18n.tr("log.backend_detection.json_rpc.auth_failed", url=device_url))
+        raise
     except Exception as exc:  # noqa: BLE001
         _LOGGER.info(
             i18n.tr(

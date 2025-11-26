@@ -55,7 +55,7 @@ from aiohomematic.support import (
     hash_sha256,
     is_channel_address,
     is_device_address,
-    is_hostname,
+    is_host,
     is_ipv4_address,
     log_boundary_error,
     parse_sys_var,
@@ -593,16 +593,16 @@ class TestHostnameValidation:
 
     def test_is_valid_hostname(self) -> None:
         """Test is_valid_hostname."""
-        assert is_hostname(hostname=None) is False
-        assert is_hostname(hostname="") is False
-        assert is_hostname(hostname=" ") is False
-        assert is_hostname(hostname="123") is False
-        assert is_hostname(hostname="ccu") is True
-        assert is_hostname(hostname="ccu.test.de") is True
-        assert is_hostname(hostname="ccu.de") is True
-        assert is_hostname(hostname="ccu.123") is False
-        assert is_hostname(hostname="192.168.178.2") is False
-        assert is_hostname(hostname="5422eb72-raspberrymatic") is True
+        assert is_host(host=None) is False
+        assert is_host(host="") is False
+        assert is_host(host=" ") is False
+        assert is_host(host="123") is True
+        assert is_host(host="ccu") is True
+        assert is_host(host="ccu.test.de") is True
+        assert is_host(host="ccu.de") is True
+        assert is_host(host="ccu.123") is True
+        assert is_host(host="192.168.178.2") is True
+        assert is_host(host="5422eb72-raspberrymatic") is True
 
 
 class TestIPv4Validation:

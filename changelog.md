@@ -1,3 +1,9 @@
+# Version 2025.11.29 (2025-11-26)
+
+## What's Changed
+
+- Extend backend detection
+
 # Version 2025.11.28 (2025-11-26)
 
 ## What's Changed

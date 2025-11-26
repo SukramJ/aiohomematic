@@ -19,7 +19,7 @@ from aiohomematic.support import (
     check_password,
     is_channel_address,
     is_device_address,
-    is_hostname,
+    is_host,
     is_ipv4_address,
     is_paramset_key,
 )
@@ -45,7 +45,7 @@ def device_address(value: str, /) -> str:
 
 def hostname(value: str, /) -> str:
     """Validate hostname."""
-    if is_hostname(hostname=value):
+    if is_host(host=value):
         return value
     raise vol.Invalid(i18n.tr("exception.validator.hostname.invalid"))
 

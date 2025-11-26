@@ -33,12 +33,14 @@ import orjson
 from aiohomematic import i18n
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
-    ALLOWED_HOSTNAME_PATTERN,
     CCU_PASSWORD_PATTERN,
     CHANNEL_ADDRESS_PATTERN,
     DEVICE_ADDRESS_PATTERN,
+    HOSTNAME_PATTERN,
     HTMLTAG_PATTERN,
     INIT_DATETIME,
+    IPV4_PATTERN,
+    IPV6_PATTERN,
     ISO_8859_1,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
@@ -50,7 +52,7 @@ from aiohomematic.const import (
     RxMode,
     SysvarType,
 )
-from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ValidationException
 from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, get_hm_property_by_log_context, hm_property
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -293,23 +295,34 @@ def get_ip_addr(host: str, port: int, /) -> str | None:
     return local_ip
 
 
-def is_hostname(*, hostname: str | None) -> bool:
-    """Return True if hostname is valid."""
-    if not hostname:
+def is_host(*, host: str | None) -> bool:
+    """Return True if host is valid."""
+    try:
+        validate_host(host=host)
+    except ValidationException:
         return False
-    if hostname[-1] == ".":
-        # strip exactly one dot from the right, if present
-        hostname = hostname[:-1]
-    if len(hostname) > 253 or len(hostname) < 1:
-        return False
+    return True
 
-    labels = hostname.split(".")
 
-    # the TLD must be not all-numeric
-    if re.match(r"[0-9]+$", labels[-1]):
-        return False
+def validate_host(*, host: str | None) -> None:
+    """
+    Validate host format (hostname or IP address).
 
-    return all(ALLOWED_HOSTNAME_PATTERN.match(label) for label in labels)
+    Args:
+        host: The host to validate.
+
+    Raises:
+        ValidationException: If the host format is invalid.
+
+    """
+    if not host or not host.strip():
+        raise ValidationException(i18n.tr("exception.support.host_empty"))
+
+    host_clean = host.strip()
+
+    # Check for valid hostname or IP
+    if not (HOSTNAME_PATTERN.match(host_clean) or IPV4_PATTERN.match(host_clean) or IPV6_PATTERN.match(host_clean)):
+        raise ValidationException(i18n.tr("exception.support.host_invalid", host=host))
 
 
 def is_ipv4_address(*, address: str | None) -> bool:

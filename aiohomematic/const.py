@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.11.27"
+VERSION: Final = "2025.11.28"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -109,6 +109,7 @@ IP_ANY_V4: Final = "0.0.0.0"
 JSON_SESSION_AGE: Final = 90
 KWARGS_ARG_CUSTOM_ID: Final = "custom_id"
 KWARGS_ARG_DATA_POINT: Final = "data_point"
+LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD: Final = 100  # Cleanup when cache size exceeds this
 LAST_COMMAND_SEND_STORE_TIMEOUT: Final = 60
 LOCAL_HOST: Final = "127.0.0.1"
 MAX_CACHE_AGE: Final = 10

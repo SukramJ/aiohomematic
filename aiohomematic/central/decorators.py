@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from functools import wraps
+from functools import partial, wraps
 import inspect
 import logging
 from typing import Any, Final, cast
@@ -52,8 +52,9 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
                 if central is None and isinstance(unit, rpc.RPCFunctions):
                     central = unit.get_central(interface_id=str(args[1]))
                 if central:
+                    # Use partial to avoid lambda closure capturing args/kwargs
                     central.looper.create_task(
-                        target=lambda: _exec_backend_system_callback(*args, **kwargs),
+                        target=partial(_exec_backend_system_callback, *args, **kwargs),
                         name="wrapper_backend_system_callback",
                     )
             except Exception as exc:
@@ -136,8 +137,9 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
             # Prefer scheduling on the CentralUnit looper when available to avoid blocking hot path
             unit = args[0]
             if isinstance(unit, hmcu.CentralUnit):
+                # Use partial to avoid lambda closure capturing args/kwargs
                 unit.looper.create_task(
-                    target=lambda: _async_wrap_sync(_exec_event_callback, *args, **kwargs),
+                    target=partial(_async_wrap_sync, _exec_event_callback, *args, **kwargs),
                     name="wrapper_event_callback",
                 )
                 return

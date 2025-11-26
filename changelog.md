@@ -1,3 +1,9 @@
+# Version 2025.11.28 (2025-11-26)
+
+## What's Changed
+
+- Avoid potential memory leaks
+
 # Version 2025.11.27 (2025-11-25)
 
 ## What's Changed

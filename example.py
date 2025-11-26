@@ -62,21 +62,16 @@ class Example:
                 interface=const.Interface.HMIP_RF,
                 port=2010,
             ),
-            # InterfaceConfig(
-            #     central_name=central_name,
-            #     interface=const.Interface.BIDCOS_RF,
-            #     port=2001,
-            # ),
-            # InterfaceConfig(
-            #     central_name=central_name,
-            #     interface=const.Interface.VIRTUAL_DEVICES,
-            #     port=9292,
-            #     remote_path="/groups",
-            # ),
             InterfaceConfig(
                 central_name=central_name,
-                interface=const.Interface.CUXD,
-                port=8701,
+                interface=const.Interface.BIDCOS_RF,
+                port=2001,
+            ),
+            InterfaceConfig(
+                central_name=central_name,
+                interface=const.Interface.VIRTUAL_DEVICES,
+                port=9292,
+                remote_path="/groups",
             ),
         }
         self.central = CentralConfig(
@@ -85,9 +80,9 @@ class Example:
             username=CCU_USERNAME,
             password=CCU_PASSWORD,
             central_id="1234",
-            storage_directory="aiohomematic_storage",
+            storage_folder="aiohomematic_storage",
             interface_configs=interface_configs,
-            callback_port_xml_rpc=54323,
+            callback_port=54323,
             optional_settings=(const.OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
         ).create_central()
 

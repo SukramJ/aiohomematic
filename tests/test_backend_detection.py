@@ -147,7 +147,7 @@ class TestQueryCcuInterfaces:
                 client_session=None,
             )
 
-        assert result == ((), None)
+        assert result == ((), None, None)
 
     @pytest.mark.asyncio
     async def test_query_ccu_interfaces_success(self) -> None:
@@ -173,7 +173,7 @@ class TestQueryCcuInterfaces:
                 client_session=None,
             )
 
-        assert result == ((Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED), True)
+        assert result == ((Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED), True, None)
         mock_client.logout.assert_called_once()
 
     @pytest.mark.asyncio
@@ -210,7 +210,7 @@ class TestQueryCcuInterfaces:
             )
 
         assert call_count == 2
-        assert result == ((Interface.HMIP_RF,), True)
+        assert result == ((Interface.HMIP_RF,), True, None)
 
     @pytest.mark.asyncio
     async def test_query_ccu_interfaces_with_unknown_interface(self) -> None:
@@ -237,7 +237,7 @@ class TestQueryCcuInterfaces:
             )
 
         # Unknown interface should be skipped
-        assert result == ((Interface.HMIP_RF, Interface.BIDCOS_RF), False)
+        assert result == ((Interface.HMIP_RF, Interface.BIDCOS_RF), False, None)
 
 
 class TestDetectBackend:
@@ -261,7 +261,7 @@ class TestDetectBackend:
             patch(
                 "aiohomematic.backend_detection._query_ccu_interfaces",
                 new_callable=AsyncMock,
-                return_value=((), None),
+                return_value=((), None, None),
             ),
         ):
             result = await detect_backend(config=config)
@@ -312,7 +312,7 @@ class TestDetectBackend:
             patch(
                 "aiohomematic.backend_detection._query_ccu_interfaces",
                 new_callable=AsyncMock,
-                return_value=((Interface.HMIP_RF,), None),
+                return_value=((Interface.HMIP_RF,), None, None),
             ),
         ):
             result = await detect_backend(config=config)
@@ -339,7 +339,7 @@ class TestDetectBackend:
             patch(
                 "aiohomematic.backend_detection._query_ccu_interfaces",
                 new_callable=AsyncMock,
-                return_value=((Interface.HMIP_RF, Interface.BIDCOS_RF), True),
+                return_value=((Interface.HMIP_RF, Interface.BIDCOS_RF), True, False),
             ),
         ):
             result = await detect_backend(config=config)
@@ -349,6 +349,7 @@ class TestDetectBackend:
         assert result.available_interfaces == (Interface.HMIP_RF, Interface.BIDCOS_RF)
         assert result.version == "3.61.345"
         assert result.auth_enabled is True
+        assert result.https_redirect_enabled is False
 
     @pytest.mark.asyncio
     async def test_detect_homegear_backend(self) -> None:

@@ -244,7 +244,6 @@ class CentralUnit(
         """Initialize the central unit."""
         self._state: CentralUnitState = CentralUnitState.NEW
         self._connection_state: Final = CentralConnectionState()
-        self._tasks: Final[set[asyncio.Future[Any]]] = set()
         # Keep the config for the central
         self._config: Final = central_config
         # Apply locale for translations
@@ -1153,6 +1152,24 @@ class CentralUnit(
         _LOGGER.debug("STOP: Removing instance")
         if self.name in CENTRAL_INSTANCES:
             del CENTRAL_INSTANCES[self.name]
+
+        # Log any leaked subscriptions before clearing (only when debug logging is enabled)
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            self._event_coordinator.event_bus.log_leaked_subscriptions()
+
+        # Clear EventBus subscriptions to prevent memory leaks
+        self._event_coordinator.event_bus.clear_subscriptions()
+        _LOGGER.debug("STOP: EventBus subscriptions cleared")
+
+        # Clear all in-memory caches (device_details, data_cache, parameter_visibility)
+        self._cache_coordinator.clear_on_stop()
+        _LOGGER.debug("STOP: In-memory caches cleared")
+
+        # Clear client-level caches (command cache, ping-pong cache)
+        for client in self.clients:
+            client.last_value_send_cache.clear()
+            client.ping_pong_cache.clear()
+        _LOGGER.debug("STOP: Client caches cleared")
 
         # cancel outstanding tasks to speed up teardown
         self.looper.cancel_tasks()

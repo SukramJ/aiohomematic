@@ -353,6 +353,11 @@ class EventBus:
         self._enable_event_logging = enable_event_logging
         self._event_count: dict[type[Event], int] = defaultdict(int)
 
+    def clear_event_stats(self) -> None:
+        """Clear event statistics counters to free memory."""
+        self._event_count.clear()
+        _LOGGER.debug("CLEAR_EVENT_STATS: Cleared all event statistics")
+
     def clear_subscriptions(self, *, event_type: type[Event] | None = None) -> None:
         """
         Clear subscriptions for a specific event type or all types.
@@ -364,7 +369,8 @@ class EventBus:
         """
         if event_type is None:
             self._subscriptions.clear()
-            _LOGGER.debug("CLEAR_SUBSCRIPTION: Cleared all event subscriptions")
+            self._event_count.clear()
+            _LOGGER.debug("CLEAR_SUBSCRIPTION: Cleared all event subscriptions and statistics")
         else:
             self._subscriptions[event_type].clear()
             _LOGGER.debug("CLEAR_SUBSCRIPTION: Cleared subscriptions for %s", event_type.__name__)
@@ -396,6 +402,39 @@ class EventBus:
 
         """
         return sum(len(handlers) for handlers in self._subscriptions.get(event_type, {}).values())
+
+    def get_total_subscription_count(self) -> int:
+        """Return the total number of active subscriptions across all event types."""
+        return sum(
+            len(handlers) for event_handlers in self._subscriptions.values() for handlers in event_handlers.values()
+        )
+
+    def log_leaked_subscriptions(self) -> int:
+        """
+        Log any remaining subscriptions for debugging memory leaks.
+
+        Call this before clearing subscriptions to identify potential leaks.
+
+        Returns
+        -------
+            Total number of leaked subscriptions found
+
+        """
+        total_leaked = 0
+        for event_type, keys_handlers in self._subscriptions.items():
+            for key, handlers in keys_handlers.items():
+                if handlers:
+                    count = len(handlers)
+                    total_leaked += count
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "LEAKED_SUBSCRIPTION: %s (key=%s, count=%d)",
+                        event_type.__name__,
+                        key,
+                        count,
+                    )
+        if total_leaked > 0:
+            _LOGGER.warning("LEAKED_SUBSCRIPTION: Total leaked subscriptions: %d", total_leaked)  # i18n-log: ignore
+        return total_leaked
 
     async def publish(self, *, event: Event) -> None:
         """

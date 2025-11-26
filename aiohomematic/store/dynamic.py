@@ -34,6 +34,7 @@ from aiohomematic import central as hmcu, i18n
 from aiohomematic.const import (
     DP_KEY_VALUE,
     INIT_DATETIME,
+    LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD,
     LAST_COMMAND_SEND_STORE_TIMEOUT,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
@@ -94,6 +95,10 @@ class CommandCache:
         self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
+        # Cleanup expired entries when cache size exceeds threshold
+        if len(self._last_send_command) > LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD:
+            self.cleanup_expired()
+
         dpk_values: set[DP_KEY_VALUE] = set()
         now_ts = datetime.now()
         for parameter, value in values.items():
@@ -120,6 +125,10 @@ class CommandCache:
                 parameter=parameter, channel_address=channel_address, combined_parameter=value
             )
 
+        # Cleanup expired entries when cache size exceeds threshold
+        if len(self._last_send_command) > LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD:
+            self.cleanup_expired()
+
         now_ts = datetime.now()
         dpk = DataPointKey(
             interface_id=self._interface_id,
@@ -129,6 +138,25 @@ class CommandCache:
         )
         self._last_send_command[dpk] = (value, now_ts)
         return {(dpk, value)}
+
+    def cleanup_expired(self, *, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> int:
+        """
+        Remove expired command cache entries.
+
+        Returns the number of entries removed.
+        """
+        expired_keys = [
+            dpk
+            for dpk, (_, last_send_dt) in self._last_send_command.items()
+            if not changed_within_seconds(last_change=last_send_dt, max_age=max_age)
+        ]
+        for dpk in expired_keys:
+            del self._last_send_command[dpk]
+        return len(expired_keys)
+
+    def clear(self) -> None:
+        """Clear all cached command entries."""
+        self._last_send_command.clear()
 
     def get_last_value_send(self, *, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
         """Return the last send values."""
@@ -262,12 +290,21 @@ class DeviceDetailsCache(DeviceDetailsProvider):
         self._refreshed_at = datetime.now()
 
     def remove_device(self, *, device: Device) -> None:
-        """Remove name from cache."""
-        if device.address in self._names_cache:
-            del self._names_cache[device.address]
+        """Remove device data from all caches."""
+        # Clean device-level entries
+        self._names_cache.pop(device.address, None)
+        self._interface_cache.pop(device.address, None)
+        self._device_channel_ids.pop(device.address, None)
+        self._device_rooms.pop(device.address, None)
+        self._functions.pop(device.address, None)
+
+        # Clean channel-level entries
         for channel_address in device.channels:
-            if channel_address in self._names_cache:
-                del self._names_cache[channel_address]
+            self._names_cache.pop(channel_address, None)
+            self._interface_cache.pop(channel_address, None)
+            self._device_channel_ids.pop(channel_address, None)
+            self._channel_rooms.pop(channel_address, None)
+            self._functions.pop(channel_address, None)
 
     async def _get_all_functions(self) -> Mapping[str, set[str]]:
         """Get all functions, if available."""

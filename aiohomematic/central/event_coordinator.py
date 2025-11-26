@@ -16,6 +16,7 @@ The EventCoordinator provides:
 from __future__ import annotations
 
 from datetime import datetime
+from functools import partial
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
@@ -205,9 +206,10 @@ class EventCoordinator:
             value: New value
 
         """
-        # Publish to EventBus asynchronously
-        self._task_scheduler.create_task(
-            target=lambda: self._event_bus.publish(
+
+        async def _publish_backend_parameter_event() -> None:
+            """Publish a backend parameter event to the event bus."""
+            await self._event_bus.publish(
                 event=BackendParameterEvent(
                     timestamp=datetime.now(),
                     interface_id=interface_id,
@@ -215,7 +217,12 @@ class EventCoordinator:
                     parameter=parameter,
                     value=value,
                 )
-            ),
+            )
+
+        # Publish to EventBus asynchronously using partial to defer coroutine creation
+        # and avoid lambda closure capturing variables
+        self._task_scheduler.create_task(
+            target=partial(_publish_backend_parameter_event),
             name=f"event-bus-backend-param-{channel_address}-{parameter}",
         )
 
@@ -232,11 +239,17 @@ class EventCoordinator:
             **kwargs: Additional event data
 
         """
-        # Publish to EventBus (new system)
-        self._task_scheduler.create_task(
-            target=lambda: self._event_bus.publish(
+
+        async def _publish_backend_system_event() -> None:
+            """Publish a backend system event to the event bus."""
+            await self._event_bus.publish(
                 event=BackendSystemEventData(timestamp=datetime.now(), system_event=system_event, data=kwargs)
-            ),
+            )
+
+        # Publish to EventBus using partial to defer coroutine creation
+        # and avoid lambda closure capturing variables
+        self._task_scheduler.create_task(
+            target=partial(_publish_backend_system_event),
             name=f"event-bus-backend-system-{system_event}",
         )
 
@@ -253,11 +266,17 @@ class EventCoordinator:
             event_data: Event data dictionary
 
         """
-        # Publish to EventBus (new system)
-        self._task_scheduler.create_task(
-            target=lambda: self._event_bus.publish(
+
+        async def _publish_homematic_event() -> None:
+            """Publish a Homematic event to the event bus."""
+            await self._event_bus.publish(
                 event=HomematicEvent(timestamp=datetime.now(), event_type=event_type, event_data=event_data)
-            ),
+            )
+
+        # Publish to EventBus using partial to defer coroutine creation
+        # and avoid lambda closure capturing variables
+        self._task_scheduler.create_task(
+            target=partial(_publish_homematic_event),
             name=f"event-bus-homematic-{event_type}",
         )
 

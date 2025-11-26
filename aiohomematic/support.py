@@ -18,7 +18,7 @@ from functools import lru_cache
 import glob
 import hashlib
 import inspect
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv6Address
 import logging
 import os
 import random
@@ -331,6 +331,17 @@ def is_ipv4_address(*, address: str | None) -> bool:
         return False
     try:
         IPv4Address(address=address)
+    except ValueError:
+        return False
+    return True
+
+
+def is_ipv6_address(*, address: str | None) -> bool:
+    """Return True if ipv6_address is valid."""
+    if not address:
+        return False
+    try:
+        IPv6Address(address=address)
     except ValueError:
         return False
     return True

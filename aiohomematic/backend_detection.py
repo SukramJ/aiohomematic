@@ -12,29 +12,26 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import logging
-from ssl import SSLContext
-from typing import Final, cast
-from xmlrpc.client import ServerProxy
+from typing import Final
 
 from aiohttp import ClientSession
 
 from aiohomematic import i18n
 from aiohomematic.central import CentralConnectionState
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
+from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
 from aiohomematic.const import (
     DETECTION_PORT_BIDCOS_RF,
     DETECTION_PORT_BIDCOS_WIRED,
     DETECTION_PORT_HMIP_RF,
     DETECTION_PORT_JSON_RPC,
-    ISO_8859_1,
     Backend,
     Interface,
 )
-from aiohomematic.exceptions import AuthFailure
-from aiohomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, get_tls_context, validate_host
+from aiohomematic.exceptions import AuthFailure, BaseHomematicException, NoConnectionException
+from aiohomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, validate_host
 
 __all__ = [
     "BackendDetectionResult",
@@ -97,6 +94,7 @@ async def detect_backend(
     Raises:
         ValidationException: If host format is invalid.
         AuthFailure: If authentication fails with the provided credentials.
+        NoConnectionException: If host is reachable but connection fails due to network issues.
 
     """
     # Validate input
@@ -213,54 +211,58 @@ async def _probe_xml_rpc_port(
     """
     Probe a single XML-RPC port and return the version string if successful.
 
+    Uses AioXmlRpcProxy for consistent error handling with the rest of the client.
+
     Returns:
         Version string if connection successful, None otherwise.
+
+    Raises:
+        AuthFailure: If authentication fails with the provided credentials.
+        NoConnectionException: If connection fails due to network issues.
 
     """
     uri = build_xml_rpc_uri(host=host, port=port, path=None, tls=tls)
     headers = build_xml_rpc_headers(username=username, password=password) if username else []
-    context: SSLContext | None = get_tls_context(verify_tls=verify_tls) if tls else None
+    interface_id = f"detect-{host}:{port}"
 
-    def _sync_probe() -> str | None:
-        """Run synchronous XML-RPC probe in thread pool."""
-        try:
-            proxy = ServerProxy(
-                uri=uri,
-                encoding=ISO_8859_1,
-                headers=headers,
-                context=context,
-            )
-
-            # First try to list methods to verify connection
-            methods = cast(list[str], proxy.system.listMethods())
-
-            if _XML_METHOD_GET_VERSION in methods:
-                return cast(str, proxy.getVersion())
-
-            # If getVersion not available, return empty string to indicate connection worked
-            return ""  # noqa: TRY300
-
-        except Exception as exc:  # noqa: BLE001
-            _LOGGER.info(
-                i18n.tr(
-                    "log.backend_detection.xml_rpc.probe_failed",
-                    host=host,
-                    port=port,
-                    exc_type=type(exc).__name__,
-                    reason=exc,
-                )
-            )
-            return None
-
+    proxy: AioXmlRpcProxy | None = None
     try:
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="backend_detect") as executor:
-            return await asyncio.wait_for(
-                loop.run_in_executor(executor, _sync_probe),
-                timeout=request_timeout,
-            )
+        proxy = AioXmlRpcProxy(
+            max_workers=1,
+            interface_id=interface_id,
+            connection_state=CentralConnectionState(),
+            uri=uri,
+            headers=headers,
+            tls=tls,
+            verify_tls=verify_tls,
+        )
+
+        # Initialize proxy and get supported methods
+        await asyncio.wait_for(proxy.do_init(), timeout=request_timeout)
+
+        # Try to get version if available
+        if _XML_METHOD_GET_VERSION in (proxy.supported_methods or ()):
+            version = await asyncio.wait_for(proxy.getVersion(), timeout=request_timeout)
+            return str(version) if version else ""
+        # If getVersion not available, return empty string to indicate connection worked
+        return ""  # noqa: TRY300
+
+    except (AuthFailure, NoConnectionException):
+        # Re-raise authentication and connection failures
+        raise
     except TimeoutError:
         _LOGGER.info(i18n.tr("log.backend_detection.xml_rpc.probe_timeout", host=host, port=port))
+        return None
+    except BaseHomematicException as exc:
+        _LOGGER.info(
+            i18n.tr(
+                "log.backend_detection.xml_rpc.probe_failed",
+                host=host,
+                port=port,
+                exc_type=type(exc).__name__,
+                reason=exc,
+            )
+        )
         return None
     except Exception as exc:  # noqa: BLE001
         _LOGGER.info(
@@ -273,6 +275,9 @@ async def _probe_xml_rpc_port(
             )
         )
         return None
+    finally:
+        if proxy:
+            await proxy.stop()
 
 
 async def _query_ccu_interfaces(
@@ -295,6 +300,7 @@ async def _query_ccu_interfaces(
 
     Raises:
         AuthFailure: If authentication fails with the provided credentials.
+        NoConnectionException: If connection fails due to network issues.
 
     """
     for port, tls in DETECTION_PORT_JSON_RPC:
@@ -331,6 +337,7 @@ async def _query_json_rpc_interfaces(
 
     Raises:
         AuthFailure: If authentication fails with the provided credentials.
+        NoConnectionException: If connection fails due to network issues.
 
     """
     scheme = "https" if tls else "http"
@@ -365,6 +372,10 @@ async def _query_json_rpc_interfaces(
     except AuthFailure:
         # Re-raise authentication failures so they can be handled by the caller
         _LOGGER.warning(i18n.tr("log.backend_detection.json_rpc.auth_failed", url=device_url))
+        raise
+    except NoConnectionException:
+        # Re-raise connection failures so they can be handled by the caller
+        _LOGGER.warning(i18n.tr("log.backend_detection.json_rpc.connection_failed", url=device_url))
         raise
     except Exception as exc:  # noqa: BLE001
         _LOGGER.info(

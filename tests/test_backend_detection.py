@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -48,9 +49,10 @@ class TestProbeXmlRpcPort:
     async def test_probe_xml_rpc_port_connection_error(self) -> None:
         """Test XML-RPC probe with connection error."""
         mock_proxy = MagicMock()
-        mock_proxy.system.listMethods.side_effect = ConnectionRefusedError("Connection refused")
+        mock_proxy.do_init = AsyncMock(side_effect=ConnectionRefusedError("Connection refused"))
+        mock_proxy.stop = AsyncMock()
 
-        with patch("aiohomematic.backend_detection.ServerProxy", return_value=mock_proxy):
+        with patch("aiohomematic.backend_detection.AioXmlRpcProxy", return_value=mock_proxy):
             result = await _probe_xml_rpc_port(
                 host="192.168.1.100",
                 port=2010,
@@ -62,14 +64,17 @@ class TestProbeXmlRpcPort:
             )
 
         assert result is None
+        mock_proxy.stop.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_probe_xml_rpc_port_no_getversion(self) -> None:
         """Test XML-RPC probe when getVersion is not available."""
         mock_proxy = MagicMock()
-        mock_proxy.system.listMethods.return_value = ["system.listMethods", "ping"]
+        mock_proxy.do_init = AsyncMock()
+        mock_proxy.supported_methods = ("system.listMethods", "ping")
+        mock_proxy.stop = AsyncMock()
 
-        with patch("aiohomematic.backend_detection.ServerProxy", return_value=mock_proxy):
+        with patch("aiohomematic.backend_detection.AioXmlRpcProxy", return_value=mock_proxy):
             result = await _probe_xml_rpc_port(
                 host="192.168.1.100",
                 port=2010,
@@ -81,15 +86,18 @@ class TestProbeXmlRpcPort:
             )
 
         assert result == ""
+        mock_proxy.stop.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_probe_xml_rpc_port_success(self) -> None:
         """Test successful XML-RPC probe."""
         mock_proxy = MagicMock()
-        mock_proxy.system.listMethods.return_value = ["system.listMethods", "getVersion"]
-        mock_proxy.getVersion.return_value = "3.61.345"
+        mock_proxy.do_init = AsyncMock()
+        mock_proxy.supported_methods = ("system.listMethods", "getVersion")
+        mock_proxy.getVersion = AsyncMock(return_value="3.61.345")
+        mock_proxy.stop = AsyncMock()
 
-        with patch("aiohomematic.backend_detection.ServerProxy", return_value=mock_proxy):
+        with patch("aiohomematic.backend_detection.AioXmlRpcProxy", return_value=mock_proxy):
             result = await _probe_xml_rpc_port(
                 host="192.168.1.100",
                 port=2010,
@@ -101,21 +109,20 @@ class TestProbeXmlRpcPort:
             )
 
         assert result == "3.61.345"
+        mock_proxy.stop.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_probe_xml_rpc_port_timeout(self) -> None:
         """Test XML-RPC probe with timeout."""
         mock_proxy = MagicMock()
 
-        def slow_list_methods() -> list[str]:
-            import time
+        async def slow_do_init() -> None:
+            await asyncio.sleep(10)
 
-            time.sleep(10)
-            return []
+        mock_proxy.do_init = slow_do_init
+        mock_proxy.stop = AsyncMock()
 
-        mock_proxy.system.listMethods = slow_list_methods
-
-        with patch("aiohomematic.backend_detection.ServerProxy", return_value=mock_proxy):
+        with patch("aiohomematic.backend_detection.AioXmlRpcProxy", return_value=mock_proxy):
             result = await _probe_xml_rpc_port(
                 host="192.168.1.100",
                 port=2010,
@@ -127,6 +134,7 @@ class TestProbeXmlRpcPort:
             )
 
         assert result is None
+        mock_proxy.stop.assert_called_once()
 
 
 class TestQueryCcuInterfaces:

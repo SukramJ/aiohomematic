@@ -110,6 +110,7 @@
   "log.backend_detection.detect_backend.probing": "DETECT_BACKEND: Probing {host}:{port} (TLS={tls}, interface={interface})",
   "log.backend_detection.detect_backend.starting": "DETECT_BACKEND: Starting detection for host {host}",
   "log.backend_detection.json_rpc.auth_failed": "DETECT_BACKEND: Authentication failed at {url}",
+  "log.backend_detection.json_rpc.connection_failed": "DETECT_BACKEND: Connection failed at {url}",
   "log.backend_detection.json_rpc.query_failed": "DETECT_BACKEND: JSON-RPC query failed at {url} - {exc_type}: {reason}",
   "log.backend_detection.json_rpc.querying": "DETECT_BACKEND: Querying JSON-RPC at {url}",
   "log.backend_detection.json_rpc.unknown_interface": "DETECT_BACKEND: Unknown interface '{interface}', skipping",

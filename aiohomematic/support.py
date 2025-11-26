@@ -295,10 +295,10 @@ def get_ip_addr(host: str, port: int, /) -> str | None:
     return local_ip
 
 
-def is_hostname(*, hostname: str | None) -> bool:
-    """Return True if hostname is valid."""
+def is_host(*, host: str | None) -> bool:
+    """Return True if host is valid."""
     try:
-        validate_host(host=hostname)
+        validate_host(host=host)
     except ValidationException:
         return False
     return True

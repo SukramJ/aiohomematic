@@ -188,7 +188,7 @@ from aiohomematic.support import (
     get_channel_no,
     get_device_address,
     get_ip_addr,
-    is_hostname,
+    is_host,
     is_ipv4_address,
     is_port,
 )
@@ -1508,7 +1508,7 @@ def check_config(
     if central_name and IDENTIFIER_SEPARATOR in central_name:
         config_failures.append(i18n.tr("exception.config.check.instance_name.separator", sep=IDENTIFIER_SEPARATOR))
 
-    if not (is_hostname(hostname=host) or is_ipv4_address(address=host)):
+    if not (is_host(host=host) or is_ipv4_address(address=host)):
         config_failures.append(i18n.tr("exception.config.check.host.invalid"))
     if not username:
         config_failures.append(i18n.tr("exception.config.check.username.empty"))
@@ -1520,7 +1520,7 @@ def check_config(
         check_or_create_directory(directory=storage_directory)
     except BaseHomematicException as bhexc:
         config_failures.append(extract_exc_args(exc=bhexc)[0])
-    if callback_host and not (is_hostname(hostname=callback_host) or is_ipv4_address(address=callback_host)):
+    if callback_host and not (is_host(host=callback_host) or is_ipv4_address(address=callback_host)):
         config_failures.append(i18n.tr("exception.config.check.callback_host.invalid"))
     if callback_port_xml_rpc and not is_port(port=callback_port_xml_rpc):
         config_failures.append(i18n.tr("exception.config.check.callback_port_xml_rpc.invalid"))

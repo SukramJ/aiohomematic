@@ -15,7 +15,15 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient, _get_params, _JsonKey, _JsonRpcMethod
-from aiohomematic.const import UTF_8, DescriptionMarker, Interface, ParamsetKey, RegaScript, SysvarType
+from aiohomematic.const import (
+    UTF_8,
+    DescriptionMarker,
+    Interface,
+    ParamsetKey,
+    RegaScript,
+    ServiceMessageType,
+    SysvarType,
+)
 from aiohomematic.exceptions import (
     AuthFailure,
     ClientException,
@@ -823,7 +831,7 @@ class TestJsonRpcClientOperations:
         assert await client.delete_system_variable(name="sv") is True
 
         # Booleans and misc
-        assert await client.has_program_ids(channel_hmid="ch") is True
+        assert await client.has_program_ids(regaid="ch") is True
         assert await client._get_auth_enabled() is True
         assert await client._get_https_redirect_enabled() is False
 
@@ -934,5 +942,533 @@ class TestJsonRpcClientOperations:
         vars_out = await client.get_all_system_variables(markers=(DescriptionMarker.INTERNAL,))
         # Should return an empty tuple because the only entry failed to parse
         assert isinstance(vars_out, tuple) and len(vars_out) == 0
+
+        await client.stop()
+
+
+class TestServiceMessagesAndSystemUpdate:
+    """Test service messages and system update methods."""
+
+    @pytest.mark.asyncio
+    async def test_accept_device_in_inbox_failure(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test accept_device_in_inbox returns False on failure."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        fake_result = {"success": False, "error": "Device not found"}
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        result = await client.accept_device_in_inbox(device_address="VCU9999999")
+
+        assert result is False
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_accept_device_in_inbox_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test accept_device_in_inbox handles JSONDecodeError gracefully."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            raise JSONDecodeError("bad json", "", 0)
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        result = await client.accept_device_in_inbox(device_address="VCU0000001")
+
+        assert result is False
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_accept_device_in_inbox_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test accept_device_in_inbox returns True on success."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        fake_result = {"success": True, "error": ""}
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            assert extra_params is not None
+            assert "device_address" in extra_params
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        result = await client.accept_device_in_inbox(device_address="VCU0000001")
+
+        assert result is True
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_regaid_by_address_not_found(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_regaid_by_address returns None when address not found."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
+            assert method == "Device.getReGaIDByAddress"
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: None}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        result = await client.get_regaid_by_address(address="UNKNOWN")
+
+        assert result is None
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_regaid_by_address_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_regaid_by_address returns ReGa ID on success."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
+            assert method == "Device.getReGaIDByAddress"
+            assert extra_params is not None
+            assert extra_params.get("address") == "VCU0000001"
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: 12345}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        result = await client.get_regaid_by_address(address="VCU0000001")
+
+        assert result == 12345
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_service_messages_empty(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_service_messages returns empty tuple when no messages."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: []}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        messages = await client.get_service_messages()
+
+        assert messages == ()
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_service_messages_filter_by_type(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_service_messages with message_type filter returns only matching messages."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        fake_result = [
+            {
+                "id": "1234",
+                "name": "CONFIG%20PENDING",
+                "timestamp": "2024-01-15 10:30:00",
+                "type": 2,  # CONFIG_PENDING
+                "address": "VCU0000001:0",
+                "device_name": "Test%20Device",
+            },
+            {
+                "id": "5678",
+                "name": "New%20device%20in%20inbox",
+                "timestamp": "2024-01-15 11:00:00",
+                "type": 3,  # INBOX
+                "address": "VCU0000002:0",
+                "device_name": "New%20Device",
+            },
+            {
+                "id": "9012",
+                "name": "LOW%20BAT",
+                "timestamp": "2024-01-15 12:00:00",
+                "type": 0,  # GENERIC
+                "address": "",
+                "device_name": "",
+            },
+        ]
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        # Without filter, should return all 3 messages
+        all_messages = await client.get_service_messages()
+        assert len(all_messages) == 3
+
+        # With message_type=INBOX filter, should return only the inbox message
+        inbox_messages = await client.get_service_messages(message_type=ServiceMessageType.INBOX)
+        assert len(inbox_messages) == 1
+        assert inbox_messages[0].msg_id == "5678"
+        assert inbox_messages[0].name == "New device in inbox"
+        assert inbox_messages[0].msg_type == 3
+        assert inbox_messages[0].address == "VCU0000002:0"
+        assert inbox_messages[0].device_name == "New Device"
+
+        # With message_type=CONFIG_PENDING filter
+        config_messages = await client.get_service_messages(message_type=ServiceMessageType.CONFIG_PENDING)
+        assert len(config_messages) == 1
+        assert config_messages[0].msg_id == "1234"
+
+        # With message_type=GENERIC filter
+        generic_messages = await client.get_service_messages(message_type=ServiceMessageType.GENERIC)
+        assert len(generic_messages) == 1
+        assert generic_messages[0].msg_id == "9012"
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_service_messages_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test get_service_messages handles JSONDecodeError gracefully."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            raise JSONDecodeError("bad json", "", 0)
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        messages = await client.get_service_messages()
+
+        assert messages == ()
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_service_messages_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_service_messages returns parsed service messages."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        fake_result = [
+            {
+                "id": "1234",
+                "name": "CONFIG%20PENDING",
+                "timestamp": "2024-01-15 10:30:00",
+                "type": 2,
+                "address": "VCU0000001:0",
+                "device_name": "Test%20Device",
+            },
+            {
+                "id": "5678",
+                "name": "LOW%20BAT",
+                "timestamp": "2024-01-15 11:00:00",
+                "type": 0,
+                "address": "",
+                "device_name": "",
+            },
+        ]
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        messages = await client.get_service_messages()
+
+        assert len(messages) == 2
+        assert messages[0].msg_id == "1234"
+        assert messages[0].name == "CONFIG PENDING"
+        assert messages[0].timestamp == "2024-01-15 10:30:00"
+        assert messages[0].msg_type == 2
+        assert messages[0].address == "VCU0000001:0"
+        assert messages[0].device_name == "Test Device"
+        assert messages[1].msg_id == "5678"
+        assert messages[1].name == "LOW BAT"
+        assert messages[1].address == ""
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_system_update_info_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test get_system_update_info handles JSONDecodeError gracefully."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            raise JSONDecodeError("bad json", "", 0)
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        update_info = await client.get_system_update_info()
+
+        assert update_info.current_firmware == ""
+        assert update_info.available_firmware == ""
+        assert update_info.update_available is False
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_system_update_info_no_update(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_system_update_info when no update is available."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        fake_result = {
+            "current_firmware": "3.65.11.20231024",
+            "available_firmware": "",
+            "update_available": False,
+        }
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        update_info = await client.get_system_update_info()
+
+        assert update_info.current_firmware == "3.65.11.20231024"
+        assert update_info.available_firmware == ""
+        assert update_info.update_available is False
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_system_update_info_update_available(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_system_update_info when update is available."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        fake_result = {
+            "current_firmware": "3.61.7.20230320",
+            "available_firmware": "3.65.11.20231024",
+            "update_available": True,
+        }
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        update_info = await client.get_system_update_info()
+
+        assert update_info.current_firmware == "3.61.7.20230320"
+        assert update_info.available_firmware == "3.65.11.20231024"
+        assert update_info.update_available is True
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_rename_channel_failure(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test rename_channel returns False on failure."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
+            assert method == "Channel.setName"
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: False}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        result = await client.rename_channel(regaid=99999, new_name="New Channel")
+
+        assert result is False
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_rename_channel_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test rename_channel returns True on success."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
+            assert method == "Channel.setName"
+            assert extra_params is not None
+            assert extra_params.get("id") == 12346
+            assert extra_params.get("name") == "New Channel"
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: True}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        result = await client.rename_channel(regaid=12346, new_name="New Channel")
+
+        assert result is True
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_rename_device_failure(self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test rename_device returns False on failure."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
+            assert method == "Device.setName"
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: False}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        result = await client.rename_device(regaid=99999, new_name="New Name")
+
+        assert result is False
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_rename_device_success(self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test rename_device returns True on success."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
+            assert method == "Device.setName"
+            assert extra_params is not None
+            assert extra_params.get("id") == 12345
+            assert extra_params.get("name") == "New Name"
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: True}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        result = await client.rename_device(regaid=12345, new_name="New Name")
+
+        assert result is True
 
         await client.stop()

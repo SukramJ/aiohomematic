@@ -14,19 +14,28 @@ from abc import abstractmethod
 import asyncio
 from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
+    DP_KEY_VALUE,
     BackendSystemEvent,
+    CallSource,
     CentralUnitState,
+    DataPointCategory,
+    DataPointKey,
+    DataPointUsage,
     DeviceDescription,
     DeviceFirmwareState,
     EventKey,
     EventType,
     Interface,
     ParameterData,
+    ParameterType,
     ParamsetKey,
+    ProgramData,
     SystemInformation,
+    SysvarType,
 )
 from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
@@ -109,7 +118,7 @@ class DeviceDetailsProvider(Protocol):
     """
 
     @abstractmethod
-    def get_address_id(self, *, address: str) -> str:
+    def get_address_id(self, *, address: str) -> int:
         """Get an ID for an address."""
 
     @abstractmethod
@@ -516,8 +525,16 @@ class HubDataFetcher(Protocol):
         """Execute a program on the backend."""
 
     @abstractmethod
+    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
+        """Fetch inbox data from the backend."""
+
+    @abstractmethod
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data from the backend."""
+
+    @abstractmethod
+    async def fetch_system_update_data(self, *, scheduled: bool) -> None:
+        """Fetch system update data from the backend."""
 
     @abstractmethod
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
@@ -621,3 +638,717 @@ class ClientFactory(Protocol):
             Client instance for the interface
 
         """
+
+
+# =============================================================================
+# DataPoint Protocol Interfaces
+# =============================================================================
+# These protocols define the public interface for data point classes,
+# allowing new classes outside the inheritance hierarchy to implement
+# the required methods and properties.
+
+
+@runtime_checkable
+class CallbackDataPointProtocol(Protocol):
+    """
+    Protocol for callback-based data points.
+
+    Base protocol for all data point types, providing event handling,
+    subscription management, and timestamp tracking.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def available(self) -> bool:
+        """Return the availability of the device."""
+
+    @property
+    @abstractmethod
+    def category(self) -> DataPointCategory:
+        """Return the category of the data point."""
+
+    @property
+    @abstractmethod
+    def custom_id(self) -> str | None:
+        """Return the custom id."""
+
+    @property
+    @abstractmethod
+    def enabled_default(self) -> bool:
+        """Return if data point should be enabled based on usage attribute."""
+
+    @property
+    @abstractmethod
+    def full_name(self) -> str:
+        """Return the full name of the data point."""
+
+    @property
+    @abstractmethod
+    def is_registered(self) -> bool:
+        """Return if data point is registered externally."""
+
+    @property
+    @abstractmethod
+    def is_valid(self) -> bool:
+        """Return if the value of the data point is valid."""
+
+    @property
+    @abstractmethod
+    def modified_at(self) -> datetime:
+        """Return the last update datetime value."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the name of the data point."""
+
+    @property
+    @abstractmethod
+    def published_event_at(self) -> datetime:
+        """Return the data point updated published an event at."""
+
+    @property
+    @abstractmethod
+    def refreshed_at(self) -> datetime:
+        """Return the last refresh datetime value."""
+
+    @property
+    @abstractmethod
+    def service_method_names(self) -> tuple[str, ...]:
+        """Return all service method names."""
+
+    @property
+    @abstractmethod
+    def service_methods(self) -> Mapping[str, Any]:
+        """Return all service methods."""
+
+    @property
+    @abstractmethod
+    def set_path(self) -> str:
+        """Return the base set path of the data point."""
+
+    @property
+    @abstractmethod
+    def signature(self) -> str:
+        """Return the data point signature."""
+
+    @property
+    @abstractmethod
+    def state_path(self) -> str:
+        """Return the base state path of the data point."""
+
+    @property
+    @abstractmethod
+    def unique_id(self) -> str:
+        """Return the unique id."""
+
+    @property
+    @abstractmethod
+    def usage(self) -> DataPointUsage:
+        """Return the data point usage."""
+
+    @abstractmethod
+    def publish_data_point_updated_event(self, **kwargs: Any) -> None:
+        """Publish a data point updated event."""
+
+    @abstractmethod
+    def publish_device_removed_event(self) -> None:
+        """Publish a device removed event."""
+
+    @abstractmethod
+    def subscribe_to_data_point_updated(
+        self, *, handler: Callable[..., None], custom_id: str
+    ) -> Callable[[], None] | None:
+        """Subscribe to data point updated event."""
+
+    @abstractmethod
+    def subscribe_to_device_removed(self, *, handler: Callable[[], None]) -> Callable[[], None] | None:
+        """Subscribe to the device removed event."""
+
+
+@runtime_checkable
+class GenericHubDataPointProtocol(CallbackDataPointProtocol, Protocol):
+    """
+    Protocol for hub-level data points (programs, sysvars).
+
+    Extends CallbackDataPointProtocol with properties specific to
+    hub-level entities that are not bound to device channels.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def channel(self) -> Channel | None:
+        """Return the identified channel."""
+
+    @property
+    @abstractmethod
+    def description(self) -> str | None:
+        """Return data point description."""
+
+    @property
+    @abstractmethod
+    def legacy_name(self) -> str | None:
+        """Return the original name."""
+
+    @property
+    @abstractmethod
+    def state_uncertain(self) -> bool:
+        """Return if the state is uncertain."""
+
+
+@runtime_checkable
+class GenericSysvarDataPointProtocol(GenericHubDataPointProtocol, Protocol):
+    """
+    Protocol for system variable data points.
+
+    Extends GenericHubDataPointProtocol with methods for reading
+    and writing system variables.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def data_type(self) -> SysvarType | None:
+        """Return the data type of the system variable."""
+
+    @property
+    @abstractmethod
+    def is_extended(self) -> bool:
+        """Return if the data point is an extended type."""
+
+    @property
+    @abstractmethod
+    def max(self) -> float | int | None:
+        """Return the max value."""
+
+    @property
+    @abstractmethod
+    def min(self) -> float | int | None:
+        """Return the min value."""
+
+    @property
+    @abstractmethod
+    def previous_value(self) -> Any:
+        """Return the previous value."""
+
+    @property
+    @abstractmethod
+    def unit(self) -> str | None:
+        """Return the unit of the data point."""
+
+    @property
+    @abstractmethod
+    def value(self) -> Any:
+        """Return the value."""
+
+    @property
+    @abstractmethod
+    def values(self) -> tuple[str, ...] | None:
+        """Return the value list."""
+
+    @property
+    @abstractmethod
+    def vid(self) -> str:
+        """Return sysvar id."""
+
+    @abstractmethod
+    async def event(self, *, value: Any, received_at: datetime) -> None:
+        """Handle event for which this data point has subscribed."""
+
+    @abstractmethod
+    async def send_variable(self, *, value: Any) -> None:
+        """Set variable value on the backend."""
+
+    @abstractmethod
+    def write_value(self, *, value: Any, write_at: datetime) -> None:
+        """Set variable value on the backend."""
+
+
+@runtime_checkable
+class GenericProgramDataPointProtocol(GenericHubDataPointProtocol, Protocol):
+    """
+    Protocol for program data points.
+
+    Extends GenericHubDataPointProtocol with methods for managing
+    CCU programs.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def is_active(self) -> bool:
+        """Return if the program is active."""
+
+    @property
+    @abstractmethod
+    def is_internal(self) -> bool:
+        """Return if the program is internal."""
+
+    @property
+    @abstractmethod
+    def last_execute_time(self) -> str:
+        """Return the last execute time."""
+
+    @property
+    @abstractmethod
+    def pid(self) -> str:
+        """Return the program id."""
+
+    @abstractmethod
+    def update_data(self, *, data: ProgramData) -> None:
+        """Update program data from backend."""
+
+
+@runtime_checkable
+class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
+    """
+    Protocol for channel-bound data points.
+
+    Extends CallbackDataPointProtocol with channel/device associations
+    and timer functionality.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def device(self) -> Device:
+        """Return the device of the data point."""
+
+    @property
+    @abstractmethod
+    def function(self) -> str | None:
+        """Return the function."""
+
+    @property
+    @abstractmethod
+    def is_in_multiple_channels(self) -> bool:
+        """Return if the parameter is in multiple channels."""
+
+    @property
+    @abstractmethod
+    def room(self) -> str | None:
+        """Return the room if only one exists."""
+
+    @property
+    @abstractmethod
+    def rooms(self) -> set[str]:
+        """Return the rooms assigned to the data point."""
+
+    @property
+    @abstractmethod
+    def timer_on_time(self) -> float | None:
+        """Return the on_time."""
+
+    @property
+    @abstractmethod
+    def timer_on_time_running(self) -> bool:
+        """Return if on_time is running."""
+
+    @abstractmethod
+    def force_usage(self, *, forced_usage: DataPointUsage) -> None:
+        """Set the data point usage."""
+
+    @abstractmethod
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
+        """Initialize the data point data."""
+
+    @abstractmethod
+    def reset_timer_on_time(self) -> None:
+        """Reset the on_time."""
+
+    @abstractmethod
+    def set_timer_on_time(self, *, on_time: float) -> None:
+        """Set the on_time."""
+
+
+@runtime_checkable
+class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
+    """
+    Protocol for parameter-backed data points with typed values.
+
+    Extends BaseDataPointProtocol with value handling, unit conversion,
+    validation, and RPC communication for data points mapped to
+    Homematic device parameters.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def default(self) -> Any:
+        """Return default value."""
+
+    @property
+    @abstractmethod
+    def dpk(self) -> DataPointKey:
+        """Return data point key value."""
+
+    @property
+    @abstractmethod
+    def hmtype(self) -> ParameterType:
+        """Return the Homematic type."""
+
+    @property
+    @abstractmethod
+    def ignore_on_initial_load(self) -> bool:
+        """Return if parameter should be ignored on initial load."""
+
+    @property
+    @abstractmethod
+    def is_forced_sensor(self) -> bool:
+        """Return if data point is forced to read only."""
+
+    @property
+    @abstractmethod
+    def is_readable(self) -> bool:
+        """Return if data point is readable."""
+
+    @property
+    @abstractmethod
+    def is_un_ignored(self) -> bool:
+        """Return if the parameter is un-ignored."""
+
+    @property
+    @abstractmethod
+    def is_unit_fixed(self) -> bool:
+        """Return if the unit is fixed."""
+
+    @property
+    @abstractmethod
+    def is_writable(self) -> bool:
+        """Return if data point is writable."""
+
+    @property
+    @abstractmethod
+    def max(self) -> Any:
+        """Return max value."""
+
+    @property
+    @abstractmethod
+    def min(self) -> Any:
+        """Return min value."""
+
+    @property
+    @abstractmethod
+    def multiplier(self) -> float:
+        """Return multiplier value."""
+
+    @property
+    @abstractmethod
+    def parameter(self) -> str:
+        """Return parameter name."""
+
+    @property
+    @abstractmethod
+    def paramset_key(self) -> ParamsetKey:
+        """Return paramset_key name."""
+
+    @property
+    @abstractmethod
+    def previous_value(self) -> Any:
+        """Return the previous value of the data point."""
+
+    @property
+    @abstractmethod
+    def raw_unit(self) -> str | None:
+        """Return raw unit value."""
+
+    @property
+    @abstractmethod
+    def requires_polling(self) -> bool:
+        """Return whether the data point requires polling."""
+
+    @property
+    @abstractmethod
+    def service(self) -> bool:
+        """Return if data point is relevant for service messages."""
+
+    @property
+    @abstractmethod
+    def state_uncertain(self) -> bool:
+        """Return if the state is uncertain."""
+
+    @property
+    @abstractmethod
+    def supports_events(self) -> bool:
+        """Return if data point supports events."""
+
+    @property
+    @abstractmethod
+    def unconfirmed_last_value_send(self) -> Any:
+        """Return the unconfirmed value send for the data point."""
+
+    @property
+    @abstractmethod
+    def unit(self) -> str | None:
+        """Return unit value."""
+
+    @property
+    @abstractmethod
+    def value(self) -> Any:
+        """Return the value of the data point."""
+
+    @property
+    @abstractmethod
+    def values(self) -> tuple[str, ...] | None:
+        """Return the values."""
+
+    @property
+    @abstractmethod
+    def visible(self) -> bool:
+        """Return if data point is visible in backend."""
+
+    @abstractmethod
+    async def event(self, *, value: Any, received_at: datetime) -> None:
+        """Handle event for which this handler has subscribed."""
+
+    @abstractmethod
+    def force_to_sensor(self) -> None:
+        """Change the category of the data point to sensor (read-only)."""
+
+    @abstractmethod
+    def get_event_data(self, *, value: Any = None) -> dict[EventKey, Any]:
+        """Get the event data."""
+
+    @abstractmethod
+    def update_parameter_data(self) -> None:
+        """Update parameter data."""
+
+    @abstractmethod
+    def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
+        """Update the temporary value of the data point."""
+
+    @abstractmethod
+    def write_value(self, *, value: Any, write_at: datetime) -> tuple[Any, Any]:
+        """Update value of the data point."""
+
+
+@runtime_checkable
+class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
+    """
+    Protocol for generic parameter-backed data points.
+
+    Extends BaseParameterDataPointProtocol with the usage property
+    and send_value method specific to generic data points.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def usage(self) -> DataPointUsage:
+        """Return the data point usage."""
+
+    @abstractmethod
+    def is_state_change(self, *, value: Any) -> bool:
+        """Check if the state/value changes."""
+
+    @abstractmethod
+    async def send_value(
+        self,
+        *,
+        value: Any,
+        collector: Any | None = None,
+        collector_order: int = 50,
+        do_validate: bool = True,
+    ) -> set[DP_KEY_VALUE]:
+        """Send value to CCU or use collector if set."""
+
+
+@runtime_checkable
+class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
+    """
+    Protocol for custom device-specific data points.
+
+    Defines the interface for composite data points that aggregate
+    multiple GenericDataPoints to represent complex devices.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def allow_undefined_generic_data_points(self) -> bool:
+        """Return if undefined generic data points are allowed."""
+
+    @property
+    @abstractmethod
+    def custom_config(self) -> Any:
+        """Return the custom config."""
+
+    @property
+    @abstractmethod
+    def data_point_name_postfix(self) -> str:
+        """Return the data point name postfix."""
+
+    @property
+    @abstractmethod
+    def group_no(self) -> int | None:
+        """Return the base channel no of the data point."""
+
+    @property
+    @abstractmethod
+    def has_data_points(self) -> bool:
+        """Return if there are data points."""
+
+    @property
+    @abstractmethod
+    def schedule(self) -> dict[Any, Any]:
+        """Return cached schedule entries from device week profile."""
+
+    @property
+    @abstractmethod
+    def state_uncertain(self) -> bool:
+        """Return if the state is uncertain."""
+
+    @property
+    @abstractmethod
+    def supports_schedule(self) -> bool:
+        """Return if device supports schedule."""
+
+    @property
+    @abstractmethod
+    def unconfirmed_last_values_send(self) -> Mapping[Any, Any]:
+        """Return the unconfirmed values send for the data point."""
+
+    @abstractmethod
+    async def get_schedule(self, *, force_load: bool = False) -> dict[Any, Any]:
+        """Get schedule from device week profile."""
+
+    @abstractmethod
+    def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
+        """Return if a data point with one of the keys is part of this data point."""
+
+    @abstractmethod
+    def is_state_change(self, **kwargs: Any) -> bool:
+        """Check if the state changes due to kwargs."""
+
+    @abstractmethod
+    async def set_schedule(self, *, schedule_data: dict[Any, Any]) -> None:
+        """Set schedule on device week profile."""
+
+    @abstractmethod
+    def unsubscribe_from_data_point_updated(self) -> None:
+        """Unregister all internal update handlers."""
+
+
+@runtime_checkable
+class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
+    """
+    Protocol for calculated data points.
+
+    Defines the interface for data points that derive their values
+    from other data points through calculations.
+    """
+
+    __slots__ = ()
+
+    @staticmethod
+    @abstractmethod
+    def is_relevant_for_model(*, channel: Channel) -> bool:
+        """Return if this calculated data point is relevant for the channel."""
+
+    @property
+    @abstractmethod
+    def data_point_name_postfix(self) -> str:
+        """Return the data point name postfix."""
+
+    @property
+    @abstractmethod
+    def default(self) -> Any:
+        """Return default value."""
+
+    @property
+    @abstractmethod
+    def dpk(self) -> DataPointKey:
+        """Return data point key value."""
+
+    @property
+    @abstractmethod
+    def has_data_points(self) -> bool:
+        """Return if there are data points."""
+
+    @property
+    @abstractmethod
+    def hmtype(self) -> ParameterType:
+        """Return the Homematic type."""
+
+    @property
+    @abstractmethod
+    def is_readable(self) -> bool:
+        """Return if data point is readable."""
+
+    @property
+    @abstractmethod
+    def is_writable(self) -> bool:
+        """Return if data point is writable."""
+
+    @property
+    @abstractmethod
+    def max(self) -> Any:
+        """Return max value."""
+
+    @property
+    @abstractmethod
+    def min(self) -> Any:
+        """Return min value."""
+
+    @property
+    @abstractmethod
+    def multiplier(self) -> float:
+        """Return multiplier value."""
+
+    @property
+    @abstractmethod
+    def parameter(self) -> str:
+        """Return parameter name."""
+
+    @property
+    @abstractmethod
+    def paramset_key(self) -> ParamsetKey:
+        """Return paramset_key name."""
+
+    @property
+    @abstractmethod
+    def service(self) -> bool:
+        """Return if data point is relevant for service messages."""
+
+    @property
+    @abstractmethod
+    def state_uncertain(self) -> bool:
+        """Return if the state is uncertain."""
+
+    @property
+    @abstractmethod
+    def supports_events(self) -> bool:
+        """Return if data point supports events."""
+
+    @property
+    @abstractmethod
+    def unit(self) -> str | None:
+        """Return unit value."""
+
+    @property
+    @abstractmethod
+    def values(self) -> tuple[str, ...] | None:
+        """Return the values."""
+
+    @property
+    @abstractmethod
+    def visible(self) -> bool:
+        """Return if data point is visible in backend."""
+
+    @abstractmethod
+    def is_state_change(self, **kwargs: Any) -> bool:
+        """Check if the state changes due to kwargs."""
+
+    @abstractmethod
+    def unsubscribe_from_data_point_updated(self) -> None:
+        """Unsubscribe from all internal update subscriptions."""

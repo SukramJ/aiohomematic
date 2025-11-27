@@ -1,0 +1,77 @@
+!# get_service_messages.fn
+!#
+!# This script returns all active service messages from the CCU.
+!# Service messages include new devices in inbox, configuration errors,
+!# connectivity issues, low battery warnings, etc.
+!#
+
+string sAlarmId;
+boolean bFirst = true;
+string sName;
+string sTimestamp;
+integer iType;
+string sAddress;
+string sDeviceName;
+
+Write('[');
+
+object oServices = dom.GetObject(ID_SERVICES);
+if (oServices) {
+    foreach(sAlarmId, oServices.EnumIDs()) {
+        object oAlarm = dom.GetObject(sAlarmId);
+        if (oAlarm) {
+            integer iAlState = oAlarm.AlState();
+            if (iAlState == 1) {
+                if (bFirst) {
+                    bFirst = false;
+                } else {
+                    Write(',');
+                }
+
+                sName = oAlarm.Name();
+                if (sName) {
+                    sName = sName.UriEncode();
+                } else {
+                    sName = "";
+                }
+
+                time tTime = oAlarm.AlOccurrenceTime();
+                if (tTime) {
+                    sTimestamp = tTime.ToString();
+                } else {
+                    sTimestamp = "";
+                }
+
+                iType = oAlarm.AlType();
+
+                sAddress = "";
+                sDeviceName = "";
+                integer iTriggerDP = oAlarm.AlTriggerDP();
+                if (iTriggerDP) {
+                    object oTrigger = dom.GetObject(iTriggerDP);
+                    if (oTrigger) {
+                        object oChn = oTrigger.Channel();
+                        if (oChn) {
+                            sAddress = oChn.Address();
+                            sDeviceName = oChn.Name();
+                            if (sDeviceName) {
+                                sDeviceName = sDeviceName.UriEncode();
+                            } else {
+                                sDeviceName = "";
+                            }
+                        }
+                    }
+                }
+
+                Write('{"id":"' # oAlarm.ID() # '",');
+                Write('"name":"' # sName # '",');
+                Write('"timestamp":"' # sTimestamp # '",');
+                Write('"type":' # iType # ',');
+                Write('"address":"' # sAddress # '",');
+                Write('"device_name":"' # sDeviceName # '"}');
+            }
+        }
+    }
+}
+
+Write(']');

@@ -67,6 +67,9 @@ from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces import (
+    BaseDataPointProtocol,
+    BaseParameterDataPointProtocol,
+    CallbackDataPointProtocol,
     CentralInfo,
     EventBusProvider,
     EventPublisher,
@@ -144,7 +147,7 @@ EVENT_DATA_SCHEMA = vol.Schema(
 )
 
 
-class CallbackDataPoint(ABC, LogContextMixin):
+class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     """
     Base class for data points supporting subscriptions.
 
@@ -503,7 +506,7 @@ class CallbackDataPoint(ABC, LogContextMixin):
         self._temporary_refreshed_at = refreshed_at
 
 
-class BaseDataPoint(CallbackDataPoint, PayloadMixin):
+class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
     """
     Base class for channel-bound data points.
 
@@ -664,7 +667,7 @@ class BaseDataPoint(CallbackDataPoint, PayloadMixin):
 class BaseParameterDataPoint[
     ParameterT: ParamType,
     InputParameterT: ParamType,
-](BaseDataPoint):
+](BaseDataPoint, BaseParameterDataPointProtocol):
     """
     Base class for parameter-backed data points with typed values.
 

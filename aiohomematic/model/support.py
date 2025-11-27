@@ -14,6 +14,9 @@ from typing import Any, Final
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CDPD,
+    HUB_ADDRESS,
+    HUB_SET_PATH_ROOT,
+    HUB_STATE_PATH_ROOT,
     PROGRAM_ADDRESS,
     PROGRAM_SET_PATH_ROOT,
     PROGRAM_STATE_PATH_ROOT,
@@ -37,6 +40,7 @@ from aiohomematic.support import to_bool
 __all__ = [
     "ChannelNameData",
     "DataPointNameData",
+    "HubPathData",
     "check_channel_is_the_only_primary_channel",
     "convert_value",
     "generate_channel_unique_id",
@@ -301,6 +305,30 @@ class SysvarPathData(PathData):
         return self._state_path
 
 
+class HubPathData(PathData):
+    """The hub path data."""
+
+    __slots__ = (
+        "_set_path",
+        "_state_path",
+    )
+
+    def __init__(self, *, name: str):
+        """Initialize the path data."""
+        self._set_path: Final = f"{HUB_SET_PATH_ROOT}/{name}"
+        self._state_path: Final = f"{HUB_STATE_PATH_ROOT}/{name}"
+
+    @property
+    def set_path(self) -> str:
+        """Return the base set path of the hub entity."""
+        return self._set_path
+
+    @property
+    def state_path(self) -> str:
+        """Return the base state path of the hub entity."""
+        return self._state_path
+
+
 def get_data_point_name_data(
     channel: hmd.Channel,
     parameter: str,
@@ -353,8 +381,8 @@ def get_hub_data_point_name_data(
         p_name = (
             legacy_name.replace("_", " ")
             .replace(channel.address, "")
-            .replace(channel.id, "")
-            .replace(channel.device.id, "")
+            .replace(str(channel.regaid), "")
+            .replace(str(channel.device.regaid), "")
             .strip()
         )
 
@@ -456,7 +484,7 @@ def generate_unique_id(
     if prefix:
         unique_id = f"{prefix}_{unique_id}"
     if (
-        address in (PROGRAM_ADDRESS, SYSVAR_ADDRESS)
+        address in (HUB_ADDRESS, PROGRAM_ADDRESS, SYSVAR_ADDRESS)
         or address.startswith("INT000")
         or address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES
     ):

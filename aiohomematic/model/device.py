@@ -155,7 +155,7 @@ class Device(LogContextMixin, PayloadMixin):
         "_forced_availability",
         "_group_channels",
         "_has_custom_data_point_definition",
-        "_id",
+        "_regaid",
         "_ignore_for_custom_data_point",
         "_ignore_on_initial_load",
         "_interface",
@@ -221,7 +221,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._event_subscription_manager: Final = event_subscription_manager
         self._channel_group: Final[dict[int | None, int]] = {}
         self._group_channels: Final[dict[int, set[int | None]]] = {}
-        self._id: Final = device_details_provider.get_address_id(address=device_address)
+        self._regaid: Final = device_details_provider.get_address_id(address=device_address)
         self._interface: Final = device_details_provider.get_interface(address=device_address)
         self._client: Final = client_provider.get_client(interface_id=interface_id)
         self._description = self._device_description_provider.get_device_description(
@@ -475,11 +475,6 @@ class Device(LogContextMixin, PayloadMixin):
         return False
 
     @property
-    def id(self) -> str:
-        """Return the id of the device."""
-        return self._id
-
-    @property
     def ignore_for_custom_data_point(self) -> bool:
         """Return if device should be ignored for custom data_point."""
         return self._ignore_for_custom_data_point
@@ -527,6 +522,11 @@ class Device(LogContextMixin, PayloadMixin):
     def product_group(self) -> ProductGroup:
         """Return the product group of the device."""
         return self._product_group
+
+    @property
+    def regaid(self) -> int:
+        """Return the id of the device."""
+        return self._regaid
 
     @property
     def rooms(self) -> set[str]:
@@ -775,9 +775,9 @@ class Device(LogContextMixin, PayloadMixin):
         for channel_address, channel in self._channels.items():
             if text.endswith(channel_address):
                 return channel
-            if channel.id in text:
+            if str(channel.regaid) in text:
                 return channel
-            if channel.device.id in text:
+            if str(channel.device.regaid) in text:
                 return channel
 
         return None
@@ -877,6 +877,11 @@ class Device(LogContextMixin, PayloadMixin):
             for channel in self._channels.values():
                 await channel.remove_central_link()
 
+    @inspector
+    async def rename(self, *, new_name: str) -> bool:
+        """Rename the device on the CCU."""
+        return await self._client.rename_device(regaid=self._regaid, new_name=new_name)
+
     def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Set the availability of the device."""
         if self._forced_availability != forced_availability:
@@ -958,7 +963,7 @@ class Channel(LogContextMixin, PayloadMixin):
         "_generic_events",
         "_group_master",
         "_group_no",
-        "_id",
+        "_regaid",
         "_is_in_multi_group",
         "_is_schedule_channel",
         "_link_peer_addresses",
@@ -982,7 +987,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
         self._device: Final = device
         self._address: Final = channel_address
-        self._id: Final = self._device.device_details_provider.get_address_id(address=channel_address)
+        self._regaid: Final = self._device.device_details_provider.get_address_id(address=channel_address)
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
         self._description: DeviceDescription = self._device.device_description_provider.get_device_description(
@@ -1098,11 +1103,6 @@ class Channel(LogContextMixin, PayloadMixin):
         return self._group_no
 
     @property
-    def id(self) -> str:
-        """Return the id of the channel."""
-        return self._id
-
-    @property
     def is_group_master(self) -> bool:
         """Return if group master of channel."""
         return self.group_no == self._no
@@ -1174,6 +1174,11 @@ class Channel(LogContextMixin, PayloadMixin):
     def paramset_keys(self) -> tuple[ParamsetKey, ...]:
         """Return the paramset_keys of the channel."""
         return self._paramset_keys
+
+    @property
+    def regaid(self) -> int:
+        """Return the id of the channel."""
+        return self._regaid
 
     @property
     def rooms(self) -> set[str]:
@@ -1451,6 +1456,11 @@ class Channel(LogContextMixin, PayloadMixin):
                 address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
 
+    @inspector
+    async def rename(self, *, new_name: str) -> bool:
+        """Rename the channel on the CCU."""
+        return await self._device.client.rename_channel(regaid=self._regaid, new_name=new_name)
+
     def subscribe_to_link_peer_changed(self, *, handler: LinkPeerChangedHandler) -> UnsubscribeHandler:
         """Subscribe to the link peer changed event."""
 
@@ -1485,7 +1495,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     async def _has_program_ids(self) -> bool:
         """Return if a channel has program ids."""
-        return bool(await self._device.client.has_program_ids(channel_hmid=self._id))
+        return bool(await self._device.client.has_program_ids(regaid=self._regaid))
 
     @inspector
     async def _reload_paramset_descriptions(self) -> None:

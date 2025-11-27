@@ -22,6 +22,7 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
+from aiohomematic.interfaces import CallbackDataPointProtocol
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.data_point import BaseDataPoint
@@ -39,7 +40,7 @@ from aiohomematic.type_aliases import ParamType, UnsubscribeHandler
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint):
+class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPointProtocol):
     """Base class for calculated data point."""
 
     __slots__ = (

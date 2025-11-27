@@ -79,7 +79,10 @@ from aiohomematic.const import (
     ParamsetKey,
     ProgramData,
     RegaScript,
+    ServiceMessageData,
+    ServiceMessageType,
     SystemInformation,
+    SystemUpdateData,
     SystemVariableData,
     SysvarType,
 )
@@ -110,8 +113,12 @@ class _JsonKey(StrEnum):
     """Enum for Homematic json keys."""
 
     ADDRESS = "address"
+    AVAILABLE_FIRMWARE = "available_firmware"
     CHANNEL_IDS = "channelIds"
+    CURRENT_FIRMWARE = "current_firmware"
     DESCRIPTION = "description"
+    DEVICE_ADDRESS = "device_address"
+    DEVICE_NAME = "device_name"
     ERROR = "error"
     ID = "id"
     INTERFACE = "interface"
@@ -130,8 +137,10 @@ class _JsonKey(StrEnum):
     SESSION_ID = "_session_id_"
     SET = "set"
     STATE = "state"
+    TIMESTAMP = "timestamp"
     TYPE = "type"
     UNIT = "unit"
+    UPDATE_AVAILABLE = "update_available"
     USERNAME = "username"
     VALUE = "value"
     VALUE_KEY = "valueKey"
@@ -144,7 +153,10 @@ class _JsonRpcMethod(StrEnum):
     CCU_GET_AUTH_ENABLED = "CCU.getAuthEnabled"
     CCU_GET_HTTPS_REDIRECT_ENABLED = "CCU.getHttpsRedirectEnabled"
     CHANNEL_HAS_PROGRAM_IDS = "Channel.hasProgramIds"
+    CHANNEL_SET_NAME = "Channel.setName"
+    DEVICE_GET_REGA_ID_BY_ADDRESS = "Device.getReGaIDByAddress"
     DEVICE_LIST_ALL_DETAIL = "Device.listAllDetail"
+    DEVICE_SET_NAME = "Device.setName"
     INTERFACE_GET_DEVICE_DESCRIPTION = "Interface.getDeviceDescription"
     INTERFACE_GET_MASTER_VALUE = "Interface.getMasterValue"
     INTERFACE_GET_PARAMSET = "Interface.getParamset"
@@ -302,6 +314,37 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Return url."""
         return self._url
 
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """
+        Accept a device from the CCU inbox.
+
+        Args:
+            device_address: The address of the device to accept.
+
+        Returns:
+            True if the device was accepted successfully.
+
+        """
+        try:
+            response = await self._post_script(
+                script_name=RegaScript.ACCEPT_DEVICE_IN_INBOX,
+                extra_params={_JsonKey.DEVICE_ADDRESS: device_address},
+            )
+
+            _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: Accepting device %s", device_address)
+            if json_result := response[_JsonKey.RESULT]:
+                return bool(json_result.get("success", False))
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.accept_device_in_inbox.failed",
+                    device_address=device_address,
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return False
+
     def clear_session(self) -> None:
         """Clear the current session."""
         self._session_id = None
@@ -338,9 +381,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return True
 
-    async def get_all_channel_ids_function(self) -> Mapping[str, set[str]]:
-        """Get all channel_ids per function from the backend."""
-        channel_ids_function: dict[str, set[str]] = {}
+    async def get_all_channel_regaids_function(self) -> Mapping[int, set[str]]:
+        """Get all regaids per function from the backend."""
+        regaids_function: dict[int, set[str]] = {}
 
         response = await self._post(
             method=_JsonRpcMethod.SUBSECTION_GET_ALL,
@@ -349,21 +392,21 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         _LOGGER.debug("GET_ALL_CHANNEL_IDS_PER_FUNCTION: Getting all functions")
         if json_result := response[_JsonKey.RESULT]:
             for function in json_result:
-                function_id = function[_JsonKey.ID]
+                function_id = int(function[_JsonKey.ID])
                 function_name = function[_JsonKey.NAME]
-                if function_id not in channel_ids_function:
-                    channel_ids_function[function_id] = set()
-                channel_ids_function[function_id].add(function_name)
-                for channel_id in function[_JsonKey.CHANNEL_IDS]:
-                    if channel_id not in channel_ids_function:
-                        channel_ids_function[channel_id] = set()
-                    channel_ids_function[channel_id].add(function_name)
+                if function_id not in regaids_function:
+                    regaids_function[function_id] = set()
+                regaids_function[function_id].add(function_name)
+                for regaid in function[_JsonKey.CHANNEL_IDS]:
+                    if regaid not in regaids_function:
+                        regaids_function[regaid] = set()
+                    regaids_function[regaid].add(function_name)
 
-        return channel_ids_function
+        return regaids_function
 
-    async def get_all_channel_ids_room(self) -> Mapping[str, set[str]]:
-        """Get all channel_ids per room from the backend."""
-        channel_ids_room: dict[str, set[str]] = {}
+    async def get_all_channel_regaids_room(self) -> Mapping[int, set[str]]:
+        """Get all regaids per room from the backend."""
+        regaids_room: dict[int, set[str]] = {}
 
         response = await self._post(
             method=_JsonRpcMethod.ROOM_GET_ALL,
@@ -372,17 +415,17 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         _LOGGER.debug("GET_ALL_CHANNEL_IDS_PER_ROOM: Getting all rooms")
         if json_result := response[_JsonKey.RESULT]:
             for room in json_result:
-                room_id = room[_JsonKey.ID]
+                room_id = int(room[_JsonKey.ID])
                 room_name = room[_JsonKey.NAME]
-                if room_id not in channel_ids_room:
-                    channel_ids_room[room_id] = set()
-                channel_ids_room[room_id].add(room_name)
-                for channel_id in room[_JsonKey.CHANNEL_IDS]:
-                    if channel_id not in channel_ids_room:
-                        channel_ids_room[channel_id] = set()
-                    channel_ids_room[channel_id].add(room_name)
+                if room_id not in regaids_room:
+                    regaids_room[room_id] = set()
+                regaids_room[room_id].add(room_name)
+                for regaid in room[_JsonKey.CHANNEL_IDS]:
+                    if regaid not in regaids_room:
+                        regaids_room[regaid] = set()
+                    regaids_room[regaid].add(room_name)
 
-        return channel_ids_room
+        return regaids_room
 
     async def get_all_device_data(self, *, interface: Interface) -> Mapping[str, Any]:
         """Get the all device data of the backend."""
@@ -633,6 +676,71 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return paramset_description
 
+    async def get_regaid_by_address(self, *, address: str) -> int | None:
+        """
+        Get the ReGa ID for a device or channel address.
+
+        Args:
+            address: The address of the device or channel.
+
+        Returns:
+            The ReGa ID if found, None otherwise.
+
+        """
+        params = {
+            _JsonKey.ADDRESS: address,
+        }
+
+        response = await self._post(method=_JsonRpcMethod.DEVICE_GET_REGA_ID_BY_ADDRESS, extra_params=params)
+        _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: Getting ReGa ID for address %s", address)
+
+        if (result := response.get(_JsonKey.RESULT)) is not None:
+            return int(result) if result else None
+        return None
+
+    async def get_service_messages(
+        self,
+        *,
+        message_type: ServiceMessageType | None = None,
+    ) -> tuple[ServiceMessageData, ...]:
+        """
+        Get all active service messages from the backend.
+
+        Args:
+            message_type: Filter by message type. If None, return all messages.
+
+        """
+        messages: list[ServiceMessageData] = []
+
+        try:
+            response = await self._post_script(script_name=RegaScript.GET_SERVICE_MESSAGES)
+
+            _LOGGER.debug("GET_SERVICE_MESSAGES: Getting service messages")
+            if json_result := response[_JsonKey.RESULT]:
+                for msg in json_result:
+                    msg_type = msg[_JsonKey.TYPE]
+                    if message_type is not None and msg_type != message_type:
+                        continue
+                    messages.append(
+                        ServiceMessageData(
+                            msg_id=msg[_JsonKey.ID],
+                            name=unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1),
+                            timestamp=msg[_JsonKey.TIMESTAMP],
+                            msg_type=msg_type,
+                            address=msg.get(_JsonKey.ADDRESS, ""),
+                            device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
+                        )
+                    )
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.get_service_messages.decode_failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return tuple(messages)
+
     async def get_system_information(self) -> SystemInformation:
         """Get system information of the the backend."""
         if (auth_enabled := await self._get_auth_enabled()) is not None and (
@@ -646,6 +754,32 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             return system_information
 
         return SystemInformation(auth_enabled=True)
+
+    async def get_system_update_info(self) -> SystemUpdateData:
+        """Get system update information from the backend."""
+        try:
+            response = await self._post_script(script_name=RegaScript.GET_SYSTEM_UPDATE_INFO)
+
+            _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: Getting system update info")
+            if json_result := response[_JsonKey.RESULT]:
+                return SystemUpdateData(
+                    current_firmware=json_result.get(_JsonKey.CURRENT_FIRMWARE, ""),
+                    available_firmware=json_result.get(_JsonKey.AVAILABLE_FIRMWARE, ""),
+                    update_available=json_result.get(_JsonKey.UPDATE_AVAILABLE, False),
+                )
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.get_system_update_info.decode_failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return SystemUpdateData(
+            current_firmware="",
+            available_firmware="",
+            update_available=False,
+        )
 
     async def get_system_variable(self, *, name: str) -> Any:
         """Get single system variable from the backend."""
@@ -679,9 +813,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return value
 
-    async def has_program_ids(self, *, channel_hmid: str) -> bool:
+    async def has_program_ids(self, *, regaid: int) -> bool:
         """Return if a channel has program ids."""
-        params = {_JsonKey.ID: channel_hmid}
+        params = {_JsonKey.ID: regaid}
         response = await self._post(
             method=_JsonRpcMethod.CHANNEL_HAS_PROGRAM_IDS,
             extra_params=params,
@@ -760,6 +894,50 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 str(json_result),
             )
 
+    async def rename_channel(self, *, regaid: int, new_name: str) -> bool:
+        """
+        Rename a channel on the CCU.
+
+        Args:
+            regaid: The ReGa ID of the channel to rename.
+            new_name: The new name for the channel.
+
+        Returns:
+            True if the channel was renamed successfully.
+
+        """
+        params = {
+            _JsonKey.ID: regaid,
+            _JsonKey.NAME: new_name,
+        }
+
+        response = await self._post(method=_JsonRpcMethod.CHANNEL_SET_NAME, extra_params=params)
+        _LOGGER.debug("RENAME_CHANNEL: Renaming channel with regaid %s to %s", regaid, new_name)
+
+        return response.get(_JsonKey.RESULT) is True
+
+    async def rename_device(self, *, regaid: int, new_name: str) -> bool:
+        """
+        Rename a device on the CCU.
+
+        Args:
+            regaid: The ReGa ID of the device to rename.
+            new_name: The new name for the device.
+
+        Returns:
+            True if the device was renamed successfully.
+
+        """
+        params = {
+            _JsonKey.ID: regaid,
+            _JsonKey.NAME: new_name,
+        }
+
+        response = await self._post(method=_JsonRpcMethod.DEVICE_SET_NAME, extra_params=params)
+        _LOGGER.debug("RENAME_DEVICE: Renaming device with regaid %s to %s", regaid, new_name)
+
+        return response.get(_JsonKey.RESULT) is True
+
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
         params = {
@@ -833,6 +1011,24 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Stop the json rpc client."""
         if self._is_internal_session:
             await self._client_session.close()
+
+    async def trigger_firmware_update(self) -> bool:
+        """Trigger the CCU firmware update process."""
+        try:
+            response = await self._post_script(script_name=RegaScript.TRIGGER_FIRMWARE_UPDATE)
+
+            _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: Triggering firmware update")
+            if json_result := response[_JsonKey.RESULT]:
+                return bool(json_result.get("success", False))
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.trigger_firmware_update.failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return False
 
     async def _check_supported_methods(self) -> bool:
         """Check, if all required api methods are supported by the backend."""

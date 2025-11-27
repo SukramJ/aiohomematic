@@ -14,6 +14,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic.const import CDPD, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field
+from aiohomematic.interfaces import CustomDataPointProtocol
 from aiohomematic.model import device as hmd
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.support import CustomConfig
@@ -33,7 +34,7 @@ from aiohomematic.type_aliases import UnsubscribeHandler
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CustomDataPoint(BaseDataPoint):
+class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     """Base class for custom data point."""
 
     __slots__ = (

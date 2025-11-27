@@ -1,3 +1,17 @@
+# Version 2025.12.0 (2025-12-01)
+
+## What's Changed
+
+- New method get_service_messages to fetch CCU service messages
+- New method get_system_update_info for firmware update status
+- Added get_install_mode() and set_install_mode() methods
+- New script trigger_firmware_update.fn to trigger firmware updates
+- New hub entity for system update status
+- New hub entity for device inbox (devices pending pairing)
+- Method accept_device_in_inbox to accept new devices
+- Added rename_device and rename_channel methods
+- New protocols for model data points for better decoupling
+
 # Version 2025.11.30 (2025-11-26)
 
 ## What's Changed

@@ -90,7 +90,10 @@ from aiohomematic.const import (
     ProgramData,
     ProxyInitState,
     RpcServerType,
+    ServiceMessageData,
+    ServiceMessageType,
     SystemInformation,
+    SystemUpdateData,
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector, measure_execution_time
@@ -232,6 +235,12 @@ class Client(ABC, LogContextMixin):
     def interface_id(self) -> str:
         """Return the interface id of the client."""
         return self._config.interface_id
+
+    @inspector(re_raise=False)
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:  # pragma: no cover
+        """Accept a device from the CCU inbox."""
+        _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: not usable for %s.", self.interface_id)
+        return False
 
     @inspector
     async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
@@ -411,6 +420,12 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector
+    async def get_install_mode(self) -> int:  # pragma: no cover
+        """Return the remaining time in install mode."""
+        _LOGGER.debug("GET_INSTALL_MODE: not usable for %s.", self.interface_id)
+        return 0
+
+    @inspector
     async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
         """Return a list of link pers."""
         if not self._is_linkable:
@@ -519,6 +534,34 @@ class Client(ABC, LogContextMixin):
             return ProductGroup.VIRTUAL
         return ProductGroup.UNKNOWN
 
+    @inspector(re_raise=False)
+    async def get_regaid_by_address(self, *, address: str) -> int | None:  # pragma: no cover
+        """Get the ReGa ID for a device or channel address."""
+        _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: not usable for %s.", self.interface_id)
+        return None
+
+    @inspector(re_raise=False, no_raise_return=())
+    async def get_service_messages(
+        self,
+        *,
+        message_type: ServiceMessageType | None = None,
+    ) -> tuple[ServiceMessageData, ...]:  # pragma: no cover
+        """
+        Get all active service messages from the backend.
+
+        Args:
+            message_type: Filter by message type. If None, return all messages.
+
+        """
+        _LOGGER.debug("GET_SERVICE_MESSAGES: not usable for %s.", self.interface_id)
+        return ()
+
+    @inspector(re_raise=False)
+    async def get_system_update_info(self) -> SystemUpdateData | None:  # pragma: no cover
+        """Get system update information from the backend."""
+        _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: not usable for %s.", self.interface_id)
+        return None
+
     @abstractmethod
     @inspector
     async def get_system_variable(self, *, name: str) -> Any:
@@ -566,7 +609,7 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector
-    async def has_program_ids(self, *, channel_hmid: str) -> bool:
+    async def has_program_ids(self, *, regaid: int) -> bool:
         """Return if a channel has program ids."""
         return False
 
@@ -834,10 +877,60 @@ class Client(ABC, LogContextMixin):
                 )
             ) from bhexc
 
+    @inspector(re_raise=False)
+    async def rename_channel(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+        """Rename a channel on the CCU."""
+        _LOGGER.debug("RENAME_CHANNEL: not usable for %s.", self.interface_id)
+        return False
+
+    @inspector(re_raise=False)
+    async def rename_device(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+        """Rename a device on the CCU."""
+        _LOGGER.debug("RENAME_DEVICE: not usable for %s.", self.interface_id)
+        return False
+
     @inspector
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         return False
+
+    @inspector
+    async def set_install_mode(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:  # pragma: no cover
+        """
+        Set the install mode on the backend.
+
+        Args:
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
+            device_address: Optional device address to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
+        try:
+            if device_address:
+                await self._proxy.setInstallMode(on, time, mode, device_address)
+            else:
+                await self._proxy.setInstallMode(on, time, mode)
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                i18n.tr(
+                    "exception.client.set_install_mode.failed",
+                    interface_id=self.interface_id,
+                    reason=extract_exc_args(exc=bhexc),
+                )
+            ) from bhexc
+        else:
+            return True
 
     @inspector
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
@@ -903,6 +996,12 @@ class Client(ABC, LogContextMixin):
             return
         await self._proxy.stop()
         await self._proxy_read.stop()
+
+    @inspector(re_raise=False)
+    async def trigger_firmware_update(self) -> bool:  # pragma: no cover
+        """Trigger the CCU firmware update process."""
+        _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: not usable for %s.", self.interface_id)
+        return False
 
     @inspector
     async def update_device_firmware(self, *, device_address: str) -> bool:
@@ -1196,6 +1295,11 @@ class ClientCCU(Client):
         """Return the model of the backend."""
         return Backend.CCU
 
+    @inspector(re_raise=False)
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """Accept a device from the CCU inbox."""
+        return await self._json_rpc_client.accept_device_in_inbox(device_address=device_address)
+
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if _proxy is still initialized."""
@@ -1266,11 +1370,13 @@ class ClientCCU(Client):
                 device_address = device[_JSON_ADDRESS]
                 self.central.device_details.add_interface(address=device_address, interface=Interface(interface))
                 self.central.device_details.add_name(address=device_address, name=device[_JSON_NAME])
-                self.central.device_details.add_address_id(address=device_address, hmid=device[_JSON_ID])
+                self.central.device_details.add_address_regaid(address=device_address, regaid=int(device[_JSON_ID]))
                 for channel in device.get(_JSON_CHANNELS, []):
                     channel_address = channel[_JSON_ADDRESS]
                     self.central.device_details.add_name(address=channel_address, name=channel[_JSON_NAME])
-                    self.central.device_details.add_address_id(address=channel_address, hmid=channel[_JSON_ID])
+                    self.central.device_details.add_address_regaid(
+                        address=channel_address, regaid=int(channel[_JSON_ID])
+                    )
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
@@ -1278,9 +1384,9 @@ class ClientCCU(Client):
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from the backend."""
         functions: dict[str, set[str]] = {}
-        channel_ids_function = await self._json_rpc_client.get_all_channel_ids_function()
-        for address, channel_id in self.central.device_details.device_channel_ids.items():
-            if sections := channel_ids_function.get(channel_id):
+        regaids_function = await self._json_rpc_client.get_all_channel_regaids_function()
+        for address, regaid in self.central.device_details.device_channel_regaids.items():
+            if sections := regaids_function.get(regaid):
                 if address not in functions:
                     functions[address] = set()
                 functions[address].update(sections)
@@ -1295,9 +1401,9 @@ class ClientCCU(Client):
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from the backend."""
         rooms: dict[str, set[str]] = {}
-        channel_ids_room = await self._json_rpc_client.get_all_channel_ids_room()
-        for address, channel_id in self.central.device_details.device_channel_ids.items():
-            if names := channel_ids_room.get(channel_id):
+        regaids_room = await self._json_rpc_client.get_all_channel_regaids_room()
+        for address, regaid in self.central.device_details.device_channel_regaids.items():
+            if names := regaids_room.get(regaid):
                 if address not in rooms:
                     rooms[address] = set()
                 rooms[address].update(names)
@@ -1311,14 +1417,65 @@ class ClientCCU(Client):
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @inspector
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+        try:
+            if (remaining_time := await self._proxy.getInstallMode()) is not None:
+                return int(remaining_time)
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                i18n.tr(
+                    "exception.client.get_install_mode.failed",
+                    interface_id=self.interface_id,
+                    reason=extract_exc_args(exc=bhexc),
+                )
+            ) from bhexc
+        return 0
+
+    @inspector(re_raise=False)
+    async def get_regaid_by_address(self, *, address: str) -> int | None:
+        """Get the ReGa ID for a device or channel address."""
+        return await self._json_rpc_client.get_regaid_by_address(address=address)
+
+    @inspector(re_raise=False, no_raise_return=())
+    async def get_service_messages(
+        self,
+        *,
+        message_type: ServiceMessageType | None = None,
+    ) -> tuple[ServiceMessageData, ...]:
+        """
+        Get all active service messages from the backend.
+
+        Args:
+            message_type: Filter by message type. If None, return all messages.
+
+        """
+        return await self._json_rpc_client.get_service_messages(message_type=message_type)
+
+    @inspector(re_raise=False)
+    async def get_system_update_info(self) -> SystemUpdateData | None:
+        """Get system update information from the backend."""
+        return await self._json_rpc_client.get_system_update_info()
+
+    @inspector
     async def get_system_variable(self, *, name: str) -> Any:
         """Get single system variable from the backend."""
         return await self._json_rpc_client.get_system_variable(name=name)
 
     @inspector
-    async def has_program_ids(self, *, channel_hmid: str) -> bool:
+    async def has_program_ids(self, *, regaid: int) -> bool:
         """Return if a channel has program ids."""
-        return await self._json_rpc_client.has_program_ids(channel_hmid=channel_hmid)
+        return await self._json_rpc_client.has_program_ids(regaid=regaid)
+
+    @inspector(re_raise=False)
+    async def rename_channel(self, *, regaid: int, new_name: str) -> bool:
+        """Rename a channel on the CCU."""
+        return await self._json_rpc_client.rename_channel(regaid=regaid, new_name=new_name)
+
+    @inspector(re_raise=False)
+    async def rename_device(self, *, regaid: int, new_name: str) -> bool:
+        """Rename a device on the CCU."""
+        return await self._json_rpc_client.rename_device(regaid=regaid, new_name=new_name)
 
     @inspector
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
@@ -1345,6 +1502,11 @@ class ClientCCU(Client):
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
         return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
+
+    @inspector(re_raise=False)
+    async def trigger_firmware_update(self) -> bool:
+        """Trigger the CCU firmware update process."""
+        return await self._json_rpc_client.trigger_firmware_update()
 
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
@@ -1377,6 +1539,12 @@ class ClientJsonCCU(ClientCCU):
                 "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc)
             )
         return None
+
+    @inspector
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+        _LOGGER.debug("GET_INSTALL_MODE: not usable for %s.", self.interface_id)
+        return 0
 
     @inspector
     async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
@@ -1432,6 +1600,28 @@ class ClientJsonCCU(ClientCCU):
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
+
+    @inspector(re_raise=False, no_raise_return=())
+    async def get_service_messages(
+        self,
+        *,
+        message_type: ServiceMessageType | None = None,
+    ) -> tuple[ServiceMessageData, ...]:  # pragma: no cover
+        """
+        Get all active service messages from the backend.
+
+        Args:
+            message_type: Filter by message type. If None, return all messages.
+
+        """
+        _LOGGER.debug("GET_SERVICE_MESSAGES: not usable for %s.", self.interface_id)
+        return ()
+
+    @inspector(re_raise=False)
+    async def get_system_update_info(self) -> SystemUpdateData | None:  # pragma: no cover
+        """Get system update information from the backend."""
+        _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: not usable for %s.", self.interface_id)
+        return None
 
     @inspector(log_level=logging.NOTSET)
     async def get_value(
@@ -1501,6 +1691,19 @@ class ClientJsonCCU(ClientCCU):
         """Report value usage."""
         _LOGGER.debug("REPORT_VALUE_USAGE: not usable for %s.", self.interface_id)
         return True
+
+    @inspector
+    async def set_install_mode(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """Set the install mode on the backend."""
+        _LOGGER.debug("SET_INSTALL_MODE: not usable for %s.", self.interface_id)
+        return False
 
     @inspector
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
@@ -1668,6 +1871,44 @@ class ClientHomegear(ClientCCU):
             for name, value in hg_variables.items():
                 variables.append(SystemVariableData(vid=name, legacy_name=name, value=value))
         return tuple(variables)
+
+    @inspector
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+        try:
+            if (remaining_time := await self._proxy.getInstallMode()) is not None:
+                return int(remaining_time)
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                i18n.tr(
+                    "exception.client.get_install_mode.failed",
+                    interface_id=self.interface_id,
+                    reason=extract_exc_args(exc=bhexc),
+                )
+            ) from bhexc
+        return 0
+
+    @inspector(re_raise=False, no_raise_return=())
+    async def get_service_messages(
+        self,
+        *,
+        message_type: ServiceMessageType | None = None,
+    ) -> tuple[ServiceMessageData, ...]:  # pragma: no cover
+        """
+        Get all active service messages from the backend.
+
+        Args:
+            message_type: Filter by message type. If None, return all messages.
+
+        """
+        _LOGGER.debug("GET_SERVICE_MESSAGES: not usable for %s.", self.interface_id)
+        return ()
+
+    @inspector(re_raise=False)
+    async def get_system_update_info(self) -> SystemUpdateData | None:  # pragma: no cover
+        """Get system update information from the backend."""
+        _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: not usable for %s.", self.interface_id)
+        return None
 
     @inspector
     async def get_system_variable(self, *, name: str) -> Any:

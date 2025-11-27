@@ -48,15 +48,15 @@ class _FakeDeviceDetails:
     """Minimal cache for device details used by ClientCCU methods."""
 
     def __init__(self) -> None:
-        self.device_channel_ids: dict[str, int] = {}
+        self.device_channel_regaids: dict[str, int] = {}
         self._names: dict[str, str] = {}
         self._interfaces: dict[str, Interface] = {}
         self._addr_ids: dict[str, int] = {}
 
-    def add_address_id(self, *, address: str, hmid: int) -> None:  # noqa: D401
-        self._addr_ids[address] = hmid
+    def add_address_regaid(self, *, address: str, regaid: int) -> None:  # noqa: D401
+        self._addr_ids[address] = regaid
         # Simulate that channel addresses map to channel ids
-        self.device_channel_ids[address] = hmid
+        self.device_channel_regaids[address] = regaid
 
     def add_interface(self, *, address: str, interface: Interface) -> None:  # noqa: D401
         self._interfaces[address] = interface
@@ -112,12 +112,12 @@ class _FakeJsonRpcClient:
         self.calls.append(f"execute_program:{pid}")
         return True
 
-    async def get_all_channel_ids_function(self):  # noqa: D401
-        self.calls.append("get_all_channel_ids_function")
+    async def get_all_channel_regaids_function(self):  # noqa: D401
+        self.calls.append("get_all_channel_regaids_function")
         return {11: {"Func X"}, 12: {"Func Y"}}
 
-    async def get_all_channel_ids_room(self):  # noqa: D401
-        self.calls.append("get_all_channel_ids_room")
+    async def get_all_channel_regaids_room(self):  # noqa: D401
+        self.calls.append("get_all_channel_regaids_room")
         return {11: {"Room A"}, 12: {"Room B"}}
 
     async def get_all_device_data(self, *, interface: Interface):  # noqa: D401,ARG002
@@ -187,8 +187,8 @@ class _FakeJsonRpcClient:
         self.calls.append(f"get_value:{address}:{parameter}")
         return 7
 
-    async def has_program_ids(self, *, channel_hmid: str) -> bool:  # noqa: D401,ARG002
-        self.calls.append(f"has_program_ids:{channel_hmid}")
+    async def has_program_ids(self, *, regaid: str) -> bool:  # noqa: D401,ARG002
+        self.calls.append(f"has_program_ids:{regaid}")
         return True
 
     async def is_present(self, *, interface: Interface) -> bool:  # noqa: D401,ARG002
@@ -332,6 +332,9 @@ class _XmlProxy2:
     async def getDeviceDescription(self, *args: Any):  # noqa: D401,ANN401
         return None
 
+    async def getInstallMode(self) -> int:  # noqa: D401,N802
+        return 60
+
     async def getLinkPeers(self, *args: Any):  # noqa: D401,N802,ANN401
         raise ClientException("getLinkPeers-fail")
 
@@ -369,6 +372,9 @@ class _XmlProxy2:
     async def removeLink(self, *args: Any):  # noqa: D401,N802,ANN401
         raise ClientException("removeLink-fail")
 
+    async def setInstallMode(self, *args: Any):  # noqa: D401,N802,ANN401
+        return None
+
     async def setMetadata(self, *args: Any):  # noqa: D401,ANN401
         raise ClientException("setMetadata-fail")
 
@@ -394,10 +400,10 @@ class _FakeCentral2:
         self.connection_state = hmcu.CentralConnectionState()
         self.json_rpc_client = SimpleNamespace()  # not used in these tests
         self.device_details = SimpleNamespace(
-            device_channel_ids={},
+            device_channel_regaids={},
             add_interface=lambda **kwargs: None,  # type: ignore[misc]
             add_name=lambda **kwargs: None,  # type: ignore[misc]
-            add_address_id=lambda **kwargs: None,  # type: ignore[misc]
+            add_address_regaid=lambda **kwargs: None,  # type: ignore[misc]
         )
         self.data_cache = SimpleNamespace(add_data=lambda **kwargs: None)  # type: ignore[misc]
         self.paramset_descriptions = SimpleNamespace(
@@ -632,7 +638,7 @@ class TestClientClasses:
         assert await client_ccu.check_connection_availability(handle_ping_pong=False) is True
         assert await client_ccu.execute_program(pid="p1") is True
         assert await client_ccu.set_program_state(pid="p1", state=True) is True
-        assert await client_ccu.has_program_ids(channel_hmid="ch1") is True
+        assert await client_ccu.has_program_ids(regaid="ch1") is True
         assert await client_ccu.set_system_variable(legacy_name="sv", value=1) is True
         assert await client_ccu.delete_system_variable(name="sv") is True
         assert await client_ccu.get_system_variable(name="sv") == 42
@@ -1195,3 +1201,96 @@ class TestClientRegistry:
 
         assert get_client_by_id("iid") is dummy_client
         assert get_client_by_id("unknown") is None
+
+
+class TestClientInstallMode:
+    """Test install mode get and set operations."""
+
+    @pytest.mark.asyncio
+    async def test_get_install_mode_raises_on_error(self) -> None:
+        """get_install_mode should raise ClientException on proxy error."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+
+        class _ErrProxy(_XmlProxy2):
+            async def getInstallMode(self) -> int:  # noqa: N802
+                raise ClientException("getInstallMode-fail")
+
+        client._proxy = _ErrProxy()
+
+        with pytest.raises(ClientException):
+            await client.get_install_mode()
+
+    @pytest.mark.asyncio
+    async def test_get_install_mode_returns_zero_on_none(self) -> None:
+        """get_install_mode should return 0 when proxy returns None."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+
+        class _NoneProxy(_XmlProxy2):
+            async def getInstallMode(self) -> int | None:  # noqa: N802
+                return None
+
+        client._proxy = _NoneProxy()
+
+        result = await client.get_install_mode()
+        assert result == 0
+
+    @pytest.mark.asyncio
+    async def test_get_install_mode_success(self) -> None:
+        """get_install_mode should return the remaining time in install mode."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client._proxy = _XmlProxy2()
+
+        result = await client.get_install_mode()
+        assert result == 60
+
+    @pytest.mark.asyncio
+    async def test_set_install_mode_raises_on_error(self) -> None:
+        """set_install_mode should raise ClientException on proxy error."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+
+        class _ErrProxy(_XmlProxy2):
+            async def setInstallMode(self, *args: Any) -> None:  # noqa: N802
+                raise ClientException("setInstallMode-fail")
+
+        client._proxy = _ErrProxy()
+
+        with pytest.raises(ClientException):
+            await client.set_install_mode(on=True)
+
+    @pytest.mark.asyncio
+    async def test_set_install_mode_success(self) -> None:
+        """set_install_mode should return True on success."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client._proxy = _XmlProxy2()
+
+        result = await client.set_install_mode(on=True, time=60, mode=1)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_set_install_mode_with_device_address(self) -> None:
+        """set_install_mode should pass device_address when provided."""
+        central = _FakeCentral2()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+
+        calls: list[tuple[Any, ...]] = []
+
+        class _TrackingProxy(_XmlProxy2):
+            async def setInstallMode(self, *args: Any) -> None:  # noqa: N802
+                calls.append(args)
+
+        client._proxy = _TrackingProxy()
+
+        await client.set_install_mode(on=True, time=120, mode=2, device_address="ABC123")
+        assert len(calls) == 1
+        assert calls[0] == (True, 120, 2, "ABC123")

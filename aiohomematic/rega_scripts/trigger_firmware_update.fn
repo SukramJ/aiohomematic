@@ -1,0 +1,26 @@
+!# trigger_firmware_update.fn
+!#
+!# This script triggers the CCU firmware update process.
+!# Works for CCU3/RaspberryMatic/OpenCCU.
+!#
+
+string sError = "";
+string sResult = "";
+boolean bSuccess = false;
+
+!# Trigger the firmware update
+system.Exec("/usr/bin/touch /usr/local/.doFirmwareUpdate 2>/dev/null", &sResult, &sError);
+
+!# Check if the file was created successfully
+system.Exec("test -f /usr/local/.doFirmwareUpdate && echo 'OK' || echo 'FAIL'", &sResult, &sError);
+sResult = sResult.Trim();
+
+if (sResult == "OK") {
+    bSuccess = true;
+}
+
+if (bSuccess) {
+    Write('{"success":true}');
+} else {
+    Write('{"success":false}');
+}

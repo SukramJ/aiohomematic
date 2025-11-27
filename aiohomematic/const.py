@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.11.30"
+VERSION: Final = "2025.12.0"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -104,6 +104,7 @@ DEVICE_FIRMWARE_CHECK_INTERVAL: Final = 21600  # 6h
 DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL: Final = 3600  # 1h
 DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
 DUMMY_SERIAL: Final = "SN0815"
+SYSTEM_UPDATE_CHECK_INTERVAL: Final = 3600  # 1h
 FILE_DEVICES: Final = "homematic_devices"
 FILE_PARAMSETS: Final = "homematic_paramsets"
 FILE_SESSION_RECORDER: Final = "homematic_session_recorder"
@@ -137,6 +138,7 @@ DETECTION_PORT_HMIP_RF: Final = (2010, 42010)
 DETECTION_PORT_BIDCOS_WIRED: Final = (2000, 42000)
 DETECTION_PORT_JSON_RPC: Final = ((80, False), (443, True))  # (port, tls)
 
+HUB_ADDRESS: Final = "hub"
 PROGRAM_ADDRESS: Final = "program"
 RECONNECT_WAIT: Final = 1 if _TEST_SPEEDUP else 120  # wait with reconnect after a first ping was successful
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
@@ -154,6 +156,8 @@ SCHEDULER_LOOP_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 5
 CALLBACK_WARN_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 40
 
 # Path
+HUB_SET_PATH_ROOT: Final = "hub/set"
+HUB_STATE_PATH_ROOT: Final = "hub/status"
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
 PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 SET_PATH_ROOT: Final = "device/set"
@@ -270,6 +274,7 @@ class DataPointCategory(StrEnum):
     HUB_SENSOR = "hub_sensor"
     HUB_SWITCH = "hub_switch"
     HUB_TEXT = "hub_text"
+    HUB_UPDATE = "hub_update"
     LIGHT = "light"
     LOCK = "lock"
     NUMBER = "number"
@@ -680,12 +685,16 @@ class ProductGroup(StrEnum):
 class RegaScript(StrEnum):
     """Enum with Homematic rega scripts."""
 
-    FETCH_ALL_DEVICE_DATA: Final = "fetch_all_device_data.fn"
-    GET_PROGRAM_DESCRIPTIONS: Final = "get_program_descriptions.fn"
-    GET_SERIAL: Final = "get_serial.fn"
-    GET_SYSTEM_VARIABLE_DESCRIPTIONS: Final = "get_system_variable_descriptions.fn"
-    SET_PROGRAM_STATE: Final = "set_program_state.fn"
-    SET_SYSTEM_VARIABLE: Final = "set_system_variable.fn"
+    ACCEPT_DEVICE_IN_INBOX = "accept_device_in_inbox.fn"
+    FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"
+    GET_PROGRAM_DESCRIPTIONS = "get_program_descriptions.fn"
+    GET_SERIAL = "get_serial.fn"
+    GET_SERVICE_MESSAGES = "get_service_messages.fn"
+    GET_SYSTEM_UPDATE_INFO = "get_system_update_info.fn"
+    GET_SYSTEM_VARIABLE_DESCRIPTIONS = "get_system_variable_descriptions.fn"
+    SET_PROGRAM_STATE = "set_program_state.fn"
+    SET_SYSTEM_VARIABLE = "set_system_variable.fn"
+    TRIGGER_FIRMWARE_UPDATE = "trigger_firmware_update.fn"
 
 
 class RPCType(StrEnum):
@@ -755,6 +764,15 @@ class RxMode(IntEnum):
     CONFIG = 4
     WAKEUP = 8
     LAZY_CONFIG = 16
+
+
+class ServiceMessageType(IntEnum):
+    """Enum for CCU service message types (AlType)."""
+
+    GENERIC = 0
+    STICKY = 1
+    CONFIG_PENDING = 2
+    INBOX = 3
 
 
 class SourceOfDeviceCreation(StrEnum):
@@ -842,6 +860,7 @@ HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.HUB_SENSOR,
     DataPointCategory.HUB_SWITCH,
     DataPointCategory.HUB_TEXT,
+    DataPointCategory.HUB_UPDATE,
 )
 
 CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
@@ -1083,6 +1102,27 @@ class SystemInformation:
     auth_enabled: bool | None = None
     https_redirect_enabled: bool | None = None
     serial: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class ServiceMessageData:
+    """Dataclass for service messages."""
+
+    msg_id: str
+    name: str
+    timestamp: str
+    msg_type: int
+    address: str = ""
+    device_name: str = ""
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class SystemUpdateData:
+    """Dataclass for system update information."""
+
+    current_firmware: str
+    available_firmware: str
+    update_available: bool
 
 
 class ParameterData(TypedDict, total=False):

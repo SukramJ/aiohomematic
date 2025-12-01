@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.hub_coordinator import HubCoordinator
     from aiohomematic.client import Client, InterfaceConfig
     from aiohomematic.model.hub import ProgramDpType
+    from aiohomematic.model.support import DataPointNameData
     from aiohomematic.model.week_profile import WeekProfile
 
 
@@ -667,6 +668,11 @@ class CallbackDataPointProtocol(Protocol):
 
     @property
     @abstractmethod
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information."""
+
+    @property
+    @abstractmethod
     def available(self) -> bool:
         """Return the availability of the device."""
 
@@ -946,6 +952,11 @@ class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
     @abstractmethod
     def is_in_multiple_channels(self) -> bool:
         """Return if the parameter is in multiple channels."""
+
+    @property
+    @abstractmethod
+    def name_data(self) -> DataPointNameData:
+        """Return the data point name data."""
 
     @property
     @abstractmethod
@@ -1450,6 +1461,21 @@ class ChannelProtocol(Protocol):
 
     @property
     @abstractmethod
+    def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
+        """Return the calculated data points."""
+
+    @property
+    @abstractmethod
+    def custom_data_point(self) -> CustomDataPointProtocol | None:
+        """Return the custom data point."""
+
+    @property
+    @abstractmethod
+    def data_point_paths(self) -> tuple[str, ...]:
+        """Return the data point paths."""
+
+    @property
+    @abstractmethod
     def device(self) -> DeviceProtocol:
         """Return the device of the channel."""
 
@@ -1465,8 +1491,33 @@ class ChannelProtocol(Protocol):
 
     @property
     @abstractmethod
+    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+        """Return the generic data points."""
+
+    @property
+    @abstractmethod
     def generic_events(self) -> tuple[GenericEventProtocol, ...]:
         """Return the generic events."""
+
+    @property
+    @abstractmethod
+    def group_master(self) -> ChannelProtocol | None:
+        """Return the group master channel."""
+
+    @property
+    @abstractmethod
+    def is_group_master(self) -> bool:
+        """Return if the channel is the group master."""
+
+    @property
+    @abstractmethod
+    def is_in_multi_group(self) -> bool | None:
+        """Return if the channel is in a multi-channel group."""
+
+    @property
+    @abstractmethod
+    def is_schedule_channel(self) -> bool:
+        """Return if channel is a schedule channel."""
 
     @property
     @abstractmethod
@@ -1528,10 +1579,42 @@ class ChannelProtocol(Protocol):
         """Add a data point to a channel."""
 
     @abstractmethod
+    async def create_central_link(self) -> None:
+        """Create a central link to support press events."""
+
+    @abstractmethod
+    async def finalize_init(self) -> None:
+        """Finalize the channel init action after model setup."""
+
+    @abstractmethod
+    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPointProtocol | None:
+        """Return a calculated data_point from device."""
+
+    @abstractmethod
+    def get_data_points(
+        self,
+        *,
+        category: DataPointCategory | None = None,
+        exclude_no_create: bool = True,
+        registered: bool | None = None,
+    ) -> tuple[CallbackDataPointProtocol, ...]:
+        """Get all data points of the channel."""
+
+    @abstractmethod
+    def get_events(self, *, event_type: EventType, registered: bool | None = None) -> tuple[GenericEventProtocol, ...]:
+        """Return a list of specific events of a channel."""
+
+    @abstractmethod
     def get_generic_data_point(
         self, *, parameter: str | None = None, paramset_key: ParamsetKey | None = None, state_path: str | None = None
     ) -> GenericDataPointProtocol | None:
         """Return a generic data_point from device."""
+
+    @abstractmethod
+    def get_generic_event(
+        self, *, parameter: str | None = None, state_path: str | None = None
+    ) -> GenericEventProtocol | None:
+        """Return a generic event from device."""
 
     @abstractmethod
     def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
@@ -1540,6 +1623,18 @@ class ChannelProtocol(Protocol):
     @abstractmethod
     def has_link_target_category(self, *, category: DataPointCategory) -> bool:
         """Return if channel has the specified link target category."""
+
+    @abstractmethod
+    async def on_config_changed(self) -> None:
+        """Handle config changed event."""
+
+    @abstractmethod
+    def remove(self) -> None:
+        """Remove data points from collections and central."""
+
+    @abstractmethod
+    async def remove_central_link(self) -> None:
+        """Remove a central link."""
 
     @abstractmethod
     def subscribe_to_link_peer_changed(self, *, handler: Any) -> Any:
@@ -1584,6 +1679,11 @@ class DeviceProtocol(Protocol):
 
     @property
     @abstractmethod
+    def channel_lookup(self) -> ChannelLookup:
+        """Return the channel lookup provider."""
+
+    @property
+    @abstractmethod
     def channels(self) -> Mapping[str, ChannelProtocol]:
         """Return the channels."""
 
@@ -1604,8 +1704,18 @@ class DeviceProtocol(Protocol):
 
     @property
     @abstractmethod
+    def data_cache_provider(self) -> DataCacheProvider:
+        """Return the data cache provider."""
+
+    @property
+    @abstractmethod
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
+
+    @property
+    @abstractmethod
+    def data_point_provider(self) -> DataPointProvider:
+        """Return the data point provider."""
 
     @property
     @abstractmethod
@@ -1616,6 +1726,11 @@ class DeviceProtocol(Protocol):
     @abstractmethod
     def device_data_refresher(self) -> DeviceDataRefresher:
         """Return the device data refresher."""
+
+    @property
+    @abstractmethod
+    def device_description_provider(self) -> DeviceDescriptionProvider:
+        """Return the device description provider."""
 
     @property
     @abstractmethod
@@ -1659,8 +1774,18 @@ class DeviceProtocol(Protocol):
 
     @property
     @abstractmethod
+    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
+        """Return the generic events."""
+
+    @property
+    @abstractmethod
     def has_custom_data_point_definition(self) -> bool:
         """Return if custom data point definition is available for the device."""
+
+    @property
+    @abstractmethod
+    def has_sub_devices(self) -> bool:
+        """Return if the device has sub devices."""
 
     @property
     @abstractmethod
@@ -1836,6 +1961,10 @@ class DeviceProtocol(Protocol):
     @abstractmethod
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the week profile."""
+
+    @abstractmethod
+    def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:
+        """Return if multiple channels are in the group."""
 
     @abstractmethod
     async def on_config_changed(self) -> None:

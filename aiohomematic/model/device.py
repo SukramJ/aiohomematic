@@ -262,7 +262,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         channel_addresses = tuple(
             [device_address] + [address for address in self._description["CHILDREN"] if address != ""]
         )
-        self._channels: Final[dict[str, Channel]] = {
+        self._channels: Final[dict[str, ChannelProtocol]] = {
             address: Channel(device=self, channel_address=address) for address in channel_addresses
         }
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
@@ -348,7 +348,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return self._channel_lookup
 
     @property
-    def channels(self) -> Mapping[str, Channel]:
+    def channels(self) -> Mapping[str, ChannelProtocol]:
         """Return the channels."""
         return self._channels
 
@@ -373,7 +373,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     def custom_data_points(self) -> tuple[hmce.CustomDataPoint, ...]:
         """Return the custom data points."""
         return tuple(
-            channel.custom_data_point for channel in self._channels.values() if channel.custom_data_point is not None
+            cast(hmce.CustomDataPoint, channel.custom_data_point)
+            for channel in self._channels.values()
+            if channel.custom_data_point is not None
         )
 
     @property
@@ -395,7 +397,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return self._data_point_provider
 
     @property
-    def default_schedule_channel(self) -> Channel | None:
+    def default_schedule_channel(self) -> ChannelProtocol | None:
         """Return the schedule channel address."""
         for channel in self._channels.values():
             if channel.is_schedule_channel:
@@ -682,7 +684,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             return channel.get_calculated_data_point(parameter=parameter)
         return None
 
-    def get_channel(self, *, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """Get channel of device."""
         return self._channels.get(channel_address)
 
@@ -695,7 +697,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         if channel := self.get_channel(
             channel_address=get_channel_address(device_address=self._address, channel_no=channel_no)
         ):
-            return channel.custom_data_point
+            return cast(hmce.CustomDataPoint | None, channel.custom_data_point)
         return None
 
     def get_data_points(
@@ -775,7 +777,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
 
-    def identify_channel(self, *, text: str) -> Channel | None:
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """Identify channel within a text."""
         for channel_address, channel in self._channels.items():
             if text.endswith(channel_address):
@@ -986,7 +988,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_unique_id",
     )
 
-    def __init__(self, *, device: Device, channel_address: str) -> None:
+    def __init__(self, *, device: DeviceProtocol, channel_address: str) -> None:
         """Initialize the channel object."""
         PayloadMixin.__init__(self)
 
@@ -1006,7 +1008,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             config_provider=self._device.config_provider, address=channel_address
         )
         self._group_no: int | None = None
-        self._group_master: Channel | None = None
+        self._group_master: ChannelProtocol | None = None
         self._is_in_multi_group: bool | None = None
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPointProtocol]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
@@ -1088,7 +1090,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         return tuple(self._generic_events.values())
 
     @property
-    def group_master(self) -> Channel | None:
+    def group_master(self) -> ChannelProtocol | None:
         """Return the master channel of the group."""
         if self.group_no is None:
             return None
@@ -1217,7 +1219,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         return None
 
     @hm_property(log_context=True)
-    def device(self) -> Device:
+    def device(self) -> DeviceProtocol:
         """Return the device of the channel."""
         return self._device
 
@@ -1547,7 +1549,7 @@ class _ValueCache:
 
     _NO_VALUE_CACHE_ENTRY: Final = "NO_VALUE_CACHE_ENTRY"
 
-    def __init__(self, *, device: Device) -> None:
+    def __init__(self, *, device: DeviceProtocol) -> None:
         """Initialize the value cache."""
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
@@ -1702,7 +1704,7 @@ class _DefinitionExporter:
         "_task_scheduler",
     )
 
-    def __init__(self, *, device: Device) -> None:
+    def __init__(self, *, device: DeviceProtocol) -> None:
         """Initialize the device exporter."""
         self._client: Final = device.client
         self._config_provider: Final = device.config_provider

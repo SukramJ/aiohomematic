@@ -535,7 +535,7 @@ class Client(ABC, LogContextMixin):
         return ProductGroup.UNKNOWN
 
     @inspector(re_raise=False)
-    async def get_regaid_by_address(self, *, address: str) -> int | None:  # pragma: no cover
+    async def get_rega_id_by_address(self, *, address: str) -> int | None:  # pragma: no cover
         """Get the ReGa ID for a device or channel address."""
         _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: not usable for %s.", self.interface_id)
         return None
@@ -609,7 +609,7 @@ class Client(ABC, LogContextMixin):
         return None
 
     @inspector
-    async def has_program_ids(self, *, regaid: int) -> bool:
+    async def has_program_ids(self, *, rega_id: int) -> bool:
         """Return if a channel has program ids."""
         return False
 
@@ -878,13 +878,13 @@ class Client(ABC, LogContextMixin):
             ) from bhexc
 
     @inspector(re_raise=False)
-    async def rename_channel(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:  # pragma: no cover
         """Rename a channel on the CCU."""
         _LOGGER.debug("RENAME_CHANNEL: not usable for %s.", self.interface_id)
         return False
 
     @inspector(re_raise=False)
-    async def rename_device(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:  # pragma: no cover
         """Rename a device on the CCU."""
         _LOGGER.debug("RENAME_DEVICE: not usable for %s.", self.interface_id)
         return False
@@ -1370,12 +1370,12 @@ class ClientCCU(Client):
                 device_address = device[_JSON_ADDRESS]
                 self.central.device_details.add_interface(address=device_address, interface=Interface(interface))
                 self.central.device_details.add_name(address=device_address, name=device[_JSON_NAME])
-                self.central.device_details.add_address_regaid(address=device_address, regaid=int(device[_JSON_ID]))
+                self.central.device_details.add_address_rega_id(address=device_address, rega_id=int(device[_JSON_ID]))
                 for channel in device.get(_JSON_CHANNELS, []):
                     channel_address = channel[_JSON_ADDRESS]
                     self.central.device_details.add_name(address=channel_address, name=channel[_JSON_NAME])
-                    self.central.device_details.add_address_regaid(
-                        address=channel_address, regaid=int(channel[_JSON_ID])
+                    self.central.device_details.add_address_rega_id(
+                        address=channel_address, rega_id=int(channel[_JSON_ID])
                     )
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
@@ -1384,9 +1384,9 @@ class ClientCCU(Client):
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from the backend."""
         functions: dict[str, set[str]] = {}
-        regaids_function = await self._json_rpc_client.get_all_channel_regaids_function()
-        for address, regaid in self.central.device_details.device_channel_regaids.items():
-            if sections := regaids_function.get(regaid):
+        rega_ids_function = await self._json_rpc_client.get_all_channel_rega_ids_function()
+        for address, rega_id in self.central.device_details.device_channel_rega_ids.items():
+            if sections := rega_ids_function.get(rega_id):
                 if address not in functions:
                     functions[address] = set()
                 functions[address].update(sections)
@@ -1401,9 +1401,9 @@ class ClientCCU(Client):
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from the backend."""
         rooms: dict[str, set[str]] = {}
-        regaids_room = await self._json_rpc_client.get_all_channel_regaids_room()
-        for address, regaid in self.central.device_details.device_channel_regaids.items():
-            if names := regaids_room.get(regaid):
+        rega_ids_room = await self._json_rpc_client.get_all_channel_rega_ids_room()
+        for address, rega_id in self.central.device_details.device_channel_rega_ids.items():
+            if names := rega_ids_room.get(rega_id):
                 if address not in rooms:
                     rooms[address] = set()
                 rooms[address].update(names)
@@ -1433,9 +1433,9 @@ class ClientCCU(Client):
         return 0
 
     @inspector(re_raise=False)
-    async def get_regaid_by_address(self, *, address: str) -> int | None:
+    async def get_rega_id_by_address(self, *, address: str) -> int | None:
         """Get the ReGa ID for a device or channel address."""
-        return await self._json_rpc_client.get_regaid_by_address(address=address)
+        return await self._json_rpc_client.get_rega_id_by_address(address=address)
 
     @inspector(re_raise=False, no_raise_return=())
     async def get_service_messages(
@@ -1463,19 +1463,19 @@ class ClientCCU(Client):
         return await self._json_rpc_client.get_system_variable(name=name)
 
     @inspector
-    async def has_program_ids(self, *, regaid: int) -> bool:
+    async def has_program_ids(self, *, rega_id: int) -> bool:
         """Return if a channel has program ids."""
-        return await self._json_rpc_client.has_program_ids(regaid=regaid)
+        return await self._json_rpc_client.has_program_ids(rega_id=rega_id)
 
     @inspector(re_raise=False)
-    async def rename_channel(self, *, regaid: int, new_name: str) -> bool:
+    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
         """Rename a channel on the CCU."""
-        return await self._json_rpc_client.rename_channel(regaid=regaid, new_name=new_name)
+        return await self._json_rpc_client.rename_channel(rega_id=rega_id, new_name=new_name)
 
     @inspector(re_raise=False)
-    async def rename_device(self, *, regaid: int, new_name: str) -> bool:
+    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
         """Rename a device on the CCU."""
-        return await self._json_rpc_client.rename_device(regaid=regaid, new_name=new_name)
+        return await self._json_rpc_client.rename_device(rega_id=rega_id, new_name=new_name)
 
     @inspector
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
@@ -1894,7 +1894,7 @@ class ClientHomegear(ClientCCU):
         return 0
 
     @inspector(re_raise=False)
-    async def get_regaid_by_address(self, *, address: str) -> int | None:  # pragma: no cover
+    async def get_rega_id_by_address(self, *, address: str) -> int | None:  # pragma: no cover
         """Get the ReGa ID for a device or channel address."""
         _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: not usable for %s.", self.interface_id)
         return None
@@ -1927,13 +1927,13 @@ class ClientHomegear(ClientCCU):
         return await self._proxy.getSystemVariable(name)
 
     @inspector(re_raise=False)
-    async def rename_channel(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:  # pragma: no cover
         """Rename a channel on the CCU."""
         _LOGGER.debug("RENAME_CHANNEL: not usable for %s.", self.interface_id)
         return False
 
     @inspector(re_raise=False)
-    async def rename_device(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:  # pragma: no cover
         """Rename a device on the CCU."""
         _LOGGER.debug("RENAME_DEVICE: not usable for %s.", self.interface_id)
         return False

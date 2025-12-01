@@ -381,8 +381,8 @@ def get_hub_data_point_name_data(
         p_name = (
             legacy_name.replace("_", " ")
             .replace(channel.address, "")
-            .replace(str(channel.regaid), "")
-            .replace(str(channel.device.regaid), "")
+            .replace(str(channel.rega_id), "")
+            .replace(str(channel.device.rega_id), "")
             .strip()
         )
 

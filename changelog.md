@@ -1,3 +1,9 @@
+# Version 2025.12.2 (2025-12-01)
+
+## What's Changed
+
+- Rename regaid to rega_id
+
 # Version 2025.12.1 (2025-12-01)
 
 ## What's Changed

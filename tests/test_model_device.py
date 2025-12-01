@@ -401,7 +401,7 @@ class TestDeviceChannelOperations:
         assert await ch._has_central_link() is True
 
         # 3) remove_central_link removes only if has central link and no program ids
-        async def has_program_ids_false(*, regaid: int):  # noqa: D401
+        async def has_program_ids_false(*, rega_id: int):  # noqa: D401
             return False
 
         monkeypatch.setattr(client, "has_program_ids", has_program_ids_false)
@@ -416,7 +416,7 @@ class TestDeviceChannelOperations:
         assert await ch._has_central_link() is False
 
         # 5) _has_program_ids truthy path
-        async def has_program_ids_true(*, regaid: int):  # noqa: D401
+        async def has_program_ids_true(*, rega_id: int):  # noqa: D401
             return ["1"]
 
         monkeypatch.setattr(client, "has_program_ids", has_program_ids_true)
@@ -469,10 +469,10 @@ class TestDeviceChannelOperations:
         # Identify by suffixing address
         assert device.identify_channel(text=f"foo {ch.address}") is ch
         # Identify by channel id in text - ensure a channel is returned and belongs to same device
-        ch_by_id = device.identify_channel(text=f"id={ch.regaid}")
+        ch_by_id = device.identify_channel(text=f"id={ch.rega_id}")
         assert ch_by_id is not None and ch_by_id.device is device
         # Identify by device id in text - first channel of device is a valid match
-        ch_by_dev_id = device.identify_channel(text=f"device={ch.device.regaid}")
+        ch_by_dev_id = device.identify_channel(text=f"device={ch.device.rega_id}")
         assert ch_by_dev_id is not None and ch_by_dev_id.device is device
         # No match
         assert device.identify_channel(text="no-match") is None

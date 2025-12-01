@@ -916,6 +916,8 @@ class CentralInfo(Protocol):
 - **EventSubscriptionManager**: Event subscription management
 - **HubDataFetcher**: Hub data fetching operations
 - **HubDataPointManager**: Hub data point management (programs and sysvars)
+- **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
+- **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
 
 CentralUnit implements all protocols without explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 

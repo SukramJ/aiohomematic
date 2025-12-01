@@ -13,6 +13,13 @@ CCU_PORT = 2002
 CCU_MINI_PORT = 2003
 INTERFACE_ID = f"{CENTRAL_NAME}-{Interface.BIDCOS_RF}"
 
+# Backend info response for get_backend_info.fn script
+BACKEND_INFO_JSON = {
+    "version": "3.75.6.20240316",
+    "product": "CCU3",
+    "hostname": "ccu-test",
+}
+
 FULL_SESSION_RANDOMIZED_PYDEVCCU = "full_session_randomized_pydevccu.zip"
 FULL_SESSION_RANDOMIZED_CCU = "full_session_randomized_ccu.zip"
 

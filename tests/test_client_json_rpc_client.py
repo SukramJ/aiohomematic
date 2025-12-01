@@ -461,7 +461,8 @@ class TestJsonRpcClientErrorHandling:
         monkeypatch.setattr(client._client_session, "post", raise_cert)
         with pytest.raises(ClientException) as ce:
             await client._do_post(session_id="s", method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
-        assert "Automatic forwarding to HTTPS" in str(ce.value)
+        # Check for i18n key or translated message
+        assert "connector_certificate_error" in str(ce.value) or "Automatic forwarding to HTTPS" in str(ce.value)
 
         # ClientError/OSError -> NoConnectionException
         async def raise_client_err(*args, **kwargs):  # noqa: ANN001, ARG001
@@ -888,7 +889,10 @@ class TestJsonRpcClientOperations:
         # set_system_variable: string with HTML -> triggers cleaning and warning and post_script path
         with caplog.at_level("WARNING"):
             assert await client.set_system_variable(legacy_name="X", value="<b>bad</b>") is True
-        assert any("contains html tags" in rec.message for rec in caplog.records)
+        # Check for i18n key or translated message
+        assert any(
+            "contains html tags" in rec.message or "value_contains_html" in rec.message for rec in caplog.records
+        )
 
     @pytest.mark.asyncio
     async def test_get_all_system_variables_parsing_error_is_logged_and_skipped(

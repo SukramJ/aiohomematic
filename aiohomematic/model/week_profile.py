@@ -380,6 +380,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
+from aiohomematic.interfaces import WeekProfileProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import CustomDataPointProtocol
@@ -388,7 +389,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC):
+class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
     """Handle the device week profile."""
 
     __slots__ = (

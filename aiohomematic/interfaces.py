@@ -54,7 +54,6 @@ if TYPE_CHECKING:
     from aiohomematic.client import Client, InterfaceConfig
     from aiohomematic.model.hub import ProgramDpType
     from aiohomematic.model.support import DataPointNameData
-    from aiohomematic.model.week_profile import WeekProfile
 
 
 # Forward reference for Client protocol - avoids circular import
@@ -1899,7 +1898,7 @@ class DeviceProtocol(Protocol):
 
     @property
     @abstractmethod
-    def week_profile(self) -> WeekProfile[dict[Any, Any]] | None:
+    def week_profile(self) -> WeekProfileProtocol[dict[Any, Any]] | None:
         """Return the week profile."""
 
     @abstractmethod
@@ -1913,6 +1912,10 @@ class DeviceProtocol(Protocol):
     @abstractmethod
     async def export_device_definition(self) -> None:
         """Export the device definition for current device."""
+
+    @abstractmethod
+    async def finalize_init(self) -> None:
+        """Finalize the device init action after model setup."""
 
     @abstractmethod
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
@@ -2006,3 +2009,96 @@ class DeviceProtocol(Protocol):
     @abstractmethod
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Update the device firmware."""
+
+
+# =============================================================================
+# Hub Protocol Interface
+# =============================================================================
+# This protocol defines the public interface for the Hub class,
+# allowing components to depend on it without coupling to the implementation.
+
+
+@runtime_checkable
+class HubProtocol(Protocol):
+    """
+    Protocol for Hub-level operations.
+
+    Provides access to hub data points (inbox, update) and methods
+    for fetching programs, system variables, and other hub data.
+    Implemented by Hub.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def inbox_dp(self) -> GenericHubDataPointProtocol | None:
+        """Return the inbox data point."""
+
+    @property
+    @abstractmethod
+    def update_dp(self) -> GenericHubDataPointProtocol | None:
+        """Return the system update data point."""
+
+    @abstractmethod
+    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
+        """Fetch inbox data for the hub."""
+
+    @abstractmethod
+    async def fetch_program_data(self, *, scheduled: bool) -> None:
+        """Fetch program data for the hub."""
+
+    @abstractmethod
+    async def fetch_system_update_data(self, *, scheduled: bool) -> None:
+        """Fetch system update data for the hub."""
+
+    @abstractmethod
+    async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
+        """Fetch sysvar data for the hub."""
+
+
+# =============================================================================
+# WeekProfile Protocol Interface
+# =============================================================================
+# This protocol defines the public interface for WeekProfile classes,
+# allowing components to depend on schedule functionality without coupling
+# to specific implementations (ClimeateWeekProfile, DefaultWeekProfile).
+
+
+@runtime_checkable
+class WeekProfileProtocol[SCHEDULE_DICT_T: dict[Any, Any]](Protocol):
+    """
+    Protocol for week profile operations.
+
+    Provides access to device weekly schedules for climate and non-climate devices.
+    Implemented by WeekProfile (base), ClimeateWeekProfile, and DefaultWeekProfile.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def schedule(self) -> SCHEDULE_DICT_T:
+        """Return the schedule cache."""
+
+    @property
+    @abstractmethod
+    def schedule_channel_address(self) -> str | None:
+        """Return schedule channel address."""
+
+    @property
+    @abstractmethod
+    def supports_schedule(self) -> bool:
+        """Return if climate supports schedule."""
+
+    @abstractmethod
+    async def get_schedule(self, *, force_load: bool = False) -> SCHEDULE_DICT_T:
+        """Return the schedule dictionary."""
+
+    @abstractmethod
+    async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
+        """Reload schedule entries and update cache."""
+
+    @abstractmethod
+    async def set_schedule(self, *, schedule_data: SCHEDULE_DICT_T) -> None:
+        """Persist the provided schedule dictionary."""

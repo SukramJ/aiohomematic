@@ -17,13 +17,10 @@ The DeviceRegistry provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 from aiohomematic.interfaces import CentralInfo, ChannelProtocol, ClientProvider, DeviceProtocol
 from aiohomematic.support import get_device_address
-
-if TYPE_CHECKING:
-    from aiohomematic.model.device import Device
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -55,7 +52,7 @@ class DeviceRegistry:
         self._central_info: Final = central_info
         self._client_provider: Final = client_provider
         # {device_address, device}
-        self._devices: Final[dict[str, Device]] = {}
+        self._devices: Final[dict[str, DeviceProtocol]] = {}
 
     @property
     def device_count(self) -> int:
@@ -81,7 +78,7 @@ class DeviceRegistry:
         """
         return tuple(self._devices.values())
 
-    def add_device(self, *, device: Device) -> None:
+    def add_device(self, *, device: DeviceProtocol) -> None:
         """
         Add a device to the registry.
 

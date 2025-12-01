@@ -296,14 +296,14 @@ class DeviceCoordinator:
             )
         _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self._central_info.name)
 
-        new_devices = set[Device]()
+        new_devices = set[DeviceProtocol]()
 
         for interface_id, device_addresses in new_device_addresses.items():
             for device_address in device_addresses:
                 # Do we check for duplicates here? For now, we do.
                 if self.device_registry.has_device(address=device_address):
                     continue
-                device: Device | None = None
+                device: DeviceProtocol | None = None
                 try:
                     device = Device(
                         interface_id=interface_id,
@@ -686,7 +686,7 @@ class DeviceCoordinator:
         )
 
 
-def _get_new_channel_events(*, new_devices: set[Device]) -> tuple[tuple[GenericEventProtocol, ...], ...]:
+def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocol, ...], ...]:
     """
     Return new channel events.
 
@@ -713,7 +713,7 @@ def _get_new_channel_events(*, new_devices: set[Device]) -> tuple[tuple[GenericE
 
 def _get_new_data_points(
     *,
-    new_devices: set[Device],
+    new_devices: set[DeviceProtocol],
 ) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPointProtocol]]:
     """
     Return new data points by category.

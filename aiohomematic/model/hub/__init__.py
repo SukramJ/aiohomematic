@@ -101,6 +101,7 @@ from aiohomematic.interfaces import (
     GenericHubDataPointProtocol,
     HubDataFetcher,
     HubDataPointManager,
+    HubProtocol,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     PrimaryClientProvider,
@@ -151,7 +152,7 @@ class ProgramDpType(NamedTuple):
     switch: ProgramDpSwitch
 
 
-class Hub:
+class Hub(HubProtocol):
     """The Homematic hub."""
 
     __slots__ = (

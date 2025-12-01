@@ -37,8 +37,13 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from aiohomematic.interfaces import BaseParameterDataPointProtocol, ClientProvider, GenericEventProtocol, TaskScheduler
-from aiohomematic.model.generic import GenericDataPoint
+from aiohomematic.interfaces import (
+    BaseParameterDataPointProtocol,
+    ClientProvider,
+    GenericDataPointProtocol,
+    GenericEventProtocol,
+    TaskScheduler,
+)
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
@@ -103,7 +108,7 @@ class EventCoordinator:
             data_point: Data point to subscribe to events for
 
         """
-        if isinstance(data_point, GenericDataPoint | GenericEventProtocol) and (
+        if isinstance(data_point, GenericDataPointProtocol | GenericEventProtocol) and (
             data_point.is_readable or data_point.supports_events
         ):
             # Subscribe data point's event method to EventBus with filtering

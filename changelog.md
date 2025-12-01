@@ -2,7 +2,9 @@
 
 ## What's Changed
 
+- Add HubProtocol and WeekProfileProtocol to interfaces
 - Rename regaid to rega_id
+- Update documentation
 
 # Version 2025.12.1 (2025-12-01)
 

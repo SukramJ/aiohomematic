@@ -879,7 +879,7 @@ class BaseDataPoint:
         )
 ```
 
-**Protocol Interfaces** are defined in `aiohomematic/model/interfaces.py` using `@runtime_checkable`:
+**Protocol Interfaces** are defined in `aiohomematic/interfaces.py` using `@runtime_checkable`:
 
 ```python
 from typing import Protocol, runtime_checkable

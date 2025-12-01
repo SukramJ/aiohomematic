@@ -832,7 +832,7 @@ class TestJsonRpcClientOperations:
         assert await client.delete_system_variable(name="sv") is True
 
         # Booleans and misc
-        assert await client.has_program_ids(regaid="ch") is True
+        assert await client.has_program_ids(rega_id="ch") is True
         assert await client._get_auth_enabled() is True
         assert await client._get_https_redirect_enabled() is False
 
@@ -1038,10 +1038,10 @@ class TestServiceMessagesAndSystemUpdate:
         await client.stop()
 
     @pytest.mark.asyncio
-    async def test_get_regaid_by_address_not_found(
+    async def test_get_rega_id_by_address_not_found(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test get_regaid_by_address returns None when address not found."""
+        """Test get_rega_id_by_address returns None when address not found."""
         conn_state = hmcu.CentralConnectionState()
         client = AioJsonRpcAioHttpClient(
             username="u",
@@ -1058,17 +1058,17 @@ class TestServiceMessagesAndSystemUpdate:
 
         monkeypatch.setattr(client, "_post", fake_post)
 
-        result = await client.get_regaid_by_address(address="UNKNOWN")
+        result = await client.get_rega_id_by_address(address="UNKNOWN")
 
         assert result is None
 
         await client.stop()
 
     @pytest.mark.asyncio
-    async def test_get_regaid_by_address_success(
+    async def test_get_rega_id_by_address_success(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test get_regaid_by_address returns ReGa ID on success."""
+        """Test get_rega_id_by_address returns ReGa ID on success."""
         conn_state = hmcu.CentralConnectionState()
         client = AioJsonRpcAioHttpClient(
             username="u",
@@ -1087,7 +1087,7 @@ class TestServiceMessagesAndSystemUpdate:
 
         monkeypatch.setattr(client, "_post", fake_post)
 
-        result = await client.get_regaid_by_address(address="VCU0000001")
+        result = await client.get_rega_id_by_address(address="VCU0000001")
 
         assert result == 12345
 
@@ -1388,7 +1388,7 @@ class TestServiceMessagesAndSystemUpdate:
 
         monkeypatch.setattr(client, "_post", fake_post)
 
-        result = await client.rename_channel(regaid=99999, new_name="New Channel")
+        result = await client.rename_channel(rega_id=99999, new_name="New Channel")
 
         assert result is False
 
@@ -1418,7 +1418,7 @@ class TestServiceMessagesAndSystemUpdate:
 
         monkeypatch.setattr(client, "_post", fake_post)
 
-        result = await client.rename_channel(regaid=12346, new_name="New Channel")
+        result = await client.rename_channel(rega_id=12346, new_name="New Channel")
 
         assert result is True
 
@@ -1443,7 +1443,7 @@ class TestServiceMessagesAndSystemUpdate:
 
         monkeypatch.setattr(client, "_post", fake_post)
 
-        result = await client.rename_device(regaid=99999, new_name="New Name")
+        result = await client.rename_device(rega_id=99999, new_name="New Name")
 
         assert result is False
 
@@ -1471,7 +1471,7 @@ class TestServiceMessagesAndSystemUpdate:
 
         monkeypatch.setattr(client, "_post", fake_post)
 
-        result = await client.rename_device(regaid=12345, new_name="New Name")
+        result = await client.rename_device(rega_id=12345, new_name="New Name")
 
         assert result is True
 

@@ -54,7 +54,7 @@ Model classes now use full dependency injection with protocol interfaces:
 
 ### Protocol Interfaces
 
-Key protocol interfaces defined in `aiohomematic/model/interfaces.py`:
+Key protocol interfaces defined in `aiohomematic/interfaces.py`:
 
 - **CentralInfo**: System identification (name, model, version)
 - **ConfigProvider**: Configuration access
@@ -73,6 +73,8 @@ Key protocol interfaces defined in `aiohomematic/model/interfaces.py`:
 - **DataCacheProvider**: Data cache access
 - **ChannelLookup**: Channel lookup by address
 - **EventSubscriptionManager**: Event subscription management
+- **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
+- **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
 
 These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.
 

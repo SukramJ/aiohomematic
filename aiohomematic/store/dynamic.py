@@ -192,7 +192,7 @@ class DeviceDetailsCache(DeviceDetailsProvider):
     __slots__ = (
         "_central_info",
         "_channel_rooms",
-        "_device_channel_regaids",
+        "_device_channel_rega_ids",
         "_device_rooms",
         "_functions",
         "_interface_cache",
@@ -211,7 +211,7 @@ class DeviceDetailsCache(DeviceDetailsProvider):
         self._central_info: Final = central_info
         self._primary_client_provider: Final = primary_client_provider
         self._channel_rooms: Final[dict[str, set[str]]] = defaultdict(set)
-        self._device_channel_regaids: Final[dict[str, int]] = {}
+        self._device_channel_rega_ids: Final[dict[str, int]] = {}
         self._device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         self._functions: Final[dict[str, set[str]]] = {}
         self._interface_cache: Final[dict[str, Interface]] = {}
@@ -219,13 +219,13 @@ class DeviceDetailsCache(DeviceDetailsProvider):
         self._refreshed_at = INIT_DATETIME
 
     @property
-    def device_channel_regaids(self) -> Mapping[str, int]:
+    def device_channel_rega_ids(self) -> Mapping[str, int]:
         """Return device channel ids."""
-        return self._device_channel_regaids
+        return self._device_channel_rega_ids
 
-    def add_address_regaid(self, *, address: str, regaid: int) -> None:
+    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
         """Add channel id for a channel."""
-        self._device_channel_regaids[address] = regaid
+        self._device_channel_rega_ids[address] = rega_id
 
     def add_interface(self, *, address: str, interface: Interface) -> None:
         """Add interface to cache."""
@@ -245,7 +245,7 @@ class DeviceDetailsCache(DeviceDetailsProvider):
 
     def get_address_id(self, *, address: str) -> int:
         """Get id for address."""
-        return self._device_channel_regaids.get(address) or 0
+        return self._device_channel_rega_ids.get(address) or 0
 
     def get_channel_rooms(self, *, channel_address: str) -> set[str]:
         """Return rooms by channel_address."""
@@ -294,7 +294,7 @@ class DeviceDetailsCache(DeviceDetailsProvider):
         # Clean device-level entries
         self._names_cache.pop(device.address, None)
         self._interface_cache.pop(device.address, None)
-        self._device_channel_regaids.pop(device.address, None)
+        self._device_channel_rega_ids.pop(device.address, None)
         self._device_rooms.pop(device.address, None)
         self._functions.pop(device.address, None)
 
@@ -302,7 +302,7 @@ class DeviceDetailsCache(DeviceDetailsProvider):
         for channel_address in device.channels:
             self._names_cache.pop(channel_address, None)
             self._interface_cache.pop(channel_address, None)
-            self._device_channel_regaids.pop(channel_address, None)
+            self._device_channel_rega_ids.pop(channel_address, None)
             self._channel_rooms.pop(channel_address, None)
             self._functions.pop(channel_address, None)
 

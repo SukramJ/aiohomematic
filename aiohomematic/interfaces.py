@@ -1555,7 +1555,7 @@ class ChannelProtocol(Protocol):
 
     @property
     @abstractmethod
-    def regaid(self) -> int:
+    def rega_id(self) -> int:
         """Return the id of the channel."""
 
     @property
@@ -1858,7 +1858,7 @@ class DeviceProtocol(Protocol):
 
     @property
     @abstractmethod
-    def regaid(self) -> int:
+    def rega_id(self) -> int:
         """Return the id of the device."""
 
     @property

@@ -194,6 +194,22 @@ HubDataPointManager
    :undoc-members:
    :show-inheritance:
 
+HubProtocol
+~~~~~~~~~~~
+
+.. autoclass:: aiohomematic.interfaces.HubProtocol
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+WeekProfileProtocol
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: aiohomematic.interfaces.WeekProfileProtocol
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Other Protocols
 ---------------
 

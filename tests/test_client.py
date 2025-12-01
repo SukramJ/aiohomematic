@@ -48,15 +48,15 @@ class _FakeDeviceDetails:
     """Minimal cache for device details used by ClientCCU methods."""
 
     def __init__(self) -> None:
-        self.device_channel_regaids: dict[str, int] = {}
+        self.device_channel_rega_ids: dict[str, int] = {}
         self._names: dict[str, str] = {}
         self._interfaces: dict[str, Interface] = {}
         self._addr_ids: dict[str, int] = {}
 
-    def add_address_regaid(self, *, address: str, regaid: int) -> None:  # noqa: D401
-        self._addr_ids[address] = regaid
+    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:  # noqa: D401
+        self._addr_ids[address] = rega_id
         # Simulate that channel addresses map to channel ids
-        self.device_channel_regaids[address] = regaid
+        self.device_channel_rega_ids[address] = rega_id
 
     def add_interface(self, *, address: str, interface: Interface) -> None:  # noqa: D401
         self._interfaces[address] = interface
@@ -112,12 +112,12 @@ class _FakeJsonRpcClient:
         self.calls.append(f"execute_program:{pid}")
         return True
 
-    async def get_all_channel_regaids_function(self):  # noqa: D401
-        self.calls.append("get_all_channel_regaids_function")
+    async def get_all_channel_rega_ids_function(self):  # noqa: D401
+        self.calls.append("get_all_channel_rega_ids_function")
         return {11: {"Func X"}, 12: {"Func Y"}}
 
-    async def get_all_channel_regaids_room(self):  # noqa: D401
-        self.calls.append("get_all_channel_regaids_room")
+    async def get_all_channel_rega_ids_room(self):  # noqa: D401
+        self.calls.append("get_all_channel_rega_ids_room")
         return {11: {"Room A"}, 12: {"Room B"}}
 
     async def get_all_device_data(self, *, interface: Interface):  # noqa: D401,ARG002
@@ -187,8 +187,8 @@ class _FakeJsonRpcClient:
         self.calls.append(f"get_value:{address}:{parameter}")
         return 7
 
-    async def has_program_ids(self, *, regaid: str) -> bool:  # noqa: D401,ARG002
-        self.calls.append(f"has_program_ids:{regaid}")
+    async def has_program_ids(self, *, rega_id: str) -> bool:  # noqa: D401,ARG002
+        self.calls.append(f"has_program_ids:{rega_id}")
         return True
 
     async def is_present(self, *, interface: Interface) -> bool:  # noqa: D401,ARG002
@@ -400,10 +400,10 @@ class _FakeCentral2:
         self.connection_state = hmcu.CentralConnectionState()
         self.json_rpc_client = SimpleNamespace()  # not used in these tests
         self.device_details = SimpleNamespace(
-            device_channel_regaids={},
+            device_channel_rega_ids={},
             add_interface=lambda **kwargs: None,  # type: ignore[misc]
             add_name=lambda **kwargs: None,  # type: ignore[misc]
-            add_address_regaid=lambda **kwargs: None,  # type: ignore[misc]
+            add_address_rega_id=lambda **kwargs: None,  # type: ignore[misc]
         )
         self.data_cache = SimpleNamespace(add_data=lambda **kwargs: None)  # type: ignore[misc]
         self.paramset_descriptions = SimpleNamespace(
@@ -638,7 +638,7 @@ class TestClientClasses:
         assert await client_ccu.check_connection_availability(handle_ping_pong=False) is True
         assert await client_ccu.execute_program(pid="p1") is True
         assert await client_ccu.set_program_state(pid="p1", state=True) is True
-        assert await client_ccu.has_program_ids(regaid="ch1") is True
+        assert await client_ccu.has_program_ids(rega_id="ch1") is True
         assert await client_ccu.set_system_variable(legacy_name="sv", value=1) is True
         assert await client_ccu.delete_system_variable(name="sv") is True
         assert await client_ccu.get_system_variable(name="sv") == 42

@@ -40,8 +40,7 @@ from typing import Final, TypeAlias
 
 from aiohomematic import support as hms
 from aiohomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
-from aiohomematic.interfaces import ConfigProvider, ParameterVisibilityProvider
-from aiohomematic.model import hmd
+from aiohomematic.interfaces import ChannelProtocol, ConfigProvider, ParameterVisibilityProvider
 from aiohomematic.model.custom import get_required_parameters
 from aiohomematic.support import element_matches_key
 
@@ -407,7 +406,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
     def is_relevant_paramset(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
     ) -> bool:
         """
@@ -441,7 +440,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
     def parameter_is_hidden(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
     ) -> bool:
@@ -460,7 +459,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
     def parameter_is_ignored(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
     ) -> bool:
@@ -530,7 +529,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
     def parameter_is_un_ignored(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
         custom_only: bool = False,
@@ -567,7 +566,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
     def should_skip_parameter(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
         parameter_is_un_ignored: bool,
@@ -720,7 +719,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
     def _parameter_is_un_ignored(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
         parameter: TParameterName,
         custom_only: bool = False,

@@ -1,3 +1,9 @@
+# Version 2025.12.1 (2025-12-01)
+
+## What's Changed
+
+- Migrate to Protocol based model
+
 # Version 2025.12.0 (2025-12-01)
 
 ## What's Changed

@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
@@ -277,7 +277,7 @@ class CustomDpRfLock(BaseCustomDpLock):
 
 def make_ip_lock(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP lock data point."""
@@ -291,7 +291,7 @@ def make_ip_lock(
 
 def make_ip_button_lock(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP ip button lock data point."""
@@ -305,7 +305,7 @@ def make_ip_button_lock(
 
 def make_rf_button_lock(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic button lock data point."""
@@ -319,7 +319,7 @@ def make_rf_button_lock(
 
 def make_rf_lock(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic lock data point."""

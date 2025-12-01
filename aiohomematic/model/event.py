@@ -48,7 +48,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol, GenericEventProtocol
 from aiohomematic.model.data_point import BaseParameterDataPointAny
 from aiohomematic.model.support import DataPointNameData, get_event_name
 
@@ -63,7 +63,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class GenericEvent(BaseParameterDataPointAny):
+class GenericEvent(BaseParameterDataPointAny, GenericEventProtocol):
     """Base class for events."""
 
     __slots__ = ("_event_type",)
@@ -74,7 +74,7 @@ class GenericEvent(BaseParameterDataPointAny):
     def __init__(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         parameter: str,
         parameter_data: ParameterData,
     ) -> None:
@@ -97,7 +97,7 @@ class GenericEvent(BaseParameterDataPointAny):
         """Return the data_point usage."""
         if (forced_by_com := self._enabled_by_channel_operation_mode) is None:
             return self._get_data_point_usage()
-        return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE  # pylint: disable=using-constant-test
+        return DataPointUsage.EVENT if forced_by_com else DataPointUsage.NO_CREATE
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
@@ -163,7 +163,7 @@ class ImpulseEvent(GenericEvent):
 
 
 @inspector
-def create_event_and_append_to_channel(channel: hmd.Channel, parameter: str, parameter_data: ParameterData) -> None:
+def create_event_and_append_to_channel(channel: ChannelProtocol, parameter: str, parameter_data: ParameterData) -> None:
     """Create action event data_point."""
     _LOGGER.debug(
         "CREATE_EVENT_AND_APPEND_TO_DEVICE: Creating event for %s, %s, %s",
@@ -193,7 +193,7 @@ def _determine_event_type(parameter: str, parameter_data: ParameterData) -> type
 
 def _safe_create_event(
     event_t: type[GenericEvent],
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     parameter: str,
     parameter_data: ParameterData,
 ) -> GenericEvent:

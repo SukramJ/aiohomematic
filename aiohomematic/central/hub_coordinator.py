@@ -28,12 +28,14 @@ from aiohomematic.interfaces import (
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
+    GenericProgramDataPointProtocol,
+    GenericSysvarDataPointProtocol,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     PrimaryClientProvider,
     TaskScheduler,
 )
-from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
+from aiohomematic.model.hub import Hub, ProgramDpType
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -85,7 +87,7 @@ class HubCoordinator:
         self._primary_client_provider: Final = primary_client_provider
 
         # {sysvar_name, sysvar_data_point}
-        self._sysvar_data_points: Final[dict[str, GenericSysvarDataPoint]] = {}
+        self._sysvar_data_points: Final[dict[str, GenericSysvarDataPointProtocol]] = {}
         # {program_name, program_button}
         self._program_data_points: Final[dict[str, ProgramDpType]] = {}
         self._state_path_to_name: Final[dict[str, str]] = {}
@@ -111,7 +113,7 @@ class HubCoordinator:
         return tuple(self._state_path_to_name.keys())
 
     @property
-    def program_data_points(self) -> tuple[GenericProgramDataPoint, ...]:
+    def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
         """Return the program data points (both buttons and switches)."""
         return tuple(
             [x.button for x in self._program_data_points.values()]
@@ -119,7 +121,7 @@ class HubCoordinator:
         )
 
     @property
-    def sysvar_data_points(self) -> tuple[GenericSysvarDataPoint, ...]:
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPointProtocol, ...]:
         """Return the sysvar data points."""
         return tuple(self._sysvar_data_points.values())
 
@@ -140,7 +142,7 @@ class HubCoordinator:
             self._central_info.name,
         )
 
-    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPoint) -> None:
+    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPointProtocol) -> None:
         """
         Add new system variable data point.
 
@@ -236,7 +238,7 @@ class HubCoordinator:
 
     def get_hub_data_points(
         self, *, category: DataPointCategory | None = None, registered: bool | None = None
-    ) -> tuple[GenericProgramDataPoint | GenericSysvarDataPoint, ...]:
+    ) -> tuple[GenericProgramDataPointProtocol | GenericSysvarDataPointProtocol, ...]:
         """
         Return the hub data points (programs and sysvars) filtered by category and registration.
 
@@ -303,7 +305,7 @@ class HubCoordinator:
 
     def get_sysvar_data_point(
         self, *, vid: str | None = None, legacy_name: str | None = None, state_path: str | None = None
-    ) -> GenericSysvarDataPoint | None:
+    ) -> GenericSysvarDataPointProtocol | None:
         """
         Return a system variable data point by ID or legacy name.
 

@@ -55,11 +55,11 @@ from aiohomematic.interfaces import (
     DataCacheProvider,
     DataPointProvider,
     DeviceDetailsProvider,
+    DeviceProtocol,
     DeviceProvider,
     EventPublisher,
     PrimaryClientProvider,
 )
-from aiohomematic.model.device import Device
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -289,7 +289,7 @@ class DeviceDetailsCache(DeviceDetailsProvider):
         self._functions.update(await self._get_all_functions())
         self._refreshed_at = datetime.now()
 
-    def remove_device(self, *, device: Device) -> None:
+    def remove_device(self, *, device: DeviceProtocol) -> None:
         """Remove device data from all caches."""
         # Clean device-level entries
         self._names_cache.pop(device.address, None)

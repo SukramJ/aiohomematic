@@ -24,9 +24,9 @@ from aiohomematic.support import (
     is_paramset_key,
 )
 
-channel_no = vol.All(vol.Coerce(int), vol.Range(min=0, max=999))
-positive_int = vol.All(vol.Coerce(int), vol.Range(min=0))
-wait_for = vol.All(vol.Coerce(int), vol.Range(min=1, max=MAX_WAIT_FOR_CALLBACK))
+channel_no: vol.All = vol.All(vol.Coerce(int), vol.Range(min=0, max=999))
+positive_int: vol.All = vol.All(vol.Coerce(int), vol.Range(min=0))
+wait_for: vol.All = vol.All(vol.Coerce(int), vol.Range(min=1, max=MAX_WAIT_FOR_CALLBACK))
 
 
 def channel_address(value: str, /) -> str:

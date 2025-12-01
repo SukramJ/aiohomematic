@@ -71,13 +71,14 @@ from aiohomematic.interfaces import (
     BaseParameterDataPointProtocol,
     CallbackDataPointProtocol,
     CentralInfo,
+    ChannelProtocol,
+    DeviceProtocol,
     EventBusProvider,
     EventPublisher,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,
 )
-from aiohomematic.model import device as hmd
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
 from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
@@ -532,14 +533,14 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
     def __init__(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         unique_id: str,
         is_in_multiple_channels: bool,
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)
-        self._channel: Final[hmd.Channel] = channel
-        self._device: Final[hmd.Device] = channel.device
+        self._channel: Final[ChannelProtocol] = channel
+        self._device: Final[DeviceProtocol] = channel.device
         super().__init__(
             unique_id=unique_id,
             central_info=channel.device.central_info,
@@ -557,7 +558,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         self._timer_on_time_end: datetime = INIT_DATETIME
 
     @property
-    def device(self) -> hmd.Device:
+    def device(self) -> DeviceProtocol:
         """Return the device of the data_point."""
         return self._device
 
@@ -617,7 +618,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         return self._device.available
 
     @hm_property(log_context=True)
-    def channel(self) -> hmd.Channel:
+    def channel(self) -> ChannelProtocol:
         """Return the channel the data_point."""
         return self._channel
 
@@ -703,7 +704,7 @@ class BaseParameterDataPoint[
     def __init__(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
         parameter: str,
         parameter_data: ParameterData,

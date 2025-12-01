@@ -36,21 +36,13 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model import device as hmd, week_profile as wp
+from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import (
-    DpAction,
-    DpBinarySensor,
-    DpFloat,
-    DpInteger,
-    DpSelect,
-    DpSensor,
-    DpSwitch,
-    GenericDataPointAny,
-)
+from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeHandler
 
@@ -162,7 +154,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     def __init__(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         unique_id: str,
         device_profile: DeviceProfile,
         device_def: Mapping[str, Any],
@@ -503,7 +495,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
 
     @abstractmethod
-    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
     def _on_link_peer_changed(self) -> None:
@@ -599,7 +591,7 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
 
 
@@ -785,7 +777,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_control_mode
@@ -1065,7 +1057,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPointAny | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_set_point_mode
@@ -1095,7 +1087,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
 def make_simple_thermostat(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create SimpleRfThermostat data point."""
@@ -1109,7 +1101,7 @@ def make_simple_thermostat(
 
 def make_thermostat(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create RfThermostat data point."""
@@ -1123,7 +1115,7 @@ def make_thermostat(
 
 def make_thermostat_group(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create RfThermostat group data point."""
@@ -1137,7 +1129,7 @@ def make_thermostat_group(
 
 def make_ip_thermostat(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create IPThermostat data point."""
@@ -1151,7 +1143,7 @@ def make_ip_thermostat(
 
 def make_ip_thermostat_group(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create IPThermostat group data point."""

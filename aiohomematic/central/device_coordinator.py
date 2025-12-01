@@ -33,8 +33,10 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import (
+    CallbackDataPointProtocol,
     CentralInfo,
     ChannelLookup,
+    ChannelProtocol,
     ClientProvider,
     ConfigProvider,
     CoordinatorProvider,
@@ -43,25 +45,24 @@ from aiohomematic.interfaces import (
     DeviceDataRefresher,
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
+    DeviceProtocol,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    GenericEventProtocol,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,
 )
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
-from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.device import Device
-from aiohomematic.model.event import GenericEvent
 from aiohomematic.support import extract_device_addresses_from_device_descriptions, extract_exc_args
 
 if TYPE_CHECKING:
     from aiohomematic.central.device_registry import DeviceRegistry
     from aiohomematic.client import Client
-    from aiohomematic.model.device import Channel
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -160,7 +161,7 @@ class DeviceCoordinator:
         return self._coordinator_provider.device_registry
 
     @property
-    def devices(self) -> tuple[Device, ...]:
+    def devices(self) -> tuple[DeviceProtocol, ...]:
         """Return all devices."""
         return self.device_registry.devices
 
@@ -295,14 +296,14 @@ class DeviceCoordinator:
             )
         _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self._central_info.name)
 
-        new_devices = set[Device]()
+        new_devices = set[DeviceProtocol]()
 
         for interface_id, device_addresses in new_device_addresses.items():
             for device_address in device_addresses:
                 # Do we check for duplicates here? For now, we do.
                 if self.device_registry.has_device(address=device_address):
                     continue
-                device: Device | None = None
+                device: DeviceProtocol | None = None
                 try:
                     device = Device(
                         interface_id=interface_id,
@@ -406,7 +407,7 @@ class DeviceCoordinator:
             save_paramset_descriptions=True,
         )
 
-    def get_channel(self, *, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """
         Return Homematic channel.
 
@@ -421,7 +422,7 @@ class DeviceCoordinator:
         """
         return self.device_registry.get_channel(channel_address=channel_address)
 
-    def get_device(self, *, address: str) -> Device | None:
+    def get_device(self, *, address: str) -> DeviceProtocol | None:
         """
         Return Homematic device.
 
@@ -436,11 +437,11 @@ class DeviceCoordinator:
         """
         return self.device_registry.get_device(address=address)
 
-    def get_virtual_remotes(self) -> tuple[Device, ...]:
+    def get_virtual_remotes(self) -> tuple[DeviceProtocol, ...]:
         """Get the virtual remotes for all clients."""
         return self.device_registry.get_virtual_remotes()
 
-    def identify_channel(self, *, text: str) -> Channel | None:
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """
         Identify channel within a text.
 
@@ -550,7 +551,7 @@ class DeviceCoordinator:
         for device in self.devices:
             await device.remove_central_links()
 
-    def remove_device(self, *, device: Device) -> None:
+    def remove_device(self, *, device: DeviceProtocol) -> None:
         """
         Remove device from central collections.
 
@@ -685,7 +686,7 @@ class DeviceCoordinator:
         )
 
 
-def _get_new_channel_events(*, new_devices: set[Device]) -> tuple[tuple[GenericEvent, ...], ...]:
+def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocol, ...], ...]:
     """
     Return new channel events.
 
@@ -698,7 +699,7 @@ def _get_new_channel_events(*, new_devices: set[Device]) -> tuple[tuple[GenericE
         Tuple of channel event tuples
 
     """
-    channel_events: list[tuple[GenericEvent, ...]] = []
+    channel_events: list[tuple[GenericEventProtocol, ...]] = []
 
     for device in new_devices:
         for event_type in DATA_POINT_EVENTS:
@@ -712,8 +713,8 @@ def _get_new_channel_events(*, new_devices: set[Device]) -> tuple[tuple[GenericE
 
 def _get_new_data_points(
     *,
-    new_devices: set[Device],
-) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPoint]]:
+    new_devices: set[DeviceProtocol],
+) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPointProtocol]]:
     """
     Return new data points by category.
 
@@ -726,7 +727,7 @@ def _get_new_data_points(
         Mapping of categories to data points
 
     """
-    data_points_by_category: dict[DataPointCategory, set[CallbackDataPoint]] = {
+    data_points_by_category: dict[DataPointCategory, set[CallbackDataPointProtocol]] = {
         category: set() for category in CATEGORIES if category != DataPointCategory.EVENT
     }
 

@@ -16,7 +16,7 @@ from typing import Final, TypedDict, Unpack
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
@@ -252,7 +252,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
 
 def make_ip_siren(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP siren data point."""
@@ -266,7 +266,7 @@ def make_ip_siren(
 
 def make_ip_siren_smoke(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP siren data point."""

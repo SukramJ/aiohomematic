@@ -16,7 +16,7 @@ The CacheCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 from aiohomematic.const import DataOperationResult, Interface
 from aiohomematic.interfaces import (
@@ -24,6 +24,7 @@ from aiohomematic.interfaces import (
     ClientProvider,
     ConfigProvider,
     DataPointProvider,
+    DeviceProtocol,
     DeviceProvider,
     PrimaryClientProvider,
     TaskScheduler,
@@ -36,9 +37,6 @@ from aiohomematic.store import (
     ParamsetDescriptionCache,
     SessionRecorder,
 )
-
-if TYPE_CHECKING:
-    from aiohomematic.model.device import Device
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -203,7 +201,7 @@ class CacheCoordinator:
         """
         await self._data_cache.load(interface=interface)
 
-    def remove_device_from_caches(self, *, device: Device) -> None:
+    def remove_device_from_caches(self, *, device: DeviceProtocol) -> None:
         """
         Remove a device from all relevant caches.
 

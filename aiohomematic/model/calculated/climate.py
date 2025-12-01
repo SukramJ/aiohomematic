@@ -8,7 +8,7 @@ import logging
 from typing import Final
 
 from aiohomematic.const import CalulatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
@@ -36,7 +36,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
 
     _category = DataPointCategory.SENSOR
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
@@ -72,13 +72,13 @@ class ApparentTemperature(BaseClimateSensor[float | None]):
 
     _calculated_parameter = CalulatedParameter.APPARENT_TEMPERATURE
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "°C"
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return (
             element_matches_key(
@@ -123,13 +123,13 @@ class DewPoint(BaseClimateSensor[float | None]):
 
     _calculated_parameter = CalulatedParameter.DEW_POINT
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "°C"
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel)
 
@@ -151,13 +151,13 @@ class DewPointSpread(BaseClimateSensor[float | None]):
 
     _calculated_parameter = CalulatedParameter.DEW_POINT_SPREAD
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "K"
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel)
 
@@ -179,13 +179,13 @@ class Enthalpy(BaseClimateSensor[float | None]):
 
     _calculated_parameter = CalulatedParameter.ENTHALPY
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "kJ/kg"
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel)
 
@@ -207,13 +207,13 @@ class FrostPoint(BaseClimateSensor[float | None]):
 
     _calculated_parameter = CalulatedParameter.FROST_POINT
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "°C"
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(
             channel=channel, relevant_models=_RELEVANT_MODELS_FROST_POINT
@@ -237,13 +237,13 @@ class VaporConcentration(BaseClimateSensor[float | None]):
 
     _calculated_parameter = CalulatedParameter.VAPOR_CONCENTRATION
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._unit = "g/m³"
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel)
 
@@ -259,7 +259,7 @@ class VaporConcentration(BaseClimateSensor[float | None]):
 
 
 def _is_relevant_for_model_temperature_and_humidity(
-    channel: hmd.Channel, relevant_models: tuple[str, ...] | None = None
+    channel: ChannelProtocol, relevant_models: tuple[str, ...] | None = None
 ) -> bool:
     """Return if this calculated data point is relevant for the model with temperature and humidity."""
     return (

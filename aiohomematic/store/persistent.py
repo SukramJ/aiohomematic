@@ -70,11 +70,11 @@ from aiohomematic.interfaces import (
     CentralInfo,
     ConfigProvider,
     DeviceDescriptionProvider,
+    DeviceProtocol,
     DeviceProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,
 )
-from aiohomematic.model.device import Device
 from aiohomematic.support import (
     check_or_create_directory,
     create_random_device_addresses,
@@ -382,7 +382,7 @@ class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider):
                 self._convert_device_descriptions(interface_id=interface_id, device_descriptions=device_descriptions)
         return result
 
-    def remove_device(self, *, device: Device) -> None:
+    def remove_device(self, *, device: DeviceProtocol) -> None:
         """Remove device from cache."""
         self._remove_device(
             interface_id=device.interface_id,
@@ -536,7 +536,7 @@ class ParamsetDescriptionCache(BasePersistentFile, ParamsetDescriptionProvider):
             self._init_address_parameter_list()
         return result
 
-    def remove_device(self, *, device: Device) -> None:
+    def remove_device(self, *, device: DeviceProtocol) -> None:
         """Remove device paramset descriptions from cache."""
         if interface := self._raw_paramset_descriptions.get(device.interface_id):
             for channel_address in device.channels:

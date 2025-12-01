@@ -16,7 +16,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import config_property, state_property
@@ -37,7 +37,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
 
     _category = DataPointCategory.UPDATE
 
-    def __init__(self, *, device: hmd.Device) -> None:
+    def __init__(self, *, device: DeviceProtocol) -> None:
         """Initialize the callback data_point."""
         PayloadMixin.__init__(self)
         self._device: Final = device
@@ -57,7 +57,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         self._set_modified_at(modified_at=datetime.now())
 
     @property
-    def device(self) -> hmd.Device:
+    def device(self) -> DeviceProtocol:
         """Return the device of the data_point."""
         return self._device
 

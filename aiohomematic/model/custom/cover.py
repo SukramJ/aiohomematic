@@ -16,7 +16,7 @@ from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
@@ -656,7 +656,7 @@ class CustomDpGarage(CustomDataPoint):
 
 def make_ip_cover(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP cover data point."""
@@ -670,7 +670,7 @@ def make_ip_cover(
 
 def make_rf_cover(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic cover data point."""
@@ -684,7 +684,7 @@ def make_rf_cover(
 
 def make_ip_blind(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP cover data point."""
@@ -698,7 +698,7 @@ def make_ip_blind(
 
 def make_ip_garage(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP garage data point."""
@@ -712,7 +712,7 @@ def make_ip_garage(
 
 def make_ip_hdm(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP cover data point."""
@@ -726,7 +726,7 @@ def make_ip_hdm(
 
 def make_rf_blind(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic cover data point."""
@@ -740,7 +740,7 @@ def make_rf_blind(
 
 def make_rf_window_drive(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic window drive data point."""

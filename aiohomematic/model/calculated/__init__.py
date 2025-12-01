@@ -40,7 +40,7 @@ import logging
 from typing import Final
 
 from aiohomematic.decorators import inspector
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.calculated.climate import (
     ApparentTemperature,
     DewPoint,
@@ -77,7 +77,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 @inspector
-def create_calculated_data_points(*, channel: hmd.Channel) -> None:
+def create_calculated_data_points(*, channel: ChannelProtocol) -> None:
     """Decides which data point category should be used, and creates the required data points."""
     for dp in _CALCULATED_DATA_POINTS:
         if dp.is_relevant_for_model(channel=channel):

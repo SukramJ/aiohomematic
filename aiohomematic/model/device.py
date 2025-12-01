@@ -71,29 +71,34 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces import (
+    BaseParameterDataPointProtocol,
+    CalculatedDataPointProtocol,
+    CallbackDataPointProtocol,
     CentralInfo,
     ChannelLookup,
+    ChannelProtocol,
     ClientProvider,
     ConfigProvider,
+    CustomDataPointProtocol,
     DataCacheProvider,
     DataPointProvider,
     DeviceDataRefresher,
     DeviceDescriptionProvider,
     DeviceDetailsProvider,
+    DeviceProtocol,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    GenericDataPointProtocol,
+    GenericEventProtocol,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,
 )
 from aiohomematic.model import week_profile as wp
-from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
-from aiohomematic.model.data_point import BaseParameterDataPoint, CallbackDataPoint
-from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.generic import DpBinarySensor, GenericDataPoint, GenericDataPointAny
+from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.support import (
     ChannelNameData,
     generate_channel_unique_id,
@@ -124,7 +129,7 @@ __all__ = ["Channel", "Device"]
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class Device(LogContextMixin, PayloadMixin):
+class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     """
     Represents a Homematic device with channels and data points.
 
@@ -257,7 +262,7 @@ class Device(LogContextMixin, PayloadMixin):
         channel_addresses = tuple(
             [device_address] + [address for address in self._description["CHILDREN"] if address != ""]
         )
-        self._channels: Final[dict[str, Channel]] = {
+        self._channels: Final[dict[str, ChannelProtocol]] = {
             address: Channel(device=self, channel_address=address) for address in channel_addresses
         }
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
@@ -325,9 +330,9 @@ class Device(LogContextMixin, PayloadMixin):
         return str(self._description.get("AVAILABLE_FIRMWARE", ""))
 
     @property
-    def calculated_data_points(self) -> tuple[CalculatedDataPoint[Any], ...]:
+    def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
         """Return the generic data points."""
-        data_points: list[CalculatedDataPoint[Any]] = []
+        data_points: list[CalculatedDataPointProtocol] = []
         for channel in self._channels.values():
             data_points.extend(channel.calculated_data_points)
         return tuple(data_points)
@@ -343,7 +348,7 @@ class Device(LogContextMixin, PayloadMixin):
         return self._channel_lookup
 
     @property
-    def channels(self) -> Mapping[str, Channel]:
+    def channels(self) -> Mapping[str, ChannelProtocol]:
         """Return the channels."""
         return self._channels
 
@@ -368,7 +373,9 @@ class Device(LogContextMixin, PayloadMixin):
     def custom_data_points(self) -> tuple[hmce.CustomDataPoint, ...]:
         """Return the custom data points."""
         return tuple(
-            channel.custom_data_point for channel in self._channels.values() if channel.custom_data_point is not None
+            cast(hmce.CustomDataPoint, channel.custom_data_point)
+            for channel in self._channels.values()
+            if channel.custom_data_point is not None
         )
 
     @property
@@ -390,7 +397,7 @@ class Device(LogContextMixin, PayloadMixin):
         return self._data_point_provider
 
     @property
-    def default_schedule_channel(self) -> Channel | None:
+    def default_schedule_channel(self) -> ChannelProtocol | None:
         """Return the schedule channel address."""
         for channel in self._channels.values():
             if channel.is_schedule_channel:
@@ -438,17 +445,17 @@ class Device(LogContextMixin, PayloadMixin):
         return DeviceFirmwareState(self._description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPointAny, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
         """Return the generic data points."""
-        data_points: list[GenericDataPointAny] = []
+        data_points: list[GenericDataPointProtocol] = []
         for channel in self._channels.values():
             data_points.extend(channel.generic_data_points)
         return tuple(data_points)
 
     @property
-    def generic_events(self) -> tuple[GenericEvent, ...]:
+    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
         """Return the generic events."""
-        events: list[GenericEvent] = []
+        events: list[GenericEventProtocol] = []
         for channel in self._channels.values():
             events.extend(channel.generic_events)
         return tuple(events)
@@ -502,7 +509,7 @@ class Device(LogContextMixin, PayloadMixin):
         return self._is_updatable
 
     @property
-    def link_peer_channels(self) -> Mapping[Channel, tuple[Channel, ...]]:
+    def link_peer_channels(self) -> Mapping[ChannelProtocol, tuple[ChannelProtocol, ...]]:
         """Return the link peer channels."""
         return {
             channel: channel.link_peer_channels for channel in self._channels.values() if channel.link_peer_channels
@@ -671,13 +678,13 @@ class Device(LogContextMixin, PayloadMixin):
         for channel in self._channels.values():
             await channel.finalize_init()
 
-    def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPoint[Any] | None:
+    def get_calculated_data_point(self, *, channel_address: str, parameter: str) -> CalculatedDataPointProtocol | None:
         """Return a calculated data_point from device."""
         if channel := self.get_channel(channel_address=channel_address):
             return channel.get_calculated_data_point(parameter=parameter)
         return None
 
-    def get_channel(self, *, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """Get channel of device."""
         return self._channels.get(channel_address)
 
@@ -690,7 +697,7 @@ class Device(LogContextMixin, PayloadMixin):
         if channel := self.get_channel(
             channel_address=get_channel_address(device_address=self._address, channel_no=channel_no)
         ):
-            return channel.custom_data_point
+            return cast(hmce.CustomDataPoint | None, channel.custom_data_point)
         return None
 
     def get_data_points(
@@ -699,9 +706,9 @@ class Device(LogContextMixin, PayloadMixin):
         category: DataPointCategory | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
-    ) -> tuple[CallbackDataPoint, ...]:
+    ) -> tuple[CallbackDataPointProtocol, ...]:
         """Get all data points of the device."""
-        all_data_points: list[CallbackDataPoint] = []
+        all_data_points: list[CallbackDataPointProtocol] = []
         if (
             self._update_data_point
             and (category is None or self._update_data_point.category == category)
@@ -720,9 +727,9 @@ class Device(LogContextMixin, PayloadMixin):
 
     def get_events(
         self, *, event_type: EventType, registered: bool | None = None
-    ) -> Mapping[int | None, tuple[GenericEvent, ...]]:
+    ) -> Mapping[int | None, tuple[GenericEventProtocol, ...]]:
         """Return a list of specific events of a channel."""
-        events: dict[int | None, tuple[GenericEvent, ...]] = {}
+        events: dict[int | None, tuple[GenericEventProtocol, ...]] = {}
         for channel in self._channels.values():
             if (values := channel.get_events(event_type=event_type, registered=registered)) and len(values) > 0:
                 events[channel.no] = values
@@ -735,7 +742,7 @@ class Device(LogContextMixin, PayloadMixin):
         parameter: str | None = None,
         paramset_key: ParamsetKey | None = None,
         state_path: str | None = None,
-    ) -> GenericDataPointAny | None:
+    ) -> GenericDataPointProtocol | None:
         """Return a generic data_point from device."""
         if channel_address is None:
             for ch in self._channels.values():
@@ -751,7 +758,7 @@ class Device(LogContextMixin, PayloadMixin):
 
     def get_generic_event(
         self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEvent | None:
+    ) -> GenericEventProtocol | None:
         """Return a generic event from device."""
         if channel_address is None:
             for ch in self._channels.values():
@@ -763,14 +770,14 @@ class Device(LogContextMixin, PayloadMixin):
             return channel.get_generic_event(parameter=parameter, state_path=state_path)
         return None
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointAny, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
         """Return the list of readable master data points."""
-        data_points: list[GenericDataPointAny] = []
+        data_points: list[GenericDataPointProtocol] = []
         for channel in self._channels.values():
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
 
-    def identify_channel(self, *, text: str) -> Channel | None:
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """Identify channel within a text."""
         for channel_address, channel in self._channels.items():
             if text.endswith(channel_address):
@@ -782,7 +789,7 @@ class Device(LogContextMixin, PayloadMixin):
 
         return None
 
-    def init_week_profile(self, *, data_point: hmce.CustomDataPoint) -> None:
+    def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the device schedule."""
         if self._week_profile is None:
             self._week_profile = wp.create_week_profile(data_point=data_point)
@@ -944,7 +951,7 @@ class Device(LogContextMixin, PayloadMixin):
         self._modified_at = datetime.now()
 
 
-class Channel(LogContextMixin, PayloadMixin):
+class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     """
     Represents a device channel containing data points and events.
 
@@ -981,7 +988,7 @@ class Channel(LogContextMixin, PayloadMixin):
         "_unique_id",
     )
 
-    def __init__(self, *, device: Device, channel_address: str) -> None:
+    def __init__(self, *, device: DeviceProtocol, channel_address: str) -> None:
         """Initialize the channel object."""
         PayloadMixin.__init__(self)
 
@@ -1001,12 +1008,12 @@ class Channel(LogContextMixin, PayloadMixin):
             config_provider=self._device.config_provider, address=channel_address
         )
         self._group_no: int | None = None
-        self._group_master: Channel | None = None
+        self._group_master: ChannelProtocol | None = None
         self._is_in_multi_group: bool | None = None
-        self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPoint[Any]]] = {}
+        self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPointProtocol]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
-        self._generic_data_points: Final[dict[DataPointKey, GenericDataPointAny]] = {}
-        self._generic_events: Final[dict[DataPointKey, GenericEvent]] = {}
+        self._generic_data_points: Final[dict[DataPointKey, GenericDataPointProtocol]] = {}
+        self._generic_events: Final[dict[DataPointKey, GenericEventProtocol]] = {}
         self._state_path_to_dpk: Final[dict[str, DataPointKey]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
         self._link_source_roles: tuple[str, ...] = (
@@ -1043,7 +1050,7 @@ class Channel(LogContextMixin, PayloadMixin):
         return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
 
     @property
-    def calculated_data_points(self) -> tuple[CalculatedDataPoint[Any], ...]:
+    def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
         """Return the generic data points."""
         return tuple(self._calculated_data_points.values())
 
@@ -1073,17 +1080,17 @@ class Channel(LogContextMixin, PayloadMixin):
         return self._function
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPointAny, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
         """Return the generic data points."""
         return tuple(self._generic_data_points.values())
 
     @property
-    def generic_events(self) -> tuple[GenericEvent, ...]:
+    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
         """Return the generic events."""
         return tuple(self._generic_events.values())
 
     @property
-    def group_master(self) -> Channel | None:
+    def group_master(self) -> ChannelProtocol | None:
         """Return the master channel of the group."""
         if self.group_no is None:
             return None
@@ -1125,7 +1132,7 @@ class Channel(LogContextMixin, PayloadMixin):
         return self._link_peer_addresses
 
     @property
-    def link_peer_channels(self) -> tuple[Channel, ...]:
+    def link_peer_channels(self) -> tuple[ChannelProtocol, ...]:
         """Return the link peer channel."""
         return tuple(
             channel
@@ -1212,7 +1219,7 @@ class Channel(LogContextMixin, PayloadMixin):
         return None
 
     @hm_property(log_context=True)
-    def device(self) -> Device:
+    def device(self) -> DeviceProtocol:
         """Return the device of the channel."""
         return self._device
 
@@ -1221,18 +1228,18 @@ class Channel(LogContextMixin, PayloadMixin):
         """Return the channel_no of the channel."""
         return self._no
 
-    def add_data_point(self, *, data_point: CallbackDataPoint) -> None:
+    def add_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:
         """Add a data_point to a channel."""
-        if isinstance(data_point, BaseParameterDataPoint):
+        if isinstance(data_point, BaseParameterDataPointProtocol):
             self._device.event_subscription_manager.add_event_subscription(data_point=data_point)
             self._state_path_to_dpk[data_point.state_path] = data_point.dpk
-        if isinstance(data_point, CalculatedDataPoint):
+        if isinstance(data_point, CalculatedDataPointProtocol):
             self._calculated_data_points[data_point.dpk] = data_point
-        if isinstance(data_point, GenericDataPoint):
+        if isinstance(data_point, GenericDataPointProtocol):
             self._generic_data_points[data_point.dpk] = data_point
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = data_point
-        if isinstance(data_point, GenericEvent):
+        if isinstance(data_point, GenericEventProtocol):
             self._generic_events[data_point.dpk] = data_point
 
     @inspector
@@ -1264,7 +1271,7 @@ class Channel(LogContextMixin, PayloadMixin):
         if self._custom_data_point:
             await self._custom_data_point.finalize_init()
 
-    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPoint[Any] | None:
+    def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPointProtocol | None:
         """Return a calculated data_point from device."""
         return self._calculated_data_points.get(
             DataPointKey(
@@ -1281,9 +1288,9 @@ class Channel(LogContextMixin, PayloadMixin):
         category: DataPointCategory | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
-    ) -> tuple[CallbackDataPoint, ...]:
+    ) -> tuple[CallbackDataPointProtocol, ...]:
         """Get all data points of the device."""
-        all_data_points: list[CallbackDataPoint] = list(self._generic_data_points.values()) + list(
+        all_data_points: list[CallbackDataPointProtocol] = list(self._generic_data_points.values()) + list(
             self._calculated_data_points.values()
         )
         if self._custom_data_point:
@@ -1298,7 +1305,7 @@ class Channel(LogContextMixin, PayloadMixin):
             and (registered is None or dp.is_registered == registered)
         )
 
-    def get_events(self, *, event_type: EventType, registered: bool | None = None) -> tuple[GenericEvent, ...]:
+    def get_events(self, *, event_type: EventType, registered: bool | None = None) -> tuple[GenericEventProtocol, ...]:
         """Return a list of specific events of a channel."""
         return tuple(
             event
@@ -1308,7 +1315,7 @@ class Channel(LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, parameter: str | None = None, paramset_key: ParamsetKey | None = None, state_path: str | None = None
-    ) -> GenericDataPointAny | None:
+    ) -> GenericDataPointProtocol | None:
         """Return a generic data_point from device."""
         if state_path is not None and (dpk := self._state_path_to_dpk.get(state_path)) is not None:
             return self._generic_data_points.get(dpk)
@@ -1342,7 +1349,9 @@ class Channel(LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_generic_event(self, *, parameter: str | None = None, state_path: str | None = None) -> GenericEvent | None:
+    def get_generic_event(
+        self, *, parameter: str | None = None, state_path: str | None = None
+    ) -> GenericEventProtocol | None:
         """Return a generic event from device."""
         if state_path is not None and (dpk := self._state_path_to_dpk.get(state_path)) is not None:
             return self._generic_events.get(dpk)
@@ -1358,7 +1367,7 @@ class Channel(LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointAny, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
         """Return the list of readable master data points."""
         return tuple(
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
@@ -1506,22 +1515,22 @@ class Channel(LogContextMixin, PayloadMixin):
                 paramset_key=paramset_key,
             )
 
-    def _remove_data_point(self, *, data_point: CallbackDataPoint) -> None:
+    def _remove_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:
         """Remove a data_point from a channel."""
         # Clean up internal subscriptions for custom/calculated data points
-        if isinstance(data_point, (hmce.CustomDataPoint, CalculatedDataPoint)):
+        if isinstance(data_point, (hmce.CustomDataPoint, CalculatedDataPointProtocol)):
             data_point.unsubscribe_from_data_point_updated()
 
         # EventBus subscriptions are automatically cleaned up via DeviceRemovedEvent
-        if isinstance(data_point, BaseParameterDataPoint):
+        if isinstance(data_point, BaseParameterDataPointProtocol):
             self._state_path_to_dpk.pop(data_point.state_path, None)
-        if isinstance(data_point, CalculatedDataPoint):
+        if isinstance(data_point, CalculatedDataPointProtocol):
             self._calculated_data_points.pop(data_point.dpk, None)
-        if isinstance(data_point, GenericDataPoint):
+        if isinstance(data_point, GenericDataPointProtocol):
             self._generic_data_points.pop(data_point.dpk, None)
         if isinstance(data_point, hmce.CustomDataPoint):
             self._custom_data_point = None
-        if isinstance(data_point, GenericEvent):
+        if isinstance(data_point, GenericEventProtocol):
             self._generic_events.pop(data_point.dpk, None)
         data_point.publish_device_removed_event()
 
@@ -1540,7 +1549,7 @@ class _ValueCache:
 
     _NO_VALUE_CACHE_ENTRY: Final = "NO_VALUE_CACHE_ENTRY"
 
-    def __init__(self, *, device: Device) -> None:
+    def __init__(self, *, device: DeviceProtocol) -> None:
         """Initialize the value cache."""
         self._sema_get_or_load_value: Final = asyncio.Semaphore()
         self._device: Final = device
@@ -1619,7 +1628,7 @@ class _ValueCache:
         # to avoid repetitive calls to the backend within max_age
         self._device_cache[dpk] = CacheEntry(value=value, refresh_at=datetime.now())
 
-    def _get_base_data_points(self) -> set[GenericDataPointAny]:
+    def _get_base_data_points(self) -> set[GenericDataPointProtocol]:
         """Get data points of channel 0 and master."""
         return {
             dp
@@ -1632,7 +1641,7 @@ class _ValueCache:
             or dp.paramset_key == ParamsetKey.MASTER
         }
 
-    def _get_readable_events(self) -> set[GenericEvent]:
+    def _get_readable_events(self) -> set[GenericEventProtocol]:
         """Get readable events."""
         return {event for event in self._device.generic_events if event.is_readable}
 
@@ -1695,7 +1704,7 @@ class _DefinitionExporter:
         "_task_scheduler",
     )
 
-    def __init__(self, *, device: Device) -> None:
+    def __init__(self, *, device: DeviceProtocol) -> None:
         """Initialize the device exporter."""
         self._client: Final = device.client
         self._config_provider: Final = device.config_provider

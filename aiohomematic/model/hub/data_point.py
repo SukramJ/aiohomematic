@@ -22,6 +22,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
+    ChannelProtocol,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
@@ -35,7 +36,6 @@ from aiohomematic.interfaces import (
     TaskScheduler,
 )
 from aiohomematic.model.data_point import CallbackDataPoint
-from aiohomematic.model.device import Channel
 from aiohomematic.model.support import (
     PathData,
     ProgramPathData,
@@ -102,7 +102,7 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
         self._primary_client_provider: Final = primary_client_provider
 
     @property
-    def channel(self) -> Channel | None:
+    def channel(self) -> ChannelProtocol | None:
         """Return the identified channel."""
         return self._channel
 

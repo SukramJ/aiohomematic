@@ -11,7 +11,7 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.const import CalulatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.support import calculate_operating_voltage_level
 from aiohomematic.model.generic import DpFloat, DpSensor
@@ -41,14 +41,14 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     _calculated_parameter = CalulatedParameter.OPERATING_VOLTAGE_LEVEL
     _category = DataPointCategory.SENSOR
 
-    def __init__(self, *, channel: hmd.Channel) -> None:
+    def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
         self._unit = "%"
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
         if element_matches_key(
             search_elements=_IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS, compare_with=channel.device.model

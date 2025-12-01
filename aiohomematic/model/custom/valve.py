@@ -14,7 +14,7 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig
@@ -98,7 +98,7 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
 
 def make_ip_irrigation_valve(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP irrigation valve data point."""

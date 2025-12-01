@@ -34,7 +34,7 @@ from aiohomematic.const import (
     ParameterData,
     ParameterType,
 )
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.support import to_bool
 
 __all__ = [
@@ -190,7 +190,7 @@ def _get_generic_name(address: str, model: str) -> str:
     return f"{model}_{address}"
 
 
-def get_channel_name_data(channel: hmd.Channel) -> ChannelNameData:
+def get_channel_name_data(channel: ChannelProtocol) -> ChannelNameData:
     """Get name for data_point."""
     if channel_base_name := _get_base_name_from_channel_or_device(channel=channel):
         return ChannelNameData(
@@ -330,7 +330,7 @@ class HubPathData(PathData):
 
 
 def get_data_point_name_data(
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     parameter: str,
 ) -> DataPointNameData:
     """Get name for data_point."""
@@ -367,7 +367,7 @@ def get_data_point_name_data(
 
 
 def get_hub_data_point_name_data(
-    channel: hmd.Channel | None,
+    channel: ChannelProtocol | None,
     legacy_name: str,
     central_name: str,
 ) -> HubNameData:
@@ -401,7 +401,7 @@ def get_hub_data_point_name_data(
 
 
 def get_event_name(
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     parameter: str,
 ) -> DataPointNameData:
     """Get name for event."""
@@ -432,7 +432,7 @@ def get_event_name(
 
 
 def get_custom_data_point_name(
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     is_only_primary_channel: bool,
     ignore_multiple_channels_for_name: bool,
     usage: DataPointUsage,
@@ -503,7 +503,7 @@ def generate_channel_unique_id(
     return unique_id.lower()
 
 
-def _get_base_name_from_channel_or_device(channel: hmd.Channel) -> str | None:
+def _get_base_name_from_channel_or_device(channel: ChannelProtocol) -> str | None:
     """Get the name from channel if it's not default, otherwise from device."""
     default_channel_name = f"{channel.device.model} {channel.address}"
     # Access device details provider through channel's device

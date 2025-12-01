@@ -717,6 +717,11 @@ class CallbackDataPointProtocol(Protocol):
 
     @property
     @abstractmethod
+    def published_event_recently(self) -> bool:
+        """Return if the data point published an event recently."""
+
+    @property
+    @abstractmethod
     def refreshed_at(self) -> datetime:
         """Return the last refresh datetime value."""
 
@@ -921,6 +926,11 @@ class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
     """
 
     __slots__ = ()
+
+    @property
+    @abstractmethod
+    def channel(self) -> ChannelProtocol:
+        """Return the channel of the data point."""
 
     @property
     @abstractmethod
@@ -1146,16 +1156,6 @@ class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
     """
 
     __slots__ = ()
-
-    @property
-    @abstractmethod
-    def channel(self) -> ChannelProtocol:
-        """Return the channel of the data point."""
-
-    @property
-    @abstractmethod
-    def published_event_recently(self) -> bool:
-        """Return if the data point published an event recently."""
 
     @property
     @abstractmethod

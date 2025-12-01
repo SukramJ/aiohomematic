@@ -176,6 +176,19 @@ class Backend(StrEnum):
     PYDEVCCU = "PyDevCCU"
 
 
+class CCUType(StrEnum):
+    """
+    Enum with CCU types.
+
+    CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone).
+    OPENCCU: OpenCCU and RaspberryMatic - modern variants with online update check.
+    """
+
+    CCU = "CCU"
+    OPENCCU = "OpenCCU"
+    UNKNOWN = "Unknown"
+
+
 class BackendSystemEvent(StrEnum):
     """Enum with aiohomematic system events."""
 
@@ -688,6 +701,7 @@ class RegaScript(StrEnum):
     ACCEPT_DEVICE_IN_INBOX = "accept_device_in_inbox.fn"
     CREATE_BACKUP = "create_backup.fn"
     FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"
+    GET_BACKEND_INFO = "get_backend_info.fn"
     GET_PROGRAM_DESCRIPTIONS = "get_program_descriptions.fn"
     GET_SERIAL = "get_serial.fn"
     GET_SERVICE_MESSAGES = "get_service_messages.fn"
@@ -1097,12 +1111,38 @@ class SystemVariableData(HubData):
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class SystemInformation:
-    """System information of the backend."""
+    """
+    System information of the backend.
+
+    CCU types:
+    - CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone)
+    - OPENCCU: OpenCCU and RaspberryMatic (modern variants)
+    """
 
     available_interfaces: tuple[str, ...] = field(default_factory=tuple)
     auth_enabled: bool | None = None
     https_redirect_enabled: bool | None = None
     serial: str | None = None
+    # Backend info fields
+    version: str = ""
+    product: str = ""
+    hostname: str = ""
+    ccu_type: CCUType = field(default_factory=lambda: CCUType.UNKNOWN)
+
+    @property
+    def is_ccu(self) -> bool:
+        """Return True if backend is original CCU or debmatic."""
+        return self.ccu_type == CCUType.CCU
+
+    @property
+    def is_openccu(self) -> bool:
+        """Return True if backend is OpenCCU or RaspberryMatic."""
+        return self.ccu_type == CCUType.OPENCCU
+
+    @property
+    def supports_online_update_check(self) -> bool:
+        """Return True if backend supports online firmware update checks."""
+        return self.ccu_type == CCUType.OPENCCU
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

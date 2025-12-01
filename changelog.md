@@ -12,8 +12,13 @@
 - New method download_firmware() for downloading firmware to CCU
 - New method get_service_messages to fetch CCU service messages
 - New method get_system_update_info for firmware update status
+- Extended SystemInformation with CCU type identification (CCU vs OpenCCU/RaspberryMatic)
+- New CCUType enum for backend identification
 - New protocols for model data points for better decoupling
 - New script trigger_firmware_update.fn to trigger firmware updates
+- New script create_backup.fn to create system backups
+- New script get_backend_info.fn to retrieve backend information
+- Extended get_system_update_info.fn to support OpenCCU/RaspberryMatic online version check
 
 # Version 2025.11.30 (2025-11-26)
 

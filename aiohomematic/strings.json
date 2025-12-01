@@ -142,6 +142,7 @@
   "log.client.json_rpc.download_firmware.failed": "DOWNLOAD_FIRMWARE failed: HTTP status {status}",
   "log.client.json_rpc.download_firmware.no_session": "DOWNLOAD_FIRMWARE failed: No session ID available",
   "log.client.json_rpc.get_all_system_variables.parse_failed": "GET_ALL_SYSTEM_VARIABLES failed: {exc_type} [{reason}] Failed to parse SysVar {legacy_name}",
+  "log.client.json_rpc.get_backend_info.failed": "GET_BACKEND_INFO failed: Unable to decode json: {reason}",
   "log.client.json_rpc.get_program_descriptions.decode_failed": "GET_PROGRAM_DESCRIPTIONS failed: Unable to decode json: {reason}",
   "log.client.json_rpc.get_service_messages.decode_failed": "GET_SERVICE_MESSAGES failed: Unable to decode json: {reason}",
   "log.client.json_rpc.get_system_update_info.decode_failed": "GET_SYSTEM_UPDATE_INFO failed: Unable to decode json: {reason}",

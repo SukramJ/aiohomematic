@@ -80,9 +80,9 @@ class Example:
             username=CCU_USERNAME,
             password=CCU_PASSWORD,
             central_id="1234",
-            storage_folder="aiohomematic_storage",
+            storage_directory="aiohomematic_storage",
             interface_configs=interface_configs,
-            callback_port=54323,
+            callback_port_xml_rpc=54323,
             optional_settings=(const.OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
         ).create_central()
 
@@ -91,6 +91,7 @@ class Example:
         # Subscribe to backend system events via EventBus
         self.central.event_bus.subscribe(
             event_type=BackendSystemEventData,
+            event_key=None,
             handler=self._systemcallback,
         )
 

@@ -1,0 +1,35 @@
+!# accept_device_in_inbox.fn
+!#
+!# This script accepts a device from the CCU inbox.
+!# The device address is passed as parameter.
+!#
+
+string sDeviceAddress = "##device_address##";
+boolean bSuccess = false;
+string sError = "";
+
+object oDevice = dom.GetObject(sDeviceAddress);
+if (oDevice) {
+    if (!oDevice.ReadyConfig()) {
+        oDevice.ReadyConfig(true);
+        bSuccess = oDevice.ReadyConfig();
+        if (!bSuccess) {
+            sError = "Failed to set ReadyConfig";
+        }
+    } else {
+        sError = "Device already accepted";
+        bSuccess = true;
+    }
+} else {
+    sError = "Device not found";
+}
+
+Write('{"success":');
+if (bSuccess) {
+    Write('true');
+} else {
+    Write('false');
+}
+Write(',"error":"');
+Write(sError);
+Write('"}');

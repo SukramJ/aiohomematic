@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.11.30"
+VERSION: Final = "2025.12.0"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -104,6 +104,7 @@ DEVICE_FIRMWARE_CHECK_INTERVAL: Final = 21600  # 6h
 DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL: Final = 3600  # 1h
 DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
 DUMMY_SERIAL: Final = "SN0815"
+SYSTEM_UPDATE_CHECK_INTERVAL: Final = 3600  # 1h
 FILE_DEVICES: Final = "homematic_devices"
 FILE_PARAMSETS: Final = "homematic_paramsets"
 FILE_SESSION_RECORDER: Final = "homematic_session_recorder"
@@ -137,6 +138,7 @@ DETECTION_PORT_HMIP_RF: Final = (2010, 42010)
 DETECTION_PORT_BIDCOS_WIRED: Final = (2000, 42000)
 DETECTION_PORT_JSON_RPC: Final = ((80, False), (443, True))  # (port, tls)
 
+HUB_ADDRESS: Final = "hub"
 PROGRAM_ADDRESS: Final = "program"
 RECONNECT_WAIT: Final = 1 if _TEST_SPEEDUP else 120  # wait with reconnect after a first ping was successful
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
@@ -154,6 +156,8 @@ SCHEDULER_LOOP_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 5
 CALLBACK_WARN_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 40
 
 # Path
+HUB_SET_PATH_ROOT: Final = "hub/set"
+HUB_STATE_PATH_ROOT: Final = "hub/status"
 PROGRAM_SET_PATH_ROOT: Final = "program/set"
 PROGRAM_STATE_PATH_ROOT: Final = "program/status"
 SET_PATH_ROOT: Final = "device/set"
@@ -170,6 +174,19 @@ class Backend(StrEnum):
     CCU = "CCU"
     HOMEGEAR = "Homegear"
     PYDEVCCU = "PyDevCCU"
+
+
+class CCUType(StrEnum):
+    """
+    Enum with CCU types.
+
+    CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone).
+    OPENCCU: OpenCCU and RaspberryMatic - modern variants with online update check.
+    """
+
+    CCU = "CCU"
+    OPENCCU = "OpenCCU"
+    UNKNOWN = "Unknown"
 
 
 class BackendSystemEvent(StrEnum):
@@ -270,6 +287,7 @@ class DataPointCategory(StrEnum):
     HUB_SENSOR = "hub_sensor"
     HUB_SWITCH = "hub_switch"
     HUB_TEXT = "hub_text"
+    HUB_UPDATE = "hub_update"
     LIGHT = "light"
     LOCK = "lock"
     NUMBER = "number"
@@ -680,12 +698,18 @@ class ProductGroup(StrEnum):
 class RegaScript(StrEnum):
     """Enum with Homematic rega scripts."""
 
-    FETCH_ALL_DEVICE_DATA: Final = "fetch_all_device_data.fn"
-    GET_PROGRAM_DESCRIPTIONS: Final = "get_program_descriptions.fn"
-    GET_SERIAL: Final = "get_serial.fn"
-    GET_SYSTEM_VARIABLE_DESCRIPTIONS: Final = "get_system_variable_descriptions.fn"
-    SET_PROGRAM_STATE: Final = "set_program_state.fn"
-    SET_SYSTEM_VARIABLE: Final = "set_system_variable.fn"
+    ACCEPT_DEVICE_IN_INBOX = "accept_device_in_inbox.fn"
+    CREATE_BACKUP = "create_backup.fn"
+    FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"
+    GET_BACKEND_INFO = "get_backend_info.fn"
+    GET_PROGRAM_DESCRIPTIONS = "get_program_descriptions.fn"
+    GET_SERIAL = "get_serial.fn"
+    GET_SERVICE_MESSAGES = "get_service_messages.fn"
+    GET_SYSTEM_UPDATE_INFO = "get_system_update_info.fn"
+    GET_SYSTEM_VARIABLE_DESCRIPTIONS = "get_system_variable_descriptions.fn"
+    SET_PROGRAM_STATE = "set_program_state.fn"
+    SET_SYSTEM_VARIABLE = "set_system_variable.fn"
+    TRIGGER_FIRMWARE_UPDATE = "trigger_firmware_update.fn"
 
 
 class RPCType(StrEnum):
@@ -755,6 +779,15 @@ class RxMode(IntEnum):
     CONFIG = 4
     WAKEUP = 8
     LAZY_CONFIG = 16
+
+
+class ServiceMessageType(IntEnum):
+    """Enum for CCU service message types (AlType)."""
+
+    GENERIC = 0
+    STICKY = 1
+    CONFIG_PENDING = 2
+    INBOX = 3
 
 
 class SourceOfDeviceCreation(StrEnum):
@@ -842,6 +875,7 @@ HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.HUB_SENSOR,
     DataPointCategory.HUB_SWITCH,
     DataPointCategory.HUB_TEXT,
+    DataPointCategory.HUB_UPDATE,
 )
 
 CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
@@ -1077,12 +1111,70 @@ class SystemVariableData(HubData):
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class SystemInformation:
-    """System information of the backend."""
+    """
+    System information of the backend.
+
+    CCU types:
+    - CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone)
+    - OPENCCU: OpenCCU and RaspberryMatic (modern variants)
+    """
 
     available_interfaces: tuple[str, ...] = field(default_factory=tuple)
     auth_enabled: bool | None = None
     https_redirect_enabled: bool | None = None
     serial: str | None = None
+    # Backend info fields
+    version: str = ""
+    product: str = ""
+    hostname: str = ""
+    ccu_type: CCUType = field(default_factory=lambda: CCUType.UNKNOWN)
+
+    @property
+    def is_ccu(self) -> bool:
+        """Return True if backend is original CCU or debmatic."""
+        return self.ccu_type == CCUType.CCU
+
+    @property
+    def is_openccu(self) -> bool:
+        """Return True if backend is OpenCCU or RaspberryMatic."""
+        return self.ccu_type == CCUType.OPENCCU
+
+    @property
+    def supports_online_update_check(self) -> bool:
+        """Return True if backend supports online firmware update checks."""
+        return self.ccu_type == CCUType.OPENCCU
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class ServiceMessageData:
+    """Dataclass for service messages."""
+
+    msg_id: str
+    name: str
+    timestamp: str
+    msg_type: int
+    address: str = ""
+    device_name: str = ""
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class SystemUpdateData:
+    """Dataclass for system update information."""
+
+    current_firmware: str
+    available_firmware: str
+    update_available: bool
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class BackupData:
+    """Dataclass for backup information."""
+
+    success: bool
+    file_path: str = ""
+    filename: str = ""
+    size: int = 0
+    message: str = ""
 
 
 class ParameterData(TypedDict, total=False):

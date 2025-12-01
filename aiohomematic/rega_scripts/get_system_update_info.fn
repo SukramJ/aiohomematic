@@ -1,0 +1,139 @@
+!# get_system_update_info.fn
+!#
+!# This script checks if a firmware update is available for the CCU.
+!# Works for CCU2/CCU3/OpenCCU/RaspberryMatic.
+!#
+
+string sFwCurrent = "";
+string sFwAvailable = "";
+boolean bUpdateAvailable = false;
+string sError = "";
+string sResult = "";
+string sTemp = "";
+string sProduct = "";
+integer iPos;
+
+!# Get current firmware version and product from /VERSION file
+system.Exec("cat /VERSION 2>/dev/null", &sResult, &sError);
+if (sResult) {
+    sResult = sResult.Trim();
+
+    !# Extract VERSION
+    iPos = sResult.Find("VERSION=");
+    if (iPos >= 0) {
+        sTemp = sResult.Substr(iPos + 8, sResult.Length());
+        iPos = sTemp.Find("\n");
+        if (iPos > 0) {
+            sFwCurrent = sTemp.Substr(0, iPos).Trim();
+        } else {
+            sFwCurrent = sTemp.Trim();
+        }
+    }
+
+    !# Extract PRODUCT
+    iPos = sResult.Find("PRODUCT=");
+    if (iPos >= 0) {
+        sTemp = sResult.Substr(iPos + 8, sResult.Length());
+        iPos = sTemp.Find("\n");
+        if (iPos > 0) {
+            sProduct = sTemp.Substr(0, iPos).Trim();
+        } else {
+            sProduct = sTemp.Trim();
+        }
+    }
+}
+
+!# Check for available update - try multiple locations
+!# Location 1: /usr/local/.firmwareUpdate (CCU3/RaspberryMatic - after manual upload)
+if (sFwAvailable == "") {
+    sResult = "";
+    system.Exec("cat /usr/local/.firmwareUpdate 2>/dev/null", &sResult, &sError);
+    if (sResult) {
+        sResult = sResult.Trim();
+        iPos = sResult.Find("VERSION=");
+        if (iPos >= 0) {
+            sTemp = sResult.Substr(iPos + 8, sResult.Length());
+            iPos = sTemp.Find("\n");
+            if (iPos > 0) {
+                sFwAvailable = sTemp.Substr(0, iPos).Trim();
+            } else {
+                sFwAvailable = sTemp.Trim();
+            }
+        }
+    }
+}
+
+!# Location 2: /tmp/.firmwareUpdate (some OpenCCU versions)
+if (sFwAvailable == "") {
+    sResult = "";
+    system.Exec("cat /tmp/.firmwareUpdate 2>/dev/null", &sResult, &sError);
+    if (sResult) {
+        sResult = sResult.Trim();
+        iPos = sResult.Find("VERSION=");
+        if (iPos >= 0) {
+            sTemp = sResult.Substr(iPos + 8, sResult.Length());
+            iPos = sTemp.Find("\n");
+            if (iPos > 0) {
+                sFwAvailable = sTemp.Substr(0, iPos).Trim();
+            } else {
+                sFwAvailable = sTemp.Trim();
+            }
+        }
+    }
+}
+
+!# Location 3: Online check for OpenCCU/RaspberryMatic
+!# Query openccu.de for latest version (returns: homematic.com.setLatestVersion('3.85.7.20251129', 'HM-RASPBERRYMATIC');)
+if (sFwAvailable == "") {
+    if ((sProduct == "ova") || (sProduct == "rpi3") || (sProduct == "rpi4") || (sProduct == "rpi5") || (sProduct == "tinkerboard") || (sProduct == "oci")) {
+        sResult = "";
+        system.Exec("wget -q -O - 'https://openccu.de/LATEST-VERSION.js' 2>/dev/null", &sResult, &sError);
+        if (sResult) {
+            iPos = sResult.Find("'");
+            if (iPos >= 0) {
+                sTemp = sResult.Substr(iPos + 1, sResult.Length());
+                iPos = sTemp.Find("'");
+                if (iPos > 0) {
+                    sFwAvailable = sTemp.Substr(0, iPos).Trim();
+                }
+            }
+        }
+    }
+}
+
+!# Location 4: Online check for RaspberryMatic via update server
+if (sFwAvailable == "") {
+    if ((sProduct == "rpi3") || (sProduct == "rpi4") || (sProduct == "rpi5") || (sProduct == "tinkerboard") || (sProduct == "oci")) {
+        sResult = "";
+        system.Exec("wget -q -O - 'https://ccu3-update.homematic.com/firmware/download?cmd=js_check_version&product=HM-RASPBERRYMATIC&serial=0' 2>/dev/null", &sResult, &sError);
+        if (sResult) {
+            iPos = sResult.Find("'");
+            if (iPos >= 0) {
+                sTemp = sResult.Substr(iPos + 1, sResult.Length());
+                iPos = sTemp.Find("'");
+                if (iPos > 0) {
+                    sFwAvailable = sTemp.Substr(0, iPos).Trim();
+                }
+            }
+        }
+    }
+}
+
+!# Determine if update is available
+if (sFwAvailable == "") {
+    !# No update info found
+} else {
+    if (sFwAvailable == sFwCurrent) {
+        sFwAvailable = "";
+    } else {
+        bUpdateAvailable = true;
+    }
+}
+
+Write('{"current_firmware":"' # sFwCurrent # '",');
+Write('"available_firmware":"' # sFwAvailable # '",');
+if (bUpdateAvailable) {
+    Write('"update_available":true}');
+} else {
+    Write('"update_available":false}');
+}

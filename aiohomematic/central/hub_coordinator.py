@@ -16,10 +16,11 @@ The HubCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import SysvarUpdatedEvent
+from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
@@ -33,9 +34,6 @@ from aiohomematic.interfaces import (
     TaskScheduler,
 )
 from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, Hub, ProgramDpType
-
-if TYPE_CHECKING:
-    from aiohomematic.const import DataPointCategory
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -189,6 +187,18 @@ class HubCoordinator:
         return False
 
     @inspector(re_raise=False)
+    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch inbox data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_inbox_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """
         Fetch program data from the backend.
@@ -199,6 +209,18 @@ class HubCoordinator:
 
         """
         await self._hub.fetch_program_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
+    async def fetch_system_update_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch system update data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_system_update_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:

@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from slugify import slugify
 
@@ -19,6 +19,21 @@ from aiohomematic.const import (
     SysvarType,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.interfaces import (
+    CentralInfo,
+    ChannelLookup,
+    ConfigProvider,
+    EventBusProvider,
+    EventPublisher,
+    GenericHubDataPointProtocol,
+    GenericProgramDataPointProtocol,
+    GenericSysvarDataPointProtocol,
+    HubDataFetcher,
+    ParameterVisibilityProvider,
+    ParamsetDescriptionProvider,
+    PrimaryClientProvider,
+    TaskScheduler,
+)
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.device import Channel
 from aiohomematic.model.support import (
@@ -31,22 +46,8 @@ from aiohomematic.model.support import (
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin, parse_sys_var
 
-if TYPE_CHECKING:
-    from aiohomematic.interfaces import (
-        CentralInfo,
-        ChannelLookup,
-        ConfigProvider,
-        EventBusProvider,
-        EventPublisher,
-        HubDataFetcher,
-        ParameterVisibilityProvider,
-        ParamsetDescriptionProvider,
-        PrimaryClientProvider,
-        TaskScheduler,
-    )
 
-
-class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
+class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
     """Class for a Homematic system variable."""
 
     __slots__ = (
@@ -145,7 +146,7 @@ class GenericHubDataPoint(CallbackDataPoint, PayloadMixin):
         return f"{self._category}/{self.name}"
 
 
-class GenericSysvarDataPoint(GenericHubDataPoint):
+class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol):
     """Class for a Homematic system variable."""
 
     __slots__ = (
@@ -323,7 +324,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint):
         self.publish_data_point_updated_event()
 
 
-class GenericProgramDataPoint(GenericHubDataPoint):
+class GenericProgramDataPoint(GenericHubDataPoint, GenericProgramDataPointProtocol):
     """Class for a generic Homematic progran data point."""
 
     __slots__ = (

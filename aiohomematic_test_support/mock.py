@@ -174,6 +174,15 @@ def get_client_session(  # noqa: C901
                             }
                         )
 
+                    if "get_backend_info" in params[_JsonKey.SCRIPT]:
+                        return _MockResponse(
+                            json_data={
+                                _JsonKey.ID: 0,
+                                _JsonKey.RESULT: const.BACKEND_INFO_JSON,
+                                _JsonKey.ERROR: None,
+                            }
+                        )
+
                 if method == _JsonRpcMethod.INTERFACE_SET_VALUE:
                     await self._central.data_point_event(
                         interface_id=params[_JsonKey.INTERFACE],

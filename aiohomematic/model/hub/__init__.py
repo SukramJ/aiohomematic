@@ -87,6 +87,7 @@ from aiohomematic.const import (
     BackendSystemEvent,
     DataPointCategory,
     ProgramData,
+    ServiceMessageType,
     SystemVariableData,
     SysvarType,
 )
@@ -97,6 +98,7 @@ from aiohomematic.interfaces import (
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
+    GenericHubDataPointProtocol,
     HubDataFetcher,
     HubDataPointManager,
     ParameterVisibilityProvider,
@@ -107,16 +109,20 @@ from aiohomematic.interfaces import (
 from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
+from aiohomematic.model.hub.inbox import HmInboxSensor
 from aiohomematic.model.hub.number import SysvarDpNumber
 from aiohomematic.model.hub.select import SysvarDpSelect
 from aiohomematic.model.hub.sensor import SysvarDpSensor
 from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from aiohomematic.model.hub.text import SysvarDpText
+from aiohomematic.model.hub.update import HmUpdate
 
 __all__ = [
     "GenericHubDataPoint",
     "GenericProgramDataPoint",
     "GenericSysvarDataPoint",
+    "HmInboxSensor",
+    "HmUpdate",
     "Hub",
     "ProgramDpButton",
     "ProgramDpSwitch",
@@ -160,8 +166,12 @@ class Hub:
         "_paramset_description_provider",
         "_primary_client_provider",
         "_sema_fetch_programs",
+        "_inbox_dp",
+        "_sema_fetch_inbox",
         "_sema_fetch_sysvars",
+        "_sema_fetch_update",
         "_task_scheduler",
+        "_update_dp",
     )
 
     def __init__(
@@ -182,6 +192,8 @@ class Hub:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
         self._sema_fetch_programs: Final = asyncio.Semaphore()
+        self._sema_fetch_update: Final = asyncio.Semaphore()
+        self._sema_fetch_inbox: Final = asyncio.Semaphore()
         self._config_provider: Final = config_provider
         self._central_info: Final = central_info
         self._hub_data_point_manager: Final = hub_data_point_manager
@@ -193,6 +205,32 @@ class Hub:
         self._parameter_visibility_provider: Final = parameter_visibility_provider
         self._channel_lookup: Final = channel_lookup
         self._hub_data_fetcher: Final = hub_data_fetcher
+        self._update_dp: HmUpdate | None = None
+        self._inbox_dp: HmInboxSensor | None = None
+
+    @property
+    def inbox_dp(self) -> HmInboxSensor | None:
+        """Return the inbox data point."""
+        return self._inbox_dp
+
+    @property
+    def update_dp(self) -> HmUpdate | None:
+        """Return the system update data point."""
+        return self._update_dp
+
+    @inspector(re_raise=False)
+    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
+        """Fetch inbox data for the hub."""
+        if self._central_info.model is not Backend.CCU:
+            return
+        _LOGGER.debug(
+            "FETCH_INBOX_DATA: %s fetching of inbox for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        async with self._sema_fetch_inbox:
+            if self._central_info.available:
+                await self._update_inbox_data_point()
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -206,6 +244,20 @@ class Hub:
             async with self._sema_fetch_programs:
                 if self._central_info.available:
                     await self._update_program_data_points()
+
+    @inspector(re_raise=False)
+    async def fetch_system_update_data(self, *, scheduled: bool) -> None:
+        """Fetch system update data for the hub."""
+        if self._central_info.model is not Backend.CCU:
+            return
+        _LOGGER.debug(
+            "FETCH_SYSTEM_UPDATE_DATA: %s fetching of system update info for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        async with self._sema_fetch_update:
+            if self._central_info.available:
+                await self._update_system_update_data_point()
 
     @inspector(re_raise=False)
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
@@ -320,6 +372,34 @@ class Hub:
         for vid in del_data_point_ids:
             self._hub_data_point_manager.remove_sysvar_data_point(vid=vid)
 
+    async def _update_inbox_data_point(self) -> None:
+        """Retrieve inbox messages and update the data point."""
+        if not (client := self._primary_client_provider.primary_client):
+            return
+
+        messages = await client.get_service_messages(message_type=ServiceMessageType.INBOX)
+        is_new = False
+
+        if self._inbox_dp is None:
+            self._inbox_dp = HmInboxSensor(
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+            )
+            is_new = True
+
+        self._inbox_dp.update_data(messages=messages, write_at=datetime.now())
+
+        if is_new:
+            self._event_publisher.publish_backend_system_event(
+                system_event=BackendSystemEvent.HUB_REFRESHED,
+                new_data_points=_get_new_hub_data_points(data_points=[self._inbox_dp]),
+            )
+
     async def _update_program_data_points(self) -> None:
         """Retrieve all program data and update program values."""
         if not (client := self._primary_client_provider.primary_client):
@@ -352,6 +432,41 @@ class Hub:
             self._event_publisher.publish_backend_system_event(
                 system_event=BackendSystemEvent.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_programs),
+            )
+
+    async def _update_system_update_data_point(self) -> None:
+        """Retrieve system update info and update the data point."""
+        if not (client := self._primary_client_provider.primary_client):
+            return
+
+        if (update_data := await client.get_system_update_info()) is None:
+            _LOGGER.debug(
+                "UPDATE_SYSTEM_UPDATE_DATA_POINT: Unable to retrieve system update info for %s",
+                self._central_info.name,
+            )
+            return
+
+        is_new = False
+
+        if self._update_dp is None:
+            self._update_dp = HmUpdate(
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+                primary_client_provider=self._primary_client_provider,
+            )
+            is_new = True
+
+        self._update_dp.update_data(data=update_data, write_at=datetime.now())
+
+        if is_new:
+            self._event_publisher.publish_backend_system_event(
+                system_event=BackendSystemEvent.HUB_REFRESHED,
+                new_data_points=_get_new_hub_data_points(data_points=[self._update_dp]),
             )
 
     async def _update_sysvar_data_points(self) -> None:
@@ -405,10 +520,10 @@ def _clean_variables(*, variables: tuple[SystemVariableData, ...]) -> tuple[Syst
 
 def _get_new_hub_data_points(
     *,
-    data_points: Collection[GenericHubDataPoint],
-) -> Mapping[DataPointCategory, AbstractSet[GenericHubDataPoint]]:
+    data_points: Collection[GenericHubDataPointProtocol],
+) -> Mapping[DataPointCategory, AbstractSet[GenericHubDataPointProtocol]]:
     """Return data points as category dict."""
-    hub_data_points: dict[DataPointCategory, set[GenericHubDataPoint]] = {}
+    hub_data_points: dict[DataPointCategory, set[GenericHubDataPointProtocol]] = {}
     for hub_category in HUB_CATEGORIES:
         hub_data_points[hub_category] = set()
 

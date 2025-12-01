@@ -21,7 +21,7 @@ from collections.abc import Awaitable, Callable
 import contextlib
 from datetime import datetime, timedelta
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import BackendSystemEventData
@@ -32,6 +32,7 @@ from aiohomematic.const import (
     DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
     SCHEDULER_LOOP_SLEEP,
     SCHEDULER_NOT_STARTED_SLEEP,
+    SYSTEM_UPDATE_CHECK_INTERVAL,
     BackendSystemEvent,
     CentralUnitState,
     DeviceFirmwareState,
@@ -47,9 +48,6 @@ from aiohomematic.interfaces import (
     HubDataFetcher,
 )
 from aiohomematic.support import extract_exc_args
-
-if TYPE_CHECKING:
-    pass
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -183,6 +181,14 @@ class BackgroundScheduler:
             SchedulerJob(
                 task=self._refresh_sysvar_data,
                 run_interval=self._config_provider.config.sys_scan_interval,
+            ),
+            SchedulerJob(
+                task=self._refresh_inbox_data,
+                run_interval=self._config_provider.config.sys_scan_interval,
+            ),
+            SchedulerJob(
+                task=self._refresh_system_update_data,
+                run_interval=SYSTEM_UPDATE_CHECK_INTERVAL,
             ),
             SchedulerJob(
                 task=self._fetch_device_firmware_update_data,
@@ -349,6 +355,14 @@ class BackgroundScheduler:
                 await self._client_coordination.load_and_refresh_data_point_data(interface=client.interface)
                 self._client_coordination.set_last_event_seen_for_interface(interface_id=client.interface_id)
 
+    async def _refresh_inbox_data(self) -> None:
+        """Refresh inbox data."""
+        if not self._central_info.available or not self._devices_created:
+            return
+
+        _LOGGER.debug("REFRESH_INBOX_DATA: For %s", self._central_info.name)
+        await self._hub_data_fetcher.fetch_inbox_data(scheduled=True)
+
     async def _refresh_program_data(self) -> None:
         """Refresh system programs data."""
         if (
@@ -360,6 +374,14 @@ class BackgroundScheduler:
 
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central_info.name)
         await self._hub_data_fetcher.fetch_program_data(scheduled=True)
+
+    async def _refresh_system_update_data(self) -> None:
+        """Refresh system update data."""
+        if not self._central_info.available or not self._devices_created:
+            return
+
+        _LOGGER.debug("REFRESH_SYSTEM_UPDATE_DATA: For %s", self._central_info.name)
+        await self._hub_data_fetcher.fetch_system_update_data(scheduled=True)
 
     async def _refresh_sysvar_data(self) -> None:
         """Refresh system variables data."""

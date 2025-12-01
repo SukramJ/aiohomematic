@@ -1,0 +1,54 @@
+!# create_backup.fn
+!#
+!# This script creates a system backup.
+!# The backup file is saved to /usr/local/tmp/last_backup.sbk
+!# Works for CCU3/OpenCCU/RaspberryMatic.
+!#
+
+string sError = "";
+string sResult = "";
+string sBackupFile = "/usr/local/tmp/last_backup.sbk";
+boolean bSuccess = false;
+
+!# Remove any existing backup file
+sResult = "";
+system.Exec("/bin/sh -c 'rm -f /usr/local/tmp/last_backup.sbk'", &sResult, &sError);
+
+!# Create backup using createBackup.sh
+sResult = "";
+system.Exec("/bin/sh -c '/bin/createBackup.sh /usr/local/tmp/last_backup.sbk 2>&1'", &sResult, &sError);
+
+!# Check if backup file was created
+sResult = "";
+system.Exec("test -f /usr/local/tmp/last_backup.sbk && echo 'OK' || echo 'FAIL'", &sResult, &sError);
+sResult = sResult.Trim();
+
+if (sResult == "OK") {
+    bSuccess = true;
+}
+
+if (bSuccess) {
+    !# Get file size
+    sResult = "";
+    system.Exec("stat -c %s /usr/local/tmp/last_backup.sbk 2>/dev/null", &sResult, &sError);
+    string sSize = sResult.Trim();
+
+    !# Get backup filename with timestamp
+    sResult = "";
+    system.Exec("hostname", &sResult, &sError);
+    string sHostname = sResult.Trim();
+
+    sResult = "";
+    system.Exec("cat /VERSION | grep VERSION= | cut -d= -f2", &sResult, &sError);
+    string sVersion = sResult.Trim();
+
+    sResult = "";
+    system.Exec("date '+%Y-%m-%d-%H%M'", &sResult, &sError);
+    string sDate = sResult.Trim();
+
+    string sFilename = sHostname # "-" # sVersion # "-" # sDate # ".sbk";
+
+    Write('{"success":true,"file":"/usr/local/tmp/last_backup.sbk","filename":"' # sFilename # '","size":' # sSize # '}');
+} else {
+    Write('{"success":false,"message":"Backup creation failed"}');
+}

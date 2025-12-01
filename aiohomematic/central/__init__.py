@@ -638,9 +638,19 @@ class CentralUnit(
         return await self._hub_coordinator.execute_program(pid=pid)
 
     @inspector(re_raise=False)
+    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
+        """Fetch inbox data for the hub."""
+        await self._hub_coordinator.fetch_inbox_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         await self._hub_coordinator.fetch_program_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
+    async def fetch_system_update_data(self, *, scheduled: bool) -> None:
+        """Fetch system update data for the hub."""
+        await self._hub_coordinator.fetch_system_update_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:

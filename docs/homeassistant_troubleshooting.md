@@ -110,6 +110,20 @@ Contents:
 - Solution
   - Use the service `homematicip_local.clear_cache` to clear all cached data, then restart Home Assistant. This forces a fresh discovery of all devices and their parameters. The service can be called from Developer Tools > Services in Home Assistant. See the [integration documentation](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#homematicip_localclear_cache) for details.
 
+### I) Unifi Firewall alerts: "ET EXPLOIT HTTP POST with Common Ruby RCE Technique in Body"
+
+- Cause
+  - This is a **false positive**. The Unifi Firewall uses Suricata IDS which incorrectly flags XML-RPC communication as a Ruby exploit. The XML-RPC protocol uses tags like `<methodCall>`, `<methodName>`, and `<params>` which resemble Ruby marshal data patterns, triggering Suricata rule SID 2019401.
+- Solution
+  - Create an IDS suppression rule in the Unifi Network Console:
+    1. Go to **Settings** → **Security** → **Threat Management**
+    2. Under **Suppression**, add an exception for:
+       - Source IP: Home Assistant IP
+       - Destination IP: CCU IP
+       - Or suppress signature ID `2019401` for traffic between these hosts
+  - Alternative: Use TLS-encrypted ports (e.g., 42001 instead of 2001) which prevents the IDS from inspecting the payload
+  - Note: This alert is harmless and can be safely suppressed for legitimate CCU communication
+
 ---
 
 ## 4) Network, ports, and containers

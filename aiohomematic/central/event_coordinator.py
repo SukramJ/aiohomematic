@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from functools import partial
 import logging
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import Any, Final, cast
 
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.event_bus import (
@@ -37,12 +37,8 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from aiohomematic.interfaces import ClientProvider, TaskScheduler
-from aiohomematic.model.event import GenericEvent
+from aiohomematic.interfaces import BaseParameterDataPointProtocol, ClientProvider, GenericEventProtocol, TaskScheduler
 from aiohomematic.model.generic import GenericDataPoint
-
-if TYPE_CHECKING:
-    from aiohomematic.model.data_point import BaseParameterDataPointAny
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
@@ -96,7 +92,7 @@ class EventCoordinator:
         """
         return self._event_bus
 
-    def add_data_point_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
+    def add_data_point_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
         """
         Add data point to event subscription.
 
@@ -107,7 +103,7 @@ class EventCoordinator:
             data_point: Data point to subscribe to events for
 
         """
-        if isinstance(data_point, GenericDataPoint | GenericEvent) and (
+        if isinstance(data_point, GenericDataPoint | GenericEventProtocol) and (
             data_point.is_readable or data_point.supports_events
         ):
             # Subscribe data point's event method to EventBus with filtering

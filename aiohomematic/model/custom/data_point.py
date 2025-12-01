@@ -14,12 +14,11 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic.const import CDPD, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field
-from aiohomematic.interfaces import CustomDataPointProtocol
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.generic import DpDummy, data_point as hmge
+from aiohomematic.model.generic import DpDummy
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -53,7 +52,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     def __init__(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         unique_id: str,
         device_profile: DeviceProfile,
         device_def: Mapping[str, Any],
@@ -76,7 +75,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
         self._allow_undefined_generic_data_points: Final[bool] = self._device_def[CDPD.ALLOW_UNDEFINED_GENERIC_DPS]
-        self._data_points: Final[dict[Field, hmge.GenericDataPointAny]] = {}
+        self._data_points: Final[dict[Field, GenericDataPointProtocol]] = {}
         self._init_data_points()
         self._init_data_point_fields()
         self._post_init_data_point_fields()
@@ -84,12 +83,12 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             self._device.init_week_profile(data_point=self)
 
     @property
-    def _readable_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
+    def _readable_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points.values() if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
@@ -214,7 +213,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         self,
         *,
         field: Field,
-        data_point: hmge.GenericDataPointAny | None,
+        data_point: GenericDataPointProtocol | None,
         is_visible: bool | None = None,
     ) -> None:
         """Add data point to collection and subscribed handler."""
@@ -239,7 +238,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
                 if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                     self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
 
-    def _get_data_point[DataPointT: hmge.GenericDataPointAny](
+    def _get_data_point[DataPointT: GenericDataPointProtocol](
         self, *, field: Field, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Get data point."""

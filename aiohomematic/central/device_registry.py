@@ -19,11 +19,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.interfaces import CentralInfo, ClientProvider
+from aiohomematic.interfaces import CentralInfo, ChannelProtocol, ClientProvider, DeviceProtocol
 from aiohomematic.support import get_device_address
 
 if TYPE_CHECKING:
-    from aiohomematic.model.device import Channel, Device
+    from aiohomematic.model.device import Device
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class DeviceRegistry:
         return len(self._devices)
 
     @property
-    def devices(self) -> tuple[Device, ...]:
+    def devices(self) -> tuple[DeviceProtocol, ...]:
         """
         Return all devices as a tuple.
 
@@ -102,7 +102,7 @@ class DeviceRegistry:
         self._devices.clear()
         _LOGGER.debug("CLEAR: Cleared device registry for %s", self._central_info.name)
 
-    def get_channel(self, *, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """
         Get a channel by channel address.
 
@@ -119,7 +119,7 @@ class DeviceRegistry:
             return device.get_channel(channel_address=channel_address)
         return None
 
-    def get_device(self, *, address: str) -> Device | None:
+    def get_device(self, *, address: str) -> DeviceProtocol | None:
         """
         Get a device by address.
 
@@ -146,7 +146,7 @@ class DeviceRegistry:
         """
         return frozenset(self._devices.keys())
 
-    def get_virtual_remotes(self) -> tuple[Device, ...]:
+    def get_virtual_remotes(self) -> tuple[DeviceProtocol, ...]:
         """
         Get all virtual remote devices from clients.
 
@@ -172,7 +172,7 @@ class DeviceRegistry:
         """
         return address in self._devices
 
-    def identify_channel(self, *, text: str) -> Channel | None:
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """
         Identify a channel within a text string.
 

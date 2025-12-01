@@ -1321,7 +1321,9 @@ class TestCentralDeviceCreation:
             def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN001
                 raise Exception("ctor")
 
-        monkeypatch.setattr(hmcu, "Device", BoomDevice)
+        import aiohomematic.central.device_coordinator as hm_device_coordinator
+
+        monkeypatch.setattr(hm_device_coordinator, "Device", BoomDevice)
 
         await device_coordinator.create_devices(
             new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
@@ -1341,7 +1343,7 @@ class TestCentralDeviceCreation:
             async def load_value_cache(self) -> None:
                 return None
 
-        monkeypatch.setattr(hmcu, "Device", OkDevice)
+        monkeypatch.setattr(hm_device_coordinator, "Device", OkDevice)
 
         def raise_on_create(*args: Any, **kwargs: Any) -> None:  # noqa: ANN001
             raise Exception("create")

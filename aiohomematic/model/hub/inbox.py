@@ -6,13 +6,14 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from slugify import slugify
 
 from aiohomematic.const import HUB_ADDRESS, DataPointCategory, ServiceMessageData, SysvarType
 from aiohomematic.interfaces import (
     CentralInfo,
+    ChannelProtocol,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
@@ -25,9 +26,6 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin
-
-if TYPE_CHECKING:
-    from aiohomematic.model.device import Channel
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -82,7 +80,7 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
         self._previous_value: int = 0
 
     @property
-    def channel(self) -> Channel | None:
+    def channel(self) -> ChannelProtocol | None:
         """Return the identified channel."""
         return None
 

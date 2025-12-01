@@ -341,7 +341,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import IntEnum
 import logging
-from typing import Any, Final, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
 from aiohomematic.const import (
@@ -380,7 +380,10 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
-from aiohomematic.model.custom import BaseCustomDpClimate, data_point as cdp
+
+if TYPE_CHECKING:
+    from aiohomematic.interfaces import CustomDataPointProtocol
+    from aiohomematic.model.custom import BaseCustomDpClimate
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -396,7 +399,7 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC):
         "_schedule_channel_no",
     )
 
-    def __init__(self, *, data_point: cdp.CustomDataPoint) -> None:
+    def __init__(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the device schedule."""
         self._data_point = data_point
         self._device: Final = data_point.device
@@ -697,7 +700,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
         "_min_temp",
     )
 
-    def __init__(self, *, data_point: cdp.CustomDataPoint) -> None:
+    def __init__(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the climate week profile."""
         super().__init__(data_point=data_point)
         self._min_temp: Final[float] = self._data_point.min_temp
@@ -1466,7 +1469,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             previous_endtime = endtime
 
 
-def create_week_profile(*, data_point: cdp.CustomDataPoint) -> WeekProfile[dict[Any, Any]]:
+def create_week_profile(*, data_point: CustomDataPointProtocol) -> WeekProfile[dict[Any, Any]]:
     """Create a week profile from a custom data point."""
     if data_point.category == DataPointCategory.CLIMATE:
         return ClimeateWeekProfile(data_point=data_point)

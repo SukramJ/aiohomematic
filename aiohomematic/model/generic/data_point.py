@@ -16,8 +16,8 @@ from aiohomematic import i18n
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, EventType, Parameter, ParameterData, ParamsetKey
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces import GenericDataPointProtocol
-from aiohomematic.model import data_point as hme, device as hmd
+from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.model import data_point as hme
 from aiohomematic.model.support import DataPointNameData, get_data_point_name_data
 from aiohomematic.property_decorators import hm_property
 from aiohomematic.type_aliases import ParamType
@@ -38,7 +38,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
     def __init__(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
         paramset_key: ParamsetKey,
         parameter: str,
         parameter_data: ParameterData,

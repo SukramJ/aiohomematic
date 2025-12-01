@@ -47,7 +47,7 @@ import logging
 from typing import Final
 
 from aiohomematic.decorators import inspector
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.model.custom.climate import (
     PROFILE_PREFIX,
     BaseCustomDpClimate,
@@ -140,7 +140,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 @inspector
-def create_custom_data_points(*, device: hmd.Device) -> None:
+def create_custom_data_points(*, device: DeviceProtocol) -> None:
     """Decides which data point category should be used, and creates the required data points."""
     if device.ignore_for_custom_data_point:
         _LOGGER.debug(

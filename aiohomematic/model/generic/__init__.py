@@ -65,7 +65,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model.generic.action import DpAction
 from aiohomematic.model.generic.binary_sensor import DpBinarySensor
 from aiohomematic.model.generic.button import DpButton
@@ -107,7 +107,7 @@ _SWITCH_DP_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
 @inspector
 def create_data_point_and_append_to_channel(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     paramset_key: ParamsetKey,
     parameter: str,
     parameter_data: ParameterData,
@@ -137,7 +137,7 @@ def create_data_point_and_append_to_channel(
 
 
 def _determine_data_point_type(
-    *, channel: hmd.Channel, parameter: str, parameter_data: ParameterData
+    *, channel: ChannelProtocol, parameter: str, parameter_data: ParameterData
 ) -> type[GenericDataPointAny] | None:
     """Determine the type of data point based on parameter and operations."""
     p_type = parameter_data["TYPE"]
@@ -180,7 +180,7 @@ def _determine_data_point_type(
 def _safe_create_data_point(
     *,
     dp_t: type[GenericDataPointAny],
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     paramset_key: ParamsetKey,
     parameter: str,
     parameter_data: ParameterData,
@@ -202,7 +202,7 @@ def _safe_create_data_point(
         ) from exc
 
 
-def _check_switch_to_sensor(*, data_point: GenericDataPointAny) -> bool:
+def _check_switch_to_sensor(*, data_point: GenericDataPointProtocol) -> bool:
     """Check if parameter of a device should be wrapped to a different category."""
     if data_point.device.parameter_visibility_provider.parameter_is_un_ignored(
         channel=data_point.channel,

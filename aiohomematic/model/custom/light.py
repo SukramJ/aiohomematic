@@ -14,7 +14,7 @@ import math
 from typing import Any, Final, TypedDict, Unpack
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
@@ -856,7 +856,7 @@ def _convert_color(*, color: tuple[float, float]) -> str:
 
 def make_ip_dimmer(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create HomematicIP dimmer data point."""
@@ -870,7 +870,7 @@ def make_ip_dimmer(
 
 def make_rf_dimmer(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic dimmer data point."""
@@ -884,7 +884,7 @@ def make_rf_dimmer(
 
 def make_rf_dimmer_color(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic dimmer with color data point."""
@@ -898,7 +898,7 @@ def make_rf_dimmer_color(
 
 def make_rf_dimmer_color_fixed(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic dimmer with fixed color data point."""
@@ -912,7 +912,7 @@ def make_rf_dimmer_color_fixed(
 
 def make_rf_dimmer_color_effect(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic dimmer and effect with color data point."""
@@ -926,7 +926,7 @@ def make_rf_dimmer_color_effect(
 
 def make_rf_dimmer_color_temp(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic dimmer with color temperature data point."""
@@ -940,7 +940,7 @@ def make_rf_dimmer_color_temp(
 
 def make_rf_dimmer_with_virt_channel(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create Homematic classic dimmer data point."""
@@ -954,7 +954,7 @@ def make_rf_dimmer_with_virt_channel(
 
 def make_ip_fixed_color_light(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create fixed color light data points like HmIP-BSL."""
@@ -968,7 +968,7 @@ def make_ip_fixed_color_light(
 
 def make_ip_simple_fixed_color_light_wired(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create simple fixed color light data points like HmIPW-WRC6."""
@@ -982,7 +982,7 @@ def make_ip_simple_fixed_color_light_wired(
 
 def make_ip_rgbw_light(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create simple fixed color light data points like HmIP-RGBW."""
@@ -996,7 +996,7 @@ def make_ip_rgbw_light(
 
 def make_ip_drg_dali_light(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_config: CustomConfig,
 ) -> None:
     """Create color light data points like HmIP-DRG-DALI."""

@@ -98,7 +98,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
-from aiohomematic.model.device import Device
+from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
 from aiohomematic.store import CommandCache, PingPongCache
@@ -600,7 +600,7 @@ class Client(ABC, LogContextMixin):
                 )
             ) from bhexc
 
-    def get_virtual_remote(self) -> Device | None:
+    def get_virtual_remote(self) -> DeviceProtocol | None:
         """Get the virtual remote for the Client."""
         for model in VIRTUAL_REMOTE_MODELS:
             for device in self.central.devices:
@@ -2138,7 +2138,7 @@ def get_client(interface_id: str) -> Client | None:
 @measure_execution_time
 async def _wait_for_state_change_or_timeout(
     *,
-    device: Device,
+    device: DeviceProtocol,
     dpk_values: set[DP_KEY_VALUE],
     wait_for_callback: int,
 ) -> None:
@@ -2156,7 +2156,7 @@ async def _wait_for_state_change_or_timeout(
 
 @measure_execution_time
 async def _track_single_data_point_state_change_or_timeout(
-    *, device: Device, dpk_value: DP_KEY_VALUE, wait_for_callback: int
+    *, device: DeviceProtocol, dpk_value: DP_KEY_VALUE, wait_for_callback: int
 ) -> None:
     """Wait for a data_point to change state."""
     ev = asyncio.Event()

@@ -22,11 +22,10 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
-from aiohomematic.interfaces import CallbackDataPointProtocol
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.generic import DpDummy, data_point as hmge
+from aiohomematic.model.generic import DpDummy
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -63,7 +62,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def __init__(
         self,
         *,
-        channel: hmd.Channel,
+        channel: ChannelProtocol,
     ) -> None:
         """Initialize the data point."""
         self._unsubscribe_handlers: list[UnsubscribeHandler] = []
@@ -78,7 +77,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             unique_id=unique_id,
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
-        self._data_points: Final[list[hmge.GenericDataPointAny]] = []
+        self._data_points: Final[list[GenericDataPointProtocol]] = []
         self._type: ParameterType = None  # type: ignore[assignment]
         self._values: tuple[str, ...] | None = None
         self._max: ParameterT = None  # type: ignore[assignment]
@@ -93,22 +92,22 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         self._post_init_data_point_fields()
 
     @staticmethod
-    def is_relevant_for_model(*, channel: hmd.Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the channel."""
         return False
 
     @property
-    def _readable_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
+    def _readable_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
     @property
-    def _relevant_values_data_points(self) -> tuple[hmge.GenericDataPointAny, ...]:
+    def _relevant_values_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
         """Returns the list of relevant VALUES data points. To be overridden by subclasses."""
         return tuple(dp for dp in self._readable_data_points if dp.paramset_key == ParamsetKey.VALUES)
 
@@ -266,7 +265,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             if unreg is not None:
                 unreg()
 
-    def _add_data_point[DataPointT: hmge.GenericDataPointAny](
+    def _add_data_point[DataPointT: GenericDataPointProtocol](
         self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
     ) -> DataPointT:
         """Add a new data point."""
@@ -283,7 +282,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             DpDummy(channel=self._channel, param_field=parameter),
         )
 
-    def _add_device_data_point[DataPointT: hmge.GenericDataPointAny](
+    def _add_device_data_point[DataPointT: GenericDataPointProtocol](
         self,
         *,
         channel_address: str,

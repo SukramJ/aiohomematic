@@ -34,7 +34,7 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic import GenericDataPointAny
 from aiohomematic.model.support import DataPointNameData
@@ -51,7 +51,7 @@ class DpDummy(GenericDataPointAny):
 
     is_hmtype = False
 
-    def __init__(self, *, channel: hmd.Channel, param_field: str | Field) -> None:
+    def __init__(self, *, channel: ChannelProtocol, param_field: str | Field) -> None:
         """
         Initialize the dummy data point.
 

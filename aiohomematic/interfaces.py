@@ -29,11 +29,14 @@ from aiohomematic.const import (
     DeviceFirmwareState,
     EventKey,
     EventType,
+    ForcedDeviceAvailability,
     Interface,
     ParameterData,
     ParameterType,
     ParamsetKey,
+    ProductGroup,
     ProgramData,
+    RxMode,
     SystemInformation,
     SysvarType,
 )
@@ -49,10 +52,13 @@ if TYPE_CHECKING:
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.central.hub_coordinator import HubCoordinator
     from aiohomematic.client import Client, InterfaceConfig
-    from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
-    from aiohomematic.model.device import Channel, Device
-    from aiohomematic.model.generic import GenericDataPointAny
-    from aiohomematic.model.hub import GenericProgramDataPoint, GenericSysvarDataPoint, ProgramDpType
+    from aiohomematic.model.hub import ProgramDpType
+    from aiohomematic.model.week_profile import WeekProfile
+
+
+# Forward reference for Client protocol - avoids circular import
+# while still providing type information
+ClientProtocol = "Client"
 
 
 @runtime_checkable
@@ -64,7 +70,7 @@ class ParameterVisibilityProvider(Protocol):
     """
 
     @abstractmethod
-    def is_relevant_paramset(self, *, channel: Channel, paramset_key: ParamsetKey) -> bool:
+    def is_relevant_paramset(self, *, channel: ChannelProtocol, paramset_key: ParamsetKey) -> bool:
         """
         Return if a paramset is relevant.
 
@@ -76,18 +82,18 @@ class ParameterVisibilityProvider(Protocol):
         """Check if a model should be ignored for custom data points."""
 
     @abstractmethod
-    def parameter_is_hidden(self, *, channel: Channel, paramset_key: ParamsetKey, parameter: str) -> bool:
+    def parameter_is_hidden(self, *, channel: ChannelProtocol, paramset_key: ParamsetKey, parameter: str) -> bool:
         """Check if a parameter is hidden."""
 
     @abstractmethod
     def parameter_is_un_ignored(
-        self, *, channel: Channel, paramset_key: ParamsetKey, parameter: str, custom_only: bool = False
+        self, *, channel: ChannelProtocol, paramset_key: ParamsetKey, parameter: str, custom_only: bool = False
     ) -> bool:
         """Check if a parameter is un-ignored (visible)."""
 
     @abstractmethod
     def should_skip_parameter(
-        self, *, channel: Channel, paramset_key: ParamsetKey, parameter: str, parameter_is_un_ignored: bool
+        self, *, channel: ChannelProtocol, paramset_key: ParamsetKey, parameter: str, parameter_is_un_ignored: bool
     ) -> bool:
         """Determine if a parameter should be skipped."""
 
@@ -193,7 +199,7 @@ class EventSubscriptionManager(Protocol):
     """
 
     @abstractmethod
-    def add_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
+    def add_event_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
         """Add an event subscription for a data point."""
 
 
@@ -207,12 +213,12 @@ class HubDataPointManager(Protocol):
 
     @property
     @abstractmethod
-    def program_data_points(self) -> tuple[GenericProgramDataPoint, ...]:
+    def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
         """Get all program data points."""
 
     @property
     @abstractmethod
-    def sysvar_data_points(self) -> tuple[GenericSysvarDataPoint, ...]:
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPointProtocol, ...]:
         """Get all system variable data points."""
 
     @abstractmethod
@@ -220,7 +226,7 @@ class HubDataPointManager(Protocol):
         """Add a program data point."""
 
     @abstractmethod
-    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPoint) -> None:
+    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPointProtocol) -> None:
         """Add a system variable data point."""
 
     @abstractmethod
@@ -228,7 +234,7 @@ class HubDataPointManager(Protocol):
         """Get a program data point by ID."""
 
     @abstractmethod
-    def get_sysvar_data_point(self, *, vid: str) -> GenericSysvarDataPoint | None:
+    def get_sysvar_data_point(self, *, vid: str) -> GenericSysvarDataPointProtocol | None:
         """Get a system variable data point by ID."""
 
     @abstractmethod
@@ -427,7 +433,7 @@ class DataPointProvider(Protocol):
     """
 
     @abstractmethod
-    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPoint | None:
+    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
         """Return Homematic data_point by custom_id."""
 
     @abstractmethod
@@ -436,7 +442,7 @@ class DataPointProvider(Protocol):
         *,
         paramset_key: ParamsetKey | None = None,
         interface: Interface | None = None,
-    ) -> tuple[GenericDataPointAny, ...]:
+    ) -> tuple[GenericDataPointProtocol, ...]:
         """Get readable generic data points."""
 
 
@@ -450,7 +456,7 @@ class DeviceProvider(Protocol):
 
     @property
     @abstractmethod
-    def devices(self) -> tuple[Device, ...]:
+    def devices(self) -> tuple[DeviceProtocol, ...]:
         """Get all devices."""
 
     @property
@@ -468,11 +474,11 @@ class ChannelLookup(Protocol):
     """
 
     @abstractmethod
-    def get_channel(self, *, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """Get channel by address."""
 
     @abstractmethod
-    def identify_channel(self, *, text: str) -> Channel | None:  # Avoid circular import
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:  # Avoid circular import
         """Identify a channel within a text string."""
 
 
@@ -781,7 +787,7 @@ class GenericHubDataPointProtocol(CallbackDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def channel(self) -> Channel | None:
+    def channel(self) -> ChannelProtocol | None:
         """Return the identified channel."""
 
     @property
@@ -918,7 +924,7 @@ class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def device(self) -> Device:
+    def device(self) -> DeviceProtocol:
         """Return the device of the data point."""
 
     @property
@@ -1143,12 +1149,30 @@ class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def channel(self) -> ChannelProtocol:
+        """Return the channel of the data point."""
+
+    @property
+    @abstractmethod
+    def published_event_recently(self) -> bool:
+        """Return if the data point published an event recently."""
+
+    @property
+    @abstractmethod
     def usage(self) -> DataPointUsage:
         """Return the data point usage."""
 
     @abstractmethod
+    async def finalize_init(self) -> None:
+        """Finalize the data point init action."""
+
+    @abstractmethod
     def is_state_change(self, *, value: Any) -> bool:
         """Check if the state/value changes."""
+
+    @abstractmethod
+    async def on_config_changed(self) -> None:
+        """Handle config changed event."""
 
     @abstractmethod
     async def send_value(
@@ -1160,6 +1184,44 @@ class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
         do_validate: bool = True,
     ) -> set[DP_KEY_VALUE]:
         """Send value to CCU or use collector if set."""
+
+    @abstractmethod
+    def subscribe_to_internal_data_point_updated(self, *, handler: Any) -> Any:
+        """Subscribe to internal data point updated event."""
+
+
+@runtime_checkable
+class GenericEventProtocol(BaseParameterDataPointProtocol, Protocol):
+    """
+    Protocol for event data points.
+
+    Extends BaseParameterDataPointProtocol with event-specific functionality
+    for handling button presses, device errors, and impulse notifications.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def event_type(self) -> EventType:
+        """Return the event type of the event."""
+
+    @property
+    @abstractmethod
+    def usage(self) -> DataPointUsage:
+        """Return the data point usage."""
+
+    @abstractmethod
+    async def finalize_init(self) -> None:
+        """Finalize the event init action."""
+
+    @abstractmethod
+    async def on_config_changed(self) -> None:
+        """Handle config changed event."""
+
+    @abstractmethod
+    def publish_event(self, *, value: Any) -> None:
+        """Publish an event."""
 
 
 @runtime_checkable
@@ -1252,7 +1314,7 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @staticmethod
     @abstractmethod
-    def is_relevant_for_model(*, channel: Channel) -> bool:
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the channel."""
 
     @property
@@ -1346,9 +1408,463 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Return if data point is visible in backend."""
 
     @abstractmethod
+    async def finalize_init(self) -> None:
+        """Finalize the data point init action."""
+
+    @abstractmethod
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
 
     @abstractmethod
+    async def on_config_changed(self) -> None:
+        """Handle config changed event."""
+
+    @abstractmethod
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unsubscribe from all internal update subscriptions."""
+
+
+# =============================================================================
+# Device and Channel Protocol Interfaces
+# =============================================================================
+# These protocols define read-only interfaces for Device and Channel classes,
+# allowing components to depend on specific capabilities without coupling
+# to the full implementation.
+
+
+@runtime_checkable
+class ChannelProtocol(Protocol):
+    """
+    Protocol for channel information access.
+
+    Provides read-only access to channel metadata and state.
+    Implemented by Channel.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def address(self) -> str:
+        """Return the address of the channel."""
+
+    @property
+    @abstractmethod
+    def device(self) -> DeviceProtocol:
+        """Return the device of the channel."""
+
+    @property
+    @abstractmethod
+    def full_name(self) -> str:
+        """Return the full name of the channel."""
+
+    @property
+    @abstractmethod
+    def function(self) -> str | None:
+        """Return the function of the channel."""
+
+    @property
+    @abstractmethod
+    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
+        """Return the generic events."""
+
+    @property
+    @abstractmethod
+    def link_peer_channels(self) -> tuple[ChannelProtocol, ...]:
+        """Return the link peer channels."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the name of the channel."""
+
+    @property
+    @abstractmethod
+    def no(self) -> int | None:
+        """Return the channel number."""
+
+    @property
+    @abstractmethod
+    def operation_mode(self) -> str | None:
+        """Return the operation mode of the channel."""
+
+    @property
+    @abstractmethod
+    def paramset_descriptions(self) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
+        """Return the paramset descriptions."""
+
+    @property
+    @abstractmethod
+    def paramset_keys(self) -> tuple[ParamsetKey, ...]:
+        """Return the paramset keys of the channel."""
+
+    @property
+    @abstractmethod
+    def regaid(self) -> int:
+        """Return the id of the channel."""
+
+    @property
+    @abstractmethod
+    def room(self) -> str | None:
+        """Return the room of the channel."""
+
+    @property
+    @abstractmethod
+    def rooms(self) -> set[str]:
+        """Return all rooms of the channel."""
+
+    @property
+    @abstractmethod
+    def type_name(self) -> str:
+        """Return the type name of the channel."""
+
+    @property
+    @abstractmethod
+    def unique_id(self) -> str:
+        """Return the unique_id of the channel."""
+
+    @abstractmethod
+    def add_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:
+        """Add a data point to a channel."""
+
+    @abstractmethod
+    def get_generic_data_point(
+        self, *, parameter: str | None = None, paramset_key: ParamsetKey | None = None, state_path: str | None = None
+    ) -> GenericDataPointProtocol | None:
+        """Return a generic data_point from device."""
+
+    @abstractmethod
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
+        """Return the list of readable data points."""
+
+    @abstractmethod
+    def has_link_target_category(self, *, category: DataPointCategory) -> bool:
+        """Return if channel has the specified link target category."""
+
+    @abstractmethod
+    def subscribe_to_link_peer_changed(self, *, handler: Any) -> Any:
+        """Subscribe to link peer changed event."""
+
+
+@runtime_checkable
+class DeviceProtocol(Protocol):
+    """
+    Protocol for device information access.
+
+    Provides read-only access to device metadata and state.
+    Implemented by Device.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def address(self) -> str:
+        """Return the address of the device."""
+
+    @property
+    @abstractmethod
+    def allow_undefined_generic_data_points(self) -> bool:
+        """Return if undefined generic data points of this device are allowed."""
+
+    @property
+    @abstractmethod
+    def available(self) -> bool:
+        """Return the availability of the device."""
+
+    @property
+    @abstractmethod
+    def available_firmware(self) -> str | None:
+        """Return the available firmware of the device."""
+
+    @property
+    @abstractmethod
+    def central_info(self) -> CentralInfo:
+        """Return the central info of the device."""
+
+    @property
+    @abstractmethod
+    def channels(self) -> Mapping[str, ChannelProtocol]:
+        """Return the channels."""
+
+    @property
+    @abstractmethod
+    def client(self) -> Client:
+        """Return the client of the device."""
+
+    @property
+    @abstractmethod
+    def config_pending(self) -> bool:
+        """Return if a config change of the device is pending."""
+
+    @property
+    @abstractmethod
+    def config_provider(self) -> ConfigProvider:
+        """Return the config provider."""
+
+    @property
+    @abstractmethod
+    def data_point_paths(self) -> tuple[str, ...]:
+        """Return the data point paths."""
+
+    @property
+    @abstractmethod
+    def default_schedule_channel(self) -> ChannelProtocol | None:
+        """Return the default schedule channel."""
+
+    @property
+    @abstractmethod
+    def device_data_refresher(self) -> DeviceDataRefresher:
+        """Return the device data refresher."""
+
+    @property
+    @abstractmethod
+    def device_details_provider(self) -> DeviceDetailsProvider:
+        """Return the device details provider."""
+
+    @property
+    @abstractmethod
+    def event_bus_provider(self) -> EventBusProvider:
+        """Return the event bus provider."""
+
+    @property
+    @abstractmethod
+    def event_publisher(self) -> EventPublisher:
+        """Return the event publisher."""
+
+    @property
+    @abstractmethod
+    def event_subscription_manager(self) -> EventSubscriptionManager:
+        """Return the event subscription manager."""
+
+    @property
+    @abstractmethod
+    def firmware(self) -> str:
+        """Return the firmware of the device."""
+
+    @property
+    @abstractmethod
+    def firmware_updatable(self) -> bool:
+        """Return the firmware update state of the device."""
+
+    @property
+    @abstractmethod
+    def firmware_update_state(self) -> DeviceFirmwareState:
+        """Return the firmware update state of the device."""
+
+    @property
+    @abstractmethod
+    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+        """Return all generic data points."""
+
+    @property
+    @abstractmethod
+    def has_custom_data_point_definition(self) -> bool:
+        """Return if custom data point definition is available for the device."""
+
+    @property
+    @abstractmethod
+    def identifier(self) -> str:
+        """Return the identifier of the device."""
+
+    @property
+    @abstractmethod
+    def ignore_for_custom_data_point(self) -> bool:
+        """Return if the device should be ignored for custom data point creation."""
+
+    @property
+    @abstractmethod
+    def ignore_on_initial_load(self) -> bool:
+        """Return if the device should be ignored on initial load."""
+
+    @property
+    @abstractmethod
+    def interface(self) -> Interface:
+        """Return the interface of the device."""
+
+    @property
+    @abstractmethod
+    def interface_id(self) -> str:
+        """Return the interface_id of the device."""
+
+    @property
+    @abstractmethod
+    def is_updatable(self) -> bool:
+        """Return if the device is updatable."""
+
+    @property
+    @abstractmethod
+    def link_peer_channels(self) -> Mapping[ChannelProtocol, tuple[ChannelProtocol, ...]]:
+        """Return the link peer channels."""
+
+    @property
+    @abstractmethod
+    def manufacturer(self) -> str:
+        """Return the manufacturer of the device."""
+
+    @property
+    @abstractmethod
+    def model(self) -> str:
+        """Return the model of the device."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the name of the device."""
+
+    @property
+    @abstractmethod
+    def parameter_visibility_provider(self) -> ParameterVisibilityProvider:
+        """Return the parameter visibility provider."""
+
+    @property
+    @abstractmethod
+    def paramset_description_provider(self) -> ParamsetDescriptionProvider:
+        """Return the paramset description provider."""
+
+    @property
+    @abstractmethod
+    def product_group(self) -> ProductGroup:
+        """Return the product group of the device."""
+
+    @property
+    @abstractmethod
+    def regaid(self) -> int:
+        """Return the id of the device."""
+
+    @property
+    @abstractmethod
+    def room(self) -> str | None:
+        """Return the room of the device."""
+
+    @property
+    @abstractmethod
+    def rooms(self) -> set[str]:
+        """Return all rooms of the device."""
+
+    @property
+    @abstractmethod
+    def rx_modes(self) -> tuple[RxMode, ...]:
+        """Return the rx modes."""
+
+    @property
+    @abstractmethod
+    def sub_model(self) -> str | None:
+        """Return the sub model of the device."""
+
+    @property
+    @abstractmethod
+    def supports_week_profile(self) -> bool:
+        """Return if the device supports week profile."""
+
+    @property
+    @abstractmethod
+    def task_scheduler(self) -> TaskScheduler:
+        """Return the task scheduler."""
+
+    @property
+    @abstractmethod
+    def value_cache(self) -> Any:
+        """Return the value cache."""
+
+    @property
+    @abstractmethod
+    def week_profile(self) -> WeekProfile[dict[Any, Any]] | None:
+        """Return the week profile."""
+
+    @abstractmethod
+    def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:
+        """Add a channel to a group."""
+
+    @abstractmethod
+    async def create_central_links(self) -> None:
+        """Create central links to support press events."""
+
+    @abstractmethod
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
+        """Return a channel by address."""
+
+    @abstractmethod
+    def get_channel_group_no(self, *, channel_no: int | None) -> int | None:
+        """Return the channel group number."""
+
+    @abstractmethod
+    def get_custom_data_point(self, *, channel_no: int) -> CustomDataPointProtocol | None:
+        """Return a custom data_point from device."""
+
+    @abstractmethod
+    def get_data_points(
+        self,
+        *,
+        category: DataPointCategory | None = None,
+        exclude_no_create: bool = True,
+        registered: bool | None = None,
+    ) -> tuple[CallbackDataPointProtocol, ...]:
+        """Return data points."""
+
+    @abstractmethod
+    def get_events(
+        self, *, event_type: EventType, registered: bool | None = None
+    ) -> Mapping[int | None, tuple[GenericEventProtocol, ...]]:
+        """Return a list of specific events of a channel."""
+
+    @abstractmethod
+    def get_generic_data_point(
+        self,
+        *,
+        channel_address: str | None = None,
+        parameter: str | None = None,
+        paramset_key: ParamsetKey | None = None,
+        state_path: str | None = None,
+    ) -> GenericDataPointProtocol | None:
+        """Return a generic data_point from device."""
+
+    @abstractmethod
+    def get_generic_event(
+        self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
+    ) -> GenericEventProtocol | None:
+        """Return a generic event from device."""
+
+    @abstractmethod
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
+        """Return the list of readable data points."""
+
+    @abstractmethod
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
+        """Identify channel within a text."""
+
+    @abstractmethod
+    def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
+        """Initialize the week profile."""
+
+    @abstractmethod
+    async def on_config_changed(self) -> None:
+        """Handle config changed event."""
+
+    @abstractmethod
+    def publish_device_updated_event(self) -> None:
+        """Publish device updated event."""
+
+    @abstractmethod
+    def refresh_firmware_data(self) -> None:
+        """Refresh firmware data of the device."""
+
+    @abstractmethod
+    def remove(self) -> None:
+        """Remove data points from collections and central."""
+
+    @abstractmethod
+    async def remove_central_links(self) -> None:
+        """Remove central links."""
+
+    @abstractmethod
+    def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
+        """Set the availability of the device."""
+
+    @abstractmethod
+    def subscribe_to_firmware_updated(self, *, handler: Any) -> Any:
+        """Subscribe to firmware updated event."""
+
+    @abstractmethod
+    async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
+        """Update the device firmware."""

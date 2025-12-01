@@ -69,7 +69,7 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.calculated import create_calculated_data_points
 from aiohomematic.model.event import create_event_and_append_to_channel
 from aiohomematic.model.generic import create_data_point_and_append_to_channel
@@ -83,7 +83,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 @inspector
-def create_data_points_and_events(*, device: hmd.Device) -> None:
+def create_data_points_and_events(*, device: DeviceProtocol) -> None:
     """Create the data points associated to this device."""
     for channel in device.channels.values():
         for paramset_key, paramsset_key_descriptions in channel.paramset_descriptions.items():
@@ -121,7 +121,7 @@ def create_data_points_and_events(*, device: hmd.Device) -> None:
 
 def _process_parameter(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     paramset_key: ParamsetKey,
     parameter: str,
     parameter_data: ParameterData,

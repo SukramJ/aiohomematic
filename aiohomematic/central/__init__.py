@@ -144,32 +144,37 @@ from aiohomematic.exceptions import (
     NoClientsException,
 )
 from aiohomematic.interfaces import (
+    BaseParameterDataPointProtocol,
+    CallbackDataPointProtocol,
     CentralInfo,
     CentralUnitStateProvider,
     ChannelLookup,
+    ChannelProtocol,
     ClientCoordination,
     ClientFactory,
     ClientProvider,
     ConfigProvider,
     CoordinatorProvider,
+    CustomDataPointProtocol,
     DataPointProvider,
     DeviceDataRefresher,
+    DeviceProtocol,
     DeviceProvider,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    GenericDataPointProtocol,
+    GenericEventProtocol,
+    GenericHubDataPointProtocol,
+    GenericProgramDataPointProtocol,
+    GenericSysvarDataPointProtocol,
     HubDataFetcher,
     HubDataPointManager,
     PrimaryClientProvider,
     SystemInfoProvider,
 )
-from aiohomematic.model.custom import CustomDataPoint
-from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
-from aiohomematic.model.device import Channel, Device
-from aiohomematic.model.event import GenericEvent
-from aiohomematic.model.generic import GenericDataPoint, GenericDataPointAny
-from aiohomematic.model.hub import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint, ProgramDpType
+from aiohomematic.model.hub import ProgramDpType
 from aiohomematic.property_decorators import info_property
 from aiohomematic.store import (
     CentralDataCache,
@@ -408,7 +413,7 @@ class CentralUnit(
         return self._device_registry
 
     @property
-    def devices(self) -> tuple[Device, ...]:
+    def devices(self) -> tuple[DeviceProtocol, ...]:
         """Return all devices."""
         return self._device_coordinator.devices
 
@@ -499,7 +504,7 @@ class CentralUnit(
         return self._client_coordinator.primary_client
 
     @property
-    def program_data_points(self) -> tuple[GenericProgramDataPoint, ...]:
+    def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
         """Return the program data points."""
         return self._hub_coordinator.program_data_points
 
@@ -528,7 +533,7 @@ class CentralUnit(
         return SystemInformation()
 
     @property
-    def sysvar_data_points(self) -> tuple[GenericSysvarDataPoint, ...]:
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPointProtocol, ...]:
         """Return the sysvar data points."""
         return self._hub_coordinator.sysvar_data_points
 
@@ -557,7 +562,7 @@ class CentralUnit(
             self._version = max(versions) if versions else None
         return self._version
 
-    def add_event_subscription(self, *, data_point: BaseParameterDataPointAny) -> None:
+    def add_event_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
         """Add data_point to central event subscription."""
         self._event_coordinator.add_data_point_subscription(data_point=data_point)
 
@@ -576,7 +581,7 @@ class CentralUnit(
         """Add new program button."""
         self._hub_coordinator.add_program_data_point(program_dp=program_dp)
 
-    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPoint) -> None:
+    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPointProtocol) -> None:
         """Add new sysvar data point."""
         self._hub_coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_data_point)
 
@@ -657,7 +662,7 @@ class CentralUnit(
         """Fetch sysvar data for the hub."""
         await self._hub_coordinator.fetch_sysvar_data(scheduled=scheduled)
 
-    def get_channel(self, *, channel_address: str) -> Channel | None:
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """Return Homematic channel."""
         return self._device_coordinator.get_channel(channel_address=channel_address)
 
@@ -665,13 +670,13 @@ class CentralUnit(
         """Return a client by interface_id."""
         return self._client_coordinator.get_client(interface_id=interface_id)
 
-    def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPoint | None:
+    def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
         """Return the hm custom_data_point."""
         if device := self.get_device(address=address):
             return device.get_custom_data_point(channel_no=channel_no)
         return None
 
-    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPoint | None:
+    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
         """Return Homematic data_point by custom_id."""
         for dp in self.get_data_points(registered=True):
             if dp.custom_id == custom_id:
@@ -685,9 +690,9 @@ class CentralUnit(
         interface: Interface | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
-    ) -> tuple[CallbackDataPoint, ...]:
+    ) -> tuple[CallbackDataPointProtocol, ...]:
         """Return all externally registered data points."""
-        all_data_points: list[CallbackDataPoint] = []
+        all_data_points: list[CallbackDataPointProtocol] = []
         for device in self._device_registry.devices:
             if interface and interface != device.interface:
                 continue
@@ -696,13 +701,13 @@ class CentralUnit(
             )
         return tuple(all_data_points)
 
-    def get_device(self, *, address: str) -> Device | None:
+    def get_device(self, *, address: str) -> DeviceProtocol | None:
         """Return Homematic device."""
         return self._device_coordinator.get_device(address=address)
 
     def get_event(
         self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEvent | None:
+    ) -> GenericEventProtocol | None:
         """Return the hm event."""
         if channel_address is None:
             for dev in self.devices:
@@ -716,9 +721,9 @@ class CentralUnit(
 
     def get_events(
         self, *, event_type: EventType, registered: bool | None = None
-    ) -> tuple[tuple[GenericEvent, ...], ...]:
+    ) -> tuple[tuple[GenericEventProtocol, ...], ...]:
         """Return all channel event data points."""
-        hm_channel_events: list[tuple[GenericEvent, ...]] = []
+        hm_channel_events: list[tuple[GenericEventProtocol, ...]] = []
         for device in self.devices:
             for channel_events in device.get_events(event_type=event_type).values():
                 if registered is None or (channel_events[0].is_registered == registered):
@@ -733,7 +738,7 @@ class CentralUnit(
         parameter: str | None = None,
         paramset_key: ParamsetKey | None = None,
         state_path: str | None = None,
-    ) -> GenericDataPointAny | None:
+    ) -> GenericDataPointProtocol | None:
         """Get data_point by channel_address and parameter."""
         if channel_address is None:
             for dev in self.devices:
@@ -751,7 +756,7 @@ class CentralUnit(
 
     def get_hub_data_points(
         self, *, category: DataPointCategory | None = None, registered: bool | None = None
-    ) -> tuple[GenericHubDataPoint, ...]:
+    ) -> tuple[GenericHubDataPointProtocol, ...]:
         """Return the program data points."""
         return self._hub_coordinator.get_hub_data_points(category=category, registered=registered)
 
@@ -845,13 +850,13 @@ class CentralUnit(
 
     def get_readable_generic_data_points(
         self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
-    ) -> tuple[GenericDataPointAny, ...]:
+    ) -> tuple[GenericDataPointProtocol, ...]:
         """Return the readable generic data points."""
         return tuple(
             ge
             for ge in self.get_data_points(interface=interface)
             if (
-                isinstance(ge, GenericDataPoint)
+                isinstance(ge, GenericDataPointProtocol)
                 and ge.is_readable
                 and ((paramset_key and ge.paramset_key == paramset_key) or paramset_key is None)
             )
@@ -872,7 +877,7 @@ class CentralUnit(
 
     def get_sysvar_data_point(
         self, *, vid: str | None = None, legacy_name: str | None = None
-    ) -> GenericSysvarDataPoint | None:
+    ) -> GenericSysvarDataPointProtocol | None:
         """Return the sysvar data_point."""
         return self._hub_coordinator.get_sysvar_data_point(vid=vid, legacy_name=legacy_name)
 
@@ -913,7 +918,7 @@ class CentralUnit(
             )
         return candidates
 
-    def get_virtual_remotes(self) -> tuple[Device, ...]:
+    def get_virtual_remotes(self) -> tuple[DeviceProtocol, ...]:
         """Get the virtual remotes for all clients."""
         return self._device_coordinator.get_virtual_remotes()
 
@@ -921,7 +926,7 @@ class CentralUnit(
         """Check if client exists in central."""
         return self._client_coordinator.has_client(interface_id=interface_id)
 
-    def identify_channel(self, *, text: str) -> Channel | None:
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """Identify channel within a text."""
         return self._device_coordinator.identify_channel(text=text)
 
@@ -1014,7 +1019,7 @@ class CentralUnit(
         """Remove central links."""
         await self._device_coordinator.remove_central_links()
 
-    def remove_device(self, *, device: Device) -> None:
+    def remove_device(self, *, device: DeviceProtocol) -> None:
         """Remove device from central collections."""
         self._device_coordinator.remove_device(device=device)
 
@@ -1557,10 +1562,10 @@ def _has_primary_client(*, interface_configs: AbstractSet[hmcl.InterfaceConfig])
 
 def _get_new_data_points(
     *,
-    new_devices: set[Device],
-) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPoint]]:
+    new_devices: set[DeviceProtocol],
+) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPointProtocol]]:
     """Return new data points by category."""
-    data_points_by_category: dict[DataPointCategory, set[CallbackDataPoint]] = {
+    data_points_by_category: dict[DataPointCategory, set[CallbackDataPointProtocol]] = {
         category: set() for category in CATEGORIES if category != DataPointCategory.EVENT
     }
 
@@ -1571,9 +1576,9 @@ def _get_new_data_points(
     return data_points_by_category
 
 
-def _get_new_channel_events(*, new_devices: set[Device]) -> tuple[tuple[GenericEvent, ...], ...]:
+def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocol, ...], ...]:
     """Return new channel events by category."""
-    channel_events: list[tuple[GenericEvent, ...]] = []
+    channel_events: list[tuple[GenericEventProtocol, ...]] = []
 
     for device in new_devices:
         for event_type in DATA_POINT_EVENTS:

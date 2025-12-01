@@ -11,7 +11,7 @@ import orjson
 
 from aiohomematic.central import CentralUnit
 from aiohomematic.const import UTF_8
-from aiohomematic.model.custom import CustomDataPoint
+from aiohomematic.interfaces import CustomDataPointProtocol
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,10 +29,12 @@ def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:
         return orjson.loads(fptr.read())
 
 
-def get_prepared_custom_data_point(central: CentralUnit, address: str, channel_no: int) -> CustomDataPoint | None:
+def get_prepared_custom_data_point(
+    central: CentralUnit, address: str, channel_no: int
+) -> CustomDataPointProtocol | None:
     """Return the hm custom_data_point."""
     if cdp := central.get_custom_data_point(address=address, channel_no=channel_no):
-        for dp in cdp._data_points.values():
+        for dp in cdp._data_points.values():  # type: ignore[attr-defined]
             dp._state_uncertain = False
         return cdp
     return None

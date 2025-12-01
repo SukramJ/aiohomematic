@@ -18,7 +18,7 @@ import voluptuous as vol
 from aiohomematic import i18n, support as hms, validator as val
 from aiohomematic.const import CDPD, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.model import device as hmd
+from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.support import generate_unique_id
 from aiohomematic.support import extract_exc_args
@@ -607,7 +607,7 @@ def validate_custom_data_point_definition() -> Any:
 
 def make_custom_data_point(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     data_point_class: type,
     device_profile: DeviceProfile,
     custom_config: CustomConfig,
@@ -634,7 +634,7 @@ def make_custom_data_point(
 
 def _create_custom_data_point(
     *,
-    channel: hmd.Channel,
+    channel: ChannelProtocol,
     custom_data_point_class: type,
     device_profile: DeviceProfile,
     device_def: Mapping[CDPD, Any],
@@ -699,7 +699,7 @@ def _relevant_channels(*, device_profile: DeviceProfile, custom_config: CustomCo
 
 
 def add_channel_groups_to_device(
-    *, device: hmd.Device, device_profile: DeviceProfile, custom_config: CustomConfig
+    *, device: DeviceProtocol, device_profile: DeviceProfile, custom_config: CustomConfig
 ) -> None:
     """Return the relevant channels."""
     device_def = _get_device_group(device_profile=device_profile, group_no=0)
@@ -717,7 +717,7 @@ def add_channel_groups_to_device(
                 device.add_channel_to_group(channel_no=conf_channel + sec_channel, group_no=group_no)
 
 
-def get_channel_group_no(*, device: hmd.Device, channel_no: int | None) -> int | None:
+def get_channel_group_no(*, device: DeviceProtocol, channel_no: int | None) -> int | None:
     """Get channel group of sub_device."""
     return device.get_channel_group_no(channel_no=channel_no)
 

@@ -2,15 +2,18 @@
 
 ## What's Changed
 
+- Added get_install_mode() and set_install_mode() methods
+- Added rename_device and rename_channel methods
+- Method accept_device_in_inbox to accept new devices
+- New hub entity for device inbox (devices pending pairing)
+- New hub entity for system update status
+- New method create_backup() for creating CCU system backups
+- New method download_backup() for downloading backup files
+- New method download_firmware() for downloading firmware to CCU
 - New method get_service_messages to fetch CCU service messages
 - New method get_system_update_info for firmware update status
-- Added get_install_mode() and set_install_mode() methods
-- New script trigger_firmware_update.fn to trigger firmware updates
-- New hub entity for system update status
-- New hub entity for device inbox (devices pending pairing)
-- Method accept_device_in_inbox to accept new devices
-- Added rename_device and rename_channel methods
 - New protocols for model data points for better decoupling
+- New script trigger_firmware_update.fn to trigger firmware updates
 
 # Version 2025.11.30 (2025-11-26)
 

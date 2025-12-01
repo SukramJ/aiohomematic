@@ -1,26 +1,50 @@
 !# trigger_firmware_update.fn
 !#
 !# This script triggers the CCU firmware update process.
-!# Works for CCU3/RaspberryMatic/OpenCCU.
+!# Requires firmware to be already downloaded to /usr/local/.firmwareUpdate
+!# Works for CCU3/OpenCCU/RaspberryMatic.
 !#
 
 string sError = "";
 string sResult = "";
+boolean bFirmwareExists = false;
 boolean bSuccess = false;
 
-!# Trigger the firmware update
-system.Exec("/usr/bin/touch /usr/local/.doFirmwareUpdate 2>/dev/null", &sResult, &sError);
-
-!# Check if the file was created successfully
-system.Exec("test -f /usr/local/.doFirmwareUpdate && echo 'OK' || echo 'FAIL'", &sResult, &sError);
+!# Check if firmware file exists
+sResult = "";
+system.Exec("test -f /usr/local/.firmwareUpdate && echo 'OK' || test -L /usr/local/.firmwareUpdate && echo 'OK' || echo 'FAIL'", &sResult, &sError);
 sResult = sResult.Trim();
 
 if (sResult == "OK") {
-    bSuccess = true;
+    bFirmwareExists = true;
+}
+
+if (bFirmwareExists) {
+    !# Save system state
+    system.Save();
+
+    !# Set recovery mode flag (triggers update on reboot)
+    sResult = "";
+    system.Exec("/bin/sh -c 'touch /usr/local/.recoveryMode'", &sResult, &sError);
+
+    !# Verify recovery mode was set
+    sResult = "";
+    system.Exec("test -f /usr/local/.recoveryMode && echo 'OK' || echo 'FAIL'", &sResult, &sError);
+    sResult = sResult.Trim();
+
+    if (sResult == "OK") {
+        bSuccess = true;
+        !# Trigger reboot (non-blocking)
+        system.Exec("/bin/sh -c '/sbin/reboot -d 5 2>/dev/null >/dev/null &'", &sResult, &sError);
+    }
 }
 
 if (bSuccess) {
-    Write('{"success":true}');
+    Write('{"success":true,"message":"Update started, system is rebooting"}');
 } else {
-    Write('{"success":false}');
+    if (bFirmwareExists) {
+        Write('{"success":false,"message":"Failed to set recovery mode"}');
+    } else {
+        Write('{"success":false,"message":"No firmware file found at /usr/local/.firmwareUpdate"}');
+    }
 }

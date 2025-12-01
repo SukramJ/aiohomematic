@@ -1815,6 +1815,11 @@ class ClientHomegear(ClientCCU):
         """Return the supports_ping_pong info of the backend."""
         return False
 
+    @inspector(re_raise=False)
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """Accept a device from the CCU inbox."""
+        return False
+
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
@@ -1888,6 +1893,12 @@ class ClientHomegear(ClientCCU):
             ) from bhexc
         return 0
 
+    @inspector(re_raise=False)
+    async def get_regaid_by_address(self, *, address: str) -> int | None:  # pragma: no cover
+        """Get the ReGa ID for a device or channel address."""
+        _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: not usable for %s.", self.interface_id)
+        return None
+
     @inspector(re_raise=False, no_raise_return=())
     async def get_service_messages(
         self,
@@ -1915,11 +1926,29 @@ class ClientHomegear(ClientCCU):
         """Get single system variable from the backend."""
         return await self._proxy.getSystemVariable(name)
 
+    @inspector(re_raise=False)
+    async def rename_channel(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+        """Rename a channel on the CCU."""
+        _LOGGER.debug("RENAME_CHANNEL: not usable for %s.", self.interface_id)
+        return False
+
+    @inspector(re_raise=False)
+    async def rename_device(self, *, regaid: int, new_name: str) -> bool:  # pragma: no cover
+        """Rename a device on the CCU."""
+        _LOGGER.debug("RENAME_DEVICE: not usable for %s.", self.interface_id)
+        return False
+
     @inspector(measure_performance=True)
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
         await self._proxy.setSystemVariable(legacy_name, value)
         return True
+
+    @inspector(re_raise=False)
+    async def trigger_firmware_update(self) -> bool:  # pragma: no cover
+        """Trigger the CCU firmware update process."""
+        _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: not usable for %s.", self.interface_id)
+        return False
 
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""

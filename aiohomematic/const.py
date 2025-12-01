@@ -686,6 +686,7 @@ class RegaScript(StrEnum):
     """Enum with Homematic rega scripts."""
 
     ACCEPT_DEVICE_IN_INBOX = "accept_device_in_inbox.fn"
+    CREATE_BACKUP = "create_backup.fn"
     FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"
     GET_PROGRAM_DESCRIPTIONS = "get_program_descriptions.fn"
     GET_SERIAL = "get_serial.fn"
@@ -1123,6 +1124,17 @@ class SystemUpdateData:
     current_firmware: str
     available_firmware: str
     update_available: bool
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class BackupData:
+    """Dataclass for backup information."""
+
+    success: bool
+    file_path: str = ""
+    filename: str = ""
+    size: int = 0
+    message: str = ""
 
 
 class ParameterData(TypedDict, total=False):

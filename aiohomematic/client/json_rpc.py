@@ -72,6 +72,7 @@ from aiohomematic.const import (
     RENAME_SYSVAR_BY_NAME,
     TIMEOUT,
     UTF_8,
+    BackupData,
     DescriptionMarker,
     DeviceDescription,
     Interface,
@@ -112,6 +113,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class _JsonKey(StrEnum):
     """Enum for Homematic json keys."""
 
+    ACTION = "action"
     ADDRESS = "address"
     AVAILABLE_FIRMWARE = "available_firmware"
     CHANNEL_IDS = "channelIds"
@@ -120,6 +122,8 @@ class _JsonKey(StrEnum):
     DEVICE_ADDRESS = "device_address"
     DEVICE_NAME = "device_name"
     ERROR = "error"
+    FILE = "file"
+    FILENAME = "filename"
     ID = "id"
     INTERFACE = "interface"
     IS_ACTIVE = "isActive"
@@ -136,11 +140,15 @@ class _JsonKey(StrEnum):
     SERIAL = "serial"
     SESSION_ID = "_session_id_"
     SET = "set"
+    SID = "sid"
+    SIZE = "size"
     STATE = "state"
+    SUCCESS = "success"
     TIMESTAMP = "timestamp"
     TYPE = "type"
     UNIT = "unit"
     UPDATE_AVAILABLE = "update_available"
+    URL = "url"
     USERNAME = "username"
     VALUE = "value"
     VALUE_KEY = "valueKey"
@@ -333,7 +341,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
             _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: Accepting device %s", device_address)
             if json_result := response[_JsonKey.RESULT]:
-                return bool(json_result.get("success", False))
+                return bool(json_result.get(_JsonKey.SUCCESS, False))
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
@@ -349,6 +357,30 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Clear the current session."""
         self._session_id = None
 
+    async def create_backup(self) -> BackupData:
+        """Create a system backup on the CCU."""
+        try:
+            response = await self._post_script(script_name=RegaScript.CREATE_BACKUP)
+
+            _LOGGER.debug("CREATE_BACKUP: Creating system backup")
+            if json_result := response[_JsonKey.RESULT]:
+                return BackupData(
+                    success=json_result.get(_JsonKey.SUCCESS, False),
+                    file_path=json_result.get(_JsonKey.FILE, ""),
+                    filename=json_result.get(_JsonKey.FILENAME, ""),
+                    size=json_result.get(_JsonKey.SIZE, 0),
+                    message=json_result.get(_JsonKey.MESSAGE, ""),
+                )
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.create_backup.failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return BackupData(success=False, message="Backup creation failed")
+
     async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
         params = {_JsonKey.NAME: name}
@@ -363,6 +395,109 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             _LOGGER.debug("DELETE_SYSTEM_VARIABLE: Deleted: %s", str(deleted))
 
         return True
+
+    async def download_backup(self, *, backup_path: str) -> bytes | None:
+        """
+        Download a backup file from the CCU.
+
+        Args:
+            backup_path: Path to the backup file on CCU (e.g., /usr/local/tmp/last_backup.sbk)
+
+        Returns:
+            Backup file content as bytes, or None if download failed.
+
+        """
+        if not self._client_session:
+            _LOGGER.error(i18n.tr("exception.client.json_post.no_session"))
+            return None
+
+        # Build download URL - CCU serves files via /config/filedownload.cgi
+        download_url = f"{self._url.replace(PATH_JSON_RPC, '')}/config/filedownload.cgi?file={backup_path}"
+
+        try:
+            _LOGGER.debug("DOWNLOAD_BACKUP: Downloading backup from %s", download_url)
+            async with self._client_session.get(
+                url=download_url,
+                timeout=ClientTimeout(total=300),  # 5 minutes timeout for large backups
+                ssl=self._tls_context,
+            ) as response:
+                if response.status == 200:
+                    content = await response.read()
+                    _LOGGER.debug("DOWNLOAD_BACKUP: Downloaded %d bytes", len(content))
+                    return content
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.client.json_rpc.download_backup.failed",
+                        status=response.status,
+                    )
+                )
+        except ClientError as cerr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.download_backup.error",
+                    reason=extract_exc_args(exc=cerr),
+                )
+            )
+
+        return None
+
+    async def download_firmware(self, *, firmware_url: str) -> bool:
+        """
+        Download firmware to the CCU for installation.
+
+        Args:
+            firmware_url: URL to download the firmware from.
+
+        Returns:
+            True if firmware was downloaded successfully, False otherwise.
+
+        """
+        if not self._client_session:
+            _LOGGER.error(i18n.tr("exception.client.json_post.no_session"))
+            return False
+
+        # CCU downloads firmware via /config/cp_maintenance.cgi with POST
+        upload_url = f"{self._url.replace(PATH_JSON_RPC, '')}/config/cp_maintenance.cgi"
+
+        try:
+            _LOGGER.debug("DOWNLOAD_FIRMWARE: Downloading firmware from %s", firmware_url)
+            # Get session ID for authentication
+            await self._login_or_renew()
+            if not self._session_id:
+                _LOGGER.error(i18n.tr("log.client.json_rpc.download_firmware.no_session"))
+                return False
+
+            # CCU expects firmware URL to be passed to maintenance CGI
+            params = {
+                _JsonKey.SID: self._session_id,
+                _JsonKey.ACTION: "download_firmware",
+                _JsonKey.URL: firmware_url,
+            }
+
+            async with self._client_session.post(
+                url=upload_url,
+                data=params,
+                timeout=ClientTimeout(total=600),  # 10 minutes timeout for large firmware
+                ssl=self._tls_context,
+            ) as response:
+                if response.status == 200:
+                    _LOGGER.debug("DOWNLOAD_FIRMWARE: Firmware download initiated")
+                    return True
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.client.json_rpc.download_firmware.failed",
+                        status=response.status,
+                    )
+                )
+        except ClientError as cerr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.download_firmware.error",
+                    reason=extract_exc_args(exc=cerr),
+                )
+            )
+
+        return False
 
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""

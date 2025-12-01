@@ -1506,6 +1506,11 @@ class ChannelProtocol(Protocol):
 
     @property
     @abstractmethod
+    def group_no(self) -> int | None:
+        """Return the no of the channel group."""
+
+    @property
+    @abstractmethod
     def is_group_master(self) -> bool:
         """Return if the channel is the group master."""
 
@@ -1904,6 +1909,10 @@ class DeviceProtocol(Protocol):
     @abstractmethod
     async def create_central_links(self) -> None:
         """Create central links to support press events."""
+
+    @abstractmethod
+    async def export_device_definition(self) -> None:
+        """Export the device definition for current device."""
 
     @abstractmethod
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:

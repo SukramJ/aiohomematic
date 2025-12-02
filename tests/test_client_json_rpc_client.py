@@ -1038,6 +1038,41 @@ class TestServiceMessagesAndSystemUpdate:
         await client.stop()
 
     @pytest.mark.asyncio
+    async def test_get_rega_id_by_address_channel_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test get_rega_id_by_address returns ReGa ID for channel address."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_get_device_details() -> tuple[dict[str, Any], ...]:
+            return (
+                {
+                    _JsonKey.ADDRESS: "VCU0000001",
+                    _JsonKey.ID: "12345",
+                    _JsonKey.CHANNELS: [
+                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: "12346"},
+                        {_JsonKey.ADDRESS: "VCU0000001:1", _JsonKey.ID: "12347"},
+                    ],
+                },
+            )
+
+        monkeypatch.setattr(client, "get_device_details", fake_get_device_details)
+
+        result = await client.get_rega_id_by_address(address="VCU0000001:1")
+
+        assert result == 12347
+
+        await client.stop()
+
+    @pytest.mark.asyncio
     async def test_get_rega_id_by_address_not_found(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1052,11 +1087,18 @@ class TestServiceMessagesAndSystemUpdate:
             tls=False,
         )
 
-        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
-            assert method == "Device.getReGaIDByAddress"
-            return {_JsonKey.ERROR: None, _JsonKey.RESULT: None}
+        async def fake_get_device_details() -> tuple[dict[str, Any], ...]:
+            return (
+                {
+                    _JsonKey.ADDRESS: "VCU0000001",
+                    _JsonKey.ID: "12345",
+                    _JsonKey.CHANNELS: [
+                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: "12346"},
+                    ],
+                },
+            )
 
-        monkeypatch.setattr(client, "_post", fake_post)
+        monkeypatch.setattr(client, "get_device_details", fake_get_device_details)
 
         result = await client.get_rega_id_by_address(address="UNKNOWN")
 
@@ -1079,13 +1121,18 @@ class TestServiceMessagesAndSystemUpdate:
             tls=False,
         )
 
-        async def fake_post(*, method: str, extra_params: dict[str, Any] | None = None) -> dict[str, Any]:
-            assert method == "Device.getReGaIDByAddress"
-            assert extra_params is not None
-            assert extra_params.get("address") == "VCU0000001"
-            return {_JsonKey.ERROR: None, _JsonKey.RESULT: 12345}
+        async def fake_get_device_details() -> tuple[dict[str, Any], ...]:
+            return (
+                {
+                    _JsonKey.ADDRESS: "VCU0000001",
+                    _JsonKey.ID: "12345",
+                    _JsonKey.CHANNELS: [
+                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: "12346"},
+                    ],
+                },
+            )
 
-        monkeypatch.setattr(client, "_post", fake_post)
+        monkeypatch.setattr(client, "get_device_details", fake_get_device_details)
 
         result = await client.get_rega_id_by_address(address="VCU0000001")
 

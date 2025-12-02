@@ -48,7 +48,6 @@ Notes
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import asyncio
 from datetime import datetime
 import logging
@@ -68,6 +67,7 @@ from aiohomematic.const import (
     INTERFACES_REQUIRING_JSON_RPC_CLIENT,
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
+    LINKABLE_INTERFACES,
     RECONNECT_WAIT,
     VIRTUAL_REMOTE_MODELS,
     WAIT_FOR_CALLBACK,
@@ -139,12 +139,13 @@ _CCU_JSON_VALUE_TYPE: Final = {
 }
 
 
-class Client(ABC, LogContextMixin):
+class ClientCCU(LogContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
     def __init__(self, *, client_config: ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
+        self._json_rpc_client: Final = client_config.central.json_rpc_client
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
         self._available: bool = True
         self._connection_error_count: int = 0
@@ -190,9 +191,9 @@ class Client(ABC, LogContextMixin):
         return self._last_value_send_cache
 
     @property
-    @abstractmethod
     def model(self) -> str:
         """Return the model of the backend."""
+        return Backend.CCU
 
     @property
     def ping_pong_cache(self) -> PingPongCache:
@@ -202,17 +203,17 @@ class Client(ABC, LogContextMixin):
     @property
     def supports_backup(self) -> bool:
         """Return if the backend supports backup creation and download."""
-        return False
+        return True
 
     @property
     def supports_device_firmware_update(self) -> bool:
         """Return if the backend supports device firmware updates."""
-        return False
+        return True
 
     @property
     def supports_firmware_update_trigger(self) -> bool:
         """Return if the backend supports triggering system firmware updates."""
-        return False
+        return True
 
     @property
     def supports_firmware_updates(self) -> bool:
@@ -220,29 +221,39 @@ class Client(ABC, LogContextMixin):
         return self._config.supports_firmware_updates
 
     @property
+    def supports_functions(self) -> bool:
+        """Return if interface supports functions."""
+        return True
+
+    @property
     def supports_inbox(self) -> bool:
         """Return if the backend supports device inbox operations."""
-        return False
+        return True
 
     @property
     def supports_install_mode(self) -> bool:
         """Return if the backend supports install mode operations."""
-        return False
+        return True
 
     @property
     def supports_linking(self) -> bool:
         """Return if the backend supports device linking operations."""
-        return False
+        return self._config.supports_linking
 
     @property
     def supports_metadata(self) -> bool:
         """Return if the backend supports metadata operations."""
-        return False
+        return True
 
     @property
     def supports_ping_pong(self) -> bool:
         """Return the supports_ping_pong info of the backend."""
-        return self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
+        return self._config.supports_ping_pong
+
+    @property
+    def supports_programs(self) -> bool:
+        """Return if interface supports programs."""
+        return True
 
     @property
     def supports_push_updates(self) -> bool:
@@ -252,12 +263,17 @@ class Client(ABC, LogContextMixin):
     @property
     def supports_rega_id_lookup(self) -> bool:
         """Return if the backend supports ReGa ID lookups."""
-        return False
+        return True
 
     @property
     def supports_rename(self) -> bool:
         """Return if the backend supports renaming devices and channels."""
-        return False
+        return True
+
+    @property
+    def supports_rooms(self) -> bool:
+        """Return if interface supports rooms."""
+        return True
 
     @property
     def supports_rpc_callback(self) -> bool:
@@ -267,17 +283,17 @@ class Client(ABC, LogContextMixin):
     @property
     def supports_service_messages(self) -> bool:
         """Return if the backend supports service messages."""
-        return False
+        return True
 
     @property
     def supports_system_update_info(self) -> bool:
         """Return if the backend supports system update information."""
-        return False
+        return True
 
     @property
     def supports_value_usage_reporting(self) -> bool:
         """Return if the backend supports value usage reporting."""
-        return False
+        return True
 
     @property
     def system_information(self) -> SystemInformation:
@@ -295,10 +311,13 @@ class Client(ABC, LogContextMixin):
         return self._config.interface_id
 
     @inspector(re_raise=False)
-    async def accept_device_in_inbox(self, *, device_address: str) -> bool:  # pragma: no cover
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
-        _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: not usable for %s.", self.interface_id)
-        return False
+        if not self.supports_inbox:
+            _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: Not supported by client for %s", self.interface_id)
+            return False
+
+        return await self._json_rpc_client.accept_device_in_inbox(device_address=device_address)
 
     @inspector
     async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
@@ -321,22 +340,58 @@ class Client(ABC, LogContextMixin):
                 )
             ) from bhexc
 
-    @abstractmethod
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
-        """Send ping to the backend to generate PONG event."""
+        """Check if _proxy is still initialized."""
+        try:
+            dt_now = datetime.now()
+            if handle_ping_pong and self.supports_ping_pong and self._is_initialized:
+                token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
+                callerId = f"{self.interface_id}#{token}" if handle_ping_pong else self.interface_id
+                await self._proxy.ping(callerId)
+                self._ping_pong_cache.handle_send_ping(ping_token=token)
+            elif not self._is_initialized:
+                await self._proxy.ping(self.interface_id)
+            self.modified_at = dt_now
+        except BaseHomematicException as bhexc:
+            _LOGGER.debug(
+                "CHECK_CONNECTION_AVAILABILITY failed: %s [%s]",
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
+            )
+        else:
+            return True
+        self.modified_at = INIT_DATETIME
+        return False
 
     @inspector(re_raise=False)
-    async def create_backup_and_download(self) -> bytes | None:  # pragma: no cover
+    async def create_backup_and_download(self) -> bytes | None:
         """
-        Create a backup on the backend and download it.
+        Create a backup on the CCU and download it.
 
         Returns:
-            Backup file content as bytes, or None if not supported or failed.
+            Backup file content as bytes, or None if backup creation or download failed.
 
         """
-        _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: not usable for %s.", self.interface_id)
-        return None
+        if not self.supports_backup:
+            _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: Not supported by client for %s", self.interface_id)
+            return None
+
+        backup_data = await self._json_rpc_client.create_backup()
+        if not backup_data.success:
+            _LOGGER.warning(  # i18n-log: ignore
+                "CREATE_BACKUP_AND_DOWNLOAD: Backup creation failed: %s",
+                backup_data.message,
+            )
+            return None
+
+        if not backup_data.file_path:
+            _LOGGER.warning(  # i18n-log: ignore
+                "CREATE_BACKUP_AND_DOWNLOAD: No backup file path returned"
+            )
+            return None
+
+        return await self._json_rpc_client.download_backup(backup_path=backup_data.file_path)
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""
@@ -365,26 +420,65 @@ class Client(ABC, LogContextMixin):
         self.modified_at = INIT_DATETIME
         return ProxyInitState.DE_INIT_SUCCESS
 
-    @abstractmethod
     @inspector
     async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
+        return await self._json_rpc_client.delete_system_variable(name=name)
 
     @inspector
-    async def execute_program(self, *, pid: str) -> bool:  # pragma: no cover
+    async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
-        _LOGGER.debug("EXECUTE_PROGRAM: not usable for %s.", self.interface_id)
-        return True
+        if not self.supports_programs:
+            _LOGGER.debug("GET_ALL_PROGRAMS: Not supported by client for %s", self.interface_id)
+            return False
 
-    @abstractmethod
+        return await self._json_rpc_client.execute_program(pid=pid)
+
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from the backend."""
+        try:
+            if all_device_data := await self._json_rpc_client.get_all_device_data(interface=self.interface):
+                _LOGGER.debug(
+                    "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
+                    self.interface,
+                )
+                self.central.data_cache.add_data(interface=self.interface, all_device_data=all_device_data)
+                return
+        except ClientException:
+            self.central.publish_interface_event(
+                interface_id=self.interface_id,
+                interface_event_type=InterfaceEventType.FETCH_DATA,
+                data={EventKey.AVAILABLE: False},
+            )
+            raise
 
-    @abstractmethod
+        _LOGGER.debug(
+            "FETCH_ALL_DEVICE_DATA: Unable to get all device data via JSON-RPC RegaScript for interface %s",
+            self.interface,
+        )
+
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
-        """Fetch names from the backend."""
+        """Get all names via JSON-RPS and store in data.NAMES."""
+        if json_result := await self._json_rpc_client.get_device_details():
+            for device in json_result:
+                # ignore unknown interfaces
+                if (interface := device[_JSON_INTERFACE]) and interface not in Interface:
+                    continue
+
+                device_address = device[_JSON_ADDRESS]
+                self.central.device_details.add_interface(address=device_address, interface=Interface(interface))
+                self.central.device_details.add_name(address=device_address, name=device[_JSON_NAME])
+                self.central.device_details.add_address_rega_id(address=device_address, rega_id=int(device[_JSON_ID]))
+                for channel in device.get(_JSON_CHANNELS, []):
+                    channel_address = channel[_JSON_ADDRESS]
+                    self.central.device_details.add_name(address=channel_address, name=channel[_JSON_NAME])
+                    self.central.device_details.add_address_rega_id(
+                        address=channel_address, rega_id=int(channel[_JSON_ID])
+                    )
+        else:
+            _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
     @inspector(re_raise=False)
     async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
@@ -439,10 +533,20 @@ class Client(ABC, LogContextMixin):
         return tuple(all_device_description)
 
     @inspector(re_raise=False, no_raise_return={})
-    async def get_all_functions(self) -> dict[str, set[str]]:  # pragma: no cover
-        """Get all functions, if available."""
-        _LOGGER.debug("GET_ALL_FUNCTIONS: not usable for %s.", self.interface_id)
-        return {}
+    async def get_all_functions(self) -> dict[str, set[str]]:
+        """Get all functions from the backend."""
+        if not self.supports_functions:
+            _LOGGER.debug("GET_ALL_FUNCTIONS: Not supported by client for %s", self.interface_id)
+            return {}
+
+        functions: dict[str, set[str]] = {}
+        rega_ids_function = await self._json_rpc_client.get_all_channel_rega_ids_function()
+        for address, rega_id in self.central.device_details.device_channel_rega_ids.items():
+            if sections := rega_ids_function.get(rega_id):
+                if address not in functions:
+                    functions[address] = set()
+                functions[address].update(sections)
+        return functions
 
     @inspector
     async def get_all_paramset_descriptions(
@@ -455,25 +559,37 @@ class Client(ABC, LogContextMixin):
         return all_paramsets
 
     @inspector(re_raise=False)
-    async def get_all_programs(
-        self, *, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[ProgramData, ...] | None:  # pragma: no cover
+    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
-        _LOGGER.debug("GET_ALL_PROGRAMS: not usable for %s.", self.interface_id)
-        return None
+        if not self.supports_programs:
+            _LOGGER.debug("GET_ALL_PROGRAMS: Not supported by client for %s", self.interface_id)
+            return ()
+
+        return await self._json_rpc_client.get_all_programs(markers=markers)
 
     @inspector(re_raise=False, no_raise_return={})
-    async def get_all_rooms(self) -> dict[str, set[str]]:  # pragma: no cover
-        """Get all rooms, if available."""
-        _LOGGER.debug("GET_ALL_ROOMS: not usable for %s.", self.interface_id)
-        return {}
+    async def get_all_rooms(self) -> dict[str, set[str]]:
+        """Get all rooms from the backend."""
 
-    @abstractmethod
+        if not self.supports_rooms:
+            _LOGGER.debug("GET_ALL_ROOMS: Not supported by client for %s", self.interface_id)
+            return {}
+
+        rooms: dict[str, set[str]] = {}
+        rega_ids_room = await self._json_rpc_client.get_all_channel_rega_ids_room()
+        for address, rega_id in self.central.device_details.device_channel_rega_ids.items():
+            if names := rega_ids_room.get(rega_id):
+                if address not in rooms:
+                    rooms[address] = set()
+                rooms[address].update(names)
+        return rooms
+
     @inspector(re_raise=False)
     async def get_all_system_variables(
         self, *, markers: tuple[DescriptionMarker | str, ...]
     ) -> tuple[SystemVariableData, ...] | None:
         """Get all system variables from the backend."""
+        return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @inspector(re_raise=False)
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
@@ -490,10 +606,25 @@ class Client(ABC, LogContextMixin):
             )
         return None
 
-    @abstractmethod
     @inspector
-    async def get_install_mode(self) -> int:  # pragma: no cover
+    async def get_install_mode(self) -> int:
         """Return the remaining time in install mode."""
+        if not self.supports_install_mode:
+            _LOGGER.debug("GET_INSTALL_MODE: No supported by client for %s", self.interface_id)
+            return 0
+
+        try:
+            if (remaining_time := await self._proxy.getInstallMode()) is not None:
+                return int(remaining_time)
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                i18n.tr(
+                    "exception.client.get_install_mode.failed",
+                    interface_id=self.interface_id,
+                    reason=extract_exc_args(exc=bhexc),
+                )
+            ) from bhexc
+        return 0
 
     @inspector
     async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
@@ -611,17 +742,20 @@ class Client(ABC, LogContextMixin):
         return ProductGroup.UNKNOWN
 
     @inspector(re_raise=False)
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:  # pragma: no cover
+    async def get_rega_id_by_address(self, *, address: str) -> int | None:
         """Get the ReGa ID for a device or channel address."""
-        _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: not usable for %s.", self.interface_id)
-        return None
+        if not self.supports_rega_id_lookup:
+            _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: No supported by client for %s", self.interface_id)
+            return None
+
+        return await self._json_rpc_client.get_rega_id_by_address(address=address)
 
     @inspector(re_raise=False, no_raise_return=())
     async def get_service_messages(
         self,
         *,
         message_type: ServiceMessageType | None = None,
-    ) -> tuple[ServiceMessageData, ...]:  # pragma: no cover
+    ) -> tuple[ServiceMessageData, ...]:
         """
         Get all active service messages from the backend.
 
@@ -629,19 +763,25 @@ class Client(ABC, LogContextMixin):
             message_type: Filter by message type. If None, return all messages.
 
         """
-        _LOGGER.debug("GET_SERVICE_MESSAGES: not usable for %s.", self.interface_id)
-        return ()
+        if not self.supports_service_messages:
+            _LOGGER.debug("GET_SERVICE_MESSAGES: Not supported by client for %s", self.interface_id)
+            return ()
+
+        return await self._json_rpc_client.get_service_messages(message_type=message_type)
 
     @inspector(re_raise=False)
-    async def get_system_update_info(self) -> SystemUpdateData | None:  # pragma: no cover
+    async def get_system_update_info(self) -> SystemUpdateData | None:
         """Get system update information from the backend."""
-        _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: not usable for %s.", self.interface_id)
-        return None
+        if not self.supports_system_update_info:
+            _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: Not supported by client for %s", self.interface_id)
+            return None
 
-    @abstractmethod
+        return await self._json_rpc_client.get_system_update_info()
+
     @inspector
     async def get_system_variable(self, *, name: str) -> Any:
         """Get single system variable from the backend."""
+        return await self._json_rpc_client.get_system_variable(name=name)
 
     @inspector(log_level=logging.NOTSET)
     async def get_value(
@@ -687,7 +827,11 @@ class Client(ABC, LogContextMixin):
     @inspector
     async def has_program_ids(self, *, rega_id: int) -> bool:
         """Return if a channel has program ids."""
-        return False
+        if not self.supports_programs:
+            _LOGGER.debug("HAS_PROGRAM_IDS: Not supported by client for %s", self.interface_id)
+            return False
+
+        return await self._json_rpc_client.has_program_ids(rega_id=rega_id)
 
     @inspector
     async def init_client(self) -> None:
@@ -956,20 +1100,43 @@ class Client(ABC, LogContextMixin):
                 )
             ) from bhexc
 
-    @abstractmethod
     @inspector(re_raise=False)
     async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
         """Rename a channel on the CCU."""
+        if not self.supports_rename:
+            _LOGGER.debug("RENAME_CHANNEL: Not supported by client for %s", self.interface_id)
+            return False
 
-    @abstractmethod
+        return await self._json_rpc_client.rename_channel(rega_id=rega_id, new_name=new_name)
+
     @inspector(re_raise=False)
     async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
         """Rename a device on the CCU."""
+        if not self.supports_rename:
+            _LOGGER.debug("RENAME_DEVICE: Not supported by client for %s", self.interface_id)
+            return False
+
+        return await self._json_rpc_client.rename_device(rega_id=rega_id, new_name=new_name)
 
     @inspector
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
-        return False
+        if not self.supports_value_usage_reporting:
+            _LOGGER.debug("REPORT_VALUE_USAGE: Not supported by client for %s", self.interface_id)
+            return False
+
+        try:
+            return bool(await self._proxy.reportValueUsage(address, value_id, ref_counter))
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                i18n.tr(
+                    "exception.client.report_value_usage.failed",
+                    address=address,
+                    value_id=value_id,
+                    ref_counter=ref_counter,
+                    reason=extract_exc_args(exc=bhexc),
+                )
+            ) from bhexc
 
     @inspector
     async def set_install_mode(
@@ -1034,15 +1201,14 @@ class Client(ABC, LogContextMixin):
             ) from bhexc
 
     @inspector
-    async def set_program_state(self, *, pid: str, state: bool) -> bool:  # pragma: no cover
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
-        _LOGGER.debug("SET_PROGRAM_STATE: not usable for %s.", self.interface_id)
-        return True
+        return await self._json_rpc_client.set_program_state(pid=pid, state=state)
 
-    @abstractmethod
     @inspector(measure_performance=True)
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         """Set a system variable on the backend."""
+        return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
 
     @inspector(re_raise=False, no_raise_return=set())
     async def set_value(
@@ -1083,10 +1249,13 @@ class Client(ABC, LogContextMixin):
         await self._proxy.stop()
         await self._proxy_read.stop()
 
-    @abstractmethod
     @inspector(re_raise=False)
-    async def trigger_firmware_update(self) -> bool:  # pragma: no cover
+    async def trigger_firmware_update(self) -> bool:
         """Trigger the CCU firmware update process."""
+        if not self.supports_firmware_update_trigger:
+            _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: Not supported by client for %s", self.interface_id)
+
+        return await self._json_rpc_client.trigger_firmware_update()
 
     @inspector
     async def update_device_firmware(self, *, device_address: str) -> bool:
@@ -1272,9 +1441,9 @@ class Client(ABC, LogContextMixin):
             )
         return None
 
-    @abstractmethod
     async def _get_system_information(self) -> SystemInformation:
         """Get system information of the backend."""
+        return await self._json_rpc_client.get_system_information()
 
     def _mark_all_devices_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Mark device's availability state for this interface."""
@@ -1371,357 +1540,6 @@ class Client(ABC, LogContextMixin):
                 data_point.write_temporary_value(value=value, write_at=datetime.now())
 
 
-class ClientCCU(Client):
-    """Client implementation for CCU backend."""
-
-    def __init__(self, *, client_config: ClientConfig) -> None:
-        """Initialize the Client."""
-        self._json_rpc_client: Final = client_config.central.json_rpc_client
-        super().__init__(client_config=client_config)
-
-    @property
-    def model(self) -> str:
-        """Return the model of the backend."""
-        return Backend.CCU
-
-    @property
-    def supports_backup(self) -> bool:
-        """Return if the backend supports backup creation and download."""
-        return True
-
-    @property
-    def supports_device_firmware_update(self) -> bool:
-        """Return if the backend supports device firmware updates."""
-        return True
-
-    @property
-    def supports_firmware_update_trigger(self) -> bool:
-        """Return if the backend supports triggering system firmware updates."""
-        return True
-
-    @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
-        return True
-
-    @property
-    def supports_install_mode(self) -> bool:
-        """Return if the backend supports install mode operations."""
-        return True
-
-    @property
-    def supports_linking(self) -> bool:
-        """Return if the backend supports device linking operations."""
-        return True
-
-    @property
-    def supports_metadata(self) -> bool:
-        """Return if the backend supports metadata operations."""
-        return True
-
-    @property
-    def supports_rega_id_lookup(self) -> bool:
-        """Return if the backend supports ReGa ID lookups."""
-        return True
-
-    @property
-    def supports_rename(self) -> bool:
-        """Return if the backend supports renaming devices and channels."""
-        return True
-
-    @property
-    def supports_service_messages(self) -> bool:
-        """Return if the backend supports service messages."""
-        return True
-
-    @property
-    def supports_system_update_info(self) -> bool:
-        """Return if the backend supports system update information."""
-        return True
-
-    @property
-    def supports_value_usage_reporting(self) -> bool:
-        """Return if the backend supports value usage reporting."""
-        return True
-
-    @inspector(re_raise=False)
-    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
-        """Accept a device from the CCU inbox."""
-        return await self._json_rpc_client.accept_device_in_inbox(device_address=device_address)
-
-    @inspector(re_raise=False, no_raise_return=False)
-    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
-        """Check if _proxy is still initialized."""
-        try:
-            dt_now = datetime.now()
-            if handle_ping_pong and self.supports_ping_pong and self._is_initialized:
-                token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
-                callerId = f"{self.interface_id}#{token}" if handle_ping_pong else self.interface_id
-                await self._proxy.ping(callerId)
-                self._ping_pong_cache.handle_send_ping(ping_token=token)
-            elif not self._is_initialized:
-                await self._proxy.ping(self.interface_id)
-            self.modified_at = dt_now
-        except BaseHomematicException as bhexc:
-            _LOGGER.debug(
-                "CHECK_CONNECTION_AVAILABILITY failed: %s [%s]",
-                bhexc.name,
-                extract_exc_args(exc=bhexc),
-            )
-        else:
-            return True
-        self.modified_at = INIT_DATETIME
-        return False
-
-    @inspector(re_raise=False)
-    async def create_backup_and_download(self) -> bytes | None:
-        """
-        Create a backup on the CCU and download it.
-
-        Returns:
-            Backup file content as bytes, or None if backup creation or download failed.
-
-        """
-        if not self.supports_backup:
-            _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: Not supported by client for %s", self.interface_id)
-            return None
-
-        backup_data = await self._json_rpc_client.create_backup()
-        if not backup_data.success:
-            _LOGGER.warning(  # i18n-log: ignore
-                "CREATE_BACKUP_AND_DOWNLOAD: Backup creation failed: %s",
-                backup_data.message,
-            )
-            return None
-
-        if not backup_data.file_path:
-            _LOGGER.warning(  # i18n-log: ignore
-                "CREATE_BACKUP_AND_DOWNLOAD: No backup file path returned"
-            )
-            return None
-
-        return await self._json_rpc_client.download_backup(backup_path=backup_data.file_path)
-
-    @inspector
-    async def delete_system_variable(self, *, name: str) -> bool:
-        """Delete a system variable from the backend."""
-        return await self._json_rpc_client.delete_system_variable(name=name)
-
-    @inspector
-    async def execute_program(self, *, pid: str) -> bool:
-        """Execute a program on the backend."""
-        return await self._json_rpc_client.execute_program(pid=pid)
-
-    @inspector(re_raise=False, measure_performance=True)
-    async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from the backend."""
-        try:
-            if all_device_data := await self._json_rpc_client.get_all_device_data(interface=self.interface):
-                _LOGGER.debug(
-                    "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
-                    self.interface,
-                )
-                self.central.data_cache.add_data(interface=self.interface, all_device_data=all_device_data)
-                return
-        except ClientException:
-            self.central.publish_interface_event(
-                interface_id=self.interface_id,
-                interface_event_type=InterfaceEventType.FETCH_DATA,
-                data={EventKey.AVAILABLE: False},
-            )
-            raise
-
-        _LOGGER.debug(
-            "FETCH_ALL_DEVICE_DATA: Unable to get all device data via JSON-RPC RegaScript for interface %s",
-            self.interface,
-        )
-
-    @inspector(re_raise=False, measure_performance=True)
-    async def fetch_device_details(self) -> None:
-        """Get all names via JSON-RPS and store in data.NAMES."""
-        if json_result := await self._json_rpc_client.get_device_details():
-            for device in json_result:
-                # ignore unknown interfaces
-                if (interface := device[_JSON_INTERFACE]) and interface not in Interface:
-                    continue
-
-                device_address = device[_JSON_ADDRESS]
-                self.central.device_details.add_interface(address=device_address, interface=Interface(interface))
-                self.central.device_details.add_name(address=device_address, name=device[_JSON_NAME])
-                self.central.device_details.add_address_rega_id(address=device_address, rega_id=int(device[_JSON_ID]))
-                for channel in device.get(_JSON_CHANNELS, []):
-                    channel_address = channel[_JSON_ADDRESS]
-                    self.central.device_details.add_name(address=channel_address, name=channel[_JSON_NAME])
-                    self.central.device_details.add_address_rega_id(
-                        address=channel_address, rega_id=int(channel[_JSON_ID])
-                    )
-        else:
-            _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
-
-    @inspector(re_raise=False, no_raise_return={})
-    async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from the backend."""
-        functions: dict[str, set[str]] = {}
-        rega_ids_function = await self._json_rpc_client.get_all_channel_rega_ids_function()
-        for address, rega_id in self.central.device_details.device_channel_rega_ids.items():
-            if sections := rega_ids_function.get(rega_id):
-                if address not in functions:
-                    functions[address] = set()
-                functions[address].update(sections)
-        return functions
-
-    @inspector(re_raise=False)
-    async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:
-        """Get all programs, if available."""
-        return await self._json_rpc_client.get_all_programs(markers=markers)
-
-    @inspector(re_raise=False, no_raise_return={})
-    async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from the backend."""
-        rooms: dict[str, set[str]] = {}
-        rega_ids_room = await self._json_rpc_client.get_all_channel_rega_ids_room()
-        for address, rega_id in self.central.device_details.device_channel_rega_ids.items():
-            if names := rega_ids_room.get(rega_id):
-                if address not in rooms:
-                    rooms[address] = set()
-                rooms[address].update(names)
-        return rooms
-
-    @inspector(re_raise=False)
-    async def get_all_system_variables(
-        self, *, markers: tuple[DescriptionMarker | str, ...]
-    ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from the backend."""
-        return await self._json_rpc_client.get_all_system_variables(markers=markers)
-
-    @inspector
-    async def get_install_mode(self) -> int:
-        """Return the remaining time in install mode."""
-        if not self.supports_install_mode:
-            _LOGGER.debug("GET_INSTALL_MODE: No supported by client for %s", self.interface_id)
-            return 0
-
-        try:
-            if (remaining_time := await self._proxy.getInstallMode()) is not None:
-                return int(remaining_time)
-        except BaseHomematicException as bhexc:
-            raise ClientException(
-                i18n.tr(
-                    "exception.client.get_install_mode.failed",
-                    interface_id=self.interface_id,
-                    reason=extract_exc_args(exc=bhexc),
-                )
-            ) from bhexc
-        return 0
-
-    @inspector(re_raise=False)
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Get the ReGa ID for a device or channel address."""
-        if not self.supports_rega_id_lookup:
-            _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: No supported by client for %s", self.interface_id)
-            return None
-
-        return await self._json_rpc_client.get_rega_id_by_address(address=address)
-
-    @inspector(re_raise=False, no_raise_return=())
-    async def get_service_messages(
-        self,
-        *,
-        message_type: ServiceMessageType | None = None,
-    ) -> tuple[ServiceMessageData, ...]:
-        """
-        Get all active service messages from the backend.
-
-        Args:
-            message_type: Filter by message type. If None, return all messages.
-
-        """
-        if not self.supports_service_messages:
-            _LOGGER.debug("GET_SERVICE_MESSAGES: Not supported by client for %s", self.interface_id)
-            return ()
-
-        return await self._json_rpc_client.get_service_messages(message_type=message_type)
-
-    @inspector(re_raise=False)
-    async def get_system_update_info(self) -> SystemUpdateData | None:
-        """Get system update information from the backend."""
-        if not self.supports_system_update_info:
-            _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: Not supported by client for %s", self.interface_id)
-            return None
-
-        return await self._json_rpc_client.get_system_update_info()
-
-    @inspector
-    async def get_system_variable(self, *, name: str) -> Any:
-        """Get single system variable from the backend."""
-        return await self._json_rpc_client.get_system_variable(name=name)
-
-    @inspector
-    async def has_program_ids(self, *, rega_id: int) -> bool:
-        """Return if a channel has program ids."""
-        return await self._json_rpc_client.has_program_ids(rega_id=rega_id)
-
-    @inspector(re_raise=False)
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
-        """Rename a channel on the CCU."""
-        if not self.supports_rename:
-            _LOGGER.debug("RENAME_CHANNEL: Not supported by client for %s", self.interface_id)
-            return False
-
-        return await self._json_rpc_client.rename_channel(rega_id=rega_id, new_name=new_name)
-
-    @inspector(re_raise=False)
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
-        """Rename a device on the CCU."""
-        if not self.supports_rename:
-            _LOGGER.debug("RENAME_DEVICE: Not supported by client for %s", self.interface_id)
-            return False
-
-        return await self._json_rpc_client.rename_device(rega_id=rega_id, new_name=new_name)
-
-    @inspector
-    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
-        """Report value usage."""
-        if not self.supports_value_usage_reporting:
-            _LOGGER.debug("REPORT_VALUE_USAGE: Not supported by client for %s", self.interface_id)
-            return False
-
-        try:
-            return bool(await self._proxy.reportValueUsage(address, value_id, ref_counter))
-        except BaseHomematicException as bhexc:
-            raise ClientException(
-                i18n.tr(
-                    "exception.client.report_value_usage.failed",
-                    address=address,
-                    value_id=value_id,
-                    ref_counter=ref_counter,
-                    reason=extract_exc_args(exc=bhexc),
-                )
-            ) from bhexc
-
-    @inspector
-    async def set_program_state(self, *, pid: str, state: bool) -> bool:
-        """Set the program state on the backend."""
-        return await self._json_rpc_client.set_program_state(pid=pid, state=state)
-
-    @inspector(measure_performance=True)
-    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on the backend."""
-        return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)
-
-    @inspector(re_raise=False)
-    async def trigger_firmware_update(self) -> bool:
-        """Trigger the CCU firmware update process."""
-        if not self.supports_firmware_update_trigger:
-            _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: Not supported by client for %s", self.interface_id)
-
-        return await self._json_rpc_client.trigger_firmware_update()
-
-    async def _get_system_information(self) -> SystemInformation:
-        """Get system information of the backend."""
-        return await self._json_rpc_client.get_system_information()
-
-
 class ClientJsonCCU(ClientCCU):
     """Client implementation for CCU-like backend (CCU-Jack)."""
 
@@ -1736,6 +1554,21 @@ class ClientJsonCCU(ClientCCU):
         return False
 
     @property
+    def supports_firmware_update_trigger(self) -> bool:
+        """Return if the backend supports triggering system firmware updates."""
+        return False
+
+    @property
+    def supports_functions(self) -> bool:
+        """Return if interface supports functions."""
+        return False
+
+    @property
+    def supports_inbox(self) -> bool:
+        """Return if the backend supports device inbox operations."""
+        return False
+
+    @property
     def supports_install_mode(self) -> bool:
         """Return if the backend supports install mode operations."""
         return False
@@ -1748,6 +1581,26 @@ class ClientJsonCCU(ClientCCU):
     @property
     def supports_metadata(self) -> bool:
         """Return if the backend supports metadata operations."""
+        return False
+
+    @property
+    def supports_programs(self) -> bool:
+        """Return if interface supports programs."""
+        return False
+
+    @property
+    def supports_rega_id_lookup(self) -> bool:
+        """Return if the backend supports ReGa ID lookups."""
+        return False
+
+    @property
+    def supports_rename(self) -> bool:
+        """Return if the backend supports renaming devices and channels."""
+        return False
+
+    @property
+    def supports_rooms(self) -> bool:
+        """Return if interface supports rooms."""
         return False
 
     @property
@@ -1957,6 +1810,9 @@ class ClientJsonCCU(ClientCCU):
         )
 
 
+Client = ClientCCU
+
+
 class ClientHomegear(ClientCCU):
     """
     Client implementation for Homegear backend.
@@ -1978,8 +1834,23 @@ class ClientHomegear(ClientCCU):
         return False
 
     @property
+    def supports_device_firmware_update(self) -> bool:
+        """Return if the backend supports device firmware updates."""
+        return False
+
+    @property
     def supports_firmware_update_trigger(self) -> bool:
         """Return if the backend supports triggering system firmware updates."""
+        return False
+
+    @property
+    def supports_firmware_updates(self) -> bool:
+        """Return the supports_ping_pong info of the backend."""
+        return False
+
+    @property
+    def supports_functions(self) -> bool:
+        """Return if interface supports functions."""
         return False
 
     @property
@@ -1988,8 +1859,23 @@ class ClientHomegear(ClientCCU):
         return False
 
     @property
+    def supports_install_mode(self) -> bool:
+        """Return if the backend supports install mode operations."""
+        return False
+
+    @property
+    def supports_metadata(self) -> bool:
+        """Return if the backend supports metadata operations."""
+        return False
+
+    @property
     def supports_ping_pong(self) -> bool:
-        """Return the supports_ping_pong info of the backend."""
+        """Return if the backend supports ping pong."""
+        return False
+
+    @property
+    def supports_programs(self) -> bool:
+        """Return if interface supports programs."""
         return False
 
     @property
@@ -2003,6 +1889,11 @@ class ClientHomegear(ClientCCU):
         return False
 
     @property
+    def supports_rooms(self) -> bool:
+        """Return if interface supports rooms."""
+        return False
+
+    @property
     def supports_service_messages(self) -> bool:
         """Return if the backend supports service messages."""
         return False
@@ -2010,6 +1901,11 @@ class ClientHomegear(ClientCCU):
     @property
     def supports_system_update_info(self) -> bool:
         """Return if the backend supports system update information."""
+        return False
+
+    @property
+    def supports_value_usage_reporting(self) -> bool:
+        """Return if the backend supports value usage reporting."""
         return False
 
     @inspector(re_raise=False, no_raise_return=False)
@@ -2103,7 +1999,9 @@ class ClientConfig:
         self.interface_id: Final = interface_config.interface_id
         self.max_read_workers: Final[int] = central.config.max_read_workers
         self.has_credentials: Final[bool] = central.config.username is not None and central.config.password is not None
+        self.supports_linking: Final = self.interface in LINKABLE_INTERFACES
         self.supports_firmware_updates: Final = self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
+        self.supports_ping_pong: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
         self.supports_push_updates: Final = self.interface not in central.config.interfaces_requiring_periodic_refresh
         self.supports_rpc_callback: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
         callback_host: Final = (

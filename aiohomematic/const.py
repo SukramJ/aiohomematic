@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.2"
+VERSION: Final = "2025.12.3"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -954,6 +954,15 @@ INTERFACE_RPC_SERVER_TYPE: Final[Mapping[Interface, RpcServerType]] = MappingPro
         Interface.CCU_JACK: RpcServerType.NONE,
     }
 )
+
+LINKABLE_INTERFACES: Final[frozenset[Interface]] = frozenset(
+    {
+        Interface.BIDCOS_RF,
+        Interface.BIDCOS_WIRED,
+        Interface.HMIP_RF,
+    }
+)
+
 
 DEFAULT_USE_PERIODIC_SCAN_FOR_INTERFACES: Final = True
 

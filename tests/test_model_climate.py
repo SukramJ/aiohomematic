@@ -1928,6 +1928,11 @@ class TestScheduleCache:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Flush all pending events from setup before subscribing.
+        # This ensures we only count events triggered by our explicit actions,
+        # not cascading events from internal subscriptions during device setup.
+        await central.looper.block_till_done()
+
         # Register callback to track schedule reload
         reload_callback_count = 0
 

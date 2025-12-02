@@ -405,7 +405,7 @@ class Hub(HubProtocol):
         """Retrieve all program data and update program values."""
         if not (client := self._primary_client_provider.primary_client):
             return
-        if (programs := await client.get_all_programs(markers=self._config_provider.config.program_markers)) is None:
+        if not (programs := await client.get_all_programs(markers=self._config_provider.config.program_markers)):
             _LOGGER.debug("UPDATE_PROGRAM_DATA_POINTS: Unable to retrieve programs for %s", self._central_info.name)
             return
 

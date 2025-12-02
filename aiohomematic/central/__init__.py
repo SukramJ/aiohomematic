@@ -144,6 +144,7 @@ from aiohomematic.exceptions import (
     NoClientsException,
 )
 from aiohomematic.interfaces import (
+    BackupProvider,
     BaseParameterDataPointProtocol,
     CallbackDataPointProtocol,
     CentralInfo,
@@ -223,6 +224,7 @@ INTERFACE_EVENT_SCHEMA = vol.Schema(
 
 class CentralUnit(
     PayloadMixin,
+    BackupProvider,
     CentralInfo,
     CentralUnitStateProvider,
     ChannelLookup,
@@ -589,6 +591,18 @@ class CentralUnit(
     async def clear_files(self) -> None:
         """Remove all stored files and caches."""
         await self._cache_coordinator.clear_all()
+
+    async def create_backup_and_download(self) -> bytes | None:
+        """
+        Create a backup on the CCU and download it.
+
+        Returns:
+            Backup file content as bytes, or None if backup creation or download failed.
+
+        """
+        if client := self.primary_client:
+            return await client.create_backup_and_download()
+        return None
 
     @inspector
     async def create_central_links(self) -> None:

@@ -138,6 +138,7 @@
   "log.client.json_rpc.do_login.no_credentials": "DO_LOGIN fehlgeschlagen: Keine Zugangsdaten gesetzt",
   "log.client.json_rpc.download_backup.error": "DOWNLOAD_BACKUP fehlgeschlagen: {reason}",
   "log.client.json_rpc.download_backup.failed": "DOWNLOAD_BACKUP fehlgeschlagen: HTTP-Status {status}",
+  "log.client.json_rpc.download_backup.no_session": "DOWNLOAD_BACKUP fehlgeschlagen: Keine Session-ID verfügbar",
   "log.client.json_rpc.download_firmware.error": "DOWNLOAD_FIRMWARE fehlgeschlagen: {reason}",
   "log.client.json_rpc.download_firmware.failed": "DOWNLOAD_FIRMWARE fehlgeschlagen: HTTP-Status {status}",
   "log.client.json_rpc.download_firmware.no_session": "DOWNLOAD_FIRMWARE fehlgeschlagen: Keine Session-ID verfügbar",

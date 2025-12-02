@@ -405,18 +405,27 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         Download a backup file from the CCU.
 
         Args:
-            backup_path: Path to the backup file on CCU (e.g., /usr/local/tmp/last_backup.sbk)
+            backup_path: Unused, kept for backward compatibility.
+                The CCU's cp_security.cgi endpoint creates and downloads a fresh backup.
 
         Returns:
             Backup file content as bytes, or None if download failed.
 
         """
+        del backup_path  # Unused - cp_security.cgi creates its own backup
         if not self._client_session:
             _LOGGER.error(i18n.tr("exception.client.json_post.no_session"))
             return None
 
-        # Build download URL - CCU serves files via /config/filedownload.cgi
-        download_url = f"{self._url.replace(PATH_JSON_RPC, '')}/config/filedownload.cgi?file={backup_path}"
+        # Get session ID for authentication
+        await self._login_or_renew()
+        if not self._session_id:
+            _LOGGER.error(i18n.tr("log.client.json_rpc.download_backup.no_session"))
+            return None
+
+        # Build download URL - CCU creates and serves backup via cp_security.cgi
+        # Session ID must be wrapped in @ symbols: sid=@SESSION_ID@
+        download_url = f"{self._url.replace(PATH_JSON_RPC, '')}/config/cp_security.cgi?sid=@{self._session_id}@&action=create_backup"
 
         try:
             _LOGGER.debug("DOWNLOAD_BACKUP: Downloading backup from %s", download_url)

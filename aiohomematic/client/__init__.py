@@ -78,6 +78,7 @@ from aiohomematic.const import (
     DeviceDescription,
     EventKey,
     ForcedDeviceAvailability,
+    InboxDeviceData,
     Interface,
     InterfaceEventType,
     InternalCustomID,
@@ -235,8 +236,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return True
 
     @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
+    def supports_inbox_devices(self) -> bool:
+        """Return if the backend supports inbox devices."""
         return True
 
     @property
@@ -322,7 +323,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     @inspector(re_raise=False)
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
-        if not self.supports_inbox:
+        if not self.supports_inbox_devices:
             _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: Not supported by client for %s", self.interface_id)
             return False
 
@@ -614,6 +615,15 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc)
             )
         return None
+
+    @inspector(re_raise=False, no_raise_return=())
+    async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
+        """Get all devices in the inbox (not yet configured)."""
+        if not self.supports_inbox_devices:
+            _LOGGER.debug("GET_INBOX_DEVICES: Not supported by client for %s", self.interface_id)
+            return ()
+
+        return await self._json_rpc_client.get_inbox_devices()
 
     @inspector
     async def get_install_mode(self) -> int:
@@ -1573,8 +1583,8 @@ class ClientJsonCCU(ClientCCU):
         return False
 
     @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
+    def supports_inbox_devices(self) -> bool:
+        """Return if the backend supports inbox devices."""
         return False
 
     @property
@@ -1860,8 +1870,8 @@ class ClientHomegear(ClientCCU):
         return False
 
     @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
+    def supports_inbox_devices(self) -> bool:
+        """Return if the backend supports inbox devices."""
         return False
 
     @property

@@ -10,7 +10,7 @@ from typing import Any, Final
 
 from slugify import slugify
 
-from aiohomematic.const import HUB_ADDRESS, DataPointCategory, ServiceMessageData, SysvarType
+from aiohomematic.const import HUB_ADDRESS, DataPointCategory, InboxDeviceData, SysvarType
 from aiohomematic.interfaces import (
     CentralInfo,
     ChannelProtocol,
@@ -36,7 +36,7 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
     """Class for a Homematic inbox sensor."""
 
     __slots__ = (
-        "_messages",
+        "_devices",
         "_name_data",
         "_previous_value",
         "_state_uncertain",
@@ -76,7 +76,7 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
             parameter_visibility_provider=parameter_visibility_provider,
         )
         self._state_uncertain: bool = True
-        self._messages: tuple[ServiceMessageData, ...] = ()
+        self._devices: tuple[InboxDeviceData, ...] = ()
         self._previous_value: int = 0
 
     @property
@@ -160,14 +160,14 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
         return self._central_info.available
 
     @state_property
-    def messages(self) -> tuple[ServiceMessageData, ...]:
-        """Return the inbox messages."""
-        return self._messages
+    def devices(self) -> tuple[InboxDeviceData, ...]:
+        """Return the inbox devices."""
+        return self._devices
 
     @state_property
     def value(self) -> int:
-        """Return the count of inbox messages."""
-        return len(self._messages)
+        """Return the count of inbox devices."""
+        return len(self._devices)
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data point has subscribed."""
@@ -175,11 +175,11 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
     async def send_variable(self, *, value: Any) -> None:
         """Set variable value on the backend."""
 
-    def update_data(self, *, messages: tuple[ServiceMessageData, ...], write_at: datetime) -> None:
-        """Update the data point with new inbox messages."""
-        if self._messages != messages:
-            self._previous_value = len(self._messages)
-            self._messages = messages
+    def update_data(self, *, devices: tuple[InboxDeviceData, ...], write_at: datetime) -> None:
+        """Update the data point with new inbox devices."""
+        if self._devices != devices:
+            self._previous_value = len(self._devices)
+            self._devices = devices
             self._set_modified_at(modified_at=write_at)
         else:
             self._set_refreshed_at(refreshed_at=write_at)

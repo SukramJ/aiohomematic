@@ -87,7 +87,6 @@ from aiohomematic.const import (
     BackendSystemEvent,
     DataPointCategory,
     ProgramData,
-    ServiceMessageType,
     SystemVariableData,
     SysvarType,
 )
@@ -374,11 +373,11 @@ class Hub(HubProtocol):
             self._hub_data_point_manager.remove_sysvar_data_point(vid=vid)
 
     async def _update_inbox_data_point(self) -> None:
-        """Retrieve inbox messages and update the data point."""
+        """Retrieve inbox devices and update the data point."""
         if not (client := self._primary_client_provider.primary_client):
             return
 
-        messages = await client.get_service_messages(message_type=ServiceMessageType.INBOX)
+        devices = await client.get_inbox_devices()
         is_new = False
 
         if self._inbox_dp is None:
@@ -393,7 +392,7 @@ class Hub(HubProtocol):
             )
             is_new = True
 
-        self._inbox_dp.update_data(messages=messages, write_at=datetime.now())
+        self._inbox_dp.update_data(devices=devices, write_at=datetime.now())
 
         if is_new:
             self._event_publisher.publish_backend_system_event(

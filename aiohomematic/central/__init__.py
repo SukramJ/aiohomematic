@@ -565,6 +565,26 @@ class CentralUnit(
             self._version = max(versions) if versions else None
         return self._version
 
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """
+        Accept a device from the CCU inbox.
+
+        Args:
+            device_address: The address of the device to accept.
+
+        Returns:
+            True if the device was successfully accepted, False otherwise.
+
+        """
+        if not (client := self.primary_client):
+            _LOGGER.warning(
+                i18n.tr("log.central.accept_device_in_inbox.no_client", device_address=device_address, name=self.name)
+            )
+            return False
+
+        result = await client.accept_device_in_inbox(device_address=device_address)
+        return bool(result)
+
     def add_event_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
         """Add data_point to central event subscription."""
         self._event_coordinator.add_data_point_subscription(data_point=data_point)
@@ -1045,6 +1065,36 @@ class CentralUnit(
     def remove_sysvar_data_point(self, *, vid: str) -> None:
         """Remove a sysvar data_point."""
         self._hub_coordinator.remove_sysvar_data_point(vid=vid)
+
+    async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
+        """
+        Rename a device on the CCU.
+
+        Args:
+            device_address: The address of the device to rename.
+            name: The new name for the device.
+            include_channels: If True, also rename all channels using the format "name:channel_no".
+
+        Returns:
+            True if the device was successfully renamed, False otherwise.
+
+        """
+        if (device := self.get_device(address=device_address)) is None:
+            _LOGGER.warning(
+                i18n.tr("log.central.rename_device.not_found", device_address=device_address, name=self.name)
+            )
+            return False
+
+        if not await device.client.rename_device(rega_id=device.rega_id, new_name=name):
+            return False
+
+        if include_channels:
+            for channel in device.channels.values():
+                if channel.no is not None:
+                    channel_name = f"{name}:{channel.no}"
+                    await device.client.rename_channel(rega_id=channel.rega_id, new_name=channel_name)
+
+        return True
 
     async def restart_clients(self) -> None:
         """Restart clients."""

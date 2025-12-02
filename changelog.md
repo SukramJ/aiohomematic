@@ -3,6 +3,8 @@
 ## What's Changed
 
 - Add create_backup_and_download to BackupProvider/CentralUnit
+- Add dedicated inbox devices code
+- Add rename_device / accept_device_in_inbox to Central/DeviceManagement
 - Refactor Client
 
 # Version 2025.12.2 (2025-12-01)

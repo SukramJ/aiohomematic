@@ -30,6 +30,7 @@ from aiohomematic.const import (
     EventKey,
     EventType,
     ForcedDeviceAvailability,
+    InboxDeviceData,
     Interface,
     ParameterData,
     ParameterType,
@@ -141,8 +142,8 @@ class ClientProtocol(Protocol):
         """Return if interface supports functions."""
 
     @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
+    def supports_inbox_devices(self) -> bool:
+        """Return if the backend supports inbox device queries."""
 
     @property
     def supports_install_mode(self) -> bool:
@@ -259,6 +260,9 @@ class ClientProtocol(Protocol):
 
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
+
+    async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
+        """Get all devices in the inbox (not yet configured)."""
 
     async def get_install_mode(self) -> int:
         """Return the remaining time in install mode."""
@@ -767,6 +771,25 @@ class BackupProvider(Protocol):
     @abstractmethod
     async def create_backup_and_download(self) -> bytes | None:
         """Create a backup on the CCU and download it."""
+
+
+@runtime_checkable
+class DeviceManagement(Protocol):
+    """
+    Protocol for device management operations.
+
+    Provides methods for managing devices on the CCU including
+    accepting inbox devices and renaming devices/channels.
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """Accept a device from the CCU inbox."""
+
+    @abstractmethod
+    async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
+        """Rename a device on the CCU."""
 
 
 @runtime_checkable

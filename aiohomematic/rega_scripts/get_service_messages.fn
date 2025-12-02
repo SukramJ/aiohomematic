@@ -1,17 +1,13 @@
 !# get_service_messages.fn
 !#
-!# This script returns all active service messages from the CCU.
-!# Service messages include new devices in inbox, configuration errors,
-!# connectivity issues, low battery warnings, etc.
+!# Return all active service messages from the CCU.
+!# Service messages include connectivity issues (UNREACH), configuration
+!# pending, low battery warnings, and other device alerts.
 !#
+!# Note: Inbox devices are handled separately by get_inbox_devices.fn.
 
 string sAlarmId;
 boolean bFirst = true;
-string sName;
-string sTimestamp;
-integer iType;
-string sAddress;
-string sDeviceName;
 
 Write('[');
 
@@ -19,57 +15,66 @@ object oServices = dom.GetObject(ID_SERVICES);
 if (oServices) {
     foreach(sAlarmId, oServices.EnumIDs()) {
         object oAlarm = dom.GetObject(sAlarmId);
-        if (oAlarm) {
-            integer iAlState = oAlarm.AlState();
-            if (iAlState == 1) {
-                if (bFirst) {
-                    bFirst = false;
-                } else {
-                    Write(',');
+        if (oAlarm && (oAlarm.AlState() == 1)) {
+            if (bFirst) {
+                bFirst = false;
+            } else {
+                Write(',');
+            }
+
+            string sRawName = oAlarm.Name();
+            string sName = "";
+            if (sRawName) {
+                sName = sRawName.UriEncode();
+            } else {
+                sRawName = "";
+            }
+
+            string sTimestamp = "";
+            time tTime = oAlarm.AlOccurrenceTime();
+            if (tTime) {
+                sTimestamp = tTime.ToString();
+            }
+
+            integer iType = oAlarm.AlType();
+            string sAddress = "";
+            string sDeviceName = "";
+
+            !# Extract address from alarm name (format: "AL-ADDRESS:X.PARAM")
+            if (sRawName.Find("AL-") == 0) {
+                string sTmp = sRawName.Substr(3);
+                integer iColon = sTmp.Find(":");
+                if (iColon > 0) {
+                    sAddress = sTmp.Substr(0, iColon);
                 }
+            }
 
-                sName = oAlarm.Name();
-                if (sName) {
-                    sName = sName.UriEncode();
-                } else {
-                    sName = "";
-                }
-
-                time tTime = oAlarm.AlOccurrenceTime();
-                if (tTime) {
-                    sTimestamp = tTime.ToString();
-                } else {
-                    sTimestamp = "";
-                }
-
-                iType = oAlarm.AlType();
-
-                sAddress = "";
-                sDeviceName = "";
-                integer iTriggerDP = oAlarm.AlTriggerDP();
-                if (iTriggerDP) {
-                    object oTrigger = dom.GetObject(iTriggerDP);
-                    if (oTrigger) {
-                        object oChn = oTrigger.Channel();
-                        if (oChn) {
+            !# Get device name from trigger data point channel
+            integer iTriggerDP = oAlarm.AlTriggerDP();
+            if (iTriggerDP) {
+                object oTrigger = dom.GetObject(iTriggerDP);
+                if (oTrigger) {
+                    object oChn = oTrigger.Channel();
+                    if (oChn) {
+                        if (sAddress == "") {
                             sAddress = oChn.Address();
-                            sDeviceName = oChn.Name();
-                            if (sDeviceName) {
-                                sDeviceName = sDeviceName.UriEncode();
-                            } else {
-                                sDeviceName = "";
-                            }
+                        }
+                        sDeviceName = oChn.Name();
+                        if (sDeviceName) {
+                            sDeviceName = sDeviceName.UriEncode();
+                        } else {
+                            sDeviceName = "";
                         }
                     }
                 }
-
-                Write('{"id":"' # oAlarm.ID() # '",');
-                Write('"name":"' # sName # '",');
-                Write('"timestamp":"' # sTimestamp # '",');
-                Write('"type":' # iType # ',');
-                Write('"address":"' # sAddress # '",');
-                Write('"device_name":"' # sDeviceName # '"}');
             }
+
+            Write('{"id":"' # oAlarm.ID() # '",');
+            Write('"name":"' # sName # '",');
+            Write('"timestamp":"' # sTimestamp # '",');
+            Write('"type":' # iType # ',');
+            Write('"address":"' # sAddress # '",');
+            Write('"device_name":"' # sDeviceName # '"}');
         }
     }
 }

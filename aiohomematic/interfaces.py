@@ -774,6 +774,25 @@ class BackupProvider(Protocol):
 
 
 @runtime_checkable
+class DeviceManagement(Protocol):
+    """
+    Protocol for device management operations.
+
+    Provides methods for managing devices on the CCU including
+    accepting inbox devices and renaming devices/channels.
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """Accept a device from the CCU inbox."""
+
+    @abstractmethod
+    async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
+        """Rename a device on the CCU."""
+
+
+@runtime_checkable
 class EventBusProvider(Protocol):
     """
     Protocol for accessing event bus.

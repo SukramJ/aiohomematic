@@ -8,8 +8,8 @@ from unittest.mock import Mock, call
 import pytest
 
 from aiohomematic.central import CentralUnit
-from aiohomematic.client import Client
 from aiohomematic.const import DataPointUsage
+from aiohomematic.interfaces import ClientProtocol
 from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
 
@@ -33,7 +33,7 @@ class TestGenericText:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def no_test_generic_text_data_point(self, central_client: tuple[CentralUnit, Client | Mock]) -> None:
+    async def no_test_generic_text_data_point(self, central_client: tuple[CentralUnit, ClientProtocol | Mock]) -> None:
         """Test DpText. There are currently no text data points."""
         central, _ = central_client
         text: DpText = cast(DpText, central.get_generic_data_point(channel_address="VCU7981740:1", parameter="STATE"))

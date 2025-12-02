@@ -31,6 +31,7 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.interfaces import (
     CentralInfo,
     ClientFactory,
+    ClientProtocol,
     ClientProvider,
     ConfigProvider,
     CoordinatorProvider,
@@ -83,9 +84,9 @@ class ClientCoordinator(ClientProvider):
         self._system_info_provider: Final = system_info_provider
 
         # {interface_id, client}
-        self._clients: Final[dict[str, hmcl.Client]] = {}
+        self._clients: Final[dict[str, ClientProtocol]] = {}
         self._clients_started: bool = False
-        self._primary_client: hmcl.Client | None = None
+        self._primary_client: ClientProtocol | None = None
 
     @property
     def all_clients_active(self) -> bool:
@@ -99,7 +100,7 @@ class ClientCoordinator(ClientProvider):
         return all(client.available for client in self._clients.values())
 
     @property
-    def clients(self) -> tuple[hmcl.Client, ...]:
+    def clients(self) -> tuple[ClientProtocol, ...]:
         """Return all clients."""
         return tuple(self._clients.values())
 
@@ -129,12 +130,12 @@ class ClientCoordinator(ClientProvider):
         return all(client.is_callback_alive() for client in self._clients.values())
 
     @property
-    def poll_clients(self) -> tuple[hmcl.Client, ...]:
+    def poll_clients(self) -> tuple[ClientProtocol, ...]:
         """Return clients that need to poll data."""
         return tuple(client for client in self._clients.values() if not client.supports_push_updates)
 
     @property
-    def primary_client(self) -> hmcl.Client | None:
+    def primary_client(self) -> ClientProtocol | None:
         """Return the primary client of the backend."""
         if self._primary_client is not None:
             return self._primary_client
@@ -142,7 +143,7 @@ class ClientCoordinator(ClientProvider):
             self._primary_client = client
         return self._primary_client
 
-    def get_client(self, *, interface_id: str) -> hmcl.Client:
+    def get_client(self, *, interface_id: str) -> ClientProtocol:
         """
         Return a client by interface_id.
 
@@ -351,7 +352,7 @@ class ClientCoordinator(ClientProvider):
             if await client.deinitialize_proxy():
                 _LOGGER.debug("DE_INIT_CLIENTS: Proxy de-initialized: %s", name)
 
-    def _get_primary_client(self) -> hmcl.Client | None:
+    def _get_primary_client(self) -> ClientProtocol | None:
         """
         Get the primary client.
 
@@ -360,7 +361,7 @@ class ClientCoordinator(ClientProvider):
             Primary client or None if not found
 
         """
-        client: hmcl.Client | None = None
+        client: ClientProtocol | None = None
         for client in self._clients.values():
             if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and client.available:
                 return client

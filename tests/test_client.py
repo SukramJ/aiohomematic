@@ -10,7 +10,6 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.client import (
-    Client,
     ClientCCU,
     ClientConfig,
     InterfaceConfig,
@@ -504,7 +503,7 @@ class _EventDevice:
         return self.dp
 
 
-class _TestClient(Client):
+class _TestClient(ClientCCU):
     """Minimal concrete Client for testing property/helper behavior without I/O."""
 
     @property
@@ -560,8 +559,10 @@ def _make_client_with_interface(iface: Interface, *, push: bool = True, fw: bool
     c = object.__new__(_TestClient)
     fake_cfg = SimpleNamespace(
         interface=iface,
+        supports_linking=(iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}),
         supports_push_updates=push,
         supports_firmware_updates=fw,
+        supports_ping_pong=(iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}),
         supports_rpc_callback=(iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}),
         version="0",
     )

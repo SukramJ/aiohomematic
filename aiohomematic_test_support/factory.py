@@ -42,8 +42,9 @@ from aiohttp import ClientSession
 
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.event_bus import BackendSystemEventData, HomematicEvent
-from aiohomematic.client import Client, ClientConfig, InterfaceConfig
+from aiohomematic.client import ClientConfig, InterfaceConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, OptionalSettings
+from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.mock import SessionPlayer, get_client_session, get_mock, get_xml_rpc_proxy
 
@@ -100,7 +101,7 @@ class FactoryWithClient:
         if self._do_mock_client:
             _orig_create_client = ClientConfig.create_client
 
-            async def _mocked_create_client(config: ClientConfig) -> Client | Mock:
+            async def _mocked_create_client(config: ClientConfig) -> ClientProtocol | Mock:
                 real_client = await _orig_create_client(config)
                 return cast(
                     Mock,
@@ -211,7 +212,7 @@ async def get_central_client_factory(
     ignore_devices_on_create: list[str] | None,
     ignore_custom_device_definition_models: list[str] | None,
     un_ignore_list: list[str] | None,
-) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
+) -> AsyncGenerator[tuple[CentralUnit, ClientProtocol | Mock, FactoryWithClient]]:
     """Return central factory."""
     factory = FactoryWithClient(
         player=player,

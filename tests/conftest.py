@@ -12,7 +12,7 @@ import pytest
 
 from aiohomematic.central import CentralUnit
 from aiohomematic.central.event_bus import BackendSystemEventData, HomematicEvent
-from aiohomematic.client import Client
+from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import (
     FactoryWithClient,
@@ -51,7 +51,7 @@ async def central_client_factory_with_ccu_client(
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
     un_ignore_list: list[str] | None,
-) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
+) -> AsyncGenerator[tuple[CentralUnit, ClientProtocol | Mock, FactoryWithClient]]:
     """Yield central factory using CCU session and XML-RPC proxy."""
     async for result in get_central_client_factory(
         player=session_player_ccu,
@@ -86,7 +86,7 @@ async def central_client_factory_with_homegear_client(
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
     un_ignore_list: list[str] | None,
-) -> AsyncGenerator[tuple[CentralUnit, Client | Mock, FactoryWithClient]]:
+) -> AsyncGenerator[tuple[CentralUnit, ClientProtocol | Mock, FactoryWithClient]]:
     """Yield central factory using homegear XML-RPC proxy."""
     async for result in get_central_client_factory(
         player=session_player_pydevccu,

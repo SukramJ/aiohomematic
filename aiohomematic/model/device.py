@@ -32,7 +32,7 @@ from typing import Any, Final, cast
 
 import orjson
 
-from aiohomematic import client as hmcl, i18n
+from aiohomematic import i18n
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.event_bus import DeviceUpdatedEvent, FirmwareUpdatedEvent, LinkPeerChangedEvent
 from aiohomematic.const import (
@@ -77,6 +77,7 @@ from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
     ChannelProtocol,
+    ClientProtocol,
     ClientProvider,
     ConfigProvider,
     CustomDataPointProtocol,
@@ -353,7 +354,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return self._channels
 
     @property
-    def client(self) -> hmcl.Client:
+    def client(self) -> ClientProtocol:
         """Return the client of the device."""
         return self._client
 

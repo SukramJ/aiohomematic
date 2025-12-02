@@ -757,6 +757,19 @@ class SystemInfoProvider(Protocol):
 
 
 @runtime_checkable
+class BackupProvider(Protocol):
+    """
+    Protocol for backup operations.
+
+    Implemented by CentralUnit
+    """
+
+    @abstractmethod
+    async def create_backup_and_download(self) -> bytes | None:
+        """Create a backup on the CCU and download it."""
+
+
+@runtime_checkable
 class EventBusProvider(Protocol):
     """
     Protocol for accessing event bus.

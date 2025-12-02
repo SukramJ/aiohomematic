@@ -1,26 +1,39 @@
 !# accept_device_in_inbox.fn
 !#
-!# This script accepts a device from the CCU inbox.
+!# Accept a device from the CCU inbox by setting ReadyConfig to true.
 !# The device address is passed as parameter.
 !#
 
 string sDeviceAddress = "##device_address##";
 boolean bSuccess = false;
+boolean bFound = false;
 string sError = "";
 
-object oDevice = dom.GetObject(sDeviceAddress);
-if (oDevice) {
-    if (!oDevice.ReadyConfig()) {
-        oDevice.ReadyConfig(true);
-        bSuccess = oDevice.ReadyConfig();
-        if (!bSuccess) {
-            sError = "Failed to set ReadyConfig";
+!# Find device by iterating through ID_DEVICES and matching address
+object oDevices = dom.GetObject(ID_DEVICES);
+if (oDevices) {
+    string sDevId;
+    foreach(sDevId, oDevices.EnumIDs()) {
+        object oDev = dom.GetObject(sDevId);
+        if (oDev) {
+            if (oDev.Address() == sDeviceAddress) {
+                bFound = true;
+                if (!oDev.ReadyConfig()) {
+                    oDev.ReadyConfig(true);
+                    bSuccess = oDev.ReadyConfig();
+                    if (!bSuccess) {
+                        sError = "Failed to set ReadyConfig";
+                    }
+                } else {
+                    sError = "Device already accepted";
+                    bSuccess = true;
+                }
+            }
         }
-    } else {
-        sError = "Device already accepted";
-        bSuccess = true;
     }
-} else {
+}
+
+if (!bFound) {
     sError = "Device not found";
 }
 

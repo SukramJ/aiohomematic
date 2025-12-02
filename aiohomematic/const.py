@@ -955,15 +955,6 @@ INTERFACE_RPC_SERVER_TYPE: Final[Mapping[Interface, RpcServerType]] = MappingPro
     }
 )
 
-LINKABLE_INTERFACES: Final[frozenset[Interface]] = frozenset(
-    {
-        Interface.BIDCOS_RF,
-        Interface.BIDCOS_WIRED,
-        Interface.HMIP_RF,
-    }
-)
-
-
 DEFAULT_USE_PERIODIC_SCAN_FOR_INTERFACES: Final = True
 
 IGNORE_FOR_UN_IGNORE_PARAMETERS: Final[frozenset[Parameter]] = frozenset(

@@ -3,6 +3,7 @@
 ## What's Changed
 
 - Add HubProtocol and WeekProfileProtocol to interfaces
+- Cleanup client api
 - Rename regaid to rega_id
 - Update documentation
 

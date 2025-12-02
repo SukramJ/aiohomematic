@@ -1144,14 +1144,6 @@ class TestServiceMessagesAndSystemUpdate:
                 "device_name": "Test%20Device",
             },
             {
-                "id": "5678",
-                "name": "New%20device%20in%20inbox",
-                "timestamp": "2024-01-15 11:00:00",
-                "type": 3,  # INBOX
-                "address": "VCU0000002:0",
-                "device_name": "New%20Device",
-            },
-            {
                 "id": "9012",
                 "name": "LOW%20BAT",
                 "timestamp": "2024-01-15 12:00:00",
@@ -1166,18 +1158,9 @@ class TestServiceMessagesAndSystemUpdate:
 
         monkeypatch.setattr(client, "_post_script", fake_post_script)
 
-        # Without filter, should return all 3 messages
+        # Without filter, should return all 2 messages
         all_messages = await client.get_service_messages()
-        assert len(all_messages) == 3
-
-        # With message_type=INBOX filter, should return only the inbox message
-        inbox_messages = await client.get_service_messages(message_type=ServiceMessageType.INBOX)
-        assert len(inbox_messages) == 1
-        assert inbox_messages[0].msg_id == "5678"
-        assert inbox_messages[0].name == "New device in inbox"
-        assert inbox_messages[0].msg_type == 3
-        assert inbox_messages[0].address == "VCU0000002:0"
-        assert inbox_messages[0].device_name == "New Device"
+        assert len(all_messages) == 2
 
         # With message_type=CONFIG_PENDING filter
         config_messages = await client.get_service_messages(message_type=ServiceMessageType.CONFIG_PENDING)

@@ -236,11 +236,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return True
 
     @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
-        return True
-
-    @property
     def supports_inbox_devices(self) -> bool:
         """Return if the backend supports inbox devices."""
         return True
@@ -328,7 +323,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     @inspector(re_raise=False)
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
-        if not self.supports_inbox:
+        if not self.supports_inbox_devices:
             _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: Not supported by client for %s", self.interface_id)
             return False
 
@@ -1588,11 +1583,6 @@ class ClientJsonCCU(ClientCCU):
         return False
 
     @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
-        return False
-
-    @property
     def supports_inbox_devices(self) -> bool:
         """Return if the backend supports inbox devices."""
         return False
@@ -1877,11 +1867,6 @@ class ClientHomegear(ClientCCU):
     @property
     def supports_functions(self) -> bool:
         """Return if interface supports functions."""
-        return False
-
-    @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
         return False
 
     @property

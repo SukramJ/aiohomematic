@@ -30,6 +30,7 @@ from aiohomematic.const import (
     EventKey,
     EventType,
     ForcedDeviceAvailability,
+    InboxDeviceData,
     Interface,
     ParameterData,
     ParameterType,
@@ -141,8 +142,8 @@ class ClientProtocol(Protocol):
         """Return if interface supports functions."""
 
     @property
-    def supports_inbox(self) -> bool:
-        """Return if the backend supports device inbox operations."""
+    def supports_inbox_devices(self) -> bool:
+        """Return if the backend supports inbox device queries."""
 
     @property
     def supports_install_mode(self) -> bool:
@@ -260,7 +261,7 @@ class ClientProtocol(Protocol):
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
 
-    async def get_inbox_devices(self) -> tuple[Any, ...]:
+    async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
         """Get all devices in the inbox (not yet configured)."""
 
     async def get_install_mode(self) -> int:

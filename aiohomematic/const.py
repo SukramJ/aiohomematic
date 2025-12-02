@@ -788,7 +788,6 @@ class ServiceMessageType(IntEnum):
     GENERIC = 0
     STICKY = 1
     CONFIG_PENDING = 2
-    INBOX = 3
 
 
 class SourceOfDeviceCreation(StrEnum):

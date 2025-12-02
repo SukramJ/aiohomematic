@@ -36,7 +36,7 @@ from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
 import voluptuous as vol
 
-from aiohomematic import client as hmcl, i18n, support as hms, validator as val
+from aiohomematic import i18n, support as hms, validator as val
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent, DeviceRemovedEvent
 from aiohomematic.const import (
@@ -72,6 +72,7 @@ from aiohomematic.interfaces import (
     CallbackDataPointProtocol,
     CentralInfo,
     ChannelProtocol,
+    ClientProtocol,
     DeviceProtocol,
     EventBusProvider,
     EventPublisher,
@@ -551,7 +552,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
             parameter_visibility_provider=channel.device.parameter_visibility_provider,
         )
         self._is_in_multiple_channels: Final = is_in_multiple_channels
-        self._client: Final[hmcl.Client] = channel.device.client
+        self._client: Final[ClientProtocol] = channel.device.client
         self._forced_usage: DataPointUsage | None = None
         self._data_point_name_data: Final = self._get_data_point_name()
         self._timer_on_time: float | None = None
@@ -1122,7 +1123,7 @@ class CallParameterCollector:
         "_paramsets",
     )
 
-    def __init__(self, *, client: hmcl.Client) -> None:
+    def __init__(self, *, client: ClientProtocol) -> None:
         """Initialize the generator."""
         self._client: Final = client
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}

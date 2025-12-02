@@ -10,7 +10,6 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.client import (
-    Client,
     ClientCCU,
     ClientConfig,
     InterfaceConfig,
@@ -504,7 +503,7 @@ class _EventDevice:
         return self.dp
 
 
-class _TestClient(Client):
+class _TestClient(ClientCCU):
     """Minimal concrete Client for testing property/helper behavior without I/O."""
 
     @property

@@ -152,6 +152,7 @@ from aiohomematic.interfaces import (
     ChannelProtocol,
     ClientCoordination,
     ClientFactory,
+    ClientProtocol,
     ClientProvider,
     ConfigProvider,
     CoordinatorProvider,
@@ -373,7 +374,7 @@ class CentralUnit(
         return self._client_coordinator
 
     @property
-    def clients(self) -> tuple[hmcl.Client, ...]:
+    def clients(self) -> tuple[ClientProtocol, ...]:
         """Return all clients."""
         return self._client_coordinator.clients
 
@@ -494,12 +495,12 @@ class CentralUnit(
         return self._cache_coordinator.paramset_descriptions
 
     @property
-    def poll_clients(self) -> tuple[hmcl.Client, ...]:
+    def poll_clients(self) -> tuple[ClientProtocol, ...]:
         """Return clients that need to poll data."""
         return self._client_coordinator.poll_clients
 
     @property
-    def primary_client(self) -> hmcl.Client | None:
+    def primary_client(self) -> ClientProtocol | None:
         """Return the primary client of the backend."""
         return self._client_coordinator.primary_client
 
@@ -598,7 +599,7 @@ class CentralUnit(
         self,
         *,
         interface_config: hmcl.InterfaceConfig,
-    ) -> hmcl.Client:
+    ) -> ClientProtocol:
         """
         Create a client for the given interface configuration.
 
@@ -666,7 +667,7 @@ class CentralUnit(
         """Return Homematic channel."""
         return self._device_coordinator.get_channel(channel_address=channel_address)
 
-    def get_client(self, *, interface_id: str) -> hmcl.Client:
+    def get_client(self, *, interface_id: str) -> ClientProtocol:
         """Return a client by interface_id."""
         return self._client_coordinator.get_client(interface_id=interface_id)
 

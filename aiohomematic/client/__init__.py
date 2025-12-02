@@ -97,7 +97,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
-from aiohomematic.interfaces import DeviceProtocol
+from aiohomematic.interfaces import ClientProtocol, DeviceProtocol
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
 from aiohomematic.store import CommandCache, PingPongCache
@@ -115,7 +115,6 @@ from aiohomematic.support import (
 __all__ = [
     "AioJsonRpcAioHttpClient",
     "BaseRpcProxy",
-    "Client",
     "InterfaceConfig",
     "ClientConfig",
 ]
@@ -139,7 +138,7 @@ _CCU_JSON_VALUE_TYPE: Final = {
 }
 
 
-class ClientCCU(LogContextMixin):
+class ClientCCU(ClientProtocol, LogContextMixin):
     """Client object to access the backends via XML-RPC or JSON-RPC."""
 
     def __init__(self, *, client_config: ClientConfig) -> None:
@@ -159,7 +158,7 @@ class ClientCCU(LogContextMixin):
         self._proxy: BaseRpcProxy
         self._proxy_read: BaseRpcProxy
         self._system_information: SystemInformation
-        self.modified_at: datetime = INIT_DATETIME
+        self._modified_at: datetime = INIT_DATETIME
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -194,6 +193,16 @@ class ClientCCU(LogContextMixin):
     def model(self) -> str:
         """Return the model of the backend."""
         return Backend.CCU
+
+    @property
+    def modified_at(self) -> datetime:
+        """Return the last update datetime value."""
+        return self._modified_at
+
+    @modified_at.setter
+    def modified_at(self, value: datetime) -> None:
+        """Write the last update datetime value."""
+        self._modified_at = value
 
     @property
     def ping_pong_cache(self) -> PingPongCache:
@@ -1810,9 +1819,6 @@ class ClientJsonCCU(ClientCCU):
         )
 
 
-Client = ClientCCU
-
-
 class ClientHomegear(ClientCCU):
     """
     Client implementation for Homegear backend.
@@ -2022,11 +2028,11 @@ class ClientConfig:
             tls=central.config.tls,
         )
 
-    async def create_client(self) -> Client:
+    async def create_client(self) -> ClientProtocol:
         """Identify the used client."""
         try:
             self.version = await self._get_version()
-            client: Client | None
+            client: ClientProtocol | None
             if self.interface == Interface.BIDCOS_RF and ("Homegear" in self.version or "pydevccu" in self.version):
                 client = ClientHomegear(client_config=self)
             elif self.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT:
@@ -2150,12 +2156,12 @@ class InterfaceConfig:
 async def create_client(
     central: hmcu.CentralUnit,
     interface_config: InterfaceConfig,
-) -> Client:
+) -> ClientProtocol:
     """Return a new client for with a given interface_config."""
     return await ClientConfig(central=central, interface_config=interface_config).create_client()
 
 
-def get_client(interface_id: str) -> Client | None:
+def get_client(interface_id: str) -> ClientProtocol | None:
     """Return client by interface_id."""
     for central in hmcu.CENTRAL_INSTANCES.values():
         if central.has_client(interface_id=interface_id):

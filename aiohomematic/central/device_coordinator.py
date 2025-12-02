@@ -37,6 +37,7 @@ from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
     ChannelProtocol,
+    ClientProtocol,
     ClientProvider,
     ConfigProvider,
     CoordinatorProvider,
@@ -62,7 +63,6 @@ from aiohomematic.support import extract_device_addresses_from_device_descriptio
 
 if TYPE_CHECKING:
     from aiohomematic.central.device_registry import DeviceRegistry
-    from aiohomematic.client import Client
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -476,7 +476,7 @@ class DeviceCoordinator:
         return result
 
     async def refresh_device_descriptions_and_create_missing_devices(
-        self, *, client: Client, refresh_only_existing: bool, device_address: str | None = None
+        self, *, client: ClientProtocol, refresh_only_existing: bool, device_address: str | None = None
     ) -> None:
         """
         Refresh device descriptions and create missing devices.

@@ -52,7 +52,6 @@ from abc import ABC, abstractmethod
 import asyncio
 from datetime import datetime
 import logging
-from pathlib import Path
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
@@ -328,19 +327,16 @@ class Client(ABC, LogContextMixin):
         """Send ping to the backend to generate PONG event."""
 
     @inspector(re_raise=False)
-    async def create_backup_and_download(self, *, download_path: str) -> bool:  # pragma: no cover
+    async def create_backup_and_download(self) -> bytes | None:  # pragma: no cover
         """
-        Create a backup on the backend and download it to a local file.
-
-        Args:
-            download_path: Local file path where the backup should be saved.
+        Create a backup on the backend and download it.
 
         Returns:
-            True if backup was created and downloaded successfully, False otherwise.
+            Backup file content as bytes, or None if not supported or failed.
 
         """
         _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: not usable for %s.", self.interface_id)
-        return False
+        return None
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""
@@ -1478,20 +1474,17 @@ class ClientCCU(Client):
         return False
 
     @inspector(re_raise=False)
-    async def create_backup_and_download(self, *, download_path: str) -> bool:
+    async def create_backup_and_download(self) -> bytes | None:
         """
-        Create a backup on the CCU and download it to a local file.
-
-        Args:
-            download_path: Local file path where the backup should be saved.
+        Create a backup on the CCU and download it.
 
         Returns:
-            True if backup was created and downloaded successfully, False otherwise.
+            Backup file content as bytes, or None if backup creation or download failed.
 
         """
         if not self.supports_backup:
             _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: Not supported by client for %s", self.interface_id)
-            return False
+            return None
 
         backup_data = await self._json_rpc_client.create_backup()
         if not backup_data.success:
@@ -1499,33 +1492,15 @@ class ClientCCU(Client):
                 "CREATE_BACKUP_AND_DOWNLOAD: Backup creation failed: %s",
                 backup_data.message,
             )
-            return False
+            return None
 
         if not backup_data.file_path:
             _LOGGER.warning(  # i18n-log: ignore
                 "CREATE_BACKUP_AND_DOWNLOAD: No backup file path returned"
             )
-            return False
+            return None
 
-        if (content := await self._json_rpc_client.download_backup(backup_path=backup_data.file_path)) is None:
-            return False
-
-        try:
-            Path(download_path).write_bytes(content)
-        except OSError as oserr:
-            _LOGGER.error(  # i18n-log: ignore
-                "CREATE_BACKUP_AND_DOWNLOAD: Failed to write backup to %s: %s",
-                download_path,
-                extract_exc_args(exc=oserr),
-            )
-            return False
-        else:
-            _LOGGER.debug(
-                "CREATE_BACKUP_AND_DOWNLOAD: Backup saved to %s (%d bytes)",
-                download_path,
-                len(content),
-            )
-            return True
+        return await self._json_rpc_client.download_backup(backup_path=backup_data.file_path)
 
     @inspector
     async def delete_system_variable(self, *, name: str) -> bool:

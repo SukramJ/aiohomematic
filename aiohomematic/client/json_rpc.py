@@ -76,6 +76,7 @@ from aiohomematic.const import (
     CCUType,
     DescriptionMarker,
     DeviceDescription,
+    InboxDeviceData,
     Interface,
     ParameterData,
     ParamsetKey,
@@ -782,6 +783,35 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             device_details = tuple(json_result)
 
         return device_details
+
+    async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
+        """Get all devices in the inbox (not yet configured)."""
+        devices: list[InboxDeviceData] = []
+
+        try:
+            response = await self._post_script(script_name=RegaScript.GET_INBOX_DEVICES)
+
+            _LOGGER.debug("GET_INBOX_DEVICES: Getting inbox devices")
+            if json_result := response[_JsonKey.RESULT]:
+                devices.extend(
+                    InboxDeviceData(
+                        device_id=dev[_JsonKey.ID],
+                        address=dev.get(_JsonKey.ADDRESS, ""),
+                        name=unquote(string=dev.get(_JsonKey.NAME, ""), encoding=ISO_8859_1),
+                        device_type=dev.get(_JsonKey.TYPE, ""),
+                        interface=dev.get(_JsonKey.INTERFACE, ""),
+                    )
+                    for dev in json_result
+                )
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.get_inbox_devices.decode_failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return tuple(devices)
 
     async def get_paramset(
         self, *, interface: Interface, address: str, paramset_key: ParamsetKey | str

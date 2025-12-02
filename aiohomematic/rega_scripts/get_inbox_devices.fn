@@ -1,0 +1,61 @@
+!# get_inbox_devices.fn
+!#
+!# This script returns all devices in the CCU inbox (not yet configured).
+!# These are newly paired devices that haven't been set up yet.
+!#
+
+string sDevId;
+boolean bFirst = true;
+string sName;
+string sAddress;
+string sType;
+string sInterface;
+
+Write('[');
+
+object oDevices = dom.GetObject(ID_DEVICES);
+if (oDevices) {
+    foreach(sDevId, oDevices.EnumIDs()) {
+        object oDev = dom.GetObject(sDevId);
+        if (oDev) {
+            !# Check if device is not yet configured (in inbox)
+            if ((!oDev.ReadyConfig()) && (oDev.Name() != "Gateway")) {
+                if (bFirst) {
+                    bFirst = false;
+                } else {
+                    Write(',');
+                }
+
+                sAddress = oDev.Address();
+                if (!sAddress) {
+                    sAddress = "";
+                }
+
+                sName = oDev.Name();
+                if (sName) {
+                    sName = sName.UriEncode();
+                } else {
+                    sName = "";
+                }
+
+                sType = oDev.HssType();
+                if (!sType) {
+                    sType = "";
+                }
+
+                sInterface = oDev.Interface();
+                if (!sInterface) {
+                    sInterface = "";
+                }
+
+                Write('{"id":"' # oDev.ID() # '",');
+                Write('"address":"' # sAddress # '",');
+                Write('"name":"' # sName # '",');
+                Write('"type":"' # sType # '",');
+                Write('"interface":"' # sInterface # '"}');
+            }
+        }
+    }
+}
+
+Write(']');

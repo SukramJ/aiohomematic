@@ -702,6 +702,7 @@ class RegaScript(StrEnum):
     CREATE_BACKUP = "create_backup.fn"
     FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"
     GET_BACKEND_INFO = "get_backend_info.fn"
+    GET_INBOX_DEVICES = "get_inbox_devices.fn"
     GET_PROGRAM_DESCRIPTIONS = "get_program_descriptions.fn"
     GET_SERIAL = "get_serial.fn"
     GET_SERVICE_MESSAGES = "get_service_messages.fn"
@@ -1143,6 +1144,17 @@ class SystemInformation:
     def supports_online_update_check(self) -> bool:
         """Return True if backend supports online firmware update checks."""
         return self.ccu_type == CCUType.OPENCCU
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class InboxDeviceData:
+    """Dataclass for inbox devices."""
+
+    device_id: str
+    address: str
+    name: str
+    device_type: str
+    interface: str
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

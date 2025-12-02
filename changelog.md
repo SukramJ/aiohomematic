@@ -3,6 +3,7 @@
 ## What's Changed
 
 - Add create_backup_and_download to BackupProvider/CentralUnit
+- Add dedicated inbox devices code
 - Refactor Client
 
 # Version 2025.12.2 (2025-12-01)

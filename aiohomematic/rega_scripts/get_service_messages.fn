@@ -8,6 +8,7 @@
 string sAlarmId;
 boolean bFirst = true;
 string sName;
+string sRawName;
 string sTimestamp;
 integer iType;
 string sAddress;
@@ -28,11 +29,12 @@ if (oServices) {
                     Write(',');
                 }
 
-                sName = oAlarm.Name();
-                if (sName) {
-                    sName = sName.UriEncode();
+                sRawName = oAlarm.Name();
+                if (sRawName) {
+                    sName = sRawName.UriEncode();
                 } else {
                     sName = "";
+                    sRawName = "";
                 }
 
                 time tTime = oAlarm.AlOccurrenceTime();
@@ -46,13 +48,28 @@ if (oServices) {
 
                 sAddress = "";
                 sDeviceName = "";
+
+                !# First try to extract address from alarm name (format: "AL-ADDRESS:X.PARAM")
+                !# This gives the actual device address, not an internal ID
+                if (sRawName.Find("AL-") == 0) {
+                    string sTmp = sRawName.Substr(3);
+                    integer iColon = sTmp.Find(":");
+                    if (iColon > 0) {
+                        sAddress = sTmp.Substr(0, iColon);
+                    }
+                }
+
+                !# Try to get device name from AlTriggerDP -> Channel
                 integer iTriggerDP = oAlarm.AlTriggerDP();
                 if (iTriggerDP) {
                     object oTrigger = dom.GetObject(iTriggerDP);
                     if (oTrigger) {
                         object oChn = oTrigger.Channel();
                         if (oChn) {
-                            sAddress = oChn.Address();
+                            !# If we didn't get address from name, try from channel
+                            if (sAddress == "") {
+                                sAddress = oChn.Address();
+                            }
                             sDeviceName = oChn.Name();
                             if (sDeviceName) {
                                 sDeviceName = sDeviceName.UriEncode();

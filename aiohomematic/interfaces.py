@@ -260,6 +260,9 @@ class ClientProtocol(Protocol):
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
 
+    async def get_inbox_devices(self) -> tuple[Any, ...]:
+        """Get all devices in the inbox (not yet configured)."""
+
     async def get_install_mode(self) -> int:
         """Return the remaining time in install mode."""
 

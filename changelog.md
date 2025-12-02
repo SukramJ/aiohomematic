@@ -1,3 +1,9 @@
+# Version 2025.12.4 (2025-12-02)
+
+## What's Changed
+
+- Add rename for new devices
+
 # Version 2025.12.3 (2025-12-02)
 
 ## What's Changed

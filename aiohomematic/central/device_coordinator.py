@@ -165,14 +165,14 @@ class DeviceCoordinator:
         """Return all devices."""
         return self.device_registry.devices
 
-    async def add_new_device_manually(self, *, interface_id: str, address: str) -> None:
+    async def add_new_device_manually(self, *, interface_id: str, address: str, device_name: str | None = None) -> None:
         """
         Add new device manually triggered to central unit.
 
         Args:
-        ----
-            interface_id: Interface identifier
-            address: Device address
+            interface_id: Interface identifier.
+            address: Device address.
+            device_name: Optional name for the device and channels.
 
         """
         if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
@@ -190,6 +190,15 @@ class DeviceCoordinator:
                 interface_id,
             )
             return
+
+        await client.accept_device_in_inbox(device_address=address)
+
+        if device_name:
+            await self._rename_new_device(
+                client=client,
+                device_descriptions=device_descriptions,
+                device_name=device_name,
+            )
 
         await self._add_new_devices(
             interface_id=interface_id,
@@ -684,6 +693,44 @@ class DeviceCoordinator:
             if (dev_desc["ADDRESS"] if not (parent_address := dev_desc.get("PARENT")) else parent_address)
             not in known_addresses
         )
+
+    async def _rename_new_device(
+        self,
+        *,
+        client: ClientProtocol,
+        device_descriptions: tuple[DeviceDescription, ...],
+        device_name: str,
+    ) -> None:
+        """
+        Rename a new device and its channels before adding to the system.
+
+        Args:
+            client: The client to use for renaming.
+            device_descriptions: Tuple of device descriptions (device + channels).
+            device_name: The new name for the device.
+
+        """
+        await client.fetch_device_details()
+        for device_desc in device_descriptions:
+            address = device_desc["ADDRESS"]
+            parent = device_desc.get("PARENT")
+
+            if (rega_id := await client.get_rega_id_by_address(address=address)) is None:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "RENAME_NEW_DEVICE: Could not get rega_id for address %s",
+                    address,
+                )
+                continue
+
+            if not parent:
+                # This is the device itself
+                await client.rename_device(rega_id=rega_id, new_name=device_name)
+            elif (channel_no := address.split(":")[-1] if ":" in address else None) is not None:
+                # This is a channel - extract channel number from address
+                channel_name = f"{device_name}:{channel_no}"
+                await client.rename_channel(rega_id=rega_id, new_name=channel_name)
+
+            await asyncio.sleep(0.1)
 
 
 def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocol, ...], ...]:

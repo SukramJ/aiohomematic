@@ -138,6 +138,7 @@
   "log.client.json_rpc.do_login.no_credentials": "DO_LOGIN failed: No credentials set",
   "log.client.json_rpc.download_backup.error": "DOWNLOAD_BACKUP failed: {reason}",
   "log.client.json_rpc.download_backup.failed": "DOWNLOAD_BACKUP failed: HTTP status {status}",
+  "log.client.json_rpc.download_backup.no_session": "DOWNLOAD_BACKUP failed: No session ID available",
   "log.client.json_rpc.download_firmware.error": "DOWNLOAD_FIRMWARE failed: {reason}",
   "log.client.json_rpc.download_firmware.failed": "DOWNLOAD_FIRMWARE failed: HTTP status {status}",
   "log.client.json_rpc.download_firmware.no_session": "DOWNLOAD_FIRMWARE failed: No session ID available",

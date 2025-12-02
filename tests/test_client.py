@@ -526,11 +526,23 @@ class _TestClient(Client):
     async def get_all_system_variables(self, *, markers):  # pragma: no cover - not used
         return ()
 
+    async def get_install_mode(self) -> int:  # pragma: no cover - not used
+        return 0
+
     async def get_system_variable(self, *, name: str):  # pragma: no cover - not used
         return None
 
+    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:  # pragma: no cover - not used
+        return False
+
+    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:  # pragma: no cover - not used
+        return False
+
     async def set_system_variable(self, *, legacy_name: str, value):  # pragma: no cover - not used
         return None
+
+    async def trigger_firmware_update(self) -> bool:  # pragma: no cover - not used
+        return False
 
     async def _get_system_information(self):  # pragma: no cover - not used
         from aiohomematic.const import DUMMY_SERIAL, Interface, SystemInformation

@@ -43,7 +43,7 @@ jobs:
       TAG_NAME: ${{ github.event.release.tag_name || github.event.client_payload.tag }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -107,7 +107,7 @@ jobs:
       TAG_NAME: ${{ github.event.release.tag_name || github.event.client_payload.tag }}
     steps:
       - name: Checkout repository (full history for tags)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

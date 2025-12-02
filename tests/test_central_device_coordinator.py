@@ -106,6 +106,10 @@ class _FakeClient:
         """Initialize a fake client."""
         self.interface_id = interface_id
 
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """Accept a device from the inbox."""
+        return True
+
     async def get_all_device_descriptions(
         self,
         *,

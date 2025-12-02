@@ -105,6 +105,7 @@ from aiohomematic.support import (
     element_matches_key,
     extract_exc_args,
     get_tls_context,
+    is_device_address,
     log_boundary_error,
     parse_sys_var,
 )
@@ -115,12 +116,10 @@ _LOGGER: Final = logging.getLogger(__name__)
 class _JsonKey(StrEnum):
     """Enum for Homematic json keys."""
 
-    PRODUCT = "product"
-    VERSION = "version"
-    HOSTNAME = "hostname"
     ACTION = "action"
     ADDRESS = "address"
     AVAILABLE_FIRMWARE = "available_firmware"
+    CHANNELS = "channels"
     CHANNEL_IDS = "channelIds"
     CURRENT_FIRMWARE = "current_firmware"
     DESCRIPTION = "description"
@@ -129,6 +128,7 @@ class _JsonKey(StrEnum):
     ERROR = "error"
     FILE = "file"
     FILENAME = "filename"
+    HOSTNAME = "hostname"
     ID = "id"
     INTERFACE = "interface"
     IS_ACTIVE = "isActive"
@@ -140,6 +140,7 @@ class _JsonKey(StrEnum):
     NAME = "name"
     PARAMSET_KEY = "paramsetKey"
     PASSWORD = "password"
+    PRODUCT = "product"
     RESULT = "result"
     SCRIPT = "script"
     SERIAL = "serial"
@@ -158,6 +159,7 @@ class _JsonKey(StrEnum):
     VALUE = "value"
     VALUE_KEY = "valueKey"
     VALUE_LIST = "valueList"
+    VERSION = "version"
 
 
 class _JsonRpcMethod(StrEnum):
@@ -167,7 +169,6 @@ class _JsonRpcMethod(StrEnum):
     CCU_GET_HTTPS_REDIRECT_ENABLED = "CCU.getHttpsRedirectEnabled"
     CHANNEL_HAS_PROGRAM_IDS = "Channel.hasProgramIds"
     CHANNEL_SET_NAME = "Channel.setName"
-    DEVICE_GET_REGA_ID_BY_ADDRESS = "Device.getReGaIDByAddress"
     DEVICE_LIST_ALL_DETAIL = "Device.listAllDetail"
     DEVICE_SET_NAME = "Device.setName"
     INTERFACE_GET_DEVICE_DESCRIPTION = "Interface.getDeviceDescription"
@@ -865,15 +866,18 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             The ReGa ID if found, None otherwise.
 
         """
-        params = {
-            _JsonKey.ADDRESS: address,
-        }
+        is_dev = is_device_address(address=address)
 
-        response = await self._post(method=_JsonRpcMethod.DEVICE_GET_REGA_ID_BY_ADDRESS, extra_params=params)
-        _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: Getting ReGa ID for address %s", address)
+        details = await self.get_device_details()
+        for detail in details:
+            if is_dev:
+                if detail[_JsonKey.ADDRESS] == address:
+                    return int(detail[_JsonKey.ID])
+            else:
+                for channel in detail[_JsonKey.CHANNELS]:
+                    if channel[_JsonKey.ADDRESS] == address:
+                        return int(channel[_JsonKey.ID])
 
-        if (result := response.get(_JsonKey.RESULT)) is not None:
-            return int(result) if result else None
         return None
 
     async def get_service_messages(

@@ -589,9 +589,20 @@ class CentralUnit(
         """Add data_point to central event subscription."""
         self._event_coordinator.add_data_point_subscription(data_point=data_point)
 
-    async def add_new_device_manually(self, *, interface_id: str, address: str) -> None:
-        """Add new devices manually triggered to central unit."""
-        await self._device_coordinator.add_new_device_manually(interface_id=interface_id, address=address)
+    async def add_new_device_manually(self, *, interface_id: str, address: str, device_name: str | None = None) -> None:
+        """
+        Add new device manually triggered to central unit.
+
+        Args:
+            interface_id: Interface identifier.
+            address: Device address.
+            device_name: Optional name for the device. If provided, the device and all
+                        channels will be renamed (channels use format "device_name:channel_no").
+
+        """
+        await self._device_coordinator.add_new_device_manually(
+            interface_id=interface_id, address=address, device_name=device_name
+        )
 
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:

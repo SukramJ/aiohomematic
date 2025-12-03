@@ -211,6 +211,14 @@ _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
     _JsonRpcMethod.INTERFACE_GET_VALUE,
 )
 
+# Optional methods that may not be supported by all backends (not checked during startup)
+_OPTIONAL_JSONRPC_METHODS: Final = frozenset(
+    {
+        _JsonRpcMethod.INTERFACE_SET_INSTALL_MODE,
+        _JsonRpcMethod.INTERFACE_SET_INSTALL_MODE_HMIP,
+    }
+)
+
 
 class AioJsonRpcAioHttpClient(LogContextMixin):
     """Connection to CCU JSON-RPC Server."""
@@ -1325,10 +1333,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Check, if all required api methods are supported by the backend."""
         if self._supported_methods is None:
             self._supported_methods = await self._get_supported_methods()
-        if unsupport_methods := tuple(method for method in _JsonRpcMethod if method not in self._supported_methods):
+        if unsupported_methods := tuple(
+            method
+            for method in _JsonRpcMethod
+            if method not in self._supported_methods and method not in _OPTIONAL_JSONRPC_METHODS
+        ):
             _LOGGER.error(  # i18n-log: ignore
                 "CHECK_SUPPORTED_METHODS: methods not supported by the backend: %s",
-                ", ".join(unsupport_methods),
+                ", ".join(unsupported_methods),
             )
             return False
         return True

@@ -10,6 +10,8 @@
 - Extend ClientCoordinator.get_client to accept optional interface parameter
 - Add ClientProvider to Hub for multi-interface install mode support
 - Fix install mode data point creation to check for client availability per interface
+- Fix install mode unique_id generation to avoid duplicate prefix
+- Mark setInstallMode/setInstallModeHmIP as optional JSON-RPC methods
 
 # Version 2025.12.4 (2025-12-02)
 

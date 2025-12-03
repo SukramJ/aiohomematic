@@ -118,6 +118,7 @@ class _JsonKey(StrEnum):
 
     ACTION = "action"
     ADDRESS = "address"
+    INSTALL_MODE = "installMode"
     MODE = "mode"
     AVAILABLE_FIRMWARE = "available_firmware"
     CHANNELS = "channels"
@@ -184,7 +185,6 @@ class _JsonRpcMethod(StrEnum):
     INTERFACE_LIST_DEVICES = "Interface.listDevices"
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
     INTERFACE_PUT_PARAMSET = "Interface.putParamset"
-    INTERFACE_SET_INSTALL_MODE = "Interface.setInstallMode"
     INTERFACE_SET_INSTALL_MODE_HMIP = "Interface.setInstallModeHMIP"
     INTERFACE_SET_VALUE = "Interface.setValue"
     PROGRAM_EXECUTE = "Program.execute"
@@ -209,14 +209,6 @@ _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
     _JsonRpcMethod.INTERFACE_GET_PARAMSET,
     _JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
     _JsonRpcMethod.INTERFACE_GET_VALUE,
-)
-
-# Optional methods that may not be supported by all backends (not checked during startup)
-_OPTIONAL_JSONRPC_METHODS: Final = frozenset(
-    {
-        _JsonRpcMethod.INTERFACE_SET_INSTALL_MODE,
-        _JsonRpcMethod.INTERFACE_SET_INSTALL_MODE_HMIP,
-    }
 )
 
 
@@ -1168,47 +1160,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return response.get(_JsonKey.RESULT) is True
 
-    async def set_install_mode(
-        self,
-        *,
-        interface: Interface,
-        on: bool = True,
-        time: int = 60,
-        mode: int = 1,
-        device_address: str | None = None,
-    ) -> bool:
-        """
-        Set the install mode on the backend for BidCos-RF.
-
-        Args:
-            interface: The interface to set install mode on.
-            on: Enable or disable install mode.
-            time: Duration in seconds (default 60).
-            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
-            device_address: Optional device address to limit pairing.
-
-        Returns:
-            True if successful.
-
-        """
-        params: dict[str, Any] = {
-            _JsonKey.INTERFACE: interface,
-            _JsonKey.ON: on,
-            _JsonKey.TIME: time,
-        }
-        if device_address:
-            params[_JsonKey.ADDRESS] = device_address
-        else:
-            params[_JsonKey.MODE] = mode
-
-        response = await self._post(method=_JsonRpcMethod.INTERFACE_SET_INSTALL_MODE, extra_params=params)
-
-        _LOGGER.debug("SET_INSTALL_MODE: Setting install mode for %s", interface)
-        return response[_JsonKey.RESULT] is not None
-
     async def set_install_mode_hmip(
         self,
         *,
+        interface: Interface,
         on: bool = True,
         time: int = 60,
         device_address: str | None = None,
@@ -1217,6 +1172,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         Set the install mode on the backend for HmIP-RF.
 
         Args:
+            interface: The interface to set install mode for.
             on: Enable or disable install mode.
             time: Duration in seconds (default 60).
             device_address: Optional device SGTIN to limit pairing.
@@ -1226,11 +1182,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         """
         params: dict[str, Any] = {
-            "on": on,
-            "time": time,
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.ON: on,
+            _JsonKey.TIME: time,
+            _JsonKey.INSTALL_MODE: "ALL",
         }
         if device_address:
-            params["sgtin"] = device_address
+            params[_JsonKey.ADDRESS] = device_address
 
         response = await self._post(method=_JsonRpcMethod.INTERFACE_SET_INSTALL_MODE_HMIP, extra_params=params)
 
@@ -1333,11 +1291,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Check, if all required api methods are supported by the backend."""
         if self._supported_methods is None:
             self._supported_methods = await self._get_supported_methods()
-        if unsupported_methods := tuple(
-            method
-            for method in _JsonRpcMethod
-            if method not in self._supported_methods and method not in _OPTIONAL_JSONRPC_METHODS
-        ):
+        if unsupported_methods := tuple(method for method in _JsonRpcMethod if method not in self._supported_methods):
             _LOGGER.error(  # i18n-log: ignore
                 "CHECK_SUPPORTED_METHODS: methods not supported by the backend: %s",
                 ", ".join(unsupported_methods),

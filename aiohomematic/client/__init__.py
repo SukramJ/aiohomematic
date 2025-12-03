@@ -1191,7 +1191,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             # HmIP-RF uses JSON-RPC setInstallModeHmIP, BidCos-RF uses XML-RPC
             if self.interface == Interface.HMIP_RF:
                 return await self._json_rpc_client.set_install_mode_hmip(
-                    on=on, time=time, device_address=device_address
+                    interface=self.interface, on=on, time=time, device_address=device_address
                 )
 
             if device_address:

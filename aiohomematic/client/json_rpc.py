@@ -118,8 +118,6 @@ class _JsonKey(StrEnum):
 
     ACTION = "action"
     ADDRESS = "address"
-    INSTALL_MODE = "installMode"
-    MODE = "mode"
     AVAILABLE_FIRMWARE = "available_firmware"
     CHANNELS = "channels"
     CHANNEL_IDS = "channelIds"
@@ -132,16 +130,19 @@ class _JsonKey(StrEnum):
     FILENAME = "filename"
     HOSTNAME = "hostname"
     ID = "id"
-    ON = "on"
-    TIME = "time"
+    INSTALL_MODE = "installMode"
     INTERFACE = "interface"
     IS_ACTIVE = "isActive"
     IS_INTERNAL = "isInternal"
+    KEY = "key"
+    KEYMODE = "keymode"
     LAST_EXECUTE_TIME = "lastExecuteTime"
     MAX_VALUE = "maxValue"
     MESSAGE = "message"
     MIN_VALUE = "minValue"
+    MODE = "mode"
     NAME = "name"
+    ON = "on"
     PARAMSET_KEY = "paramsetKey"
     PASSWORD = "password"
     PRODUCT = "product"
@@ -154,6 +155,7 @@ class _JsonKey(StrEnum):
     SIZE = "size"
     STATE = "state"
     SUCCESS = "success"
+    TIME = "time"
     TIMESTAMP = "timestamp"
     TYPE = "type"
     UNIT = "unit"
@@ -1186,9 +1188,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             _JsonKey.ON: on,
             _JsonKey.TIME: time,
             _JsonKey.INSTALL_MODE: "ALL",
+            _JsonKey.ADDRESS: device_address or "",
+            _JsonKey.KEY: "",
+            _JsonKey.KEYMODE: "",
         }
-        if device_address:
-            params[_JsonKey.ADDRESS] = device_address
 
         response = await self._post(method=_JsonRpcMethod.INTERFACE_SET_INSTALL_MODE_HMIP, extra_params=params)
 

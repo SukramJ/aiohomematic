@@ -76,6 +76,7 @@ from aiohomematic.const import (
     CCUType,
     DescriptionMarker,
     DeviceDescription,
+    HubValueType,
     InboxDeviceData,
     Interface,
     ParameterData,
@@ -87,7 +88,6 @@ from aiohomematic.const import (
     SystemInformation,
     SystemUpdateData,
     SystemVariableData,
-    SysvarType,
 )
 from aiohomematic.exceptions import (
     BaseHomematicException,
@@ -706,8 +706,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
                 org_data_type = var[_JsonKey.TYPE]
                 raw_value = var[_JsonKey.VALUE]
-                if org_data_type == SysvarType.NUMBER:
-                    data_type = SysvarType.FLOAT if "." in raw_value else SysvarType.INTEGER
+                if org_data_type == HubValueType.NUMBER:
+                    data_type = HubValueType.FLOAT if "." in raw_value else HubValueType.INTEGER
                 else:
                     data_type = org_data_type
 

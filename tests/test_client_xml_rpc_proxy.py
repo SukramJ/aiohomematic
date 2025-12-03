@@ -9,7 +9,7 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, _cleanup_args, _cleanup_item, _cleanup_paramset
-from aiohomematic.const import SysvarType
+from aiohomematic.const import HubValueType
 from aiohomematic.exceptions import ClientException, NoConnectionException, UnsupportedException
 from aiohomematic.store.persistent import SessionRecorder
 
@@ -304,14 +304,14 @@ class TestCleanupHelpers:
     def test_cleanup_args_with_enums(self) -> None:
         """Test that _cleanup_args converts StrEnum values and tupleizes."""
         method = "setValue"
-        args_input = (method, [SysvarType.FLOAT, {"k": SysvarType.INTEGER}])
+        args_input = (method, [HubValueType.FLOAT, {"k": HubValueType.INTEGER}])
         cleaned = _cleanup_args(*args_input)
 
         # Should tupleize the list and convert enums to strings
         assert cleaned[0] == method
         assert isinstance(cleaned[1], tuple)
-        assert cleaned[1][0] == str(SysvarType.FLOAT)
-        assert cleaned[1][1] == {"k": str(SysvarType.INTEGER)}
+        assert cleaned[1][0] == str(HubValueType.FLOAT)
+        assert cleaned[1][1] == {"k": str(HubValueType.INTEGER)}
 
     def test_cleanup_args_with_too_many_args(self) -> None:
         """Test that _cleanup_args with too many args logs error."""
@@ -329,7 +329,7 @@ class TestCleanupHelpers:
             VALUE = 42
 
         # StrEnum becomes str
-        assert _cleanup_item(item=SysvarType.NUMBER) == str(SysvarType.NUMBER)
+        assert _cleanup_item(item=HubValueType.NUMBER) == str(HubValueType.NUMBER)
 
         # IntEnum becomes int
         assert _cleanup_item(item=TestIntEnum.VALUE) == 42
@@ -347,6 +347,6 @@ class TestCleanupHelpers:
 
     def test_cleanup_paramset_with_enum(self) -> None:
         """Test that _cleanup_paramset converts StrEnum to string."""
-        paramset = {"type": SysvarType.NUMBER}
+        paramset = {"type": HubValueType.NUMBER}
         cleaned = _cleanup_paramset(paramset=paramset)
-        assert cleaned == {"type": str(SysvarType.NUMBER)}
+        assert cleaned == {"type": str(HubValueType.NUMBER)}

@@ -14,9 +14,9 @@ from aiohomematic.const import (
     SYSVAR_ADDRESS,
     SYSVAR_TYPE,
     HubData,
+    HubValueType,
     ProgramData,
     SystemVariableData,
-    SysvarType,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
@@ -207,12 +207,12 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         return self._temporary_value if self._temporary_refreshed_at > self._refreshed_at else self._current_value
 
     @property
-    def data_type(self) -> SysvarType | None:
+    def data_type(self) -> HubValueType | None:
         """Return the availability of the device."""
         return self._data_type
 
     @data_type.setter
-    def data_type(self, data_type: SysvarType) -> None:
+    def data_type(self, data_type: HubValueType) -> None:
         """Write data_type."""
         self._data_type = data_type
 

@@ -1185,7 +1185,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
         try:
             if device_address:
-                await self._proxy.setInstallMode(on, time, mode, device_address)
+                await self._proxy.setInstallMode(on, time, device_address)
             else:
                 await self._proxy.setInstallMode(on, time, mode)
         except BaseHomematicException as bhexc:

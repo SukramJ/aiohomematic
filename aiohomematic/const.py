@@ -801,8 +801,8 @@ class SourceOfDeviceCreation(StrEnum):
     REFRESH = "REFRESH"
 
 
-class SysvarType(StrEnum):
-    """Enum for Homematic sysvar types."""
+class HubValueType(StrEnum):
+    """Enum for Homematic hub value types."""
 
     ALARM = "ALARM"
     FLOAT = "FLOAT"
@@ -1102,7 +1102,7 @@ class SystemVariableData(HubData):
 
     vid: str
     value: SYSVAR_TYPE
-    data_type: SysvarType | None = None
+    data_type: HubValueType | None = None
     extended_sysvar: bool = False
     max_value: float | int | None = None
     min_value: float | int | None = None

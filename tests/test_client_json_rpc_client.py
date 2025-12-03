@@ -18,11 +18,11 @@ from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient, _get_params, _
 from aiohomematic.const import (
     UTF_8,
     DescriptionMarker,
+    HubValueType,
     Interface,
     ParamsetKey,
     RegaScript,
     ServiceMessageType,
-    SysvarType,
 )
 from aiohomematic.exceptions import (
     AuthFailure,
@@ -915,7 +915,7 @@ class TestJsonRpcClientOperations:
                 _JsonKey.ID: "1",
                 _JsonKey.NAME: "Var1",
                 _JsonKey.IS_INTERNAL: False,
-                _JsonKey.TYPE: SysvarType.NUMBER,
+                _JsonKey.TYPE: HubValueType.NUMBER,
                 _JsonKey.VALUE: "123",
                 _JsonKey.UNIT: "",
             }

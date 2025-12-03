@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Final, NamedTuple
+from typing import Final, NamedTuple
 
-from aiohomematic.const import INIT_DATETIME, INSTALL_MODE_ADDRESS, DataPointCategory, InstallModeData
+from aiohomematic.const import INIT_DATETIME, INSTALL_MODE_ADDRESS, DataPointCategory, HubValueType, InstallModeData
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
@@ -17,6 +17,7 @@ from aiohomematic.interfaces import (
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
+    GenericHubDataPointProtocol,
     GenericInstallModeDataPointProtocol,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
@@ -39,7 +40,7 @@ class InstallModeDpType(NamedTuple):
     sensor: InstallModeDpSensor
 
 
-class _BaseInstallModeDataPoint(CallbackDataPoint, PayloadMixin):
+class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
     """Base class for install mode data points."""
 
     __slots__ = (
@@ -51,6 +52,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, PayloadMixin):
     def __init__(
         self,
         *,
+        data: InstallModeData,
         config_provider: ConfigProvider,
         central_info: CentralInfo,
         event_bus_provider: EventBusProvider,
@@ -60,7 +62,6 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, PayloadMixin):
         parameter_visibility_provider: ParameterVisibilityProvider,
         channel_lookup: ChannelLookup,
         primary_client_provider: PrimaryClientProvider,
-        data: InstallModeData,
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)
@@ -146,12 +147,41 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
 
     _category = DataPointCategory.HUB_SENSOR
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *,
+        data: InstallModeData,
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        event_publisher: EventPublisher,
+        task_scheduler: TaskScheduler,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        channel_lookup: ChannelLookup,
+        primary_client_provider: PrimaryClientProvider,
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(**kwargs)
+        super().__init__(
+            config_provider=config_provider,
+            central_info=central_info,
+            event_bus_provider=event_bus_provider,
+            event_publisher=event_publisher,
+            task_scheduler=task_scheduler,
+            paramset_description_provider=paramset_description_provider,
+            parameter_visibility_provider=parameter_visibility_provider,
+            channel_lookup=channel_lookup,
+            primary_client_provider=primary_client_provider,
+            data=data,
+        )
         self._countdown_end: datetime = INIT_DATETIME
         self._countdown_task: asyncio.Task[None] | None = None
         self._sync_task: asyncio.Task[None] | None = None
+
+    @property
+    def data_type(self) -> HubValueType | None:
+        """Return the data type of the system variable."""
+        return HubValueType.INTEGER
 
     @property
     def is_active(self) -> bool:
@@ -159,7 +189,7 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
         return self.value > 0
 
     @config_property
-    def unit(self) -> str:
+    def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return "s"
 
@@ -263,11 +293,31 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
     def __init__(
         self,
         *,
+        data: InstallModeData,
         sensor: InstallModeDpSensor,
-        **kwargs: Any,
+        config_provider: ConfigProvider,
+        central_info: CentralInfo,
+        event_bus_provider: EventBusProvider,
+        event_publisher: EventPublisher,
+        task_scheduler: TaskScheduler,
+        paramset_description_provider: ParamsetDescriptionProvider,
+        parameter_visibility_provider: ParameterVisibilityProvider,
+        channel_lookup: ChannelLookup,
+        primary_client_provider: PrimaryClientProvider,
     ) -> None:
         """Initialize the button."""
-        super().__init__(**kwargs)
+        super().__init__(
+            data=data,
+            config_provider=config_provider,
+            central_info=central_info,
+            event_bus_provider=event_bus_provider,
+            event_publisher=event_publisher,
+            task_scheduler=task_scheduler,
+            paramset_description_provider=paramset_description_provider,
+            parameter_visibility_provider=parameter_visibility_provider,
+            channel_lookup=channel_lookup,
+            primary_client_provider=primary_client_provider,
+        )
         self._sensor: Final = sensor
 
     @property
@@ -313,3 +363,8 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
             self._sensor.stop_countdown()
             return True
         return False
+
+    @inspector
+    async def press(self) -> None:
+        """Activate install mode with default settings."""
+        await self.activate()

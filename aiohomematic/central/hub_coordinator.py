@@ -357,10 +357,11 @@ class HubCoordinator:
         return None
 
     async def init_hub(self) -> None:
-        """Initialize the hub by fetching program and sysvar data."""
+        """Initialize the hub by fetching program, sysvar, and install mode data."""
         _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central_info.name)
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
+        await self._hub.init_install_mode()
 
     async def init_install_mode(self) -> InstallModeDpType | None:
         """

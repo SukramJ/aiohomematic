@@ -86,10 +86,10 @@ from aiohomematic.const import (
     Backend,
     BackendSystemEvent,
     DataPointCategory,
+    HubValueType,
     InstallModeData,
     ProgramData,
     SystemVariableData,
-    SysvarType,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
@@ -243,27 +243,30 @@ class Hub(HubProtocol):
         if not client or not client.supports_install_mode:
             return None
 
-        # Common protocol interfaces
-        protocols = {
-            "config_provider": self._config_provider,
-            "central_info": self._central_info,
-            "event_bus_provider": self._event_bus_provider,
-            "event_publisher": self._event_publisher,
-            "task_scheduler": self._task_scheduler,
-            "paramset_description_provider": self._paramset_description_provider,
-            "parameter_visibility_provider": self._parameter_visibility_provider,
-            "channel_lookup": self._channel_lookup,
-            "primary_client_provider": self._primary_client_provider,
-        }
-
         sensor = InstallModeDpSensor(
             data=InstallModeData(name="install_mode"),
-            **protocols,
+            central_info=self._central_info,
+            channel_lookup=self._channel_lookup,
+            config_provider=self._config_provider,
+            event_bus_provider=self._event_bus_provider,
+            event_publisher=self._event_publisher,
+            parameter_visibility_provider=self._parameter_visibility_provider,
+            paramset_description_provider=self._paramset_description_provider,
+            primary_client_provider=self._primary_client_provider,
+            task_scheduler=self._task_scheduler,
         )
         button = InstallModeDpButton(
             sensor=sensor,
             data=InstallModeData(name="install_mode_button"),
-            **protocols,
+            central_info=self._central_info,
+            channel_lookup=self._channel_lookup,
+            config_provider=self._config_provider,
+            event_bus_provider=self._event_bus_provider,
+            event_publisher=self._event_publisher,
+            parameter_visibility_provider=self._parameter_visibility_provider,
+            paramset_description_provider=self._paramset_description_provider,
+            primary_client_provider=self._primary_client_provider,
+            task_scheduler=self._task_scheduler,
         )
 
         self._install_mode_dp = InstallModeDpType(button=button, sensor=sensor)
@@ -426,15 +429,15 @@ class Hub(HubProtocol):
             "data": data,
         }
         if data_type:
-            if data_type in (SysvarType.ALARM, SysvarType.LOGIC):
+            if data_type in (HubValueType.ALARM, HubValueType.LOGIC):
                 if extended_sysvar:
                     return SysvarDpSwitch(**protocols)  # type: ignore[arg-type]
                 return SysvarDpBinarySensor(**protocols)  # type: ignore[arg-type]
-            if data_type == SysvarType.LIST and extended_sysvar:
+            if data_type == HubValueType.LIST and extended_sysvar:
                 return SysvarDpSelect(**protocols)  # type: ignore[arg-type]
-            if data_type in (SysvarType.FLOAT, SysvarType.INTEGER) and extended_sysvar:
+            if data_type in (HubValueType.FLOAT, HubValueType.INTEGER) and extended_sysvar:
                 return SysvarDpNumber(**protocols)  # type: ignore[arg-type]
-            if data_type == SysvarType.STRING and extended_sysvar:
+            if data_type == HubValueType.STRING and extended_sysvar:
                 return SysvarDpText(**protocols)  # type: ignore[arg-type]
 
         return SysvarDpSensor(**protocols)  # type: ignore[arg-type]
@@ -450,7 +453,7 @@ class Hub(HubProtocol):
         variable_ids: dict[str, bool] = {x.vid: x.extended_sysvar for x in variables}
         missing_variable_ids: list[str] = []
         for dp in self._hub_data_point_manager.sysvar_data_points:
-            if dp.data_type == SysvarType.STRING:
+            if dp.data_type == HubValueType.STRING:
                 continue
             if (vid := dp.vid) is not None and (
                 vid not in variable_ids or (dp.is_extended is not variable_ids.get(vid))

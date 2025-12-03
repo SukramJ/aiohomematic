@@ -30,6 +30,7 @@ from aiohomematic.const import (
     EventKey,
     EventType,
     ForcedDeviceAvailability,
+    HubValueType,
     InboxDeviceData,
     Interface,
     ParameterData,
@@ -40,7 +41,6 @@ from aiohomematic.const import (
     ProxyInitState,
     RxMode,
     SystemInformation,
-    SysvarType,
 )
 from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
@@ -1238,7 +1238,7 @@ class GenericSysvarDataPointProtocol(GenericHubDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def data_type(self) -> SysvarType | None:
+    def data_type(self) -> HubValueType | None:
         """Return the data type of the system variable."""
 
     @property
@@ -1331,12 +1331,36 @@ class GenericProgramDataPointProtocol(GenericHubDataPointProtocol, Protocol):
 
 
 @runtime_checkable
-class GenericInstallModeDataPointProtocol(CallbackDataPointProtocol, Protocol):
+class HubSensorDataPointProtocol(GenericHubDataPointProtocol, Protocol):
     """
-    Protocol for install mode data points.
+    Protocol for sensors bases on hub entities, that ar no sysvars.
 
-    Provides properties and methods for monitoring and controlling
-    the CCU install mode (device pairing).
+    Provides properties like data_type.
+    """
+
+    @property
+    @abstractmethod
+    def data_type(self) -> HubValueType | None:
+        """Return the data type of the system variable."""
+
+    @property
+    @abstractmethod
+    def unit(self) -> str | None:
+        """Return the unit of the data point."""
+
+    @property
+    @abstractmethod
+    def value(self) -> Any:
+        """Return the value."""
+
+
+@runtime_checkable
+class GenericInstallModeDataPointProtocol(HubSensorDataPointProtocol, Protocol):
+    """
+    Protocol for install mode sensor data point.
+
+    Provides properties and methods for monitoring the CCU install mode
+    countdown timer (device pairing).
     """
 
     __slots__ = ()
@@ -1345,11 +1369,6 @@ class GenericInstallModeDataPointProtocol(CallbackDataPointProtocol, Protocol):
     @abstractmethod
     def is_active(self) -> bool:
         """Return if install mode is active."""
-
-    @property
-    @abstractmethod
-    def value(self) -> int:
-        """Return remaining seconds."""
 
     @abstractmethod
     def start_countdown(self, *, seconds: int) -> None:
@@ -1562,7 +1581,7 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
     @property
     @abstractmethod
     def value(self) -> Any:
-        """Return the value of the data point."""
+        """Return the value."""
 
     @property
     @abstractmethod

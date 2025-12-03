@@ -20,11 +20,11 @@ from aiohomematic.const import (
     VIRTUAL_REMOTE_ADDRESSES,
     CommandRxMode,
     DataPointUsage,
+    HubValueType,
     ParameterData,
     ParameterType,
     ParamsetKey,
     RxMode,
-    SysvarType,
 )
 from aiohomematic.converter import _COMBINED_PARAMETER_TO_HM_CONVERTER, convert_hm_level_to_cpv
 from aiohomematic.exceptions import AioHomematicException
@@ -169,12 +169,12 @@ class TestSysvarParsing:
     def test_parse_sys_var(self) -> None:
         """Test parse_sys_var."""
         assert parse_sys_var(data_type=None, raw_value="1.4") == "1.4"
-        assert parse_sys_var(data_type=SysvarType.STRING, raw_value="1.4") == "1.4"
-        assert parse_sys_var(data_type=SysvarType.FLOAT, raw_value="1.4") == 1.4
-        assert parse_sys_var(data_type=SysvarType.INTEGER, raw_value="1") == 1
-        assert parse_sys_var(data_type=SysvarType.ALARM, raw_value="true") is True
-        assert parse_sys_var(data_type=SysvarType.LIST, raw_value="1") == 1
-        assert parse_sys_var(data_type=SysvarType.LOGIC, raw_value="true") is True
+        assert parse_sys_var(data_type=HubValueType.STRING, raw_value="1.4") == "1.4"
+        assert parse_sys_var(data_type=HubValueType.FLOAT, raw_value="1.4") == 1.4
+        assert parse_sys_var(data_type=HubValueType.INTEGER, raw_value="1") == 1
+        assert parse_sys_var(data_type=HubValueType.ALARM, raw_value="true") is True
+        assert parse_sys_var(data_type=HubValueType.LIST, raw_value="1") == 1
+        assert parse_sys_var(data_type=HubValueType.LOGIC, raw_value="true") is True
 
 
 class TestBoolConversion:

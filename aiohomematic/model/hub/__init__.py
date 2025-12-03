@@ -86,6 +86,7 @@ from aiohomematic.const import (
     Backend,
     BackendSystemEvent,
     DataPointCategory,
+    InstallModeData,
     ProgramData,
     SystemVariableData,
     SysvarType,
@@ -110,6 +111,7 @@ from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
 from aiohomematic.model.hub.inbox import HmInboxSensor
+from aiohomematic.model.hub.install_mode import InstallModeDpButton, InstallModeDpSensor, InstallModeDpType
 from aiohomematic.model.hub.number import SysvarDpNumber
 from aiohomematic.model.hub.select import SysvarDpSelect
 from aiohomematic.model.hub.sensor import SysvarDpSensor
@@ -124,6 +126,9 @@ __all__ = [
     "HmInboxSensor",
     "HmUpdate",
     "Hub",
+    "InstallModeDpButton",
+    "InstallModeDpSensor",
+    "InstallModeDpType",
     "ProgramDpButton",
     "ProgramDpSwitch",
     "ProgramDpType",
@@ -162,12 +167,13 @@ class Hub(HubProtocol):
         "_event_publisher",
         "_hub_data_fetcher",
         "_hub_data_point_manager",
+        "_inbox_dp",
+        "_install_mode_dp",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_primary_client_provider",
-        "_sema_fetch_programs",
-        "_inbox_dp",
         "_sema_fetch_inbox",
+        "_sema_fetch_programs",
         "_sema_fetch_sysvars",
         "_sema_fetch_update",
         "_task_scheduler",
@@ -207,6 +213,7 @@ class Hub(HubProtocol):
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._update_dp: HmUpdate | None = None
         self._inbox_dp: HmInboxSensor | None = None
+        self._install_mode_dp: InstallModeDpType | None = None
 
     @property
     def inbox_dp(self) -> HmInboxSensor | None:
@@ -214,9 +221,53 @@ class Hub(HubProtocol):
         return self._inbox_dp
 
     @property
+    def install_mode_dp(self) -> InstallModeDpType | None:
+        """Return the install mode data points."""
+        return self._install_mode_dp
+
+    @property
     def update_dp(self) -> HmUpdate | None:
         """Return the system update data point."""
         return self._update_dp
+
+    def create_install_mode_dp(self) -> InstallModeDpType | None:
+        """
+        Create install mode data points if supported.
+
+        Returns the created InstallModeDpType or None if not supported.
+        """
+        if self._install_mode_dp is not None:
+            return self._install_mode_dp
+
+        client = self._primary_client_provider.primary_client
+        if not client or not client.supports_install_mode:
+            return None
+
+        # Common protocol interfaces
+        protocols = {
+            "config_provider": self._config_provider,
+            "central_info": self._central_info,
+            "event_bus_provider": self._event_bus_provider,
+            "event_publisher": self._event_publisher,
+            "task_scheduler": self._task_scheduler,
+            "paramset_description_provider": self._paramset_description_provider,
+            "parameter_visibility_provider": self._parameter_visibility_provider,
+            "channel_lookup": self._channel_lookup,
+            "primary_client_provider": self._primary_client_provider,
+        }
+
+        sensor = InstallModeDpSensor(
+            data=InstallModeData(name="install_mode"),
+            **protocols,
+        )
+        button = InstallModeDpButton(
+            sensor=sensor,
+            data=InstallModeData(name="install_mode_button"),
+            **protocols,
+        )
+
+        self._install_mode_dp = InstallModeDpType(button=button, sensor=sensor)
+        return self._install_mode_dp
 
     @inspector(re_raise=False)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:

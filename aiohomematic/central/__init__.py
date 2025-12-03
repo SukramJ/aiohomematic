@@ -176,7 +176,7 @@ from aiohomematic.interfaces import (
     PrimaryClientProvider,
     SystemInfoProvider,
 )
-from aiohomematic.model.hub import ProgramDpType
+from aiohomematic.model.hub import InstallModeDpType, ProgramDpType
 from aiohomematic.property_decorators import info_property
 from aiohomematic.store import (
     CentralDataCache,
@@ -450,6 +450,11 @@ class CentralUnit(
         return self._hub_coordinator
 
     @property
+    def install_mode_dp(self) -> InstallModeDpType | None:
+        """Return the install mode data points."""
+        return self._hub_coordinator.install_mode_dp
+
+    @property
     def interface_ids(self) -> frozenset[str]:
         """Return all associated interface ids."""
         return self._client_coordinator.interface_ids
@@ -664,6 +669,14 @@ class CentralUnit(
             central=self,
             interface_config=interface_config,
         )
+
+    def create_install_mode_dp(self) -> InstallModeDpType | None:
+        """
+        Create install mode data points if supported.
+
+        Returns the created InstallModeDpType or None if not supported.
+        """
+        return self._hub_coordinator.create_install_mode_dp()
 
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:

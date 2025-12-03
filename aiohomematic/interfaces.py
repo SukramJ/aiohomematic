@@ -1331,6 +1331,40 @@ class GenericProgramDataPointProtocol(GenericHubDataPointProtocol, Protocol):
 
 
 @runtime_checkable
+class GenericInstallModeDataPointProtocol(CallbackDataPointProtocol, Protocol):
+    """
+    Protocol for install mode data points.
+
+    Provides properties and methods for monitoring and controlling
+    the CCU install mode (device pairing).
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def is_active(self) -> bool:
+        """Return if install mode is active."""
+
+    @property
+    @abstractmethod
+    def value(self) -> int:
+        """Return remaining seconds."""
+
+    @abstractmethod
+    def start_countdown(self, *, seconds: int) -> None:
+        """Start local countdown."""
+
+    @abstractmethod
+    def stop_countdown(self) -> None:
+        """Stop countdown."""
+
+    @abstractmethod
+    def sync_from_backend(self, *, remaining_seconds: int) -> None:
+        """Sync countdown from backend value."""
+
+
+@runtime_checkable
 class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
     """
     Protocol for channel-bound data points.

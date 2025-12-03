@@ -35,7 +35,7 @@ from aiohomematic.interfaces import (
     PrimaryClientProvider,
     TaskScheduler,
 )
-from aiohomematic.model.hub import Hub, ProgramDpType
+from aiohomematic.model.hub import Hub, InstallModeDpType, ProgramDpType
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -113,6 +113,11 @@ class HubCoordinator:
         return tuple(self._state_path_to_name.keys())
 
     @property
+    def install_mode_dp(self) -> InstallModeDpType | None:
+        """Return the install mode data points."""
+        return self._hub.install_mode_dp
+
+    @property
     def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
         """Return the program data points (both buttons and switches)."""
         return tuple(
@@ -170,6 +175,14 @@ class HubCoordinator:
             self._event_bus_provider.event_bus.subscribe(
                 event_type=SysvarUpdatedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
             )
+
+    def create_install_mode_dp(self) -> InstallModeDpType | None:
+        """
+        Create install mode data points if supported.
+
+        Returns the created InstallModeDpType or None if not supported.
+        """
+        return self._hub.create_install_mode_dp()
 
     async def execute_program(self, *, pid: str) -> bool:
         """

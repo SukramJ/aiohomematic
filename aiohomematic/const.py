@@ -139,6 +139,7 @@ DETECTION_PORT_BIDCOS_WIRED: Final = (2000, 42000)
 DETECTION_PORT_JSON_RPC: Final = ((80, False), (443, True))  # (port, tls)
 
 HUB_ADDRESS: Final = "hub"
+INSTALL_MODE_ADDRESS: Final = "install_mode"
 PROGRAM_ADDRESS: Final = "program"
 RECONNECT_WAIT: Final = 1 if _TEST_SPEEDUP else 120  # wait with reconnect after a first ping was successful
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
@@ -1107,6 +1108,13 @@ class SystemVariableData(HubData):
     min_value: float | int | None = None
     unit: str | None = None
     values: tuple[str, ...] | None = None
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class InstallModeData:
+    """Dataclass for install mode data points."""
+
+    name: str
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

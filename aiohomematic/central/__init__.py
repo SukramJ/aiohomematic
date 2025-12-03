@@ -680,7 +680,7 @@ class CentralUnit(
 
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
-        """If a device publishes some sort event, we will handle it here."""
+        """Handle device data point events."""
         await self._event_coordinator.data_point_event(
             interface_id=interface_id,
             channel_address=channel_address,
@@ -705,6 +705,11 @@ class CentralUnit(
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
         """Fetch inbox data for the hub."""
         await self._hub_coordinator.fetch_inbox_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
+    async def fetch_install_mode_data(self, *, scheduled: bool = False) -> None:
+        """Fetch install mode data from the backend."""
+        await self._hub_coordinator.fetch_install_mode_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -995,6 +1000,15 @@ class CentralUnit(
         """Identify channel within a text."""
         return self._device_coordinator.identify_channel(text=text)
 
+    async def init_install_mode(self) -> InstallModeDpType | None:
+        """
+        Initialize install mode data points.
+
+        Creates data points, fetches initial state from backend, and publishes refresh event.
+        Returns the created InstallModeDpType or None if not supported.
+        """
+        return await self._hub_coordinator.init_install_mode()
+
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
         """Return already existing devices to the backend."""
@@ -1048,6 +1062,10 @@ class CentralUnit(
         # Events like INTERFACE, KEYPRESS, ...
         """
         self._event_coordinator.publish_homematic_event(event_type=event_type, event_data=event_data)
+
+    def publish_install_mode_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for install mode data points."""
+        self._hub_coordinator.publish_install_mode_refreshed()
 
     @loop_check
     def publish_interface_event(

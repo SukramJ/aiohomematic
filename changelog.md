@@ -3,6 +3,7 @@
 ## What's Changed
 
 - Add install mode virtual data point with countdown timer (HUB_BUTTON + HUB_SENSOR)
+- Add init_install_mode, fetch_install_mode_data, publish_install_mode_refreshed to Hub/HubCoordinator/CentralUnit
 - Add get_install_mode/set_install_mode to DeviceManagement/CentralUnit
 
 # Version 2025.12.4 (2025-12-02)

@@ -214,6 +214,18 @@ class HubCoordinator:
         await self._hub.fetch_inbox_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
+    async def fetch_install_mode_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch install mode data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_install_mode_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """
         Fetch program data from the backend.
@@ -349,6 +361,19 @@ class HubCoordinator:
         _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central_info.name)
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
+
+    async def init_install_mode(self) -> InstallModeDpType | None:
+        """
+        Initialize install mode data points.
+
+        Creates data points, fetches initial state from backend, and publishes refresh event.
+        Returns the created InstallModeDpType or None if not supported.
+        """
+        return await self._hub.init_install_mode()
+
+    def publish_install_mode_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for install mode data points."""
+        self._hub.publish_install_mode_refreshed()
 
     def remove_program_data_point(self, *, pid: str) -> None:
         """

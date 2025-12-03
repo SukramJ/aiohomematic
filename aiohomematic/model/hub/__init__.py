@@ -284,6 +284,20 @@ class Hub(HubProtocol):
                 await self._update_inbox_data_point()
 
     @inspector(re_raise=False)
+    async def fetch_install_mode_data(self, *, scheduled: bool) -> None:
+        """Fetch install mode data from the backend."""
+        if not self._install_mode_dp:
+            return
+        _LOGGER.debug(
+            "FETCH_INSTALL_MODE_DATA: %s fetching of install mode for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        if self._central_info.available and (client := self._primary_client_provider.primary_client):
+            remaining_seconds = await client.get_install_mode()
+            self._install_mode_dp.sensor.sync_from_backend(remaining_seconds=remaining_seconds)
+
+    @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         if self._config_provider.config.enable_program_scan:
@@ -322,6 +336,37 @@ class Hub(HubProtocol):
             async with self._sema_fetch_sysvars:
                 if self._central_info.available:
                     await self._update_sysvar_data_points()
+
+    async def init_install_mode(self) -> InstallModeDpType | None:
+        """
+        Initialize install mode data points.
+
+        Creates data points, fetches initial state from backend, and publishes refresh event.
+        Returns the created InstallModeDpType or None if not supported.
+        """
+        if not (install_mode_dp := self.create_install_mode_dp()):
+            return None
+
+        # Fetch initial state from backend
+        await self.fetch_install_mode_data(scheduled=False)
+
+        # Publish refresh event to notify consumers
+        self.publish_install_mode_refreshed()
+
+        return install_mode_dp
+
+    def publish_install_mode_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for install mode data points."""
+        if not self._install_mode_dp:
+            return
+        data_points: list[GenericHubDataPointProtocol] = [
+            self._install_mode_dp.button,
+            self._install_mode_dp.sensor,
+        ]
+        self._event_publisher.publish_backend_system_event(
+            system_event=BackendSystemEvent.HUB_REFRESHED,
+            new_data_points=_get_new_hub_data_points(data_points=data_points),
+        )
 
     def _create_program_dp(self, *, data: ProgramData) -> ProgramDpType:
         """Create program as data_point."""

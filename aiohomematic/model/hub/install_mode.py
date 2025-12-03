@@ -135,7 +135,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, PayloadMixin):
         return f"{self._category}/{self.name}"
 
 
-class InstallModeDpSensor(_BaseInstallModeDataPoint):
+class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeDataPoint):
     """Sensor showing remaining install mode time."""
 
     __slots__ = (

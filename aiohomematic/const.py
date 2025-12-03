@@ -1115,6 +1115,7 @@ class InstallModeData:
     """Dataclass for install mode data points."""
 
     name: str
+    interface: Interface
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

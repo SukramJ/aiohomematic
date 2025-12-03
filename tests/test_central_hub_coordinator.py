@@ -88,8 +88,9 @@ class _FakeHub:
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data."""
 
-    async def init_install_mode(self) -> None:
+    async def init_install_mode(self) -> dict:
         """Initialize install mode."""
+        return {}
 
 
 class _FakeClient:

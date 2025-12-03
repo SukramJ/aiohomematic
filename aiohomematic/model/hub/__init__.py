@@ -88,6 +88,7 @@ from aiohomematic.const import (
     DataPointCategory,
     HubValueType,
     InstallModeData,
+    Interface,
     ProgramData,
     SystemVariableData,
 )
@@ -168,7 +169,7 @@ class Hub(HubProtocol):
         "_hub_data_fetcher",
         "_hub_data_point_manager",
         "_inbox_dp",
-        "_install_mode_dp",
+        "_install_mode_dps",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_primary_client_provider",
@@ -213,7 +214,7 @@ class Hub(HubProtocol):
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._update_dp: HmUpdate | None = None
         self._inbox_dp: HmInboxSensor | None = None
-        self._install_mode_dp: InstallModeDpType | None = None
+        self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
 
     @property
     def inbox_dp(self) -> HmInboxSensor | None:
@@ -221,56 +222,33 @@ class Hub(HubProtocol):
         return self._inbox_dp
 
     @property
-    def install_mode_dp(self) -> InstallModeDpType | None:
-        """Return the install mode data points."""
-        return self._install_mode_dp
+    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """Return the install mode data points by interface."""
+        return self._install_mode_dps
 
     @property
     def update_dp(self) -> HmUpdate | None:
         """Return the system update data point."""
         return self._update_dp
 
-    def create_install_mode_dp(self) -> InstallModeDpType | None:
+    def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Create install mode data points if supported.
+        Create install mode data points for all supported interfaces.
 
-        Returns the created InstallModeDpType or None if not supported.
+        Returns a dict of InstallModeDpType by Interface.
         """
-        if self._install_mode_dp is not None:
-            return self._install_mode_dp
+        if self._install_mode_dps:
+            return self._install_mode_dps
 
-        client = self._primary_client_provider.primary_client
-        if not client or not client.supports_install_mode:
-            return None
+        # Check which interfaces support install mode
+        for interface in (Interface.BIDCOS_RF, Interface.HMIP_RF):
+            if self._create_install_mode_dp_for_interface(interface=interface):
+                _LOGGER.debug(
+                    "CREATE_INSTALL_MODE_DPS: Created install mode data points for %s",
+                    interface,
+                )
 
-        sensor = InstallModeDpSensor(
-            data=InstallModeData(name="install_mode"),
-            central_info=self._central_info,
-            channel_lookup=self._channel_lookup,
-            config_provider=self._config_provider,
-            event_bus_provider=self._event_bus_provider,
-            event_publisher=self._event_publisher,
-            parameter_visibility_provider=self._parameter_visibility_provider,
-            paramset_description_provider=self._paramset_description_provider,
-            primary_client_provider=self._primary_client_provider,
-            task_scheduler=self._task_scheduler,
-        )
-        button = InstallModeDpButton(
-            sensor=sensor,
-            data=InstallModeData(name="install_mode_button"),
-            central_info=self._central_info,
-            channel_lookup=self._channel_lookup,
-            config_provider=self._config_provider,
-            event_bus_provider=self._event_bus_provider,
-            event_publisher=self._event_publisher,
-            parameter_visibility_provider=self._parameter_visibility_provider,
-            paramset_description_provider=self._paramset_description_provider,
-            primary_client_provider=self._primary_client_provider,
-            task_scheduler=self._task_scheduler,
-        )
-
-        self._install_mode_dp = InstallModeDpType(button=button, sensor=sensor)
-        return self._install_mode_dp
+        return self._install_mode_dps
 
     @inspector(re_raise=False)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
@@ -288,17 +266,24 @@ class Hub(HubProtocol):
 
     @inspector(re_raise=False)
     async def fetch_install_mode_data(self, *, scheduled: bool) -> None:
-        """Fetch install mode data from the backend."""
-        if not self._install_mode_dp:
+        """Fetch install mode data from the backend for all interfaces."""
+        if not self._install_mode_dps:
             return
         _LOGGER.debug(
             "FETCH_INSTALL_MODE_DATA: %s fetching of install mode for %s",
             "Scheduled" if scheduled else "Manual",
             self._central_info.name,
         )
-        if self._central_info.available and (client := self._primary_client_provider.primary_client):
-            remaining_seconds = await client.get_install_mode()
-            self._install_mode_dp.sensor.sync_from_backend(remaining_seconds=remaining_seconds)
+        if not self._central_info.available:
+            return
+
+        # Fetch install mode for each interface
+        # Note: Currently using primary_client which may only support one interface.
+        # Future enhancement: Add ClientProvider to Hub to support multiple interfaces.
+        for install_mode_dp in self._install_mode_dps.values():
+            if client := self._primary_client_provider.primary_client:
+                remaining_seconds = await client.get_install_mode()
+                install_mode_dp.sensor.sync_from_backend(remaining_seconds=remaining_seconds)
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -340,15 +325,15 @@ class Hub(HubProtocol):
                 if self._central_info.available:
                     await self._update_sysvar_data_points()
 
-    async def init_install_mode(self) -> InstallModeDpType | None:
+    async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Initialize install mode data points.
+        Initialize install mode data points for all supported interfaces.
 
         Creates data points, fetches initial state from backend, and publishes refresh event.
-        Returns the created InstallModeDpType or None if not supported.
+        Returns a dict of InstallModeDpType by Interface.
         """
-        if not (install_mode_dp := self.create_install_mode_dp()):
-            return None
+        if not (install_mode_dps := self.create_install_mode_dps()):
+            return {}
 
         # Fetch initial state from backend
         await self.fetch_install_mode_data(scheduled=False)
@@ -356,20 +341,66 @@ class Hub(HubProtocol):
         # Publish refresh event to notify consumers
         self.publish_install_mode_refreshed()
 
-        return install_mode_dp
+        return install_mode_dps
 
     def publish_install_mode_refreshed(self) -> None:
         """Publish HUB_REFRESHED event for install mode data points."""
-        if not self._install_mode_dp:
+        if not self._install_mode_dps:
             return
-        data_points: list[GenericHubDataPointProtocol] = [
-            self._install_mode_dp.button,
-            self._install_mode_dp.sensor,
-        ]
+        data_points: list[GenericHubDataPointProtocol] = []
+        for install_mode_dp in self._install_mode_dps.values():
+            data_points.append(install_mode_dp.button)
+            data_points.append(install_mode_dp.sensor)
+
         self._event_publisher.publish_backend_system_event(
             system_event=BackendSystemEvent.HUB_REFRESHED,
             new_data_points=_get_new_hub_data_points(data_points=data_points),
         )
+
+    def _create_install_mode_dp_for_interface(self, *, interface: Interface) -> InstallModeDpType | None:
+        """Create install mode data points for a specific interface."""
+        if interface in self._install_mode_dps:
+            return self._install_mode_dps[interface]
+
+        # Check if interface is available via any client
+        client = self._primary_client_provider.primary_client
+        if not client or not client.supports_install_mode:
+            return None
+
+        # Create interface-specific names
+        interface_suffix = "hmip" if interface == Interface.HMIP_RF else "bidcos"
+        sensor_name = f"install_mode_{interface_suffix}"
+        button_name = f"install_mode_{interface_suffix}_button"
+
+        sensor = InstallModeDpSensor(
+            data=InstallModeData(name=sensor_name, interface=interface),
+            central_info=self._central_info,
+            channel_lookup=self._channel_lookup,
+            config_provider=self._config_provider,
+            event_bus_provider=self._event_bus_provider,
+            event_publisher=self._event_publisher,
+            parameter_visibility_provider=self._parameter_visibility_provider,
+            paramset_description_provider=self._paramset_description_provider,
+            primary_client_provider=self._primary_client_provider,
+            task_scheduler=self._task_scheduler,
+        )
+        button = InstallModeDpButton(
+            sensor=sensor,
+            data=InstallModeData(name=button_name, interface=interface),
+            central_info=self._central_info,
+            channel_lookup=self._channel_lookup,
+            config_provider=self._config_provider,
+            event_bus_provider=self._event_bus_provider,
+            event_publisher=self._event_publisher,
+            parameter_visibility_provider=self._parameter_visibility_provider,
+            paramset_description_provider=self._paramset_description_provider,
+            primary_client_provider=self._primary_client_provider,
+            task_scheduler=self._task_scheduler,
+        )
+
+        install_mode_dp = InstallModeDpType(button=button, sensor=sensor)
+        self._install_mode_dps[interface] = install_mode_dp
+        return install_mode_dp
 
     def _create_program_dp(self, *, data: ProgramData) -> ProgramDpType:
         """Create program as data_point."""

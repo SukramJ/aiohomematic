@@ -450,9 +450,9 @@ class CentralUnit(
         return self._hub_coordinator
 
     @property
-    def install_mode_dp(self) -> InstallModeDpType | None:
-        """Return the install mode data points."""
-        return self._hub_coordinator.install_mode_dp
+    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """Return the install mode data points by interface."""
+        return self._hub_coordinator.install_mode_dps
 
     @property
     def interface_ids(self) -> frozenset[str]:
@@ -670,13 +670,13 @@ class CentralUnit(
             interface_config=interface_config,
         )
 
-    def create_install_mode_dp(self) -> InstallModeDpType | None:
+    def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Create install mode data points if supported.
+        Create install mode data points for all supported interfaces.
 
-        Returns the created InstallModeDpType or None if not supported.
+        Returns a dict of InstallModeDpType by Interface.
         """
-        return self._hub_coordinator.create_install_mode_dp()
+        return self._hub_coordinator.create_install_mode_dps()
 
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
@@ -1000,12 +1000,12 @@ class CentralUnit(
         """Identify channel within a text."""
         return self._device_coordinator.identify_channel(text=text)
 
-    async def init_install_mode(self) -> InstallModeDpType | None:
+    async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Initialize install mode data points.
+        Initialize install mode data points for all supported interfaces.
 
         Creates data points, fetches initial state from backend, and publishes refresh event.
-        Returns the created InstallModeDpType or None if not supported.
+        Returns a dict of InstallModeDpType by Interface.
         """
         return await self._hub_coordinator.init_install_mode()
 

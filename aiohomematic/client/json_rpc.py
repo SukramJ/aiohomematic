@@ -172,6 +172,7 @@ class _JsonRpcMethod(StrEnum):
     DEVICE_LIST_ALL_DETAIL = "Device.listAllDetail"
     DEVICE_SET_NAME = "Device.setName"
     INTERFACE_GET_DEVICE_DESCRIPTION = "Interface.getDeviceDescription"
+    INTERFACE_GET_INSTALL_MODE = "Interface.getInstallMode"
     INTERFACE_GET_MASTER_VALUE = "Interface.getMasterValue"
     INTERFACE_GET_PARAMSET = "Interface.getParamset"
     INTERFACE_GET_PARAMSET_DESCRIPTION = "Interface.getParamsetDescription"
@@ -180,6 +181,8 @@ class _JsonRpcMethod(StrEnum):
     INTERFACE_LIST_DEVICES = "Interface.listDevices"
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
     INTERFACE_PUT_PARAMSET = "Interface.putParamset"
+    INTERFACE_SET_INSTALL_MODE = "Interface.setInstallMode"
+    INTERFACE_SET_INSTALL_MODE_HMIP = "Interface.setInstallModeHmIP"
     INTERFACE_SET_VALUE = "Interface.setValue"
     PROGRAM_EXECUTE = "Program.execute"
     PROGRAM_GET_ALL = "Program.getAll"
@@ -814,6 +817,18 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return tuple(devices)
 
+    async def get_install_mode(self, *, interface: Interface) -> int:
+        """Get the remaining install mode time for an interface."""
+        params = {_JsonKey.INTERFACE: interface}
+
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_GET_INSTALL_MODE, extra_params=params)
+
+        _LOGGER.debug("GET_INSTALL_MODE: Getting remaining install mode time for %s", interface)
+        if json_result := response[_JsonKey.RESULT]:
+            return int(json_result)
+
+        return 0
+
     async def get_paramset(
         self, *, interface: Interface, address: str, paramset_key: ParamsetKey | str
     ) -> dict[str, Any] | None:
@@ -1142,6 +1157,75 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return response.get(_JsonKey.RESULT) is True
 
+    async def set_install_mode(
+        self,
+        *,
+        interface: Interface,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """
+        Set the install mode on the backend for BidCos-RF.
+
+        Args:
+            interface: The interface to set install mode on.
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
+            device_address: Optional device address to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
+        params: dict[str, Any] = {
+            _JsonKey.INTERFACE: interface,
+            "on": on,
+            "time": time,
+        }
+        if device_address:
+            params["address"] = device_address
+        else:
+            params["mode"] = mode
+
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_SET_INSTALL_MODE, extra_params=params)
+
+        _LOGGER.debug("SET_INSTALL_MODE: Setting install mode for %s", interface)
+        return response[_JsonKey.RESULT] is not None
+
+    async def set_install_mode_hmip(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        device_address: str | None = None,
+    ) -> bool:
+        """
+        Set the install mode on the backend for HmIP-RF.
+
+        Args:
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            device_address: Optional device SGTIN to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
+        params: dict[str, Any] = {
+            "on": on,
+            "time": time,
+        }
+        if device_address:
+            params["sgtin"] = device_address
+
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_SET_INSTALL_MODE_HMIP, extra_params=params)
+
+        _LOGGER.debug("SET_INSTALL_MODE_HMIP: Setting install mode for HmIP-RF")
+        return response[_JsonKey.RESULT] is not None
+
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
         params = {
@@ -1296,7 +1380,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         *,
         session_id: bool | str,
         method: _JsonRpcMethod,
-        extra_params: dict[_JsonKey, Any] | None = None,
+        extra_params: Mapping[Any, Any] | None = None,
         use_default_params: bool = True,
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST function."""
@@ -1623,7 +1707,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self,
         *,
         method: _JsonRpcMethod,
-        extra_params: dict[_JsonKey, Any] | None = None,
+        extra_params: Mapping[Any, Any] | None = None,
         use_default_params: bool = True,
         keep_session: bool = True,
     ) -> dict[str, Any] | Any:
@@ -1776,11 +1860,11 @@ def _determine_ccu_type(*, product: str) -> CCUType:
 def _get_params(
     *,
     session_id: bool | str,
-    extra_params: dict[_JsonKey, Any] | None,
+    extra_params: Mapping[Any, Any] | None,
     use_default_params: bool,
 ) -> Mapping[str, Any]:
     """Add additional params to default prams."""
-    params: dict[_JsonKey, Any] = {_JsonKey.SESSION_ID: session_id} if use_default_params else {}
+    params: dict[Any, Any] = {_JsonKey.SESSION_ID: session_id} if use_default_params else {}
     if extra_params:
         params.update(extra_params)
 

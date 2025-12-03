@@ -15,12 +15,13 @@ The HubCoordinator provides:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
 from typing import Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import SysvarUpdatedEvent
-from aiohomematic.const import DataPointCategory
+from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
@@ -113,9 +114,9 @@ class HubCoordinator:
         return tuple(self._state_path_to_name.keys())
 
     @property
-    def install_mode_dp(self) -> InstallModeDpType | None:
-        """Return the install mode data points."""
-        return self._hub.install_mode_dp
+    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """Return the install mode data points by interface."""
+        return self._hub.install_mode_dps
 
     @property
     def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
@@ -176,13 +177,13 @@ class HubCoordinator:
                 event_type=SysvarUpdatedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
             )
 
-    def create_install_mode_dp(self) -> InstallModeDpType | None:
+    def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Create install mode data points if supported.
+        Create install mode data points for all supported interfaces.
 
-        Returns the created InstallModeDpType or None if not supported.
+        Returns a dict of InstallModeDpType by Interface.
         """
-        return self._hub.create_install_mode_dp()
+        return self._hub.create_install_mode_dps()
 
     async def execute_program(self, *, pid: str) -> bool:
         """
@@ -363,12 +364,12 @@ class HubCoordinator:
         await self._hub.fetch_sysvar_data(scheduled=True)
         await self._hub.init_install_mode()
 
-    async def init_install_mode(self) -> InstallModeDpType | None:
+    async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Initialize install mode data points.
+        Initialize install mode data points for all supported interfaces.
 
         Creates data points, fetches initial state from backend, and publishes refresh event.
-        Returns the created InstallModeDpType or None if not supported.
+        Returns a dict of InstallModeDpType by Interface.
         """
         return await self._hub.init_install_mode()
 

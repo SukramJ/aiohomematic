@@ -8,6 +8,8 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Final, NamedTuple
 
+from slugify import slugify
+
 from aiohomematic.const import INIT_DATETIME, INSTALL_MODE_ADDRESS, DataPointCategory, HubValueType, InstallModeData
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
@@ -68,7 +70,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=INSTALL_MODE_ADDRESS,
-            parameter=data.name,
+            parameter=slugify(data.name),
         )
         self._channel = channel_lookup.identify_channel(text=data.name)
         self._name_data: Final = get_hub_data_point_name_data(

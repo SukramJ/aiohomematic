@@ -185,7 +185,7 @@ class _JsonRpcMethod(StrEnum):
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
     INTERFACE_PUT_PARAMSET = "Interface.putParamset"
     INTERFACE_SET_INSTALL_MODE = "Interface.setInstallMode"
-    INTERFACE_SET_INSTALL_MODE_HMIP = "Interface.setInstallModeHmIP"
+    INTERFACE_SET_INSTALL_MODE_HMIP = "Interface.setInstallModeHMIP"
     INTERFACE_SET_VALUE = "Interface.setValue"
     PROGRAM_EXECUTE = "Program.execute"
     PROGRAM_GET_ALL = "Program.getAll"

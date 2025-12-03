@@ -9,6 +9,7 @@
 - Add mandatory interface parameter to get_install_mode/set_install_mode on CentralUnit
 - Extend ClientCoordinator.get_client to accept optional interface parameter
 - Add ClientProvider to Hub for multi-interface install mode support
+- Fix install mode data point creation to check for client availability per interface
 
 # Version 2025.12.4 (2025-12-02)
 

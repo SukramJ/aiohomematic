@@ -283,10 +283,15 @@ class Hub(HubProtocol):
 
         # Fetch install mode for each interface using the appropriate client
         for interface, install_mode_dp in self._install_mode_dps.items():
-            if client := self._client_provider.get_client(interface=interface):
+            try:
+                client = self._client_provider.get_client(interface=interface)
                 remaining_seconds = await client.get_install_mode()
                 install_mode_dp.sensor.sync_from_backend(remaining_seconds=remaining_seconds)
-                break
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug(
+                    "FETCH_INSTALL_MODE_DATA: No client available for interface %s",
+                    interface,
+                )
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -365,18 +370,22 @@ class Hub(HubProtocol):
         if interface in self._install_mode_dps:
             return self._install_mode_dps[interface]
 
-        # Check if interface is available via any client
-        client = self._primary_client_provider.primary_client
-        if not client or not client.supports_install_mode:
+        # Check if a client exists for this specific interface and supports install mode
+        client = next(
+            (c for c in self._client_provider.clients if c.interface == interface and c.supports_install_mode),
+            None,
+        )
+        if not client:
             return None
 
-        # Create interface-specific names
+        # Create interface-specific parameter names (used for unique_id generation)
+        # The unique_id will be: install_mode_<suffix> where INSTALL_MODE_ADDRESS is the base
         interface_suffix = "hmip" if interface == Interface.HMIP_RF else "bidcos"
-        sensor_name = f"install_mode_{interface_suffix}"
-        button_name = f"install_mode_{interface_suffix}_button"
+        sensor_parameter = interface_suffix
+        button_parameter = f"{interface_suffix}_button"
 
         sensor = InstallModeDpSensor(
-            data=InstallModeData(name=sensor_name, interface=interface),
+            data=InstallModeData(name=sensor_parameter, interface=interface),
             central_info=self._central_info,
             channel_lookup=self._channel_lookup,
             config_provider=self._config_provider,
@@ -389,7 +398,7 @@ class Hub(HubProtocol):
         )
         button = InstallModeDpButton(
             sensor=sensor,
-            data=InstallModeData(name=button_name, interface=interface),
+            data=InstallModeData(name=button_parameter, interface=interface),
             central_info=self._central_info,
             channel_lookup=self._channel_lookup,
             config_provider=self._config_provider,

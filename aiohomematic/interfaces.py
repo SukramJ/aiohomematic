@@ -671,7 +671,7 @@ class ClientProvider(Protocol):
 
     @property
     @abstractmethod
-    def clients(self) -> tuple[ClientProtocol, ...]:  # Avoid circular import
+    def clients(self) -> tuple[ClientProtocol, ...]:
         """Get all clients."""
 
     @property
@@ -685,8 +685,8 @@ class ClientProvider(Protocol):
         """Get all interface IDs."""
 
     @abstractmethod
-    def get_client(self, *, interface_id: str) -> ClientProtocol:
-        """Get client for the given interface."""
+    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
+        """Get client by interface_id or interface type."""
 
     @abstractmethod
     def has_client(self, *, interface_id: str) -> bool:
@@ -742,7 +742,7 @@ class ConfigProvider(Protocol):
 
     @property
     @abstractmethod
-    def config(self) -> CentralConfig:  # Avoid circular import
+    def config(self) -> CentralConfig:
         """Get central configuration."""
 
 
@@ -887,7 +887,7 @@ class ChannelLookup(Protocol):
         """Get channel by address."""
 
     @abstractmethod
-    def identify_channel(self, *, text: str) -> ChannelProtocol | None:  # Avoid circular import
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """Identify a channel within a text string."""
 
 

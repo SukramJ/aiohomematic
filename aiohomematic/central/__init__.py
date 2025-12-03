@@ -313,6 +313,7 @@ class CentralUnit(
         self._hub_coordinator: Final = HubCoordinator(
             central_info=self,
             channel_lookup=self,
+            client_provider=self,
             config_provider=self,
             event_bus_provider=self,
             event_publisher=self,
@@ -730,9 +731,9 @@ class CentralUnit(
         """Return Homematic channel."""
         return self._device_coordinator.get_channel(channel_address=channel_address)
 
-    def get_client(self, *, interface_id: str) -> ClientProtocol:
-        """Return a client by interface_id."""
-        return self._client_coordinator.get_client(interface_id=interface_id)
+    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
+        """Return a client by interface_id or interface type."""
+        return self._client_coordinator.get_client(interface_id=interface_id, interface=interface)
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
         """Return the hm custom_data_point."""
@@ -824,11 +825,22 @@ class CentralUnit(
         """Return the program data points."""
         return self._hub_coordinator.get_hub_data_points(category=category, registered=registered)
 
-    async def get_install_mode(self) -> int:
-        """Return the remaining time in install mode."""
-        if client := self.primary_client:
+    async def get_install_mode(self, *, interface: Interface) -> int:
+        """
+        Return the remaining time in install mode for an interface.
+
+        Args:
+            interface: The interface to query (HMIP_RF or BIDCOS_RF).
+
+        Returns:
+            Remaining time in seconds, or 0 if not in install mode.
+
+        """
+        try:
+            client = self.get_client(interface=interface)
             return await client.get_install_mode()
-        return 0
+        except AioHomematicException:
+            return 0
 
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Return the last event seen for an interface."""
@@ -1163,15 +1175,17 @@ class CentralUnit(
     async def set_install_mode(
         self,
         *,
+        interface: Interface,
         on: bool = True,
         time: int = 60,
         mode: int = 1,
         device_address: str | None = None,
     ) -> bool:
         """
-        Set the install mode on the backend.
+        Set the install mode on the backend for a specific interface.
 
         Args:
+            interface: The interface to set install mode on (HMIP_RF or BIDCOS_RF).
             on: Enable or disable install mode.
             time: Duration in seconds (default 60).
             mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
@@ -1181,9 +1195,11 @@ class CentralUnit(
             True if successful.
 
         """
-        if client := self.primary_client:
+        try:
+            client = self.get_client(interface=interface)
             return await client.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
-        return False
+        except AioHomematicException:
+            return False
 
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """Set the last event seen for an interface."""

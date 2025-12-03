@@ -26,6 +26,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
+    ClientProvider,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
@@ -59,6 +60,7 @@ class HubCoordinator:
         *,
         central_info: CentralInfo,
         channel_lookup: ChannelLookup,
+        client_provider: ClientProvider,
         config_provider: ConfigProvider,
         event_bus_provider: EventBusProvider,
         event_publisher: EventPublisher,
@@ -74,6 +76,7 @@ class HubCoordinator:
         ----
             central_info: Provider for central system information
             channel_lookup: Provider for channel lookup operations
+            client_provider: Provider for client access by interface
             config_provider: Provider for configuration access
             event_bus_provider: Provider for event bus access
             event_publisher: Provider for event emission
@@ -97,6 +100,7 @@ class HubCoordinator:
         self._hub: Final = Hub(
             central_info=central_info,
             channel_lookup=channel_lookup,
+            client_provider=client_provider,
             config_provider=config_provider,
             event_bus_provider=event_bus_provider,
             event_publisher=event_publisher,

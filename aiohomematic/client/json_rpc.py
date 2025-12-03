@@ -118,6 +118,7 @@ class _JsonKey(StrEnum):
 
     ACTION = "action"
     ADDRESS = "address"
+    MODE = "mode"
     AVAILABLE_FIRMWARE = "available_firmware"
     CHANNELS = "channels"
     CHANNEL_IDS = "channelIds"
@@ -130,6 +131,8 @@ class _JsonKey(StrEnum):
     FILENAME = "filename"
     HOSTNAME = "hostname"
     ID = "id"
+    ON = "on"
+    TIME = "time"
     INTERFACE = "interface"
     IS_ACTIVE = "isActive"
     IS_INTERNAL = "isInternal"
@@ -1182,13 +1185,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """
         params: dict[str, Any] = {
             _JsonKey.INTERFACE: interface,
-            "on": on,
-            "time": time,
+            _JsonKey.ON: on,
+            _JsonKey.TIME: time,
         }
         if device_address:
-            params["address"] = device_address
+            params[_JsonKey.ADDRESS] = device_address
         else:
-            params["mode"] = mode
+            params[_JsonKey.MODE] = mode
 
         response = await self._post(method=_JsonRpcMethod.INTERFACE_SET_INSTALL_MODE, extra_params=params)
 

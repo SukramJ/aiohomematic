@@ -96,6 +96,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
+    ClientProvider,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
@@ -163,6 +164,7 @@ class Hub(HubProtocol):
     __slots__ = (
         "_central_info",
         "_channel_lookup",
+        "_client_provider",
         "_config_provider",
         "_event_bus_provider",
         "_event_publisher",
@@ -186,6 +188,7 @@ class Hub(HubProtocol):
         *,
         config_provider: ConfigProvider,
         central_info: CentralInfo,
+        client_provider: ClientProvider,
         hub_data_point_manager: HubDataPointManager,
         primary_client_provider: PrimaryClientProvider,
         event_publisher: EventPublisher,
@@ -203,6 +206,7 @@ class Hub(HubProtocol):
         self._sema_fetch_inbox: Final = asyncio.Semaphore()
         self._config_provider: Final = config_provider
         self._central_info: Final = central_info
+        self._client_provider: Final = client_provider
         self._hub_data_point_manager: Final = hub_data_point_manager
         self._primary_client_provider: Final = primary_client_provider
         self._event_publisher: Final = event_publisher
@@ -277,13 +281,12 @@ class Hub(HubProtocol):
         if not self._central_info.available:
             return
 
-        # Fetch install mode for each interface
-        # Note: Currently using primary_client which may only support one interface.
-        # Future enhancement: Add ClientProvider to Hub to support multiple interfaces.
-        for install_mode_dp in self._install_mode_dps.values():
-            if client := self._primary_client_provider.primary_client:
+        # Fetch install mode for each interface using the appropriate client
+        for interface, install_mode_dp in self._install_mode_dps.items():
+            if client := self._client_provider.get_client(interface=interface):
                 remaining_seconds = await client.get_install_mode()
                 install_mode_dp.sensor.sync_from_backend(remaining_seconds=remaining_seconds)
+                break
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:

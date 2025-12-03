@@ -4,6 +4,8 @@
   "exception.central.decorators.backend_system_handler.identify_central_failed": "EXEC_BACKEND_SYSTEM_CALLBACK fehlgeschlagen: Problem beim Ermitteln der Zentrale: {reason}",
   "exception.central.decorators.event_handler.args_exception": "args-exception event_callback [{reason}]",
   "exception.central.get_client.interface_missing": "GET_CLIENT fehlgeschlagen: Kein Client für {interface_id} in Zentrale {name}",
+  "exception.central.get_client.interface_type_missing": "GET_CLIENT fehlgeschlagen: Kein Client für Interface {interface} in Zentrale {name}",
+  "exception.central.get_client.no_parameter": "GET_CLIENT fehlgeschlagen: interface_id oder interface muss angegeben werden für Zentrale {name}",
   "exception.central.start.failed": "Start der Zentrale {name} fehlgeschlagen: {reason}",
   "exception.central.validate_config.no_clients": "VALIDATE_CONFIG: Keine Clients definiert.",
   "exception.client.add_link.failed": "ADD_LINK fehlgeschlagen für {sender}/{receiver}/{name}/{description}: {reason}",

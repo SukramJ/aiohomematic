@@ -779,7 +779,7 @@ class DeviceManagement(Protocol):
     Protocol for device management operations.
 
     Provides methods for managing devices on the CCU including
-    accepting inbox devices and renaming devices/channels.
+    accepting inbox devices, renaming devices/channels, and install mode.
     Implemented by CentralUnit.
     """
 
@@ -788,8 +788,35 @@ class DeviceManagement(Protocol):
         """Accept a device from the CCU inbox."""
 
     @abstractmethod
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+
+    @abstractmethod
     async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
         """Rename a device on the CCU."""
+
+    @abstractmethod
+    async def set_install_mode(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """
+        Set the install mode on the backend.
+
+        Args:
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
+            device_address: Optional device address to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
 
 
 @runtime_checkable

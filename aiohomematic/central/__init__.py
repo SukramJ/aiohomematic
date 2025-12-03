@@ -806,6 +806,12 @@ class CentralUnit(
         """Return the program data points."""
         return self._hub_coordinator.get_hub_data_points(category=category, registered=registered)
 
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+        if client := self.primary_client:
+            return await client.get_install_mode()
+        return 0
+
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Return the last event seen for an interface."""
         return self._event_coordinator.get_last_event_seen_for_interface(interface_id=interface_id)
@@ -1122,6 +1128,31 @@ class CentralUnit(
             save_device_descriptions=save_device_descriptions,
             save_paramset_descriptions=save_paramset_descriptions,
         )
+
+    async def set_install_mode(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """
+        Set the install mode on the backend.
+
+        Args:
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
+            device_address: Optional device address to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
+        if client := self.primary_client:
+            return await client.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
+        return False
 
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """Set the last event seen for an interface."""

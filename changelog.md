@@ -1,3 +1,9 @@
+# Version 2025.12.5 (2025-12-03)
+
+## What's Changed
+
+- Add get_install_mode/set_install_mode to DeviceManagement/CentralUnit
+
 # Version 2025.12.4 (2025-12-02)
 
 ## What's Changed

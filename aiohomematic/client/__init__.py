@@ -633,6 +633,10 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             return 0
 
         try:
+            # HmIP-RF uses JSON-RPC, BidCos-RF uses XML-RPC
+            if self.interface == Interface.HMIP_RF:
+                return await self._json_rpc_client.get_install_mode(interface=self.interface)
+
             if (remaining_time := await self._proxy.getInstallMode()) is not None:
                 return int(remaining_time)
         except BaseHomematicException as bhexc:
@@ -1173,7 +1177,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             on: Enable or disable install mode.
             time: Duration in seconds (default 60).
             mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
-            device_address: Optional device address to limit pairing.
+            device_address: Optional device address/SGTIN to limit pairing.
 
         Returns:
             True if successful.
@@ -1184,8 +1188,14 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             return False
 
         try:
+            # HmIP-RF uses JSON-RPC setInstallModeHmIP, BidCos-RF uses XML-RPC
+            if self.interface == Interface.HMIP_RF:
+                return await self._json_rpc_client.set_install_mode_hmip(
+                    interface=self.interface, on=on, time=time, device_address=device_address
+                )
+
             if device_address:
-                await self._proxy.setInstallMode(on, time, mode, device_address)
+                await self._proxy.setInstallMode(on, time, device_address)
             else:
                 await self._proxy.setInstallMode(on, time, mode)
         except BaseHomematicException as bhexc:

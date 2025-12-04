@@ -17,6 +17,7 @@ from aiohomematic.const import (
     HUB_ADDRESS,
     HUB_SET_PATH_ROOT,
     HUB_STATE_PATH_ROOT,
+    INSTALL_MODE_ADDRESS,
     PROGRAM_ADDRESS,
     PROGRAM_SET_PATH_ROOT,
     PROGRAM_STATE_PATH_ROOT,
@@ -34,7 +35,7 @@ from aiohomematic.const import (
     ParameterData,
     ParameterType,
 )
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces import ChannelProtocol, ConfigProvider
 from aiohomematic.support import to_bool
 
 __all__ = [
@@ -55,7 +56,6 @@ __all__ = [
     "is_binary_sensor",
 ]
 
-from aiohomematic.interfaces import ConfigProvider
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -484,7 +484,7 @@ def generate_unique_id(
     if prefix:
         unique_id = f"{prefix}_{unique_id}"
     if (
-        address in (HUB_ADDRESS, PROGRAM_ADDRESS, SYSVAR_ADDRESS)
+        address in (HUB_ADDRESS, INSTALL_MODE_ADDRESS, PROGRAM_ADDRESS, SYSVAR_ADDRESS)
         or address.startswith("INT000")
         or address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES
     ):

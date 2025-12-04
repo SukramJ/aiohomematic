@@ -1,3 +1,18 @@
+# Version 2025.12.5 (2025-12-03)
+
+## What's Changed
+
+- Add install mode virtual data points with countdown timer (HUB_BUTTON + HUB_SENSOR)
+- Support separate install mode data points per interface (HmIP-RF and BidCos-RF)
+- Add JSON-RPC methods for HmIP install mode (getInstallMode, setInstallModeHmIP)
+- Add init_install_mode, fetch_install_mode_data, publish_install_mode_refreshed to Hub/HubCoordinator/CentralUnit
+- Add mandatory interface parameter to get_install_mode/set_install_mode on CentralUnit
+- Extend ClientCoordinator.get_client to accept optional interface parameter
+- Add ClientProvider to Hub for multi-interface install mode support
+- Fix install mode data point creation to check for client availability per interface
+- Fix install mode unique_id generation to avoid duplicate prefix
+- Mark setInstallMode/setInstallModeHmIP as optional JSON-RPC methods
+
 # Version 2025.12.4 (2025-12-02)
 
 ## What's Changed

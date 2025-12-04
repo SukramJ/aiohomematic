@@ -48,9 +48,9 @@ from aiohomematic.const import (
     UTF_8,
     CommandRxMode,
     DeviceDescription,
+    HubValueType,
     ParamsetKey,
     RxMode,
-    SysvarType,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ValidationException
 from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, get_hm_property_by_log_context, hm_property
@@ -134,15 +134,15 @@ def extract_device_addresses_from_device_descriptions(
     )
 
 
-def parse_sys_var(*, data_type: SysvarType | None, raw_value: Any) -> Any:
+def parse_sys_var(*, data_type: HubValueType | None, raw_value: Any) -> Any:
     """Parse system variables to fix type."""
     if not data_type:
         return raw_value
-    if data_type in (SysvarType.ALARM, SysvarType.LOGIC):
+    if data_type in (HubValueType.ALARM, HubValueType.LOGIC):
         return to_bool(value=raw_value)
-    if data_type == SysvarType.FLOAT:
+    if data_type == HubValueType.FLOAT:
         return float(raw_value)
-    if data_type in (SysvarType.INTEGER, SysvarType.LIST):
+    if data_type in (HubValueType.INTEGER, HubValueType.LIST):
         return int(raw_value)
     return raw_value
 

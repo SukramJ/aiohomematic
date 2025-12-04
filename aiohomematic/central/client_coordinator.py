@@ -143,13 +143,14 @@ class ClientCoordinator(ClientProvider):
             self._primary_client = client
         return self._primary_client
 
-    def get_client(self, *, interface_id: str) -> ClientProtocol:
+    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
         """
-        Return a client by interface_id.
+        Return a client by interface_id or interface.
 
         Args:
         ----
-            interface_id: Interface identifier
+            interface_id: Interface identifier (e.g., "ccu-main-BidCos-RF")
+            interface: Interface type (e.g., Interface.BIDCOS_RF)
 
         Returns:
         -------
@@ -157,18 +158,41 @@ class ClientCoordinator(ClientProvider):
 
         Raises:
         ------
-            AioHomematicException: If client not found
+            AioHomematicException: If neither parameter is provided or client not found
 
         """
-        if not self.has_client(interface_id=interface_id):
+        if interface_id is None and interface is None:
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.central.get_client.interface_missing",
-                    interface_id=interface_id,
+                    "exception.central.get_client.no_parameter",
                     name=self._central_info.name,
                 )
             )
-        return self._clients[interface_id]
+
+        # If interface_id is provided, use it directly
+        if interface_id is not None:
+            if not self.has_client(interface_id=interface_id):
+                raise AioHomematicException(
+                    i18n.tr(
+                        "exception.central.get_client.interface_missing",
+                        interface_id=interface_id,
+                        name=self._central_info.name,
+                    )
+                )
+            return self._clients[interface_id]
+
+        # If interface is provided, find client by interface type
+        for client in self._clients.values():
+            if client.interface == interface:
+                return client
+
+        raise AioHomematicException(
+            i18n.tr(
+                "exception.central.get_client.interface_type_missing",
+                interface=interface,
+                name=self._central_info.name,
+            )
+        )
 
     def has_client(self, *, interface_id: str) -> bool:
         """

@@ -176,7 +176,7 @@ from aiohomematic.interfaces import (
     PrimaryClientProvider,
     SystemInfoProvider,
 )
-from aiohomematic.model.hub import ProgramDpType
+from aiohomematic.model.hub import InstallModeDpType, ProgramDpType
 from aiohomematic.property_decorators import info_property
 from aiohomematic.store import (
     CentralDataCache,
@@ -313,6 +313,7 @@ class CentralUnit(
         self._hub_coordinator: Final = HubCoordinator(
             central_info=self,
             channel_lookup=self,
+            client_provider=self,
             config_provider=self,
             event_bus_provider=self,
             event_publisher=self,
@@ -448,6 +449,11 @@ class CentralUnit(
     def hub_coordinator(self) -> HubCoordinator:
         """Return the hub coordinator."""
         return self._hub_coordinator
+
+    @property
+    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """Return the install mode data points by interface."""
+        return self._hub_coordinator.install_mode_dps
 
     @property
     def interface_ids(self) -> frozenset[str]:
@@ -665,9 +671,17 @@ class CentralUnit(
             interface_config=interface_config,
         )
 
+    def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """
+        Create install mode data points for all supported interfaces.
+
+        Returns a dict of InstallModeDpType by Interface.
+        """
+        return self._hub_coordinator.create_install_mode_dps()
+
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
-        """If a device publishes some sort event, we will handle it here."""
+        """Handle device data point events."""
         await self._event_coordinator.data_point_event(
             interface_id=interface_id,
             channel_address=channel_address,
@@ -694,6 +708,11 @@ class CentralUnit(
         await self._hub_coordinator.fetch_inbox_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
+    async def fetch_install_mode_data(self, *, scheduled: bool = False) -> None:
+        """Fetch install mode data from the backend."""
+        await self._hub_coordinator.fetch_install_mode_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
         await self._hub_coordinator.fetch_program_data(scheduled=scheduled)
@@ -712,9 +731,9 @@ class CentralUnit(
         """Return Homematic channel."""
         return self._device_coordinator.get_channel(channel_address=channel_address)
 
-    def get_client(self, *, interface_id: str) -> ClientProtocol:
-        """Return a client by interface_id."""
-        return self._client_coordinator.get_client(interface_id=interface_id)
+    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
+        """Return a client by interface_id or interface type."""
+        return self._client_coordinator.get_client(interface_id=interface_id, interface=interface)
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
         """Return the hm custom_data_point."""
@@ -805,6 +824,23 @@ class CentralUnit(
     ) -> tuple[GenericHubDataPointProtocol, ...]:
         """Return the program data points."""
         return self._hub_coordinator.get_hub_data_points(category=category, registered=registered)
+
+    async def get_install_mode(self, *, interface: Interface) -> int:
+        """
+        Return the remaining time in install mode for an interface.
+
+        Args:
+            interface: The interface to query (HMIP_RF or BIDCOS_RF).
+
+        Returns:
+            Remaining time in seconds, or 0 if not in install mode.
+
+        """
+        try:
+            client = self.get_client(interface=interface)
+            return await client.get_install_mode()
+        except AioHomematicException:
+            return 0
 
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Return the last event seen for an interface."""
@@ -976,6 +1012,15 @@ class CentralUnit(
         """Identify channel within a text."""
         return self._device_coordinator.identify_channel(text=text)
 
+    async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
+        """
+        Initialize install mode data points for all supported interfaces.
+
+        Creates data points, fetches initial state from backend, and publishes refresh event.
+        Returns a dict of InstallModeDpType by Interface.
+        """
+        return await self._hub_coordinator.init_install_mode()
+
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
         """Return already existing devices to the backend."""
@@ -1029,6 +1074,10 @@ class CentralUnit(
         # Events like INTERFACE, KEYPRESS, ...
         """
         self._event_coordinator.publish_homematic_event(event_type=event_type, event_data=event_data)
+
+    def publish_install_mode_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for install mode data points."""
+        self._hub_coordinator.publish_install_mode_refreshed()
 
     @loop_check
     def publish_interface_event(
@@ -1122,6 +1171,35 @@ class CentralUnit(
             save_device_descriptions=save_device_descriptions,
             save_paramset_descriptions=save_paramset_descriptions,
         )
+
+    async def set_install_mode(
+        self,
+        *,
+        interface: Interface,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """
+        Set the install mode on the backend for a specific interface.
+
+        Args:
+            interface: The interface to set install mode on (HMIP_RF or BIDCOS_RF).
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
+            device_address: Optional device address to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
+        try:
+            client = self.get_client(interface=interface)
+            return await client.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
+        except AioHomematicException:
+            return False
 
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """Set the last event seen for an interface."""

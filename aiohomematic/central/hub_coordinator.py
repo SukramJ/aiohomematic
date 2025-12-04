@@ -15,16 +15,18 @@ The HubCoordinator provides:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
 from typing import Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import SysvarUpdatedEvent
-from aiohomematic.const import DataPointCategory
+from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
+    ClientProvider,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
@@ -35,7 +37,7 @@ from aiohomematic.interfaces import (
     PrimaryClientProvider,
     TaskScheduler,
 )
-from aiohomematic.model.hub import Hub, ProgramDpType
+from aiohomematic.model.hub import Hub, InstallModeDpType, ProgramDpType
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -58,6 +60,7 @@ class HubCoordinator:
         *,
         central_info: CentralInfo,
         channel_lookup: ChannelLookup,
+        client_provider: ClientProvider,
         config_provider: ConfigProvider,
         event_bus_provider: EventBusProvider,
         event_publisher: EventPublisher,
@@ -73,6 +76,7 @@ class HubCoordinator:
         ----
             central_info: Provider for central system information
             channel_lookup: Provider for channel lookup operations
+            client_provider: Provider for client access by interface
             config_provider: Provider for configuration access
             event_bus_provider: Provider for event bus access
             event_publisher: Provider for event emission
@@ -96,6 +100,7 @@ class HubCoordinator:
         self._hub: Final = Hub(
             central_info=central_info,
             channel_lookup=channel_lookup,
+            client_provider=client_provider,
             config_provider=config_provider,
             event_bus_provider=event_bus_provider,
             event_publisher=event_publisher,
@@ -111,6 +116,11 @@ class HubCoordinator:
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
         return tuple(self._state_path_to_name.keys())
+
+    @property
+    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """Return the install mode data points by interface."""
+        return self._hub.install_mode_dps
 
     @property
     def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
@@ -171,6 +181,14 @@ class HubCoordinator:
                 event_type=SysvarUpdatedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
             )
 
+    def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """
+        Create install mode data points for all supported interfaces.
+
+        Returns a dict of InstallModeDpType by Interface.
+        """
+        return self._hub.create_install_mode_dps()
+
     async def execute_program(self, *, pid: str) -> bool:
         """
         Execute a program on the backend.
@@ -199,6 +217,18 @@ class HubCoordinator:
 
         """
         await self._hub.fetch_inbox_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
+    async def fetch_install_mode_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch install mode data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_install_mode_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -332,10 +362,24 @@ class HubCoordinator:
         return None
 
     async def init_hub(self) -> None:
-        """Initialize the hub by fetching program and sysvar data."""
+        """Initialize the hub by fetching program, sysvar, and install mode data."""
         _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central_info.name)
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
+        await self._hub.init_install_mode()
+
+    async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
+        """
+        Initialize install mode data points for all supported interfaces.
+
+        Creates data points, fetches initial state from backend, and publishes refresh event.
+        Returns a dict of InstallModeDpType by Interface.
+        """
+        return await self._hub.init_install_mode()
+
+    def publish_install_mode_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for install mode data points."""
+        self._hub.publish_install_mode_refreshed()
 
     def remove_program_data_point(self, *, pid: str) -> None:
         """

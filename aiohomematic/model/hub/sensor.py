@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Final
 
-from aiohomematic.const import DataPointCategory, SysvarType
+from aiohomematic.const import DataPointCategory, HubValueType
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
 from aiohomematic.model.support import check_length_and_log, get_value_from_value_list
 from aiohomematic.property_decorators import state_property
@@ -26,12 +26,12 @@ class SysvarDpSensor(GenericSysvarDataPoint):
     def value(self) -> Any | None:
         """Return the value."""
         if (
-            self._data_type == SysvarType.LIST
+            self._data_type == HubValueType.LIST
             and (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None
         ):
             return value
         return (
             check_length_and_log(name=self._legacy_name, value=self._value)
-            if self._data_type == SysvarType.STRING
+            if self._data_type == HubValueType.STRING
             else self._value
         )

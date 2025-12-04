@@ -6,18 +6,18 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import Any, Final
+from typing import Final
 
 from slugify import slugify
 
-from aiohomematic.const import HUB_ADDRESS, DataPointCategory, InboxDeviceData, SysvarType
+from aiohomematic.const import HUB_ADDRESS, DataPointCategory, HubValueType, InboxDeviceData
 from aiohomematic.interfaces import (
     CentralInfo,
     ChannelProtocol,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
-    GenericSysvarDataPointProtocol,
+    HubSensorDataPointProtocol,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,
@@ -32,7 +32,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 _INBOX_NAME: Final = "Inbox"
 
 
-class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMixin):
+class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
     """Class for a Homematic inbox sensor."""
 
     __slots__ = (
@@ -85,9 +85,9 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
         return None
 
     @property
-    def data_type(self) -> SysvarType | None:
+    def data_type(self) -> HubValueType | None:
         """Return the data type of the system variable."""
-        return SysvarType.INTEGER
+        return HubValueType.INTEGER
 
     @property
     def description(self) -> str | None:
@@ -105,54 +105,24 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
         return self._name_data.full_name
 
     @property
-    def is_extended(self) -> bool:
-        """Return if the data point is an extended type."""
-        return False
-
-    @property
     def legacy_name(self) -> str | None:
         """Return the original name."""
         return None
-
-    @property
-    def max(self) -> float | int | None:
-        """Return the max value."""
-        return None
-
-    @property
-    def min(self) -> float | int | None:
-        """Return the min value."""
-        return None
-
-    @property
-    def previous_value(self) -> int:
-        """Return the previous value."""
-        return self._previous_value
 
     @property
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return self._state_uncertain
 
-    @property
-    def unit(self) -> str | None:
-        """Return the unit of the data point."""
-        return None
-
-    @property
-    def values(self) -> tuple[str, ...] | None:
-        """Return the value list."""
-        return None
-
-    @property
-    def vid(self) -> str:
-        """Return sysvar id."""
-        return slugify(_INBOX_NAME)
-
     @config_property
     def name(self) -> str:
         """Return the name of the data_point."""
         return self._name_data.name
+
+    @config_property
+    def unit(self) -> str | None:
+        """Return the unit of the data_point."""
+        return None
 
     @state_property
     def available(self) -> bool:
@@ -169,12 +139,6 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
         """Return the count of inbox devices."""
         return len(self._devices)
 
-    async def event(self, *, value: Any, received_at: datetime) -> None:
-        """Handle event for which this data point has subscribed."""
-
-    async def send_variable(self, *, value: Any) -> None:
-        """Set variable value on the backend."""
-
     def update_data(self, *, devices: tuple[InboxDeviceData, ...], write_at: datetime) -> None:
         """Update the data point with new inbox devices."""
         if self._devices != devices:
@@ -185,9 +149,6 @@ class HmInboxSensor(CallbackDataPoint, GenericSysvarDataPointProtocol, PayloadMi
             self._set_refreshed_at(refreshed_at=write_at)
         self._state_uncertain = False
         self.publish_data_point_updated_event()
-
-    def write_value(self, *, value: Any, write_at: datetime) -> None:
-        """Set variable value on the backend."""
 
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""

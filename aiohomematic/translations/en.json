@@ -4,6 +4,8 @@
   "exception.central.decorators.backend_system_handler.identify_central_failed": "EXEC_BACKEND_SYSTEM_CALLBACK failed: Problem with identifying central: {reason}",
   "exception.central.decorators.event_handler.args_exception": "ARGS-EXCEPTION event_handler [{reason}]",
   "exception.central.get_client.interface_missing": "GET_CLIENT failed: Missing client for interface_id {interface_id} on central {name}",
+  "exception.central.get_client.interface_type_missing": "GET_CLIENT failed: Missing client for interface {interface} on central {name}",
+  "exception.central.get_client.no_parameter": "GET_CLIENT failed: Either interface_id or interface must be provided on central {name}",
   "exception.central.start.failed": "Failed to start central unit {name}: {reason}",
   "exception.central.validate_config.no_clients": "VALIDATE_CONFIG: No clients defined.",
   "exception.client.add_link.failed": "ADD_LINK failed for {sender}/{receiver}/{name}/{description}: {reason}",

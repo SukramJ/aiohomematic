@@ -30,6 +30,7 @@ from aiohomematic.const import (
     EventKey,
     EventType,
     ForcedDeviceAvailability,
+    HubValueType,
     InboxDeviceData,
     Interface,
     ParameterData,
@@ -40,7 +41,6 @@ from aiohomematic.const import (
     ProxyInitState,
     RxMode,
     SystemInformation,
-    SysvarType,
 )
 from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
@@ -671,7 +671,7 @@ class ClientProvider(Protocol):
 
     @property
     @abstractmethod
-    def clients(self) -> tuple[ClientProtocol, ...]:  # Avoid circular import
+    def clients(self) -> tuple[ClientProtocol, ...]:
         """Get all clients."""
 
     @property
@@ -685,8 +685,8 @@ class ClientProvider(Protocol):
         """Get all interface IDs."""
 
     @abstractmethod
-    def get_client(self, *, interface_id: str) -> ClientProtocol:
-        """Get client for the given interface."""
+    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
+        """Get client by interface_id or interface type."""
 
     @abstractmethod
     def has_client(self, *, interface_id: str) -> bool:
@@ -742,7 +742,7 @@ class ConfigProvider(Protocol):
 
     @property
     @abstractmethod
-    def config(self) -> CentralConfig:  # Avoid circular import
+    def config(self) -> CentralConfig:
         """Get central configuration."""
 
 
@@ -779,7 +779,7 @@ class DeviceManagement(Protocol):
     Protocol for device management operations.
 
     Provides methods for managing devices on the CCU including
-    accepting inbox devices and renaming devices/channels.
+    accepting inbox devices, renaming devices/channels, and install mode.
     Implemented by CentralUnit.
     """
 
@@ -788,8 +788,35 @@ class DeviceManagement(Protocol):
         """Accept a device from the CCU inbox."""
 
     @abstractmethod
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+
+    @abstractmethod
     async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
         """Rename a device on the CCU."""
+
+    @abstractmethod
+    async def set_install_mode(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """
+        Set the install mode on the backend.
+
+        Args:
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
+            device_address: Optional device address to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
 
 
 @runtime_checkable
@@ -860,7 +887,7 @@ class ChannelLookup(Protocol):
         """Get channel by address."""
 
     @abstractmethod
-    def identify_channel(self, *, text: str) -> ChannelProtocol | None:  # Avoid circular import
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """Identify a channel within a text string."""
 
 
@@ -1211,7 +1238,7 @@ class GenericSysvarDataPointProtocol(GenericHubDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def data_type(self) -> SysvarType | None:
+    def data_type(self) -> HubValueType | None:
         """Return the data type of the system variable."""
 
     @property
@@ -1301,6 +1328,59 @@ class GenericProgramDataPointProtocol(GenericHubDataPointProtocol, Protocol):
     @abstractmethod
     def update_data(self, *, data: ProgramData) -> None:
         """Update program data from backend."""
+
+
+@runtime_checkable
+class HubSensorDataPointProtocol(GenericHubDataPointProtocol, Protocol):
+    """
+    Protocol for sensors bases on hub entities, that ar no sysvars.
+
+    Provides properties like data_type.
+    """
+
+    @property
+    @abstractmethod
+    def data_type(self) -> HubValueType | None:
+        """Return the data type of the system variable."""
+
+    @property
+    @abstractmethod
+    def unit(self) -> str | None:
+        """Return the unit of the data point."""
+
+    @property
+    @abstractmethod
+    def value(self) -> Any:
+        """Return the value."""
+
+
+@runtime_checkable
+class GenericInstallModeDataPointProtocol(HubSensorDataPointProtocol, Protocol):
+    """
+    Protocol for install mode sensor data point.
+
+    Provides properties and methods for monitoring the CCU install mode
+    countdown timer (device pairing).
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def is_active(self) -> bool:
+        """Return if install mode is active."""
+
+    @abstractmethod
+    def start_countdown(self, *, seconds: int) -> None:
+        """Start local countdown."""
+
+    @abstractmethod
+    def stop_countdown(self) -> None:
+        """Stop countdown."""
+
+    @abstractmethod
+    def sync_from_backend(self, *, remaining_seconds: int) -> None:
+        """Sync countdown from backend value."""
 
 
 @runtime_checkable
@@ -1501,7 +1581,7 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
     @property
     @abstractmethod
     def value(self) -> Any:
-        """Return the value of the data point."""
+        """Return the value."""
 
     @property
     @abstractmethod

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aiohomematic.central.hub_coordinator import HubCoordinator
-from aiohomematic.const import DataPointCategory
+from aiohomematic.const import DataPointCategory, Interface
 
 
 class _FakeProgramDataPoint:
@@ -88,6 +88,10 @@ class _FakeHub:
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data."""
 
+    async def init_install_mode(self) -> dict:
+        """Initialize install mode."""
+        return {}
+
 
 class _FakeClient:
     """Minimal fake Client for testing."""
@@ -119,15 +123,35 @@ class _FakeCentral:
         self.event_bus = MagicMock()
         self.event_bus.subscribe = MagicMock(return_value=lambda: None)
         self._primary_client: _FakeClient | None = None
+        self._clients: tuple[_FakeClient, ...] = ()
         # Add protocol interfaces required by HubCoordinator
         self.looper = MagicMock()
         self.paramset_descriptions = MagicMock()
         self.parameter_visibility = MagicMock()
 
     @property
+    def clients(self) -> tuple[_FakeClient, ...]:
+        """Return all clients."""
+        return self._clients
+
+    @property
+    def has_clients(self) -> bool:
+        """Check if any clients exist."""
+        return len(self._clients) > 0
+
+    @property
+    def interface_ids(self) -> frozenset[str]:
+        """Return all interface IDs."""
+        return frozenset()
+
+    @property
     def primary_client(self) -> _FakeClient | None:
         """Return primary client."""
         return self._primary_client
+
+    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> _FakeClient | None:
+        """Get client by interface_id or interface type."""
+        return None
 
 
 class TestHubCoordinatorBasics:
@@ -139,6 +163,7 @@ class TestHubCoordinatorBasics:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -158,6 +183,7 @@ class TestHubCoordinatorBasics:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -181,6 +207,7 @@ class TestHubCoordinatorBasics:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -207,6 +234,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -230,6 +258,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -251,6 +280,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -270,6 +300,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -292,6 +323,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -313,6 +345,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -334,6 +367,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -352,6 +386,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -383,6 +418,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -404,6 +440,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -426,6 +463,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -456,6 +494,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -479,6 +518,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -500,6 +540,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -518,6 +559,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -539,6 +581,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -560,6 +603,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -578,6 +622,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -608,6 +653,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -627,6 +673,7 @@ class TestHubCoordinatorSysvarOperations:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -655,6 +702,7 @@ class TestHubCoordinatorGetHubDataPoints:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -680,6 +728,7 @@ class TestHubCoordinatorGetHubDataPoints:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -711,6 +760,7 @@ class TestHubCoordinatorGetHubDataPoints:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -740,6 +790,7 @@ class TestHubCoordinatorInitHub:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -770,6 +821,7 @@ class TestHubCoordinatorIntegration:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
@@ -806,6 +858,7 @@ class TestHubCoordinatorIntegration:
         coordinator = HubCoordinator(
             central_info=central,
             channel_lookup=central,
+            client_provider=central,
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,

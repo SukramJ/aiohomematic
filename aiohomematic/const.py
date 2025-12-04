@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.4"
+VERSION: Final = "2025.12.5"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -139,6 +139,7 @@ DETECTION_PORT_BIDCOS_WIRED: Final = (2000, 42000)
 DETECTION_PORT_JSON_RPC: Final = ((80, False), (443, True))  # (port, tls)
 
 HUB_ADDRESS: Final = "hub"
+INSTALL_MODE_ADDRESS: Final = "install_mode"
 PROGRAM_ADDRESS: Final = "program"
 RECONNECT_WAIT: Final = 1 if _TEST_SPEEDUP else 120  # wait with reconnect after a first ping was successful
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
@@ -800,8 +801,8 @@ class SourceOfDeviceCreation(StrEnum):
     REFRESH = "REFRESH"
 
 
-class SysvarType(StrEnum):
-    """Enum for Homematic sysvar types."""
+class HubValueType(StrEnum):
+    """Enum for Homematic hub value types."""
 
     ALARM = "ALARM"
     FLOAT = "FLOAT"
@@ -1101,12 +1102,20 @@ class SystemVariableData(HubData):
 
     vid: str
     value: SYSVAR_TYPE
-    data_type: SysvarType | None = None
+    data_type: HubValueType | None = None
     extended_sysvar: bool = False
     max_value: float | int | None = None
     min_value: float | int | None = None
     unit: str | None = None
     values: tuple[str, ...] | None = None
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class InstallModeData:
+    """Dataclass for install mode data points."""
+
+    name: str
+    interface: Interface
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

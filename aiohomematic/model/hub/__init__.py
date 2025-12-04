@@ -86,14 +86,17 @@ from aiohomematic.const import (
     Backend,
     BackendSystemEvent,
     DataPointCategory,
+    HubValueType,
+    InstallModeData,
+    Interface,
     ProgramData,
     SystemVariableData,
-    SysvarType,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfo,
     ChannelLookup,
+    ClientProvider,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
@@ -110,6 +113,7 @@ from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
 from aiohomematic.model.hub.inbox import HmInboxSensor
+from aiohomematic.model.hub.install_mode import InstallModeDpButton, InstallModeDpSensor, InstallModeDpType
 from aiohomematic.model.hub.number import SysvarDpNumber
 from aiohomematic.model.hub.select import SysvarDpSelect
 from aiohomematic.model.hub.sensor import SysvarDpSensor
@@ -124,6 +128,9 @@ __all__ = [
     "HmInboxSensor",
     "HmUpdate",
     "Hub",
+    "InstallModeDpButton",
+    "InstallModeDpSensor",
+    "InstallModeDpType",
     "ProgramDpButton",
     "ProgramDpSwitch",
     "ProgramDpType",
@@ -157,17 +164,19 @@ class Hub(HubProtocol):
     __slots__ = (
         "_central_info",
         "_channel_lookup",
+        "_client_provider",
         "_config_provider",
         "_event_bus_provider",
         "_event_publisher",
         "_hub_data_fetcher",
         "_hub_data_point_manager",
+        "_inbox_dp",
+        "_install_mode_dps",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_primary_client_provider",
-        "_sema_fetch_programs",
-        "_inbox_dp",
         "_sema_fetch_inbox",
+        "_sema_fetch_programs",
         "_sema_fetch_sysvars",
         "_sema_fetch_update",
         "_task_scheduler",
@@ -179,6 +188,7 @@ class Hub(HubProtocol):
         *,
         config_provider: ConfigProvider,
         central_info: CentralInfo,
+        client_provider: ClientProvider,
         hub_data_point_manager: HubDataPointManager,
         primary_client_provider: PrimaryClientProvider,
         event_publisher: EventPublisher,
@@ -196,6 +206,7 @@ class Hub(HubProtocol):
         self._sema_fetch_inbox: Final = asyncio.Semaphore()
         self._config_provider: Final = config_provider
         self._central_info: Final = central_info
+        self._client_provider: Final = client_provider
         self._hub_data_point_manager: Final = hub_data_point_manager
         self._primary_client_provider: Final = primary_client_provider
         self._event_publisher: Final = event_publisher
@@ -207,6 +218,7 @@ class Hub(HubProtocol):
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._update_dp: HmUpdate | None = None
         self._inbox_dp: HmInboxSensor | None = None
+        self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
 
     @property
     def inbox_dp(self) -> HmInboxSensor | None:
@@ -214,9 +226,33 @@ class Hub(HubProtocol):
         return self._inbox_dp
 
     @property
+    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """Return the install mode data points by interface."""
+        return self._install_mode_dps
+
+    @property
     def update_dp(self) -> HmUpdate | None:
         """Return the system update data point."""
         return self._update_dp
+
+    def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
+        """
+        Create install mode data points for all supported interfaces.
+
+        Returns a dict of InstallModeDpType by Interface.
+        """
+        if self._install_mode_dps:
+            return self._install_mode_dps
+
+        # Check which interfaces support install mode
+        for interface in (Interface.BIDCOS_RF, Interface.HMIP_RF):
+            if self._create_install_mode_dp_for_interface(interface=interface):
+                _LOGGER.debug(
+                    "CREATE_INSTALL_MODE_DPS: Created install mode data points for %s",
+                    interface,
+                )
+
+        return self._install_mode_dps
 
     @inspector(re_raise=False)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
@@ -231,6 +267,31 @@ class Hub(HubProtocol):
         async with self._sema_fetch_inbox:
             if self._central_info.available:
                 await self._update_inbox_data_point()
+
+    @inspector(re_raise=False)
+    async def fetch_install_mode_data(self, *, scheduled: bool) -> None:
+        """Fetch install mode data from the backend for all interfaces."""
+        if not self._install_mode_dps:
+            return
+        _LOGGER.debug(
+            "FETCH_INSTALL_MODE_DATA: %s fetching of install mode for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        if not self._central_info.available:
+            return
+
+        # Fetch install mode for each interface using the appropriate client
+        for interface, install_mode_dp in self._install_mode_dps.items():
+            try:
+                client = self._client_provider.get_client(interface=interface)
+                remaining_seconds = await client.get_install_mode()
+                install_mode_dp.sensor.sync_from_backend(remaining_seconds=remaining_seconds)
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug(
+                    "FETCH_INSTALL_MODE_DATA: No client available for interface %s",
+                    interface,
+                )
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -271,6 +332,87 @@ class Hub(HubProtocol):
             async with self._sema_fetch_sysvars:
                 if self._central_info.available:
                     await self._update_sysvar_data_points()
+
+    async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
+        """
+        Initialize install mode data points for all supported interfaces.
+
+        Creates data points, fetches initial state from backend, and publishes refresh event.
+        Returns a dict of InstallModeDpType by Interface.
+        """
+        if not (install_mode_dps := self.create_install_mode_dps()):
+            return {}
+
+        # Fetch initial state from backend
+        await self.fetch_install_mode_data(scheduled=False)
+
+        # Publish refresh event to notify consumers
+        self.publish_install_mode_refreshed()
+
+        return install_mode_dps
+
+    def publish_install_mode_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for install mode data points."""
+        if not self._install_mode_dps:
+            return
+        data_points: list[GenericHubDataPointProtocol] = []
+        for install_mode_dp in self._install_mode_dps.values():
+            data_points.append(install_mode_dp.button)
+            data_points.append(install_mode_dp.sensor)
+
+        self._event_publisher.publish_backend_system_event(
+            system_event=BackendSystemEvent.HUB_REFRESHED,
+            new_data_points=_get_new_hub_data_points(data_points=data_points),
+        )
+
+    def _create_install_mode_dp_for_interface(self, *, interface: Interface) -> InstallModeDpType | None:
+        """Create install mode data points for a specific interface."""
+        if interface in self._install_mode_dps:
+            return self._install_mode_dps[interface]
+
+        # Check if a client exists for this specific interface and supports install mode
+        client = next(
+            (c for c in self._client_provider.clients if c.interface == interface and c.supports_install_mode),
+            None,
+        )
+        if not client:
+            return None
+
+        # Create interface-specific parameter names (used for unique_id generation)
+        # The unique_id will be: install_mode_<suffix> where INSTALL_MODE_ADDRESS is the base
+        interface_suffix = "hmip" if interface == Interface.HMIP_RF else "bidcos"
+        sensor_parameter = interface_suffix
+        button_parameter = f"{interface_suffix}_button"
+
+        sensor = InstallModeDpSensor(
+            data=InstallModeData(name=sensor_parameter, interface=interface),
+            central_info=self._central_info,
+            channel_lookup=self._channel_lookup,
+            config_provider=self._config_provider,
+            event_bus_provider=self._event_bus_provider,
+            event_publisher=self._event_publisher,
+            parameter_visibility_provider=self._parameter_visibility_provider,
+            paramset_description_provider=self._paramset_description_provider,
+            primary_client_provider=self._primary_client_provider,
+            task_scheduler=self._task_scheduler,
+        )
+        button = InstallModeDpButton(
+            sensor=sensor,
+            data=InstallModeData(name=button_parameter, interface=interface),
+            central_info=self._central_info,
+            channel_lookup=self._channel_lookup,
+            config_provider=self._config_provider,
+            event_bus_provider=self._event_bus_provider,
+            event_publisher=self._event_publisher,
+            parameter_visibility_provider=self._parameter_visibility_provider,
+            paramset_description_provider=self._paramset_description_provider,
+            primary_client_provider=self._primary_client_provider,
+            task_scheduler=self._task_scheduler,
+        )
+
+        install_mode_dp = InstallModeDpType(button=button, sensor=sensor)
+        self._install_mode_dps[interface] = install_mode_dp
+        return install_mode_dp
 
     def _create_program_dp(self, *, data: ProgramData) -> ProgramDpType:
         """Create program as data_point."""
@@ -330,15 +472,15 @@ class Hub(HubProtocol):
             "data": data,
         }
         if data_type:
-            if data_type in (SysvarType.ALARM, SysvarType.LOGIC):
+            if data_type in (HubValueType.ALARM, HubValueType.LOGIC):
                 if extended_sysvar:
                     return SysvarDpSwitch(**protocols)  # type: ignore[arg-type]
                 return SysvarDpBinarySensor(**protocols)  # type: ignore[arg-type]
-            if data_type == SysvarType.LIST and extended_sysvar:
+            if data_type == HubValueType.LIST and extended_sysvar:
                 return SysvarDpSelect(**protocols)  # type: ignore[arg-type]
-            if data_type in (SysvarType.FLOAT, SysvarType.INTEGER) and extended_sysvar:
+            if data_type in (HubValueType.FLOAT, HubValueType.INTEGER) and extended_sysvar:
                 return SysvarDpNumber(**protocols)  # type: ignore[arg-type]
-            if data_type == SysvarType.STRING and extended_sysvar:
+            if data_type == HubValueType.STRING and extended_sysvar:
                 return SysvarDpText(**protocols)  # type: ignore[arg-type]
 
         return SysvarDpSensor(**protocols)  # type: ignore[arg-type]
@@ -354,7 +496,7 @@ class Hub(HubProtocol):
         variable_ids: dict[str, bool] = {x.vid: x.extended_sysvar for x in variables}
         missing_variable_ids: list[str] = []
         for dp in self._hub_data_point_manager.sysvar_data_points:
-            if dp.data_type == SysvarType.STRING:
+            if dp.data_type == HubValueType.STRING:
                 continue
             if (vid := dp.vid) is not None and (
                 vid not in variable_ids or (dp.is_extended is not variable_ids.get(vid))

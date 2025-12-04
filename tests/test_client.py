@@ -1306,4 +1306,5 @@ class TestClientInstallMode:
 
         await client.set_install_mode(on=True, time=120, mode=2, device_address="ABC123")
         assert len(calls) == 1
-        assert calls[0] == (True, 120, 2, "ABC123")
+        # When device_address is provided, mode is not passed (per XML-RPC spec)
+        assert calls[0] == (True, 120, "ABC123")

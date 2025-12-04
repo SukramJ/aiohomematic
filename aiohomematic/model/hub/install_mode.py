@@ -74,7 +74,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         )
         self._channel = channel_lookup.identify_channel(text=data.name)
         self._name_data: Final = get_hub_data_point_name_data(
-            channel=self._channel, legacy_name=data.name, central_name=central_info.name
+            channel=self._channel, legacy_name=f"install_mode_{data.name}", central_name=central_info.name
         )
         super().__init__(
             unique_id=unique_id,

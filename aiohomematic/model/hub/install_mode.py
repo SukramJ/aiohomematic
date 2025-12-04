@@ -193,7 +193,7 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
     @config_property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
-        return "s"
+        return None
 
     @state_property
     def value(self) -> int:

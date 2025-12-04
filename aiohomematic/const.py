@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.5"
+VERSION: Final = "2025.12.6"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -582,6 +582,7 @@ class Parameter(StrEnum):
     DUTY_CYCLE = "DUTY_CYCLE"
     EFFECT = "EFFECT"
     ENERGY_COUNTER = "ENERGY_COUNTER"
+    ENERGY_COUNTER_FEED_IN = "ENERGY_COUNTER_FEED_IN"
     ERROR = "ERROR"
     ERROR_JAMMED = "ERROR_JAMMED"
     FREQUENCY = "FREQUENCY"

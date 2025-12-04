@@ -1890,6 +1890,11 @@ class ClientHomegear(ClientCCU):
         return False
 
     @property
+    def supports_linking(self) -> bool:
+        """Return if the backend supports device linking operations."""
+        return False
+
+    @property
     def supports_metadata(self) -> bool:
         """Return if the backend supports metadata operations."""
         return False

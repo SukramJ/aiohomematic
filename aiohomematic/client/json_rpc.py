@@ -1185,7 +1185,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """
         params: dict[str, Any] = {
             _JsonKey.INTERFACE: interface,
-            _JsonKey.ON: on,
+            _JsonKey.ON: "true" if on else "false",
             _JsonKey.TIME: time,
             _JsonKey.INSTALL_MODE: "ALL",
             _JsonKey.ADDRESS: device_address or "",

@@ -288,6 +288,7 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
                 3: (
                     Parameter.CURRENT,
                     Parameter.ENERGY_COUNTER,
+                    Parameter.ENERGY_COUNTER_FEED_IN,
                     Parameter.FREQUENCY,
                     Parameter.POWER,
                     Parameter.ACTUAL_TEMPERATURE,

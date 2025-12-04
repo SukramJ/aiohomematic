@@ -682,9 +682,9 @@ class TestDeviceCoordinatorDeviceCreation:
                 paramset_description_provider=central.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
-            await coordinator.add_new_device_manually(
+            await coordinator.add_new_devices_manually(
                 interface_id="NonExistent",
-                address="VCU0000001",
+                address_names={"VCU0000001": None},
             )
 
             # Should not have called _add_new_devices
@@ -720,9 +720,9 @@ class TestDeviceCoordinatorDeviceCreation:
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
             # Try to add device that doesn't exist
-            await coordinator.add_new_device_manually(
+            await coordinator.add_new_devices_manually(
                 interface_id="BidCos-RF",
-                address="VCU9999999",
+                address_names={"VCU9999999": None},
             )
 
             # Should not have called _add_new_devices
@@ -757,9 +757,9 @@ class TestDeviceCoordinatorDeviceCreation:
                 paramset_description_provider=central.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
-            await coordinator.add_new_device_manually(
+            await coordinator.add_new_devices_manually(
                 interface_id="BidCos-RF",
-                address="VCU0000001",
+                address_names={"VCU0000001": None},
             )
 
             # Should have called _add_new_devices

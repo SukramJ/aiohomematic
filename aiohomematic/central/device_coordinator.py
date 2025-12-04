@@ -165,47 +165,6 @@ class DeviceCoordinator:
         """Return all devices."""
         return self.device_registry.devices
 
-    async def add_new_device_manually(self, *, interface_id: str, address: str, device_name: str | None = None) -> None:
-        """
-        Add new device manually triggered to central unit.
-
-        Args:
-            interface_id: Interface identifier.
-            address: Device address.
-            device_name: Optional name for the device and channels.
-
-        """
-        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
-            _LOGGER.error(  # i18n-log: ignore
-                "ADD_NEW_DEVICES_MANUALLY failed: Missing client for interface_id %s",
-                interface_id,
-            )
-            return
-
-        client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
-        if not (device_descriptions := await client.get_all_device_descriptions(device_address=address)):
-            _LOGGER.error(  # i18n-log: ignore
-                "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
-                address,
-                interface_id,
-            )
-            return
-
-        await client.accept_device_in_inbox(device_address=address)
-
-        if device_name:
-            await self._rename_new_device(
-                client=client,
-                device_descriptions=device_descriptions,
-                device_name=device_name,
-            )
-
-        await self._add_new_devices(
-            interface_id=interface_id,
-            device_descriptions=device_descriptions,
-            source=SourceOfDeviceCreation.MANUAL,
-        )
-
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """
         Add new devices to central unit (callback from backend).
@@ -224,6 +183,49 @@ class DeviceCoordinator:
             else SourceOfDeviceCreation.INIT
         )
         await self._add_new_devices(interface_id=interface_id, device_descriptions=device_descriptions, source=source)
+
+    async def add_new_devices_manually(self, *, interface_id: str, address_names: Mapping[str, str | None]) -> None:
+        """
+        Add new devices manually triggered to central unit.
+
+        Args:
+            interface_id: Interface identifier.
+            address_names: Device addresses and their names.
+
+        """
+        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
+            _LOGGER.error(  # i18n-log: ignore
+                "ADD_NEW_DEVICES_MANUALLY failed: Missing client for interface_id %s",
+                interface_id,
+            )
+            return
+
+        client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+        device_descriptions: list[DeviceDescription] = []
+        for address, device_name in address_names.items():
+            if not (dds := await client.get_all_device_descriptions(device_address=address)):
+                _LOGGER.error(  # i18n-log: ignore
+                    "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
+                    address,
+                    interface_id,
+                )
+                return
+            device_descriptions.extend(dds)
+
+            await client.accept_device_in_inbox(device_address=address)
+
+            if device_name:
+                await self._rename_new_device(
+                    client=client,
+                    device_descriptions=dds,
+                    device_name=device_name,
+                )
+
+        await self._add_new_devices(
+            interface_id=interface_id,
+            device_descriptions=tuple(device_descriptions),
+            source=SourceOfDeviceCreation.MANUAL,
+        )
 
     def check_for_new_device_addresses(self, *, interface_id: str | None = None) -> Mapping[str, set[str]]:
         """

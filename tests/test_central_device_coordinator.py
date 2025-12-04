@@ -730,7 +730,7 @@ class TestDeviceCoordinatorDeviceCreation:
 
     @pytest.mark.asyncio
     async def test_add_new_device_manually_success(self) -> None:
-        """Add new device manually should fetch descriptions and create device."""
+        """Add new device manually should use delayed descriptions and create device."""
         central = _FakeCentral()
 
         client = _FakeClient(interface_id="BidCos-RF")
@@ -757,6 +757,12 @@ class TestDeviceCoordinatorDeviceCreation:
                 paramset_description_provider=central.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
+
+            # Pre-populate delayed device descriptions (simulates delayed device creation)
+            coordinator._delayed_device_descriptions["VCU0000001"] = [
+                {"ADDRESS": "VCU0000001", "PARENT": "", "TYPE": "HM-Test", "CHILDREN": ["VCU0000001:1"]}
+            ]
+
             await coordinator.add_new_devices_manually(
                 interface_id="BidCos-RF",
                 address_names={"VCU0000001": None},

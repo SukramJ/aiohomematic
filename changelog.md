@@ -5,6 +5,8 @@
 - Add ENERGY_COUNTER_FEED_IN
 - Fix backend detection
 - Fix install mode for HmIP
+- Improved delayed device handling
+- Refactor add_new_devices_manually to address names
 
 # Version 2025.12.5 (2025-12-03)
 

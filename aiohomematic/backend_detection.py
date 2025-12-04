@@ -41,8 +41,11 @@ __all__ = [
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-# Detection timeout (shorter than normal operation)
+# Detection timeout per request (shorter than normal operation)
 _DETECTION_TIMEOUT: Final = 5.0
+
+# Total detection timeout (max time for entire detection process)
+_DETECTION_TOTAL_TIMEOUT: Final = 15.0
 
 # XML-RPC method names
 _XML_METHOD_GET_VERSION: Final = "getVersion"
@@ -56,6 +59,7 @@ class DetectionConfig:
     username: str = ""
     password: str = ""
     request_timeout: float = _DETECTION_TIMEOUT
+    total_timeout: float = _DETECTION_TOTAL_TIMEOUT
     verify_tls: bool = False
 
 
@@ -94,14 +98,39 @@ async def detect_backend(
     Raises:
         ValidationException: If host format is invalid.
         AuthFailure: If authentication fails with the provided credentials.
-        NoConnectionException: If host is reachable but connection fails due to network issues.
 
     """
     # Validate input
     validate_host(host=config.host)
 
-    _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.starting", host=config.host))
+    _LOGGER.info(
+        i18n.tr(
+            "log.backend_detection.detect_backend.starting",
+            host=config.host,
+            total_timeout=config.total_timeout,
+        )
+    )
 
+    try:
+        async with asyncio.timeout(config.total_timeout):
+            return await _do_detect_backend(config=config, client_session=client_session)
+    except TimeoutError:
+        _LOGGER.warning(
+            i18n.tr(
+                "log.backend_detection.detect_backend.total_timeout",
+                host=config.host,
+                total_timeout=config.total_timeout,
+            )
+        )
+        return None
+
+
+async def _do_detect_backend(
+    *,
+    config: DetectionConfig,
+    client_session: ClientSession | None = None,
+) -> BackendDetectionResult | None:
+    """Perform the actual backend detection logic."""
     # Define ports to probe: (Interface, port, tls)
     ports_to_probe: list[tuple[Interface, int, bool]] = [
         # Try non-TLS ports first
@@ -218,7 +247,6 @@ async def _probe_xml_rpc_port(
 
     Raises:
         AuthFailure: If authentication fails with the provided credentials.
-        NoConnectionException: If connection fails due to network issues.
 
     """
     uri = build_xml_rpc_uri(host=host, port=port, path=None, tls=tls)
@@ -247,9 +275,21 @@ async def _probe_xml_rpc_port(
         # If getVersion not available, return empty string to indicate connection worked
         return ""  # noqa: TRY300
 
-    except (AuthFailure, NoConnectionException):
-        # Re-raise authentication and connection failures
+    except AuthFailure:
+        # Re-raise authentication failures - wrong credentials should not try other ports
         raise
+    except NoConnectionException as exc:
+        # Connection failed on this port - log and try next port
+        _LOGGER.info(
+            i18n.tr(
+                "log.backend_detection.xml_rpc.probe_failed",
+                host=host,
+                port=port,
+                exc_type=type(exc).__name__,
+                reason=exc,
+            )
+        )
+        return None
     except TimeoutError:
         _LOGGER.info(i18n.tr("log.backend_detection.xml_rpc.probe_timeout", host=host, port=port))
         return None
@@ -300,7 +340,6 @@ async def _query_ccu_interfaces(
 
     Raises:
         AuthFailure: If authentication fails with the provided credentials.
-        NoConnectionException: If connection fails due to network issues.
 
     """
     for port, tls in DETECTION_PORT_JSON_RPC:
@@ -337,7 +376,6 @@ async def _query_json_rpc_interfaces(
 
     Raises:
         AuthFailure: If authentication fails with the provided credentials.
-        NoConnectionException: If connection fails due to network issues.
 
     """
     scheme = "https" if tls else "http"
@@ -374,9 +412,9 @@ async def _query_json_rpc_interfaces(
         _LOGGER.warning(i18n.tr("log.backend_detection.json_rpc.auth_failed", url=device_url))
         raise
     except NoConnectionException:
-        # Re-raise connection failures so they can be handled by the caller
-        _LOGGER.warning(i18n.tr("log.backend_detection.json_rpc.connection_failed", url=device_url))
-        raise
+        # Connection failed on this port - log and try next port
+        _LOGGER.info(i18n.tr("log.backend_detection.json_rpc.connection_failed", url=device_url))
+        return None
     except Exception as exc:  # noqa: BLE001
         _LOGGER.info(
             i18n.tr(

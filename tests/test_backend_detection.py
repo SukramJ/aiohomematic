@@ -67,6 +67,30 @@ class TestProbeXmlRpcPort:
         mock_proxy.stop.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_probe_xml_rpc_port_no_connection_exception(self) -> None:
+        """Test XML-RPC probe with NoConnectionException returns None instead of raising."""
+        from aiohomematic.exceptions import NoConnectionException
+
+        mock_proxy = MagicMock()
+        mock_proxy.do_init = AsyncMock(side_effect=NoConnectionException("Connection refused"))
+        mock_proxy.stop = AsyncMock()
+
+        with patch("aiohomematic.backend_detection.AioXmlRpcProxy", return_value=mock_proxy):
+            result = await _probe_xml_rpc_port(
+                host="192.168.1.100",
+                port=2010,
+                tls=False,
+                username="",
+                password="",
+                verify_tls=False,
+                request_timeout=5.0,
+            )
+
+        # NoConnectionException should not be raised, instead return None to try next port
+        assert result is None
+        mock_proxy.stop.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_probe_xml_rpc_port_no_getversion(self) -> None:
         """Test XML-RPC probe when getVersion is not available."""
         mock_proxy = MagicMock()
@@ -156,6 +180,49 @@ class TestQueryCcuInterfaces:
             )
 
         assert result == ((), None, None)
+
+    @pytest.mark.asyncio
+    async def test_query_ccu_interfaces_no_connection_exception_tries_next_port(self) -> None:
+        """Test that NoConnectionException on first port tries second port."""
+        from aiohomematic.exceptions import NoConnectionException
+
+        call_count = 0
+
+        def mock_client_factory(**kwargs: Any) -> MagicMock:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                # First port (HTTP) fails with NoConnectionException
+                mock_client = MagicMock()
+                mock_client.get_system_information = AsyncMock(side_effect=NoConnectionException("Connection refused"))
+                mock_client.logout = AsyncMock()
+                return mock_client
+            # Second port (HTTPS) succeeds
+            mock_client = MagicMock()
+            mock_client.get_system_information = AsyncMock(
+                return_value=SystemInformation(
+                    available_interfaces=("HmIP-RF",),
+                    auth_enabled=True,
+                )
+            )
+            mock_client.logout = AsyncMock()
+            return mock_client
+
+        with patch(
+            "aiohomematic.backend_detection.AioJsonRpcAioHttpClient",
+            side_effect=mock_client_factory,
+        ):
+            result = await _query_ccu_interfaces(
+                host="192.168.1.100",
+                username="admin",
+                password="secret",
+                verify_tls=False,
+                client_session=None,
+            )
+
+        # Both ports should be tried
+        assert call_count == 2
+        assert result == ((Interface.HMIP_RF,), True, None)
 
     @pytest.mark.asyncio
     async def test_query_ccu_interfaces_success(self) -> None:
@@ -400,6 +467,48 @@ class TestDetectBackend:
         assert result.available_interfaces == (Interface.BIDCOS_RF,)
         assert result.version == "pydevccu 2.1"
 
+    @pytest.mark.asyncio
+    async def test_detect_pydevccu_with_hmip_port_refused(self) -> None:
+        """
+        Test detection of PyDevCCU when HmIP-RF port is refused but BidCos-RF works.
+
+        This simulates the real-world scenario where PyDevCCU only runs on port 2001
+        (BidCos-RF) and connection to port 2010 (HmIP-RF) is refused.
+        """
+        from aiohomematic.const import DETECTION_PORT_BIDCOS_RF, DETECTION_PORT_HMIP_RF
+
+        config = DetectionConfig(
+            host="localhost",
+        )
+
+        call_count = 0
+
+        async def mock_probe(**kwargs: Any) -> str | None:
+            nonlocal call_count
+            call_count += 1
+            port = kwargs.get("port")
+            # HmIP-RF ports (2010, 42010) fail with connection refused
+            if port in DETECTION_PORT_HMIP_RF:
+                return None
+            # BidCos-RF port (2001) succeeds
+            if port == DETECTION_PORT_BIDCOS_RF[0]:
+                return "pydevccu 2.1"
+            return None
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            side_effect=mock_probe,
+        ):
+            result = await detect_backend(config=config)
+
+        # Should have tried HmIP-RF (port 2010) first, then BidCos-RF (port 2001)
+        assert call_count >= 2
+        assert result is not None
+        assert result.backend == Backend.PYDEVCCU
+        assert result.available_interfaces == (Interface.BIDCOS_RF,)
+        assert result.detected_port == DETECTION_PORT_BIDCOS_RF[0]  # 2001
+        assert result.version == "pydevccu 2.1"
+
 
 class TestBackendDetectionResult:
     """Tests for BackendDetectionResult dataclass."""
@@ -449,6 +558,7 @@ class TestDetectionConfig:
         assert config.username == ""
         assert config.password == ""
         assert config.request_timeout == 5.0
+        assert config.total_timeout == 15.0
         assert config.verify_tls is False
 
     def test_config_with_all_fields(self) -> None:
@@ -458,6 +568,7 @@ class TestDetectionConfig:
             username="admin",
             password="secret",
             request_timeout=10.0,
+            total_timeout=30.0,
             verify_tls=True,
         )
 
@@ -465,4 +576,49 @@ class TestDetectionConfig:
         assert config.username == "admin"
         assert config.password == "secret"
         assert config.request_timeout == 10.0
+        assert config.total_timeout == 30.0
         assert config.verify_tls is True
+
+
+class TestDetectBackendTimeout:
+    """Tests for detect_backend total timeout behavior."""
+
+    @pytest.mark.asyncio
+    async def test_detect_backend_completes_before_timeout(self) -> None:
+        """Test that detection completes successfully before timeout."""
+        config = DetectionConfig(
+            host="192.168.1.100",
+            total_timeout=10.0,
+        )
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            new_callable=AsyncMock,
+            return_value="pydevccu 2.1",
+        ):
+            result = await detect_backend(config=config)
+
+        # Should complete successfully
+        assert result is not None
+        assert result.backend == Backend.PYDEVCCU
+
+    @pytest.mark.asyncio
+    async def test_detect_backend_total_timeout(self) -> None:
+        """Test that detection aborts after total_timeout is exceeded."""
+        config = DetectionConfig(
+            host="192.168.1.100",
+            total_timeout=0.1,  # Very short timeout
+        )
+
+        async def slow_probe(**kwargs: Any) -> str | None:
+            await asyncio.sleep(1)  # Longer than total_timeout
+            return "3.61.345"
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            side_effect=slow_probe,
+        ):
+            result = await detect_backend(config=config)
+
+        # Should return None due to timeout, not raise an exception
+        assert result is None

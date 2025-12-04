@@ -19,15 +19,15 @@ class TestCentralPyDevCCU:
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    async def not_test_central_full(self, central_unit_full) -> None:  # noqa: C901
+    async def test_central_full(self, central_unit_pydevccu_full) -> None:  # noqa: C901
         """Test the central."""
-        central = central_unit_full
+        central = central_unit_pydevccu_full
         assert central
         assert central.name == const.CENTRAL_NAME
         assert central.model == "PyDevCCU"
         assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
         assert central.primary_client.model == "PyDevCCU"
-        assert len(central.devices) == 394
+        assert len(central.devices) == 396
 
         data = {}
         for device in central.devices:
@@ -83,7 +83,7 @@ class TestCentralPyDevCCU:
                 channel_type_names.add(channel.type_name)
 
         channel_type_names = sorted(channel_type_names)
-        assert len(channel_type_names) == 556
+        assert len(channel_type_names) == 558
         ce_channels = {}
         for cdp in custom_dps:
             if cdp.device.model not in ce_channels:
@@ -129,10 +129,6 @@ class TestCentralPyDevCCU:
                 counter = usage_types[dp.usage]
                 usage_types[dp.usage] = counter + 1
 
-        addresses: dict[str, str] = {}
-        for address, device in central.devices.items():
-            addresses[address] = f"{device.model}.json"
-
         # check __dict__ / __slots__
         for device in central.devices:
             assert hasattr(device, "__dict__") is False
@@ -155,20 +151,20 @@ class TestCentralPyDevCCU:
         for sv in central.sysvar_data_points:
             assert hasattr(sv, "__dict__") is False
 
-        assert usage_types[DataPointUsage.CDP_PRIMARY] == 272
-        assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
-        assert usage_types[DataPointUsage.CDP_VISIBLE] == 141
-        assert usage_types[DataPointUsage.DATA_POINT] == 4033
-        assert usage_types[DataPointUsage.NO_CREATE] == 4291
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 275
+        assert usage_types[DataPointUsage.CDP_SECONDARY] == 164
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 144
+        assert usage_types[DataPointUsage.DATA_POINT] == 4052
+        assert usage_types[DataPointUsage.NO_CREATE] == 4332
 
-        assert len(ce_channels) == 130
+        assert len(ce_channels) == 132
         assert len(data_point_types) == 6
-        assert len(parameters) == 234
+        assert len(parameters) == 239
 
-        assert len(central.devices) == 394
+        assert len(central.devices) == 396
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-        assert len(central.devices) == 391
+        assert len(central.devices) == 393
         del_addresses = list(central.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID))
         del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
         await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)

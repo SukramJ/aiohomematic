@@ -1,3 +1,10 @@
+# Version 2025.12.6 (2025-12-04
+
+## What's Changed
+
+- Add ENERGY_COUNTER_FEED_IN
+- Fix install mode for HmIP
+
 # Version 2025.12.5 (2025-12-03)
 
 ## What's Changed

@@ -17,6 +17,7 @@ The DeviceCoordinator provides:
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 from collections.abc import Mapping, Set as AbstractSet
 import logging
 from typing import TYPE_CHECKING, Final
@@ -59,7 +60,7 @@ from aiohomematic.interfaces import (
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
 from aiohomematic.model.device import Device
-from aiohomematic.support import extract_device_addresses_from_device_descriptions, extract_exc_args
+from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
     from aiohomematic.central.device_registry import DeviceRegistry
@@ -78,6 +79,7 @@ class DeviceCoordinator:
         "_coordinator_provider",
         "_data_cache_provider",
         "_data_point_provider",
+        "_delayed_device_descriptions",
         "_device_add_semaphore",
         "_device_data_refresher",
         "_device_description_provider",
@@ -153,6 +155,7 @@ class DeviceCoordinator:
         self._parameter_visibility_provider = parameter_visibility_provider
         self._paramset_description_provider = paramset_description_provider
         self._task_scheduler = task_scheduler
+        self._delayed_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         self._device_add_semaphore: Final = asyncio.Semaphore()
 
     @property
@@ -203,7 +206,7 @@ class DeviceCoordinator:
         client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
         device_descriptions: list[DeviceDescription] = []
         for address, device_name in address_names.items():
-            if not (dds := await client.get_all_device_descriptions(device_address=address)):
+            if not (dds := self._delayed_device_descriptions.pop(address, None)):
                 _LOGGER.error(  # i18n-log: ignore
                     "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
                     address,
@@ -217,7 +220,7 @@ class DeviceCoordinator:
             if device_name:
                 await self._rename_new_device(
                     client=client,
-                    device_descriptions=dds,
+                    device_descriptions=tuple(dds),
                     device_name=device_name,
                 )
 
@@ -626,18 +629,11 @@ class DeviceCoordinator:
                 return
 
             # Here we block the automatic creation of new devices, if required
-            if (
-                self._config_provider.config.delay_new_device_creation
-                and source == SourceOfDeviceCreation.NEW
-                and (
-                    new_addresses := extract_device_addresses_from_device_descriptions(
-                        device_descriptions=new_device_descriptions
-                    )
-                )
-            ):
+            if self._config_provider.config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
+                self._store_delayed_device_descriptions(device_descriptions=new_device_descriptions)
                 self._coordinator_provider.event_coordinator.publish_backend_system_event(
                     system_event=BackendSystemEvent.DEVICES_DELAYED,
-                    new_addresses=new_addresses,
+                    new_addresses=tuple(self._delayed_device_descriptions.keys()),
                     interface_id=interface_id,
                     source=source,
                 )
@@ -733,6 +729,12 @@ class DeviceCoordinator:
                 await client.rename_channel(rega_id=rega_id, new_name=channel_name)
 
             await asyncio.sleep(0.1)
+
+    def _store_delayed_device_descriptions(self, *, device_descriptions: tuple[DeviceDescription, ...]) -> None:
+        """Store device descriptions for delayed creation."""
+        for dev_desc in device_descriptions:
+            device_address = dev_desc["PARENT"] or dev_desc["ADDRESS"]
+            self._delayed_device_descriptions[device_address].append(dev_desc)
 
 
 def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocol, ...], ...]:

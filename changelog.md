@@ -1,4 +1,10 @@
-# Version 2025.12.6 (2025-12-04
+# Version 2025.12.7 (2025-12-05)
+
+## What's Changed
+
+- Add helper for config support
+
+# Version 2025.12.6 (2025-12-04)
 
 ## What's Changed
 

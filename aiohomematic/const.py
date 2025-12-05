@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.6"
+VERSION: Final = "2025.12.7"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -136,7 +136,12 @@ PORT_ANY: Final = 0
 DETECTION_PORT_BIDCOS_RF: Final = (2001, 42001)
 DETECTION_PORT_HMIP_RF: Final = (2010, 42010)
 DETECTION_PORT_BIDCOS_WIRED: Final = (2000, 42000)
+DETECTION_PORT_VIRTUAL_DEVICES: Final = (9292, 49292)
 DETECTION_PORT_JSON_RPC: Final = ((80, False), (443, True))  # (port, tls)
+
+# Default JSON-RPC ports
+DEFAULT_JSON_RPC_PORT: Final = 80
+DEFAULT_JSON_RPC_TLS_PORT: Final = 443
 
 HUB_ADDRESS: Final = "hub"
 INSTALL_MODE_ADDRESS: Final = "install_mode"
@@ -1243,6 +1248,74 @@ class DeviceDescription(TypedDict, total=False):
     # TEAM_TAG: str | None
     # TEAM_CHANNELS: list
     # ROAMING: int | None
+
+
+# Interface default ports mapping
+_INTERFACE_DEFAULT_PORTS: Final[dict[str, tuple[int, int]]] = {
+    "BidCos-RF": DETECTION_PORT_BIDCOS_RF,
+    "BidCos-Wired": DETECTION_PORT_BIDCOS_WIRED,
+    "HmIP-RF": DETECTION_PORT_HMIP_RF,
+    "VirtualDevices": DETECTION_PORT_VIRTUAL_DEVICES,
+}
+
+
+def get_interface_default_port(interface: Interface | str, *, tls: bool) -> int | None:
+    """
+    Get the default port for an interface based on TLS setting.
+
+    Args:
+        interface: The interface (Interface enum or string value).
+        tls: Whether TLS is enabled.
+
+    Returns:
+        The default port number, or None if the interface has no default port
+        (e.g., CCU-Jack, CUxD which don't use XML-RPC ports).
+
+    Example:
+        >>> get_interface_default_port(Interface.HMIP_RF, tls=False)
+        2010
+        >>> get_interface_default_port(Interface.HMIP_RF, tls=True)
+        42010
+        >>> get_interface_default_port(Interface.CCU_JACK, tls=True)
+        None
+
+    """
+    interface_key = interface.value if isinstance(interface, Interface) else interface
+    if ports := _INTERFACE_DEFAULT_PORTS.get(interface_key):
+        return ports[1] if tls else ports[0]
+    return None
+
+
+def get_json_rpc_default_port(*, tls: bool) -> int:
+    """
+    Get the default JSON-RPC port based on TLS setting.
+
+    Args:
+        tls: Whether TLS is enabled.
+
+    Returns:
+        The default JSON-RPC port (443 for TLS, 80 for non-TLS).
+
+    """
+    return DEFAULT_JSON_RPC_TLS_PORT if tls else DEFAULT_JSON_RPC_PORT
+
+
+def is_interface_default_port(interface: Interface | str, port: int) -> bool:
+    """
+    Check if a port is a default port (TLS or non-TLS) for the given interface.
+
+    Args:
+        interface: The interface (Interface enum or string value).
+        port: The port number to check.
+
+    Returns:
+        True if the port is either the TLS or non-TLS default for this interface.
+
+    """
+    interface_key = interface.value if isinstance(interface, Interface) else interface
+    if ports := _INTERFACE_DEFAULT_PORTS.get(interface_key):
+        return port in ports
+    return False
 
 
 # Define public API for this module

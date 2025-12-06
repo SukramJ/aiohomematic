@@ -565,7 +565,42 @@ WP4.2-4 (Docs/API) ────────────────────�
     - Advanced operations (RPC, firmware, links)
     - Error reference table
 
+### WP5: Testing Expansion
+
+- [x] 5.1 Add integration test scenarios - **DONE**
+  - Created `tests/test_integration_scenarios.py` with 13 tests:
+    - `TestDeviceDiscoveryWorkflow`: Device channels, device listing, get by address, unknown device
+    - `TestEventSubscriptionWorkflow`: Multiple subscribers, subscribe/unsubscribe flow
+    - `TestConnectionStateWorkflow`: Callback on issue, multiple concurrent issues
+    - `TestConcurrentOperations`: Concurrent event publishing, concurrent subscribe/unsubscribe
+    - `TestRetryIntegration`: Permanent error no retry, transient error retry
+    - `TestValidationIntegration`: Min/max validation message formatting
+- [x] 5.2 Create performance benchmarks - **DONE**
+  - Created `tests/benchmarks/` directory with:
+    - `tests/benchmarks/__init__.py`
+    - `tests/benchmarks/test_device_scaling.py` with 7 benchmark tests:
+      - `TestEventBusScaling`: Concurrent publish, publish many events, subscribe many handlers
+      - `TestMemoryUsage`: Memory with many subscriptions
+      - `TestDataPointKeyPerformance`: Dict lookup, hashing performance
+      - `TestRetryPerformance`: Retry overhead measurement
+- [x] 5.3 Expand event bus concurrency tests - **DONE**
+  - Added `TestEventBusConcurrency` class to `tests/test_central_event_bus.py` with 7 tests:
+    - High contention concurrent publish
+    - Concurrent subscribe during publish
+    - Concurrent unsubscribe during publish
+    - Rapid subscribe/unsubscribe cycles
+    - Multiple event keys concurrent
+    - Handler slow does not block other handlers
+    - Stress test many subscribers same key
+- [x] 5.4 Expand CLI tests - **DONE**
+  - Expanded `tests/test_hmcli.py` from 9 to 24 tests:
+    - Missing argument validation (host, port, address, parameter)
+    - Master paramset edge cases (missing parameter, empty paramset)
+    - Path parameter for heating groups
+    - Value type edge cases (bool zero, negative int/float, None, complex JSON)
+    - TLS edge cases (no TLS, TLS without verify)
+
 ---
 
 **Created**: 2025-12-06
-**Status**: WP1, WP2, WP3, WP4 completed. WP5 (Testing) pending.
+**Status**: ✅ ALL WORK PACKAGES COMPLETED (WP1, WP2, WP3, WP4, WP5)

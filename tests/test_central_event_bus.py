@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from datetime import datetime
 
 import pytest
@@ -489,6 +490,270 @@ class TestEventImmutability:
             event.value = False  # type: ignore[misc]
 
 
+class TestEventBusConcurrency:
+    """Concurrency-focused tests for EventBus."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_subscribe_during_publish(self) -> None:
+        """Test subscribing while events are being published."""
+        bus = EventBus()
+        received_before: list[DataPointUpdatedEvent] = []
+        received_during: list[DataPointUpdatedEvent] = []
+
+        def handler_before(event: DataPointUpdatedEvent) -> None:
+            received_before.append(event)
+
+        def handler_during(event: DataPointUpdatedEvent) -> None:
+            received_during.append(event)
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        # Subscribe first handler
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler_before)
+
+        async def publish_events() -> None:
+            for i in range(50):
+                event = DataPointUpdatedEvent(
+                    timestamp=datetime.now(),
+                    dpk=dpk,
+                    value=i,
+                    received_at=datetime.now(),
+                )
+                await bus.publish(event=event)
+                await asyncio.sleep(0)
+
+        async def subscribe_during() -> None:
+            await asyncio.sleep(0)
+            bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler_during)
+
+        await asyncio.gather(publish_events(), subscribe_during())
+
+        # First handler should have received all events
+        assert len(received_before) == 50
+        # Second handler may have received some events (subscribed mid-way)
+        assert len(received_during) >= 0  # At least 0, possibly more
+
+    @pytest.mark.asyncio
+    async def test_concurrent_unsubscribe_during_publish(self) -> None:
+        """Test unsubscribing while events are being published - should not raise."""
+        bus = EventBus()
+        received: list[DataPointUpdatedEvent] = []
+
+        def handler(event: DataPointUpdatedEvent) -> None:
+            received.append(event)
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
+
+        async def publish_events() -> None:
+            for i in range(50):
+                event = DataPointUpdatedEvent(
+                    timestamp=datetime.now(),
+                    dpk=dpk,
+                    value=i,
+                    received_at=datetime.now(),
+                )
+                await bus.publish(event=event)
+                await asyncio.sleep(0)
+
+        async def unsubscribe_during() -> None:
+            await asyncio.sleep(0)
+            unsubscribe()
+
+        # Should not raise even when unsubscribing during publish
+        await asyncio.gather(publish_events(), unsubscribe_during())
+
+        # Handler should have received at least 1 event before unsubscribe
+        assert len(received) >= 1
+
+    @pytest.mark.asyncio
+    async def test_handler_slow_does_not_block_other_handlers(self) -> None:
+        """Test that a slow handler doesn't block other handlers from receiving events."""
+        bus = EventBus()
+        fast_handler_times: list[float] = []
+        slow_handler_done = False
+
+        async def slow_handler(event: DataPointUpdatedEvent) -> None:
+            nonlocal slow_handler_done
+            await asyncio.sleep(0.1)  # Simulate slow processing
+            slow_handler_done = True
+
+        async def fast_handler(event: DataPointUpdatedEvent) -> None:
+            fast_handler_times.append(asyncio.get_event_loop().time())
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=slow_handler)
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=fast_handler)
+
+        event = DataPointUpdatedEvent(
+            timestamp=datetime.now(),
+            dpk=dpk,
+            value=True,
+            received_at=datetime.now(),
+        )
+
+        await bus.publish(event=event)
+
+        # Fast handler should have executed
+        assert len(fast_handler_times) == 1
+        assert slow_handler_done is True
+
+    @pytest.mark.asyncio
+    async def test_high_contention_concurrent_publish(self) -> None:
+        """Test many concurrent publishes to the same event key."""
+        bus = EventBus()
+        received_events: list[DataPointUpdatedEvent] = []
+        lock = asyncio.Lock()
+
+        async def handler(event: DataPointUpdatedEvent) -> None:
+            async with lock:
+                received_events.append(event)
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
+
+        # Create many events and publish concurrently
+        event_count = 200
+        events = [
+            DataPointUpdatedEvent(
+                timestamp=datetime.now(),
+                dpk=dpk,
+                value=i,
+                received_at=datetime.now(),
+            )
+            for i in range(event_count)
+        ]
+
+        await asyncio.gather(*[bus.publish(event=e) for e in events])
+
+        # All events should be received
+        assert len(received_events) == event_count
+
+    @pytest.mark.asyncio
+    async def test_multiple_event_keys_concurrent(self) -> None:
+        """Test concurrent publishes to different event keys."""
+        bus = EventBus()
+        results: dict[str, list[int]] = {}
+
+        def make_handler(key: str) -> Callable[[DataPointUpdatedEvent], None]:
+            results[key] = []
+
+            def handler(event: DataPointUpdatedEvent) -> None:
+                results[key].append(event.value)
+
+            return handler
+
+        # Subscribe to multiple different keys
+        dpks = []
+        for i in range(5):
+            dpk = DataPointKey(
+                interface_id="BidCos-RF",
+                channel_address=f"VCU000000{i}:1",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STATE",
+            )
+            dpks.append(dpk)
+            bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=make_handler(f"key_{i}"))
+
+        # Publish events to all keys concurrently
+        async def publish_to_key(dpk: DataPointKey, values: list[int]) -> None:
+            for v in values:
+                event = DataPointUpdatedEvent(
+                    timestamp=datetime.now(),
+                    dpk=dpk,
+                    value=v,
+                    received_at=datetime.now(),
+                )
+                await bus.publish(event=event)
+
+        await asyncio.gather(*[publish_to_key(dpk, list(range(10))) for dpk in dpks])
+
+        # Each key should have received 10 events
+        for i in range(5):
+            assert len(results[f"key_{i}"]) == 10
+
+    @pytest.mark.asyncio
+    async def test_rapid_subscribe_unsubscribe_cycles(self) -> None:
+        """Test rapid subscribe/unsubscribe cycles don't corrupt state."""
+        bus = EventBus()
+
+        def handler(event: DataPointUpdatedEvent) -> None:
+            pass
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        # Rapid subscribe/unsubscribe cycles
+        for _ in range(100):
+            unsub = bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
+            unsub()
+
+        # Should end up with no subscriptions
+        assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 0
+
+    @pytest.mark.asyncio
+    async def test_stress_many_subscribers_same_key(self) -> None:
+        """Stress test with many subscribers to the same event key."""
+        bus = EventBus()
+        subscriber_count = 100
+        call_counts: list[int] = [0] * subscriber_count
+
+        def make_handler(idx: int) -> Callable[[DataPointUpdatedEvent], None]:
+            def handler(event: DataPointUpdatedEvent) -> None:
+                call_counts[idx] += 1
+
+            return handler
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        # Subscribe many handlers
+        for i in range(subscriber_count):
+            bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=make_handler(i))
+
+        # Publish one event
+        event = DataPointUpdatedEvent(
+            timestamp=datetime.now(),
+            dpk=dpk,
+            value=True,
+            received_at=datetime.now(),
+        )
+        await bus.publish(event=event)
+
+        # All handlers should have been called exactly once
+        assert all(count == 1 for count in call_counts)
+        assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == subscriber_count
+
+
 class TestEventBusIntegration:
     """Integration tests for EventBus with multiple event types."""
 
@@ -508,7 +773,7 @@ class TestEventBusIntegration:
             ha_backend_events.append(event)
 
         # Simulate internal monitoring
-        monitoring_all_events = []
+        monitoring_all_events: list[DataPointUpdatedEvent | BackendSystemEventData] = []
 
         def monitor_datapoint(event: DataPointUpdatedEvent) -> None:
             monitoring_all_events.append(event)

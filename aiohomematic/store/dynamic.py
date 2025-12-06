@@ -30,14 +30,17 @@ import logging
 import time
 from typing import Any, Final, cast
 
-from aiohomematic import central as hmcu, i18n
+from aiohomematic import i18n
 from aiohomematic.const import (
+    COMMAND_CACHE_MAX_SIZE,
+    COMMAND_CACHE_WARNING_THRESHOLD,
     DP_KEY_VALUE,
     INIT_DATETIME,
     LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD,
     LAST_COMMAND_SEND_STORE_TIMEOUT,
     MAX_CACHE_AGE,
     NO_CACHE_ENTRY,
+    PING_PONG_CACHE_MAX_SIZE,
     PING_PONG_MISMATCH_COUNT,
     PING_PONG_MISMATCH_COUNT_TTL,
     CallSource,
@@ -60,17 +63,24 @@ from aiohomematic.interfaces import (
     EventPublisher,
     PrimaryClientProvider,
 )
+from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
 class CommandCache:
-    """Cache for send commands."""
+    """
+    Cache for send commands with resource limits.
+
+    Tracks recently sent commands per data point with automatic expiry
+    and configurable size limits to prevent unbounded memory growth.
+    """
 
     __slots__ = (
         "_interface_id",
         "_last_send_command",
+        "_warning_logged",
     )
 
     def __init__(self, *, interface_id: str) -> None:
@@ -78,6 +88,12 @@ class CommandCache:
         self._interface_id: Final = interface_id
         # (paramset_key, device_address, channel_no, parameter)
         self._last_send_command: Final[dict[DataPointKey, tuple[Any, datetime]]] = {}
+        self._warning_logged: bool = False
+
+    @property
+    def size(self) -> int:
+        """Return the current cache size."""
+        return len(self._last_send_command)
 
     def add_combined_parameter(
         self, *, parameter: str, channel_address: str, combined_parameter: str
@@ -98,6 +114,9 @@ class CommandCache:
         # Cleanup expired entries when cache size exceeds threshold
         if len(self._last_send_command) > LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD:
             self.cleanup_expired()
+
+        # Enforce hard size limit
+        self._enforce_size_limit()
 
         dpk_values: set[DP_KEY_VALUE] = set()
         now_ts = datetime.now()
@@ -128,6 +147,9 @@ class CommandCache:
         # Cleanup expired entries when cache size exceeds threshold
         if len(self._last_send_command) > LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD:
             self.cleanup_expired()
+
+        # Enforce hard size limit
+        self._enforce_size_limit()
 
         now_ts = datetime.now()
         dpk = DataPointKey(
@@ -184,6 +206,40 @@ class CommandCache:
                 value is not None and stored_value == value
             ):
                 del self._last_send_command[dpk]
+
+    def _enforce_size_limit(self) -> None:
+        """Enforce size limits on the cache to prevent unbounded growth."""
+        current_size = len(self._last_send_command)
+
+        # Log warning when approaching limit
+        if current_size >= COMMAND_CACHE_WARNING_THRESHOLD and not self._warning_logged:
+            _LOGGER.warning(  # i18n-log: ignore
+                "CommandCache for %s approaching size limit: %d/%d entries",
+                self._interface_id,
+                current_size,
+                COMMAND_CACHE_MAX_SIZE,
+            )
+            self._warning_logged = True
+        elif current_size < COMMAND_CACHE_WARNING_THRESHOLD:
+            self._warning_logged = False
+
+        # Enforce hard limit by removing oldest entries
+        if current_size >= COMMAND_CACHE_MAX_SIZE:
+            # Sort by timestamp and remove oldest entries
+            sorted_entries = sorted(
+                self._last_send_command.items(),
+                key=lambda item: item[1][1],  # Sort by datetime
+            )
+            # Remove oldest 20% of entries
+            remove_count = max(1, current_size // 5)
+            for dpk, _ in sorted_entries[:remove_count]:
+                del self._last_send_command[dpk]
+            _LOGGER.debug(
+                "CommandCache for %s evicted %d oldest entries (size was %d)",
+                self._interface_id,
+                remove_count,
+                current_size,
+            )
 
 
 class DeviceDetailsCache(DeviceDetailsProvider):
@@ -487,6 +543,11 @@ class PingPongCache:
         """Return the allowed delta."""
         return self._allowed_delta
 
+    @property
+    def size(self) -> int:
+        """Return total size of pending and unknown pong sets."""
+        return self._pending_pong_count + self._unknown_pong_count
+
     def clear(self) -> None:
         """Clear the cache."""
         self._pending_pongs.clear()
@@ -552,7 +613,7 @@ class PingPongCache:
                 event_type=EventType.INTERFACE,
                 event_data=cast(
                     dict[EventKey, Any],
-                    hmcu.INTERFACE_EVENT_SCHEMA(
+                    INTERFACE_EVENT_SCHEMA(
                         {
                             EventKey.INTERFACE_ID: self._interface_id,
                             EventKey.TYPE: event_type,
@@ -614,7 +675,7 @@ class PingPongCache:
                 self._unknown_pong_logged = False
 
     def _cleanup_pending_pongs(self) -> None:
-        """Cleanup too old pending pongs, using monotonic time."""
+        """Cleanup too old pending pongs, using monotonic time and enforce size limit."""
         now = time.monotonic()
         for pp_pong_ts in list(self._pending_pongs):
             seen_at = self._pending_seen_at.get(pp_pong_ts)
@@ -631,8 +692,25 @@ class PingPongCache:
                     pp_pong_ts,
                 )
 
+        # Enforce size limit by removing oldest entries
+        if self._pending_pong_count > PING_PONG_CACHE_MAX_SIZE:
+            sorted_entries = sorted(
+                self._pending_seen_at.items(),
+                key=lambda item: item[1],
+            )
+            remove_count = self._pending_pong_count - PING_PONG_CACHE_MAX_SIZE
+            for token, _ in sorted_entries[:remove_count]:
+                self._pending_pongs.discard(token)
+                self._pending_seen_at.pop(token, None)
+            _LOGGER.debug(
+                "PING PONG CACHE: Evicted %d oldest pending entries on %s (limit: %d)",
+                remove_count,
+                self._interface_id,
+                PING_PONG_CACHE_MAX_SIZE,
+            )
+
     def _cleanup_unknown_pongs(self) -> None:
-        """Cleanup too old unknown pongs, using monotonic time."""
+        """Cleanup too old unknown pongs, using monotonic time and enforce size limit."""
         now = time.monotonic()
         for up_pong_ts in list(self._unknown_pongs):
             seen_at = self._unknown_seen_at.get(up_pong_ts)
@@ -648,6 +726,23 @@ class PingPongCache:
                     self._unknown_pong_count,
                     up_pong_ts,
                 )
+
+        # Enforce size limit by removing oldest entries
+        if self._unknown_pong_count > PING_PONG_CACHE_MAX_SIZE:
+            sorted_entries = sorted(
+                self._unknown_seen_at.items(),
+                key=lambda item: item[1],
+            )
+            remove_count = self._unknown_pong_count - PING_PONG_CACHE_MAX_SIZE
+            for token, _ in sorted_entries[:remove_count]:
+                self._unknown_pongs.discard(token)
+                self._unknown_seen_at.pop(token, None)
+            _LOGGER.debug(
+                "PING PONG CACHE: Evicted %d oldest unknown entries on %s (limit: %d)",
+                remove_count,
+                self._interface_id,
+                PING_PONG_CACHE_MAX_SIZE,
+            )
 
     async def _retry_reconcile_pong(self, *, token: str) -> None:
         """Attempt to reconcile a previously-unknown PONG with a late pending PING."""

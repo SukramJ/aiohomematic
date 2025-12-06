@@ -1,0 +1,394 @@
+"""
+Central unit protocol interfaces.
+
+This module defines protocol interfaces for CentralUnit operations,
+allowing components to depend on central functionality without coupling
+to the full CentralUnit implementation.
+"""
+
+from __future__ import annotations
+
+from abc import abstractmethod
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+from aiohomematic.const import (
+    BackendSystemEvent,
+    CentralUnitState,
+    DeviceFirmwareState,
+    EventKey,
+    EventType,
+    Interface,
+    ParamsetKey,
+    SystemInformation,
+)
+
+if TYPE_CHECKING:
+    from aiohomematic.central import CentralConfig
+    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.interfaces.model import (
+        CallbackDataPointProtocol,
+        ChannelProtocol,
+        DeviceProtocol,
+        GenericDataPointProtocol,
+        GenericProgramDataPointProtocol,
+        GenericSysvarDataPointProtocol,
+    )
+    from aiohomematic.model.hub import ProgramDpType
+
+
+@runtime_checkable
+class CentralInfo(Protocol):
+    """
+    Protocol for accessing central system information.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def available(self) -> bool:
+        """Check if central is available."""
+
+    @property
+    @abstractmethod
+    def info_payload(self) -> Mapping[str, Any]:
+        """Return the info payload."""
+
+    @property
+    @abstractmethod
+    def model(self) -> str | None:
+        """Get backend model."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Get central name."""
+
+
+@runtime_checkable
+class CentralUnitStateProvider(Protocol):
+    """
+    Protocol for accessing central unit state.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def state(self) -> CentralUnitState:
+        """Get current central state."""
+
+
+@runtime_checkable
+class ConfigProvider(Protocol):
+    """
+    Protocol for accessing configuration.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def config(self) -> CentralConfig:
+        """Get central configuration."""
+
+
+@runtime_checkable
+class SystemInfoProvider(Protocol):
+    """
+    Protocol for accessing system information.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def system_information(self) -> SystemInformation:
+        """Get system information."""
+
+
+@runtime_checkable
+class BackupProvider(Protocol):
+    """
+    Protocol for backup operations.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def create_backup_and_download(self) -> bytes | None:
+        """Create a backup on the CCU and download it."""
+
+
+@runtime_checkable
+class DeviceManagement(Protocol):
+    """
+    Protocol for device management operations.
+
+    Provides methods for managing devices on the CCU including
+    accepting inbox devices, renaming devices/channels, and install mode.
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """Accept a device from the CCU inbox."""
+
+    @abstractmethod
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+
+    @abstractmethod
+    async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
+        """Rename a device on the CCU."""
+
+    @abstractmethod
+    async def set_install_mode(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """
+        Set the install mode on the backend.
+
+        Args:
+            on: Enable or disable install mode.
+            time: Duration in seconds (default 60).
+            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
+            device_address: Optional device address to limit pairing.
+
+        Returns:
+            True if successful.
+
+        """
+
+
+@runtime_checkable
+class EventBusProvider(Protocol):
+    """
+    Protocol for accessing event bus.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def event_bus(self) -> EventBus:
+        """Get event bus instance."""
+
+
+@runtime_checkable
+class EventPublisher(Protocol):
+    """
+    Protocol for publishing events to the system.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
+        """Publish a backend system event."""
+
+    @abstractmethod
+    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+        """Publish a Homematic event."""
+
+
+@runtime_checkable
+class DataPointProvider(Protocol):
+    """
+    Protocol for accessing data points.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
+        """Return Homematic data_point by custom_id."""
+
+    @abstractmethod
+    def get_readable_generic_data_points(
+        self,
+        *,
+        paramset_key: ParamsetKey | None = None,
+        interface: Interface | None = None,
+    ) -> tuple[GenericDataPointProtocol, ...]:
+        """Get readable generic data points."""
+
+
+@runtime_checkable
+class DeviceProvider(Protocol):
+    """
+    Protocol for accessing devices.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def devices(self) -> tuple[DeviceProtocol, ...]:
+        """Get all devices."""
+
+    @property
+    @abstractmethod
+    def interfaces(self) -> frozenset[Interface]:
+        """Get all interfaces."""
+
+
+@runtime_checkable
+class ChannelLookup(Protocol):
+    """
+    Protocol for looking up channels.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
+        """Get channel by address."""
+
+    @abstractmethod
+    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
+        """Identify a channel within a text string."""
+
+
+@runtime_checkable
+class FileOperations(Protocol):
+    """
+    Protocol for file save operations.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def save_files(
+        self, *, save_device_descriptions: bool = False, save_paramset_descriptions: bool = False
+    ) -> None:
+        """Save persistent files to disk."""
+
+
+@runtime_checkable
+class DeviceDataRefresher(Protocol):
+    """
+    Protocol for refreshing device data.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
+        """Refresh device firmware data."""
+
+    @abstractmethod
+    async def refresh_firmware_data_by_state(
+        self,
+        *,
+        device_firmware_states: tuple[DeviceFirmwareState, ...],
+    ) -> None:
+        """Refresh device firmware data for devices in specific states."""
+
+
+@runtime_checkable
+class DataCacheProvider(Protocol):
+    """
+    Protocol for accessing data cache.
+
+    Implemented by CentralDataCache.
+    """
+
+    @abstractmethod
+    def get_data(self, *, interface: Interface, channel_address: str, parameter: str) -> Any:
+        """Get cached data for a parameter."""
+
+
+@runtime_checkable
+class HubDataFetcher(Protocol):
+    """
+    Protocol for fetching hub data.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def execute_program(self, *, pid: str) -> bool:
+        """Execute a program on the backend."""
+
+    @abstractmethod
+    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
+        """Fetch inbox data from the backend."""
+
+    @abstractmethod
+    async def fetch_program_data(self, *, scheduled: bool) -> None:
+        """Fetch program data from the backend."""
+
+    @abstractmethod
+    async def fetch_system_update_data(self, *, scheduled: bool) -> None:
+        """Fetch system update data from the backend."""
+
+    @abstractmethod
+    async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
+        """Fetch system variable data from the backend."""
+
+    @abstractmethod
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
+        """Set program state on the backend."""
+
+
+@runtime_checkable
+class HubDataPointManager(Protocol):
+    """
+    Protocol for managing hub-level data points (programs/sysvars).
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
+        """Get all program data points."""
+
+    @property
+    @abstractmethod
+    def sysvar_data_points(self) -> tuple[GenericSysvarDataPointProtocol, ...]:
+        """Get all system variable data points."""
+
+    @abstractmethod
+    def add_program_data_point(self, *, program_dp: ProgramDpType) -> None:
+        """Add a program data point."""
+
+    @abstractmethod
+    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPointProtocol) -> None:
+        """Add a system variable data point."""
+
+    @abstractmethod
+    def get_program_data_point(self, *, pid: str) -> ProgramDpType | None:
+        """Get a program data point by ID."""
+
+    @abstractmethod
+    def get_sysvar_data_point(self, *, vid: str) -> GenericSysvarDataPointProtocol | None:
+        """Get a system variable data point by ID."""
+
+    @abstractmethod
+    def remove_program_button(self, *, pid: str) -> None:
+        """Remove a program button."""
+
+    @abstractmethod
+    def remove_sysvar_data_point(self, *, vid: str) -> None:
+        """Remove a system variable data point."""
+
+
+@runtime_checkable
+class EventSubscriptionManager(Protocol):
+    """
+    Protocol for managing event subscriptions.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    def add_event_subscription(self, *, data_point: Any) -> None:
+        """Add an event subscription for a data point."""

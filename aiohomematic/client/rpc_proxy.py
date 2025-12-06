@@ -43,6 +43,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
+from aiohomematic.retry import with_retry
 from aiohomematic.store import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 from aiohomematic.type_aliases import CallableAny
@@ -194,6 +195,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             supported_methods.append(_RpcMethod.PING)
             self._supported_methods = tuple(supported_methods)
 
+    @with_retry
     async def _async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Call method on server side."""
         parent = xmlrpc.client.ServerProxy

@@ -97,7 +97,7 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector, measure_execution_time
-from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
+from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException, ValidationException
 from aiohomematic.interfaces import ClientProtocol, DeviceProtocol
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
@@ -1396,7 +1396,32 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 )
             # Only build a tuple if a value list exists
             pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
-            return convert_value(value=value, target_type=pd_type, value_list=pd_value_list)
+            converted_value = convert_value(value=value, target_type=pd_type, value_list=pd_value_list)
+
+            # Validate MIN/MAX constraints for numeric types
+            if pd_type in (ParameterType.INTEGER, ParameterType.FLOAT) and converted_value is not None:
+                pd_min = parameter_data.get("MIN")
+                pd_max = parameter_data.get("MAX")
+                if pd_min is not None and converted_value < pd_min:
+                    raise ValidationException(
+                        i18n.tr(
+                            "exception.client.parameter.value_below_min",
+                            parameter=parameter,
+                            value=converted_value,
+                            min_value=pd_min,
+                        )
+                    )
+                if pd_max is not None and converted_value > pd_max:
+                    raise ValidationException(
+                        i18n.tr(
+                            "exception.client.parameter.value_above_max",
+                            parameter=parameter,
+                            value=converted_value,
+                            max_value=pd_max,
+                        )
+                    )
+
+            return converted_value
         raise ClientException(
             i18n.tr(
                 "exception.client.parameter.not_found",

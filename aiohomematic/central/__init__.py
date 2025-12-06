@@ -66,13 +66,12 @@ Notes
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping, Set as AbstractSet
+from collections.abc import Callable, Mapping, Set as AbstractSet
 from datetime import datetime
 import logging
 from typing import Any, Final
 
 from aiohttp import ClientSession
-import voluptuous as vol
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper, loop_check
@@ -135,6 +134,8 @@ from aiohomematic.const import (
     RpcServerType,
     SourceOfDeviceCreation,
     SystemInformation,
+    get_interface_default_port,
+    get_json_rpc_default_port,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import (
@@ -211,15 +212,9 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
 ConnectionProblemIssuer = AioJsonRpcAioHttpClient | BaseRpcProxy
 
-INTERFACE_EVENT_SCHEMA = vol.Schema(
-    {
-        vol.Required(str(EventKey.INTERFACE_ID)): str,
-        vol.Required(str(EventKey.TYPE)): InterfaceEventType,
-        vol.Required(str(EventKey.DATA)): vol.Schema(
-            {vol.Required(vol.Any(EventKey)): vol.Schema(vol.Any(str, int, bool))}
-        ),
-    }
-)
+# Type aliases for connection state callbacks
+StateChangeCallback = Callable[[str, bool], None]  # (interface_id, connected)
+UnsubscribeCallback = Callable[[], None]
 
 
 class CentralUnit(
@@ -1497,6 +1492,166 @@ class CentralConfig:
         self.verify_tls: Final = verify_tls
         self.locale: Final = locale
 
+    @classmethod
+    def for_ccu(
+        cls,
+        *,
+        host: str,
+        username: str,
+        password: str,
+        name: str = "ccu",
+        central_id: str | None = None,
+        tls: bool = False,
+        enable_hmip: bool = True,
+        enable_bidcos_rf: bool = True,
+        enable_bidcos_wired: bool = False,
+        enable_virtual_devices: bool = False,
+        **kwargs: Any,
+    ) -> CentralConfig:
+        """
+        Create a CentralConfig preset for CCU3/CCU2 backends.
+
+        This factory method simplifies configuration for CCU backends by
+        automatically setting up common interfaces with their default ports.
+
+        Args:
+            host: Hostname or IP address of the CCU.
+            username: CCU username for authentication.
+            password: CCU password for authentication.
+            name: Name identifier for the central unit.
+            central_id: Unique identifier for the central. Auto-generated if not provided.
+            tls: Enable TLS encryption for connections.
+            enable_hmip: Enable HomematicIP wireless interface (port 2010/42010).
+            enable_bidcos_rf: Enable BidCos RF interface (port 2001/42001).
+            enable_bidcos_wired: Enable BidCos wired interface (port 2000/42000).
+            enable_virtual_devices: Enable virtual devices interface (port 9292/49292).
+            **kwargs: Additional arguments passed to CentralConfig constructor.
+
+        Returns:
+            Configured CentralConfig instance ready for create_central().
+
+        Example:
+            config = CentralConfig.for_ccu(
+                host="192.168.1.100",
+                username="Admin",
+                password="secret",
+            )
+            central = config.create_central()
+
+        """
+        interface_configs: set[hmcl.InterfaceConfig] = set()
+
+        if enable_hmip and (port := get_interface_default_port(Interface.HMIP_RF, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.HMIP_RF,
+                    port=port,
+                )
+            )
+
+        if enable_bidcos_rf and (port := get_interface_default_port(Interface.BIDCOS_RF, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.BIDCOS_RF,
+                    port=port,
+                )
+            )
+
+        if enable_bidcos_wired and (port := get_interface_default_port(Interface.BIDCOS_WIRED, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.BIDCOS_WIRED,
+                    port=port,
+                )
+            )
+
+        if enable_virtual_devices and (port := get_interface_default_port(Interface.VIRTUAL_DEVICES, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.VIRTUAL_DEVICES,
+                    port=port,
+                    remote_path="/groups",
+                )
+            )
+
+        return cls(
+            central_id=central_id or f"{name}-{host}",
+            host=host,
+            username=username,
+            password=password,
+            name=name,
+            interface_configs=interface_configs,
+            json_port=get_json_rpc_default_port(tls=tls),
+            tls=tls,
+            **kwargs,
+        )
+
+    @classmethod
+    def for_homegear(
+        cls,
+        *,
+        host: str,
+        username: str,
+        password: str,
+        name: str = "homegear",
+        central_id: str | None = None,
+        tls: bool = False,
+        port: int | None = None,
+        **kwargs: Any,
+    ) -> CentralConfig:
+        """
+        Create a CentralConfig preset for Homegear backends.
+
+        This factory method simplifies configuration for Homegear backends
+        with the BidCos-RF interface.
+
+        Args:
+            host: Hostname or IP address of the Homegear server.
+            username: Homegear username for authentication.
+            password: Homegear password for authentication.
+            name: Name identifier for the central unit.
+            central_id: Unique identifier for the central. Auto-generated if not provided.
+            tls: Enable TLS encryption for connections.
+            port: Custom port for BidCos-RF interface. Uses default (2001/42001) if not set.
+            **kwargs: Additional arguments passed to CentralConfig constructor.
+
+        Returns:
+            Configured CentralConfig instance ready for create_central().
+
+        Example:
+            config = CentralConfig.for_homegear(
+                host="192.168.1.50",
+                username="homegear",
+                password="secret",
+            )
+            central = config.create_central()
+
+        """
+        interface_port = port or get_interface_default_port(Interface.BIDCOS_RF, tls=tls) or 2001
+
+        interface_configs: set[hmcl.InterfaceConfig] = {
+            hmcl.InterfaceConfig(
+                central_name=name,
+                interface=Interface.BIDCOS_RF,
+                port=interface_port,
+            )
+        }
+
+        return cls(
+            central_id=central_id or f"{name}-{host}",
+            host=host,
+            username=username,
+            password=password,
+            name=name,
+            interface_configs=interface_configs,
+            tls=tls,
+            **kwargs,
+        )
+
     @property
     def connection_check_port(self) -> int:
         """Return the connection check port."""
@@ -1585,24 +1740,69 @@ class CentralConfig:
 
 
 class CentralConnectionState:
-    """The central connection status."""
+    """
+    Track connection status for the central unit.
+
+    Manages connection issues per transport (JSON-RPC and XML-RPC proxies),
+    providing state change notifications and overall health status.
+    """
 
     def __init__(self) -> None:
         """Initialize the CentralConnectionStatus."""
         self._json_issues: Final[list[str]] = []
         self._rpc_proxy_issues: Final[list[str]] = []
+        self._state_change_callbacks: Final[list[StateChangeCallback]] = []
+
+    @property
+    def has_any_issue(self) -> bool:
+        """Return True if any connection issue exists."""
+        return len(self._json_issues) > 0 or len(self._rpc_proxy_issues) > 0
+
+    @property
+    def issue_count(self) -> int:
+        """Return total number of connection issues."""
+        return len(self._json_issues) + len(self._rpc_proxy_issues)
+
+    @property
+    def json_issue_count(self) -> int:
+        """Return number of JSON-RPC connection issues."""
+        return len(self._json_issues)
+
+    @property
+    def rpc_proxy_issue_count(self) -> int:
+        """Return number of XML-RPC proxy connection issues."""
+        return len(self._rpc_proxy_issues)
 
     def add_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Add issue to collection."""
+        """Add issue to collection and notify listeners."""
+        added = False
         if isinstance(issuer, AioJsonRpcAioHttpClient) and iid not in self._json_issues:
             self._json_issues.append(iid)
             _LOGGER.debug("add_issue: add issue  [%s] for JsonRpcAioHttpClient", iid)
-            return True
-        if isinstance(issuer, BaseRpcProxy) and iid not in self._rpc_proxy_issues:
+            added = True
+        elif isinstance(issuer, BaseRpcProxy) and iid not in self._rpc_proxy_issues:
             self._rpc_proxy_issues.append(iid)
             _LOGGER.debug("add_issue: add issue [%s] for RpcProxy", iid)
-            return True
-        return False
+            added = True
+
+        if added:
+            self._notify_state_change(interface_id=iid, connected=False)
+        return added
+
+    def clear_all_issues(self) -> int:
+        """
+        Clear all tracked connection issues.
+
+        Returns the number of issues cleared.
+        """
+        if (count := self.issue_count) > 0:
+            all_iids = list(self._json_issues) + list(self._rpc_proxy_issues)
+            self._json_issues.clear()
+            self._rpc_proxy_issues.clear()
+            for iid in all_iids:
+                self._notify_state_change(interface_id=iid, connected=True)
+            return count
+        return 0
 
     def handle_exception_log(
         self,
@@ -1637,23 +1837,49 @@ class CentralConnectionState:
             )
 
     def has_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Add issue to collection."""
+        """Check if issue exists for the given issuer and interface id."""
         if isinstance(issuer, AioJsonRpcAioHttpClient):
             return iid in self._json_issues
-        if isinstance(issuer, BaseRpcProxy):
-            return iid in self._rpc_proxy_issues
+        # issuer is BaseRpcProxy (exhaustive union coverage)
+        return iid in self._rpc_proxy_issues
+
+    def register_state_change_callback(self, *, callback: StateChangeCallback) -> UnsubscribeCallback:
+        """
+        Register a callback for connection state changes.
+
+        Returns an unsubscribe callable to remove the callback.
+        """
+        self._state_change_callbacks.append(callback)
+
+        def unsubscribe() -> None:
+            if callback in self._state_change_callbacks:
+                self._state_change_callbacks.remove(callback)
+
+        return unsubscribe
 
     def remove_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Add issue to collection."""
+        """Remove issue from collection and notify listeners."""
+        removed = False
         if isinstance(issuer, AioJsonRpcAioHttpClient) and iid in self._json_issues:
             self._json_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for JsonRpcAioHttpClient", iid)
-            return True
-        if isinstance(issuer, BaseRpcProxy) and iid in self._rpc_proxy_issues:
+            removed = True
+        elif isinstance(issuer, BaseRpcProxy) and iid in self._rpc_proxy_issues:
             self._rpc_proxy_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for RpcProxy", iid)
-            return True
-        return False
+            removed = True
+
+        if removed:
+            self._notify_state_change(interface_id=iid, connected=True)
+        return removed
+
+    def _notify_state_change(self, *, interface_id: str, connected: bool) -> None:
+        """Notify all registered callbacks about state change."""
+        for callback in self._state_change_callbacks:
+            try:
+                callback(interface_id, connected)
+            except Exception as exc:
+                _LOGGER.debug("State change callback error: %s", exc)
 
 
 def check_config(

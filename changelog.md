@@ -1,3 +1,48 @@
+# Version 2025.12.8 (2025-12-06)
+
+## What's Changed
+
+### Architecture and Internals
+
+- Split interfaces.py into interfaces/ package for better maintainability
+- Add DataPointTypeResolver class for extensible data point type mapping
+- Add shared mixins for custom entities (model/custom/mixins.py)
+- Refactor switch.py to use StateChangeTimerMixin and GroupStateMixin
+- Refactor cover.py to use PositionMixin for position calculations
+- Refactor light.py to use StateChangeTimerMixin and BrightnessMixin
+
+### Reliability and Error Handling
+
+- Add login rate limiting with exponential backoff for JSON-RPC client
+- Add error message sanitization helpers (sanitize_error_message, RpcContext.fmt_sanitized)
+- Add retry module with RetryStrategy class for transient network errors
+- Improve CentralConnectionState
+- Add resource limits for internal collections
+
+### High-Level API (HomematicAPI)
+
+- Add HomematicAPI facade class with simplified high-level interface
+- Add CentralConfig.for_ccu() and CentralConfig.for_homegear() factory methods
+- Add async context manager support for HomematicAPI
+- Add `@with_retry` decorator to HomematicAPI operations for automatic retry
+
+### CLI Enhancements (hmcli)
+
+- Add subcommand-based CLI structure with device discovery commands
+- Add `list-devices` command to list all devices
+- Add `list-channels <device>` command to list channels of a device
+- Add `list-parameters <channel>` command to list parameters of a channel
+- Add `device-info <address>` command to show detailed device information
+- Add `get` and `set` subcommands for parameter operations
+- Add `interactive` subcommand for REPL mode with command history and tab completion
+- Add shell completion script generation for bash, zsh, and fish shells
+- Add `--generate-completion <shell>` option to generate completion scripts
+
+### Documentation
+
+- Add getting_started.md documentation with quick start examples
+- Add common_operations.md documenting top 15 most-used operations
+
 # Version 2025.12.7 (2025-12-05)
 
 ## What's Changed

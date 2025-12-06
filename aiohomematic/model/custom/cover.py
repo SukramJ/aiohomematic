@@ -19,6 +19,7 @@ from aiohomematic.converter import convert_hm_level_to_cpv
 from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.mixins import PositionMixin
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
@@ -94,7 +95,7 @@ class _StateChangeArg(StrEnum):
     VENT = "vent"
 
 
-class CustomDpCover(CustomDataPoint):
+class CustomDpCover(PositionMixin, CustomDataPoint):
     """Class for Homematic cover data point."""
 
     __slots__ = (
@@ -124,16 +125,12 @@ class CustomDpCover(CustomDataPoint):
     @state_property
     def current_channel_position(self) -> int:
         """Return current channel position of cover."""
-        return (
-            int(self._dp_level.value * _LEVEL_TO_POSITION_MULTIPLIER)
-            if self._dp_level.value is not None
-            else self._closed_position
-        )
+        return self.level_to_position(self._dp_level.value) or self._closed_position
 
     @state_property
     def current_position(self) -> int:
         """Return current group position of cover."""
-        return int(self._group_level * _LEVEL_TO_POSITION_MULTIPLIER)
+        return self.level_to_position(self._group_level) or self._closed_position
 
     @state_property
     def is_closed(self) -> bool | None:
@@ -190,7 +187,7 @@ class CustomDpCover(CustomDataPoint):
         if not self.is_state_change(position=position):
             return
         level = (
-            min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, position)) / _MAX_LEVEL_POSITION
+            self.position_to_level(int(min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, position))))
             if position is not None
             else None
         )
@@ -245,7 +242,7 @@ class CustomDpWindowDrive(CustomDpCover):
             level = _CLOSED_LEVEL
         elif level == _CLOSED_LEVEL:
             level = 0.01
-        return int(level * _LEVEL_TO_POSITION_MULTIPLIER)
+        return self.level_to_position(level) or self._closed_position
 
     async def _set_level(
         self,
@@ -305,16 +302,12 @@ class CustomDpBlind(CustomDpCover):
     @state_property
     def current_channel_tilt_position(self) -> int:
         """Return current channel_tilt position of cover."""
-        return (
-            int(self._dp_level_2.value * _LEVEL_TO_POSITION_MULTIPLIER)
-            if self._dp_level_2.value is not None
-            else self._closed_position
-        )
+        return self.level_to_position(self._dp_level_2.value) or self._closed_position
 
     @state_property
     def current_tilt_position(self) -> int:
         """Return current tilt position of cover."""
-        return int(self._group_tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)
+        return self.level_to_position(self._group_tilt_level) or self._closed_position
 
     @bind_collector(enabled=False)
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
@@ -376,12 +369,12 @@ class CustomDpBlind(CustomDpCover):
         if not self.is_state_change(position=position, tilt_position=tilt_position):
             return
         level = (
-            min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, position)) / _MAX_LEVEL_POSITION
+            self.position_to_level(int(min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, position))))
             if position is not None
             else None
         )
         tilt_level = (
-            min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, tilt_position)) / _MAX_LEVEL_POSITION
+            self.position_to_level(int(min(_MAX_LEVEL_POSITION, max(_MIN_LEVEL_POSITION, tilt_position))))
             if tilt_position is not None
             else None
         )
@@ -528,10 +521,10 @@ class CustomDpIpBlind(CustomDpBlind):
         if level is None and tilt_level is None:
             return None
         levels: list[str] = []
-        if tilt_level is not None:
-            levels.append(f"L2={int(tilt_level * _LEVEL_TO_POSITION_MULTIPLIER)}")
-        if level is not None:
-            levels.append(f"L={int(level * _LEVEL_TO_POSITION_MULTIPLIER)}")
+        if (tilt_pos := self.level_to_position(tilt_level)) is not None:
+            levels.append(f"L2={tilt_pos}")
+        if (level_pos := self.level_to_position(level)) is not None:
+            levels.append(f"L={level_pos}")
 
         if levels:
             return ",".join(levels)
@@ -545,7 +538,7 @@ class CustomDpIpBlind(CustomDpBlind):
         self._dp_combined: DpAction = self._get_data_point(field=Field.COMBINED_PARAMETER, data_point_type=DpAction)
 
 
-class CustomDpGarage(CustomDataPoint):
+class CustomDpGarage(PositionMixin, CustomDataPoint):
     """Class for Homematic garage data point."""
 
     __slots__ = (

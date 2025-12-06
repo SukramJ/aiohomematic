@@ -124,6 +124,43 @@ dp_type = DataPointTypeResolver.resolve(
 | 2025-12-06 | Move INTERFACE_EVENT_SCHEMA to schemas.py        | Complete |
 | 2025-12-06 | Extract DataPointTypeResolver strategy           | Complete |
 | 2025-12-06 | Add login rate limiting with exponential backoff | Complete |
+| 2025-12-06 | Add error message sanitization helpers           | Complete |
+
+---
+
+### Step 4: Error Message Sanitization
+
+**What changed**: Added sanitization utilities to protect sensitive information in error messages and logs.
+
+**New features**:
+
+- `sanitize_error_message(message)`: Sanitizes error messages by redacting:
+
+  - IP addresses → `<ip-redacted>`
+  - Hostnames → `<host-redacted>`
+  - Session IDs → `session_id=<redacted>`
+  - Passwords → `password=<redacted>`
+
+- `RpcContext.fmt(sanitize=True)`: Format context without host information
+- `RpcContext.fmt_sanitized()`: Convenience method for sanitized output
+
+**Usage**:
+
+```python
+from aiohomematic.client._rpc_errors import sanitize_error_message, RpcContext
+
+# Sanitize an error message
+safe_msg = sanitize_error_message("Connection failed to 192.168.1.100")
+# Result: "Connection failed to <ip-redacted>"
+
+# Use sanitized context
+ctx = RpcContext(protocol="JSON-RPC", method="login", host="192.168.1.100")
+print(ctx.fmt_sanitized())  # "protocol=JSON-RPC, method=login"
+```
+
+**Action required**: No action required. These are new utility functions for enhanced security.
+
+**Status**: Complete
 
 ---
 

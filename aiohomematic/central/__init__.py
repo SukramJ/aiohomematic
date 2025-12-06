@@ -66,7 +66,7 @@ Notes
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping, Set as AbstractSet
+from collections.abc import Callable, Mapping, Set as AbstractSet
 from datetime import datetime
 import logging
 from typing import Any, Final
@@ -209,6 +209,10 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 # {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
 ConnectionProblemIssuer = AioJsonRpcAioHttpClient | BaseRpcProxy
+
+# Type aliases for connection state callbacks
+StateChangeCallback = Callable[[str, bool], None]  # (interface_id, connected)
+UnsubscribeCallback = Callable[[], None]
 
 
 class CentralUnit(
@@ -1574,24 +1578,69 @@ class CentralConfig:
 
 
 class CentralConnectionState:
-    """The central connection status."""
+    """
+    Track connection status for the central unit.
+
+    Manages connection issues per transport (JSON-RPC and XML-RPC proxies),
+    providing state change notifications and overall health status.
+    """
 
     def __init__(self) -> None:
         """Initialize the CentralConnectionStatus."""
         self._json_issues: Final[list[str]] = []
         self._rpc_proxy_issues: Final[list[str]] = []
+        self._state_change_callbacks: Final[list[StateChangeCallback]] = []
+
+    @property
+    def has_any_issue(self) -> bool:
+        """Return True if any connection issue exists."""
+        return len(self._json_issues) > 0 or len(self._rpc_proxy_issues) > 0
+
+    @property
+    def issue_count(self) -> int:
+        """Return total number of connection issues."""
+        return len(self._json_issues) + len(self._rpc_proxy_issues)
+
+    @property
+    def json_issue_count(self) -> int:
+        """Return number of JSON-RPC connection issues."""
+        return len(self._json_issues)
+
+    @property
+    def rpc_proxy_issue_count(self) -> int:
+        """Return number of XML-RPC proxy connection issues."""
+        return len(self._rpc_proxy_issues)
 
     def add_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Add issue to collection."""
+        """Add issue to collection and notify listeners."""
+        added = False
         if isinstance(issuer, AioJsonRpcAioHttpClient) and iid not in self._json_issues:
             self._json_issues.append(iid)
             _LOGGER.debug("add_issue: add issue  [%s] for JsonRpcAioHttpClient", iid)
-            return True
-        if isinstance(issuer, BaseRpcProxy) and iid not in self._rpc_proxy_issues:
+            added = True
+        elif isinstance(issuer, BaseRpcProxy) and iid not in self._rpc_proxy_issues:
             self._rpc_proxy_issues.append(iid)
             _LOGGER.debug("add_issue: add issue [%s] for RpcProxy", iid)
-            return True
-        return False
+            added = True
+
+        if added:
+            self._notify_state_change(interface_id=iid, connected=False)
+        return added
+
+    def clear_all_issues(self) -> int:
+        """
+        Clear all tracked connection issues.
+
+        Returns the number of issues cleared.
+        """
+        if (count := self.issue_count) > 0:
+            all_iids = list(self._json_issues) + list(self._rpc_proxy_issues)
+            self._json_issues.clear()
+            self._rpc_proxy_issues.clear()
+            for iid in all_iids:
+                self._notify_state_change(interface_id=iid, connected=True)
+            return count
+        return 0
 
     def handle_exception_log(
         self,
@@ -1626,23 +1675,49 @@ class CentralConnectionState:
             )
 
     def has_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Add issue to collection."""
+        """Check if issue exists for the given issuer and interface id."""
         if isinstance(issuer, AioJsonRpcAioHttpClient):
             return iid in self._json_issues
-        if isinstance(issuer, BaseRpcProxy):
-            return iid in self._rpc_proxy_issues
+        # issuer is BaseRpcProxy (exhaustive union coverage)
+        return iid in self._rpc_proxy_issues
+
+    def register_state_change_callback(self, *, callback: StateChangeCallback) -> UnsubscribeCallback:
+        """
+        Register a callback for connection state changes.
+
+        Returns an unsubscribe callable to remove the callback.
+        """
+        self._state_change_callbacks.append(callback)
+
+        def unsubscribe() -> None:
+            if callback in self._state_change_callbacks:
+                self._state_change_callbacks.remove(callback)
+
+        return unsubscribe
 
     def remove_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Add issue to collection."""
+        """Remove issue from collection and notify listeners."""
+        removed = False
         if isinstance(issuer, AioJsonRpcAioHttpClient) and iid in self._json_issues:
             self._json_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for JsonRpcAioHttpClient", iid)
-            return True
-        if isinstance(issuer, BaseRpcProxy) and iid in self._rpc_proxy_issues:
+            removed = True
+        elif isinstance(issuer, BaseRpcProxy) and iid in self._rpc_proxy_issues:
             self._rpc_proxy_issues.remove(iid)
             _LOGGER.debug("remove_issue: removing issue [%s] for RpcProxy", iid)
-            return True
-        return False
+            removed = True
+
+        if removed:
+            self._notify_state_change(interface_id=iid, connected=True)
+        return removed
+
+    def _notify_state_change(self, *, interface_id: str, connected: bool) -> None:
+        """Notify all registered callbacks about state change."""
+        for callback in self._state_change_callbacks:
+            try:
+                callback(interface_id, connected)
+            except Exception as exc:
+                _LOGGER.debug("State change callback error: %s", exc)
 
 
 def check_config(

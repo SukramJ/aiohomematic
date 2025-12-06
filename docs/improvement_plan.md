@@ -469,6 +469,39 @@ WP4.2-4 (Docs/API) ────────────────────�
 - [x] 1.1 Add login rate limiting - **DONE** (WP1.1)
 - [x] 1.2 Sanitize error messages - **DONE** (WP1.2)
 
+### WP2: Robustness Enhancements
+
+- [x] 2.1 Implement retry logic with exponential backoff - **DONE**
+  - Created `aiohomematic/retry.py` with:
+    - `RetryStrategy` class with configurable max_attempts, initial_backoff, max_backoff, backoff_multiplier
+    - `is_retryable_exception()` function to distinguish transient vs permanent errors
+    - `with_retry` decorator for easy integration
+  - Added retry constants to `const.py` (RETRY_MAX_ATTEMPTS, RETRY_INITIAL_BACKOFF_SECONDS, etc.)
+  - Created comprehensive test suite in `tests/test_retry.py` (20 tests)
+- [x] 2.2 Add paramset value validation before transmission - **DONE**
+  - Added MIN/MAX validation in `client/__init__.py` `_convert_value()` method
+  - Validates numeric parameters (INTEGER, FLOAT) against ParameterData constraints
+  - Raises `ValidationException` with i18n messages for out-of-bounds values
+  - Added translations: `exception.client.parameter.value_below_min`, `exception.client.parameter.value_above_max`
+- [x] 2.3 Improve connection state synchronization - **DONE**
+  - Enhanced `CentralConnectionState` with:
+    - `has_any_issue` property to check overall connection health
+    - `issue_count`, `json_issue_count`, `rpc_proxy_issue_count` properties
+    - `register_state_change_callback()` for connection status monitoring
+    - `clear_all_issues()` method for bulk cleanup
+    - `_notify_state_change()` for callback invocation on state changes
+  - Added type aliases: `StateChangeCallback`, `UnsubscribeCallback`
+- [x] 2.4 Add resource limits for internal collections - **DONE**
+  - Added constants: `COMMAND_CACHE_MAX_SIZE`, `COMMAND_CACHE_WARNING_THRESHOLD`, `PING_PONG_CACHE_MAX_SIZE`
+  - Enhanced `CommandCache`:
+    - Added `size` property for monitoring
+    - Added `_enforce_size_limit()` with warning logs and oldest-entry eviction
+    - Warning at 400 entries, hard limit at 500 entries
+  - Enhanced `PingPongCache`:
+    - Added `size` property for monitoring
+    - Added size limit enforcement in `_cleanup_pending_pongs()` and `_cleanup_unknown_pongs()`
+    - Limit of 100 entries per pending/unknown set with oldest-entry eviction
+
 ### WP3: Architecture Refactoring
 
 - [x] 3.1 Split `interfaces.py` into `interfaces/` package - **DONE**
@@ -490,4 +523,4 @@ WP4.2-4 (Docs/API) ────────────────────�
 ---
 
 **Created**: 2025-12-06
-**Status**: Approved for implementation
+**Status**: WP1, WP2, WP3 completed. WP4 (Usability) and WP5 (Testing) pending.

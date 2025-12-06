@@ -2,11 +2,11 @@
 
 ## What's Changed
 
+### Architecture (WP3)
+
 - Split interfaces.py into interfaces/ package for better maintainability
 - Add schemas.py module to resolve circular dependency in EventCoordinator
 - Add DataPointTypeResolver class for extensible data point type mapping
-- Add login rate limiting with exponential backoff for JSON-RPC client
-- Add error message sanitization helpers (sanitize_error_message, RpcContext.fmt_sanitized)
 - Add shared mixins for custom entities (model/custom/mixins.py):
   - StateChangeTimerMixin for timer-based state change detection
   - GroupStateMixin for group value property pattern
@@ -17,6 +17,33 @@
 - Refactor switch.py to use StateChangeTimerMixin and GroupStateMixin
 - Refactor cover.py to use PositionMixin for position calculations
 - Refactor light.py to use StateChangeTimerMixin and BrightnessMixin
+
+### Security (WP1)
+
+- Add login rate limiting with exponential backoff for JSON-RPC client
+- Add error message sanitization helpers (sanitize_error_message, RpcContext.fmt_sanitized)
+
+### Robustness (WP2)
+
+- Add retry module with RetryStrategy class for transient network errors
+  - Configurable retry count, initial backoff, max backoff, and multiplier
+  - Automatic detection of retryable vs permanent exceptions
+  - with_retry decorator for easy integration
+- Add MIN/MAX value validation for paramset operations
+  - Validates numeric parameters against ParameterData constraints before transmission
+  - Raises ValidationException for out-of-bounds values
+- Improve CentralConnectionState with:
+  - State change callbacks for connection status monitoring
+  - Properties for connection health (has_any_issue, issue_count)
+  - clear_all_issues method for bulk cleanup
+- Add resource limits for internal collections:
+  - CommandCache: Hard limit (500) with oldest-entry eviction
+  - CommandCache: Warning threshold (400) with log alerts
+  - PingPongCache: Size limit (100) per interface with oldest-entry eviction
+  - Both caches now have size properties for monitoring
+
+### Documentation
+
 - Add Breaking_change.md migration guide
 - Add improvement_plan.md for architecture roadmap
 

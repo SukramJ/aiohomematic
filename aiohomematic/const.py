@@ -123,10 +123,21 @@ LOGIN_INITIAL_BACKOFF_SECONDS: Final = 1.0
 LOGIN_MAX_BACKOFF_SECONDS: Final = 60.0
 LOGIN_BACKOFF_MULTIPLIER: Final = 2.0
 
+# Retry logic constants for transient network errors
+RETRY_MAX_ATTEMPTS: Final = 3
+RETRY_INITIAL_BACKOFF_SECONDS: Final = 0.5
+RETRY_MAX_BACKOFF_SECONDS: Final = 30.0
+RETRY_BACKOFF_MULTIPLIER: Final = 2.0
+
 KWARGS_ARG_CUSTOM_ID: Final = "custom_id"
 KWARGS_ARG_DATA_POINT: Final = "data_point"
 LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD: Final = 100  # Cleanup when cache size exceeds this
 LAST_COMMAND_SEND_STORE_TIMEOUT: Final = 60
+
+# Resource limits for internal collections
+COMMAND_CACHE_MAX_SIZE: Final = 500  # Maximum entries in command cache
+COMMAND_CACHE_WARNING_THRESHOLD: Final = 400  # Log warning when approaching limit
+PING_PONG_CACHE_MAX_SIZE: Final = 100  # Maximum entries in ping/pong cache per interface
 LOCAL_HOST: Final = "127.0.0.1"
 MAX_CACHE_AGE: Final = 10
 MAX_CONCURRENT_HTTP_SESSIONS: Final = 3

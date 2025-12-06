@@ -32,6 +32,8 @@
   "exception.client.json_post.no_session": "ClientSession nicht initialisiert",
   "exception.client.parameter.not_found": "Parameter {parameter} wurde nicht gefunden: {interface_id}/{channel_address}/{paramset_key}",
   "exception.client.parameter.operation_unsupported": "Parameter {parameter} unterstützt die angeforderte Operation {operation} nicht",
+  "exception.client.parameter.value_above_max": "Wert {value} für Parameter {parameter} überschreitet Maximum {max_value}",
+  "exception.client.parameter.value_below_min": "Wert {value} für Parameter {parameter} liegt unter Minimum {min_value}",
   "exception.client.paramset_key.invalid": "Parameter paramset_key ist weder ein gültiger ParamsetKey noch eine Kanaladresse.",
   "exception.client.put_paramset.failed": "PUT_PARAMSET fehlgeschlagen für {channel_address}/{paramset_key}/{values}: {reason}",
   "exception.client.remove_link.failed": "REMOVE_LINK fehlgeschlagen für {sender}/{receiver}: {reason}",

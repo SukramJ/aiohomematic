@@ -116,6 +116,13 @@ IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
 IP_ANY_V4: Final = "0.0.0.0"
 JSON_SESSION_AGE: Final = 90
+
+# Login rate limiting constants
+LOGIN_MAX_FAILED_ATTEMPTS: Final = 10
+LOGIN_INITIAL_BACKOFF_SECONDS: Final = 1.0
+LOGIN_MAX_BACKOFF_SECONDS: Final = 60.0
+LOGIN_BACKOFF_MULTIPLIER: Final = 2.0
+
 KWARGS_ARG_CUSTOM_ID: Final = "custom_id"
 KWARGS_ARG_DATA_POINT: Final = "data_point"
 LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD: Final = 100  # Cleanup when cache size exceeds this

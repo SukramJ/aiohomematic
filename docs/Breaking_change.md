@@ -89,14 +89,41 @@ dp_type = DataPointTypeResolver.resolve(
 
 ---
 
+### Step 3: Login Rate Limiting
+
+**What changed**: The JSON-RPC client now implements exponential backoff for failed login attempts to protect against brute force attacks.
+
+**Behavior**:
+
+- After a failed login, subsequent attempts are delayed with exponential backoff
+- Initial backoff: 1 second, multiplied by 2 after each failure
+- Maximum backoff: 60 seconds
+- Warning logged when rate limiting is active
+- Error logged after 5 consecutive failed attempts
+- Counters reset on successful login
+
+**New constants in `aiohomematic.const`**:
+
+- `LOGIN_MAX_FAILED_ATTEMPTS = 5`
+- `LOGIN_INITIAL_BACKOFF_SECONDS = 1.0`
+- `LOGIN_MAX_BACKOFF_SECONDS = 60.0`
+- `LOGIN_BACKOFF_MULTIPLIER = 2.0`
+
+**Action required**: No action required. This is a new security feature that activates automatically on failed logins.
+
+**Status**: Complete
+
+---
+
 ## Changelog
 
-| Date       | Change                                       | Status   |
-| ---------- | -------------------------------------------- | -------- |
-| 2025-12-06 | Split interfaces.py into interfaces/ package | Complete |
-| TBD        | Create shared mixins for custom entities     | Pending  |
-| 2025-12-06 | Move INTERFACE_EVENT_SCHEMA to schemas.py    | Complete |
-| 2025-12-06 | Extract DataPointTypeResolver strategy       | Complete |
+| Date       | Change                                           | Status   |
+| ---------- | ------------------------------------------------ | -------- |
+| 2025-12-06 | Split interfaces.py into interfaces/ package     | Complete |
+| TBD        | Create shared mixins for custom entities         | Pending  |
+| 2025-12-06 | Move INTERFACE_EVENT_SCHEMA to schemas.py        | Complete |
+| 2025-12-06 | Extract DataPointTypeResolver strategy           | Complete |
+| 2025-12-06 | Add login rate limiting with exponential backoff | Complete |
 
 ---
 

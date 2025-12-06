@@ -66,6 +66,10 @@ from aiohomematic.const import (
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
     ISO_8859_1,
     JSON_SESSION_AGE,
+    LOGIN_BACKOFF_MULTIPLIER,
+    LOGIN_INITIAL_BACKOFF_SECONDS,
+    LOGIN_MAX_BACKOFF_SECONDS,
+    LOGIN_MAX_FAILED_ATTEMPTS,
     MAX_CONCURRENT_HTTP_SESSIONS,
     PATH_JSON_RPC,
     REGA_SCRIPT_PATH,
@@ -249,6 +253,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._session_recorder: Final = session_recorder
         self._supported_methods: tuple[str, ...] | None = None
         self._sema: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
+
+        # Login rate limiting state
+        self._failed_login_attempts: int = 0
+        self._last_failed_login: datetime | None = None
+        self._current_backoff: float = LOGIN_INITIAL_BACKOFF_SECONDS
 
     @staticmethod
     def _convert_device_description(*, json_data: dict[str, Any]) -> DeviceDescription:
@@ -1303,10 +1312,26 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         return True
 
     async def _do_login(self) -> str | None:
-        """Login to the backend and return session."""
+        """Login to the backend and return session with rate limiting."""
         if not self._has_credentials:
             _LOGGER.error(i18n.tr("log.client.json_rpc.do_login.no_credentials"))
             return None
+
+        # Apply rate limiting if we've had recent failed attempts
+        if (
+            self._failed_login_attempts > 0
+            and self._last_failed_login
+            and (elapsed := (datetime.now() - self._last_failed_login).total_seconds()) < self._current_backoff
+        ):
+            wait_time = self._current_backoff - elapsed
+            _LOGGER.warning(
+                i18n.tr(
+                    "log.client.json_rpc.do_login.rate_limited",
+                    attempts=self._failed_login_attempts,
+                    wait_time=wait_time,
+                )
+            )
+            await asyncio.sleep(wait_time)
 
         session_id: str | None = None
 
@@ -1324,6 +1349,26 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         if result := response[_JsonKey.RESULT]:
             session_id = result
+            # Reset rate limiting on successful login
+            self._failed_login_attempts = 0
+            self._current_backoff = LOGIN_INITIAL_BACKOFF_SECONDS
+            self._last_failed_login = None
+        else:
+            # Track failed login attempt
+            self._failed_login_attempts += 1
+            self._last_failed_login = datetime.now()
+            # Apply exponential backoff up to max
+            self._current_backoff = min(
+                self._current_backoff * LOGIN_BACKOFF_MULTIPLIER,
+                LOGIN_MAX_BACKOFF_SECONDS,
+            )
+            if self._failed_login_attempts >= LOGIN_MAX_FAILED_ATTEMPTS:
+                _LOGGER.error(
+                    i18n.tr(
+                        "log.client.json_rpc.do_login.max_attempts_reached",
+                        max_attempts=LOGIN_MAX_FAILED_ATTEMPTS,
+                    )
+                )
 
         _LOGGER.debug("DO_LOGIN: method: %s [%s]", method, session_id)
 

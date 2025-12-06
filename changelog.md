@@ -5,6 +5,7 @@
 - Split interfaces.py into interfaces/ package for better maintainability
 - Add schemas.py module to resolve circular dependency in EventCoordinator
 - Add DataPointTypeResolver class for extensible data point type mapping
+- Add login rate limiting with exponential backoff for JSON-RPC client
 - Add Breaking_change.md migration guide
 - Add improvement_plan.md for architecture roadmap
 

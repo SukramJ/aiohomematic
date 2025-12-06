@@ -9,10 +9,30 @@ for typical use cases without requiring deep knowledge of the internal architect
 
 Quick start
 -----------
+Using the async context manager (recommended)::
+
+    from aiohomematic.api import HomematicAPI
+
+    async with HomematicAPI.connect(
+        host="192.168.1.100",
+        username="Admin",
+        password="secret",
+    ) as api:
+        # List all devices
+        for device in api.list_devices():
+            print(f"{device.address}: {device.name}")
+
+        # Read and write values
+        value = await api.read_value(channel_address="VCU0000001:1", parameter="STATE")
+        await api.write_value(channel_address="VCU0000001:1", parameter="STATE", value=True)
+
+    # Connection is automatically closed when exiting the context
+
+Manual lifecycle management::
+
     from aiohomematic.api import HomematicAPI
     from aiohomematic.central import CentralConfig
 
-    # Create and start the API
     config = CentralConfig.for_ccu(
         host="192.168.1.100",
         username="Admin",
@@ -21,32 +41,19 @@ Quick start
     api = HomematicAPI(config=config)
     await api.start()
 
-    # List all devices
-    for device in api.list_devices():
-        print(f"{device.address}: {device.name}")
-
-    # Read a value
-    value = await api.read_value(channel_address="VCU0000001:1", parameter="STATE")
-
-    # Write a value
-    await api.write_value(channel_address="VCU0000001:1", parameter="STATE", value=True)
-
-    # Subscribe to updates
-    def on_update(address: str, parameter: str, value: Any) -> None:
-        print(f"{address}.{parameter} = {value}")
-
-    unsubscribe = api.subscribe_to_updates(callback=on_update)
-
-    # Clean up
-    unsubscribe()
-    await api.stop()
+    try:
+        for device in api.list_devices():
+            print(f"{device.address}: {device.name}")
+    finally:
+        await api.stop()
 
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, Final
+from types import TracebackType
+from typing import TYPE_CHECKING, Any, Final, Self
 
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.event_bus import DataPointUpdatedEvent
@@ -86,6 +93,91 @@ class HomematicAPI:
         """
         self._config: Final = config
         self._central: CentralUnit | None = None
+
+    async def __aenter__(self) -> Self:
+        """Enter the async context manager and start the API."""
+        await self.start()
+        return self
+
+    async def __aexit__(  # kwonly: disable
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit the async context manager and stop the API."""
+        await self.stop()
+
+    @classmethod
+    def connect(
+        cls,
+        *,
+        host: str,
+        username: str,
+        password: str,
+        central_id: str | None = None,
+        tls: bool = False,
+        verify_tls: bool = True,
+        backend: str = "ccu",
+    ) -> Self:
+        """
+        Create a HomematicAPI instance for use as an async context manager.
+
+        This is the recommended way to use the API, as it ensures proper
+        cleanup even when exceptions occur.
+
+        Args:
+            host: The hostname or IP address of the Homematic backend.
+            username: The username for authentication.
+            password: The password for authentication.
+            central_id: Optional unique identifier for this central (defaults to host).
+            tls: Whether to use TLS encryption (default: False).
+            verify_tls: Whether to verify TLS certificates (default: True).
+            backend: The backend type, either "ccu" or "homegear" (default: "ccu").
+
+        Returns:
+            A HomematicAPI instance that can be used as an async context manager.
+
+        Example:
+            async with HomematicAPI.connect(
+                host="192.168.1.100",
+                username="Admin",
+                password="secret",
+            ) as api:
+                for device in api.list_devices():
+                    print(device.address)
+
+            # Connection is automatically closed
+
+        Raises:
+            ValueError: If backend is not "ccu" or "homegear".
+
+        """
+        if backend == "ccu":
+            config = CentralConfig.for_ccu(
+                name=central_id or host,
+                host=host,
+                username=username,
+                password=password,
+                central_id=central_id or host,
+                tls=tls,
+                verify_tls=verify_tls,
+            )
+        elif backend == "homegear":
+            config = CentralConfig.for_homegear(
+                name=central_id or host,
+                host=host,
+                username=username,
+                password=password,
+                central_id=central_id or host,
+                tls=tls,
+                verify_tls=verify_tls,
+            )
+        else:
+            msg = f"Unknown backend: {backend}. Use 'ccu' or 'homegear'."
+            raise ValueError(msg)
+
+        return cls(config=config)
 
     @property
     def central(self) -> CentralUnit:

@@ -10,28 +10,21 @@ pip install aiohomematic
 
 ## Quick Start
 
-### Using the Simplified API
+### Using the Simplified API (Recommended)
 
-The easiest way to get started is with the `HomematicAPI` facade:
+The easiest way to get started is with the `HomematicAPI` facade using the async context manager:
 
 ```python
 import asyncio
 from aiohomematic.api import HomematicAPI
-from aiohomematic.central import CentralConfig
 
 async def main():
-    # Create configuration for CCU3
-    config = CentralConfig.for_ccu(
+    # Connect using the async context manager (recommended)
+    async with HomematicAPI.connect(
         host="192.168.1.100",
         username="Admin",
         password="your-password",
-    )
-
-    # Create and start the API
-    api = HomematicAPI(config=config)
-    await api.start()
-
-    try:
+    ) as api:
         # List all devices
         for device in api.list_devices():
             print(f"{device.address}: {device.name} ({device.model})")
@@ -50,6 +43,69 @@ async def main():
             value=True,
         )
 
+    # Connection is automatically closed when exiting the context
+
+asyncio.run(main())
+```
+
+#### Connection Options
+
+The `connect()` method supports several options:
+
+```python
+# CCU with TLS
+async with HomematicAPI.connect(
+    host="192.168.1.100",
+    username="Admin",
+    password="secret",
+    tls=True,
+    verify_tls=False,  # Set to True in production
+) as api:
+    ...
+
+# Homegear backend
+async with HomematicAPI.connect(
+    host="192.168.1.100",
+    username="Admin",
+    password="secret",
+    backend="homegear",
+) as api:
+    ...
+
+# Custom central ID
+async with HomematicAPI.connect(
+    host="192.168.1.100",
+    username="Admin",
+    password="secret",
+    central_id="my-living-room-ccu",
+) as api:
+    ...
+```
+
+### Manual Lifecycle Management
+
+For more control over the lifecycle, you can manage start/stop manually:
+
+```python
+import asyncio
+from aiohomematic.api import HomematicAPI
+from aiohomematic.central import CentralConfig
+
+async def main():
+    config = CentralConfig.for_ccu(
+        name="my-ccu",
+        host="192.168.1.100",
+        username="Admin",
+        password="your-password",
+        central_id="my-ccu",
+    )
+
+    api = HomematicAPI(config=config)
+    await api.start()
+
+    try:
+        for device in api.list_devices():
+            print(f"{device.address}: {device.name}")
     finally:
         await api.stop()
 

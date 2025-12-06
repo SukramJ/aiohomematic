@@ -53,16 +53,14 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Final, Self
+from typing import Any, Final, Self
 
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.event_bus import DataPointUpdatedEvent
 from aiohomematic.const import ParamsetKey
+from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.retry import with_retry
 from aiohomematic.support import get_device_address
-
-if TYPE_CHECKING:
-    from aiohomematic.interfaces.model import DeviceProtocol
 
 # Type alias for update callback
 UpdateCallback = Callable[[str, str, Any], None]

@@ -41,16 +41,14 @@ import cmd
 import contextlib
 import json
 import readline
+from ssl import SSLContext
 import sys
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 from xmlrpc.client import ServerProxy
 
 from aiohomematic import __version__
 from aiohomematic.const import ParamsetKey
 from aiohomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, get_tls_context
-
-if TYPE_CHECKING:
-    from ssl import SSLContext
 
 # Define public API for this module (CLI only)
 __all__ = ["main"]

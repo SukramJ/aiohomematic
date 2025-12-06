@@ -19,16 +19,10 @@ import logging
 from typing import Final
 
 from aiohomematic.const import DataOperationResult, Interface
-from aiohomematic.interfaces import (
-    CentralInfo,
-    ClientProvider,
-    ConfigProvider,
-    DataPointProvider,
-    DeviceProtocol,
-    DeviceProvider,
-    PrimaryClientProvider,
-    TaskScheduler,
-)
+from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, DataPointProvider, DeviceProvider
+from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
+from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.interfaces.operations import TaskScheduler
 from aiohomematic.store import (
     CentralDataCache,
     DeviceDescriptionCache,

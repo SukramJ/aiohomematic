@@ -70,29 +70,32 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces import (
-    BaseParameterDataPointProtocol,
-    CalculatedDataPointProtocol,
-    CallbackDataPointProtocol,
+from aiohomematic.interfaces.central import (
     CentralInfo,
     ChannelLookup,
-    ChannelProtocol,
-    ClientProtocol,
-    ClientProvider,
     ConfigProvider,
-    CustomDataPointProtocol,
     DataCacheProvider,
     DataPointProvider,
     DeviceDataRefresher,
-    DeviceDescriptionProvider,
-    DeviceDetailsProvider,
-    DeviceProtocol,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+)
+from aiohomematic.interfaces.client import ClientProtocol, ClientProvider
+from aiohomematic.interfaces.model import (
+    BaseParameterDataPointProtocol,
+    CalculatedDataPointProtocol,
+    CallbackDataPointProtocol,
+    ChannelProtocol,
+    CustomDataPointProtocol,
+    DeviceProtocol,
     GenericDataPointProtocol,
     GenericEventProtocol,
+)
+from aiohomematic.interfaces.operations import (
+    DeviceDescriptionProvider,
+    DeviceDetailsProvider,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,

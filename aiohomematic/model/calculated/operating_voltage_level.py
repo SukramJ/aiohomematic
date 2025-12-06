@@ -11,7 +11,7 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.const import CalulatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.support import calculate_operating_voltage_level
 from aiohomematic.model.generic import DpFloat, DpSensor

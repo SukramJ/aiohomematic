@@ -47,7 +47,7 @@ import logging
 from typing import Final
 
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import DeviceProtocol
+from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.model.custom.climate import (
     PROFILE_PREFIX,
     BaseCustomDpClimate,

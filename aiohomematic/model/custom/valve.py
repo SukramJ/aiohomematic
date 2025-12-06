@@ -9,14 +9,14 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import StrEnum
 import logging
 from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
@@ -25,14 +25,7 @@ from aiohomematic.property_decorators import state_property
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class _StateChangeArg(StrEnum):
-    """Enum with valve state change arguments."""
-
-    OFF = "off"
-    ON = "on"
-
-
-class CustomDpIpIrrigationValve(CustomDataPoint):
+class CustomDpIpIrrigationValve(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
     """Class for Homematic irrigation valve data point."""
 
     __slots__ = (
@@ -42,11 +35,6 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
     )
 
     _category = DataPointCategory.VALVE
-
-    @property
-    def group_value(self) -> bool | None:
-        """Return the current channel value of the valve."""
-        return self._dp_group_state.value
 
     @state_property
     def value(self) -> bool | None:
@@ -63,13 +51,7 @@ class CustomDpIpIrrigationValve(CustomDataPoint):
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
-        if (on_time_running := self.timer_on_time_running) is not None and on_time_running is True:
-            return True
-        if self.timer_on_time is not None:
-            return True
-        if kwargs.get(_StateChangeArg.ON) is not None and self.value is not True:
-            return True
-        if kwargs.get(_StateChangeArg.OFF) is not None and self.value is not False:
+        if self.is_state_change_for_on_off(**kwargs):
             return True
         return super().is_state_change(**kwargs)
 

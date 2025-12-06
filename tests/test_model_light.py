@@ -16,7 +16,8 @@ from aiohomematic.model.custom import (
     CustomDpIpFixedColorLight,
     CustomDpIpRGBWLight,
 )
-from aiohomematic.model.custom.light import _NOT_USED, _ColorBehaviour, _FixedColor, _TimeUnit
+from aiohomematic.model.custom.light import _NOT_USED, _ColorBehaviour, _FixedColor
+from aiohomematic.model.custom.mixins import _TimeUnit
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 

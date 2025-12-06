@@ -13,7 +13,7 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin

@@ -14,7 +14,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic.const import CDPD, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field
-from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import BaseDataPoint

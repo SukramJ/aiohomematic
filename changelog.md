@@ -1,3 +1,13 @@
+# Version 2025.12.9 (2025-12-06)
+
+## What's Changed
+
+- Add TimerUnitMixin for light timer unit conversion
+- Refactor valve.py to use StateChangeTimerMixin and GroupStateMixin
+- Refactor light.py to use TimerUnitMixin for IP light classes
+- Remove unused DirectionStateMixin from mixins.py
+- Update imports to use specific protocol submodules
+
 # Version 2025.12.8 (2025-12-06)
 
 ## What's Changed

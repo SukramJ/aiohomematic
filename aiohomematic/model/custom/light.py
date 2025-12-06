@@ -9,15 +9,15 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import IntEnum, StrEnum
+from enum import StrEnum
 import math
 from typing import Any, Final, TypedDict, Unpack
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeTimerMixin
+from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeTimerMixin, TimerUnitMixin
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
@@ -83,14 +83,6 @@ class _StateChangeArg(StrEnum):
     ON = "on"
     ON_TIME = "on_time"
     RAMP_TIME = "ramp_time"
-
-
-class _TimeUnit(IntEnum):
-    """Enum with time units."""
-
-    SECONDS = 0
-    MINUTES = 1
-    HOURS = 2
 
 
 _NO_COLOR: Final = (
@@ -428,7 +420,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
         self._dp_color_level: DpFloat = self._get_data_point(field=Field.COLOR_LEVEL, data_point_type=DpFloat)
 
 
-class CustomDpIpRGBWLight(CustomDpDimmer):
+class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     """Class for HomematicIP HmIP-RGBW light data point."""
 
     __slots__ = (
@@ -581,8 +573,8 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
 
     @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
-        """Set the on time value in seconds."""
-        on_time, on_time_unit = _recalc_unit_timer(time=on_time)
+        """Set the on time value with automatic unit conversion."""
+        on_time, on_time_unit = self._recalc_unit_timer(time=on_time)
         if on_time_unit is not None:
             await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
         await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
@@ -590,8 +582,8 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     async def _set_ramp_time_off_value(
         self, *, ramp_time: float, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set the ramp time value in seconds."""
-        ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
+        """Set the ramp time off value with automatic unit conversion."""
+        ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
         if ramp_time_unit is not None:
             await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
         await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
@@ -599,14 +591,14 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     async def _set_ramp_time_on_value(
         self, *, ramp_time: float, collector: CallParameterCollector | None = None
     ) -> None:
-        """Set the ramp time value in seconds."""
-        ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
+        """Set the ramp time on value with automatic unit conversion."""
+        ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
         if ramp_time_unit is not None:
             await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
         await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 
-class CustomDpIpDrgDaliLight(CustomDpDimmer):
+class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
     """Class for HomematicIP HmIP-DRG-DALI light data point."""
 
     __slots__ = (
@@ -682,34 +674,8 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         self._dp_ramp_time_unit: DpAction = self._get_data_point(field=Field.RAMP_TIME_UNIT, data_point_type=DpAction)
         self._dp_saturation: DpFloat = self._get_data_point(field=Field.SATURATION, data_point_type=DpFloat)
 
-    @bind_collector
-    async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
-        """Set the on time value in seconds."""
-        on_time, on_time_unit = _recalc_unit_timer(time=on_time)
-        if on_time_unit:
-            await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
 
-    async def _set_ramp_time_off_value(
-        self, *, ramp_time: float, collector: CallParameterCollector | None = None
-    ) -> None:
-        """Set the ramp time value in seconds."""
-        ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
-        if ramp_time_unit:
-            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
-
-    async def _set_ramp_time_on_value(
-        self, *, ramp_time: float, collector: CallParameterCollector | None = None
-    ) -> None:
-        """Set the ramp time value in seconds."""
-        ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
-        if ramp_time_unit:
-            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
-
-
-class CustomDpIpFixedColorLight(CustomDpDimmer):
+class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
     """Class for HomematicIP HmIP-BSL light data point."""
 
     __slots__ = (
@@ -797,37 +763,6 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
             if (self._dp_effect and self._dp_effect.values)
             else ()
         )
-
-    @bind_collector
-    async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
-        """Set the on time value in seconds."""
-        on_time, on_time_unit = _recalc_unit_timer(time=on_time)
-        if on_time_unit:
-            await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
-
-    async def _set_ramp_time_on_value(
-        self, *, ramp_time: float, collector: CallParameterCollector | None = None
-    ) -> None:
-        """Set the ramp time value in seconds."""
-        ramp_time, ramp_time_unit = _recalc_unit_timer(time=ramp_time)
-        if ramp_time_unit:
-            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
-
-
-def _recalc_unit_timer(*, time: float) -> tuple[float, int | None]:
-    """Recalculate unit and value of timer."""
-    ramp_time_unit = _TimeUnit.SECONDS
-    if time == _NOT_USED:
-        return time, None
-    if time > 16343:
-        time /= 60
-        ramp_time_unit = _TimeUnit.MINUTES
-    if time > 16343:
-        time /= 60
-        ramp_time_unit = _TimeUnit.HOURS
-    return time, ramp_time_unit
 
 
 def _convert_color(*, color: tuple[float, float]) -> str:

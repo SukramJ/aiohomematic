@@ -66,20 +66,16 @@ from aiohomematic.const import (
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces import (
+from aiohomematic.interfaces.central import CentralInfo, EventBusProvider, EventPublisher
+from aiohomematic.interfaces.client import ClientProtocol
+from aiohomematic.interfaces.model import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
     CallbackDataPointProtocol,
-    CentralInfo,
     ChannelProtocol,
-    ClientProtocol,
     DeviceProtocol,
-    EventBusProvider,
-    EventPublisher,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    TaskScheduler,
 )
+from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
 from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error

@@ -65,7 +65,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model.generic.action import DpAction
 from aiohomematic.model.generic.binary_sensor import DpBinarySensor
 from aiohomematic.model.generic.button import DpButton

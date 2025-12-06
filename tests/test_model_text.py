@@ -9,7 +9,7 @@ import pytest
 
 from aiohomematic.central import CentralUnit
 from aiohomematic.const import DataPointUsage
-from aiohomematic.interfaces import ClientProtocol
+from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
 

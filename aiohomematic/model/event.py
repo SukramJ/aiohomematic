@@ -48,7 +48,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces import ChannelProtocol, GenericEventProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, GenericEventProtocol
 from aiohomematic.model.data_point import BaseParameterDataPointAny
 from aiohomematic.model.support import DataPointNameData, get_event_name
 

@@ -120,7 +120,7 @@ dp_type = DataPointTypeResolver.resolve(
 | Date       | Change                                           | Status   |
 | ---------- | ------------------------------------------------ | -------- |
 | 2025-12-06 | Split interfaces.py into interfaces/ package     | Complete |
-| TBD        | Create shared mixins for custom entities         | Pending  |
+| 2025-12-06 | Create shared mixins for custom entities         | Complete |
 | 2025-12-06 | Move INTERFACE_EVENT_SCHEMA to schemas.py        | Complete |
 | 2025-12-06 | Extract DataPointTypeResolver strategy           | Complete |
 | 2025-12-06 | Add login rate limiting with exponential backoff | Complete |

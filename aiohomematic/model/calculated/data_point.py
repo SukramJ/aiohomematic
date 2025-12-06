@@ -22,7 +22,7 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
-from aiohomematic.interfaces import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.generic import DpDummy

@@ -37,13 +37,9 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from aiohomematic.interfaces import (
-    BaseParameterDataPointProtocol,
-    ClientProvider,
-    GenericDataPointProtocol,
-    GenericEventProtocol,
-    TaskScheduler,
-)
+from aiohomematic.interfaces.client import ClientProvider
+from aiohomematic.interfaces.model import BaseParameterDataPointProtocol, GenericDataPointProtocol, GenericEventProtocol
+from aiohomematic.interfaces.operations import TaskScheduler
 from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 
 _LOGGER: Final = logging.getLogger(__name__)

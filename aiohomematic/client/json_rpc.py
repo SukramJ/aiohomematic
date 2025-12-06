@@ -102,6 +102,7 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
+from aiohomematic.retry import with_retry
 from aiohomematic.store import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
@@ -1392,6 +1393,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         finally:
             self.clear_session()
 
+    @with_retry
     async def _do_post(
         self,
         *,

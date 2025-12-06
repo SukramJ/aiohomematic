@@ -21,7 +21,7 @@ Usage
     from aiohomematic.retry import RetryStrategy, with_retry
 
     # Using the decorator
-    @with_retry()
+    @with_retry
     async def my_rpc_call():
         ...
 
@@ -288,7 +288,7 @@ def with_retry(  # noqa: UP047
         async def fetch_data():
             ...
 
-        @with_retry()
+        @with_retry
         async def fetch_data():
             ...
 
@@ -328,5 +328,5 @@ def with_retry(  # noqa: UP047
     if func is not None:
         return decorator(func)
 
-    # Called as @with_retry() or @with_retry(max_attempts=5)
+    # Called as @with_retry or @with_retry(max_attempts=5)
     return decorator

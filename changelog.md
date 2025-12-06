@@ -7,6 +7,16 @@
 - Add DataPointTypeResolver class for extensible data point type mapping
 - Add login rate limiting with exponential backoff for JSON-RPC client
 - Add error message sanitization helpers (sanitize_error_message, RpcContext.fmt_sanitized)
+- Add shared mixins for custom entities (model/custom/mixins.py):
+  - StateChangeTimerMixin for timer-based state change detection
+  - GroupStateMixin for group value property pattern
+  - PositionMixin for position/level conversion in covers
+  - DirectionStateMixin for direction-based state checking
+  - OnOffActionMixin for common on/off action implementations
+  - BrightnessMixin for brightness/level conversion in lights
+- Refactor switch.py to use StateChangeTimerMixin and GroupStateMixin
+- Refactor cover.py to use PositionMixin for position calculations
+- Refactor light.py to use StateChangeTimerMixin and BrightnessMixin
 - Add Breaking_change.md migration guide
 - Add improvement_plan.md for architecture roadmap
 

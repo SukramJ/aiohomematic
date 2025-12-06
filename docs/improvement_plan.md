@@ -462,5 +462,32 @@ WP4.2-4 (Docs/API) ────────────────────�
 
 ---
 
+## Implementation Progress
+
+### WP1: Security Hardening
+
+- [x] 1.1 Add login rate limiting - **DONE** (WP1.1)
+- [x] 1.2 Sanitize error messages - **DONE** (WP1.2)
+
+### WP3: Architecture Refactoring
+
+- [x] 3.1 Split `interfaces.py` into `interfaces/` package - **DONE**
+- [x] 3.2 Create shared mixins for custom entities - **DONE**
+  - Created `aiohomematic/model/custom/mixins.py` with:
+    - `StateChangeTimerMixin` - Timer-based state change detection (is_timer_state_change, is_state_change_for_on_off)
+    - `GroupStateMixin` - Group value property pattern
+    - `PositionMixin` - Position/level conversion for covers
+    - `DirectionStateMixin` - Direction-based state checking
+    - `OnOffActionMixin` - Common on/off action implementations
+    - `BrightnessMixin` - Brightness/level conversion for lights (level_to_brightness, level_to_brightness_pct, brightness_to_level)
+  - Applied `StateChangeTimerMixin` and `GroupStateMixin` to `switch.py`
+  - Applied `PositionMixin` to `cover.py` (CustomDpCover, CustomDpBlind, CustomDpIpBlind, CustomDpGarage)
+  - Applied `StateChangeTimerMixin` and `BrightnessMixin` to `light.py` (CustomDpDimmer and subclasses)
+  - Note: climate.py patterns are domain-specific (temperature handling, week profiles) and don't share common logic with other entities
+- [x] 3.3 Resolve circular dependency (create `schemas.py`) - **DONE**
+- [x] 3.4 Extract DataPointTypeResolver strategy - **DONE**
+
+---
+
 **Created**: 2025-12-06
 **Status**: Approved for implementation

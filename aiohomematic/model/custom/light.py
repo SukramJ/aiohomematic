@@ -17,6 +17,7 @@ from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile,
 from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeTimerMixin
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
@@ -139,7 +140,7 @@ class LightOffArgs(TypedDict, total=False):
     ramp_time: float
 
 
-class CustomDpDimmer(CustomDataPoint):
+class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     """Base class for Homematic light data point."""
 
     __slots__ = (
@@ -153,20 +154,20 @@ class CustomDpDimmer(CustomDataPoint):
     @property
     def brightness_pct(self) -> int | None:
         """Return the brightness in percent of this light."""
-        return int((self._dp_level.value or _MIN_BRIGHTNESS) * _LEVEL_TO_BRIGHTNESS_MULTIPLIER)
+        return self.level_to_brightness_pct(self._dp_level.value or _MIN_BRIGHTNESS)
 
     @property
     def group_brightness(self) -> int | None:
         """Return the group brightness of this light between min/max brightness."""
         if self._dp_group_level.value is not None:
-            return int(self._dp_group_level.value * _MAX_BRIGHTNESS)
+            return self.level_to_brightness(self._dp_group_level.value)
         return None
 
     @property
     def group_brightness_pct(self) -> int | None:
         """Return the group brightness in percent of this light."""
         if self._dp_group_level.value is not None:
-            return int(self._dp_group_level.value * _LEVEL_TO_BRIGHTNESS_MULTIPLIER)
+            return self.level_to_brightness_pct(self._dp_group_level.value)
         return None
 
     @property
@@ -197,7 +198,7 @@ class CustomDpDimmer(CustomDataPoint):
     @state_property
     def brightness(self) -> int | None:
         """Return the brightness of this light between min/max brightness."""
-        return int((self._dp_level.value or _MIN_BRIGHTNESS) * _MAX_BRIGHTNESS)
+        return self.level_to_brightness(self._dp_level.value or _MIN_BRIGHTNESS)
 
     @state_property
     def color_temp_kelvin(self) -> int | None:
@@ -226,9 +227,7 @@ class CustomDpDimmer(CustomDataPoint):
 
     def is_state_change(self, **kwargs: Any) -> bool:
         """Check if the state changes due to kwargs."""
-        if (on_time_running := self.timer_on_time_running) is not None and on_time_running is True:
-            return True
-        if self.timer_on_time is not None:
+        if self.is_timer_state_change():
             return True
         if kwargs.get(_StateChangeArg.ON_TIME) is not None:
             return True
@@ -276,7 +275,7 @@ class CustomDpDimmer(CustomDataPoint):
             await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
         if not (brightness := kwargs.get("brightness", self.brightness)):
             brightness = int(_MAX_BRIGHTNESS)
-        level = brightness / _MAX_BRIGHTNESS
+        level = self.brightness_to_level(brightness)
         await self._dp_level.send_value(value=level, collector=collector)
 
     def _init_data_point_fields(self) -> None:

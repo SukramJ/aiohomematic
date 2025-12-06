@@ -80,6 +80,7 @@ from aiohomematic.model.support import is_binary_sensor
 
 __all__ = [
     "BaseDpNumber",
+    "DataPointTypeResolver",
     "DpAction",
     "DpBinarySensor",
     "DpButton",
@@ -92,11 +93,127 @@ __all__ = [
     "DpText",
     "GenericDataPoint",
     "GenericDataPointAny",
+    "_determine_data_point_type",
     "create_data_point_and_append_to_channel",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
 _BUTTON_ACTIONS: Final[tuple[str, ...]] = ("RESET_MOTION", "RESET_PRESENCE")
+
+
+class DataPointTypeResolver:
+    """
+    Resolver for determining data point types based on parameter characteristics.
+
+    Uses a lookup table strategy for extensible parameter type mapping.
+    This class centralizes the logic for determining which GenericDataPoint
+    subclass should be used for a given parameter.
+    """
+
+    # Mapping of parameter types to data point classes for writable parameters
+    _WRITABLE_TYPE_MAP: Final[Mapping[ParameterType, type[GenericDataPointAny]]] = {
+        ParameterType.BOOL: DpSwitch,
+        ParameterType.ENUM: DpSelect,
+        ParameterType.FLOAT: DpFloat,
+        ParameterType.INTEGER: DpInteger,
+        ParameterType.STRING: DpText,
+    }
+
+    @classmethod
+    def _resolve_action(
+        cls,
+        *,
+        channel: ChannelProtocol,
+        parameter: str,
+        p_operations: int,
+    ) -> type[GenericDataPointAny]:
+        """Resolve data point type for ACTION parameters."""
+        if p_operations == Operations.WRITE:
+            # Write-only action
+            if parameter in _BUTTON_ACTIONS or channel.device.model in VIRTUAL_REMOTE_MODELS:
+                return DpButton
+            return DpAction
+
+        if parameter in CLICK_EVENTS:
+            return DpButton
+
+        # Read+write action treated as switch
+        return DpSwitch
+
+    @classmethod
+    def _resolve_readonly(
+        cls,
+        *,
+        parameter: str,
+        parameter_data: ParameterData,
+    ) -> type[GenericDataPointAny] | None:
+        """Resolve data point type for read-only parameters."""
+        if parameter in CLICK_EVENTS:
+            return None
+
+        if is_binary_sensor(parameter_data):
+            parameter_data["TYPE"] = ParameterType.BOOL
+            return DpBinarySensor
+
+        return DpSensor
+
+    @classmethod
+    def _resolve_writable(
+        cls,
+        *,
+        channel: ChannelProtocol,
+        parameter: str,
+        p_type: ParameterType,
+        p_operations: int,
+    ) -> type[GenericDataPointAny] | None:
+        """Resolve data point type for writable parameters."""
+        # Handle ACTION type specially
+        if p_type == ParameterType.ACTION:
+            return cls._resolve_action(
+                channel=channel,
+                parameter=parameter,
+                p_operations=p_operations,
+            )
+
+        # Write-only non-ACTION parameters
+        if p_operations == Operations.WRITE:
+            return DpAction
+
+        # Use lookup table for standard types
+        return cls._WRITABLE_TYPE_MAP.get(p_type)
+
+    @classmethod
+    def resolve(
+        cls,
+        *,
+        channel: ChannelProtocol,
+        parameter: str,
+        parameter_data: ParameterData,
+    ) -> type[GenericDataPointAny] | None:
+        """
+        Determine the appropriate data point type for a parameter.
+
+        Args:
+            channel: The channel the data point belongs to.
+            parameter: The parameter name.
+            parameter_data: The parameter description from the backend.
+
+        Returns:
+            The data point class to use, or None if no match.
+
+        """
+        p_type = parameter_data["TYPE"]
+        p_operations = parameter_data["OPERATIONS"]
+
+        if p_operations & Operations.WRITE:
+            return cls._resolve_writable(
+                channel=channel,
+                parameter=parameter,
+                p_type=p_type,
+                p_operations=p_operations,
+            )
+        return cls._resolve_readonly(parameter=parameter, parameter_data=parameter_data)
+
 
 # data points that should be wrapped in a new data point on a new category.
 _SWITCH_DP_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
@@ -139,42 +256,16 @@ def create_data_point_and_append_to_channel(
 def _determine_data_point_type(
     *, channel: ChannelProtocol, parameter: str, parameter_data: ParameterData
 ) -> type[GenericDataPointAny] | None:
-    """Determine the type of data point based on parameter and operations."""
-    p_type = parameter_data["TYPE"]
-    p_operations = parameter_data["OPERATIONS"]
-    dp_t: type[GenericDataPointAny] | None = None
-    if p_operations & Operations.WRITE:
-        if p_type == ParameterType.ACTION:
-            if p_operations == Operations.WRITE:
-                if parameter in _BUTTON_ACTIONS or channel.device.model in VIRTUAL_REMOTE_MODELS:
-                    dp_t = DpButton
-                else:
-                    dp_t = DpAction
-            elif parameter in CLICK_EVENTS:
-                dp_t = DpButton
-            else:
-                dp_t = DpSwitch
-        elif p_operations == Operations.WRITE:
-            dp_t = DpAction
-        elif p_type == ParameterType.BOOL:
-            dp_t = DpSwitch
-        elif p_type == ParameterType.ENUM:
-            dp_t = DpSelect
-        elif p_type == ParameterType.FLOAT:
-            dp_t = DpFloat
-        elif p_type == ParameterType.INTEGER:
-            dp_t = DpInteger
-        elif p_type == ParameterType.STRING:
-            dp_t = DpText
-    elif parameter not in CLICK_EVENTS:
-        # Also check, if sensor could be a binary_sensor due to.
-        if is_binary_sensor(parameter_data):
-            parameter_data["TYPE"] = ParameterType.BOOL
-            dp_t = DpBinarySensor
-        else:
-            dp_t = DpSensor
+    """
+    Determine the type of data point based on parameter and operations.
 
-    return dp_t
+    Delegates to DataPointTypeResolver for extensible type resolution.
+    """
+    return DataPointTypeResolver.resolve(
+        channel=channel,
+        parameter=parameter,
+        parameter_data=parameter_data,
+    )
 
 
 def _safe_create_data_point(

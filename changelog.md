@@ -1,3 +1,13 @@
+# Version 2025.12.8 (2025-12-06)
+
+## What's Changed
+
+- Split interfaces.py into interfaces/ package for better maintainability
+- Add schemas.py module to resolve circular dependency in EventCoordinator
+- Add DataPointTypeResolver class for extensible data point type mapping
+- Add Breaking_change.md migration guide
+- Add improvement_plan.md for architecture roadmap
+
 # Version 2025.12.7 (2025-12-05)
 
 ## What's Changed

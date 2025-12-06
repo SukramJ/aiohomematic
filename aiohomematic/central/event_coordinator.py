@@ -44,6 +44,7 @@ from aiohomematic.interfaces import (
     GenericEventProtocol,
     TaskScheduler,
 )
+from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
@@ -299,9 +300,6 @@ class EventCoordinator:
             data: Event data
 
         """
-        # Import at runtime to avoid circular dependency
-        from aiohomematic.central import INTERFACE_EVENT_SCHEMA  # noqa: PLC0415
-
         data = data or {}
         event_data: dict[str, Any] = {
             EventKey.INTERFACE_ID: interface_id,

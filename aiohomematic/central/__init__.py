@@ -72,7 +72,6 @@ import logging
 from typing import Any, Final
 
 from aiohttp import ClientSession
-import voluptuous as vol
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper, loop_check
@@ -210,16 +209,6 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 # {central_name, central}
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
 ConnectionProblemIssuer = AioJsonRpcAioHttpClient | BaseRpcProxy
-
-INTERFACE_EVENT_SCHEMA = vol.Schema(
-    {
-        vol.Required(str(EventKey.INTERFACE_ID)): str,
-        vol.Required(str(EventKey.TYPE)): InterfaceEventType,
-        vol.Required(str(EventKey.DATA)): vol.Schema(
-            {vol.Required(vol.Any(EventKey)): vol.Schema(vol.Any(str, int, bool))}
-        ),
-    }
-)
 
 
 class CentralUnit(

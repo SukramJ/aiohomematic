@@ -58,14 +58,45 @@ from aiohomematic.interfaces.operations import TaskScheduler, FileOperations
 
 ---
 
+### Step 2: DataPointTypeResolver Available for Extension
+
+**What changed**: The data point type determination logic has been refactored into a `DataPointTypeResolver` class with a lookup table strategy. This makes it easier to extend the mapping for custom parameter types.
+
+**Before**: The `_determine_data_point_type()` function used a nested if-elif tree that was difficult to extend.
+
+**After**: The new `DataPointTypeResolver` class provides:
+
+- A lookup table (`_WRITABLE_TYPE_MAP`) for standard type mappings
+- Separate methods for handling ACTION types, writable types, and read-only types
+- Clear extension points for custom parameter handling
+
+**Usage**:
+
+```python
+from aiohomematic.model.generic import DataPointTypeResolver
+
+# Use the resolver directly
+dp_type = DataPointTypeResolver.resolve(
+    channel=channel,
+    parameter="LEVEL",
+    parameter_data=parameter_data,
+)
+```
+
+**Action required**: No immediate action required. The existing `_determine_data_point_type()` function still works and now delegates to the resolver.
+
+**Status**: Complete
+
+---
+
 ## Changelog
 
 | Date       | Change                                       | Status   |
 | ---------- | -------------------------------------------- | -------- |
 | 2025-12-06 | Split interfaces.py into interfaces/ package | Complete |
 | TBD        | Create shared mixins for custom entities     | Pending  |
-| TBD        | Move INTERFACE_EVENT_SCHEMA to schemas.py    | Pending  |
-| TBD        | Extract DataPointTypeResolver strategy       | Pending  |
+| 2025-12-06 | Move INTERFACE_EVENT_SCHEMA to schemas.py    | Complete |
+| 2025-12-06 | Extract DataPointTypeResolver strategy       | Complete |
 
 ---
 

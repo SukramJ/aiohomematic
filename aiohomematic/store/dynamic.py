@@ -30,7 +30,7 @@ import logging
 import time
 from typing import Any, Final, cast
 
-from aiohomematic import central as hmcu, i18n
+from aiohomematic import i18n
 from aiohomematic.const import (
     DP_KEY_VALUE,
     INIT_DATETIME,
@@ -60,6 +60,7 @@ from aiohomematic.interfaces import (
     EventPublisher,
     PrimaryClientProvider,
 )
+from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -552,7 +553,7 @@ class PingPongCache:
                 event_type=EventType.INTERFACE,
                 event_data=cast(
                     dict[EventKey, Any],
-                    hmcu.INTERFACE_EVENT_SCHEMA(
+                    INTERFACE_EVENT_SCHEMA(
                         {
                             EventKey.INTERFACE_ID: self._interface_id,
                             EventKey.TYPE: event_type,

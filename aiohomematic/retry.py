@@ -39,7 +39,7 @@ from collections.abc import Awaitable, Callable
 import errno
 from functools import wraps
 import logging
-from typing import Any, Final, TypeVar
+from typing import Any, Final, TypeVar, overload
 
 from aiohomematic.const import (
     RETRY_BACKOFF_MULTIPLIER,
@@ -254,17 +254,50 @@ class RetryStrategy:
             )
 
 
+@overload
+def with_retry(  # noqa: UP047
+    func: Callable[..., Awaitable[T]],
+) -> Callable[..., Awaitable[T]]: ...
+
+
+@overload
 def with_retry(
+    func: None = None,
+    *,
+    max_attempts: int = ...,
+    initial_backoff: float = ...,
+    max_backoff: float = ...,
+    backoff_multiplier: float = ...,
+) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]: ...
+
+
+def with_retry(  # noqa: UP047
+    func: Callable[..., Awaitable[T]] | None = None,
     *,
     max_attempts: int = RETRY_MAX_ATTEMPTS,
     initial_backoff: float = RETRY_INITIAL_BACKOFF_SECONDS,
     max_backoff: float = RETRY_MAX_BACKOFF_SECONDS,
     backoff_multiplier: float = RETRY_BACKOFF_MULTIPLIER,
-) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
+) -> Callable[..., Awaitable[T]] | Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
     """
-    Create a decorator that adds retry logic to an async function.
+    Add retry logic to an async function.
+
+    Can be used with or without parentheses:
+
+        @with_retry
+        async def fetch_data():
+            ...
+
+        @with_retry()
+        async def fetch_data():
+            ...
+
+        @with_retry(max_attempts=5)
+        async def fetch_data():
+            ...
 
     Args:
+        func: The function to decorate (when used without parentheses).
         max_attempts: Maximum number of retry attempts.
         initial_backoff: Initial delay in seconds before first retry.
         max_backoff: Maximum delay in seconds between retries.
@@ -273,15 +306,10 @@ def with_retry(
     Returns:
         Decorated function with retry logic.
 
-    Example:
-        @with_retry(max_attempts=3)
-        async def fetch_data():
-            return await client.get_data()
-
     """
 
-    def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
-        @wraps(func)
+    def decorator(fn: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
+        @wraps(fn)
         async def wrapper(*args: Any, **kwargs: Any) -> T:
             strategy = RetryStrategy(
                 max_attempts=max_attempts,
@@ -290,10 +318,15 @@ def with_retry(
                 backoff_multiplier=backoff_multiplier,
             )
             return await strategy.execute(
-                operation=lambda: func(*args, **kwargs),
-                operation_name=func.__name__,
+                operation=lambda: fn(*args, **kwargs),
+                operation_name=fn.__name__,
             )
 
         return wrapper
 
+    # Called as @with_retry without parentheses
+    if func is not None:
+        return decorator(func)
+
+    # Called as @with_retry() or @with_retry(max_attempts=5)
     return decorator

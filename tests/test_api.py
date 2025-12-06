@@ -394,3 +394,142 @@ class TestHomematicAPILifecycle:
 
         # Should not raise
         await api.stop()
+
+
+class TestHomematicAPIRetry:
+    """Test HomematicAPI retry behavior."""
+
+    @pytest.fixture
+    def api_with_mock_central(self, mock_central: MagicMock) -> HomematicAPI:
+        """Create an API instance with mocked central."""
+        api = HomematicAPI.connect(
+            host="192.168.1.100",
+            username="Admin",
+            password="secret",
+        )
+        api._central = mock_central  # noqa: SLF001
+        return api
+
+    @pytest.fixture
+    def mock_central(self) -> MagicMock:
+        """Create a mock CentralUnit."""
+        central = MagicMock()
+        central.has_clients = True
+        central.connection_state.has_any_issue = False
+        central.devices = []
+        return central
+
+    @pytest.mark.asyncio
+    async def test_read_value_exhausts_retries(
+        self, api_with_mock_central: HomematicAPI, mock_central: MagicMock
+    ) -> None:
+        """Test read_value raises after exhausting all retries."""
+        mock_device = MagicMock()
+        mock_device.interface_id = "BidCos-RF"
+        mock_central.get_device.return_value = mock_device
+
+        mock_client = AsyncMock()
+        # All calls fail with connection error
+        mock_client.get_value.side_effect = ConnectionError("Connection refused")
+        mock_central.get_client.return_value = mock_client
+
+        with pytest.raises(ConnectionError, match="Connection refused"):
+            await api_with_mock_central.read_value(
+                channel_address="VCU0000001:1",
+                parameter="STATE",
+            )
+
+        # Should have tried 3 times (default max_attempts)
+        assert mock_client.get_value.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_read_value_no_retry_on_permanent_error(
+        self, api_with_mock_central: HomematicAPI, mock_central: MagicMock
+    ) -> None:
+        """Test read_value does not retry on permanent errors like AuthFailure."""
+        from aiohomematic.exceptions import AuthFailure
+
+        mock_device = MagicMock()
+        mock_device.interface_id = "BidCos-RF"
+        mock_central.get_device.return_value = mock_device
+
+        mock_client = AsyncMock()
+        mock_client.get_value.side_effect = AuthFailure("Invalid credentials")
+        mock_central.get_client.return_value = mock_client
+
+        with pytest.raises(AuthFailure):
+            await api_with_mock_central.read_value(
+                channel_address="VCU0000001:1",
+                parameter="STATE",
+            )
+
+        # Should only be called once - no retry for auth failures
+        assert mock_client.get_value.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_read_value_retries_on_connection_error(
+        self, api_with_mock_central: HomematicAPI, mock_central: MagicMock
+    ) -> None:
+        """Test read_value retries on transient connection errors."""
+        mock_device = MagicMock()
+        mock_device.interface_id = "BidCos-RF"
+        mock_central.get_device.return_value = mock_device
+
+        mock_client = AsyncMock()
+        # First call fails with ConnectionError, second succeeds
+        mock_client.get_value.side_effect = [ConnectionError("Connection refused"), "success"]
+        mock_central.get_client.return_value = mock_client
+
+        result = await api_with_mock_central.read_value(
+            channel_address="VCU0000001:1",
+            parameter="STATE",
+        )
+
+        assert result == "success"
+        assert mock_client.get_value.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_refresh_data_retries_per_client(
+        self, api_with_mock_central: HomematicAPI, mock_central: MagicMock
+    ) -> None:
+        """Test refresh_data retries each client independently."""
+        mock_client1 = AsyncMock()
+        mock_client1.interface_id = "HmIP-RF"
+        # First call fails, second succeeds
+        mock_client1.fetch_all_device_data.side_effect = [ConnectionError("Network error"), None]
+
+        mock_client2 = AsyncMock()
+        mock_client2.interface_id = "BidCos-RF"
+        # Succeeds on first try
+        mock_client2.fetch_all_device_data.return_value = None
+
+        mock_central.clients = [mock_client1, mock_client2]
+
+        await api_with_mock_central.refresh_data()
+
+        # Client 1 should have been called twice (retry)
+        assert mock_client1.fetch_all_device_data.call_count == 2
+        # Client 2 should have been called once (no retry needed)
+        assert mock_client2.fetch_all_device_data.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_write_value_retries_on_timeout(
+        self, api_with_mock_central: HomematicAPI, mock_central: MagicMock
+    ) -> None:
+        """Test write_value retries on timeout errors."""
+        mock_device = MagicMock()
+        mock_device.interface_id = "BidCos-RF"
+        mock_central.get_device.return_value = mock_device
+
+        mock_client = AsyncMock()
+        # First call times out, second succeeds
+        mock_client.set_value.side_effect = [TimeoutError(), None]
+        mock_central.get_client.return_value = mock_client
+
+        await api_with_mock_central.write_value(
+            channel_address="VCU0000001:1",
+            parameter="STATE",
+            value=True,
+        )
+
+        assert mock_client.set_value.call_count == 2

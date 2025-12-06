@@ -58,6 +58,7 @@ from typing import TYPE_CHECKING, Any, Final, Self
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.event_bus import DataPointUpdatedEvent
 from aiohomematic.const import ParamsetKey
+from aiohomematic.retry import with_retry
 from aiohomematic.support import get_device_address
 
 if TYPE_CHECKING:
@@ -179,6 +180,46 @@ class HomematicAPI:
 
         return cls(config=config)
 
+    @staticmethod
+    @with_retry
+    async def _do_fetch_all_device_data(*, client: Any) -> None:
+        """Fetch all device data for a single client with retry."""
+        await client.fetch_all_device_data()
+
+    @staticmethod
+    @with_retry
+    async def _do_get_value(
+        *,
+        client: Any,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+    ) -> Any:
+        """Get a value from a client with retry."""
+        return await client.get_value(
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
+        )
+
+    @staticmethod
+    @with_retry
+    async def _do_set_value(
+        *,
+        client: Any,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        value: Any,
+    ) -> None:
+        """Set a value on a client with retry."""
+        await client.set_value(
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
+            value=value,
+        )
+
     @property
     def central(self) -> CentralUnit:
         """Return the underlying CentralUnit instance."""
@@ -241,6 +282,8 @@ class HomematicAPI:
         """
         Read a parameter value from a device channel.
 
+        This method automatically retries on transient network errors.
+
         Args:
             channel_address: The channel address (e.g., "VCU0000001:1").
             parameter: The parameter name (e.g., "STATE", "LEVEL").
@@ -262,7 +305,8 @@ class HomematicAPI:
             msg = f"Device not found for address: {device_address}"
             raise ValueError(msg)
         client = self.central.get_client(interface_id=device.interface_id)
-        return await client.get_value(
+        return await self._do_get_value(
+            client=client,
             channel_address=channel_address,
             paramset_key=paramset_key,
             parameter=parameter,
@@ -273,9 +317,10 @@ class HomematicAPI:
         Refresh data from all devices.
 
         This fetches the latest values from all connected devices.
+        Each client fetch automatically retries on transient network errors.
         """
         for client in self.central.clients:
-            await client.fetch_all_device_data()
+            await self._do_fetch_all_device_data(client=client)
 
     async def start(self) -> None:
         """
@@ -341,6 +386,8 @@ class HomematicAPI:
         """
         Write a parameter value to a device channel.
 
+        This method automatically retries on transient network errors.
+
         Args:
             channel_address: The channel address (e.g., "VCU0000001:1").
             parameter: The parameter name (e.g., "STATE", "LEVEL").
@@ -360,7 +407,8 @@ class HomematicAPI:
             msg = f"Device not found for address: {device_address}"
             raise ValueError(msg)
         client = self.central.get_client(interface_id=device.interface_id)
-        await client.set_value(
+        await self._do_set_value(
+            client=client,
             channel_address=channel_address,
             paramset_key=paramset_key,
             parameter=parameter,

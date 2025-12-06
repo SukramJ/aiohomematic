@@ -200,3 +200,35 @@ class TestWithRetryDecorator:
 
         result = await my_operation(1, "test", c=True)
         assert result == (1, "test", True)
+
+    @pytest.mark.asyncio
+    async def test_decorator_without_parentheses(self) -> None:
+        """Test decorator works without parentheses."""
+        call_count = 0
+
+        @with_retry
+        async def my_operation() -> str:
+            nonlocal call_count
+            call_count += 1
+            return "success"
+
+        result = await my_operation()
+        assert result == "success"
+        assert call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_decorator_without_parentheses_retry(self) -> None:
+        """Test decorator without parentheses retries on failure."""
+        call_count = 0
+
+        @with_retry
+        async def my_operation() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count < 2:
+                raise ConnectionError("Transient error")
+            return "success"
+
+        result = await my_operation()
+        assert result == "success"
+        assert call_count == 2

@@ -28,15 +28,9 @@ from aiohomematic.const import (
     ProxyInitState,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces import (
-    CentralInfo,
-    ClientFactory,
-    ClientProtocol,
-    ClientProvider,
-    ConfigProvider,
-    CoordinatorProvider,
-    SystemInfoProvider,
-)
+from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, SystemInfoProvider
+from aiohomematic.interfaces.client import ClientFactory, ClientProtocol, ClientProvider
+from aiohomematic.interfaces.coordinators import CoordinatorProvider
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)

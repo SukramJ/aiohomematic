@@ -38,15 +38,15 @@ from aiohomematic.const import (
     DeviceFirmwareState,
 )
 from aiohomematic.exceptions import NoConnectionException
-from aiohomematic.interfaces import (
+from aiohomematic.interfaces.central import (
     CentralInfo,
     CentralUnitStateProvider,
-    ClientCoordination,
     ConfigProvider,
     DeviceDataRefresher,
     EventBusProvider,
     HubDataFetcher,
 )
+from aiohomematic.interfaces.client import ClientCoordination
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)

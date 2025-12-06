@@ -6,6 +6,7 @@
 - Refactor valve.py to use StateChangeTimerMixin and GroupStateMixin
 - Refactor light.py to use TimerUnitMixin for IP light classes
 - Remove unused DirectionStateMixin from mixins.py
+- Update imports to use specific protocol submodules
 
 # Version 2025.12.8 (2025-12-06)
 

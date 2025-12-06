@@ -98,7 +98,8 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException, ValidationException
-from aiohomematic.interfaces import ClientProtocol, DeviceProtocol
+from aiohomematic.interfaces.client import ClientProtocol
+from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
 from aiohomematic.store import CommandCache, PingPongCache

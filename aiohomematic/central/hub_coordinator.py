@@ -23,20 +23,10 @@ from aiohomematic import i18n
 from aiohomematic.central.event_bus import SysvarUpdatedEvent
 from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import (
-    CentralInfo,
-    ChannelLookup,
-    ClientProvider,
-    ConfigProvider,
-    EventBusProvider,
-    EventPublisher,
-    GenericProgramDataPointProtocol,
-    GenericSysvarDataPointProtocol,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    PrimaryClientProvider,
-    TaskScheduler,
-)
+from aiohomematic.interfaces.central import CentralInfo, ChannelLookup, ConfigProvider, EventBusProvider, EventPublisher
+from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
+from aiohomematic.interfaces.model import GenericProgramDataPointProtocol, GenericSysvarDataPointProtocol
+from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
 from aiohomematic.model.hub import Hub, InstallModeDpType, ProgramDpType
 
 _LOGGER: Final = logging.getLogger(__name__)

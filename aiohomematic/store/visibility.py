@@ -40,7 +40,9 @@ from typing import Final, TypeAlias
 
 from aiohomematic import support as hms
 from aiohomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
-from aiohomematic.interfaces import ChannelProtocol, ConfigProvider, ParameterVisibilityProvider
+from aiohomematic.interfaces.central import ConfigProvider
+from aiohomematic.interfaces.model import ChannelProtocol
+from aiohomematic.interfaces.operations import ParameterVisibilityProvider
 from aiohomematic.model.custom import get_required_parameters
 from aiohomematic.support import element_matches_key
 

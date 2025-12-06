@@ -69,7 +69,7 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.calculated import create_calculated_data_points
 from aiohomematic.model.event import create_event_and_append_to_channel
 from aiohomematic.model.generic import create_data_point_and_append_to_channel

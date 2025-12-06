@@ -19,7 +19,9 @@ from __future__ import annotations
 import logging
 from typing import Final
 
-from aiohomematic.interfaces import CentralInfo, ChannelProtocol, ClientProvider, DeviceProtocol
+from aiohomematic.interfaces.central import CentralInfo
+from aiohomematic.interfaces.client import ClientProvider
+from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 from aiohomematic.support import get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)

@@ -18,7 +18,7 @@ import voluptuous as vol
 from aiohomematic import i18n, support as hms, validator as val
 from aiohomematic.const import CDPD, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.support import generate_unique_id
 from aiohomematic.support import extract_exc_args

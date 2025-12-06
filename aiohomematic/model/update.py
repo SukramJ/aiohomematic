@@ -16,7 +16,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces import DeviceProtocol
+from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import config_property, state_property

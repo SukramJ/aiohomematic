@@ -34,7 +34,7 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic import GenericDataPointAny
 from aiohomematic.model.support import DataPointNameData

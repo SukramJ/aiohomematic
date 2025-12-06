@@ -19,22 +19,22 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import (
+from aiohomematic.interfaces.central import (
     CentralInfo,
     ChannelLookup,
-    ChannelProtocol,
     ConfigProvider,
     EventBusProvider,
     EventPublisher,
+    HubDataFetcher,
+)
+from aiohomematic.interfaces.client import PrimaryClientProvider
+from aiohomematic.interfaces.model import (
+    ChannelProtocol,
     GenericHubDataPointProtocol,
     GenericProgramDataPointProtocol,
     GenericSysvarDataPointProtocol,
-    HubDataFetcher,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    PrimaryClientProvider,
-    TaskScheduler,
 )
+from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import (
     PathData,

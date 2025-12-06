@@ -144,38 +144,42 @@ from aiohomematic.exceptions import (
     BaseHomematicException,
     NoClientsException,
 )
-from aiohomematic.interfaces import (
+from aiohomematic.interfaces.central import (
     BackupProvider,
-    BaseParameterDataPointProtocol,
-    CallbackDataPointProtocol,
     CentralInfo,
     CentralUnitStateProvider,
     ChannelLookup,
-    ChannelProtocol,
-    ClientCoordination,
-    ClientFactory,
-    ClientProtocol,
-    ClientProvider,
     ConfigProvider,
-    CoordinatorProvider,
-    CustomDataPointProtocol,
     DataPointProvider,
     DeviceDataRefresher,
-    DeviceProtocol,
     DeviceProvider,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    HubDataFetcher,
+    HubDataPointManager,
+    SystemInfoProvider,
+)
+from aiohomematic.interfaces.client import (
+    ClientCoordination,
+    ClientFactory,
+    ClientProtocol,
+    ClientProvider,
+    PrimaryClientProvider,
+)
+from aiohomematic.interfaces.coordinators import CoordinatorProvider
+from aiohomematic.interfaces.model import (
+    BaseParameterDataPointProtocol,
+    CallbackDataPointProtocol,
+    ChannelProtocol,
+    CustomDataPointProtocol,
+    DeviceProtocol,
     GenericDataPointProtocol,
     GenericEventProtocol,
     GenericHubDataPointProtocol,
     GenericProgramDataPointProtocol,
     GenericSysvarDataPointProtocol,
-    HubDataFetcher,
-    HubDataPointManager,
-    PrimaryClientProvider,
-    SystemInfoProvider,
 )
 from aiohomematic.model.hub import InstallModeDpType, ProgramDpType
 from aiohomematic.property_decorators import info_property

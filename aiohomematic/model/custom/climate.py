@@ -36,7 +36,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint

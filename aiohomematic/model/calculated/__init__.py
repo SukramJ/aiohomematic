@@ -40,7 +40,7 @@ import logging
 from typing import Final
 
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.calculated.climate import (
     ApparentTemperature,
     DewPoint,

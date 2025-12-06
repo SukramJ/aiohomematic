@@ -12,20 +12,14 @@ from slugify import slugify
 
 from aiohomematic.const import INIT_DATETIME, INSTALL_MODE_ADDRESS, DataPointCategory, HubValueType, InstallModeData
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import (
-    CentralInfo,
-    ChannelLookup,
+from aiohomematic.interfaces.central import CentralInfo, ChannelLookup, ConfigProvider, EventBusProvider, EventPublisher
+from aiohomematic.interfaces.client import PrimaryClientProvider
+from aiohomematic.interfaces.model import (
     ChannelProtocol,
-    ConfigProvider,
-    EventBusProvider,
-    EventPublisher,
     GenericHubDataPointProtocol,
     GenericInstallModeDataPointProtocol,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    PrimaryClientProvider,
-    TaskScheduler,
 )
+from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import config_property, state_property

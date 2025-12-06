@@ -11,7 +11,7 @@ import orjson
 
 from aiohomematic.central import CentralUnit
 from aiohomematic.const import UTF_8
-from aiohomematic.interfaces import CustomDataPointProtocol
+from aiohomematic.interfaces.model import CustomDataPointProtocol
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -33,26 +33,29 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces import (
-    CallbackDataPointProtocol,
+from aiohomematic.interfaces.central import (
     CentralInfo,
     ChannelLookup,
-    ChannelProtocol,
-    ClientProtocol,
-    ClientProvider,
     ConfigProvider,
-    CoordinatorProvider,
     DataCacheProvider,
     DataPointProvider,
     DeviceDataRefresher,
-    DeviceDescriptionProvider,
-    DeviceDetailsProvider,
-    DeviceProtocol,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+)
+from aiohomematic.interfaces.client import ClientProtocol, ClientProvider
+from aiohomematic.interfaces.coordinators import CoordinatorProvider
+from aiohomematic.interfaces.model import (
+    CallbackDataPointProtocol,
+    ChannelProtocol,
+    DeviceProtocol,
     GenericEventProtocol,
+)
+from aiohomematic.interfaces.operations import (
+    DeviceDescriptionProvider,
+    DeviceDetailsProvider,
     ParameterVisibilityProvider,
     ParamsetDescriptionProvider,
     TaskScheduler,

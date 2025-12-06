@@ -11,17 +11,9 @@ from typing import Final
 from slugify import slugify
 
 from aiohomematic.const import HUB_ADDRESS, DataPointCategory, HubValueType, InboxDeviceData
-from aiohomematic.interfaces import (
-    CentralInfo,
-    ChannelProtocol,
-    ConfigProvider,
-    EventBusProvider,
-    EventPublisher,
-    HubSensorDataPointProtocol,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    TaskScheduler,
-)
+from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, EventBusProvider, EventPublisher
+from aiohomematic.interfaces.model import ChannelProtocol, HubSensorDataPointProtocol
+from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import config_property, state_property

@@ -52,17 +52,16 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from aiohomematic.interfaces import (
+from aiohomematic.interfaces.central import (
     CentralInfo,
-    ClientProvider,
     DataCacheProvider,
     DataPointProvider,
-    DeviceDetailsProvider,
-    DeviceProtocol,
     DeviceProvider,
     EventPublisher,
-    PrimaryClientProvider,
 )
+from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
+from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.interfaces.operations import DeviceDetailsProvider
 from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 from aiohomematic.support import changed_within_seconds, get_device_address
 

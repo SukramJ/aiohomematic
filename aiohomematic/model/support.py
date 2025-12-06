@@ -35,7 +35,8 @@ from aiohomematic.const import (
     ParameterData,
     ParameterType,
 )
-from aiohomematic.interfaces import ChannelProtocol, ConfigProvider
+from aiohomematic.interfaces.central import ConfigProvider
+from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.support import to_bool
 
 __all__ = [

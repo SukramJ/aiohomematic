@@ -380,10 +380,9 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
-from aiohomematic.interfaces.model import WeekProfileProtocol
+from aiohomematic.interfaces.model import CustomDataPointProtocol, WeekProfileProtocol
 
 if TYPE_CHECKING:
-    from aiohomematic.interfaces.model import CustomDataPointProtocol
     from aiohomematic.model.custom import BaseCustomDpClimate
 
 _LOGGER = logging.getLogger(__name__)

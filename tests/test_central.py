@@ -1173,6 +1173,141 @@ class TestCentralConfig:
         )
         assert any("No primary interface" in e for e in errors2)
 
+    def test_for_ccu_creates_config_with_default_interfaces(self) -> None:
+        """Test for_ccu factory method creates config with HmIP-RF and BidCos-RF by default."""
+        config = CentralConfig.for_ccu(
+            host="192.168.1.100",
+            username="Admin",
+            password="secret",
+        )
+
+        assert config.host == "192.168.1.100"
+        assert config.username == "Admin"
+        assert config.password == "secret"
+        assert config.name == "ccu"
+        assert config.central_id == "ccu-192.168.1.100"
+        assert config.tls is False
+        assert config.json_port == 80
+
+        # Check interfaces
+        interfaces = {ic.interface for ic in config.enabled_interface_configs}
+        assert Interface.HMIP_RF in interfaces
+        assert Interface.BIDCOS_RF in interfaces
+        assert Interface.BIDCOS_WIRED not in interfaces
+        assert Interface.VIRTUAL_DEVICES not in interfaces
+
+    def test_for_ccu_passes_additional_kwargs(self, tmp_path) -> None:
+        """Test for_ccu passes additional kwargs to CentralConfig."""
+        storage_dir = str(tmp_path / "test_storage")
+        config = CentralConfig.for_ccu(
+            host="192.168.1.100",
+            username="Admin",
+            password="secret",
+            storage_directory=storage_dir,
+            enable_program_scan=False,
+        )
+
+        assert config.storage_directory == storage_dir
+        assert config.enable_program_scan is False
+
+    def test_for_ccu_with_all_interfaces_enabled(self) -> None:
+        """Test for_ccu with all interfaces enabled."""
+        config = CentralConfig.for_ccu(
+            host="192.168.1.100",
+            username="Admin",
+            password="secret",
+            enable_hmip=True,
+            enable_bidcos_rf=True,
+            enable_bidcos_wired=True,
+            enable_virtual_devices=True,
+        )
+
+        interfaces = {ic.interface for ic in config.enabled_interface_configs}
+        assert Interface.HMIP_RF in interfaces
+        assert Interface.BIDCOS_RF in interfaces
+        assert Interface.BIDCOS_WIRED in interfaces
+        assert Interface.VIRTUAL_DEVICES in interfaces
+
+    def test_for_ccu_with_custom_name_and_central_id(self) -> None:
+        """Test for_ccu with custom name and central_id."""
+        config = CentralConfig.for_ccu(
+            host="192.168.1.100",
+            username="Admin",
+            password="secret",
+            name="my-ccu",
+            central_id="custom-id",
+        )
+
+        assert config.name == "my-ccu"
+        assert config.central_id == "custom-id"
+
+    def test_for_ccu_with_tls_uses_tls_ports(self) -> None:
+        """Test for_ccu with TLS enabled uses TLS ports."""
+        config = CentralConfig.for_ccu(
+            host="192.168.1.100",
+            username="Admin",
+            password="secret",
+            tls=True,
+        )
+
+        assert config.tls is True
+        assert config.json_port == 443
+
+        # Check that TLS ports are used
+        for ic in config.enabled_interface_configs:
+            if ic.interface == Interface.HMIP_RF:
+                assert ic.port == 42010
+            elif ic.interface == Interface.BIDCOS_RF:
+                assert ic.port == 42001
+
+    def test_for_homegear_creates_config_with_bidcos_rf(self) -> None:
+        """Test for_homegear factory method creates config with BidCos-RF interface."""
+        config = CentralConfig.for_homegear(
+            host="192.168.1.50",
+            username="homegear",
+            password="secret",
+        )
+
+        assert config.host == "192.168.1.50"
+        assert config.username == "homegear"
+        assert config.password == "secret"
+        assert config.name == "homegear"
+        assert config.central_id == "homegear-192.168.1.50"
+        assert config.tls is False
+
+        # Check interfaces - only BidCos-RF
+        interfaces = {ic.interface for ic in config.enabled_interface_configs}
+        assert interfaces == {Interface.BIDCOS_RF}
+
+    def test_for_homegear_with_custom_port(self) -> None:
+        """Test for_homegear with custom port."""
+        config = CentralConfig.for_homegear(
+            host="192.168.1.50",
+            username="homegear",
+            password="secret",
+            port=2002,
+        )
+
+        for ic in config.enabled_interface_configs:
+            if ic.interface == Interface.BIDCOS_RF:
+                assert ic.port == 2002
+
+    def test_for_homegear_with_tls(self) -> None:
+        """Test for_homegear with TLS enabled."""
+        config = CentralConfig.for_homegear(
+            host="192.168.1.50",
+            username="homegear",
+            password="secret",
+            tls=True,
+        )
+
+        assert config.tls is True
+
+        # Check TLS port is used
+        for ic in config.enabled_interface_configs:
+            if ic.interface == Interface.BIDCOS_RF:
+                assert ic.port == 42001
+
 
 class TestCentralEventHandling:
     """Test central event handling and exception catching."""

@@ -520,7 +520,52 @@ WP4.2-4 (Docs/API) ────────────────────�
 - [x] 3.3 Resolve circular dependency (create `schemas.py`) - **DONE**
 - [x] 3.4 Extract DataPointTypeResolver strategy - **DONE**
 
+### WP4: Usability Improvements
+
+- [x] 4.1 Add configuration presets to CentralConfig - **DONE**
+  - Added `CentralConfig.for_ccu()` factory method:
+    - Automatically configures HmIP-RF, BidCos-RF interfaces with default ports
+    - Optional enable_bidcos_wired and enable_virtual_devices parameters
+    - TLS support with automatic port selection (2010/42010, 2001/42001, etc.)
+    - JSON-RPC port auto-configuration (80/443)
+  - Added `CentralConfig.for_homegear()` factory method:
+    - Configures BidCos-RF interface for Homegear backends
+    - Custom port support
+    - TLS support
+  - Added 8 unit tests in `tests/test_central.py`
+- [x] 4.2 Create simplified facade API (api.py) - **DONE**
+  - Created `aiohomematic/api.py` with `HomematicAPI` class providing:
+    - `start()` / `stop()` for lifecycle management
+    - `list_devices()` to iterate all devices
+    - `get_device(address)` to find device by address
+    - `read_value(channel_address, parameter)` for reading values
+    - `write_value(channel_address, parameter, value)` for writing values
+    - `subscribe_to_updates(callback)` for event subscriptions
+    - `refresh_data()` for manual data refresh
+  - Full keyword-only API following project conventions
+  - Comprehensive docstrings with usage examples
+- [x] 4.3 Create getting started documentation - **DONE**
+  - Created `docs/getting_started.md` covering:
+    - Installation and quick start
+    - Configuration presets (CCU, Homegear)
+    - Device discovery patterns
+    - Reading/writing values
+    - Event subscriptions
+    - Error handling best practices
+    - Device type examples (switches, dimmers, thermostats, blinds)
+    - Programs and system variables
+- [x] 4.4 Document common operations - **DONE**
+  - Created `docs/common_operations.md` covering:
+    - Connection management and monitoring
+    - Device operations (listing, finding, channels, data points)
+    - Value operations (read, write, constraints)
+    - Event handling with EventBus
+    - Programs and system variables
+    - Cache management
+    - Advanced operations (RPC, firmware, links)
+    - Error reference table
+
 ---
 
 **Created**: 2025-12-06
-**Status**: WP1, WP2, WP3 completed. WP4 (Usability) and WP5 (Testing) pending.
+**Status**: WP1, WP2, WP3, WP4 completed. WP5 (Testing) pending.

@@ -134,6 +134,8 @@ from aiohomematic.const import (
     RpcServerType,
     SourceOfDeviceCreation,
     SystemInformation,
+    get_interface_default_port,
+    get_json_rpc_default_port,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import (
@@ -1489,6 +1491,166 @@ class CentralConfig:
         self.username: Final = username
         self.verify_tls: Final = verify_tls
         self.locale: Final = locale
+
+    @classmethod
+    def for_ccu(
+        cls,
+        *,
+        host: str,
+        username: str,
+        password: str,
+        name: str = "ccu",
+        central_id: str | None = None,
+        tls: bool = False,
+        enable_hmip: bool = True,
+        enable_bidcos_rf: bool = True,
+        enable_bidcos_wired: bool = False,
+        enable_virtual_devices: bool = False,
+        **kwargs: Any,
+    ) -> CentralConfig:
+        """
+        Create a CentralConfig preset for CCU3/CCU2 backends.
+
+        This factory method simplifies configuration for CCU backends by
+        automatically setting up common interfaces with their default ports.
+
+        Args:
+            host: Hostname or IP address of the CCU.
+            username: CCU username for authentication.
+            password: CCU password for authentication.
+            name: Name identifier for the central unit.
+            central_id: Unique identifier for the central. Auto-generated if not provided.
+            tls: Enable TLS encryption for connections.
+            enable_hmip: Enable HomematicIP wireless interface (port 2010/42010).
+            enable_bidcos_rf: Enable BidCos RF interface (port 2001/42001).
+            enable_bidcos_wired: Enable BidCos wired interface (port 2000/42000).
+            enable_virtual_devices: Enable virtual devices interface (port 9292/49292).
+            **kwargs: Additional arguments passed to CentralConfig constructor.
+
+        Returns:
+            Configured CentralConfig instance ready for create_central().
+
+        Example:
+            config = CentralConfig.for_ccu(
+                host="192.168.1.100",
+                username="Admin",
+                password="secret",
+            )
+            central = config.create_central()
+
+        """
+        interface_configs: set[hmcl.InterfaceConfig] = set()
+
+        if enable_hmip and (port := get_interface_default_port(Interface.HMIP_RF, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.HMIP_RF,
+                    port=port,
+                )
+            )
+
+        if enable_bidcos_rf and (port := get_interface_default_port(Interface.BIDCOS_RF, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.BIDCOS_RF,
+                    port=port,
+                )
+            )
+
+        if enable_bidcos_wired and (port := get_interface_default_port(Interface.BIDCOS_WIRED, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.BIDCOS_WIRED,
+                    port=port,
+                )
+            )
+
+        if enable_virtual_devices and (port := get_interface_default_port(Interface.VIRTUAL_DEVICES, tls=tls)):
+            interface_configs.add(
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.VIRTUAL_DEVICES,
+                    port=port,
+                    remote_path="/groups",
+                )
+            )
+
+        return cls(
+            central_id=central_id or f"{name}-{host}",
+            host=host,
+            username=username,
+            password=password,
+            name=name,
+            interface_configs=interface_configs,
+            json_port=get_json_rpc_default_port(tls=tls),
+            tls=tls,
+            **kwargs,
+        )
+
+    @classmethod
+    def for_homegear(
+        cls,
+        *,
+        host: str,
+        username: str,
+        password: str,
+        name: str = "homegear",
+        central_id: str | None = None,
+        tls: bool = False,
+        port: int | None = None,
+        **kwargs: Any,
+    ) -> CentralConfig:
+        """
+        Create a CentralConfig preset for Homegear backends.
+
+        This factory method simplifies configuration for Homegear backends
+        with the BidCos-RF interface.
+
+        Args:
+            host: Hostname or IP address of the Homegear server.
+            username: Homegear username for authentication.
+            password: Homegear password for authentication.
+            name: Name identifier for the central unit.
+            central_id: Unique identifier for the central. Auto-generated if not provided.
+            tls: Enable TLS encryption for connections.
+            port: Custom port for BidCos-RF interface. Uses default (2001/42001) if not set.
+            **kwargs: Additional arguments passed to CentralConfig constructor.
+
+        Returns:
+            Configured CentralConfig instance ready for create_central().
+
+        Example:
+            config = CentralConfig.for_homegear(
+                host="192.168.1.50",
+                username="homegear",
+                password="secret",
+            )
+            central = config.create_central()
+
+        """
+        interface_port = port or get_interface_default_port(Interface.BIDCOS_RF, tls=tls) or 2001
+
+        interface_configs: set[hmcl.InterfaceConfig] = {
+            hmcl.InterfaceConfig(
+                central_name=name,
+                interface=Interface.BIDCOS_RF,
+                port=interface_port,
+            )
+        }
+
+        return cls(
+            central_id=central_id or f"{name}-{host}",
+            host=host,
+            username=username,
+            password=password,
+            name=name,
+            interface_configs=interface_configs,
+            tls=tls,
+            **kwargs,
+        )
 
     @property
     def connection_check_port(self) -> int:

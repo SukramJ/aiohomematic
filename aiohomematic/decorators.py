@@ -37,6 +37,7 @@ def inspector[**P, R](
     re_raise: bool = ...,
     no_raise_return: Any = ...,
     measure_performance: bool = ...,
+    is_service: bool = ...,
 ) -> Callable[P, R]: ...
 
 
@@ -49,6 +50,7 @@ def inspector[**P, R](
     re_raise: bool = ...,
     no_raise_return: Any = ...,
     measure_performance: bool = ...,
+    is_service: bool = ...,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
@@ -60,6 +62,7 @@ def inspector[**P, R](  # noqa: C901
     re_raise: bool = True,
     no_raise_return: Any = None,
     measure_performance: bool = False,
+    is_service: bool = True,
 ) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """
     Support with exception handling and performance measurement.
@@ -77,6 +80,12 @@ def inspector[**P, R](  # noqa: C901
         re_raise: Whether to re-raise exceptions.
         no_raise_return: Value to return when an exception is caught and not re-raised.
         measure_performance: Whether to measure function execution time.
+        is_service: Whether to mark this method as a service method (ha_service attribute).
+            Service methods are actions intended to be called by external consumers
+            (e.g., Home Assistant) representing user-invokable commands like turn_on,
+            turn_off, set_temperature, lock, unlock.
+            Set to False for internal/infrastructure methods not meant to be exposed
+            as user-callable actions (e.g., load_data_point_value, fetch_*_data).
 
     Returns:
         Either the decorated function (when used without parameters) or
@@ -202,9 +211,11 @@ def inspector[**P, R](  # noqa: C901
 
         # Check if the function is a coroutine or not and select the appropriate wrapper
         if inspect.iscoroutinefunction(func):
-            setattr(wrap_async_function, "ha_service", True)
+            if is_service:
+                setattr(wrap_async_function, "ha_service", True)
             return wrap_async_function  # type: ignore[return-value]
-        setattr(wrap_sync_function, "ha_service", True)
+        if is_service:
+            setattr(wrap_sync_function, "ha_service", True)
         return wrap_sync_function
 
     # If used without parameters: @inspector

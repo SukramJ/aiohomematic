@@ -627,7 +627,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         return on_time
 
     @abstractmethod
-    @inspector(re_raise=False)
+    @inspector(re_raise=False, is_service=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data_point data."""
 
@@ -936,7 +936,7 @@ class BaseParameterDataPoint[
             event_data[EventKey.VALUE] = value
         return cast(dict[EventKey, Any], EVENT_DATA_SCHEMA(event_data))
 
-    @inspector(re_raise=False)
+    @inspector(re_raise=False, is_service=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data_point data."""
         if (self._ignore_on_initial_load or self._channel.device.ignore_on_initial_load) and call_source in (

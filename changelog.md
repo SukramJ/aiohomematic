@@ -2,6 +2,13 @@
 
 ## What's Changed
 
+- Add DeviceProfileRegistry as central registry for device-to-profile mappings
+- Add type-safe DeviceConfig and ExtendedDeviceConfig dataclasses
+- Add ProfileConfig and ChannelGroupConfig dataclasses for profile definitions
+- Migrate all 117 device models to DeviceProfileRegistry
+- Remove legacy ALL_DEVICES and ALL_BLACKLISTED_DEVICES dictionaries
+- Remove make\_\* factory functions from entity modules
+- Simplify get_custom_configs() to use only DeviceProfileRegistry
 - Move schemas to schemas.py
 
 # Version 2025.12.9 (2025-12-06)

@@ -9,17 +9,14 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping
 from enum import StrEnum
 from typing import Final, TypedDict, Unpack
 
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces.model import ChannelProtocol
-from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.support import CustomConfig
+from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSensor
 from aiohomematic.property_decorators import state_property
@@ -250,38 +247,23 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         )
 
 
-def make_ip_siren(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP siren data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpSiren,
-        device_profile=DeviceProfile.IP_SIREN,
-        custom_config=custom_config,
-    )
+# =============================================================================
+# DeviceProfileRegistry Registration
+# =============================================================================
 
+# IP Siren
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SIREN,
+    models="HmIP-ASIR",
+    data_point_class=CustomDpIpSiren,
+    profile_type=DeviceProfile.IP_SIREN,
+    channels=(3,),
+)
 
-def make_ip_siren_smoke(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP siren data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpSirenSmoke,
-        device_profile=DeviceProfile.IP_SIREN_SMOKE,
-        custom_config=custom_config,
-    )
-
-
-# Case for device model is not relevant.
-# HomeBrew (HB-) devices are always listed as HM-.
-DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
-    "HmIP-ASIR": CustomConfig(make_ce_func=make_ip_siren, channels=(3,)),
-    "HmIP-SWSD": CustomConfig(make_ce_func=make_ip_siren_smoke),
-}
-hmed.ALL_DEVICES[DataPointCategory.SIREN] = DEVICES
+# IP Siren Smoke
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SIREN,
+    models="HmIP-SWSD",
+    data_point_class=CustomDpIpSirenSmoke,
+    profile_type=DeviceProfile.IP_SIREN_SMOKE,
+)

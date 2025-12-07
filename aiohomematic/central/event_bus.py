@@ -51,22 +51,6 @@ Example Usage
     # Unsubscribe when done
     unsubscribe()
 
-Migration Notes
----------------
-This EventBus replaces the following callback patterns in CentralUnit:
-- _backend_system_handlers → BackendSystemEvent
-- _backend_parameter_callbacks → BackendParameterEvent
-- _homematic_callbacks → HomematicEvent
-- _data_point_key_event_subscriptions → DataPointUpdatedEvent
-- _sysvar_data_point_event_subscriptions → SysvarUpdatedEvent
-
-And in Device/Channel/DataPoint:
-- Device._device_updated_callbacks → DeviceUpdatedEvent
-- Device._firmware_update_callbacks → FirmwareUpdatedEvent
-- Channel._link_peer_changed_callbacks → LinkPeerChangedEvent
-- DataPoint._data_point_updated_callbacks → DataPointUpdatedCallbackEvent
-- DataPoint._device_removed_callbacks → DeviceRemovedEvent
-
 """
 
 from __future__ import annotations

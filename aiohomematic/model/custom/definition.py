@@ -3,6 +3,10 @@
 """
 Device profile definitions for custom data point implementations.
 
+This module provides profile definitions and factory functions for creating
+custom data points. Device-to-profile mappings are managed by DeviceProfileRegistry
+in registry.py.
+
 Public API of this module is defined by __all__.
 """
 
@@ -15,60 +19,50 @@ from typing import Any, Final, cast
 
 import voluptuous as vol
 
-from aiohomematic import i18n, support as hms, validator as val
-from aiohomematic.const import CDPD, DataPointCategory, DeviceProfile, Field, Parameter
+from aiohomematic import i18n
+from aiohomematic.const import CDPD, DEFAULT_INCLUDE_DEFAULT_DPS, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
-from aiohomematic.model.custom.support import CustomConfig
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
+from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.support import generate_unique_id
+from aiohomematic.schemas import SCHEMA_DEVICE_DESCRIPTION
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 
-ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomConfig, ...]]] = {}
-ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
+def _device_config_to_custom_config(device_config: DeviceConfig) -> CustomConfig:
+    """Convert a DeviceConfig to a CustomConfig for backward compatibility."""
 
-_SCHEMA_ADDITIONAL_DPS = vol.Schema(
-    {vol.Required(vol.Any(int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
-)
+    def _make_func(
+        *,
+        channel: ChannelProtocol,
+        custom_config: CustomConfig,
+    ) -> None:
+        """Create custom data point using DeviceConfig settings."""
+        make_custom_data_point(
+            channel=channel,
+            data_point_class=device_config.data_point_class,
+            device_profile=device_config.profile_type,
+            custom_config=custom_config,
+        )
 
-_SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
+    # Convert ExtendedDeviceConfig to ExtendedConfig if present
+    extended: ExtendedConfig | None = None
+    if device_config.extended:
+        extended = ExtendedConfig(
+            fixed_channels=device_config.extended.fixed_channel_fields,
+            additional_data_points=device_config.extended.additional_data_points,
+        )
 
-_SCHEMA_FIELD = vol.Schema({vol.Required(vol.Any(int, None)): _SCHEMA_FIELD_DETAILS})
+    return CustomConfig(
+        make_ce_func=_make_func,
+        channels=device_config.channels,
+        extended=extended,
+        schedule_channel_no=device_config.schedule_channel_no,
+    )
 
-_SCHEMA_DEVICE_GROUP = vol.Schema(
-    {
-        vol.Required(CDPD.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
-        vol.Required(CDPD.ALLOW_UNDEFINED_GENERIC_DPS.value, default=False): bool,
-        vol.Optional(CDPD.STATE_CHANNEL.value): vol.Any(int, None),
-        vol.Optional(CDPD.SECONDARY_CHANNELS.value): (val.positive_int,),
-        vol.Optional(CDPD.REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
-        vol.Optional(CDPD.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
-        vol.Optional(CDPD.FIELDS.value): _SCHEMA_FIELD,
-        vol.Optional(CDPD.VISIBLE_FIELDS.value): _SCHEMA_FIELD,
-    }
-)
-
-_SCHEMA_DEVICE_GROUPS = vol.Schema(
-    {
-        vol.Required(CDPD.DEVICE_GROUP.value): _SCHEMA_DEVICE_GROUP,
-        vol.Optional(CDPD.ADDITIONAL_DPS.value): _SCHEMA_ADDITIONAL_DPS,
-        vol.Optional(CDPD.INCLUDE_DEFAULT_DPS.value, default=DEFAULT_INCLUDE_DEFAULT_DPS): bool,
-    }
-)
-
-_SCHEMA_DEVICE_DESCRIPTION = vol.Schema(
-    {
-        vol.Required(CDPD.DEFAULT_DPS.value): _SCHEMA_ADDITIONAL_DPS,
-        vol.Required(CDPD.DEVICE_DEFINITIONS.value): vol.Schema(
-            {
-                vol.Required(DeviceProfile): _SCHEMA_DEVICE_GROUPS,
-            }
-        ),
-    }
-)
 
 _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] = {
     CDPD.DEFAULT_DPS: {
@@ -588,13 +582,13 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
     },
 }
 
-VALID_CUSTOM_DATA_POINT_DEFINITION = _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
+VALID_CUSTOM_DATA_POINT_DEFINITION = SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
 
 
 def validate_custom_data_point_definition() -> Any:
     """Validate the custom data point definition."""
     try:
-        return _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
+        return SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
     except vol.Invalid as err:  # pragma: no cover
         _LOGGER.error(
             i18n.tr(
@@ -805,44 +799,10 @@ def get_custom_configs(
     category: DataPointCategory | None = None,
 ) -> tuple[CustomConfig, ...]:
     """Return the data_point configs to create custom data points."""
-    model = model.lower().replace("hb-", "hm-")
-    custom_configs: list[CustomConfig] = []
-    for category_blacklisted_devices in ALL_BLACKLISTED_DEVICES:
-        if hms.element_matches_key(
-            search_elements=category_blacklisted_devices,
-            compare_with=model,
-        ):
-            return ()
-
-    for pf, category_devices in ALL_DEVICES.items():
-        if category is not None and pf != category:
-            continue
-        if func := _get_data_point_config_by_category(
-            category_devices=category_devices,
-            model=model,
-        ):
-            if isinstance(func, tuple):
-                custom_configs.extend(func)  # noqa:PERF401
-            else:
-                custom_configs.append(func)
-    return tuple(custom_configs)
-
-
-def _get_data_point_config_by_category(
-    *,
-    category_devices: Mapping[str, CustomConfig | tuple[CustomConfig, ...]],
-    model: str,
-) -> CustomConfig | tuple[CustomConfig, ...] | None:
-    """Return the data_point configs to create custom data points."""
-    for d_type, custom_configs in category_devices.items():
-        if model.lower() == d_type.lower():
-            return custom_configs
-
-    for d_type, custom_configs in category_devices.items():
-        if model.lower().startswith(d_type.lower()):
-            return custom_configs
-
-    return None
+    # Query DeviceProfileRegistry (includes blacklist check)
+    if device_configs := DeviceProfileRegistry.get_configs(model=model, category=category):
+        return tuple(_device_config_to_custom_config(dc) for dc in device_configs)
+    return ()
 
 
 def is_multi_channel_device(*, model: str, category: DataPointCategory) -> bool:
@@ -873,14 +833,8 @@ def get_required_parameters() -> tuple[Parameter, ...]:
         ):
             required_parameters.extend(additional_data_points)
 
-    for category_spec in ALL_DEVICES.values():
-        for custom_configs in category_spec.values():
-            if isinstance(custom_configs, CustomConfig):
-                if extended := custom_configs.extended:
-                    required_parameters.extend(extended.required_parameters)
-            else:
-                for custom_config in custom_configs:
-                    if extended := custom_config.extended:
-                        required_parameters.extend(extended.required_parameters)
+    # Get required parameters from DeviceProfileRegistry extended configs
+    for extended_config in DeviceProfileRegistry.get_all_extended_configs():
+        required_parameters.extend(extended_config.required_parameters)
 
     return tuple(sorted(set(required_parameters)))

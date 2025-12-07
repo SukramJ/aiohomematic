@@ -90,50 +90,81 @@ from aiohomematic.model.custom.lock import (
     CustomDpRfLock,
     LockState,
 )
+
+# New type-safe profile and registry modules
+from aiohomematic.model.custom.profile import (
+    PROFILE_CONFIGS,
+    ChannelGroupConfig,
+    ProfileConfig,
+    ProfileRegistry,
+    get_profile_config,
+    profile_config_to_dict,
+)
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.siren import BaseCustomDpSiren, CustomDpIpSiren, CustomDpIpSirenSmoke, SirenOnArgs
 from aiohomematic.model.custom.switch import CustomDpSwitch
 from aiohomematic.model.custom.valve import CustomDpIpIrrigationValve
 
 __all__ = [
+    # Climate
     "BaseCustomDpClimate",
-    "BaseCustomDpLock",
-    "BaseCustomDpSiren",
     "ClimateActivity",
     "ClimateMode",
     "ClimateProfile",
-    "CustomDataPoint",
+    "CustomDpIpThermostat",
+    "CustomDpRfThermostat",
+    "CustomDpSimpleRfThermostat",
+    "PROFILE_PREFIX",
+    # Cover
     "CustomDpBlind",
-    "CustomDpButtonLock",
+    "CustomDpCover",
+    "CustomDpGarage",
+    "CustomDpIpBlind",
+    "CustomDpWindowDrive",
+    # Data Point
+    "CustomDataPoint",
+    # Light
     "CustomDpColorDimmer",
     "CustomDpColorDimmerEffect",
     "CustomDpColorTempDimmer",
-    "CustomDpCover",
     "CustomDpDimmer",
-    "CustomDpGarage",
-    "CustomDpIpBlind",
     "CustomDpIpDrgDaliLight",
     "CustomDpIpFixedColorLight",
-    "CustomDpIpIrrigationValve",
-    "CustomDpIpLock",
     "CustomDpIpRGBWLight",
-    "CustomDpIpSiren",
-    "CustomDpIpSirenSmoke",
-    "CustomDpIpThermostat",
-    "CustomDpRfLock",
-    "CustomDpRfThermostat",
-    "CustomDpSimpleRfThermostat",
-    "CustomDpSwitch",
-    "CustomDpWindowDrive",
     "LightOffArgs",
     "LightOnArgs",
+    # Lock
+    "BaseCustomDpLock",
+    "CustomDpButtonLock",
+    "CustomDpIpLock",
+    "CustomDpRfLock",
     "LockState",
-    "PROFILE_PREFIX",
+    # Siren
+    "BaseCustomDpSiren",
+    "CustomDpIpSiren",
+    "CustomDpIpSirenSmoke",
     "SirenOnArgs",
+    # Switch
+    "CustomDpSwitch",
+    # Valve
+    "CustomDpIpIrrigationValve",
+    # Definition (legacy)
     "create_custom_data_points",
     "data_point_definition_exists",
     "get_custom_configs",
     "get_required_parameters",
     "validate_custom_data_point_definition",
+    # Profile (new type-safe approach)
+    "ChannelGroupConfig",
+    "ProfileConfig",
+    "ProfileRegistry",
+    "PROFILE_CONFIGS",
+    "get_profile_config",
+    "profile_config_to_dict",
+    # Registry (new type-safe approach)
+    "DeviceConfig",
+    "DeviceProfileRegistry",
+    "ExtendedDeviceConfig",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

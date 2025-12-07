@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.9"
+VERSION: Final = "2025.12.10"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -50,6 +50,7 @@ DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
 DEFAULT_VERIFY_TLS: Final = False
+DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"
@@ -264,6 +265,29 @@ class CDPD(StrEnum):
     STATE_CHANNEL = "state_channel"
     VISIBLE_FIELDS = "visible_fields"
     VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
+
+
+# Alias for CDPD with more descriptive name
+ProfileKey = CDPD
+"""Alias for CDPD - Keys used in profile configuration dictionaries."""
+
+
+class ChannelOffset(IntEnum):
+    """
+    Semantic channel offsets relative to the primary channel.
+
+    Used in profile definitions to reference channels by their semantic role
+    rather than magic numbers.
+    """
+
+    STATE = -1
+    """State channel offset (e.g., ACTIVITY_STATE for covers)."""
+
+    SENSOR = -2
+    """Sensor channel offset (e.g., WATER_FLOW for irrigation)."""
+
+    CONFIG = -5
+    """Configuration channel offset (e.g., for WGTC thermostat)."""
 
 
 class CentralUnitState(StrEnum):

@@ -8,16 +8,13 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import logging
 from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
-from aiohomematic.interfaces.model import ChannelProtocol
-from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin
-from aiohomematic.model.custom.support import CustomConfig
+from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
 from aiohomematic.property_decorators import state_property
@@ -78,24 +75,15 @@ class CustomDpIpIrrigationValve(StateChangeTimerMixin, GroupStateMixin, CustomDa
         )
 
 
-def make_ip_irrigation_valve(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP irrigation valve data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpIrrigationValve,
-        device_profile=DeviceProfile.IP_IRRIGATION_VALVE,
-        custom_config=custom_config,
-    )
+# =============================================================================
+# DeviceProfileRegistry Registration
+# =============================================================================
 
-
-# Case for device model is not relevant.
-# HomeBrew (HB-) devices are always listed as HM-.
-DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
-    "ELV-SH-WSM": CustomConfig(make_ce_func=make_ip_irrigation_valve, channels=(4,)),
-    "HmIP-WSM": CustomConfig(make_ce_func=make_ip_irrigation_valve, channels=(4,)),
-}
-hmed.ALL_DEVICES[DataPointCategory.VALVE] = DEVICES
+# IP Irrigation Valve
+DeviceProfileRegistry.register(
+    category=DataPointCategory.VALVE,
+    models=("ELV-SH-WSM", "HmIP-WSM"),
+    data_point_class=CustomDpIpIrrigationValve,
+    profile_type=DeviceProfile.IP_IRRIGATION_VALVE,
+    channels=(4,),
+)

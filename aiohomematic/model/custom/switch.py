@@ -8,16 +8,13 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import logging
 from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
-from aiohomematic.interfaces.model import ChannelProtocol
-from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin
-from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
+from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
 from aiohomematic.property_decorators import state_property
@@ -78,86 +75,132 @@ class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
         )
 
 
-def make_ip_switch(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP switch data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpSwitch,
-        device_profile=DeviceProfile.IP_SWITCH,
-        custom_config=custom_config,
-    )
+# =============================================================================
+# DeviceProfileRegistry Registration
+# =============================================================================
 
+# IP Switch (various channel configurations)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models=("ELV-SH-BS2", "HmIP-BS2", "HmIP-PCBS2"),
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(4, 8),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models=(
+        "ELV-SH-PSMCI",
+        "ELV-SH-SW1-BAT",
+        "HmIP-DRSI1",
+        "HmIP-FSI",
+        "HmIP-PCBS",
+        "HmIP-PCBS-BAT",
+        "HmIP-PS",
+        "HmIP-USBSM",
+        "HmIP-WGC",
+    ),
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(3,),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models=("HmIP-BSL", "HmIP-BSM"),
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(4,),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-DRSI4",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(6, 10, 14, 18),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-FSM",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(2,),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-MOD-OC8",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(10, 14, 18, 22, 26, 30, 34, 38),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-SCTH230",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(8,),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-WGT",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(4,),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-WHS2",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(2, 6),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIPW-DRS",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(2, 6, 10, 14, 18, 22, 26, 30),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIPW-FIO6",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(8, 12, 16, 20, 24, 28),
+)
 
-# Case for device model is not relevant.
-# HomeBrew (HB-) devices are always listed as HM-.
-DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
-    "ELV-SH-BS2": CustomConfig(make_ce_func=make_ip_switch, channels=(4, 8)),
-    "ELV-SH-PSMCI": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "ELV-SH-SW1-BAT": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "HmIP-BS2": CustomConfig(make_ce_func=make_ip_switch, channels=(4, 8)),
-    "HmIP-BSL": CustomConfig(make_ce_func=make_ip_switch, channels=(4,)),
-    "HmIP-BSM": CustomConfig(make_ce_func=make_ip_switch, channels=(4,)),
-    "HmIP-DRSI1": CustomConfig(
-        make_ce_func=make_ip_switch,
-        channels=(3,),
+# HmIP-SMO230 (Switch with motion sensor)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-SMO230",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(10,),
+    extended=ExtendedDeviceConfig(
+        additional_data_points={
+            1: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+            2: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+            3: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+            4: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+        }
     ),
-    "HmIP-DRSI4": CustomConfig(
-        make_ce_func=make_ip_switch,
-        channels=(6, 10, 14, 18),
-    ),
-    "HmIP-FSI": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "HmIP-FSM": CustomConfig(make_ce_func=make_ip_switch, channels=(2,)),
-    "HmIP-MOD-OC8": CustomConfig(make_ce_func=make_ip_switch, channels=(10, 14, 18, 22, 26, 30, 34, 38)),
-    "HmIP-PCBS": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "HmIP-PCBS-BAT": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "HmIP-PCBS2": CustomConfig(make_ce_func=make_ip_switch, channels=(4, 8)),
-    "HmIP-PS": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "HmIP-SCTH230": CustomConfig(make_ce_func=make_ip_switch, channels=(8,)),
-    "HmIP-SMO230": CustomConfig(
-        make_ce_func=make_ip_switch,
-        channels=(10,),
-        extended=ExtendedConfig(
-            additional_data_points={
-                1: (
-                    Parameter.ILLUMINATION,
-                    Parameter.MOTION,
-                    Parameter.MOTION_DETECTION_ACTIVE,
-                    Parameter.RESET_MOTION,
-                ),
-                2: (
-                    Parameter.ILLUMINATION,
-                    Parameter.MOTION,
-                    Parameter.MOTION_DETECTION_ACTIVE,
-                    Parameter.RESET_MOTION,
-                ),
-                3: (
-                    Parameter.ILLUMINATION,
-                    Parameter.MOTION,
-                    Parameter.MOTION_DETECTION_ACTIVE,
-                    Parameter.RESET_MOTION,
-                ),
-                4: (
-                    Parameter.ILLUMINATION,
-                    Parameter.MOTION,
-                    Parameter.MOTION_DETECTION_ACTIVE,
-                    Parameter.RESET_MOTION,
-                ),
-            }
-        ),
-    ),
-    "HmIP-USBSM": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "HmIP-WGC": CustomConfig(make_ce_func=make_ip_switch, channels=(3,)),
-    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_switch, channels=(4,)),
-    "HmIP-WHS2": CustomConfig(make_ce_func=make_ip_switch, channels=(2, 6)),
-    "HmIPW-DRS": CustomConfig(
-        make_ce_func=make_ip_switch,
-        channels=(2, 6, 10, 14, 18, 22, 26, 30),
-    ),
-    "HmIPW-FIO6": CustomConfig(make_ce_func=make_ip_switch, channels=(8, 12, 16, 20, 24, 28)),
-}
-
-hmed.ALL_DEVICES[DataPointCategory.SWITCH] = DEVICES
+)

@@ -157,9 +157,9 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 
 ## Extension points
 
-- New device profiles: Add custom DataPoints under model/custom and register them via create_custom_data_points.
-- Calculated sensors: Implement in model/calculated and wire up create_calculated_data_points for derived metrics.
-- Backends/interfaces: Implement a new Client subclass and corresponding protocol proxy to add support for another backend or transport.
+- **New device profiles**: Add custom DataPoints under `model/custom/` and register them via `DeviceProfileRegistry.register()`. See `docs/extension_points.md` for detailed instructions.
+- **Calculated sensors**: Implement in `model/calculated/` and add to `_CALCULATED_DATA_POINTS` in `model/calculated/__init__.py`.
+- **Backends/interfaces**: Implement a new Client subclass and corresponding protocol proxy to add support for another backend or transport.
 
 ## Glossary (selected types)
 

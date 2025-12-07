@@ -34,9 +34,7 @@ from inspect import getfullargspec
 import logging
 from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
-import voluptuous as vol
-
-from aiohomematic import i18n, support as hms, validator as val
+from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent, DeviceRemovedEvent
 from aiohomematic.const import (
@@ -95,6 +93,9 @@ __all__ = [
     "CallbackDataPoint",
     "bind_collector",
 ]
+
+from schemas import EVENT_DATA_SCHEMA
+
 # Type variable used for decorator typing
 CallableT = TypeVar("CallableT", bound=CallableAny)
 
@@ -132,17 +133,6 @@ _FIX_UNIT_BY_PARAM: Final[Mapping[str, str]] = {
 _MULTIPLIER_UNIT: Final[Mapping[str, float]] = {
     "100%": 100.0,
 }
-
-EVENT_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(str(EventKey.ADDRESS)): val.device_address,
-        vol.Required(str(EventKey.CHANNEL_NO)): val.channel_no,
-        vol.Required(str(EventKey.MODEL)): str,
-        vol.Required(str(EventKey.INTERFACE_ID)): str,
-        vol.Required(str(EventKey.PARAMETER)): str,
-        vol.Optional(str(EventKey.VALUE)): vol.Any(bool, int),
-    }
-)
 
 
 class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):

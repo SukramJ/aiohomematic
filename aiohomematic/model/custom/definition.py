@@ -15,60 +15,20 @@ from typing import Any, Final, cast
 
 import voluptuous as vol
 
-from aiohomematic import i18n, support as hms, validator as val
-from aiohomematic.const import CDPD, DataPointCategory, DeviceProfile, Field, Parameter
+from aiohomematic import i18n, support as hms
+from aiohomematic.const import CDPD, DEFAULT_INCLUDE_DEFAULT_DPS, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.support import generate_unique_id
+from aiohomematic.schemas import SCHEMA_DEVICE_DESCRIPTION
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
-
 ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomConfig, ...]]] = {}
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
-_SCHEMA_ADDITIONAL_DPS = vol.Schema(
-    {vol.Required(vol.Any(int, tuple[int, ...])): vol.Schema((vol.Optional(Parameter),))}
-)
-
-_SCHEMA_FIELD_DETAILS = vol.Schema({vol.Required(Field): Parameter})
-
-_SCHEMA_FIELD = vol.Schema({vol.Required(vol.Any(int, None)): _SCHEMA_FIELD_DETAILS})
-
-_SCHEMA_DEVICE_GROUP = vol.Schema(
-    {
-        vol.Required(CDPD.PRIMARY_CHANNEL.value, default=0): vol.Any(val.positive_int, None),
-        vol.Required(CDPD.ALLOW_UNDEFINED_GENERIC_DPS.value, default=False): bool,
-        vol.Optional(CDPD.STATE_CHANNEL.value): vol.Any(int, None),
-        vol.Optional(CDPD.SECONDARY_CHANNELS.value): (val.positive_int,),
-        vol.Optional(CDPD.REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
-        vol.Optional(CDPD.VISIBLE_REPEATABLE_FIELDS.value): _SCHEMA_FIELD_DETAILS,
-        vol.Optional(CDPD.FIELDS.value): _SCHEMA_FIELD,
-        vol.Optional(CDPD.VISIBLE_FIELDS.value): _SCHEMA_FIELD,
-    }
-)
-
-_SCHEMA_DEVICE_GROUPS = vol.Schema(
-    {
-        vol.Required(CDPD.DEVICE_GROUP.value): _SCHEMA_DEVICE_GROUP,
-        vol.Optional(CDPD.ADDITIONAL_DPS.value): _SCHEMA_ADDITIONAL_DPS,
-        vol.Optional(CDPD.INCLUDE_DEFAULT_DPS.value, default=DEFAULT_INCLUDE_DEFAULT_DPS): bool,
-    }
-)
-
-_SCHEMA_DEVICE_DESCRIPTION = vol.Schema(
-    {
-        vol.Required(CDPD.DEFAULT_DPS.value): _SCHEMA_ADDITIONAL_DPS,
-        vol.Required(CDPD.DEVICE_DEFINITIONS.value): vol.Schema(
-            {
-                vol.Required(DeviceProfile): _SCHEMA_DEVICE_GROUPS,
-            }
-        ),
-    }
-)
 
 _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] = {
     CDPD.DEFAULT_DPS: {
@@ -588,13 +548,13 @@ _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] 
     },
 }
 
-VALID_CUSTOM_DATA_POINT_DEFINITION = _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
+VALID_CUSTOM_DATA_POINT_DEFINITION = SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
 
 
 def validate_custom_data_point_definition() -> Any:
     """Validate the custom data point definition."""
     try:
-        return _SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
+        return SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
     except vol.Invalid as err:  # pragma: no cover
         _LOGGER.error(
             i18n.tr(

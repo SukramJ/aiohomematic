@@ -50,6 +50,7 @@ DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
 DEFAULT_VERIFY_TLS: Final = False
+DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"

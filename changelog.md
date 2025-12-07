@@ -5,6 +5,7 @@
 - Add is_service param to inspector
 - Add inspector to load_data_point_value
 - Mark service methods with external/internal scope usage
+- Add scan_aiohomematic_calls.py script to find external method calls
 
 # Version 2025.12.12 (2025-12-07)
 

@@ -1,3 +1,9 @@
+# Version 2025.12.10 (2025-12-07)
+
+## What's Changed
+
+- Move schemas to schemas.py
+
 # Version 2025.12.9 (2025-12-06)
 
 ## What's Changed

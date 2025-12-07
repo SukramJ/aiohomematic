@@ -9,19 +9,15 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
 from enum import IntEnum, StrEnum
 import logging
 from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
-from aiohomematic.interfaces.model import ChannelProtocol
-from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import PositionMixin
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
-from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
 from aiohomematic.property_decorators import state_property
@@ -648,159 +644,8 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         )
 
 
-def make_ip_cover(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP cover data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpCover,
-        device_profile=DeviceProfile.IP_COVER,
-        custom_config=custom_config,
-    )
-
-
-def make_rf_cover(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create Homematic classic cover data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpCover,
-        device_profile=DeviceProfile.RF_COVER,
-        custom_config=custom_config,
-    )
-
-
-def make_ip_blind(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP cover data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpBlind,
-        device_profile=DeviceProfile.IP_COVER,
-        custom_config=custom_config,
-    )
-
-
-def make_ip_garage(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP garage data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpGarage,
-        device_profile=DeviceProfile.IP_GARAGE,
-        custom_config=custom_config,
-    )
-
-
-def make_ip_hdm(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP cover data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpBlind,
-        device_profile=DeviceProfile.IP_HDM,
-        custom_config=custom_config,
-    )
-
-
-def make_rf_blind(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create Homematic classic cover data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpBlind,
-        device_profile=DeviceProfile.RF_COVER,
-        custom_config=custom_config,
-    )
-
-
-def make_rf_window_drive(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create Homematic classic window drive data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpWindowDrive,
-        device_profile=DeviceProfile.RF_COVER,
-        custom_config=custom_config,
-    )
-
-
-# Case for device model is not relevant.
-# HomeBrew (HB-) devices are always listed as HM-.
-DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
-    "263 146": CustomConfig(make_ce_func=make_rf_cover),
-    "263 147": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-Bl1-Velux": CustomConfig(make_ce_func=make_rf_cover),  # HB-LC-Bl1-Velux
-    "HM-LC-Bl1-FM": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-Bl1-FM-2": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-Bl1-PB-FM": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-Bl1-SM": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-Bl1-SM-2": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-Bl1PBU-FM": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-BlX": CustomConfig(make_ce_func=make_rf_cover),
-    "HM-LC-Ja1PBU-FM": CustomConfig(make_ce_func=make_rf_blind),
-    "HM-LC-JaX": CustomConfig(make_ce_func=make_rf_blind),
-    "HM-Sec-Win": CustomConfig(
-        make_ce_func=make_rf_window_drive,
-        channels=(1,),
-        extended=ExtendedConfig(
-            additional_data_points={
-                1: (
-                    Parameter.DIRECTION,
-                    Parameter.WORKING,
-                    Parameter.ERROR,
-                ),
-                2: (
-                    Parameter.LEVEL,
-                    Parameter.STATUS,
-                ),
-            }
-        ),
-    ),
-    "HMW-LC-Bl1": CustomConfig(make_ce_func=make_rf_cover, channels=(3,)),
-    "HmIP-BBL": CustomConfig(make_ce_func=make_ip_blind, channels=(4,)),
-    "HmIP-BROLL": CustomConfig(make_ce_func=make_ip_cover, channels=(4,)),
-    "HmIP-DRBLI4": CustomConfig(
-        make_ce_func=make_ip_blind,
-        channels=(10, 14, 18, 22),
-    ),
-    "HmIP-FBL": CustomConfig(make_ce_func=make_ip_blind, channels=(4,)),
-    "HmIP-FROLL": CustomConfig(make_ce_func=make_ip_cover, channels=(4,)),
-    "HmIP-HDM": CustomConfig(make_ce_func=make_ip_hdm),
-    "HmIP-MOD-HO": CustomConfig(make_ce_func=make_ip_garage),
-    "HmIP-MOD-TM": CustomConfig(make_ce_func=make_ip_garage),
-    "HmIPW-DRBL4": CustomConfig(
-        make_ce_func=make_ip_blind,
-        channels=(2, 6, 10, 14),
-    ),
-    "ZEL STG RM FEP 230V": CustomConfig(make_ce_func=make_rf_cover),
-}
-hmed.ALL_DEVICES[DataPointCategory.COVER] = DEVICES
-
-
 # =============================================================================
-# New DeviceProfileRegistry Registration (Phase 2 Migration)
+# DeviceProfileRegistry Registration
 # =============================================================================
 
 # RF Cover

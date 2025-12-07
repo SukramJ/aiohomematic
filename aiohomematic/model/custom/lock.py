@@ -9,15 +9,11 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping
 from enum import StrEnum
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
-from aiohomematic.interfaces.model import ChannelProtocol
-from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
-from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpSensor, DpSwitch
 from aiohomematic.property_decorators import state_property
@@ -276,134 +272,8 @@ class CustomDpRfLock(BaseCustomDpLock):
         )
 
 
-def make_ip_lock(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP lock data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpLock,
-        device_profile=DeviceProfile.IP_LOCK,
-        custom_config=custom_config,
-    )
-
-
-def make_ip_button_lock(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create HomematicIP ip button lock data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpButtonLock,
-        device_profile=DeviceProfile.IP_BUTTON_LOCK,
-        custom_config=custom_config,
-    )
-
-
-def make_rf_button_lock(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create Homematic button lock data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpButtonLock,
-        device_profile=DeviceProfile.RF_BUTTON_LOCK,
-        custom_config=custom_config,
-    )
-
-
-def make_rf_lock(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create Homematic lock data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpRfLock,
-        device_profile=DeviceProfile.RF_LOCK,
-        custom_config=custom_config,
-    )
-
-
-# Case for device model is not relevant.
-# HomeBrew (HB-) devices are always listed as HM-.
-DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
-    "HM-Sec-Key": CustomConfig(
-        make_ce_func=make_rf_lock,
-        channels=(1,),
-        extended=ExtendedConfig(
-            additional_data_points={
-                1: (
-                    Parameter.DIRECTION,
-                    Parameter.ERROR,
-                ),
-            }
-        ),
-    ),
-    "HmIP-DLD": (
-        CustomConfig(
-            make_ce_func=make_ip_lock,
-            extended=ExtendedConfig(
-                additional_data_points={
-                    0: (Parameter.ERROR_JAMMED,),
-                }
-            ),
-        ),
-        CustomConfig(
-            make_ce_func=make_ip_button_lock,
-            channels=(0,),
-        ),
-    ),
-    "HM-TC-IT-WM-W-EU": CustomConfig(
-        make_ce_func=make_rf_button_lock,
-        channels=(None,),
-    ),
-    "ALPHA-IP-RBG": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-    "HmIP-BWTH": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-    "HmIP-FAL": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-    "HmIP-WGT": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-    "HmIP-WTH": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-    "HmIP-eTRV": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-    "HmIPW-FAL": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-    "HmIPW-WTH": CustomConfig(
-        make_ce_func=make_ip_button_lock,
-        channels=(0,),
-    ),
-}
-
-hmed.ALL_DEVICES[DataPointCategory.LOCK] = DEVICES
-
-
 # =============================================================================
-# New DeviceProfileRegistry Registration (Phase 2 Migration)
+# DeviceProfileRegistry Registration
 # =============================================================================
 
 # RF Lock (HM-Sec-Key)

@@ -38,7 +38,6 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model import week_profile as wp
-from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.custom.support import CustomConfig
@@ -1086,111 +1085,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         )
 
 
-def make_simple_thermostat(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create SimpleRfThermostat data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpSimpleRfThermostat,
-        device_profile=DeviceProfile.SIMPLE_RF_THERMOSTAT,
-        custom_config=custom_config,
-    )
-
-
-def make_thermostat(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create RfThermostat data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpRfThermostat,
-        device_profile=DeviceProfile.RF_THERMOSTAT,
-        custom_config=custom_config,
-    )
-
-
-def make_thermostat_group(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create RfThermostat group data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpRfThermostat,
-        device_profile=DeviceProfile.RF_THERMOSTAT_GROUP,
-        custom_config=custom_config,
-    )
-
-
-def make_ip_thermostat(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create IPThermostat data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpThermostat,
-        device_profile=DeviceProfile.IP_THERMOSTAT,
-        custom_config=custom_config,
-    )
-
-
-def make_ip_thermostat_group(
-    *,
-    channel: ChannelProtocol,
-    custom_config: CustomConfig,
-) -> None:
-    """Create IPThermostat group data point."""
-    hmed.make_custom_data_point(
-        channel=channel,
-        data_point_class=CustomDpIpThermostat,
-        device_profile=DeviceProfile.IP_THERMOSTAT_GROUP,
-        custom_config=custom_config,
-    )
-
-
-# Case for device model is not relevant.
-# HomeBrew (HB-) devices are always listed as HM-.
-DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
-    "ALPHA-IP-RBG": CustomConfig(make_ce_func=make_ip_thermostat),
-    "BC-RT-TRX-CyG": CustomConfig(make_ce_func=make_thermostat),
-    "BC-RT-TRX-CyN": CustomConfig(make_ce_func=make_thermostat),
-    "BC-TC-C-WM": CustomConfig(make_ce_func=make_thermostat),
-    "HM-CC-RT-DN": CustomConfig(make_ce_func=make_thermostat, channels=(4,)),
-    "HM-CC-TC": CustomConfig(make_ce_func=make_simple_thermostat),
-    "HM-CC-VG-1": CustomConfig(make_ce_func=make_thermostat_group),
-    "HM-TC-IT-WM-W-EU": CustomConfig(
-        make_ce_func=make_thermostat, channels=(2,), schedule_channel_no=BIDCOS_DEVICE_CHANNEL_DUMMY
-    ),
-    "HmIP-BWTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
-    "HmIP-HEATING": CustomConfig(make_ce_func=make_ip_thermostat_group, schedule_channel_no=1),
-    "HmIP-STH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
-    "HmIP-WTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
-    "HmIP-WGT": CustomConfig(make_ce_func=make_ip_thermostat, channels=(8,), schedule_channel_no=1),
-    "HmIP-eTRV": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
-    "HmIPW-SCTHD": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
-    "HmIPW-STH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
-    "HmIPW-WTH": CustomConfig(make_ce_func=make_ip_thermostat, schedule_channel_no=1),
-    "Thermostat AA": CustomConfig(make_ce_func=make_ip_thermostat),
-    "ZEL STG RM FWT": CustomConfig(make_ce_func=make_simple_thermostat),
-}
-hmed.ALL_DEVICES[DataPointCategory.CLIMATE] = DEVICES
-BLACKLISTED_DEVICES: tuple[str, ...] = ("HmIP-STHO",)
-hmed.ALL_BLACKLISTED_DEVICES.append(BLACKLISTED_DEVICES)
-
-
 # =============================================================================
-# New DeviceProfileRegistry Registration (Phase 2 Migration)
+# DeviceProfileRegistry Registration
 # =============================================================================
-# These registrations mirror the DEVICES dict above using the new type-safe API.
-# Once migration is complete, the DEVICES dict and make_* functions can be removed.
 
 # Simple RF Thermostat
 DeviceProfileRegistry.register(

@@ -3,10 +3,9 @@
 """
 Device profile definitions for custom data point implementations.
 
-This module provides the legacy dictionary-based profile definitions.
-For the new type-safe dataclass-based approach, see:
-- profile.py: ProfileConfig, ChannelGroupConfig dataclasses
-- registry.py: DeviceProfileRegistry, DeviceConfig for device mappings
+This module provides profile definitions and factory functions for creating
+custom data points. Device-to-profile mappings are managed by DeviceProfileRegistry
+in registry.py.
 
 Public API of this module is defined by __all__.
 """
@@ -20,12 +19,10 @@ from typing import Any, Final, cast
 
 import voluptuous as vol
 
-from aiohomematic import i18n, support as hms
+from aiohomematic import i18n
 from aiohomematic.const import CDPD, DEFAULT_INCLUDE_DEFAULT_DPS, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
-
-# Import new type-safe registry for device lookup
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.support import generate_unique_id
@@ -33,9 +30,6 @@ from aiohomematic.schemas import SCHEMA_DEVICE_DESCRIPTION
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomConfig, ...]]] = {}
-ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
 
 
 def _device_config_to_custom_config(device_config: DeviceConfig) -> CustomConfig:
@@ -805,51 +799,10 @@ def get_custom_configs(
     category: DataPointCategory | None = None,
 ) -> tuple[CustomConfig, ...]:
     """Return the data_point configs to create custom data points."""
-    model = model.lower().replace("hb-", "hm-")
-    custom_configs: list[CustomConfig] = []
-
-    # Check legacy blacklist
-    for category_blacklisted_devices in ALL_BLACKLISTED_DEVICES:
-        if hms.element_matches_key(
-            search_elements=category_blacklisted_devices,
-            compare_with=model,
-        ):
-            return ()
-
-    # Primary: Query DeviceProfileRegistry (new type-safe approach)
+    # Query DeviceProfileRegistry (includes blacklist check)
     if device_configs := DeviceProfileRegistry.get_configs(model=model, category=category):
         return tuple(_device_config_to_custom_config(dc) for dc in device_configs)
-
-    # Fallback: Query legacy ALL_DEVICES dictionary
-    for pf, category_devices in ALL_DEVICES.items():
-        if category is not None and pf != category:
-            continue
-        if func := _get_data_point_config_by_category(
-            category_devices=category_devices,
-            model=model,
-        ):
-            if isinstance(func, tuple):
-                custom_configs.extend(func)  # noqa:PERF401
-            else:
-                custom_configs.append(func)
-    return tuple(custom_configs)
-
-
-def _get_data_point_config_by_category(
-    *,
-    category_devices: Mapping[str, CustomConfig | tuple[CustomConfig, ...]],
-    model: str,
-) -> CustomConfig | tuple[CustomConfig, ...] | None:
-    """Return the data_point configs to create custom data points."""
-    for d_type, custom_configs in category_devices.items():
-        if model.lower() == d_type.lower():
-            return custom_configs
-
-    for d_type, custom_configs in category_devices.items():
-        if model.lower().startswith(d_type.lower()):
-            return custom_configs
-
-    return None
+    return ()
 
 
 def is_multi_channel_device(*, model: str, category: DataPointCategory) -> bool:
@@ -880,14 +833,8 @@ def get_required_parameters() -> tuple[Parameter, ...]:
         ):
             required_parameters.extend(additional_data_points)
 
-    for category_spec in ALL_DEVICES.values():
-        for custom_configs in category_spec.values():
-            if isinstance(custom_configs, CustomConfig):
-                if extended := custom_configs.extended:
-                    required_parameters.extend(extended.required_parameters)
-            else:
-                for custom_config in custom_configs:
-                    if extended := custom_config.extended:
-                        required_parameters.extend(extended.required_parameters)
+    # Get required parameters from DeviceProfileRegistry extended configs
+    for extended_config in DeviceProfileRegistry.get_all_extended_configs():
+        required_parameters.extend(extended_config.required_parameters)
 
     return tuple(sorted(set(required_parameters)))

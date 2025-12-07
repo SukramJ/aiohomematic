@@ -105,6 +105,18 @@ class DeviceProfileRegistry:
         return cls._configs.get(category, {})
 
     @classmethod
+    def get_all_extended_configs(cls) -> tuple[ExtendedDeviceConfig, ...]:
+        """Return all extended configurations from all categories."""
+        extended_configs: list[ExtendedDeviceConfig] = []
+        for category_configs in cls._configs.values():
+            for device_config in category_configs.values():
+                if isinstance(device_config, tuple):
+                    extended_configs.extend(cfg.extended for cfg in device_config if cfg.extended)
+                elif device_config.extended:
+                    extended_configs.append(device_config.extended)
+        return tuple(extended_configs)
+
+    @classmethod
     def get_blacklist(cls) -> tuple[str, ...]:
         """Return current blacklist entries."""
         return tuple(sorted(cls._blacklist))

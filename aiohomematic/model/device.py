@@ -64,6 +64,7 @@ from aiohomematic.const import (
     ParamsetKey,
     ProductGroup,
     RxMode,
+    ServiceScope,
     check_ignore_model_on_initial_load,
     get_link_source_categories,
     get_link_target_categories,
@@ -805,7 +806,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
         return len([s for s, m in self._channel_group.items() if m == self._channel_group.get(channel_no)]) > 1
 
-    @inspector
+    @inspector(scope=ServiceScope.INTERNAL)
     async def load_value_cache(self) -> None:
         """Initialize the parameter cache."""
         if len(self.generic_data_points) > 0:
@@ -1246,7 +1247,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         if isinstance(data_point, GenericEventProtocol):
             self._generic_events[data_point.dpk] = data_point
 
-    @inspector
+    @inspector(scope=ServiceScope.INTERNAL)
     async def cleanup_central_link_metadata(self) -> None:
         """Cleanup the metadata for central links."""
         if metadata := await self._device.client.get_metadata(address=self._address, data_id=REPORT_VALUE_USAGE_DATA):
@@ -1256,7 +1257,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
                 value={key: value for key, value in metadata.items() if key in CLICK_EVENTS},
             )
 
-    @inspector
+    @inspector(scope=ServiceScope.INTERNAL)
     async def create_central_link(self) -> None:
         """Create a central link to support press events."""
         if self._has_key_press_events and not await self._has_central_link():
@@ -1461,7 +1462,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             self._remove_data_point(data_point=self._custom_data_point)
         self._state_path_to_dpk.clear()
 
-    @inspector
+    @inspector(scope=ServiceScope.INTERNAL)
     async def remove_central_link(self) -> None:
         """Remove a central link."""
         if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
@@ -1510,7 +1511,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         """Return if a channel has program ids."""
         return bool(await self._device.client.has_program_ids(rega_id=self._rega_id))
 
-    @inspector
+    @inspector(scope=ServiceScope.INTERNAL)
     async def _reload_paramset_descriptions(self) -> None:
         """Reload paramset for channel."""
         for paramset_key in self._paramset_keys:
@@ -1719,7 +1720,7 @@ class _DefinitionExporter:
         self._device_address: Final = device.address
         self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
 
-    @inspector
+    @inspector(scope=ServiceScope.INTERNAL)
     async def export_data(self) -> None:
         """Export data."""
         device_descriptions: Mapping[str, DeviceDescription] = (

@@ -118,7 +118,7 @@ class DpDummy(GenericDataPointAny):
         """Ignore backend events entirely."""
         return
 
-    @inspector(re_raise=False, is_service=False)
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Do not read from backend; keep defaults as-is."""
         return

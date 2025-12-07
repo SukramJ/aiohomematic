@@ -62,6 +62,7 @@ from aiohomematic.const import (
     ParameterData,
     ParameterType,
     ParamsetKey,
+    ServiceScope,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
@@ -221,7 +222,7 @@ _SWITCH_DP_TO_SENSOR: Final[Mapping[str | tuple[str, ...], Parameter]] = {
 }
 
 
-@inspector
+@inspector(scope=ServiceScope.INTERNAL)
 def create_data_point_and_append_to_channel(
     *,
     channel: ChannelProtocol,

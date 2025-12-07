@@ -64,6 +64,7 @@ class TestCustomDpCover:
         await cover.set_position(position=81)
         assert cover.service_method_names == (
             "close",
+            "load_data_point_value",
             "open",
             "set_position",
             "stop",
@@ -233,6 +234,7 @@ class TestCustomDpBlind:
         assert cover.service_method_names == (
             "close",
             "close_tilt",
+            "load_data_point_value",
             "open",
             "open_tilt",
             "set_position",
@@ -675,6 +677,7 @@ class TestCustomDpIpBlind:
         assert cover.service_method_names == (
             "close",
             "close_tilt",
+            "load_data_point_value",
             "open",
             "open_tilt",
             "set_position",
@@ -797,6 +800,7 @@ class TestCustomDpIpBlind:
         assert cover.service_method_names == (
             "close",
             "close_tilt",
+            "load_data_point_value",
             "open",
             "open_tilt",
             "set_position",
@@ -961,6 +965,7 @@ class TestCustomDpGarage:
         assert cover.usage == DataPointUsage.CDP_PRIMARY
         assert cover.service_method_names == (
             "close",
+            "load_data_point_value",
             "open",
             "set_position",
             "stop",

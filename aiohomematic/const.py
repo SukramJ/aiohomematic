@@ -237,6 +237,26 @@ class CallSource(StrEnum):
     MANUAL_OR_SCHEDULED = "manual_or_scheduled"
 
 
+class ServiceScope(StrEnum):
+    """
+    Enum defining the scope of service methods.
+
+    Used by @inspector and @bind_collector decorators to control whether
+    a method is exposed as a service method (lib_service attribute).
+
+    Values:
+        EXTERNAL: Methods intended for external consumers (e.g., Home Assistant).
+            These are user-invokable commands like turn_on, turn_off, set_temperature.
+            Methods with this scope appear in service_method_names.
+        INTERNAL: Infrastructure methods for library operation.
+            These are internal methods like load_data_point_value, fetch_*_data.
+            Methods with this scope do NOT appear in service_method_names.
+    """
+
+    EXTERNAL = "external"
+    INTERNAL = "internal"
+
+
 class CalulatedParameter(StrEnum):
     """Enum with calculated Homematic parameters."""
 

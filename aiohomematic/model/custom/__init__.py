@@ -44,6 +44,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
+from aiohomematic.const import ServiceScope
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.model.custom.climate import (
@@ -168,7 +169,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-@inspector
+@inspector(scope=ServiceScope.INTERNAL)
 def create_custom_data_points(*, device: DeviceProtocol) -> None:
     """Decides which data point category should be used, and creates the required data points."""
     if device.ignore_for_custom_data_point:

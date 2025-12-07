@@ -39,6 +39,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
+from aiohomematic.const import ServiceScope
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.calculated.climate import (
@@ -76,7 +77,7 @@ _CALCULATED_DATA_POINTS: Final = (
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-@inspector
+@inspector(scope=ServiceScope.INTERNAL)
 def create_calculated_data_points(*, channel: ChannelProtocol) -> None:
     """Decides which data point category should be used, and creates the required data points."""
     for dp in _CALCULATED_DATA_POINTS:

@@ -41,6 +41,7 @@ class TestIpSiren:
         siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
         assert siren.usage == DataPointUsage.CDP_PRIMARY
         assert siren.service_method_names == (
+            "load_data_point_value",
             "turn_off",
             "turn_on",
         )

@@ -60,6 +60,7 @@ class TestCustomDpDimmer:
         light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.service_method_names == (
+            "load_data_point_value",
             "turn_off",
             "turn_on",
         )

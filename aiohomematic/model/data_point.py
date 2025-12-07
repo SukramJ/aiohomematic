@@ -62,7 +62,7 @@ from aiohomematic.const import (
     check_ignore_parameter_on_initial_load,
 )
 from aiohomematic.context import IN_SERVICE_VAR
-from aiohomematic.decorators import get_service_calls
+from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces.central import CentralInfo, EventBusProvider, EventPublisher
 from aiohomematic.interfaces.client import ClientProtocol
@@ -627,6 +627,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         return on_time
 
     @abstractmethod
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data_point data."""
 
@@ -935,6 +936,7 @@ class BaseParameterDataPoint[
             event_data[EventKey.VALUE] = value
         return cast(dict[EventKey, Any], EVENT_DATA_SCHEMA(event_data))
 
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data_point data."""
         if (self._ignore_on_initial_load or self._channel.device.ignore_on_initial_load) and call_source in (

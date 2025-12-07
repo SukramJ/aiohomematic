@@ -31,6 +31,7 @@ from aiohomematic.const import (
     ProgramData,
     RxMode,
 )
+from aiohomematic.decorators import inspector
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.central import (
@@ -441,6 +442,7 @@ class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
         """Set the data point usage."""
 
     @abstractmethod
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data point data."""
 

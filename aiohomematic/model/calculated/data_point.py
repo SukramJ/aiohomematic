@@ -22,6 +22,7 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
+from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.data_point import BaseDataPoint
@@ -253,6 +254,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         _LOGGER.debug("NO_STATE_CHANGE: %s", self.name)
         return False
 
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data point values."""
         for dp in self._readable_data_points:

@@ -1,3 +1,9 @@
+# Version 2025.12.13 (2025-12-07)
+
+## What's Changed
+
+- Add inspector to load_data_point_value
+
 # Version 2025.12.12 (2025-12-07)
 
 ## What's Changed

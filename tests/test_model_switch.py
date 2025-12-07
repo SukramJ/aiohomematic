@@ -54,6 +54,7 @@ class TestCustomSwitch:
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         assert switch.usage == DataPointUsage.CDP_PRIMARY
         assert switch.service_method_names == (
+            "load_data_point_value",
             "turn_off",
             "turn_on",
         )
@@ -223,6 +224,7 @@ class TestGenericSwitch:
         )
         assert switch.usage == DataPointUsage.NO_CREATE
         assert switch.service_method_names == (
+            "load_data_point_value",
             "send_value",
             "set_on_time",
             "turn_off",

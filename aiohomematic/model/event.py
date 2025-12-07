@@ -45,6 +45,7 @@ from aiohomematic.const import (
     Operations,
     ParameterData,
     ParamsetKey,
+    ServiceScope,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
@@ -162,7 +163,7 @@ class ImpulseEvent(GenericEvent):
     _event_type = EventType.IMPULSE
 
 
-@inspector
+@inspector(scope=ServiceScope.INTERNAL)
 def create_event_and_append_to_channel(channel: ChannelProtocol, parameter: str, parameter_data: ParameterData) -> None:
     """Create action event data_point."""
     _LOGGER.debug(

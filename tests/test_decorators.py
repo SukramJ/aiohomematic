@@ -3,7 +3,7 @@ Tests for aiohomematic.decorators module to raise coverage above 95%.
 
 These tests cover:
 - sync and async behavior of @inspector including exception handling, re-raise logic,
-  IN_SERVICE_VAR context handling, performance logging, and ha_service attribute exposure.
+  IN_SERVICE_VAR context handling, performance logging, and lib_service attribute exposure.
 - get_service_calls discovery and caching of service methods.
 - measure_execution_time for sync and async functions including performance log contents.
 All tests include a docstring.
@@ -175,7 +175,7 @@ class TestInspectorDecorator:
         assert calls and calls[0][0] == "service" and calls[0][1] == "will_fail"
 
     def test_inspector_sync_success_and_attribute(self, caplog: pytest.LogCaptureFixture) -> None:
-        """@inspector wraps sync call, returns value, exposes ha_service and can log performance."""
+        """@inspector wraps sync call, returns value, exposes lib_service and can log performance."""
         caplog.set_level(logging.INFO)
         # Enable performance path
         _LOGGER_PERFORMANCE.setLevel(logging.DEBUG)
@@ -186,7 +186,7 @@ class TestInspectorDecorator:
                 return x * 2
 
         svc = Service()
-        assert getattr(svc.do_it, "ha_service", False) is True
+        assert getattr(svc.do_it, "lib_service", False) is True
 
         # Ensure IN_SERVICE_VAR is False entering to test token handling and logging
         assert IN_SERVICE_VAR.get() is False
@@ -204,7 +204,7 @@ class TestServiceCalls:
     """Test cases for get_service_calls discovery and caching."""
 
     def test_get_service_calls_and_cache(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """get_service_calls should find ha_service-marked methods and use cache on subsequent calls."""
+        """get_service_calls should find lib_service-marked methods and use cache on subsequent calls."""
 
         class Container:
             @inspector

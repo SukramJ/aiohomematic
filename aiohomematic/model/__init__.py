@@ -67,6 +67,7 @@ from aiohomematic.const import (
     Parameter,
     ParameterData,
     ParamsetKey,
+    ServiceScope,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
@@ -82,7 +83,7 @@ _ALLOWED_INTERNAL_PARAMETERS: Final[tuple[Parameter, ...]] = (Parameter.DIRECTIO
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-@inspector
+@inspector(scope=ServiceScope.INTERNAL)
 def create_data_points_and_events(*, device: DeviceProtocol) -> None:
     """Create the data points associated to this device."""
     for channel in device.channels.values():

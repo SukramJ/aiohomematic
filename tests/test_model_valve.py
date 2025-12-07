@@ -43,6 +43,7 @@ class TestIpIrrigationValve:
         assert valve.usage == DataPointUsage.CDP_PRIMARY
         assert valve.service_method_names == (
             "close",
+            "load_data_point_value",
             "open",
         )
 

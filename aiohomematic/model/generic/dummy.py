@@ -34,6 +34,7 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
+from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic import GenericDataPointAny
@@ -117,6 +118,7 @@ class DpDummy(GenericDataPointAny):
         """Ignore backend events entirely."""
         return
 
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Do not read from backend; keep defaults as-is."""
         return

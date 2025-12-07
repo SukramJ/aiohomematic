@@ -59,10 +59,11 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
     ProductGroup,
+    ServiceScope,
     check_ignore_parameter_on_initial_load,
 )
 from aiohomematic.context import IN_SERVICE_VAR
-from aiohomematic.decorators import get_service_calls
+from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces.central import CentralInfo, EventBusProvider, EventPublisher
 from aiohomematic.interfaces.client import ClientProtocol
@@ -627,6 +628,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         return on_time
 
     @abstractmethod
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data_point data."""
 
@@ -935,6 +937,7 @@ class BaseParameterDataPoint[
             event_data[EventKey.VALUE] = value
         return cast(dict[EventKey, Any], EVENT_DATA_SCHEMA(event_data))
 
+    @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Initialize the data_point data."""
         if (self._ignore_on_initial_load or self._channel.device.ignore_on_initial_load) and call_source in (
@@ -1169,6 +1172,7 @@ def bind_collector[CallableBC: CallableAny](
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
     log_level: int = logging.ERROR,
+    scope: ServiceScope = ...,
 ) -> CallableBC: ...
 
 
@@ -1178,6 +1182,7 @@ def bind_collector[CallableBC: CallableAny](
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
     log_level: int = logging.ERROR,
+    scope: ServiceScope = ...,
 ) -> Callable[[CallableBC], CallableBC]: ...
 
 
@@ -1187,6 +1192,7 @@ def bind_collector[CallableBC: CallableAny](
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
     log_level: int = logging.ERROR,
+    scope: ServiceScope = ServiceScope.EXTERNAL,
 ) -> Callable[[CallableBC], CallableBC] | CallableBC:
     """
     Decorate function to automatically add collector if not set.
@@ -1196,6 +1202,18 @@ def bind_collector[CallableBC: CallableAny](
     - Without parentheses: `@bind_collector`
 
     Additionally, thrown exceptions are logged.
+
+    Args:
+        func: Function to decorate (when used without parameters).
+        wait_for_callback: Time to wait for callback after sending data.
+        enabled: Whether the collector binding is enabled.
+        log_level: Logging level for exceptions.
+        scope: The scope of this service method (see ServiceScope enum).
+            EXTERNAL: Methods for external consumers (HA) - user-invokable commands.
+                Appears in service_method_names.
+            INTERNAL: Infrastructure methods for library operation.
+                Does NOT appear in service_method_names.
+
     """
 
     def bind_decorator(func: CallableBC) -> CallableBC:
@@ -1259,7 +1277,8 @@ def bind_collector[CallableBC: CallableAny](
                     IN_SERVICE_VAR.reset(token)
                 return return_value
 
-        setattr(bind_wrapper, "ha_service", True)
+        if scope == ServiceScope.EXTERNAL:
+            setattr(bind_wrapper, "lib_service", True)
         return cast(CallableBC, bind_wrapper)
 
     # If used without parentheses: @bind_collector

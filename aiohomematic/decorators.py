@@ -16,6 +16,7 @@ from time import monotonic
 from typing import Any, Final, cast, overload
 from weakref import WeakKeyDictionary
 
+from aiohomematic.const import ServiceScope
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.support import LogContextMixin, log_boundary_error
@@ -37,6 +38,7 @@ def inspector[**P, R](
     re_raise: bool = ...,
     no_raise_return: Any = ...,
     measure_performance: bool = ...,
+    scope: ServiceScope = ...,
 ) -> Callable[P, R]: ...
 
 
@@ -49,6 +51,7 @@ def inspector[**P, R](
     re_raise: bool = ...,
     no_raise_return: Any = ...,
     measure_performance: bool = ...,
+    scope: ServiceScope = ...,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
@@ -60,6 +63,7 @@ def inspector[**P, R](  # noqa: C901
     re_raise: bool = True,
     no_raise_return: Any = None,
     measure_performance: bool = False,
+    scope: ServiceScope = ServiceScope.EXTERNAL,
 ) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """
     Support with exception handling and performance measurement.
@@ -70,6 +74,7 @@ def inspector[**P, R](  # noqa: C901
     Can be used both with and without parameters:
       - @inspector
       - @inspector(log_level=logging.ERROR, re_raise=True, ...)
+      - @inspector(scope=ServiceScope.INTERNAL)
 
     Args:
         func: The function to decorate when used without parameters.
@@ -77,6 +82,11 @@ def inspector[**P, R](  # noqa: C901
         re_raise: Whether to re-raise exceptions.
         no_raise_return: Value to return when an exception is caught and not re-raised.
         measure_performance: Whether to measure function execution time.
+        scope: The scope of this service method (see ServiceScope enum).
+            EXTERNAL: Methods for external consumers (HA) - user-invokable commands
+                like turn_on, turn_off, set_temperature. Appears in service_method_names.
+            INTERNAL: Infrastructure methods for library operation like
+                load_data_point_value, fetch_*_data. Does NOT appear in service_method_names.
 
     Returns:
         Either the decorated function (when used without parameters) or
@@ -201,10 +211,13 @@ def inspector[**P, R](  # noqa: C901
                     _log_performance_message(func, start, *args, **kwargs)
 
         # Check if the function is a coroutine or not and select the appropriate wrapper
+        is_external = scope == ServiceScope.EXTERNAL
         if inspect.iscoroutinefunction(func):
-            setattr(wrap_async_function, "ha_service", True)
+            if is_external:
+                setattr(wrap_async_function, "lib_service", True)
             return wrap_async_function  # type: ignore[return-value]
-        setattr(wrap_sync_function, "ha_service", True)
+        if is_external:
+            setattr(wrap_sync_function, "lib_service", True)
         return wrap_sync_function
 
     # If used without parameters: @inspector
@@ -234,7 +247,7 @@ def _log_performance_message[**P](func: Callable[P, Any], start: float, *args: P
 
 def get_service_calls(obj: object) -> ServiceMethodMap:
     """
-    Get all methods decorated with the service decorator (ha_service attribute).
+    Get all methods decorated with the service decorator (lib_service attribute).
 
     To reduce overhead, we cache the discovered method names per class using a WeakKeyDictionary.
     """
@@ -253,8 +266,8 @@ def get_service_calls(obj: object) -> ServiceMethodMap:
                 attr = getattr(cls, name)
             except Exception:
                 continue
-            # Only consider callables exposed on the instance and marked with ha_service on the function/wrapper
-            if callable(getattr(obj, name, None)) and hasattr(attr, "ha_service"):
+            # Only consider callables exposed on the instance and marked with lib_service on the function/wrapper
+            if callable(getattr(obj, name, None)) and hasattr(attr, "lib_service"):
                 computed.append(name)
         names = tuple(computed)
         _SERVICE_CALLS_CACHE[cls] = names

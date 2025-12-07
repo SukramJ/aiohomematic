@@ -421,6 +421,7 @@ def inspector[**P, R](
     *,
     log_level: int = logging.ERROR,
     re_raise: bool = True,
+    scope: ServiceScope = ServiceScope.EXTERNAL,
 ) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """
     Decorator for exception handling and performance measurement.
@@ -429,11 +430,17 @@ def inspector[**P, R](
     parameters:
         @inspector
         @inspector(log_level=logging.DEBUG)
+        @inspector(re_raise=False, service=ServiceScope.INTERNAL)
 
     Args:
         func: Function to decorate (when used without parameters)
         log_level: Logging level for exceptions
         re_raise: Whether to re-raise caught exceptions
+        scope: The scope of this service method (see ServiceScope enum).
+            EXTERNAL: Methods for external consumers (HA) - user-invokable commands
+                like turn_on, turn_off. Appears in service_method_names.
+            INTERNAL: Infrastructure methods like load_data_point_value.
+                Does NOT appear in service_method_names.
 
     Returns:
         Decorated function or decorator function.

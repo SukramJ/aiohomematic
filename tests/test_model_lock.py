@@ -129,6 +129,7 @@ class TestIpLock:
         lock: CustomDpIpLock = cast(CustomDpIpLock, get_prepared_custom_data_point(central, "VCU9724704", 1))
         assert lock.usage == DataPointUsage.CDP_PRIMARY
         assert lock.service_method_names == (
+            "load_data_point_value",
             "lock",
             "open",
             "unlock",

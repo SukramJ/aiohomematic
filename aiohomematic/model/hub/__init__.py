@@ -90,6 +90,7 @@ from aiohomematic.const import (
     InstallModeData,
     Interface,
     ProgramData,
+    ServiceScope,
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector
@@ -250,7 +251,7 @@ class Hub(HubProtocol):
 
         return self._install_mode_dps
 
-    @inspector(re_raise=False)
+    @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
         """Fetch inbox data for the hub."""
         if self._central_info.model is not Backend.CCU:
@@ -264,7 +265,7 @@ class Hub(HubProtocol):
             if self._central_info.available:
                 await self._update_inbox_data_point()
 
-    @inspector(re_raise=False)
+    @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
     async def fetch_install_mode_data(self, *, scheduled: bool) -> None:
         """Fetch install mode data from the backend for all interfaces."""
         if not self._install_mode_dps:
@@ -302,7 +303,7 @@ class Hub(HubProtocol):
                 if self._central_info.available:
                     await self._update_program_data_points()
 
-    @inspector(re_raise=False)
+    @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
     async def fetch_system_update_data(self, *, scheduled: bool) -> None:
         """Fetch system update data for the hub."""
         if self._central_info.model is not Backend.CCU:

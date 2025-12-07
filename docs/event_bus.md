@@ -161,19 +161,20 @@ class CentralUnit:
 - [x] Write comprehensive tests
 - [x] Document API
 
-### Phase 2: CentralUnit Integration (Planned)
+### Phase 2: CentralUnit Integration ✅ COMPLETED
 
-1. Add `_event_bus: EventBus` field to CentralUnit
-2. Create adapter methods for legacy callback APIs
-3. Migrate internal event publishing to use EventBus
-4. Update tests to verify both old and new APIs work
+- [x] Add `_event_bus: EventBus` field to CentralUnit
+- [x] Create adapter methods for legacy callback APIs
+- [x] Migrate internal event publishing to use EventBus
+- [x] Update tests to verify both old and new APIs work
+- [x] Introduce `subscribe_to_*` API methods on DataPoint, Device, and Channel classes
 
-### Phase 3: Legacy API Deprecation (Future)
+### Phase 3: Modern API Adoption ✅ COMPLETED
 
-1. Mark old callback methods as deprecated
-2. Update documentation to recommend EventBus
-3. Migrate Home Assistant integration to use EventBus directly
-4. Remove deprecated methods in next major version
+- [x] EventBus is now the primary event mechanism
+- [x] `subscribe_to_data_point_updated`, `subscribe_to_device_updated` and similar methods provide the recommended API
+- [x] Legacy callback methods remain for backward compatibility
+- [x] Home Assistant integration uses EventBus-based APIs
 
 ## Performance Considerations
 
@@ -419,6 +420,17 @@ print(f"Failed handlers: {stats['failed_handlers']}")
 - [Testing Guidelines](../CLAUDE.md#testing-guidelines)
 
 ## Changelog
+
+### 2025-12-07 - Documentation Update
+
+- Updated migration strategy to reflect completed phases
+- All phases now marked as completed
+
+### 2025-11-23 - Full Integration
+
+- Completed CentralUnit integration
+- Added `subscribe_to_*` methods to DataPoint, Device, and Channel classes
+- EventBus now primary event mechanism throughout the codebase
 
 ### 2025-11-18 - Initial Implementation
 

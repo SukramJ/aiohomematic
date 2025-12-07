@@ -16,6 +16,7 @@ from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Paramete
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpSensor, DpSwitch
@@ -399,3 +400,74 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
 }
 
 hmed.ALL_DEVICES[DataPointCategory.LOCK] = DEVICES
+
+
+# =============================================================================
+# New DeviceRegistry Registration (Phase 2 Migration)
+# =============================================================================
+
+# RF Lock (HM-Sec-Key)
+DeviceRegistry.register(
+    category=DataPointCategory.LOCK,
+    models="HM-Sec-Key",
+    data_point_class=CustomDpRfLock,
+    profile_type=DeviceProfile.RF_LOCK,
+    channels=(1,),
+    extended=ExtendedDeviceConfig(
+        additional_data_points={
+            1: (
+                Parameter.DIRECTION,
+                Parameter.ERROR,
+            ),
+        }
+    ),
+)
+
+# IP Lock with Button Lock (HmIP-DLD - multiple configs)
+DeviceRegistry.register_multiple(
+    category=DataPointCategory.LOCK,
+    models="HmIP-DLD",
+    configs=(
+        DeviceConfig(
+            data_point_class=CustomDpIpLock,
+            profile_type=DeviceProfile.IP_LOCK,
+            extended=ExtendedDeviceConfig(
+                additional_data_points={
+                    0: (Parameter.ERROR_JAMMED,),
+                }
+            ),
+        ),
+        DeviceConfig(
+            data_point_class=CustomDpButtonLock,
+            profile_type=DeviceProfile.IP_BUTTON_LOCK,
+            channels=(0,),
+        ),
+    ),
+)
+
+# RF Button Lock
+DeviceRegistry.register(
+    category=DataPointCategory.LOCK,
+    models="HM-TC-IT-WM-W-EU",
+    data_point_class=CustomDpButtonLock,
+    profile_type=DeviceProfile.RF_BUTTON_LOCK,
+    channels=(None,),
+)
+
+# IP Button Lock (various thermostats and controls)
+DeviceRegistry.register(
+    category=DataPointCategory.LOCK,
+    models=(
+        "ALPHA-IP-RBG",
+        "HmIP-BWTH",
+        "HmIP-FAL",
+        "HmIP-WGT",
+        "HmIP-WTH",
+        "HmIP-eTRV",
+        "HmIPW-FAL",
+        "HmIPW-WTH",
+    ),
+    data_point_class=CustomDpButtonLock,
+    profile_type=DeviceProfile.IP_BUTTON_LOCK,
+    channels=(0,),
+)

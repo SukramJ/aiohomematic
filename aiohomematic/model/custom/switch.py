@@ -17,6 +17,7 @@ from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin
+from aiohomematic.model.custom.registry import DeviceRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
@@ -161,3 +162,134 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
 }
 
 hmed.ALL_DEVICES[DataPointCategory.SWITCH] = DEVICES
+
+
+# =============================================================================
+# New DeviceRegistry Registration (Phase 2 Migration)
+# =============================================================================
+
+# IP Switch (various channel configurations)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models=("ELV-SH-BS2", "HmIP-BS2", "HmIP-PCBS2"),
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(4, 8),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models=(
+        "ELV-SH-PSMCI",
+        "ELV-SH-SW1-BAT",
+        "HmIP-DRSI1",
+        "HmIP-FSI",
+        "HmIP-PCBS",
+        "HmIP-PCBS-BAT",
+        "HmIP-PS",
+        "HmIP-USBSM",
+        "HmIP-WGC",
+    ),
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(3,),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models=("HmIP-BSL", "HmIP-BSM"),
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(4,),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-DRSI4",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(6, 10, 14, 18),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-FSM",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(2,),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-MOD-OC8",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(10, 14, 18, 22, 26, 30, 34, 38),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-SCTH230",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(8,),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-WGT",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(4,),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-WHS2",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(2, 6),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIPW-DRS",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(2, 6, 10, 14, 18, 22, 26, 30),
+)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIPW-FIO6",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(8, 12, 16, 20, 24, 28),
+)
+
+# HmIP-SMO230 (Switch with motion sensor)
+DeviceRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-SMO230",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(10,),
+    extended=ExtendedDeviceConfig(
+        additional_data_points={
+            1: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+            2: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+            3: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+            4: (
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+        }
+    ),
+)

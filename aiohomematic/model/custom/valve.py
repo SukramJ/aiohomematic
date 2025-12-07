@@ -17,6 +17,7 @@ from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin
+from aiohomematic.model.custom.registry import DeviceRegistry
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
@@ -99,3 +100,17 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-WSM": CustomConfig(make_ce_func=make_ip_irrigation_valve, channels=(4,)),
 }
 hmed.ALL_DEVICES[DataPointCategory.VALVE] = DEVICES
+
+
+# =============================================================================
+# New DeviceRegistry Registration (Phase 2 Migration)
+# =============================================================================
+
+# IP Irrigation Valve
+DeviceRegistry.register(
+    category=DataPointCategory.VALVE,
+    models=("ELV-SH-WSM", "HmIP-WSM"),
+    data_point_class=CustomDpIpIrrigationValve,
+    profile_type=DeviceProfile.IP_IRRIGATION_VALVE,
+    channels=(4,),
+)

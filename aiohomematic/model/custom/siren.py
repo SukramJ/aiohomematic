@@ -19,6 +19,7 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.registry import DeviceRegistry
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSensor
@@ -285,3 +286,25 @@ DEVICES: Mapping[str, CustomConfig | tuple[CustomConfig, ...]] = {
     "HmIP-SWSD": CustomConfig(make_ce_func=make_ip_siren_smoke),
 }
 hmed.ALL_DEVICES[DataPointCategory.SIREN] = DEVICES
+
+
+# =============================================================================
+# New DeviceRegistry Registration (Phase 2 Migration)
+# =============================================================================
+
+# IP Siren
+DeviceRegistry.register(
+    category=DataPointCategory.SIREN,
+    models="HmIP-ASIR",
+    data_point_class=CustomDpIpSiren,
+    profile_type=DeviceProfile.IP_SIREN,
+    channels=(3,),
+)
+
+# IP Siren Smoke
+DeviceRegistry.register(
+    category=DataPointCategory.SIREN,
+    models="HmIP-SWSD",
+    data_point_class=CustomDpIpSirenSmoke,
+    profile_type=DeviceProfile.IP_SIREN_SMOKE,
+)

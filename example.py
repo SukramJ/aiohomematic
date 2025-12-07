@@ -11,7 +11,6 @@ from aiohomematic import const
 from aiohomematic.central import CentralConfig
 from aiohomematic.central.event_bus import BackendSystemEventData
 from aiohomematic.client import InterfaceConfig
-from aiohomematic.model.custom import validate_custom_data_point_definition
 
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
@@ -109,8 +108,6 @@ class Example:
         await self.central.stop()
 
 
-# validate the device description
-if validate_custom_data_point_definition():
-    example = Example()
-    asyncio.run(example.example_run())
-    sys.exit(0)
+example = Example()
+asyncio.run(example.example_run())
+sys.exit(0)

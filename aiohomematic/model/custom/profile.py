@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "ChannelGroupConfig",
+    "DEFAULT_DATA_POINTS",
     "ProfileConfig",
     "ProfileRegistry",
     "PROFILE_CONFIGS",
@@ -699,6 +700,30 @@ SIMPLE_RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
         },
     ),
 )
+
+
+# =============================================================================
+# Default Data Points
+# =============================================================================
+
+# These parameters are added to all custom data points by default
+# (unless include_default_data_points=False in ProfileConfig)
+DEFAULT_DATA_POINTS: Final[Mapping[int | tuple[int, ...], tuple[Parameter, ...]]] = {
+    0: (
+        Parameter.ACTUAL_TEMPERATURE,
+        Parameter.DUTY_CYCLE,
+        Parameter.DUTYCYCLE,
+        Parameter.LOW_BAT,
+        Parameter.LOWBAT,
+        Parameter.OPERATING_VOLTAGE,
+        Parameter.RSSI_DEVICE,
+        Parameter.RSSI_PEER,
+        Parameter.SABOTAGE,
+        Parameter.TIME_OF_OPERATION,
+    ),
+    2: (Parameter.BATTERY_STATE,),
+    4: (Parameter.BATTERY_STATE,),
+}
 
 
 # =============================================================================

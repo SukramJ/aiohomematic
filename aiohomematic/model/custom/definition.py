@@ -17,16 +17,19 @@ from copy import deepcopy
 import logging
 from typing import Any, Final, cast
 
-import voluptuous as vol
-
 from aiohomematic import i18n
-from aiohomematic.const import CDPD, DEFAULT_INCLUDE_DEFAULT_DPS, DataPointCategory, DeviceProfile, Field, Parameter
+from aiohomematic.const import CDPD, DataPointCategory, DeviceProfile, Parameter
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
+from aiohomematic.model.custom.profile import (
+    DEFAULT_DATA_POINTS,
+    PROFILE_CONFIGS,
+    get_profile_config,
+    profile_config_to_dict,
+)
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.support import generate_unique_id
-from aiohomematic.schemas import SCHEMA_DEVICE_DESCRIPTION
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -62,542 +65,6 @@ def _device_config_to_custom_config(device_config: DeviceConfig) -> CustomConfig
         extended=extended,
         schedule_channel_no=device_config.schedule_channel_no,
     )
-
-
-_CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] = {
-    CDPD.DEFAULT_DPS: {
-        0: (
-            Parameter.ACTUAL_TEMPERATURE,
-            Parameter.DUTY_CYCLE,
-            Parameter.DUTYCYCLE,
-            Parameter.LOW_BAT,
-            Parameter.LOWBAT,
-            Parameter.OPERATING_VOLTAGE,
-            Parameter.RSSI_DEVICE,
-            Parameter.RSSI_PEER,
-            Parameter.SABOTAGE,
-            Parameter.TIME_OF_OPERATION,
-        ),
-        2: (Parameter.BATTERY_STATE,),
-        4: (Parameter.BATTERY_STATE,),
-    },
-    CDPD.DEVICE_DEFINITIONS: {
-        DeviceProfile.IP_BUTTON_LOCK: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.ALLOW_UNDEFINED_GENERIC_DPS: True,
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
-                },
-            },
-        },
-        DeviceProfile.IP_COVER: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.SECONDARY_CHANNELS: (1, 2),
-                CDPD.STATE_CHANNEL: -1,
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.LEVEL_2: Parameter.LEVEL_2,
-                    Field.STOP: Parameter.STOP,
-                },
-                CDPD.FIELDS: {
-                    -1: {
-                        Field.DIRECTION: Parameter.ACTIVITY_STATE,
-                        Field.OPERATION_MODE: Parameter.CHANNEL_OPERATION_MODE,
-                    },
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    -1: {
-                        Field.GROUP_LEVEL: Parameter.LEVEL,
-                        Field.GROUP_LEVEL_2: Parameter.LEVEL_2,
-                    },
-                },
-            },
-        },
-        DeviceProfile.IP_DIMMER: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.SECONDARY_CHANNELS: (1, 2),
-                CDPD.STATE_CHANNEL: -1,
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    -1: {
-                        Field.GROUP_LEVEL: Parameter.LEVEL,
-                    },
-                },
-            },
-        },
-        DeviceProfile.IP_GARAGE: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.DOOR_COMMAND: Parameter.DOOR_COMMAND,
-                    Field.SECTION: Parameter.SECTION,
-                },
-                CDPD.VISIBLE_REPEATABLE_FIELDS: {
-                    Field.DOOR_STATE: Parameter.DOOR_STATE,
-                },
-            },
-            CDPD.ADDITIONAL_DPS: {
-                1: (Parameter.STATE,),
-            },
-        },
-        DeviceProfile.IP_HDM: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.FIELDS: {
-                    0: {
-                        Field.DIRECTION: Parameter.ACTIVITY_STATE,
-                        Field.LEVEL: Parameter.LEVEL,
-                        Field.LEVEL_2: Parameter.LEVEL_2,
-                        Field.STOP: Parameter.STOP,
-                    },
-                },
-            },
-        },
-        DeviceProfile.IP_FIXED_COLOR_LIGHT: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.SECONDARY_CHANNELS: (1, 2),
-                CDPD.STATE_CHANNEL: -1,
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.COLOR: Parameter.COLOR,
-                    Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
-                    Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
-                    Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    -1: {
-                        Field.CHANNEL_COLOR: Parameter.COLOR,
-                        Field.GROUP_LEVEL: Parameter.LEVEL,
-                    },
-                },
-            },
-        },
-        DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.COLOR: Parameter.COLOR,
-                    Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
-                    Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
-                    Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
-                },
-            },
-        },
-        DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.COLOR: Parameter.COLOR,
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
-                    Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
-                    Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
-                },
-            },
-        },
-        DeviceProfile.IP_RGBW_LIGHT: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.SECONDARY_CHANNELS: (1, 2, 3),
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.COLOR_TEMPERATURE: Parameter.COLOR_TEMPERATURE,
-                    Field.DIRECTION: Parameter.ACTIVITY_STATE,
-                    Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
-                    Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
-                    Field.EFFECT: Parameter.EFFECT,
-                    Field.HUE: Parameter.HUE,
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.RAMP_TIME_TO_OFF_UNIT: Parameter.RAMP_TIME_TO_OFF_UNIT,
-                    Field.RAMP_TIME_TO_OFF_VALUE: Parameter.RAMP_TIME_TO_OFF_VALUE,
-                    Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
-                    Field.SATURATION: Parameter.SATURATION,
-                },
-                CDPD.FIELDS: {
-                    -1: {
-                        Field.DEVICE_OPERATION_MODE: Parameter.DEVICE_OPERATION_MODE,
-                    },
-                },
-            },
-        },
-        DeviceProfile.IP_DRG_DALI: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.COLOR_TEMPERATURE: Parameter.COLOR_TEMPERATURE,
-                    Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
-                    Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
-                    Field.EFFECT: Parameter.EFFECT,
-                    Field.HUE: Parameter.HUE,
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.RAMP_TIME_TO_OFF_UNIT: Parameter.RAMP_TIME_TO_OFF_UNIT,
-                    Field.RAMP_TIME_TO_OFF_VALUE: Parameter.RAMP_TIME_TO_OFF_VALUE,
-                    Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
-                    Field.SATURATION: Parameter.SATURATION,
-                },
-            },
-        },
-        DeviceProfile.IP_IRRIGATION_VALVE: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.SECONDARY_CHANNELS: (1, 2),
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.STATE: Parameter.STATE,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    -1: {
-                        Field.GROUP_STATE: Parameter.STATE,
-                    },
-                },
-            },
-            CDPD.ADDITIONAL_DPS: {
-                -2: (
-                    Parameter.WATER_FLOW,
-                    Parameter.WATER_VOLUME,
-                    Parameter.WATER_VOLUME_SINCE_OPEN,
-                ),
-            },
-        },
-        DeviceProfile.IP_SWITCH: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.SECONDARY_CHANNELS: (1, 2),
-                CDPD.STATE_CHANNEL: -1,
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.STATE: Parameter.STATE,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    -1: {
-                        Field.GROUP_STATE: Parameter.STATE,
-                    },
-                },
-            },
-            CDPD.ADDITIONAL_DPS: {
-                3: (
-                    Parameter.CURRENT,
-                    Parameter.ENERGY_COUNTER,
-                    Parameter.ENERGY_COUNTER_FEED_IN,
-                    Parameter.FREQUENCY,
-                    Parameter.POWER,
-                    Parameter.ACTUAL_TEMPERATURE,
-                    Parameter.VOLTAGE,
-                ),
-            },
-        },
-        DeviceProfile.IP_LOCK: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.DIRECTION: Parameter.ACTIVITY_STATE,
-                    Field.LOCK_STATE: Parameter.LOCK_STATE,
-                    Field.LOCK_TARGET_LEVEL: Parameter.LOCK_TARGET_LEVEL,
-                },
-                CDPD.FIELDS: {
-                    -1: {
-                        Field.ERROR: Parameter.ERROR_JAMMED,
-                    },
-                },
-            },
-        },
-        DeviceProfile.IP_SIREN: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.ACOUSTIC_ALARM_ACTIVE: Parameter.ACOUSTIC_ALARM_ACTIVE,
-                    Field.OPTICAL_ALARM_ACTIVE: Parameter.OPTICAL_ALARM_ACTIVE,
-                    Field.ACOUSTIC_ALARM_SELECTION: Parameter.ACOUSTIC_ALARM_SELECTION,
-                    Field.OPTICAL_ALARM_SELECTION: Parameter.OPTICAL_ALARM_SELECTION,
-                    Field.DURATION: Parameter.DURATION_VALUE,
-                    Field.DURATION_UNIT: Parameter.DURATION_UNIT,
-                },
-            },
-        },
-        DeviceProfile.IP_SIREN_SMOKE: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.SMOKE_DETECTOR_COMMAND: Parameter.SMOKE_DETECTOR_COMMAND,
-                },
-                CDPD.VISIBLE_REPEATABLE_FIELDS: {
-                    Field.SMOKE_DETECTOR_ALARM_STATUS: Parameter.SMOKE_DETECTOR_ALARM_STATUS,
-                },
-            },
-        },
-        DeviceProfile.IP_THERMOSTAT: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.ACTIVE_PROFILE: Parameter.ACTIVE_PROFILE,
-                    Field.BOOST_MODE: Parameter.BOOST_MODE,
-                    Field.CONTROL_MODE: Parameter.CONTROL_MODE,
-                    Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
-                    Field.OPTIMUM_START_STOP: Parameter.OPTIMUM_START_STOP,
-                    Field.PARTY_MODE: Parameter.PARTY_MODE,
-                    Field.SETPOINT: Parameter.SET_POINT_TEMPERATURE,
-                    Field.SET_POINT_MODE: Parameter.SET_POINT_MODE,
-                    Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
-                    Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
-                    Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
-                },
-                CDPD.VISIBLE_REPEATABLE_FIELDS: {
-                    Field.HEATING_COOLING: Parameter.HEATING_COOLING,
-                    Field.HUMIDITY: Parameter.HUMIDITY,
-                    Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    0: {
-                        Field.LEVEL: Parameter.LEVEL,
-                        Field.CONCENTRATION: Parameter.CONCENTRATION,
-                    },
-                    8: {  # BWTH
-                        Field.STATE: Parameter.STATE,
-                    },
-                },
-                CDPD.FIELDS: {
-                    7: {
-                        Field.HEATING_VALVE_TYPE: Parameter.HEATING_VALVE_TYPE,
-                    },
-                    -5: {  # WGTC
-                        Field.STATE: Parameter.STATE,
-                    },
-                },
-            },
-        },
-        DeviceProfile.IP_THERMOSTAT_GROUP: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.ACTIVE_PROFILE: Parameter.ACTIVE_PROFILE,
-                    Field.BOOST_MODE: Parameter.BOOST_MODE,
-                    Field.CONTROL_MODE: Parameter.CONTROL_MODE,
-                    Field.HEATING_VALVE_TYPE: Parameter.HEATING_VALVE_TYPE,
-                    Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
-                    Field.OPTIMUM_START_STOP: Parameter.OPTIMUM_START_STOP,
-                    Field.PARTY_MODE: Parameter.PARTY_MODE,
-                    Field.SETPOINT: Parameter.SET_POINT_TEMPERATURE,
-                    Field.SET_POINT_MODE: Parameter.SET_POINT_MODE,
-                    Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
-                    Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
-                    Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
-                },
-                CDPD.VISIBLE_REPEATABLE_FIELDS: {
-                    Field.HEATING_COOLING: Parameter.HEATING_COOLING,
-                    Field.HUMIDITY: Parameter.HUMIDITY,
-                    Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
-                },
-                CDPD.FIELDS: {
-                    0: {
-                        Field.LEVEL: Parameter.LEVEL,
-                    },
-                    3: {
-                        Field.STATE: Parameter.STATE,
-                    },
-                },
-            },
-            CDPD.INCLUDE_DEFAULT_DPS: False,
-        },
-        DeviceProfile.RF_BUTTON_LOCK: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.PRIMARY_CHANNEL: None,
-                CDPD.ALLOW_UNDEFINED_GENERIC_DPS: True,
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
-                },
-            },
-        },
-        DeviceProfile.RF_COVER: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.DIRECTION: Parameter.DIRECTION,
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.LEVEL_2: Parameter.LEVEL_SLATS,
-                    Field.LEVEL_COMBINED: Parameter.LEVEL_COMBINED,
-                    Field.STOP: Parameter.STOP,
-                },
-            },
-        },
-        DeviceProfile.RF_DIMMER: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
-                },
-            },
-        },
-        DeviceProfile.RF_DIMMER_COLOR: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
-                },
-                CDPD.FIELDS: {
-                    1: {
-                        Field.COLOR: Parameter.COLOR,
-                    },
-                    2: {
-                        Field.PROGRAM: Parameter.PROGRAM,
-                    },
-                },
-            },
-        },
-        DeviceProfile.RF_DIMMER_COLOR_FIXED: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
-                },
-            },
-        },
-        DeviceProfile.RF_DIMMER_COLOR_TEMP: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
-                },
-                CDPD.FIELDS: {
-                    1: {
-                        Field.COLOR_LEVEL: Parameter.LEVEL,
-                    },
-                },
-            },
-        },
-        DeviceProfile.RF_DIMMER_WITH_VIRT_CHANNEL: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.SECONDARY_CHANNELS: (1, 2),
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.LEVEL: Parameter.LEVEL,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                    Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
-                },
-            },
-        },
-        DeviceProfile.RF_LOCK: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.DIRECTION: Parameter.DIRECTION,
-                    Field.OPEN: Parameter.OPEN,
-                    Field.STATE: Parameter.STATE,
-                    Field.ERROR: Parameter.ERROR,
-                },
-            },
-        },
-        DeviceProfile.RF_SWITCH: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.STATE: Parameter.STATE,
-                    Field.ON_TIME_VALUE: Parameter.ON_TIME,
-                },
-            },
-            CDPD.ADDITIONAL_DPS: {
-                1: (
-                    Parameter.CURRENT,
-                    Parameter.ENERGY_COUNTER,
-                    Parameter.FREQUENCY,
-                    Parameter.POWER,
-                    Parameter.VOLTAGE,
-                ),
-            },
-        },
-        DeviceProfile.RF_THERMOSTAT: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.AUTO_MODE: Parameter.AUTO_MODE,
-                    Field.BOOST_MODE: Parameter.BOOST_MODE,
-                    Field.COMFORT_MODE: Parameter.COMFORT_MODE,
-                    Field.CONTROL_MODE: Parameter.CONTROL_MODE,
-                    Field.LOWERING_MODE: Parameter.LOWERING_MODE,
-                    Field.MANU_MODE: Parameter.MANU_MODE,
-                    Field.SETPOINT: Parameter.SET_TEMPERATURE,
-                },
-                CDPD.FIELDS: {
-                    None: {
-                        Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
-                        Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
-                        Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
-                        Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
-                        Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
-                    }
-                },
-                CDPD.VISIBLE_REPEATABLE_FIELDS: {
-                    Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
-                    Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    0: {
-                        Field.VALVE_STATE: Parameter.VALVE_STATE,
-                    },
-                },
-            },
-        },
-        DeviceProfile.RF_THERMOSTAT_GROUP: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.REPEATABLE_FIELDS: {
-                    Field.AUTO_MODE: Parameter.AUTO_MODE,
-                    Field.BOOST_MODE: Parameter.BOOST_MODE,
-                    Field.COMFORT_MODE: Parameter.COMFORT_MODE,
-                    Field.CONTROL_MODE: Parameter.CONTROL_MODE,
-                    Field.LOWERING_MODE: Parameter.LOWERING_MODE,
-                    Field.MANU_MODE: Parameter.MANU_MODE,
-                    Field.SETPOINT: Parameter.SET_TEMPERATURE,
-                },
-                CDPD.FIELDS: {
-                    None: {
-                        Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE: Parameter.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE,
-                        Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
-                        Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
-                        Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
-                        Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
-                    }
-                },
-                CDPD.VISIBLE_REPEATABLE_FIELDS: {
-                    Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
-                    Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
-                },
-                CDPD.VISIBLE_FIELDS: {
-                    0: {
-                        Field.VALVE_STATE: Parameter.VALVE_STATE,
-                    },
-                },
-            },
-            CDPD.INCLUDE_DEFAULT_DPS: False,
-        },
-        DeviceProfile.SIMPLE_RF_THERMOSTAT: {
-            CDPD.DEVICE_GROUP: {
-                CDPD.VISIBLE_REPEATABLE_FIELDS: {
-                    Field.HUMIDITY: Parameter.HUMIDITY,
-                    Field.TEMPERATURE: Parameter.TEMPERATURE,
-                },
-                CDPD.FIELDS: {
-                    1: {
-                        Field.SETPOINT: Parameter.SETPOINT,
-                    },
-                },
-            },
-        },
-    },
-}
-
-VALID_CUSTOM_DATA_POINT_DEFINITION = SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
-
-
-def validate_custom_data_point_definition() -> Any:
-    """Validate the custom data point definition."""
-    try:
-        return SCHEMA_DEVICE_DESCRIPTION(_CUSTOM_DATA_POINT_DEFINITION)
-    except vol.Invalid as err:  # pragma: no cover
-        _LOGGER.error(
-            i18n.tr(
-                "log.model.custom.definition.validate_failed",
-                path=str(err.path),
-                msg=str(err.msg),
-            )
-        )
-        return None
 
 
 def make_custom_data_point(
@@ -718,24 +185,19 @@ def get_channel_group_no(*, device: DeviceProtocol, channel_no: int | None) -> i
 
 
 def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter, ...]]:
-    """Return the default data point."""
-    return cast(
-        Mapping[int | tuple[int, ...], tuple[Parameter, ...]], VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]
-    )
+    """Return the default data points."""
+    return DEFAULT_DATA_POINTS
 
 
 def get_include_default_data_points(*, device_profile: DeviceProfile) -> bool:
     """Return if default data points should be included."""
-    device = _get_device_definition(device_profile=device_profile)
-    return bool(device.get(CDPD.INCLUDE_DEFAULT_DPS, DEFAULT_INCLUDE_DEFAULT_DPS))
+    return get_profile_config(device_profile).include_default_data_points
 
 
 def _get_device_definition(*, device_profile: DeviceProfile) -> Mapping[CDPD, Any]:
     """Return device from data_point definitions."""
-    return cast(
-        Mapping[CDPD, Any],
-        VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device_profile],
-    )
+    profile_config = get_profile_config(device_profile)
+    return cast(Mapping[CDPD, Any], profile_config_to_dict(profile_config))
 
 
 def _get_device_group(*, device_profile: DeviceProfile, group_no: int | None) -> Mapping[CDPD, Any]:
@@ -780,16 +242,13 @@ def _get_device_data_points(
     *, device_profile: DeviceProfile, group_no: int | None
 ) -> Mapping[int, tuple[Parameter, ...]]:
     """Return the device data points."""
-    if (
-        additional_dps := VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]
-        .get(device_profile, {})
-        .get(CDPD.ADDITIONAL_DPS, {})
-    ) and not group_no:
-        return cast(Mapping[int, tuple[Parameter, ...]], additional_dps)
+    profile = get_profile_config(device_profile)
+    additional_dps = profile.additional_data_points
+    if not group_no:
+        return additional_dps
     new_dps: dict[int, tuple[Parameter, ...]] = {}
-    if additional_dps:
-        for channel_no, field in additional_dps.items():
-            new_dps[channel_no + group_no] = field
+    for channel_no, params in additional_dps.items():
+        new_dps[channel_no + group_no] = params
     return new_dps
 
 
@@ -821,19 +280,24 @@ def data_point_definition_exists(*, model: str) -> bool:
 def get_required_parameters() -> tuple[Parameter, ...]:
     """Return all required parameters for custom data points."""
     required_parameters: list[Parameter] = []
-    for channel in VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS]:
-        required_parameters.extend(VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEFAULT_DPS][channel])
-    for device in VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS]:
-        device_def = VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device][CDPD.DEVICE_GROUP]
-        required_parameters.extend(list(device_def.get(CDPD.REPEATABLE_FIELDS, {}).values()))
-        required_parameters.extend(list(device_def.get(CDPD.VISIBLE_REPEATABLE_FIELDS, {}).values()))
-        required_parameters.extend(list(device_def.get(CDPD.REPEATABLE_FIELDS, {}).values()))
-        for additional_data_points in list(
-            VALID_CUSTOM_DATA_POINT_DEFINITION[CDPD.DEVICE_DEFINITIONS][device].get(CDPD.ADDITIONAL_DPS, {}).values()
-        ):
-            required_parameters.extend(additional_data_points)
 
-    # Get required parameters from DeviceProfileRegistry extended configs
+    # Add default data points
+    for params in DEFAULT_DATA_POINTS.values():
+        required_parameters.extend(params)
+
+    # Add parameters from profile configurations
+    for profile_config in PROFILE_CONFIGS.values():
+        group = profile_config.channel_group
+        required_parameters.extend(group.repeating_fields.values())
+        required_parameters.extend(group.visible_repeating_fields.values())
+        for field_map in group.channel_fields.values():
+            required_parameters.extend(field_map.values())
+        for field_map in group.visible_channel_fields.values():
+            required_parameters.extend(field_map.values())
+        for params in profile_config.additional_data_points.values():
+            required_parameters.extend(params)
+
+    # Add required parameters from DeviceProfileRegistry extended configs
     for extended_config in DeviceProfileRegistry.get_all_extended_configs():
         required_parameters.extend(extended_config.required_parameters)
 

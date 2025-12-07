@@ -254,6 +254,13 @@ _UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[TModelName, frozenset[Parameter]]
     "HM-Sec-Win": frozenset({Parameter.DIRECTION, Parameter.WORKING, Parameter.ERROR, Parameter.STATUS}),
     "HM-Sec-Key": frozenset({Parameter.DIRECTION, Parameter.ERROR}),
     "HmIP-PCBS-BAT": frozenset({Parameter.OPERATING_VOLTAGE, Parameter.LOW_BAT}),  # To override ignore for HmIP-PCBS
+    # RF thermostats need WEEK_PROGRAM_POINTER for climate presets
+    "BC-RT-TRX-CyG": frozenset({Parameter.WEEK_PROGRAM_POINTER}),
+    "BC-RT-TRX-CyN": frozenset({Parameter.WEEK_PROGRAM_POINTER}),
+    "BC-TC-C-WM": frozenset({Parameter.WEEK_PROGRAM_POINTER}),
+    "HM-CC-RT-DN": frozenset({Parameter.WEEK_PROGRAM_POINTER}),
+    "HM-CC-VG-1": frozenset({Parameter.WEEK_PROGRAM_POINTER}),
+    "HM-TC-IT-WM-W-EU": frozenset({Parameter.WEEK_PROGRAM_POINTER}),
 }
 
 _UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[TModelName, frozenset[Parameter]]] = {

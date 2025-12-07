@@ -40,6 +40,7 @@ import errno
 from functools import wraps
 import logging
 from typing import Any, Final, TypeVar, overload
+from xmlrpc.client import Fault as XmlRpcFault
 
 from aiohomematic.const import (
     RETRY_BACKOFF_MULTIPLIER,
@@ -78,6 +79,8 @@ _PERMANENT_EXCEPTION_TYPES: Final[tuple[type[BaseException], ...]] = (
     AuthFailure,
     UnsupportedException,
     ValidationException,
+    TypeError,
+    XmlRpcFault,
 )
 
 

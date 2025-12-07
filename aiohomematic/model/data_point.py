@@ -94,7 +94,7 @@ __all__ = [
     "bind_collector",
 ]
 
-from schemas import EVENT_DATA_SCHEMA
+from aiohomematic.schemas import EVENT_DATA_SCHEMA
 
 # Type variable used for decorator typing
 CallableT = TypeVar("CallableT", bound=CallableAny)

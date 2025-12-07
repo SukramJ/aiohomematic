@@ -3,6 +3,11 @@
 """
 Device profile definitions for custom data point implementations.
 
+This module provides the legacy dictionary-based profile definitions.
+For the new type-safe dataclass-based approach, see:
+- profile.py: ProfileConfig, ChannelGroupConfig dataclasses
+- registry.py: DeviceRegistry, DeviceConfig for device mappings
+
 Public API of this module is defined by __all__.
 """
 
@@ -23,6 +28,21 @@ from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.support import generate_unique_id
 from aiohomematic.schemas import SCHEMA_DEVICE_DESCRIPTION
 from aiohomematic.support import extract_exc_args
+
+# Re-export new types for convenience
+# These provide a migration path to the new type-safe approach
+# from aiohomematic.model.custom.profile import (  # noqa: ERA001
+#     PROFILE_CONFIGS,
+#     ChannelGroupConfig,
+#     ProfileConfig,
+#     get_profile_config,
+#     profile_config_to_dict,
+# )
+# from aiohomematic.model.custom.registry import (  # noqa: ERA001
+#     DeviceConfig,
+#     DeviceRegistry,
+#     ExtendedDeviceConfig,
+# )
 
 _LOGGER: Final = logging.getLogger(__name__)
 

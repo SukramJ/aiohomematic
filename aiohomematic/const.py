@@ -267,6 +267,29 @@ class CDPD(StrEnum):
     VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
 
 
+# Alias for CDPD with more descriptive name
+ProfileKey = CDPD
+"""Alias for CDPD - Keys used in profile configuration dictionaries."""
+
+
+class ChannelOffset(IntEnum):
+    """
+    Semantic channel offsets relative to the primary channel.
+
+    Used in profile definitions to reference channels by their semantic role
+    rather than magic numbers.
+    """
+
+    STATE = -1
+    """State channel offset (e.g., ACTIVITY_STATE for covers)."""
+
+    SENSOR = -2
+    """Sensor channel offset (e.g., WATER_FLOW for irrigation)."""
+
+    CONFIG = -5
+    """Configuration channel offset (e.g., for WGTC thermostat)."""
+
+
 class CentralUnitState(StrEnum):
     """Enum with central unit states."""
 

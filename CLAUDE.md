@@ -1482,9 +1482,6 @@ from aiohomematic.const import Interface, ParamsetKey, BackendSystemEvent
 # Exceptions
 from aiohomematic.exceptions import AioHomematicException, ClientException
 
-# Validation
-from aiohomematic.model.custom import validate_custom_data_point_definition
-
 # Device registration (for adding new device support)
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, DeviceConfig, ExtendedDeviceConfig
 ```

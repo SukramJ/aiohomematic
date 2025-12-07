@@ -37,8 +37,6 @@ Public API entry points commonly used by integrators
   category).
 - get_required_parameters(): Return all parameters that must be fetched to allow
   custom data points to function properly.
-- validate_custom_data_point_definition(): Validate the internal definition
-  schema; useful in tests and development.
 """
 
 from __future__ import annotations
@@ -70,7 +68,6 @@ from aiohomematic.model.custom.definition import (
     data_point_definition_exists,
     get_custom_configs,
     get_required_parameters,
-    validate_custom_data_point_definition,
 )
 from aiohomematic.model.custom.light import (
     CustomDpColorDimmer,
@@ -93,6 +90,7 @@ from aiohomematic.model.custom.lock import (
 
 # New type-safe profile and registry modules
 from aiohomematic.model.custom.profile import (
+    DEFAULT_DATA_POINTS,
     PROFILE_CONFIGS,
     ChannelGroupConfig,
     ProfileConfig,
@@ -153,9 +151,9 @@ __all__ = [
     "data_point_definition_exists",
     "get_custom_configs",
     "get_required_parameters",
-    "validate_custom_data_point_definition",
     # Profile (new type-safe approach)
     "ChannelGroupConfig",
+    "DEFAULT_DATA_POINTS",
     "ProfileConfig",
     "ProfileRegistry",
     "PROFILE_CONFIGS",

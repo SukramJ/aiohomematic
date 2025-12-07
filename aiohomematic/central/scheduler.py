@@ -103,7 +103,7 @@ class BackgroundScheduler:
     Modern asyncio-based scheduler for periodic background tasks.
 
     Manages scheduled tasks such as connection checks, data refreshes, and
-    firmware update checks. Replaces the legacy threading-based _Scheduler.
+    firmware update checks.
 
     Features:
     ---------

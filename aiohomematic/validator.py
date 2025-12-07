@@ -14,7 +14,6 @@ import voluptuous as vol
 
 from aiohomematic import i18n
 from aiohomematic.const import BLOCKED_CATEGORIES, CATEGORIES, HUB_CATEGORIES, MAX_WAIT_FOR_CALLBACK, DataPointCategory
-from aiohomematic.model.custom import definition as hmed
 from aiohomematic.support import (
     check_password,
     is_channel_address,
@@ -99,11 +98,6 @@ def validate_startup() -> None:
                 missing=missing_str,
             )
         )
-
-    # Validate custom definition mapping schema (Field <-> Parameter mappings)
-    # This ensures Field mappings are valid and consistent at startup.
-    if hmed.validate_custom_data_point_definition() is None:
-        raise vol.Invalid(i18n.tr("exception.validator.custom_definition.invalid"))
 
 
 # Define public API for this module

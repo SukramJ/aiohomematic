@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from aiohomematic.const import CallSource, DataPointUsage, ParamsetKey
-from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters, validate_custom_data_point_definition
+from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters
 from aiohomematic.model.generic import DpSensor, DpSwitch
 from aiohomematic.store import check_ignore_parameters_is_clean
 from aiohomematic_test_support import const
@@ -25,12 +25,8 @@ class TestDataPointDefinition:
     def test_custom_required_data_points(self) -> None:
         """Test required parameters from data point definitions."""
         required_parameters = get_required_parameters()
-        assert len(required_parameters) == 89
+        assert len(required_parameters) == 95
         assert check_ignore_parameters_is_clean() is True
-
-    def test_validate_data_point_definition(self) -> None:
-        """Test custom data point definition validation."""
-        assert validate_custom_data_point_definition() is not None
 
 
 class TestDataPointCallbacks:

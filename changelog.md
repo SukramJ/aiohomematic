@@ -1,3 +1,9 @@
+# Version 2025.12.11 (2025-12-07)
+
+## What's Changed
+
+- Cleanup of legacy code in custom entity definition
+
 # Version 2025.12.10 (2025-12-07)
 
 ## What's Changed

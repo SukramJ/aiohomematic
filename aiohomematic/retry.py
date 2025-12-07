@@ -40,6 +40,9 @@ import errno
 from functools import wraps
 import logging
 from typing import Any, Final, TypeVar, overload
+from xmlrpc.client import Fault as XmlRpcFault
+
+from aiohttp import ClientConnectorCertificateError, ClientConnectorError, ServerDisconnectedError, ServerTimeoutError
 
 from aiohomematic.const import (
     RETRY_BACKOFF_MULTIPLIER,
@@ -50,6 +53,7 @@ from aiohomematic.const import (
 from aiohomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
+    InternalBackendException,
     NoConnectionException,
     UnsupportedException,
     ValidationException,
@@ -76,8 +80,12 @@ _TRANSIENT_OS_ERROR_CODES: Final[frozenset[int]] = frozenset(
 # Exception types that indicate permanent failures - never retry these
 _PERMANENT_EXCEPTION_TYPES: Final[tuple[type[BaseException], ...]] = (
     AuthFailure,
+    ClientConnectorCertificateError,  # TLS/SSL certificate errors won't resolve with retry
+    InternalBackendException,  # Server-side errors typically need manual intervention
     UnsupportedException,
     ValidationException,
+    TypeError,
+    XmlRpcFault,
 )
 
 
@@ -106,6 +114,15 @@ def is_retryable_exception(exc: BaseException) -> bool:
     # ConnectionError and subclasses (ConnectionRefusedError, etc.) are retryable
     if isinstance(exc, ConnectionError):
         return True
+
+    # aiohttp server errors that indicate transient issues
+    if isinstance(exc, ServerTimeoutError | ServerDisconnectedError):
+        return True
+
+    # aiohttp ClientConnectorError may wrap transient OS errors
+    # Check the underlying os_error for transient error codes
+    if isinstance(exc, ClientConnectorError):
+        return (os_error := exc.os_error) is not None and os_error.errno in _TRANSIENT_OS_ERROR_CODES
 
     # Other BaseHomematicException types might be retryable
     # (except permanent ones already handled above)

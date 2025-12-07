@@ -21,22 +21,25 @@ Custom device profiles are used when a specific device (model) requires a bespok
 
 ### Key modules and types:
 
-- aiohomematic.model.custom.definition
-  - make_custom_data_point(channel, data_point_class, device_profile, custom_config)
-  - is_multi_channel_device(model, category)
-  - get_custom_configs(model, category)
-  - validate_custom_data_point_definition(...)
-- aiohomematic.model.custom.data_point.CustomDataPoint: Base implementation that:
+- **aiohomematic.model.custom.registry**
+  - `DeviceProfileRegistry`: Central registry for device-to-profile mappings
+  - `DeviceConfig`: Type-safe configuration for device registration
+  - `ExtendedDeviceConfig`: Extended configuration with additional fields
+- **aiohomematic.model.custom.definition**
+  - `make_custom_data_point(channel, data_point_class, device_profile, custom_config)`: Factory function
+  - `is_multi_channel_device(model, category)`: Check for multi-channel devices
+  - `get_custom_configs(model, category)`: Get configurations for a model
+- **aiohomematic.model.custom.data_point.CustomDataPoint**: Base implementation that:
   - Groups multiple generic data points, sets visibility, service flags, etc.
   - Subscribes to underlying GenericDataPoint updates
   - Provides state_property values derived from the grouped set
-- aiohomematic.model.custom.const: contains Field, DeviceProfile, and CDPD keys used in profile definitions
-- aiohomematic.model.custom.support.CustomConfig: carries profile configuration
+- **aiohomematic.const**: Contains `Field`, `DeviceProfile`, and `CDPD` keys used in profile definitions
 
 ### Concepts:
 
 - A CustomDataPoint instance sits on a Channel and aggregates underlying GenericDataPoints according to a device profile definition.
-- Device profiles are declared as data structures (see model/custom/ for examples), consumed by functions in ...custom.definition.
+- Device profiles are declared in `model/custom/profile.py` as type-safe dataclasses.
+- Device-to-profile mappings are registered via `DeviceProfileRegistry` in each entity module.
 
 ### When to create a custom device profile:
 
@@ -45,46 +48,84 @@ Custom device profiles are used when a specific device (model) requires a bespok
 
 ### Steps to add a custom device profile:
 
-1. Choose or create a CustomDataPoint subclass (optional)
-   - Most cases can use CustomDataPoint directly with a new profile definition.
-   - If you need special behavior, subclass CustomDataPoint and override:
-     - \_init_data_point_fields (to adjust defaults, units, operations)
-     - \_readable_data_points / \_relevant_data_points (to tune exposure)
-     - state_property getters if you compute an aggregate state
-2. Add or extend a profile definition
-   - Place the profile definition in model/custom/ (follow existing patterns and naming).
-   - Use constants from aiohomematic.model.custom.const (Field, CDPD) to map which underlying parameters belong to which fields.
-   - For multi-channel devices, leverage is_multi_channel_device and group handling provided by custom.definition.
-3. Wire it up via make_custom_data_point
-   - The factory in aiohomematic.model.custom.definition will build instances based on the profile and CustomConfig returned by get_custom_configs.
-   - Ensure your model identifier(s) are included in the configuration mapping so the factory picks your profile when a matching device is discovered.
-4. Validate
-   - Use validate_custom_data_point_definition to ensure the definition is structurally sound.
-   - Run the project tests and add specific tests for your device if possible.
+1. **Choose or create a CustomDataPoint subclass** (optional)
 
-### Minimal example snippet (illustrative):
+   - Most cases can use an existing CustomDataPoint subclass (e.g., `CustomDpIpThermostat`, `CustomDpSwitch`).
+   - If you need special behavior, subclass CustomDataPoint and override:
+     - `_init_data_point_fields` (to adjust defaults, units, operations)
+     - `_readable_data_points` / `_relevant_data_points` (to tune exposure)
+     - `state_property` getters if you compute an aggregate state
+
+2. **Register the device with DeviceProfileRegistry**
+
+   - In the appropriate entity module (e.g., `climate.py`, `switch.py`), add a registration call:
+
+   ```python
+   from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
+
+   DeviceProfileRegistry.register(
+       category=DataPointCategory.CLIMATE,
+       models=("HmIP-NEW-DEVICE", "HmIP-NEW-DEVICE-2"),  # Device model(s)
+       data_point_class=CustomDpIpThermostat,            # CustomDataPoint subclass
+       profile_type=DeviceProfile.IP_THERMOSTAT,         # Profile type from const.py
+       channels=(1,),                                     # Primary channel(s)
+       schedule_channel_no=1,                             # Optional: schedule channel
+       extended=ExtendedDeviceConfig(                     # Optional: extended config
+           additional_data_points={
+               0: (Parameter.SOME_PARAM,),
+           },
+       ),
+   )
+   ```
+
+3. **For multiple configurations per device**, use `register_multiple`:
+
+   ```python
+   DeviceProfileRegistry.register_multiple(
+       category=DataPointCategory.LOCK,
+       models="HmIP-DLD",
+       configs=(
+           DeviceConfig(
+               data_point_class=CustomDpIpLock,
+               profile_type=DeviceProfile.IP_LOCK,
+           ),
+           DeviceConfig(
+               data_point_class=CustomDpButtonLock,
+               profile_type=DeviceProfile.IP_BUTTON_LOCK,
+               channels=(0,),
+           ),
+       ),
+   )
+   ```
+
+4. **Validate**
+   - Run the project tests to ensure your device is correctly registered.
+   - Add specific tests for your device if possible.
+
+### Minimal example (adding a new switch device):
 
 ```python
-# in aiohomematic/model/custom/my_device_profile.py
-from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.const import Field
+# In aiohomematic/model/custom/switch.py
 
-# Using base CustomDataPoint without subclassing, define mapping in a dict consumed by custom.definition
-MY_DEVICE_PROFILE = {
-    # Group 1 fields mapping to underlying parameters on channels
-    1: {
-        Field.PRIMARY: ((1,), ("STATE",)),
-        Field.SECONDARY: ((1,), ("LEVEL",)),
-    },
-}
+from aiohomematic.const import DataPointCategory, DeviceProfile
+from aiohomematic.model.custom.registry import DeviceProfileRegistry
+
+# Register the new device
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-MY-NEW-SWITCH",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(3,),  # Channel number where STATE parameter lives
+)
 ```
 
-Then expose it via get_custom_configs in a small registration module (or extend existing mapping for your model) so make_custom_data_point can create instances for matching devices.
+### Tips:
 
-Tips:
-
-- Reuse helpers from custom.definition to mark/attach GenericDataPoints. See CustomDataPoint.\_add_data_points and related helpers for how visibility and callbacks are handled.
-- For multi-channel remotes or covers, check how group numbers are handled via add_channel_groups_to_device and get_channel_group_no.
+- Look at existing registrations in `climate.py`, `switch.py`, `cover.py`, etc. for patterns.
+- Use `ExtendedDeviceConfig` when you need additional data points beyond the profile defaults.
+- For multi-channel devices, specify all relevant channels in the `channels` tuple.
+- To blacklist a device model, use `DeviceProfileRegistry.blacklist("MODEL-NAME")`.
 
 ---
 

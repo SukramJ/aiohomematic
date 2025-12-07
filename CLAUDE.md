@@ -83,8 +83,10 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   │   │   ├── siren.py            # Sirens/alarms
 │   │   │   ├── switch.py           # Switches/relays
 │   │   │   ├── valve.py            # Heating valves
-│   │   │   ├── data_point.py       # Custom data point definitions
-│   │   │   ├── definition.py       # Custom device profiles
+│   │   │   ├── data_point.py       # Custom data point base class
+│   │   │   ├── definition.py       # Profile definitions and factory
+│   │   │   ├── profile.py          # ProfileConfig dataclasses
+│   │   │   ├── registry.py         # DeviceProfileRegistry
 │   │   │   └── support.py          # Helper utilities
 │   │   │
 │   │   ├── generic/                # Generic entity types
@@ -1019,58 +1021,65 @@ class _Scheduler:
 
 ### Adding a New Device Type
 
-1. **Create custom entity class** in `aiohomematic/model/custom/`:
+Device-to-profile mappings are managed via `DeviceProfileRegistry`. Most new devices can use existing CustomDataPoint subclasses.
+
+1. **Register with DeviceProfileRegistry** in the appropriate entity module (e.g., `switch.py`, `climate.py`):
 
 ```python
-"""Custom entity for new device type."""
+# In aiohomematic/model/custom/switch.py (or appropriate module)
+from aiohomematic.const import DataPointCategory, DeviceProfile, Parameter
+from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 
-from __future__ import annotations
+# Simple registration
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
+    models="HmIP-NEW-SWITCH",           # Single model or tuple of models
+    data_point_class=CustomDpSwitch,     # Existing or new CustomDataPoint class
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(3,),                        # Channel(s) where STATE lives
+)
 
-from typing import TYPE_CHECKING
-
-from aiohomematic.model.custom.data_point import CustomDataPoint
-
-if TYPE_CHECKING:
-    from aiohomematic.central import CentralUnit
-
-
-class NewDeviceEntity(CustomDataPoint):
-    """Custom entity for new device type."""
-
-    def __init__(
-        self,
-        *,
-        central: CentralUnit,
-        device_address: str,
-        channel_no: int,
-    ):
-        """Initialize new device entity."""
-        super().__init__(
-            central=central,
-            device_address=device_address,
-            channel_no=channel_no,
-        )
-```
-
-2. **Register in definition.py**:
-
-```python
-# In aiohomematic/model/custom/definition.py
-CUSTOM_DEVICE_DEFINITIONS: dict[str, CustomDeviceDefinition] = {
-    "NEW_DEVICE_TYPE": CustomDeviceDefinition(
-        entity_classes={
-            NewDeviceEntity: (
-                "NEW_DEVICE_CHANNEL_TYPE",
-                {"PARAMETER_NAME"},
-            ),
+# With extended configuration (additional data points)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.CLIMATE,
+    models=("HmIP-NEW-THERMO", "HmIP-NEW-THERMO-2"),
+    data_point_class=CustomDpIpThermostat,
+    profile_type=DeviceProfile.IP_THERMOSTAT,
+    channels=(1,),
+    schedule_channel_no=1,
+    extended=ExtendedDeviceConfig(
+        additional_data_points={
+            0: (Parameter.SOME_EXTRA_PARAM,),
         },
     ),
-}
+)
 ```
 
-3. **Add tests** in `tests/test_model_newdevice.py`
+2. **For devices needing multiple configurations** (e.g., lock + button lock):
 
-4. **Update documentation** in `docs/extension_points.md`
+```python
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
+
+DeviceProfileRegistry.register_multiple(
+    category=DataPointCategory.LOCK,
+    models="HmIP-NEW-LOCK",
+    configs=(
+        DeviceConfig(
+            data_point_class=CustomDpIpLock,
+            profile_type=DeviceProfile.IP_LOCK,
+        ),
+        DeviceConfig(
+            data_point_class=CustomDpButtonLock,
+            profile_type=DeviceProfile.IP_BUTTON_LOCK,
+            channels=(0,),
+        ),
+    ),
+)
+```
+
+3. **Add tests** in `tests/test_model_*.py`
+
+4. **See `docs/extension_points.md`** for detailed instructions and more examples
 
 ### Adding a Calculated Data Point
 
@@ -1475,6 +1484,9 @@ from aiohomematic.exceptions import AioHomematicException, ClientException
 
 # Validation
 from aiohomematic.model.custom import validate_custom_data_point_definition
+
+# Device registration (for adding new device support)
+from aiohomematic.model.custom.registry import DeviceProfileRegistry, DeviceConfig, ExtendedDeviceConfig
 ```
 
 ### Useful Links

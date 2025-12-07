@@ -20,7 +20,7 @@ from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import PositionMixin
-from aiohomematic.model.custom.registry import DeviceRegistry, ExtendedDeviceConfig
+from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
@@ -800,11 +800,11 @@ hmed.ALL_DEVICES[DataPointCategory.COVER] = DEVICES
 
 
 # =============================================================================
-# New DeviceRegistry Registration (Phase 2 Migration)
+# New DeviceProfileRegistry Registration (Phase 2 Migration)
 # =============================================================================
 
 # RF Cover
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models=(
         "263 146",
@@ -822,7 +822,7 @@ DeviceRegistry.register(
     data_point_class=CustomDpCover,
     profile_type=DeviceProfile.RF_COVER,
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HMW-LC-Bl1",
     data_point_class=CustomDpCover,
@@ -831,7 +831,7 @@ DeviceRegistry.register(
 )
 
 # RF Blind
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models=("HM-LC-Ja1PBU-FM", "HM-LC-JaX"),
     data_point_class=CustomDpBlind,
@@ -839,7 +839,7 @@ DeviceRegistry.register(
 )
 
 # RF Window Drive
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HM-Sec-Win",
     data_point_class=CustomDpWindowDrive,
@@ -854,7 +854,7 @@ DeviceRegistry.register(
 )
 
 # IP Cover
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models=("HmIP-BROLL", "HmIP-FROLL"),
     data_point_class=CustomDpCover,
@@ -863,21 +863,21 @@ DeviceRegistry.register(
 )
 
 # IP Blind
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models=("HmIP-BBL", "HmIP-FBL"),
     data_point_class=CustomDpIpBlind,
     profile_type=DeviceProfile.IP_COVER,
     channels=(4,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HmIP-DRBLI4",
     data_point_class=CustomDpIpBlind,
     profile_type=DeviceProfile.IP_COVER,
     channels=(10, 14, 18, 22),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HmIPW-DRBL4",
     data_point_class=CustomDpIpBlind,
@@ -886,7 +886,7 @@ DeviceRegistry.register(
 )
 
 # IP HDM
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HmIP-HDM",
     data_point_class=CustomDpCover,
@@ -894,7 +894,7 @@ DeviceRegistry.register(
 )
 
 # IP Garage
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models=("HmIP-MOD-HO", "HmIP-MOD-TM"),
     data_point_class=CustomDpGarage,

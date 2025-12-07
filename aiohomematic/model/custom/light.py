@@ -18,7 +18,7 @@ from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeTimerMixin, TimerUnitMixin
-from aiohomematic.model.custom.registry import DeviceConfig, DeviceRegistry, ExtendedDeviceConfig
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
@@ -1079,11 +1079,11 @@ hmed.ALL_DEVICES[DataPointCategory.LIGHT] = DEVICES
 
 
 # =============================================================================
-# New DeviceRegistry Registration (Phase 2 Migration)
+# New DeviceProfileRegistry Registration (Phase 2 Migration)
 # =============================================================================
 
 # RF Dimmer (simple)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models=("263 132", "263 134", "HSS-DX"),
     data_point_class=CustomDpDimmer,
@@ -1091,7 +1091,7 @@ DeviceRegistry.register(
 )
 
 # RF Dimmer with virtual channels
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models=(
         "263 133",
@@ -1116,54 +1116,54 @@ DeviceRegistry.register(
 )
 
 # RF Dimmer (specific channels)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HM-DW-WM",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.RF_DIMMER,
     channels=(1, 2, 3, 4),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HM-LC-Dim1T-DR",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.RF_DIMMER,
     channels=(1, 2, 3),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HM-LC-Dim1T-FM-LF",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.RF_DIMMER,
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models=("HM-LC-Dim1L-Pl-2", "HM-LC-Dim1T-Pl-2"),
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.RF_DIMMER,
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models=("HM-LC-Dim2L-CV", "HM-LC-Dim2L-SM", "HM-LC-Dim2T-SM"),
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.RF_DIMMER,
     channels=(1, 2),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models=("HM-LC-Dim2L-SM-2", "HM-LC-Dim2T-SM-2"),
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.RF_DIMMER,
     channels=(1, 2, 3, 4, 5, 6),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HMW-LC-Dim1L-DR",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.RF_DIMMER,
     channels=(3,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="OLIGO.smart.iq.HM",
     data_point_class=CustomDpDimmer,
@@ -1172,7 +1172,7 @@ DeviceRegistry.register(
 )
 
 # RF Dimmer with color temperature
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HM-LC-DW-WM",
     data_point_class=CustomDpColorTempDimmer,
@@ -1181,7 +1181,7 @@ DeviceRegistry.register(
 )
 
 # RF Dimmer with color and effect
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HM-LC-RGBW-WM",
     data_point_class=CustomDpColorDimmerEffect,
@@ -1189,42 +1189,42 @@ DeviceRegistry.register(
 )
 
 # IP Dimmer
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-BDT",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.IP_DIMMER,
     channels=(4,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-DRDI3",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.IP_DIMMER,
     channels=(5, 9, 13),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-FDT",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.IP_DIMMER,
     channels=(2,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-PDT",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.IP_DIMMER,
     channels=(3,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-WGT",
     data_point_class=CustomDpDimmer,
     profile_type=DeviceProfile.IP_DIMMER,
     channels=(2,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIPW-DRD3",
     data_point_class=CustomDpDimmer,
@@ -1233,7 +1233,7 @@ DeviceRegistry.register(
 )
 
 # IP Fixed Color Light
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-BSL",
     data_point_class=CustomDpIpFixedColorLight,
@@ -1242,7 +1242,7 @@ DeviceRegistry.register(
 )
 
 # IP Simple Fixed Color Light (Wired)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIPW-WRC6",
     data_point_class=CustomDpIpFixedColorLight,
@@ -1251,7 +1251,7 @@ DeviceRegistry.register(
 )
 
 # IP RGBW Light
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models=("HmIP-RGBW", "HmIP-LSC"),
     data_point_class=CustomDpIpRGBWLight,
@@ -1259,7 +1259,7 @@ DeviceRegistry.register(
 )
 
 # IP DRG DALI Light
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-DRG-DALI",
     data_point_class=CustomDpIpDrgDaliLight,
@@ -1268,7 +1268,7 @@ DeviceRegistry.register(
 )
 
 # HmIP-SCTH230 (Dimmer with additional sensors)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HmIP-SCTH230",
     data_point_class=CustomDpDimmer,
@@ -1283,7 +1283,7 @@ DeviceRegistry.register(
 )
 
 # HBW-LC4-IN4-DR (Dimmer with additional inputs)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
     models="HBW-LC4-IN4-DR",
     data_point_class=CustomDpDimmer,
@@ -1300,7 +1300,7 @@ DeviceRegistry.register(
 )
 
 # HBW-LC-RGBWW-IN6-DR (Complex device with multiple configs)
-DeviceRegistry.register_multiple(
+DeviceProfileRegistry.register_multiple(
     category=DataPointCategory.LIGHT,
     models="HBW-LC-RGBWW-IN6-DR",
     configs=(

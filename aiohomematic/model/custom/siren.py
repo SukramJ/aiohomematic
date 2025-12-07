@@ -19,7 +19,7 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.registry import DeviceRegistry
+from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSensor
@@ -289,11 +289,11 @@ hmed.ALL_DEVICES[DataPointCategory.SIREN] = DEVICES
 
 
 # =============================================================================
-# New DeviceRegistry Registration (Phase 2 Migration)
+# New DeviceProfileRegistry Registration (Phase 2 Migration)
 # =============================================================================
 
 # IP Siren
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SIREN,
     models="HmIP-ASIR",
     data_point_class=CustomDpIpSiren,
@@ -302,7 +302,7 @@ DeviceRegistry.register(
 )
 
 # IP Siren Smoke
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SIREN,
     models="HmIP-SWSD",
     data_point_class=CustomDpIpSirenSmoke,

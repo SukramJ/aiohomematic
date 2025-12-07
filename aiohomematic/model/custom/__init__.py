@@ -100,7 +100,7 @@ from aiohomematic.model.custom.profile import (
     get_profile_config,
     profile_config_to_dict,
 )
-from aiohomematic.model.custom.registry import DeviceConfig, DeviceRegistry, ExtendedDeviceConfig
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.siren import BaseCustomDpSiren, CustomDpIpSiren, CustomDpIpSirenSmoke, SirenOnArgs
 from aiohomematic.model.custom.switch import CustomDpSwitch
 from aiohomematic.model.custom.valve import CustomDpIpIrrigationValve
@@ -163,7 +163,7 @@ __all__ = [
     "profile_config_to_dict",
     # Registry (new type-safe approach)
     "DeviceConfig",
-    "DeviceRegistry",
+    "DeviceProfileRegistry",
     "ExtendedDeviceConfig",
 ]
 

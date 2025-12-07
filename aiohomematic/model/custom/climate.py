@@ -40,7 +40,7 @@ from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProto
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.registry import DeviceRegistry
+from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.custom.support import CustomConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
@@ -1187,13 +1187,13 @@ hmed.ALL_BLACKLISTED_DEVICES.append(BLACKLISTED_DEVICES)
 
 
 # =============================================================================
-# New DeviceRegistry Registration (Phase 2 Migration)
+# New DeviceProfileRegistry Registration (Phase 2 Migration)
 # =============================================================================
 # These registrations mirror the DEVICES dict above using the new type-safe API.
 # Once migration is complete, the DEVICES dict and make_* functions can be removed.
 
 # Simple RF Thermostat
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models=("HM-CC-TC", "ZEL STG RM FWT"),
     data_point_class=CustomDpSimpleRfThermostat,
@@ -1201,20 +1201,20 @@ DeviceRegistry.register(
 )
 
 # RF Thermostat
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models=("BC-RT-TRX-CyG", "BC-RT-TRX-CyN", "BC-TC-C-WM"),
     data_point_class=CustomDpRfThermostat,
     profile_type=DeviceProfile.RF_THERMOSTAT,
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models="HM-CC-RT-DN",
     data_point_class=CustomDpRfThermostat,
     profile_type=DeviceProfile.RF_THERMOSTAT,
     channels=(4,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models="HM-TC-IT-WM-W-EU",
     data_point_class=CustomDpRfThermostat,
@@ -1224,7 +1224,7 @@ DeviceRegistry.register(
 )
 
 # RF Thermostat Group
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models="HM-CC-VG-1",
     data_point_class=CustomDpRfThermostat,
@@ -1232,7 +1232,7 @@ DeviceRegistry.register(
 )
 
 # IP Thermostat
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models=(
         "ALPHA-IP-RBG",
@@ -1241,7 +1241,7 @@ DeviceRegistry.register(
     data_point_class=CustomDpIpThermostat,
     profile_type=DeviceProfile.IP_THERMOSTAT,
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models=(
         "HmIP-BWTH",
@@ -1256,7 +1256,7 @@ DeviceRegistry.register(
     profile_type=DeviceProfile.IP_THERMOSTAT,
     schedule_channel_no=1,
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models="HmIP-WGT",
     data_point_class=CustomDpIpThermostat,
@@ -1266,7 +1266,7 @@ DeviceRegistry.register(
 )
 
 # IP Thermostat Group
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.CLIMATE,
     models="HmIP-HEATING",
     data_point_class=CustomDpIpThermostat,
@@ -1275,4 +1275,4 @@ DeviceRegistry.register(
 )
 
 # Blacklist
-DeviceRegistry.blacklist("HmIP-STHO")
+DeviceProfileRegistry.blacklist("HmIP-STHO")

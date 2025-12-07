@@ -6,7 +6,7 @@ Device profile definitions for custom data point implementations.
 This module provides the legacy dictionary-based profile definitions.
 For the new type-safe dataclass-based approach, see:
 - profile.py: ProfileConfig, ChannelGroupConfig dataclasses
-- registry.py: DeviceRegistry, DeviceConfig for device mappings
+- registry.py: DeviceProfileRegistry, DeviceConfig for device mappings
 
 Public API of this module is defined by __all__.
 """
@@ -40,7 +40,7 @@ from aiohomematic.support import extract_exc_args
 # )
 # from aiohomematic.model.custom.registry import (  # noqa: ERA001
 #     DeviceConfig,
-#     DeviceRegistry,
+#     DeviceProfileRegistry,
 #     ExtendedDeviceConfig,
 # )
 

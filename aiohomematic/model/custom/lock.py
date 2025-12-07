@@ -16,7 +16,7 @@ from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Paramete
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.registry import DeviceConfig, DeviceRegistry, ExtendedDeviceConfig
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpSensor, DpSwitch
@@ -403,11 +403,11 @@ hmed.ALL_DEVICES[DataPointCategory.LOCK] = DEVICES
 
 
 # =============================================================================
-# New DeviceRegistry Registration (Phase 2 Migration)
+# New DeviceProfileRegistry Registration (Phase 2 Migration)
 # =============================================================================
 
 # RF Lock (HM-Sec-Key)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LOCK,
     models="HM-Sec-Key",
     data_point_class=CustomDpRfLock,
@@ -424,7 +424,7 @@ DeviceRegistry.register(
 )
 
 # IP Lock with Button Lock (HmIP-DLD - multiple configs)
-DeviceRegistry.register_multiple(
+DeviceProfileRegistry.register_multiple(
     category=DataPointCategory.LOCK,
     models="HmIP-DLD",
     configs=(
@@ -446,7 +446,7 @@ DeviceRegistry.register_multiple(
 )
 
 # RF Button Lock
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LOCK,
     models="HM-TC-IT-WM-W-EU",
     data_point_class=CustomDpButtonLock,
@@ -455,7 +455,7 @@ DeviceRegistry.register(
 )
 
 # IP Button Lock (various thermostats and controls)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.LOCK,
     models=(
         "ALPHA-IP-RBG",

@@ -17,7 +17,7 @@ from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin
-from aiohomematic.model.custom.registry import DeviceRegistry, ExtendedDeviceConfig
+from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
@@ -165,18 +165,18 @@ hmed.ALL_DEVICES[DataPointCategory.SWITCH] = DEVICES
 
 
 # =============================================================================
-# New DeviceRegistry Registration (Phase 2 Migration)
+# New DeviceProfileRegistry Registration (Phase 2 Migration)
 # =============================================================================
 
 # IP Switch (various channel configurations)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models=("ELV-SH-BS2", "HmIP-BS2", "HmIP-PCBS2"),
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(4, 8),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models=(
         "ELV-SH-PSMCI",
@@ -193,63 +193,63 @@ DeviceRegistry.register(
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(3,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models=("HmIP-BSL", "HmIP-BSM"),
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(4,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-DRSI4",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(6, 10, 14, 18),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-FSM",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(2,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-MOD-OC8",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(10, 14, 18, 22, 26, 30, 34, 38),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-SCTH230",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(8,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-WGT",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(4,),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-WHS2",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(2, 6),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIPW-DRS",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,
     channels=(2, 6, 10, 14, 18, 22, 26, 30),
 )
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIPW-FIO6",
     data_point_class=CustomDpSwitch,
@@ -258,7 +258,7 @@ DeviceRegistry.register(
 )
 
 # HmIP-SMO230 (Switch with motion sensor)
-DeviceRegistry.register(
+DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-SMO230",
     data_point_class=CustomDpSwitch,

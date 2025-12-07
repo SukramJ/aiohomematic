@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
 """
-Device registry for custom data point configurations.
+Device profile registry for custom data point configurations.
 
 This module provides a centralized registry for mapping device models to their
 custom data point configurations, replacing the distributed ALL_DEVICES pattern.
@@ -9,13 +9,13 @@ custom data point configurations, replacing the distributed ALL_DEVICES pattern.
 Key types:
 - DeviceConfig: Configuration for a specific device model
 - ExtendedDeviceConfig: Extended configuration with additional fields
-- DeviceRegistry: Central registry class for device configurations
+- DeviceProfileRegistry: Central registry class for device profile configurations
 
 Example usage:
-    from aiohomematic.model.custom.registry import DeviceRegistry, DeviceConfig
+    from aiohomematic.model.custom.registry import DeviceProfileRegistry, DeviceConfig
 
     # Register a device
-    DeviceRegistry.register(
+    DeviceProfileRegistry.register(
         category=DataPointCategory.CLIMATE,
         models=("HmIP-BWTH", "HmIP-STH"),
         data_point_class=CustomDpIpThermostat,
@@ -24,7 +24,7 @@ Example usage:
     )
 
     # Get configurations for a model
-    configs = DeviceRegistry.get_configs(model="HmIP-BWTH")
+    configs = DeviceProfileRegistry.get_configs(model="HmIP-BWTH")
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "DeviceConfig",
-    "DeviceRegistry",
+    "DeviceProfileRegistry",
     "ExtendedDeviceConfig",
 ]
 
@@ -78,8 +78,8 @@ class DeviceConfig:
     schedule_channel_no: int | None = None
 
 
-class DeviceRegistry:
-    """Central registry for device configurations."""
+class DeviceProfileRegistry:
+    """Central registry for device profile configurations."""
 
     _configs: ClassVar[dict[DataPointCategory, dict[str, DeviceConfig | tuple[DeviceConfig, ...]]]] = {}
     _blacklist: ClassVar[set[str]] = set()

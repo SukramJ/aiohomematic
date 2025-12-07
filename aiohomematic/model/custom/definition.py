@@ -24,30 +24,50 @@ from aiohomematic import i18n, support as hms
 from aiohomematic.const import CDPD, DEFAULT_INCLUDE_DEFAULT_DPS, DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
-from aiohomematic.model.custom.support import CustomConfig
+
+# Import new type-safe registry for device lookup
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
+from aiohomematic.model.custom.support import CustomConfig, ExtendedConfig
 from aiohomematic.model.support import generate_unique_id
 from aiohomematic.schemas import SCHEMA_DEVICE_DESCRIPTION
 from aiohomematic.support import extract_exc_args
-
-# Re-export new types for convenience
-# These provide a migration path to the new type-safe approach
-# from aiohomematic.model.custom.profile import (  # noqa: ERA001
-#     PROFILE_CONFIGS,
-#     ChannelGroupConfig,
-#     ProfileConfig,
-#     get_profile_config,
-#     profile_config_to_dict,
-# )
-# from aiohomematic.model.custom.registry import (  # noqa: ERA001
-#     DeviceConfig,
-#     DeviceProfileRegistry,
-#     ExtendedDeviceConfig,
-# )
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 ALL_DEVICES: dict[DataPointCategory, Mapping[str, CustomConfig | tuple[CustomConfig, ...]]] = {}
 ALL_BLACKLISTED_DEVICES: list[tuple[str, ...]] = []
+
+
+def _device_config_to_custom_config(device_config: DeviceConfig) -> CustomConfig:
+    """Convert a DeviceConfig to a CustomConfig for backward compatibility."""
+
+    def _make_func(
+        *,
+        channel: ChannelProtocol,
+        custom_config: CustomConfig,
+    ) -> None:
+        """Create custom data point using DeviceConfig settings."""
+        make_custom_data_point(
+            channel=channel,
+            data_point_class=device_config.data_point_class,
+            device_profile=device_config.profile_type,
+            custom_config=custom_config,
+        )
+
+    # Convert ExtendedDeviceConfig to ExtendedConfig if present
+    extended: ExtendedConfig | None = None
+    if device_config.extended:
+        extended = ExtendedConfig(
+            fixed_channels=device_config.extended.fixed_channel_fields,
+            additional_data_points=device_config.extended.additional_data_points,
+        )
+
+    return CustomConfig(
+        make_ce_func=_make_func,
+        channels=device_config.channels,
+        extended=extended,
+        schedule_channel_no=device_config.schedule_channel_no,
+    )
 
 
 _CUSTOM_DATA_POINT_DEFINITION: Mapping[CDPD, Mapping[int | DeviceProfile, Any]] = {
@@ -787,6 +807,8 @@ def get_custom_configs(
     """Return the data_point configs to create custom data points."""
     model = model.lower().replace("hb-", "hm-")
     custom_configs: list[CustomConfig] = []
+
+    # Check legacy blacklist
     for category_blacklisted_devices in ALL_BLACKLISTED_DEVICES:
         if hms.element_matches_key(
             search_elements=category_blacklisted_devices,
@@ -794,6 +816,11 @@ def get_custom_configs(
         ):
             return ()
 
+    # Primary: Query DeviceProfileRegistry (new type-safe approach)
+    if device_configs := DeviceProfileRegistry.get_configs(model=model, category=category):
+        return tuple(_device_config_to_custom_config(dc) for dc in device_configs)
+
+    # Fallback: Query legacy ALL_DEVICES dictionary
     for pf, category_devices in ALL_DEVICES.items():
         if category is not None and pf != category:
             continue

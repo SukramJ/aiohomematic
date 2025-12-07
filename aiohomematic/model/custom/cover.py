@@ -889,7 +889,7 @@ DeviceProfileRegistry.register(
 DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HmIP-HDM",
-    data_point_class=CustomDpCover,
+    data_point_class=CustomDpIpBlind,
     profile_type=DeviceProfile.IP_HDM,
 )
 

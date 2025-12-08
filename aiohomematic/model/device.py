@@ -796,7 +796,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the device schedule."""
+        # Only initialize if week_profile doesn't exist, or if the incoming data point
+        # has schedule support and the current one doesn't
         if self._week_profile is None:
+            self._week_profile = wp.create_week_profile(data_point=data_point)
+        elif not self._week_profile.supports_schedule and data_point.device_config.schedule_channel_no is not None:
+            # Replace with a profile that has schedule support
             self._week_profile = wp.create_week_profile(data_point=data_point)
 
     def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:

@@ -13,11 +13,12 @@ from datetime import datetime
 import logging
 from typing import Any, Final, cast
 
-from aiohomematic.const import CDPD, INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field
+from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.model.custom.support import CustomConfig
+from aiohomematic.model.custom.profile import RebasedChannelGroup
+from aiohomematic.model.custom.registry import DeviceConfig
 from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.generic import DpDummy
 from aiohomematic.model.support import (
@@ -39,10 +40,10 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
 
     __slots__ = (
         "_allow_undefined_generic_data_points",
-        "_custom_config",
+        "_channel_group",
         "_custom_data_point_def",
         "_data_points",
-        "_device_def",
+        "_device_config",
         "_device_profile",
         "_extended",
         "_group_no",
@@ -56,26 +57,25 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         channel: ChannelProtocol,
         unique_id: str,
         device_profile: DeviceProfile,
-        device_def: Mapping[str, Any],
-        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        group_no: int,
-        custom_config: CustomConfig,
+        channel_group: RebasedChannelGroup,
+        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]],
+        group_no: int | None,
+        device_config: DeviceConfig,
     ) -> None:
         """Initialize the data point."""
         self._unsubscribe_handlers: list[UnsubscribeHandler] = []
         self._device_profile: Final = device_profile
-        # required for name in BaseDataPoint
-        self._device_def: Final = device_def
+        self._channel_group: Final = channel_group
         self._custom_data_point_def: Final = custom_data_point_def
-        self._group_no: int = group_no
-        self._custom_config: Final = custom_config
-        self._extended: Final = custom_config.extended
+        self._group_no: int | None = group_no
+        self._device_config: Final = device_config
+        self._extended: Final = device_config.extended
         super().__init__(
             channel=channel,
             unique_id=unique_id,
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
-        self._allow_undefined_generic_data_points: Final[bool] = self._device_def[CDPD.ALLOW_UNDEFINED_GENERIC_DPS]
+        self._allow_undefined_generic_data_points: Final[bool] = channel_group.allow_undefined_generic_data_points
         self._data_points: Final[dict[Field, GenericDataPointProtocol]] = {}
         self._init_data_points()
         self._init_data_point_fields()
@@ -99,14 +99,14 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return self._allow_undefined_generic_data_points
 
     @property
-    def custom_config(self) -> CustomConfig:
-        """Return the custom config."""
-        return self._custom_config
-
-    @property
     def data_point_name_postfix(self) -> str:
         """Return the data point name postfix."""
         return ""
+
+    @property
+    def device_config(self) -> DeviceConfig:
+        """Return the device config."""
+        return self._device_config
 
     @property
     def group_no(self) -> int | None:
@@ -211,6 +211,19 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             if unreg is not None:
                 unreg()
 
+    def _add_channel_data_points(
+        self,
+        *,
+        channel_fields: Mapping[int | None, Mapping[Field, Parameter]],
+        is_visible: bool | None = None,
+    ) -> None:
+        """Add channel-specific data points to custom data point."""
+        for channel_no, fields in channel_fields.items():
+            for field, parameter in fields.items():
+                channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
+                if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
+                    self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
+
     def _add_data_point(
         self,
         *,
@@ -230,15 +243,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
         )
         self._data_points[field] = data_point
-
-    def _add_data_points(self, *, field_dict_name: CDPD, is_visible: bool | None = None) -> None:
-        """Add data points to custom data point."""
-        fields = self._device_def.get(field_dict_name, {})
-        for channel_no, channel in fields.items():
-            for field, parameter in channel.items():
-                channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
-                if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
-                    self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
 
     def _get_data_point[DataPointT: GenericDataPointProtocol](
         self, *, field: Field, data_point_type: type[DataPointT]
@@ -265,7 +269,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         """Create the name for the data point."""
         is_only_primary_channel = check_channel_is_the_only_primary_channel(
             current_channel_no=self._channel.no,
-            device_def=self._device_def,
+            primary_channel=self._channel_group.primary_channel,
             device_has_multiple_channels=self.is_in_multiple_channels,
         )
         return get_custom_data_point_name(
@@ -280,7 +284,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         """Generate the usage for the data point."""
         if self._forced_usage:
             return self._forced_usage
-        if self._channel.no in self._custom_config.channels:
+        if self._channel.no in self._device_config.channels:
             return DataPointUsage.CDP_PRIMARY
         return DataPointUsage.CDP_SECONDARY
 
@@ -306,18 +310,21 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
 
     def _init_data_points(self) -> None:
         """Initialize data point collection."""
+        cg = self._channel_group
+
         # Add repeating fields
-        for field_name, parameter in self._device_def.get(CDPD.REPEATABLE_FIELDS, {}).items():
+        for field_name, parameter in cg.repeating_fields.items():
             if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=False)
 
         # Add visible repeating fields
-        for field_name, parameter in self._device_def.get(CDPD.VISIBLE_REPEATABLE_FIELDS, {}).items():
+        for field_name, parameter in cg.visible_repeating_fields.items():
             if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=True)
 
+        # Add extended config fields
         if self._extended:
-            if fixed_channels := self._extended.fixed_channels:
+            if fixed_channels := self._extended.fixed_channel_fields:
                 for channel_no, mapping in fixed_channels.items():
                     for field_name, parameter in mapping.items():
                         channel_address = get_channel_address(
@@ -330,23 +337,20 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             if additional_dps := self._extended.additional_data_points:
                 self._mark_data_points(custom_data_point_def=additional_dps)
 
-        # Add device fields
-        self._add_data_points(
-            field_dict_name=CDPD.FIELDS,
-        )
-        # Add visible device fields
-        self._add_data_points(
-            field_dict_name=CDPD.VISIBLE_FIELDS,
-            is_visible=True,
-        )
+        # Add channel-specific fields
+        self._add_channel_data_points(channel_fields=cg.channel_fields)
+
+        # Add visible channel-specific fields
+        self._add_channel_data_points(channel_fields=cg.visible_channel_fields, is_visible=True)
 
         # Add default device data points
         self._mark_data_points(custom_data_point_def=self._custom_data_point_def)
-        # add default data points
+
+        # Add default data points
         if hmed.get_include_default_data_points(device_profile=self._device_profile):
             self._mark_data_points(custom_data_point_def=hmed.get_default_data_points())
 
-    def _mark_data_point(self, *, channel_no: int | None, parameters: tuple[str, ...]) -> None:
+    def _mark_data_point(self, *, channel_no: int | None, parameters: tuple[Parameter, ...]) -> None:
         """Mark data point to be created, even though a custom data point is present."""
         channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
 
@@ -354,7 +358,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                 dp.force_usage(forced_usage=DataPointUsage.DATA_POINT)
 
-    def _mark_data_points(self, *, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]]) -> None:
+    def _mark_data_points(
+        self, *, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]]
+    ) -> None:
         """Mark data points to be created, even though a custom data point is present."""
         if not custom_data_point_def:
             return

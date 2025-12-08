@@ -26,12 +26,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Final, TypeAlias
+from typing import Final, TypeAlias
 
-from aiohomematic.const import CDPD, ChannelOffset, DeviceProfile, Field, Parameter
-
-if TYPE_CHECKING:
-    from typing import Any
+from aiohomematic.const import ChannelOffset, DeviceProfile, Field, Parameter
 
 __all__ = [
     "ChannelGroupConfig",
@@ -39,8 +36,9 @@ __all__ = [
     "ProfileConfig",
     "ProfileRegistry",
     "PROFILE_CONFIGS",
+    "RebasedChannelGroup",
     "get_profile_config",
-    "profile_config_to_dict",
+    "rebase_channel_group",
 ]
 
 
@@ -79,50 +77,96 @@ class ProfileConfig:
     include_default_data_points: bool = True
 
 
+@dataclass(frozen=True, kw_only=True, slots=True)
+class RebasedChannelGroup:
+    """
+    Channel group configuration with rebased channel numbers.
+
+    This dataclass contains channel configuration with all channel numbers
+    adjusted by the group offset. Used by CustomDataPoint to access field
+    mappings without dictionary-based lookups.
+    """
+
+    # Rebased channel structure (actual channel numbers after applying group_no)
+    primary_channel: int | None
+    secondary_channels: tuple[int, ...]
+    state_channel: int | None
+    allow_undefined_generic_data_points: bool
+
+    # Field mappings for the current channel (repeating fields)
+    repeating_fields: Mapping[Field, Parameter]
+    visible_repeating_fields: Mapping[Field, Parameter]
+
+    # Channel-specific field mappings (rebased to actual channel numbers)
+    channel_fields: Mapping[int | None, Mapping[Field, Parameter]]
+    visible_channel_fields: Mapping[int | None, Mapping[Field, Parameter]]
+
+
+def rebase_channel_group(
+    *,
+    profile_config: ProfileConfig,
+    group_no: int | None,
+) -> RebasedChannelGroup:
+    """
+    Create a rebased channel group from a ProfileConfig.
+
+    Applies the group offset to all channel numbers in the configuration,
+    producing a RebasedChannelGroup with actual channel numbers.
+
+    Args:
+        profile_config: The profile configuration to rebase.
+        group_no: The group offset to apply (None means no offset).
+
+    Returns:
+        RebasedChannelGroup with rebased channel numbers.
+
+    """
+    cg = profile_config.channel_group
+    offset = group_no or 0
+
+    # Rebase primary channel
+    primary = cg.primary_channel
+    if primary is not None and offset:
+        primary = primary + offset
+
+    # Rebase secondary channels
+    secondary = tuple(ch + offset for ch in cg.secondary_channels) if offset else cg.secondary_channels
+
+    # Rebase state channel
+    state = None
+    if cg.state_channel_offset is not None:
+        state = cg.state_channel_offset + offset if offset else cg.state_channel_offset
+
+    # Rebase channel_fields
+    channel_fields: dict[int | None, Mapping[Field, Parameter]] = {}
+    for ch_no, fields in cg.channel_fields.items():
+        if ch_no is None:
+            channel_fields[None] = fields
+        else:
+            channel_fields[ch_no + offset] = fields
+
+    # Rebase visible_channel_fields
+    visible_channel_fields: dict[int | None, Mapping[Field, Parameter]] = {}
+    for ch_no, fields in cg.visible_channel_fields.items():
+        if ch_no is None:
+            visible_channel_fields[None] = fields
+        else:
+            visible_channel_fields[ch_no + offset] = fields
+
+    return RebasedChannelGroup(
+        primary_channel=primary,
+        secondary_channels=secondary,
+        state_channel=state,
+        allow_undefined_generic_data_points=cg.allow_undefined_generic_data_points,
+        repeating_fields=cg.repeating_fields,
+        visible_repeating_fields=cg.visible_repeating_fields,
+        channel_fields=channel_fields,
+        visible_channel_fields=visible_channel_fields,
+    )
+
+
 # Type alias for the profile registry
 ProfileRegistry: TypeAlias = Mapping[DeviceProfile, ProfileConfig]
-
-
-def profile_config_to_dict(config: ProfileConfig) -> dict[str, Any]:
-    """Convert a ProfileConfig to the legacy dictionary format."""
-    channel_group = config.channel_group
-
-    device_group: dict[str, Any] = {
-        CDPD.PRIMARY_CHANNEL: channel_group.primary_channel,
-        CDPD.ALLOW_UNDEFINED_GENERIC_DPS: channel_group.allow_undefined_generic_data_points,
-    }
-
-    if channel_group.secondary_channels:
-        device_group[CDPD.SECONDARY_CHANNELS] = channel_group.secondary_channels
-
-    if channel_group.state_channel_offset is not None:
-        device_group[CDPD.STATE_CHANNEL] = channel_group.state_channel_offset
-
-    if channel_group.repeating_fields:
-        device_group[CDPD.REPEATABLE_FIELDS] = dict(channel_group.repeating_fields)
-
-    if channel_group.visible_repeating_fields:
-        device_group[CDPD.VISIBLE_REPEATABLE_FIELDS] = dict(channel_group.visible_repeating_fields)
-
-    if channel_group.channel_fields:
-        device_group[CDPD.FIELDS] = {ch: dict(fields) for ch, fields in channel_group.channel_fields.items()}
-
-    if channel_group.visible_channel_fields:
-        device_group[CDPD.VISIBLE_FIELDS] = {
-            ch: dict(fields) for ch, fields in channel_group.visible_channel_fields.items()
-        }
-
-    result: dict[str, Any] = {
-        CDPD.DEVICE_GROUP: device_group,
-    }
-
-    if config.additional_data_points:
-        result[CDPD.ADDITIONAL_DPS] = dict(config.additional_data_points)
-
-    if not config.include_default_data_points:
-        result[CDPD.INCLUDE_DEFAULT_DPS] = False
-
-    return result
 
 
 # =============================================================================

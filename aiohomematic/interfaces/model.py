@@ -53,8 +53,8 @@ if TYPE_CHECKING:
         ParamsetDescriptionProvider,
         TaskScheduler,
     )
+    from aiohomematic.model.custom.registry import DeviceConfig
     from aiohomematic.model.support import DataPointNameData
-
 
 # =============================================================================
 # DataPoint Protocol Interfaces
@@ -713,13 +713,13 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def custom_config(self) -> Any:
-        """Return the custom config."""
+    def data_point_name_postfix(self) -> str:
+        """Return the data point name postfix."""
 
     @property
     @abstractmethod
-    def data_point_name_postfix(self) -> str:
-        """Return the data point name postfix."""
+    def device_config(self) -> DeviceConfig:
+        """Return the custom config."""
 
     @property
     @abstractmethod

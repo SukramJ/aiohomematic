@@ -3138,7 +3138,7 @@ class TestWeekProfileHelperMethods:
         mock_data_point.device.client = mock_client
         mock_data_point.device.central = central
         mock_data_point.category = DataPointCategory.SWITCH
-        mock_data_point.custom_config.schedule_channel_no = None
+        mock_data_point.device_config.schedule_channel_no = None
 
         # Create DefaultWeekProfile
         week_profile = DefaultWeekProfile(data_point=mock_data_point)

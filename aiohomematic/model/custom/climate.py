@@ -39,8 +39,8 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.registry import DeviceProfileRegistry
-from aiohomematic.model.custom.support import CustomConfig
+from aiohomematic.model.custom.profile import RebasedChannelGroup
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
 from aiohomematic.property_decorators import config_property, state_property
@@ -157,10 +157,10 @@ class BaseCustomDpClimate(CustomDataPoint):
         channel: ChannelProtocol,
         unique_id: str,
         device_profile: DeviceProfile,
-        device_def: Mapping[str, Any],
-        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        group_no: int,
-        custom_config: CustomConfig,
+        channel_group: RebasedChannelGroup,
+        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]],
+        group_no: int | None,
+        device_config: DeviceConfig,
     ) -> None:
         """Initialize base climate data_point."""
         self._peer_level_dp: DpFloat | None = None
@@ -170,10 +170,10 @@ class BaseCustomDpClimate(CustomDataPoint):
             channel=channel,
             unique_id=unique_id,
             device_profile=device_profile,
-            device_def=device_def,
+            channel_group=channel_group,
             custom_data_point_def=custom_data_point_def,
             group_no=group_no,
-            custom_config=custom_config,
+            device_config=device_config,
         )
         self._old_manu_setpoint: float | None = None
 

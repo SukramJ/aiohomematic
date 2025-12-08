@@ -13,7 +13,6 @@ from typing import Any, Final
 
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
-    CDPD,
     HUB_ADDRESS,
     HUB_SET_PATH_ROOT,
     HUB_STATE_PATH_ROOT,
@@ -590,11 +589,10 @@ def _get_binary_sensor_value(value: int, value_list: tuple[str, ...]) -> bool:
 
 def check_channel_is_the_only_primary_channel(
     current_channel_no: int | None,
-    device_def: Mapping[str, Any],
+    primary_channel: int | None,
     device_has_multiple_channels: bool,
 ) -> bool:
     """Check if this channel is the only primary channel."""
-    primary_channel: int = device_def[CDPD.PRIMARY_CHANNEL]
     return bool(primary_channel == current_channel_no and device_has_multiple_channels is False)
 
 

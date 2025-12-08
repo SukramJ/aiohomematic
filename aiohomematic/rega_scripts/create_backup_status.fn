@@ -42,19 +42,23 @@ if (sResult.Trim() == "YES") {
     bFileExists = true;
 }
 
-!# Determine status
+!# Determine status (ReGa does not support else if, use nested if-else)
 if (bProcessRunning) {
     sStatus = "running";
-} else if (bFileExists) {
-    sStatus = "completed";
-    !# Clean up pid file
-    system.Exec("rm -f /usr/local/tmp/backup.pid", &sResult, &sError);
-} else if (bPidFileExists) {
-    sStatus = "failed";
-    !# Clean up pid file
-    system.Exec("rm -f /usr/local/tmp/backup.pid", &sResult, &sError);
 } else {
-    sStatus = "idle";
+    if (bFileExists) {
+        sStatus = "completed";
+        !# Clean up pid file
+        system.Exec("rm -f /usr/local/tmp/backup.pid", &sResult, &sError);
+    } else {
+        if (bPidFileExists) {
+            sStatus = "failed";
+            !# Clean up pid file
+            system.Exec("rm -f /usr/local/tmp/backup.pid", &sResult, &sError);
+        } else {
+            sStatus = "idle";
+        }
+    }
 }
 
 !# Build response

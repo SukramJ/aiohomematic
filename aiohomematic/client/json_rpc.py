@@ -76,7 +76,8 @@ from aiohomematic.const import (
     RENAME_SYSVAR_BY_NAME,
     TIMEOUT,
     UTF_8,
-    BackupData,
+    BackupStatus,
+    BackupStatusData,
     CCUType,
     DescriptionMarker,
     DeviceDescription,
@@ -159,6 +160,7 @@ class _JsonKey(StrEnum):
     SID = "sid"
     SIZE = "size"
     STATE = "state"
+    STATUS = "status"
     SUCCESS = "success"
     TIME = "time"
     TIMESTAMP = "timestamp"
@@ -381,29 +383,52 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Clear the current session."""
         self._session_id = None
 
-    async def create_backup(self) -> BackupData:
-        """Create a system backup on the CCU."""
+    async def create_backup_start(self) -> bool:
+        """Start a system backup on the CCU in the background."""
         try:
-            response = await self._post_script(script_name=RegaScript.CREATE_BACKUP)
+            response = await self._post_script(script_name=RegaScript.CREATE_BACKUP_START)
 
-            _LOGGER.debug("CREATE_BACKUP: Creating system backup")
+            _LOGGER.debug("CREATE_BACKUP_START: Starting system backup in background")
             if json_result := response[_JsonKey.RESULT]:
-                return BackupData(
-                    success=json_result.get(_JsonKey.SUCCESS, False),
-                    file_path=json_result.get(_JsonKey.FILE, ""),
-                    filename=json_result.get(_JsonKey.FILENAME, ""),
-                    size=json_result.get(_JsonKey.SIZE, 0),
-                    message=json_result.get(_JsonKey.MESSAGE, ""),
-                )
+                return bool(json_result.get(_JsonKey.SUCCESS, False))
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.create_backup.failed",
+                    "log.client.json_rpc.create_backup_start.failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
 
-        return BackupData(success=False, message="Backup creation failed")
+        return False
+
+    async def create_backup_status(self) -> BackupStatusData:
+        """Check the status of a backup started by create_backup_start."""
+        try:
+            response = await self._post_script(script_name=RegaScript.CREATE_BACKUP_STATUS)
+
+            _LOGGER.debug("CREATE_BACKUP_STATUS: Checking backup status")
+            if json_result := response[_JsonKey.RESULT]:
+                status_str = json_result.get(_JsonKey.STATUS, BackupStatus.IDLE)
+                try:
+                    status = BackupStatus(status_str)
+                except ValueError:
+                    status = BackupStatus.IDLE
+
+                return BackupStatusData(
+                    status=status,
+                    file_path=json_result.get(_JsonKey.FILE, ""),
+                    filename=json_result.get(_JsonKey.FILENAME, ""),
+                    size=json_result.get(_JsonKey.SIZE, 0),
+                )
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    "log.client.json_rpc.create_backup_status.failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return BackupStatusData(status=BackupStatus.IDLE)
 
     async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""

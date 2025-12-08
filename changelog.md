@@ -1,5 +1,6 @@
 # Version 2025.12.14 (2025-12-08)
 
+- Cleanup ReGa scripts
 - Eliminate CDPD dictionary format with pure ProfileConfig implementation
 - Refactor CCU backup
 

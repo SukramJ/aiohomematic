@@ -8,21 +8,18 @@
 !# Works for CCU3/OpenCCU/RaspberryMatic.
 !#
 
-string sError = "";
-string sResult = "";
+string sPid = "";
 
 !# Remove any existing backup file and pid file
-system.Exec("/bin/sh -c 'rm -f /usr/local/tmp/last_backup.sbk /usr/local/tmp/backup.pid'", &sResult, &sError);
+system.Exec("/bin/sh -c 'rm -f /usr/local/tmp/last_backup.sbk /usr/local/tmp/backup.pid'");
 
 !# Start backup in background using nohup
 !# Save the PID to a file for status checking
-sResult = "";
-system.Exec("/bin/sh -c 'nohup /bin/sh -c \"/bin/createBackup.sh /usr/local/tmp/last_backup.sbk; rm -f /usr/local/tmp/backup.pid\" > /dev/null 2>&1 & echo $! > /usr/local/tmp/backup.pid'", &sResult, &sError);
+system.Exec("/bin/sh -c 'nohup /bin/sh -c \"/bin/createBackup.sh /usr/local/tmp/last_backup.sbk; rm -f /usr/local/tmp/backup.pid\" > /dev/null 2>&1 & echo $! > /usr/local/tmp/backup.pid'");
 
 !# Verify the process was started
-sResult = "";
-system.Exec("test -f /usr/local/tmp/backup.pid && cat /usr/local/tmp/backup.pid", &sResult, &sError);
-string sPid = sResult.Trim();
+system.Exec("test -f /usr/local/tmp/backup.pid && cat /usr/local/tmp/backup.pid", &sPid);
+sPid = sPid.Trim();
 
 if (sPid != "") {
     Write('{"success":true,"status":"started","pid":"' # sPid # '"}');

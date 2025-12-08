@@ -4,7 +4,6 @@
 !# the CCU type (CCU2, CCU3, OpenCCU, RaspberryMatic, etc.)
 !#
 
-string sError = "";
 string sResult = "";
 string sTemp = "";
 integer iPos;
@@ -15,7 +14,7 @@ string sHostname = "";
 
 !# Read /VERSION file for version and product info
 sResult = "";
-system.Exec("cat /VERSION 2>/dev/null", &sResult, &sError);
+system.Exec("cat /VERSION 2>/dev/null", &sResult);
 if (sResult) {
     sResult = sResult.Trim();
 
@@ -46,7 +45,7 @@ if (sResult) {
 
 !# Get hostname
 sResult = "";
-system.Exec("hostname 2>/dev/null", &sResult, &sError);
+system.Exec("hostname 2>/dev/null", &sResult);
 sHostname = sResult.Trim();
 
 !# Output JSON result

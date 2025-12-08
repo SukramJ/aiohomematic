@@ -57,6 +57,7 @@ Model classes now use full dependency injection with protocol interfaces:
 Key protocol interfaces defined in `aiohomematic/interfaces/`:
 
 **Central Protocols** (`interfaces/central.py`):
+
 - **CentralInfo**: System identification (name, model, version)
 - **ConfigProvider**: Configuration access (config property)
 - **DeviceProvider**: Device registry access
@@ -73,12 +74,14 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 - **HubDataPointManager**: Hub data point management (programs and sysvars)
 
 **Client Protocols** (`interfaces/client.py`):
+
 - **ClientFactory**: Client instance creation (create_client_instance method)
 - **ClientProvider**: Client lookup by interface_id
 - **ClientProtocol**: Client interface for RPC operations
 - **PrimaryClientProvider**: Primary client access
 
 **Operations Protocols** (`interfaces/operations.py`):
+
 - **TaskScheduler**: Background task scheduling (create_task method)
 - **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
 - **DeviceDescriptionProvider**: Device descriptions lookup
@@ -86,13 +89,15 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 - **ParameterVisibilityProvider**: Parameter visibility rules
 
 **Model Protocols** (`interfaces/model.py`):
+
 - **DeviceProtocol**: Device interface
 - **ChannelProtocol**: Channel interface
-- **HubProtocol**: Hub-level operations (inbox_dp, update_dp, fetch_*_data methods)
+- **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
 - **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
 - Various DataPoint protocols (GenericDataPointProtocol, CustomDataPointProtocol, etc.)
 
 **Coordinator Protocols** (`interfaces/coordinators.py`):
+
 - **CoordinatorProvider**: Access to coordinator instances
 
 These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.

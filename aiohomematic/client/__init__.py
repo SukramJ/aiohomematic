@@ -72,6 +72,7 @@ from aiohomematic.const import (
     VIRTUAL_REMOTE_MODELS,
     WAIT_FOR_CALLBACK,
     Backend,
+    BackupStatus,
     CallSource,
     CommandRxMode,
     DescriptionMarker,
@@ -376,9 +377,21 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return False
 
     @inspector(re_raise=False)
-    async def create_backup_and_download(self) -> bytes | None:
+    async def create_backup_and_download(
+        self,
+        *,
+        max_wait_time: float = 300.0,
+        poll_interval: float = 5.0,
+    ) -> bytes | None:
         """
         Create a backup on the CCU and download it.
+
+        Start the backup process in the background and poll for completion.
+        This avoids blocking the ReGa scripting engine during backup creation.
+
+        Args:
+            max_wait_time: Maximum time to wait for backup completion in seconds.
+            poll_interval: Time between status polls in seconds.
 
         Returns:
             Backup file content as bytes, or None if backup creation or download failed.
@@ -388,21 +401,55 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: Not supported by client for %s", self.interface_id)
             return None
 
-        backup_data = await self._json_rpc_client.create_backup()
-        if not backup_data.success:
+        # Start backup in background
+        if not await self._json_rpc_client.create_backup_start():
             _LOGGER.warning(  # i18n-log: ignore
-                "CREATE_BACKUP_AND_DOWNLOAD: Backup creation failed: %s",
-                backup_data.message,
+                "CREATE_BACKUP_AND_DOWNLOAD: Failed to start backup process"
             )
             return None
 
-        if not backup_data.file_path:
-            _LOGGER.warning(  # i18n-log: ignore
-                "CREATE_BACKUP_AND_DOWNLOAD: No backup file path returned"
-            )
-            return None
+        _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: Backup process started, polling for completion")
 
-        return await self._json_rpc_client.download_backup()
+        # Poll for completion
+        elapsed = 0.0
+        while elapsed < max_wait_time:
+            await asyncio.sleep(poll_interval)
+            elapsed += poll_interval
+
+            status_data = await self._json_rpc_client.create_backup_status()
+
+            if status_data.status == BackupStatus.COMPLETED:
+                _LOGGER.info(
+                    i18n.tr(
+                        "log.client.create_backup_and_download.completed",
+                        filename=status_data.filename,
+                        size=status_data.size,
+                    )
+                )
+                return await self._json_rpc_client.download_backup()
+
+            if status_data.status == BackupStatus.FAILED:
+                _LOGGER.warning(i18n.tr("log.client.create_backup_and_download.failed"))
+                return None
+
+            if status_data.status == BackupStatus.IDLE:
+                _LOGGER.warning(i18n.tr("log.client.create_backup_and_download.idle"))
+                return None
+
+            _LOGGER.info(
+                i18n.tr(
+                    "log.client.create_backup_and_download.running",
+                    elapsed=elapsed,
+                )
+            )
+
+        _LOGGER.warning(
+            i18n.tr(
+                "log.client.create_backup_and_download.timeout",
+                max_wait_time=max_wait_time,
+            )
+        )
+        return None
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""

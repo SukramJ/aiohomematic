@@ -763,7 +763,8 @@ class RegaScript(StrEnum):
     """Enum with Homematic rega scripts."""
 
     ACCEPT_DEVICE_IN_INBOX = "accept_device_in_inbox.fn"
-    CREATE_BACKUP = "create_backup.fn"
+    CREATE_BACKUP_START = "create_backup_start.fn"
+    CREATE_BACKUP_STATUS = "create_backup_status.fn"
     FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"
     GET_BACKEND_INFO = "get_backend_info.fn"
     GET_INBOX_DEVICES = "get_inbox_devices.fn"
@@ -1249,15 +1250,23 @@ class SystemUpdateData:
     update_available: bool
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class BackupData:
-    """Dataclass for backup information."""
+class BackupStatus(StrEnum):
+    """Enum with backup status values."""
 
-    success: bool
+    IDLE = "idle"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class BackupStatusData:
+    """Dataclass for backup status information."""
+
+    status: BackupStatus
     file_path: str = ""
     filename: str = ""
     size: int = 0
-    message: str = ""
 
 
 class ParameterData(TypedDict, total=False):

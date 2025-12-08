@@ -1,4 +1,12 @@
+# Version 2025.12.15 (2025-12-08)
+
+## What's Changed
+
+- Revert get_serial.fn &error removal
+
 # Version 2025.12.14 (2025-12-08)
+
+## What's Changed
 
 - Cleanup ReGa scripts
 - Eliminate CDPD dictionary format with pure ProfileConfig implementation

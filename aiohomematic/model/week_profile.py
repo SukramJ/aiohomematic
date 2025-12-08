@@ -685,7 +685,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         return schedule
 
 
-class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
+class ClimateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
     """
     Handle climate device week profiles (thermostats).
 
@@ -1472,7 +1472,7 @@ class ClimeateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
 def create_week_profile(*, data_point: CustomDataPointProtocol) -> WeekProfile[dict[Any, Any]]:
     """Create a week profile from a custom data point."""
     if data_point.category == DataPointCategory.CLIMATE:
-        return ClimeateWeekProfile(data_point=data_point)
+        return ClimateWeekProfile(data_point=data_point)
     return DefaultWeekProfile(data_point=data_point)
 
 

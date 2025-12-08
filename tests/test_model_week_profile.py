@@ -21,7 +21,7 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpRfThermostat
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.week_profile import (
-    ClimeateWeekProfile,
+    ClimateWeekProfile,
     DefaultWeekProfile,
     _bitwise_to_list,
     _convert_minutes_to_time_str,
@@ -502,7 +502,7 @@ class TestWeekProfileCreation:
         )
 
         profile = create_week_profile(data_point=climate)
-        assert isinstance(profile, ClimeateWeekProfile)
+        assert isinstance(profile, ClimateWeekProfile)
 
     def test_create_week_profile_non_climate(self):
         """Test creating non-climate week profile."""
@@ -1520,7 +1520,7 @@ class TestClimateWeekProfileConversion:
             }
         }
 
-        result = ClimeateWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
+        result = ClimateWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
         assert "P1_TEMPERATURE_MONDAY_1" in result
         assert "P1_ENDTIME_MONDAY_1" in result
@@ -1542,7 +1542,7 @@ class TestClimateWeekProfileConversion:
         }
 
         with pytest.raises(ValidationException):
-            ClimeateWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
+            ClimateWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
     def test_convert_raw_to_dict_schedule(self):
         """Test converting raw climate schedule to dict format."""
@@ -1555,7 +1555,7 @@ class TestClimateWeekProfileConversion:
             "P1_TEMP_MON": 42,  # Should be skipped (not 4 parts)
         }
 
-        result = ClimeateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        result = ClimateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
         assert ScheduleProfile.P1 in result
         assert WeekdayStr.MONDAY in result[ScheduleProfile.P1]
@@ -1575,7 +1575,7 @@ class TestClimateWeekProfileConversion:
             "P1_TEMPERATURE_MONDAY_INVALID": 20.0,  # Invalid slot number
         }
 
-        result = ClimeateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        result = ClimateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
         # Should return empty dict as all entries are invalid
         assert result == {}
@@ -1838,7 +1838,7 @@ class TestClimateWeekProfileAdditionalEdgeCases:
             "P1_ENDTIME_MONDAY_1": 360,  # 6 hours * 60 minutes
         }
 
-        result = ClimeateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        result = ClimateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
         assert result[ScheduleProfile.P1][WeekdayStr.MONDAY][1][ScheduleSlotType.ENDTIME] == "06:00"
 
@@ -1848,7 +1848,7 @@ class TestClimateWeekProfileAdditionalEdgeCases:
             "P1_TEMPERATURE_MONDAY_ABC": 20.0,  # Invalid slot number
         }
 
-        result = ClimeateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        result = ClimateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
         # Should return empty dict as entry is invalid
         assert result == {}
@@ -3064,7 +3064,7 @@ class TestWeekProfileHelperMethods:
         }
 
         # Should handle gracefully and only convert valid entries
-        result = ClimeateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        result = ClimateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
         # Should have P1 profile
         assert ScheduleProfile.P1 in result
@@ -3244,7 +3244,7 @@ class TestWeekProfileHelperMethods:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        if climate.device.week_profile and isinstance(climate.device.week_profile, ClimeateWeekProfile):
+        if climate.device.week_profile and isinstance(climate.device.week_profile, ClimateWeekProfile):
             # Get schedule via property
             schedule = climate.device.week_profile.schedule
 
@@ -3344,7 +3344,7 @@ class TestValidateAndConvertMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimeateWeekProfile
+            climate.device.week_profile, ClimateWeekProfile
         ), "Device should have ClimeateWeekProfile"
 
         # Create full profile data
@@ -3398,7 +3398,7 @@ class TestValidateAndConvertMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimeateWeekProfile
+            climate.device.week_profile, ClimateWeekProfile
         ), "Device should have ClimeateWeekProfile"
 
         # Create full schedule data
@@ -3460,7 +3460,7 @@ class TestValidateAndConvertMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimeateWeekProfile
+            climate.device.week_profile, ClimateWeekProfile
         ), "Device should have ClimeateWeekProfile"
 
         # Create simple profile data
@@ -3524,7 +3524,7 @@ class TestValidateAndConvertMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimeateWeekProfile
+            climate.device.week_profile, ClimateWeekProfile
         ), "Device should have ClimeateWeekProfile"
 
         # Create simple schedule data
@@ -3592,7 +3592,7 @@ class TestValidateAndConvertMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimeateWeekProfile
+            climate.device.week_profile, ClimateWeekProfile
         ), "Device should have ClimeateWeekProfile"
 
         # Create simple weekday data
@@ -3660,7 +3660,7 @@ class TestValidateAndConvertMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimeateWeekProfile
+            climate.device.week_profile, ClimateWeekProfile
         ), "Device should have ClimeateWeekProfile"
 
         # Create full weekday data (13 slots)
@@ -3719,7 +3719,7 @@ class TestValidateAndConvertMethods:
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimeateWeekProfile
+            climate.device.week_profile, ClimateWeekProfile
         ), "Device should have ClimeateWeekProfile"
 
         # Original simple data

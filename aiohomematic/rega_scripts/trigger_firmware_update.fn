@@ -5,14 +5,13 @@
 !# Works for CCU3/OpenCCU/RaspberryMatic.
 !#
 
-string sError = "";
 string sResult = "";
 boolean bFirmwareExists = false;
 boolean bSuccess = false;
 
 !# Check if firmware file exists
 sResult = "";
-system.Exec("test -f /usr/local/.firmwareUpdate && echo 'OK' || test -L /usr/local/.firmwareUpdate && echo 'OK' || echo 'FAIL'", &sResult, &sError);
+system.Exec("test -f /usr/local/.firmwareUpdate && echo 'OK' || test -L /usr/local/.firmwareUpdate && echo 'OK' || echo 'FAIL'", &sResult);
 sResult = sResult.Trim();
 
 if (sResult == "OK") {
@@ -25,17 +24,17 @@ if (bFirmwareExists) {
 
     !# Set recovery mode flag (triggers update on reboot)
     sResult = "";
-    system.Exec("/bin/sh -c 'touch /usr/local/.recoveryMode'", &sResult, &sError);
+    system.Exec("/bin/sh -c 'touch /usr/local/.recoveryMode'", &sResult);
 
     !# Verify recovery mode was set
     sResult = "";
-    system.Exec("test -f /usr/local/.recoveryMode && echo 'OK' || echo 'FAIL'", &sResult, &sError);
+    system.Exec("test -f /usr/local/.recoveryMode && echo 'OK' || echo 'FAIL'", &sResult);
     sResult = sResult.Trim();
 
     if (sResult == "OK") {
         bSuccess = true;
         !# Trigger reboot (non-blocking)
-        system.Exec("/bin/sh -c '/sbin/reboot -d 5 2>/dev/null >/dev/null &'", &sResult, &sError);
+        system.Exec("/bin/sh -c '/sbin/reboot -d 5 2>/dev/null >/dev/null &'", &sResult);
     }
 }
 

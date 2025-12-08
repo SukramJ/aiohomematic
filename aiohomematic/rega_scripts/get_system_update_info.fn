@@ -7,14 +7,13 @@
 string sFwCurrent = "";
 string sFwAvailable = "";
 boolean bUpdateAvailable = false;
-string sError = "";
 string sResult = "";
 string sTemp = "";
 string sProduct = "";
 integer iPos;
 
 !# Get current firmware version and product from /VERSION file
-system.Exec("cat /VERSION 2>/dev/null", &sResult, &sError);
+system.Exec("cat /VERSION 2>/dev/null", &sResult);
 if (sResult) {
     sResult = sResult.Trim();
 
@@ -47,7 +46,7 @@ if (sResult) {
 !# Location 1: /usr/local/.firmwareUpdate (CCU3/RaspberryMatic - after manual upload)
 if (sFwAvailable == "") {
     sResult = "";
-    system.Exec("cat /usr/local/.firmwareUpdate 2>/dev/null", &sResult, &sError);
+    system.Exec("cat /usr/local/.firmwareUpdate 2>/dev/null", &sResult);
     if (sResult) {
         sResult = sResult.Trim();
         iPos = sResult.Find("VERSION=");
@@ -66,7 +65,7 @@ if (sFwAvailable == "") {
 !# Location 2: /tmp/.firmwareUpdate (some OpenCCU versions)
 if (sFwAvailable == "") {
     sResult = "";
-    system.Exec("cat /tmp/.firmwareUpdate 2>/dev/null", &sResult, &sError);
+    system.Exec("cat /tmp/.firmwareUpdate 2>/dev/null", &sResult);
     if (sResult) {
         sResult = sResult.Trim();
         iPos = sResult.Find("VERSION=");
@@ -87,7 +86,7 @@ if (sFwAvailable == "") {
 if (sFwAvailable == "") {
     if ((sProduct == "ova") || (sProduct == "rpi3") || (sProduct == "rpi4") || (sProduct == "rpi5") || (sProduct == "tinkerboard") || (sProduct == "oci")) {
         sResult = "";
-        system.Exec("wget -q -O - 'https://openccu.de/LATEST-VERSION.js' 2>/dev/null", &sResult, &sError);
+        system.Exec("wget -q -O - 'https://openccu.de/LATEST-VERSION.js' 2>/dev/null", &sResult);
         if (sResult) {
             iPos = sResult.Find("'");
             if (iPos >= 0) {
@@ -105,7 +104,7 @@ if (sFwAvailable == "") {
 if (sFwAvailable == "") {
     if ((sProduct == "rpi3") || (sProduct == "rpi4") || (sProduct == "rpi5") || (sProduct == "tinkerboard") || (sProduct == "oci")) {
         sResult = "";
-        system.Exec("wget -q -O - 'https://ccu3-update.homematic.com/firmware/download?cmd=js_check_version&product=HM-RASPBERRYMATIC&serial=0' 2>/dev/null", &sResult, &sError);
+        system.Exec("wget -q -O - 'https://ccu3-update.homematic.com/firmware/download?cmd=js_check_version&product=HM-RASPBERRYMATIC&serial=0' 2>/dev/null", &sResult);
         if (sResult) {
             iPos = sResult.Find("'");
             if (iPos >= 0) {

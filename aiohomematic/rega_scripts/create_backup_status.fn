@@ -8,28 +8,34 @@
 !#   - "idle": No backup process started (no pid file)
 !#
 
-string sError = "";
-string sResult = "";
-string sStatus = "idle";
-string sPid = "";
+string sResult   = "";
+string sStatus   = "idle";
+string sPid      = "";
+string sSize     = "";
+string sHostname = "";
+string sVersion  = "";
+string sFilename = "";
+string sDate     = "";
+
 boolean bProcessRunning = false;
 boolean bFileExists = false;
 boolean bPidFileExists = false;
+boolean bBackupComplete = false;
 
 !# Check if pid file exists
 sResult = "";
-system.Exec("test -f /usr/local/tmp/backup.pid && echo 'YES' || echo 'NO'", &sResult, &sError);
+system.Exec("test -f /usr/local/tmp/backup.pid && echo 'YES' || echo 'NO'", &sResult);
 if (sResult.Trim() == "YES") {
     bPidFileExists = true;
 
     !# Read the PID
     sResult = "";
-    system.Exec("cat /usr/local/tmp/backup.pid", &sResult, &sError);
+    system.Exec("cat /usr/local/tmp/backup.pid", &sResult);
     sPid = sResult.Trim();
 
     !# Check if process is still running
     sResult = "";
-    system.Exec("/bin/sh -c 'ps -p " # sPid # " > /dev/null 2>&1 && echo YES || echo NO'", &sResult, &sError);
+    system.Exec("/bin/sh -c 'ps -o pid | grep " # sPid # " > /dev/null 2>&1 && echo YES || echo NO'", &sResult);
     if (sResult.Trim() == "YES") {
         bProcessRunning = true;
     }
@@ -37,51 +43,45 @@ if (sResult.Trim() == "YES") {
 
 !# Check if backup file exists
 sResult = "";
-system.Exec("test -f /usr/local/tmp/last_backup.sbk && echo 'YES' || echo 'NO'", &sResult, &sError);
+system.Exec("test -f /usr/local/tmp/last_backup.sbk && echo 'YES' || echo 'NO'", &sResult);
 if (sResult.Trim() == "YES") {
     bFileExists = true;
 }
 
-!# Determine status (ReGa does not support else if, use nested if-else)
+!# Determine status
 if (bProcessRunning) {
     sStatus = "running";
 } else {
     if (bFileExists) {
         sStatus = "completed";
+        bBackupComplete = true;
         !# Clean up pid file
-        system.Exec("rm -f /usr/local/tmp/backup.pid", &sResult, &sError);
+        system.Exec("rm -f /usr/local/tmp/backup.pid &");
+    } elseif (bPidFileExists) {
+              sStatus = "failed";
+              !# Clean up pid file
+              system.Exec("rm -f /usr/local/tmp/backup.pid &");
     } else {
-        if (bPidFileExists) {
-            sStatus = "failed";
-            !# Clean up pid file
-            system.Exec("rm -f /usr/local/tmp/backup.pid", &sResult, &sError);
-        } else {
-            sStatus = "idle";
-        }
+        sStatus = "idle";
     }
 }
 
 !# Build response
-if (sStatus == "completed") {
+if (bBackupComplete) {
     !# Get file size
-    sResult = "";
-    system.Exec("stat -c %s /usr/local/tmp/last_backup.sbk 2>/dev/null", &sResult, &sError);
-    string sSize = sResult.Trim();
+    system.Exec("stat -c %s /usr/local/tmp/last_backup.sbk 2>/dev/null", &sSize);
+    sSize = sSize.Trim();
 
     !# Get backup filename with timestamp
-    sResult = "";
-    system.Exec("hostname", &sResult, &sError);
-    string sHostname = sResult.Trim();
+    system.Exec("hostname", &sHostname);
+    sHostname = sHostname.Trim();
 
-    sResult = "";
-    system.Exec("cat /VERSION | grep VERSION= | cut -d= -f2", &sResult, &sError);
-    string sVersion = sResult.Trim();
+    system.Exec("cat /VERSION | grep VERSION= | cut -d= -f2", &sVersion);
+    sVersion = sVersion.Trim();
 
-    sResult = "";
-    system.Exec("date '+%Y-%m-%d-%H%M'", &sResult, &sError);
-    string sDate = sResult.Trim();
+    sDate = localtime.Format("%F-%H%M");
 
-    string sFilename = sHostname # "-" # sVersion # "-" # sDate # ".sbk";
+    sFilename = sHostname # "-" # sVersion # "-" # sDate # ".sbk";
 
     Write('{"status":"' # sStatus # '","file":"/usr/local/tmp/last_backup.sbk","filename":"' # sFilename # '","size":' # sSize # '}');
 } else {

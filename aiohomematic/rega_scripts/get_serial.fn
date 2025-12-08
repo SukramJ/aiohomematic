@@ -17,14 +17,14 @@ string cmd_b = "/bin/sh -c 'cat /var/board_serial'";
 string cmd_c = "/bin/sh -c 'cat /sys/module/plat_eq3ccu2/parameters/board_serial'";
 
 !# Try uses /var/board_sgtin
-system.Exec(cmd_a, &serial, &error);
+system.Exec(cmd_a, &serial);
 if (serial) {
   serial = serial.Trim();
   find = true;
 }
 !# Try uses /var/board_serial
 if (!find) {
-  system.Exec(cmd_b, &serial, &error);
+  system.Exec(cmd_b, &serial);
   if (serial) {
     serial = serial.Trim();
     find = true;
@@ -32,7 +32,7 @@ if (!find) {
 }
 !# Try uses /sys/module/plat_eq3ccu2/parameters/board_serial
 if (!find) {
-  system.Exec(cmd_c, &serial, &error);
+  system.Exec(cmd_c, &serial);
   if (serial) {
     serial = serial.Trim();
   }

@@ -30,15 +30,15 @@ Components receive only protocol interfaces via constructor injection, with **ze
 
 **Benefits**: Complete decoupling from CentralUnit, protocol-based mocking for tests, clear dependency contracts.
 
-### Tier 2: Hybrid Dependency Injection (Coordinator Layer)
+### Tier 2: Full Protocol-Based Dependency Injection (Coordinator Layer)
 
-Components keep minimal CentralUnit reference only for factory functions, while using protocol interfaces for all other operations:
+Components use protocol interfaces exclusively with zero CentralUnit references:
 
-- **ClientCoordinator**: Keeps central for client factory, uses 4 protocol interfaces for operations
-- **HubCoordinator**: Keeps central for Hub construction, uses 3 protocol interfaces
-- **Hub**: Keeps central for data point factories, uses 5 protocol interfaces
+- **ClientCoordinator**: Uses ClientFactory protocol for client creation, plus 4 protocol interfaces (CentralInfo, ConfigProvider, CoordinatorProvider, SystemInfoProvider)
+- **HubCoordinator**: Constructs Hub with protocol interfaces only (CentralInfo, ChannelLookup, ClientProvider, ConfigProvider, EventBusProvider, EventPublisher, ParameterVisibilityProvider, ParamsetDescriptionProvider, PrimaryClientProvider, TaskScheduler)
+- **Hub**: Uses 11+ protocol interfaces for all operations, no CentralUnit reference
 
-**Rationale**: Factory functions require full CentralUnit context; all other operations are properly decoupled.
+**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactory protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
 
 ### Tier 3: Full Dependency Injection (Model Layer)
 
@@ -54,27 +54,46 @@ Model classes now use full dependency injection with protocol interfaces:
 
 ### Protocol Interfaces
 
-Key protocol interfaces defined in `aiohomematic/interfaces.py`:
+Key protocol interfaces defined in `aiohomematic/interfaces/`:
 
+**Central Protocols** (`interfaces/central.py`):
 - **CentralInfo**: System identification (name, model, version)
-- **ConfigProvider**: Configuration access
-- **ClientProvider**: Client lookup by interface_id
+- **ConfigProvider**: Configuration access (config property)
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
-- **EventBusProvider**: Event system access
-- **TaskScheduler**: Background task scheduling
+- **EventBusProvider**: Event system access (event_bus property)
+- **EventPublisher**: Event emission (publish_backend_system_event, publish_homematic_event)
+- **DataCacheProvider**: Data cache access (get_data method)
+- **ChannelLookup**: Channel lookup by address
+- **EventSubscriptionManager**: Event subscription management
+- **DeviceDataRefresher**: Device data refresh operations
+- **FileOperations**: File I/O operations
+- **SystemInfoProvider**: System information access
+- **HubDataFetcher**: Hub data fetching operations
+- **HubDataPointManager**: Hub data point management (programs and sysvars)
+
+**Client Protocols** (`interfaces/client.py`):
+- **ClientFactory**: Client instance creation (create_client_instance method)
+- **ClientProvider**: Client lookup by interface_id
+- **ClientProtocol**: Client interface for RPC operations
 - **PrimaryClientProvider**: Primary client access
+
+**Operations Protocols** (`interfaces/operations.py`):
+- **TaskScheduler**: Background task scheduling (create_task method)
 - **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
 - **DeviceDescriptionProvider**: Device descriptions lookup
 - **ParamsetDescriptionProvider**: Paramset descriptions and multi-channel checks
 - **ParameterVisibilityProvider**: Parameter visibility rules
-- **FileOperations**: File I/O operations
-- **DeviceDataRefresher**: Device data refresh operations
-- **DataCacheProvider**: Data cache access
-- **ChannelLookup**: Channel lookup by address
-- **EventSubscriptionManager**: Event subscription management
-- **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
+
+**Model Protocols** (`interfaces/model.py`):
+- **DeviceProtocol**: Device interface
+- **ChannelProtocol**: Channel interface
+- **HubProtocol**: Hub-level operations (inbox_dp, update_dp, fetch_*_data methods)
 - **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
+- Various DataPoint protocols (GenericDataPointProtocol, CustomDataPointProtocol, etc.)
+
+**Coordinator Protocols** (`interfaces/coordinators.py`):
+- **CoordinatorProvider**: Access to coordinator instances
 
 These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.
 
@@ -88,8 +107,9 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
   - Model is pure domain representation plus transformation from paramset descriptions to concrete data points/events. It must not perform network I/O. It consumes metadata provided by Central/Client and exposes typed operations on DataPoints (which then delegate to the client for I/O through the device/channel back‑reference).
   - Model layer (Device, Channel, DataPoint) uses full dependency injection with protocol interfaces, achieving complete decoupling from CentralUnit.
 - Coordinators
-  - Infrastructure coordinators (CacheCoordinator, DeviceCoordinator, etc.) use full dependency injection with protocol interfaces.
-  - Factory coordinators (ClientCoordinator, HubCoordinator) use hybrid DI: protocols for operations, minimal central reference for factories.
+  - All coordinators use full dependency injection with protocol interfaces.
+  - Infrastructure coordinators (CacheCoordinator, DeviceCoordinator, DeviceRegistry, EventCoordinator) receive only protocol interfaces.
+  - Factory coordinators (ClientCoordinator, HubCoordinator) use ClientFactory and other protocol interfaces for all operations including object creation.
 - Caches
   - Persistent caches are loaded/saved by Central during startup/shutdown and used by Clients to avoid redundant metadata fetches.
   - Dynamic caches are updated by Clients and Central when values change, and consulted to answer quick queries or de‑duplicate work.

@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.13"
+VERSION: Final = "2025.12.14"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -269,7 +269,7 @@ class CalulatedParameter(StrEnum):
     VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
 
 
-class CDPD(StrEnum):
+class ProfileKey(StrEnum):
     """Enum for custom data point definitions."""
 
     ADDITIONAL_DPS = "additional_dps"
@@ -285,11 +285,6 @@ class CDPD(StrEnum):
     STATE_CHANNEL = "state_channel"
     VISIBLE_FIELDS = "visible_fields"
     VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
-
-
-# Alias for CDPD with more descriptive name
-ProfileKey = CDPD
-"""Alias for CDPD - Keys used in profile configuration dictionaries."""
 
 
 class ChannelOffset(IntEnum):

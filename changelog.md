@@ -1,3 +1,7 @@
+# Version 2025.12.14 (2025-12-08)
+
+- Eliminate CDPD dictionary format with pure ProfileConfig implementation
+
 # Version 2025.12.13 (2025-12-07)
 
 ## What's Changed

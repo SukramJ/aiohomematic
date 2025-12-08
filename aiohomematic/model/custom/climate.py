@@ -39,8 +39,8 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.registry import DeviceProfileRegistry
-from aiohomematic.model.custom.support import CustomConfig
+from aiohomematic.model.custom.profile import RebasedChannelGroup
+from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
 from aiohomematic.property_decorators import config_property, state_property
@@ -157,10 +157,10 @@ class BaseCustomDpClimate(CustomDataPoint):
         channel: ChannelProtocol,
         unique_id: str,
         device_profile: DeviceProfile,
-        device_def: Mapping[str, Any],
-        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[str, ...]],
-        group_no: int,
-        custom_config: CustomConfig,
+        channel_group: RebasedChannelGroup,
+        custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]],
+        group_no: int | None,
+        device_config: DeviceConfig,
     ) -> None:
         """Initialize base climate data_point."""
         self._peer_level_dp: DpFloat | None = None
@@ -170,10 +170,10 @@ class BaseCustomDpClimate(CustomDataPoint):
             channel=channel,
             unique_id=unique_id,
             device_profile=device_profile,
-            device_def=device_def,
+            channel_group=channel_group,
             custom_data_point_def=custom_data_point_def,
             group_no=group_no,
-            custom_config=custom_config,
+            device_config=device_config,
         )
         self._old_manu_setpoint: float | None = None
 
@@ -197,7 +197,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @property
     def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
         """Return available schedule profiles."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return self._device.week_profile.available_schedule_profiles
         return ()
 
@@ -209,7 +209,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @property
     def simple_schedule(self) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
         """Return cached simple schedule entries from device week profile."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return self._device.week_profile.simple_schedule
         return {}
 
@@ -297,7 +297,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.copy_schedule(target_climate_data_point=target_climate_data_point)
 
     @inspector
@@ -309,7 +309,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         target_climate_data_point: BaseCustomDpClimate | None = None,
     ) -> None:
         """Copy schedule profile to target device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.copy_profile(
                 source_profile=source_profile,
                 target_profile=target_profile,
@@ -331,7 +331,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_PROFILE_DICT:
         """Return a schedule by climate profile (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_profile(profile=profile, force_load=force_load)
         return {}
 
@@ -340,14 +340,14 @@ class BaseCustomDpClimate(CustomDataPoint):
         self, *, profile: ScheduleProfile, force_load: bool = False
     ) -> CLIMATE_SIMPLE_PROFILE_DICT:
         """Return a simple schedule by climate profile (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_simple_profile(profile=profile, force_load=force_load)
         return {}
 
     @inspector
     async def get_schedule_simple_schedule(self, *, force_load: bool = False) -> CLIMATE_SIMPLE_SCHEDULE_DICT:
         """Return the complete simple schedule dictionary (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_simple_schedule(force_load=force_load)
         return {}
 
@@ -356,7 +356,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
     ) -> CLIMATE_SIMPLE_WEEKDAY_DATA:
         """Return a simple schedule by climate profile and weekday (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_simple_weekday(
                 profile=profile, weekday=weekday, force_load=force_load
             )
@@ -367,7 +367,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
     ) -> CLIMATE_WEEKDAY_DICT:
         """Return a schedule by climate profile and weekday (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
         return {}
 
@@ -396,7 +396,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         self, *, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT, do_validate: bool = True
     ) -> None:
         """Set a profile to device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_profile(
                 profile=profile, profile_data=profile_data, do_validate=do_validate
             )
@@ -411,7 +411,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         do_validate: bool = True,
     ) -> None:
         """Store a profile weekday to device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_weekday(
                 profile=profile, weekday=weekday, weekday_data=weekday_data, do_validate=do_validate
             )
@@ -419,7 +419,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def set_simple_schedule(self, *, simple_schedule_data: CLIMATE_SIMPLE_SCHEDULE_DICT) -> None:
         """Set the complete simple schedule dictionary to device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_simple_schedule(simple_schedule_data=simple_schedule_data)
 
     @inspector
@@ -430,7 +430,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         simple_profile_data: CLIMATE_SIMPLE_PROFILE_DICT,
     ) -> None:
         """Set a profile to device using simple format (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_simple_profile(profile=profile, simple_profile_data=simple_profile_data)
 
     @inspector
@@ -442,7 +442,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         simple_weekday_data: CLIMATE_SIMPLE_WEEKDAY_DATA,
     ) -> None:
         """Store a simple weekday profile to device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimeateWeekProfile):
+        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_simple_weekday(
                 profile=profile,
                 weekday=weekday,

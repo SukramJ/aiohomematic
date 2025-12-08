@@ -32,9 +32,6 @@ underlying generic data points to be created when desired.
 Public API entry points commonly used by integrators
 - create_custom_data_points(device): Run discovery and attach custom data points.
 - data_point_definition_exists(model): Check if a custom definition is available.
-- get_custom_configs(model, category=None): Retrieve the CustomConfig entries
-  used to create custom data points for a model (optionally filtered by
-  category).
 - get_required_parameters(): Return all parameters that must be fetched to allow
   custom data points to function properly.
 """
@@ -66,8 +63,8 @@ from aiohomematic.model.custom.cover import (
 )
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.definition import (
+    create_custom_data_points as _create_custom_data_points_for_channel,
     data_point_definition_exists,
-    get_custom_configs,
     get_required_parameters,
 )
 from aiohomematic.model.custom.light import (
@@ -96,8 +93,9 @@ from aiohomematic.model.custom.profile import (
     ChannelGroupConfig,
     ProfileConfig,
     ProfileRegistry,
+    RebasedChannelGroup,
     get_profile_config,
-    profile_config_to_dict,
+    rebase_channel_group,
 )
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.siren import BaseCustomDpSiren, CustomDpIpSiren, CustomDpIpSirenSmoke, SirenOnArgs
@@ -147,19 +145,19 @@ __all__ = [
     "CustomDpSwitch",
     # Valve
     "CustomDpIpIrrigationValve",
-    # Definition (legacy)
+    # Definition
     "create_custom_data_points",
     "data_point_definition_exists",
-    "get_custom_configs",
     "get_required_parameters",
-    # Profile (new type-safe approach)
+    # Profile (type-safe)
     "ChannelGroupConfig",
     "DEFAULT_DATA_POINTS",
     "ProfileConfig",
     "ProfileRegistry",
     "PROFILE_CONFIGS",
+    "RebasedChannelGroup",
     "get_profile_config",
-    "profile_config_to_dict",
+    "rebase_channel_group",
     # Registry (new type-safe approach)
     "DeviceConfig",
     "DeviceProfileRegistry",
@@ -171,7 +169,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 @inspector(scope=ServiceScope.INTERNAL)
 def create_custom_data_points(*, device: DeviceProtocol) -> None:
-    """Decides which data point category should be used, and creates the required data points."""
+    """Decide which data point category should be used, and create the required data points."""
     if device.ignore_for_custom_data_point:
         _LOGGER.debug(
             "CREATE_CUSTOM_DATA_POINTS: Ignoring for custom data point: %s, %s, %s due to ignored",
@@ -180,6 +178,7 @@ def create_custom_data_points(*, device: DeviceProtocol) -> None:
             device.model,
         )
         return
+
     if data_point_definition_exists(model=device.model):
         _LOGGER.debug(
             "CREATE_CUSTOM_DATA_POINTS: Handling custom data point integration: %s, %s, %s",
@@ -188,7 +187,6 @@ def create_custom_data_points(*, device: DeviceProtocol) -> None:
             device.model,
         )
 
-        # Call the custom creation function.
-        for custom_config in get_custom_configs(model=device.model):
-            for channel in device.channels.values():
-                custom_config.make_ce_func(channel=channel, custom_config=custom_config)
+        # Create custom data points for each channel
+        for channel in device.channels.values():
+            _create_custom_data_points_for_channel(channel=channel)

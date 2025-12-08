@@ -33,7 +33,6 @@ _MIN_HUE: Final = 0.0
 _MIN_MIREDS: Final = 153
 _MIN_SATURATION: Final = 0.0
 _NOT_USED: Final = 111600
-_OLD_LEVEL: Final = 1.005
 _SATURATION_MULTIPLIER: Final = 100
 
 

@@ -402,7 +402,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             )
             return None
 
-        return await self._json_rpc_client.download_backup(backup_path=backup_data.file_path)
+        return await self._json_rpc_client.download_backup()
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""

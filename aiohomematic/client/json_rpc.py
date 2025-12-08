@@ -420,19 +420,16 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return True
 
-    async def download_backup(self, *, backup_path: str) -> bytes | None:
+    async def download_backup(self) -> bytes | None:
         """
         Download a backup file from the CCU.
 
-        Args:
-            backup_path: Unused, kept for backward compatibility.
-                The CCU's cp_security.cgi endpoint creates and downloads a fresh backup.
+        The CCU's cp_security.cgi endpoint creates and downloads a fresh backup.
 
         Returns:
             Backup file content as bytes, or None if download failed.
 
         """
-        del backup_path  # Unused - cp_security.cgi creates its own backup
         if not self._client_session:
             _LOGGER.error(i18n.tr("exception.client.json_post.no_session"))
             return None

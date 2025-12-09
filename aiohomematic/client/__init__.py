@@ -99,7 +99,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException, ValidationException
-from aiohomematic.interfaces.client import ClientProtocol
+from aiohomematic.interfaces.client import ClientDependencies, ClientProtocol
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import hm_property
@@ -173,7 +173,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return self._available
 
     @property
-    def central(self) -> hmcu.CentralUnit:
+    def central(self) -> ClientDependencies:
         """Return the central of the client."""
         return self._config.central
 
@@ -2091,11 +2091,11 @@ class ClientConfig:
     def __init__(
         self,
         *,
-        central: hmcu.CentralUnit,
+        central: ClientDependencies,
         interface_config: InterfaceConfig,
     ) -> None:
         """Initialize the config."""
-        self.central: Final = central
+        self.central: Final[ClientDependencies] = central
         self.version: str = "0"
         self.system_information = SystemInformation()
         self.interface_config: Final = interface_config
@@ -2252,7 +2252,7 @@ class InterfaceConfig:
 
 
 async def create_client(
-    central: hmcu.CentralUnit,
+    central: ClientDependencies,
     interface_config: InterfaceConfig,
 ) -> ClientProtocol:
     """Return a new client for with a given interface_config."""

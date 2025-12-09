@@ -162,11 +162,20 @@ from aiohomematic.interfaces.central import (
     SystemInfoProvider,
 )
 from aiohomematic.interfaces.client import (
+    CallbackAddressProvider,
     ClientCoordination,
+    ClientDependencies,
     ClientFactory,
     ClientProtocol,
     ClientProvider,
+    ConnectionStateProvider,
+    DeviceLookup,
+    InterfaceEventPublisher,
+    JsonRpcClientProvider,
+    LastEventTracker,
+    NewDeviceHandler,
     PrimaryClientProvider,
+    SessionRecorderProvider,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProvider
 from aiohomematic.interfaces.model import (
@@ -224,16 +233,20 @@ StateChangeCallback = Callable[[str, bool], None]  # (interface_id, connected)
 class CentralUnit(
     PayloadMixin,
     BackupProvider,
+    CallbackAddressProvider,
     CentralInfo,
     CentralUnitStateProvider,
     ChannelLookup,
     ClientCoordination,
+    ClientDependencies,
     ClientFactory,
     ClientProvider,
     ConfigProvider,
+    ConnectionStateProvider,
     CoordinatorProvider,
     DataPointProvider,
     DeviceDataRefresher,
+    DeviceLookup,
     DeviceProvider,
     EventBusProvider,
     EventPublisher,
@@ -241,8 +254,13 @@ class CentralUnit(
     FileOperations,
     HubDataFetcher,
     HubDataPointManager,
+    InterfaceEventPublisher,
+    JsonRpcClientProvider,
+    LastEventTracker,
     LogContextMixin,
+    NewDeviceHandler,
     PrimaryClientProvider,
+    SessionRecorderProvider,
     SystemInfoProvider,
 ):
     """Central unit that collects everything to handle communication from/to the backend."""

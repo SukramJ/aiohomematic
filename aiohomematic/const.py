@@ -1198,9 +1198,8 @@ class SystemInformation:
     serial: str | None = None
     # Backend info fields
     version: str = ""
-    product: str = ""
     hostname: str = ""
-    ccu_type: CCUType = field(default_factory=lambda: CCUType.UNKNOWN)
+    ccu_type: CCUType = CCUType.UNKNOWN
 
     @property
     def is_ccu(self) -> bool:

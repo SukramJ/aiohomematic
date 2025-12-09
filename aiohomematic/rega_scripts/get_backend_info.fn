@@ -1,54 +1,25 @@
 !# name: get_backend_info.fn
 !#
-!# This script retrieves detailed backend information to identify
-!# the CCU type (CCU2, CCU3, OpenCCU, RaspberryMatic, etc.)
+!# This script retrieves backend information and identifies the CCU type.
+!# Product is normalized to CCU (CCU2/CCU3/debmatic) or OpenCCU (RaspberryMatic, etc.)
 !#
-
-string sResult = "";
-string sTemp = "";
-integer iPos;
 
 string sVersion = "";
 string sProduct = "";
 string sHostname = "";
 
-!# Read /VERSION file for version and product info
-sResult = "";
-system.Exec("cat /VERSION 2>/dev/null", &sResult);
-if (sResult) {
-    sResult = sResult.Trim();
+system.Exec("grep VERSION= /VERSION | tr -d '[:space:]' | cut -d= -f2", &sVersion);
+sVersion = sVersion.Trim();
 
-    !# Extract VERSION
-    iPos = sResult.Find("VERSION=");
-    if (iPos >= 0) {
-        sTemp = sResult.Substr(iPos + 8, sResult.Length());
-        iPos = sTemp.Find("\n");
-        if (iPos > 0) {
-            sVersion = sTemp.Substr(0, iPos).Trim();
-        } else {
-            sVersion = sTemp.Trim();
-        }
-    }
-
-    !# Extract PRODUCT
-    iPos = sResult.Find("PRODUCT=");
-    if (iPos >= 0) {
-        sTemp = sResult.Substr(iPos + 8, sResult.Length());
-        iPos = sTemp.Find("\n");
-        if (iPos > 0) {
-            sProduct = sTemp.Substr(0, iPos).Trim();
-        } else {
-            sProduct = sTemp.Trim();
-        }
-    }
+system.Exec("grep PRODUCT= /VERSION | tr -d '[:space:]' | cut -d= -f2", &sProduct);
+sProduct = sProduct.Trim();
+if ((!sProduct.Contains("ccu")) && (!sProduct == "debmatic")) {
+    sProduct = "OpenCCU";
+} else {
+    sProduct = "CCU";
 }
 
-!# Get hostname
-sResult = "";
-system.Exec("hostname 2>/dev/null", &sResult);
-sHostname = sResult.Trim();
+system.Exec("hostname", &sHostname);
+sHostname = sHostname.Trim();
 
-!# Output JSON result
-Write('{"version":"' # sVersion # '",');
-Write('"product":"' # sProduct # '",');
-Write('"hostname":"' # sHostname # '"}');
+Write('{"version":"' # sVersion # '","product":"' # sProduct # '","hostname":"' # sHostname # '"}');

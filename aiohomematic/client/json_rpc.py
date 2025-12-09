@@ -982,7 +982,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         # Get backend info (version, product, hostname, ccu_type)
         version = ""
-        product = ""
         hostname = ""
         ccu_type = CCUType.UNKNOWN
         try:
@@ -990,9 +989,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             _LOGGER.debug("GET_SYSTEM_INFORMATION: Getting backend information")
             if json_result := response[_JsonKey.RESULT]:
                 version = json_result.get(_JsonKey.VERSION, "")
-                product = json_result.get(_JsonKey.PRODUCT, "")
+                ccu_type = _determine_ccu_type(product=json_result.get(_JsonKey.PRODUCT, ""))
                 hostname = json_result.get(_JsonKey.HOSTNAME, "")
-                ccu_type = _determine_ccu_type(product=product)
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
@@ -1007,7 +1005,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             https_redirect_enabled=await self._get_https_redirect_enabled(),
             serial=await self._get_serial(),
             version=version,
-            product=product,
             hostname=hostname,
             ccu_type=ccu_type,
         )
@@ -1859,46 +1856,19 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
 def _determine_ccu_type(*, product: str) -> CCUType:
     """
-    Determine the CCU type based on the PRODUCT identifier.
+    Determine the CCU type.
 
     CCU types:
     - CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone)
     - OPENCCU: OpenCCU and RaspberryMatic (modern variants with online update check)
 
-    Known PRODUCT values:
-    - CCU: "CCU2", "CCU3"
-    - OpenCCU/RaspberryMatic: "rpi0"-"rpi5", "tinkerboard", "oci", "ova", "nuc", etc.
-
     """
     # Check for original CCU hardware and debmatic
-    if (product_lower := product.lower()) in ("ccu2", "ccu3"):
+    if (product_lower := product.lower()) in ("ccu"):
         return CCUType.CCU
 
-    # Check for OpenCCU/RaspberryMatic products
-    openccu_products = (
-        "rpi0",
-        "rpi2",
-        "rpi3",
-        "rpi4",
-        "rpi5",
-        "tinkerboard",
-        "oci",
-        "ova",
-        "nuc",
-        "generic-x86_64",
-        "generic-aarch64",
-        "intelnuc",
-        "odroid-c2",
-        "odroid-c4",
-        "odroid-n2",
-    )
-
-    if product_lower in openccu_products:
+    if product_lower in ("openccu"):
         return CCUType.OPENCCU
-
-    # If product is not empty but not recognized, it's likely a variant
-    if product:
-        return CCUType.UNKNOWN
 
     return CCUType.UNKNOWN
 

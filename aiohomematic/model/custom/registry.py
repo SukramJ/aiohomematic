@@ -128,37 +128,68 @@ class DeviceProfileRegistry:
         model: str,
         category: DataPointCategory | None = None,
     ) -> tuple[DeviceConfig, ...]:
-        """Return device configurations for a model."""
+        """
+        Return device configurations for a model.
+
+        Model matching algorithm (hierarchical, first-match wins):
+            1. Normalize model name (lowercase, replace "hb-" with "hm-")
+            2. Check blacklist - return empty if blacklisted
+            3. For each category, try matching in order:
+               a. Exact match: model == registered_key
+               b. Prefix match: model.startswith(registered_key)
+
+        Why prefix matching?
+            Homematic devices often have variants (e.g., "HmIP-BWTH-1" and "HmIP-BWTH-2")
+            that share the same profile. Prefix matching allows registering "hmip-bwth"
+            once to cover all variants, reducing duplication.
+
+        Model normalization:
+            - Lowercase: Makes matching case-insensitive
+            - "hb-" → "hm-": HomeBrew devices use "HB-" prefix but behave like "HM-" devices
+
+        Result aggregation:
+            A model can match multiple categories (e.g., a thermostat might have both
+            CLIMATE and SENSOR entities). Results from all matching categories are
+            combined into a single tuple.
+
+        Storage format:
+            Registry entries can be either:
+            - Single DeviceConfig: For simple devices
+            - Tuple of DeviceConfigs: For devices with multiple entity types
+              (e.g., lock + button_lock on same device)
+        """
+        # Normalize model name for consistent matching
         normalized = model.lower().replace("hb-", "hm-")
 
-        # Check blacklist
+        # Check blacklist first (fast path for excluded devices)
         if cls.is_blacklisted(model=model):
             return ()
 
         configs: list[DeviceConfig] = []
 
+        # Search specified category or all categories
         categories = [category] if category else list(cls._configs.keys())
 
         for cat in categories:
             if cat not in cls._configs:
                 continue
 
-            # Try exact match first
+            # Priority 1: Exact match (most specific)
             if result := cls._configs[cat].get(normalized):
                 if isinstance(result, tuple):
                     configs.extend(result)
                 else:
                     configs.append(result)
-                continue
+                continue  # Found exact match, skip prefix matching for this category
 
-            # Try prefix match
+            # Priority 2: Prefix match (for device variants)
             for model_key, result in cls._configs[cat].items():
                 if normalized.startswith(model_key):
                     if isinstance(result, tuple):
                         configs.extend(result)
                     else:
                         configs.append(result)
-                    break
+                    break  # First prefix match wins, stop searching this category
 
         return tuple(configs)
 

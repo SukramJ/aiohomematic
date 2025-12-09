@@ -453,8 +453,19 @@ class EventBus:
         """
         Publish an event to all subscribed handlers.
 
-        Handlers are called concurrently via asyncio.gather. Exceptions in
-        individual handlers are caught and logged but don't affect other handlers.
+        Handler lookup strategy (dual-key fallback):
+            1. First try: Look up handlers by specific event.key
+               (e.g., unique_id for DataPointUpdatedEvent)
+            2. Fallback: Look up handlers subscribed with key=None
+               (wildcard subscribers that receive all events of this type)
+
+            This allows both targeted subscriptions (only events for specific
+            data point) and global subscriptions (all events of a type).
+
+        Concurrent execution:
+            All matching handlers are called concurrently via asyncio.gather().
+            return_exceptions=True ensures one failing handler doesn't prevent
+            others from receiving the event. Errors are logged in _safe_call_handler.
 
         Args:
         ----
@@ -463,6 +474,9 @@ class EventBus:
         """
         event_type = type(event)
 
+        # Dual-key lookup: specific key first, then wildcard (None) fallback.
+        # The `or` chain short-circuits: if specific key has handlers, use them;
+        # otherwise fall back to None-key handlers; otherwise empty list.
         if not (
             handlers := (
                 self._subscriptions.get(event_type, {}).get(event.key)
@@ -483,6 +497,7 @@ class EventBus:
 
             return
 
+        # Track event statistics for debugging
         self._event_count[event_type] += 1
 
         if self._enable_event_logging:
@@ -493,7 +508,8 @@ class EventBus:
                 self._event_count[event_type],
             )
 
-        # Call all handlers concurrently, isolating errors
+        # Concurrent handler invocation with error isolation.
+        # Each handler runs independently; failures don't affect siblings.
         tasks = [self._safe_call_handler(handler=handler, event=event) for handler in handlers]
         await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -553,20 +569,35 @@ class EventBus:
         """
         Safely invoke a handler, catching and logging exceptions.
 
-        Supports both sync and async handlers.
+        Polymorphic handler detection:
+            Handlers can be either sync or async functions. We use a try-then-await
+            pattern to support both:
+            1. Call the handler (works for both sync and async)
+            2. Check if the result is a coroutine (indicates async handler)
+            3. If coroutine, await it; if not, the call already completed
+
+            This is more efficient than checking asyncio.iscoroutinefunction() upfront
+            because some handlers may be wrapped/decorated in ways that obscure their
+            async nature.
+
+        Error isolation:
+            Exceptions are caught and logged but not re-raised. This ensures one
+            buggy handler doesn't prevent other handlers from receiving events.
 
         Args:
         ----
-            handler: The callback to invoke
+            handler: The callback to invoke (sync or async)
             event: The event to pass to the handler
 
         """
         try:
-            # Check if handler is async
+            # Invoke handler - works for both sync and async
             result = handler(event)
+            # If async, the result is a coroutine that needs to be awaited
             if asyncio.iscoroutine(result):
                 await result
         except Exception:
+            # Log but don't re-raise - isolate handler errors
             _LOGGER.exception(  # i18n-log: ignore
                 "_SAFE_CALL_HANDLER: Error in event handler %s for event %s",
                 handler.__name__ if hasattr(handler, "__name__") else handler,

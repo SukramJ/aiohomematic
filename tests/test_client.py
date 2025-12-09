@@ -9,14 +9,11 @@ from typing import Any
 import pytest
 
 from aiohomematic import central as hmcu
-from aiohomematic.client import (
-    ClientCCU,
-    ClientConfig,
-    InterfaceConfig,
+from aiohomematic.client import ClientCCU, ClientConfig, InterfaceConfig, get_client as get_client_by_id
+from aiohomematic.client.handlers.device_ops import (
     _isclose as client_isclose,
     _track_single_data_point_state_change_or_timeout,
     _wait_for_state_change_or_timeout,
-    get_client as get_client_by_id,
 )
 from aiohomematic.const import (
     CALLBACK_WARN_INTERVAL,
@@ -636,6 +633,13 @@ class TestClientClasses:
 
         # Provide a fake xml-rpc proxy to client_ccu
         client_ccu._proxy = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_ccu._proxy_read = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_ccu._init_handlers()
+
+        # Provide a fake xml-rpc proxy to client_json
+        client_json._proxy = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_json._proxy_read = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_json._init_handlers()
 
         # Simple properties and __str__ and product groups
         assert str(client_ccu) == f"interface_id: {client_ccu.interface_id}"
@@ -763,6 +767,11 @@ class TestClientClasses:
 
         ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
         client_ccu = _ClientCCU(client_config=ccfg)
+
+        # Provide fake proxies and initialize handlers
+        client_ccu._proxy = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_ccu._proxy_read = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_ccu._init_handlers()
 
         # Patch json client to raise ClientException on get_all_device_data
         async def raise_client_exc(*, interface: Interface):  # noqa: ARG002
@@ -942,15 +951,22 @@ class TestClientProxyLifecycle:
     @pytest.mark.asyncio
     async def test_proxy_lifecycle_success_and_failure_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """initialize_proxy/deinitialize_proxy paths including exceptions and non-callback path."""
+        from aiohomematic.const import ClientState
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         ccfg = ClientConfig(central=central, interface_config=iface_cfg)
 
         client = ClientCCU(client_config=ccfg)
 
-        # Patch proxies on client directly
+        # Patch proxies on client directly and initialize handlers
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()  # Initialize handlers after setting proxies
+
+        # Transition state machine to INITIALIZED (simulate init_client completion)
+        client._state_machine.transition_to(target=ClientState.INITIALIZING)  # type: ignore[attr-defined]
+        client._state_machine.transition_to(target=ClientState.INITIALIZED)  # type: ignore[attr-defined]
 
         state = await client.initialize_proxy()
         from aiohomematic.const import ProxyInitState
@@ -958,9 +974,10 @@ class TestClientProxyLifecycle:
         assert state is ProxyInitState.INIT_SUCCESS and client.is_initialized is True
 
         state = await client.deinitialize_proxy()
-        assert (
-            state in {ProxyInitState.DE_INIT_SUCCESS, ProxyInitState.DE_INIT_FAILED} and client.is_initialized is False
-        )
+        # After deinitialize, state is DISCONNECTED which is still considered "initialized"
+        # (meaning client was initialized and can be reconnected)
+        assert state in {ProxyInitState.DE_INIT_SUCCESS, ProxyInitState.DE_INIT_FAILED}
+        assert client._state_machine.state == ClientState.DISCONNECTED  # type: ignore[attr-defined]
 
         client._config.supports_rpc_callback = False  # type: ignore[attr-defined]
         state = await client.deinitialize_proxy()
@@ -1001,13 +1018,14 @@ class TestClientReconnectAndConnection:
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
 
-        async def _cca_true(*, handle_ping_pong: bool) -> bool:  # noqa: ARG001
+        async def _cca_true(self, *, handle_ping_pong: bool) -> bool:  # noqa: ARG001
             return True
 
-        async def _cca_false(*, handle_ping_pong: bool) -> bool:  # noqa: ARG001
+        async def _cca_false(self, *, handle_ping_pong: bool) -> bool:  # noqa: ARG001
             return False
 
-        client.check_connection_availability = _cca_true  # type: ignore[method-assign]
+        # Use monkeypatch.setattr on the class to override decorated method
+        monkeypatch.setattr(ClientCCU, "check_connection_availability", _cca_true)
 
         async def _no_sleep(_):  # noqa: ANN001
             return None
@@ -1019,13 +1037,13 @@ class TestClientReconnectAndConnection:
         client.modified_at = datetime.now()
         assert await client.is_connected() is True
 
-        client.check_connection_availability = _cca_false  # type: ignore[method-assign]
+        monkeypatch.setattr(ClientCCU, "check_connection_availability", _cca_false)
         res = [await client.is_connected() for _ in range(4)]
         assert res[-1] is False
 
         central2 = _FakeCentral2(push_updates=False)
         client2 = ClientCCU(client_config=ClientConfig(central=central2, interface_config=iface_cfg))
-        client2.check_connection_availability = _cca_true  # type: ignore[method-assign]
+        monkeypatch.setattr(ClientCCU, "check_connection_availability", _cca_true)
         assert await client2.is_connected() is True
 
 
@@ -1040,6 +1058,7 @@ class TestClientValueAndParamset:
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()  # Initialize handlers after setting proxies
 
         res = await client.get_all_device_descriptions(device_address="dev1")
         assert res == ()
@@ -1076,6 +1095,7 @@ class TestClientValueAndParamset:
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()  # Initialize handlers after setting proxies
 
         dpk_values = await client._set_value(
             channel_address="dev1:1",
@@ -1126,6 +1146,7 @@ class TestClientFirmwareAndUpdates:
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()  # Initialize handlers after setting proxies
 
         assert await client.update_device_firmware(device_address="dev1") is False
 
@@ -1231,6 +1252,8 @@ class TestClientInstallMode:
                 raise ClientException("getInstallMode-fail")
 
         client._proxy = _ErrProxy()
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()
 
         with pytest.raises(ClientException):
             await client.get_install_mode()
@@ -1247,6 +1270,8 @@ class TestClientInstallMode:
                 return None
 
         client._proxy = _NoneProxy()
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()
 
         result = await client.get_install_mode()
         assert result == 0
@@ -1258,6 +1283,8 @@ class TestClientInstallMode:
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()
 
         result = await client.get_install_mode()
         assert result == 60
@@ -1274,6 +1301,8 @@ class TestClientInstallMode:
                 raise ClientException("setInstallMode-fail")
 
         client._proxy = _ErrProxy()
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()
 
         with pytest.raises(ClientException):
             await client.set_install_mode(on=True)
@@ -1285,6 +1314,8 @@ class TestClientInstallMode:
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()
 
         result = await client.set_install_mode(on=True, time=60, mode=1)
         assert result is True
@@ -1303,6 +1334,8 @@ class TestClientInstallMode:
                 calls.append(args)
 
         client._proxy = _TrackingProxy()
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._init_handlers()
 
         await client.set_install_mode(on=True, time=120, mode=2, device_address="ABC123")
         assert len(calls) == 1

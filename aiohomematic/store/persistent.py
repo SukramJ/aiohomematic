@@ -575,12 +575,32 @@ class SessionRecorder(BasePersistentFile):
     """
     Session recorder for central unit.
 
-    Nested cache with TTL support.
-    Structure:
-        store[rpc_type][method][params][ts: datetime] = response: Any
+    Purpose:
+        Records RPC method calls and responses for test playback.
+        This enables deterministic testing without a live CCU backend.
 
-    - Expiration is lazy (checked on access/update).
-    - Optional refresh_on_get extends TTL when reading.
+    Data structure (4-level nested dict):
+        store[rpc_type][method][frozen_params][timestamp_ms] = response
+
+        - rpc_type: "xml" or "json" (the RPC protocol used)
+        - method: RPC method name (e.g., "listDevices", "getValue")
+        - frozen_params: Parameters frozen to string via _freeze_params()
+        - timestamp_ms: Integer timestamp in milliseconds (for TTL tracking)
+        - response: The actual RPC response to replay
+
+    TTL (Time-To-Live) mechanism:
+        - Each entry has a timestamp when it was recorded
+        - Entries expire after _ttl seconds
+        - Expiration is lazy: checked on access/update, not via background task
+        - Optional refresh_on_get: Reading an entry extends its TTL
+
+    Why nested defaultdicts?
+        Avoids explicit bucket creation when recording new entries.
+        store[rpc_type][method][params] automatically creates intermediate dicts.
+
+    Cleanup strategy:
+        _purge_expired_at() removes expired entries and cleans up empty buckets.
+        Important: Uses .get() chains to avoid creating buckets as side effect.
     """
 
     __slots__ = (
@@ -612,8 +632,8 @@ class SessionRecorder(BasePersistentFile):
         self._ttl: Final = float(ttl_seconds)
         self._is_recording: bool = False
         self._refresh_on_get: Final = refresh_on_get
-        # Use nested defaultdicts: rpc_type -> method -> params -> ts(int) -> response
-        # Annotate as defaultdict to match the actual type and satisfy mypy.
+        # Nested defaultdicts auto-create intermediate buckets on write.
+        # Structure: rpc_type -> method -> frozen_params -> ts(ms) -> response
         self._store: dict[str, dict[str, dict[str, dict[int, Any]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
         )
@@ -761,13 +781,26 @@ class SessionRecorder(BasePersistentFile):
         """
         Return a cached response if still valid, else default.
 
-        This method must avoid creating buckets when the entry is missing.
-        It purges expired entries first, then returns the response at the
-        latest timestamp for the given params. If refresh_on_get is enabled,
-        it appends a new timestamp with the same response/ttl.
+        Algorithm:
+            1. Purge expired entries for this method (lazy cleanup)
+            2. Navigate the nested dict safely using .get() to avoid bucket creation
+            3. Find the response at the latest timestamp (most recent recording)
+            4. Optionally extend TTL by adding a new timestamp (refresh_on_get)
+
+        Why use .get() chains instead of direct indexing?
+            Using self._store[rpc_type][method] would auto-create buckets due to
+            defaultdict behavior. This is a read operation, so we must not modify
+            the store when the entry doesn't exist. The .get() method returns None
+            without creating the missing key.
+
+        Latest timestamp selection:
+            Multiple timestamps can exist for the same params (from TTL refresh).
+            We always return the response at max(timestamps) to get the most recent.
         """
+        # Step 1: Remove expired entries before lookup
         self._purge_expired_at(rpc_type=rpc_type, method=method)
-        # Access store safely to avoid side effects from creating buckets.
+
+        # Step 2: Navigate safely without creating buckets (read-only access)
         if not (bucket_by_method := self._store.get(rpc_type)):
             return default
         if not (bucket_by_parameter := bucket_by_method.get(method)):
@@ -775,11 +808,16 @@ class SessionRecorder(BasePersistentFile):
         frozen_param = _freeze_params(_cleanup_params_for_session(params=params))
         if not (bucket_by_ts := bucket_by_parameter.get(frozen_param)):
             return default
+
+        # Step 3: Get response at latest timestamp
         try:
             latest_ts = max(bucket_by_ts.keys())
         except ValueError:
+            # Empty bucket (all entries expired)
             return default
         resp = bucket_by_ts[latest_ts]
+
+        # Step 4: TTL refresh - add new timestamp to extend expiry
         if self._refresh_on_get:
             bucket_by_ts[_now()] = resp
         return resp
@@ -912,23 +950,53 @@ class SessionRecorder(BasePersistentFile):
         rpc_type: str,
         method: str,
     ) -> None:
-        """Remove expired entries for a given (rpc_type, method) bucket without creating new ones."""
+        """
+        Remove expired entries for a given (rpc_type, method) bucket.
+
+        Multi-level cleanup algorithm:
+            This method cleans up the 4-level nested structure from bottom to top:
+            1. Remove expired timestamps from each params bucket
+            2. Remove empty params buckets from the method bucket
+            3. Remove empty method bucket from the rpc_type bucket
+            4. Remove empty rpc_type bucket from the store
+
+        Critical: No bucket creation
+            Uses .get() instead of direct indexing to avoid defaultdict's
+            auto-creation of missing buckets. A read/cleanup operation should
+            never modify the structure except to remove entries.
+
+        Two-pass deletion pattern:
+            For each level, we first collect items to delete, then delete them.
+            This avoids "dictionary changed size during iteration" errors.
+        """
+        # TTL of 0 means entries never expire
         if self._ttl == 0:
             return
+
+        # Navigate safely without creating buckets
         if not (bucket_by_method := self._store.get(rpc_type)):
             return
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return
+
         now = _now()
         empty_params: list[str] = []
+
+        # Level 1: Remove expired timestamps from each params bucket
         for p, bucket_by_ts in bucket_by_parameter.items():
+            # Collect expired timestamps (two-pass: collect then delete)
             expired_ts = [ts for ts, _r in list(bucket_by_ts.items()) if self._is_expired(ts=ts, now=now)]
             for ts in expired_ts:
                 del bucket_by_ts[ts]
+            # Track empty params buckets for cleanup
             if not bucket_by_ts:
                 empty_params.append(p)
+
+        # Level 2: Remove empty params buckets
         for p in empty_params:
             bucket_by_parameter.pop(p, None)
+
+        # Level 3 & 4: Cascade cleanup of empty parent buckets
         if not bucket_by_parameter:
             bucket_by_method.pop(method, None)
             if not bucket_by_method:
@@ -939,10 +1007,32 @@ def _freeze_params(params: Any) -> str:
     """
     Recursively freeze any structure so it can be used as a dictionary key.
 
-    - dict → tuple of (key, frozen(value)) sorted by key.
-    - list/tuple → tuple of frozen elements.
-    - set/frozenset → tagged tuple ("__set__", tuple(sorted(frozen elements by repr))) to ensure JSON-serializable keys.
-    - datetime → tagged ISO 8601 string to ensure JSON-serializable keys.
+    Purpose:
+        Session recording needs to cache RPC responses keyed by their parameters.
+        Python dicts require hashable keys, but RPC params can contain unhashable
+        types (dict, list, set, datetime). This function converts any structure
+        into a string representation suitable for use as a dict key.
+
+    Transformation rules:
+        - dict → dict with recursively frozen values, keys sorted for determinism
+        - list/tuple → tuple of frozen elements (tuples are hashable)
+        - set/frozenset → tagged tuple ("__set__", sorted frozen elements)
+        - datetime → tagged tuple ("__datetime__", ISO 8601 string)
+        - other types → unchanged (assumed hashable: str, int, bool, None)
+
+    Tagged tuples:
+        Sets and datetimes use a tag prefix ("__set__", "__datetime__") so that
+        _unfreeze_params can reconstruct the original type during deserialization.
+
+    Why sort?
+        Sorting dict keys and set elements ensures deterministic output.
+        Without sorting, {"a":1, "b":2} and {"b":2, "a":1} would produce
+        different frozen strings, breaking cache lookups.
+
+    Returns
+    -------
+        String representation of the frozen structure, suitable for dict keys.
+
     """
     res: Any = ""
     match params:
@@ -951,14 +1041,18 @@ def _freeze_params(params: Any) -> str:
             # Use a tagged ISO string to preserve value and guarantee a stable, hashable key.
             res = ("__datetime__", params.isoformat())
         case dict():
+            # Sort by key for deterministic output regardless of insertion order
             res = {k: _freeze_params(v) for k, v in sorted(params.items())}
         case list() | tuple():
+            # Convert to tuple (hashable) while preserving element order
             res = tuple(_freeze_params(x) for x in params)
         case set() | frozenset():
-            # Convert to a deterministically ordered, JSON-serializable representation.
+            # Sets are unordered, so sort by repr for determinism.
+            # Tag with "__set__" so _unfreeze_params can reconstruct.
             frozen_elems = tuple(sorted((_freeze_params(x) for x in params), key=repr))
             res = ("__set__", frozen_elems)
         case _:
+            # Primitives (str, int, bool, None) pass through unchanged
             res = params
 
     return str(res)
@@ -968,39 +1062,57 @@ def _unfreeze_params(frozen_params: str) -> Any:
     """
     Reverse the _freeze_params transformation.
 
-    Tries to parse the frozen string with ast.literal_eval and then recursively
-    reconstructs original structures:
-    - ("__set__", (<items>...)) -> set of items
-    - ("__datetime__", iso_string) -> datetime.fromisoformat(iso_string)
-    - dict values and tuple elements are processed recursively
+    Purpose:
+        Reconstruct the original parameter structure from a frozen string.
+        Used when loading cached session data to get back the original params.
 
-    If parsing fails, return the original string.
+    Algorithm:
+        1. Parse the frozen string using ast.literal_eval (safe eval for literals)
+        2. Recursively walk the parsed structure
+        3. Detect tagged tuples and reconstruct original types:
+           - ("__set__", items) → set(items)
+           - ("__datetime__", iso_string) → datetime object
+        4. Recursively process nested dicts, lists, and tuples
+
+    Error handling:
+        If ast.literal_eval fails (malformed string), return the original string.
+        This provides graceful degradation for corrupted cache entries.
+
+    The _walk helper:
+        Performs depth-first traversal, checking each node for tagged tuples
+        before recursively processing children. Order matters: check tags first,
+        then handle generic containers.
     """
     try:
         obj = ast.literal_eval(frozen_params)
     except Exception:
+        # Malformed frozen string - return as-is for graceful degradation
         return frozen_params
 
     def _walk(o: Any) -> Any:
+        """Recursively reconstruct original types from frozen representation."""
         if o and isinstance(o, tuple):
             tag = o[0]
-            # Tagged set
+            # Check for tagged set: ("__set__", (item1, item2, ...))
             if tag == "__set__" and len(o) == 2 and isinstance(o[1], tuple):
                 return {_walk(x) for x in o[1]}
-            # Tagged datetime
+            # Check for tagged datetime: ("__datetime__", "2024-01-01T00:00:00")
             if tag == "__datetime__" and len(o) == 2 and isinstance(o[1], str):
                 try:
                     return datetime.fromisoformat(o[1])
                 except Exception:
+                    # Invalid ISO format - return the string value
                     return o[1]
-            # Generic tuple
+            # Generic tuple - recursively process elements
             return tuple(_walk(x) for x in o)
         if isinstance(o, dict):
+            # Recursively process dict values (keys are always strings)
             return {k: _walk(v) for k, v in o.items()}
         if isinstance(o, list):
             return [_walk(x) for x in o]
         if isinstance(o, tuple):
             return tuple(_walk(x) for x in o)
+        # Handle string that looks like a dict literal (edge case from old format)
         if o.startswith("{") and o.endswith("}"):
             return ast.literal_eval(o)
         return o

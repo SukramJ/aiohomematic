@@ -9,6 +9,7 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from collections.abc import Mapping
+import contextlib
 from datetime import datetime
 import logging
 from typing import Any, Final, cast
@@ -82,6 +83,11 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         self._post_init_data_point_fields()
         if self.usage == DataPointUsage.CDP_PRIMARY:
             self._device.init_week_profile(data_point=self)
+
+    def __del__(self) -> None:
+        """Clean up subscriptions when the object is garbage collected."""
+        with contextlib.suppress(Exception):
+            self.unsubscribe_from_data_point_updated()
 
     @property
     def _readable_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
@@ -210,6 +216,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         for unreg in self._unsubscribe_callbacks:
             if unreg is not None:
                 unreg()
+        self._unsubscribe_callbacks.clear()
 
     def _add_channel_data_points(
         self,

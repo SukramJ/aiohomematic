@@ -778,10 +778,12 @@ class TestCentralCallbacksAndServices:
         """Test central fetch sysvar and programs."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         await central.fetch_program_data(scheduled=True)
-        assert mock_client.method_calls[-1] == call.get_all_programs(markers=())
+        # Check that get_all_programs was called (not necessarily last due to handler delegation)
+        assert call.get_all_programs(markers=()) in mock_client.method_calls
 
         await central.fetch_sysvar_data(scheduled=True)
-        assert mock_client.method_calls[-1] == call.get_all_system_variables(markers=())
+        # Check that get_all_system_variables was called
+        assert call.get_all_system_variables(markers=()) in mock_client.method_calls
 
         init_len_method_calls = len(mock_client.method_calls)
         await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER)

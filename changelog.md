@@ -1,3 +1,32 @@
+# Version 2025.12.18 (2025-12-09)
+
+## What's Changed
+
+### Architecture
+
+- Refactor ClientCCU into specialized handler classes (BackupHandler, DeviceOpsHandler, FirmwareHandler, LinkManagementHandler, MetadataHandler, ProgramsHandler, SysvarsHandler)
+- Add ClientStateMachine for managing client connection lifecycle with validated state transitions
+- Add ClientState enum for client connection states (CREATED, INITIALIZING, INITIALIZED, CONNECTING, CONNECTED, DISCONNECTED, RECONNECTING, STOPPING, STOPPED, FAILED)
+
+### Bug Fixes
+
+- Fix hub data points initialization by ensuring clients are connected before init_hub() is called
+- Fix mock property delegation to support dynamic property value updates in tests
+- Add \_\_slots\_\_ support to get_mock() in test support module
+
+### Documentation
+
+- Add comprehensive inline comments for complex algorithms across the codebase:
+  - State machine valid transitions diagram and state descriptions
+  - Event publishing batching and subscription reference counting
+  - bind_collector decorator context variable pattern
+  - Cache eviction strategies (LRU, TTL, lazy cleanup)
+  - SessionRecorder nested dict structure and purge algorithm
+  - freeze/unfreeze parameter transformation for cache keys
+  - EventBus dual-key handler lookup and polymorphic handler detection
+  - Device discovery set difference algorithm and PARENT address fallback
+  - DeviceProfileRegistry hierarchical model matching (exact → prefix)
+
 # Version 2025.12.17 (2025-12-09)
 
 ## What's Changed

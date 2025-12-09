@@ -8,6 +8,7 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
+import contextlib
 from datetime import datetime
 import logging
 from typing import Any, Final, cast
@@ -91,6 +92,11 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         self._multiplier: float = 1.0
         self._init_data_point_fields()
         self._post_init_data_point_fields()
+
+    def __del__(self) -> None:
+        """Clean up subscriptions when the object is garbage collected."""
+        with contextlib.suppress(Exception):
+            self.unsubscribe_from_data_point_updated()
 
     @staticmethod
     def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
@@ -266,6 +272,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         for unreg in self._unsubscribe_callbacks:
             if unreg is not None:
                 unreg()
+        self._unsubscribe_callbacks.clear()
 
     def _add_data_point[DataPointT: GenericDataPointProtocol](
         self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from aiohomematic.central.device_registry import DeviceRegistry
 
 
@@ -62,19 +64,21 @@ class _FakeClient:
 class TestDeviceRegistryBasics:
     """Test basic DeviceRegistry functionality."""
 
-    def test_add_device(self) -> None:
+    @pytest.mark.asyncio
+    async def test_add_device(self) -> None:
         """Add a device to the registry."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         assert registry.device_count == 1
         assert len(registry.devices) == 1
         assert registry.devices[0].address == "VCU0000001"
 
-    def test_add_device_overwrites_existing(self) -> None:
+    @pytest.mark.asyncio
+    async def test_add_device_overwrites_existing(self) -> None:
         """Adding a device with same address should overwrite the existing one."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -82,14 +86,15 @@ class TestDeviceRegistryBasics:
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000001")
 
-        registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
         assert registry.device_count == 1
 
-        registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
         assert registry.device_count == 1  # Still 1, not 2
         assert registry.get_device(address="VCU0000001") is device2  # type: ignore[arg-type]
 
-    def test_add_multiple_devices(self) -> None:
+    @pytest.mark.asyncio
+    async def test_add_multiple_devices(self) -> None:
         """Add multiple devices to the registry."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -98,14 +103,15 @@ class TestDeviceRegistryBasics:
         device2 = _FakeDevice(address="VCU0000002")
         device3 = _FakeDevice(address="VCU0000003")
 
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        registry.add_device(device=device2)  # type: ignore[arg-type]
-        registry.add_device(device=device3)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device3)  # type: ignore[arg-type]
 
         assert registry.device_count == 3
         assert len(registry.devices) == 3
 
-    def test_clear(self) -> None:
+    @pytest.mark.asyncio
+    async def test_clear(self) -> None:
         """Clear all devices from the registry."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -113,37 +119,39 @@ class TestDeviceRegistryBasics:
         # Add multiple devices
         for i in range(5):
             device = _FakeDevice(address=f"VCU000000{i}")
-            registry.add_device(device=device)  # type: ignore[arg-type]
+            await registry.add_device(device=device)  # type: ignore[arg-type]
 
         assert registry.device_count == 5
 
         # Clear the registry
-        registry.clear()
+        await registry.clear()
 
         assert registry.device_count == 0
         assert registry.devices == ()
         assert registry.get_device_addresses() == frozenset()
 
-    def test_device_count_property(self) -> None:
+    @pytest.mark.asyncio
+    async def test_device_count_property(self) -> None:
         """Device count property should return correct count."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         assert registry.device_count == 0
 
-        registry.add_device(device=_FakeDevice(address="VCU0000001"))  # type: ignore[arg-type]
+        await registry.add_device(device=_FakeDevice(address="VCU0000001"))  # type: ignore[arg-type]
         assert registry.device_count == 1
 
-        registry.add_device(device=_FakeDevice(address="VCU0000002"))  # type: ignore[arg-type]
+        await registry.add_device(device=_FakeDevice(address="VCU0000002"))  # type: ignore[arg-type]
         assert registry.device_count == 2
 
-        registry.remove_device(device_address="VCU0000001")
+        await registry.remove_device(device_address="VCU0000001")
         assert registry.device_count == 1
 
-        registry.clear()
+        await registry.clear()
         assert registry.device_count == 0
 
-    def test_devices_property(self) -> None:
+    @pytest.mark.asyncio
+    async def test_devices_property(self) -> None:
         """Devices property should return all devices as a tuple."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -151,8 +159,8 @@ class TestDeviceRegistryBasics:
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
 
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
 
         devices = registry.devices
         assert isinstance(devices, tuple)
@@ -160,13 +168,14 @@ class TestDeviceRegistryBasics:
         assert device1 in devices  # type: ignore[comparison-overlap]
         assert device2 in devices  # type: ignore[comparison-overlap]
 
-    def test_devices_property_returns_new_tuple(self) -> None:
+    @pytest.mark.asyncio
+    async def test_devices_property_returns_new_tuple(self) -> None:
         """Devices property should return a new tuple each time."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         devices1 = registry.devices
         devices2 = registry.devices
@@ -188,49 +197,53 @@ class TestDeviceRegistryBasics:
 class TestDeviceRegistryGetDevice:
     """Test get_device functionality."""
 
-    def test_get_device_after_removal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_device_after_removal(self) -> None:
         """Get device after it's been removed should return None."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
-        registry.remove_device(device_address="VCU0000001")
+        await registry.remove_device(device_address="VCU0000001")
 
         retrieved = registry.get_device(address="VCU0000001")
         assert retrieved is None
 
-    def test_get_device_not_found(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_device_not_found(self) -> None:
         """Get device that doesn't exist should return None."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         retrieved = registry.get_device(address="VCU9999999")
         assert retrieved is None
 
-    def test_get_device_with_channel_address(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_device_with_channel_address(self) -> None:
         """Get device using channel address (should extract device part)."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         # Should work with channel address too
         retrieved = registry.get_device(address="VCU0000001:1")
         assert retrieved is device  # type: ignore[comparison-overlap]
 
-    def test_get_device_with_device_address(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_device_with_device_address(self) -> None:
         """Get device using device address."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         retrieved = registry.get_device(address="VCU0000001")
         assert retrieved is device  # type: ignore[comparison-overlap]
@@ -247,7 +260,8 @@ class TestDeviceRegistryGetChannel:
         retrieved = registry.get_channel(channel_address="VCU9999999:1")
         assert retrieved is None
 
-    def test_get_channel_multiple_devices(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_channel_multiple_devices(self) -> None:
         """Get channel from correct device when multiple devices exist."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -264,8 +278,8 @@ class TestDeviceRegistryGetChannel:
             channels={"VCU0000002:1": channel2},
         )
 
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
 
         retrieved1 = registry.get_channel(channel_address="VCU0000001:1")
         retrieved2 = registry.get_channel(channel_address="VCU0000002:1")
@@ -273,18 +287,20 @@ class TestDeviceRegistryGetChannel:
         assert retrieved1 is channel1  # type: ignore[comparison-overlap]
         assert retrieved2 is channel2  # type: ignore[comparison-overlap]
 
-    def test_get_channel_not_found(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_channel_not_found(self) -> None:
         """Get channel that doesn't exist on device should return None."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001", channels={})
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         retrieved = registry.get_channel(channel_address="VCU0000001:1")
         assert retrieved is None
 
-    def test_get_channel_success(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_channel_success(self) -> None:
         """Get channel from device."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -294,7 +310,7 @@ class TestDeviceRegistryGetChannel:
             address="VCU0000001",
             channels={"VCU0000001:1": channel},
         )
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         retrieved = registry.get_channel(channel_address="VCU0000001:1")
         assert retrieved is channel  # type: ignore[comparison-overlap]
@@ -303,7 +319,8 @@ class TestDeviceRegistryGetChannel:
 class TestDeviceRegistryHasDevice:
     """Test has_device functionality."""
 
-    def test_has_device_after_add_and_remove(self) -> None:
+    @pytest.mark.asyncio
+    async def test_has_device_after_add_and_remove(self) -> None:
         """Has device should reflect add and remove operations."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -314,11 +331,11 @@ class TestDeviceRegistryHasDevice:
         assert registry.has_device(address="VCU0000001") is False
 
         # After adding
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
         assert registry.has_device(address="VCU0000001") is True
 
         # After removing
-        registry.remove_device(device_address="VCU0000001")
+        await registry.remove_device(device_address="VCU0000001")
         assert registry.has_device(address="VCU0000001") is False
 
     def test_has_device_false(self) -> None:
@@ -328,13 +345,14 @@ class TestDeviceRegistryHasDevice:
 
         assert registry.has_device(address="VCU9999999") is False
 
-    def test_has_device_true(self) -> None:
+    @pytest.mark.asyncio
+    async def test_has_device_true(self) -> None:
         """Has device should return True for existing device."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         assert registry.has_device(address="VCU0000001") is True
 
@@ -342,7 +360,8 @@ class TestDeviceRegistryHasDevice:
 class TestDeviceRegistryRemoveDevice:
     """Test remove_device functionality."""
 
-    def test_remove_device_leaves_others(self) -> None:
+    @pytest.mark.asyncio
+    async def test_remove_device_leaves_others(self) -> None:
         """Remove device should only remove specified device."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -351,52 +370,55 @@ class TestDeviceRegistryRemoveDevice:
         device2 = _FakeDevice(address="VCU0000002")
         device3 = _FakeDevice(address="VCU0000003")
 
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        registry.add_device(device=device2)  # type: ignore[arg-type]
-        registry.add_device(device=device3)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device3)  # type: ignore[arg-type]
 
-        registry.remove_device(device_address="VCU0000002")
+        await registry.remove_device(device_address="VCU0000002")
 
         assert registry.device_count == 2
         assert registry.has_device(address="VCU0000001") is True
         assert registry.has_device(address="VCU0000002") is False
         assert registry.has_device(address="VCU0000003") is True
 
-    def test_remove_device_multiple_times(self) -> None:
+    @pytest.mark.asyncio
+    async def test_remove_device_multiple_times(self) -> None:
         """Remove same device multiple times should not raise error."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
-        registry.remove_device(device_address="VCU0000001")
+        await registry.remove_device(device_address="VCU0000001")
         # Should not raise on second removal
-        registry.remove_device(device_address="VCU0000001")
+        await registry.remove_device(device_address="VCU0000001")
 
         assert registry.device_count == 0
 
-    def test_remove_device_not_found(self) -> None:
+    @pytest.mark.asyncio
+    async def test_remove_device_not_found(self) -> None:
         """Remove device that doesn't exist should not raise error."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         # Should not raise
-        registry.remove_device(device_address="VCU9999999")
+        await registry.remove_device(device_address="VCU9999999")
 
         assert registry.device_count == 0
 
-    def test_remove_device_success(self) -> None:
+    @pytest.mark.asyncio
+    async def test_remove_device_success(self) -> None:
         """Remove device should remove the device from registry."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         assert registry.device_count == 1
 
-        registry.remove_device(device_address="VCU0000001")
+        await registry.remove_device(device_address="VCU0000001")
 
         assert registry.device_count == 0
         assert registry.has_device(address="VCU0000001") is False
@@ -414,18 +436,20 @@ class TestDeviceRegistryGetDeviceAddresses:
         assert isinstance(addresses, frozenset)
         assert len(addresses) == 0
 
-    def test_get_device_addresses_immutable(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_device_addresses_immutable(self) -> None:
         """Get device addresses should return frozenset (immutable)."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         addresses = registry.get_device_addresses()
         assert isinstance(addresses, frozenset)
 
-    def test_get_device_addresses_multiple(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_device_addresses_multiple(self) -> None:
         """Get device addresses should return all device addresses."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -434,9 +458,9 @@ class TestDeviceRegistryGetDeviceAddresses:
         device2 = _FakeDevice(address="VCU0000002")
         device3 = _FakeDevice(address="VCU0000003")
 
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        registry.add_device(device=device2)  # type: ignore[arg-type]
-        registry.add_device(device=device3)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device3)  # type: ignore[arg-type]
 
         addresses = registry.get_device_addresses()
         assert len(addresses) == 3
@@ -444,13 +468,14 @@ class TestDeviceRegistryGetDeviceAddresses:
         assert "VCU0000002" in addresses
         assert "VCU0000003" in addresses
 
-    def test_get_device_addresses_single(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_device_addresses_single(self) -> None:
         """Get device addresses should return all addresses."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         addresses = registry.get_device_addresses()
         assert len(addresses) == 1
@@ -468,7 +493,8 @@ class TestDeviceRegistryIdentifyChannel:
         identified = registry.identify_channel(text="VCU0000001:1")
         assert identified is None
 
-    def test_identify_channel_multiple_devices(self) -> None:
+    @pytest.mark.asyncio
+    async def test_identify_channel_multiple_devices(self) -> None:
         """Identify channel should work with multiple devices."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -485,13 +511,14 @@ class TestDeviceRegistryIdentifyChannel:
             channels={"VCU0000002:1": channel2},
         )
 
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
 
         identified = registry.identify_channel(text="Channel VCU0000002:1 triggered")
         assert identified is channel2  # type: ignore[comparison-overlap]
 
-    def test_identify_channel_not_found(self) -> None:
+    @pytest.mark.asyncio
+    async def test_identify_channel_not_found(self) -> None:
         """Identify channel should return None when no channel matches."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -501,12 +528,13 @@ class TestDeviceRegistryIdentifyChannel:
             address="VCU0000001",
             channels={"VCU0000001:1": channel},
         )
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         identified = registry.identify_channel(text="No channel address here")
         assert identified is None
 
-    def test_identify_channel_success(self) -> None:
+    @pytest.mark.asyncio
+    async def test_identify_channel_success(self) -> None:
         """Identify channel should find channel in text."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -516,7 +544,7 @@ class TestDeviceRegistryIdentifyChannel:
             address="VCU0000001",
             channels={"VCU0000001:1": channel},
         )
-        registry.add_device(device=device)  # type: ignore[arg-type]
+        await registry.add_device(device=device)  # type: ignore[arg-type]
 
         identified = registry.identify_channel(text="The device VCU0000001:1 is active")
         assert identified is channel  # type: ignore[comparison-overlap]
@@ -589,7 +617,8 @@ class TestDeviceRegistryVirtualRemotes:
 class TestDeviceRegistryIntegration:
     """Integration tests for DeviceRegistry with multiple operations."""
 
-    def test_concurrent_operations(self) -> None:
+    @pytest.mark.asyncio
+    async def test_concurrent_operations(self) -> None:
         """Test that concurrent operations work correctly."""
         central = _FakeCentral()
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -597,7 +626,7 @@ class TestDeviceRegistryIntegration:
         # Add multiple devices
         for i in range(10):
             device = _FakeDevice(address=f"VCU00000{i:02d}")
-            registry.add_device(device=device)  # type: ignore[arg-type]
+            await registry.add_device(device=device)  # type: ignore[arg-type]
 
         # Query while iterating
         count = 0
@@ -609,7 +638,8 @@ class TestDeviceRegistryIntegration:
 
         assert count == 10
 
-    def test_full_lifecycle(self) -> None:
+    @pytest.mark.asyncio
+    async def test_full_lifecycle(self) -> None:
         """Test full lifecycle of device registry operations."""
         central = _FakeCentral(name="integration_test")
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
@@ -626,7 +656,7 @@ class TestDeviceRegistryIntegration:
                 channels={f"VCU000000{i}:1": channel},
             )
             devices.append(device)
-            registry.add_device(device=device)  # type: ignore[arg-type]
+            await registry.add_device(device=device)  # type: ignore[arg-type]
 
         assert registry.device_count == 5
 
@@ -647,8 +677,8 @@ class TestDeviceRegistryIntegration:
         assert len(addresses) == 5
 
         # Remove some devices
-        registry.remove_device(device_address="VCU0000001")
-        registry.remove_device(device_address="VCU0000003")
+        await registry.remove_device(device_address="VCU0000001")
+        await registry.remove_device(device_address="VCU0000003")
 
         assert registry.device_count == 3
         assert registry.has_device(address="VCU0000000") is True
@@ -658,11 +688,12 @@ class TestDeviceRegistryIntegration:
         assert registry.has_device(address="VCU0000004") is True
 
         # Clear all
-        registry.clear()
+        await registry.clear()
         assert registry.device_count == 0
         assert registry.devices == ()
 
-    def test_virtual_remotes_integration(self) -> None:
+    @pytest.mark.asyncio
+    async def test_virtual_remotes_integration(self) -> None:
         """Test virtual remotes with full integration."""
         central = _FakeCentral()
 
@@ -671,8 +702,8 @@ class TestDeviceRegistryIntegration:
         device2 = _FakeDevice(address="VCU0000002")
 
         registry = DeviceRegistry(central_info=central, client_provider=central)  # type: ignore[arg-type]
-        registry.add_device(device=device1)  # type: ignore[arg-type]
-        registry.add_device(device=device2)  # type: ignore[arg-type]
+        await registry.add_device(device=device1)  # type: ignore[arg-type]
+        await registry.add_device(device=device2)  # type: ignore[arg-type]
 
         # Add clients with virtual remotes
         remote1 = _FakeDevice(address="VCU_REMOTE_001")

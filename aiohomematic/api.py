@@ -61,10 +61,10 @@ from aiohomematic.const import ParamsetKey
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.retry import with_retry
 from aiohomematic.support import get_device_address
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 # Type alias for update callback
 UpdateCallback = Callable[[str, str, Any], None]
-UnsubscribeCallback = Callable[[], None]
 
 
 class HomematicAPI:

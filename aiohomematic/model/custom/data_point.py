@@ -30,7 +30,7 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.property_decorators import state_property
 from aiohomematic.support import get_channel_address
-from aiohomematic.type_aliases import UnsubscribeHandler
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         "_extended",
         "_group_no",
         "_schedule_channel_no",
-        "_unsubscribe_handlers",
+        "_unsubscribe_callbacks",
     )
 
     def __init__(
@@ -63,7 +63,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         device_config: DeviceConfig,
     ) -> None:
         """Initialize the data point."""
-        self._unsubscribe_handlers: list[UnsubscribeHandler] = []
+        self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
         self._device_profile: Final = device_profile
         self._channel_group: Final = channel_group
         self._custom_data_point_def: Final = custom_data_point_def
@@ -207,7 +207,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
 
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unregister all internal update handlers."""
-        for unreg in self._unsubscribe_handlers:
+        for unreg in self._unsubscribe_callbacks:
             if unreg is not None:
                 unreg()
 
@@ -239,7 +239,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         elif is_visible is False and data_point.is_forced_sensor is False:
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
-        self._unsubscribe_handlers.append(
+        self._unsubscribe_callbacks.append(
             data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
         )
         self._data_points[field] = data_point

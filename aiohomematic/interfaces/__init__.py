@@ -36,6 +36,7 @@ from aiohomematic.interfaces.central import (
     FileOperations,
     HubDataFetcher,
     HubDataPointManager,
+    HubFetchOperations,
     SystemInfoProvider,
 )
 from aiohomematic.interfaces.client import (
@@ -90,6 +91,7 @@ __all__ = [
     "FileOperations",
     "HubDataFetcher",
     "HubDataPointManager",
+    "HubFetchOperations",
     "SystemInfoProvider",
     # Client protocols
     "ClientCoordination",

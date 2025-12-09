@@ -35,7 +35,7 @@ from aiohomematic.model.support import (
     get_data_point_name_data,
 )
 from aiohomematic.property_decorators import config_property, hm_property, state_property
-from aiohomematic.type_aliases import ParamType, UnsubscribeHandler
+from aiohomematic.type_aliases import ParamType, UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         "_service",
         "_type",
         "_unit",
-        "_unsubscribe_handlers",
+        "_unsubscribe_callbacks",
         "_values",
         "_visible",
     )
@@ -66,7 +66,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         channel: ChannelProtocol,
     ) -> None:
         """Initialize the data point."""
-        self._unsubscribe_handlers: list[UnsubscribeHandler] = []
+        self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
         unique_id = generate_unique_id(
             config_provider=channel.device.config_provider,
             address=channel.address,
@@ -263,7 +263,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
 
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unsubscribe from all internal update subscriptions."""
-        for unreg in self._unsubscribe_handlers:
+        for unreg in self._unsubscribe_callbacks:
             if unreg is not None:
                 unreg()
 
@@ -273,7 +273,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         """Add a new data point."""
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
             self._data_points.append(generic_data_point)
-            self._unsubscribe_handlers.append(
+            self._unsubscribe_callbacks.append(
                 generic_data_point.subscribe_to_internal_data_point_updated(
                     handler=self.publish_data_point_updated_event
                 )
@@ -297,7 +297,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             channel_address=channel_address, parameter=parameter, paramset_key=paramset_key
         ):
             self._data_points.append(generic_data_point)
-            self._unsubscribe_handlers.append(
+            self._unsubscribe_callbacks.append(
                 generic_data_point.subscribe_to_internal_data_point_updated(
                     handler=self.publish_data_point_updated_event
                 )

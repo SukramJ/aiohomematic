@@ -16,6 +16,7 @@ The DeviceRegistry provides:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Final
 
@@ -34,6 +35,7 @@ class DeviceRegistry:
         "_central_info",
         "_client_provider",
         "_devices",
+        "_lock",
     )
 
     def __init__(
@@ -55,6 +57,7 @@ class DeviceRegistry:
         self._client_provider: Final = client_provider
         # {device_address, device}
         self._devices: Final[dict[str, DeviceProtocol]] = {}
+        self._lock: Final = asyncio.Lock()
 
     @property
     def device_count(self) -> int:
@@ -80,7 +83,7 @@ class DeviceRegistry:
         """
         return tuple(self._devices.values())
 
-    def add_device(self, *, device: DeviceProtocol) -> None:
+    async def add_device(self, *, device: DeviceProtocol) -> None:
         """
         Add a device to the registry.
 
@@ -89,16 +92,18 @@ class DeviceRegistry:
             device: Device instance to add
 
         """
-        self._devices[device.address] = device
+        async with self._lock:
+            self._devices[device.address] = device
         _LOGGER.debug(
             "ADD_DEVICE: Added device %s to registry for %s",
             device.address,
             self._central_info.name,
         )
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
         """Clear all devices from the registry."""
-        self._devices.clear()
+        async with self._lock:
+            self._devices.clear()
         _LOGGER.debug("CLEAR: Cleared device registry for %s", self._central_info.name)
 
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
@@ -189,7 +194,7 @@ class DeviceRegistry:
                 return channel
         return None
 
-    def remove_device(self, *, device_address: str) -> None:
+    async def remove_device(self, *, device_address: str) -> None:
         """
         Remove a device from the registry.
 
@@ -198,14 +203,15 @@ class DeviceRegistry:
             device_address: Address of the device to remove
 
         """
-        if device_address not in self._devices:
-            _LOGGER.debug(
-                "REMOVE_DEVICE: Device %s not found in registry for %s",
-                device_address,
-                self._central_info.name,
-            )
-            return
-        del self._devices[device_address]
+        async with self._lock:
+            if device_address not in self._devices:
+                _LOGGER.debug(
+                    "REMOVE_DEVICE: Device %s not found in registry for %s",
+                    device_address,
+                    self._central_info.name,
+                )
+                return
+            del self._devices[device_address]
         _LOGGER.debug(
             "REMOVE_DEVICE: Removed device %s from registry for %s",
             device_address,

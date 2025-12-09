@@ -145,6 +145,7 @@ class Looper(TaskScheduler):
         task = self._loop.create_task(coro, name=name)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.remove)
+        task.add_done_callback(_log_task_exception)
         return task
 
     async def _await_and_log_pending(
@@ -176,6 +177,18 @@ class Looper(TaskScheduler):
             if deadline is not None and monotonic() >= deadline:
                 return pending_set
         return set()
+
+
+def _log_task_exception(task: asyncio.Task[Any]) -> None:
+    """Log unhandled exceptions in background tasks."""
+    if task.cancelled():
+        return
+    if exc := task.exception():
+        _LOGGER.exception(  # i18n-log: ignore
+            "TASK_EXCEPTION: Unhandled exception in task '%s'",
+            task.get_name(),
+            exc_info=exc,
+        )
 
 
 def cancelling(*, task: asyncio.Future[Any]) -> bool:

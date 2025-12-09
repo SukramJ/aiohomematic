@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
+import logging
 from typing import Final, NamedTuple
 
 from slugify import slugify
@@ -24,6 +25,8 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin
+
+_LOGGER: Final = logging.getLogger(__name__)
 
 _SYNC_INTERVAL: Final = 10  # Sync with backend every 10 seconds
 _COUNTDOWN_UPDATE_INTERVAL: Final = 1  # Update countdown every second
@@ -139,6 +142,7 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
         "_countdown_end",
         "_countdown_task",
         "_sync_task",
+        "_task_lock",
     )
 
     _category = DataPointCategory.HUB_SENSOR
@@ -173,6 +177,7 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
         self._countdown_end: datetime = INIT_DATETIME
         self._countdown_task: asyncio.Task[None] | None = None
         self._sync_task: asyncio.Task[None] | None = None
+        self._task_lock: Final = asyncio.Lock()
 
     @property
     def data_type(self) -> HubValueType | None:
@@ -199,14 +204,19 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
     def start_countdown(self, *, seconds: int) -> None:
         """Start local countdown."""
         self._countdown_end = datetime.now() + timedelta(seconds=seconds)
-        self._start_countdown_updates()
-        self._start_backend_sync()
+        self._task_scheduler.create_task(
+            target=self._start_tasks_locked(),
+            name="install_mode_start_tasks",
+        )
         self.publish_data_point_updated_event()
 
     def stop_countdown(self) -> None:
         """Stop countdown."""
         self._countdown_end = INIT_DATETIME
-        self._stop_tasks()
+        self._task_scheduler.create_task(
+            target=self._stop_tasks_locked(),
+            name="install_mode_stop_tasks",
+        )
         self.publish_data_point_updated_event()
 
     def sync_from_backend(self, *, remaining_seconds: int) -> None:
@@ -217,66 +227,91 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
             # Only resync if significant drift (>3 seconds)
             if abs(self.value - remaining_seconds) > 3:
                 self._countdown_end = datetime.now() + timedelta(seconds=remaining_seconds)
-            if not self._countdown_task:
-                self._start_countdown_updates()
-            if not self._sync_task:
-                self._start_backend_sync()
+            self._task_scheduler.create_task(
+                target=self._ensure_tasks_running_locked(),
+                name="install_mode_ensure_tasks",
+            )
             self.publish_data_point_updated_event()
 
     async def _backend_sync_loop(self) -> None:
         """Periodically sync with backend."""
-        while self.is_active:
-            await asyncio.sleep(_SYNC_INTERVAL)
-            if client := self._primary_client_provider.primary_client:
-                if (backend_remaining := await client.get_install_mode()) == 0:
-                    self.stop_countdown()
-                    break
-                # Resync if significant drift
-                if abs(self.value - backend_remaining) > 3:
-                    self._countdown_end = datetime.now() + timedelta(seconds=backend_remaining)
-                    self.publish_data_point_updated_event()
+        try:
+            while self.is_active:
+                await asyncio.sleep(_SYNC_INTERVAL)
+                if client := self._primary_client_provider.primary_client:
+                    if (backend_remaining := await client.get_install_mode()) == 0:
+                        self.stop_countdown()
+                        break
+                    # Resync if significant drift
+                    if abs(self.value - backend_remaining) > 3:
+                        self._countdown_end = datetime.now() + timedelta(seconds=backend_remaining)
+                        self.publish_data_point_updated_event()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception("INSTALL_MODE: Backend sync loop failed")  # i18n-log: ignore
+            self.stop_countdown()
 
     async def _countdown_update_loop(self) -> None:
         """Update countdown value every second."""
-        while self.is_active:
-            await asyncio.sleep(_COUNTDOWN_UPDATE_INTERVAL)
-            if self.value <= 0:
-                self.stop_countdown()
-                break
-            self.publish_data_point_updated_event()
+        try:
+            while self.is_active:
+                await asyncio.sleep(_COUNTDOWN_UPDATE_INTERVAL)
+                if self.value <= 0:
+                    self.stop_countdown()
+                    break
+                self.publish_data_point_updated_event()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception("INSTALL_MODE: Countdown update loop failed")  # i18n-log: ignore
+            self.stop_countdown()
 
-    def _start_backend_sync(self) -> None:
-        """Start backend sync task."""
-        self._stop_sync_task()
-        self._sync_task = self._task_scheduler.create_task(
-            target=self._backend_sync_loop(),
-            name="install_mode_sync",
-        )
+    async def _ensure_tasks_running_locked(self) -> None:
+        """Ensure tasks are running with lock protection."""
+        async with self._task_lock:
+            if not self._countdown_task or self._countdown_task.done():
+                self._countdown_task = self._task_scheduler.create_task(
+                    target=self._countdown_update_loop(),
+                    name="install_mode_countdown",
+                )
+            if not self._sync_task or self._sync_task.done():
+                self._sync_task = self._task_scheduler.create_task(
+                    target=self._backend_sync_loop(),
+                    name="install_mode_sync",
+                )
 
-    def _start_countdown_updates(self) -> None:
-        """Start countdown update task."""
-        self._stop_countdown_task()
-        self._countdown_task = self._task_scheduler.create_task(
-            target=self._countdown_update_loop(),
-            name="install_mode_countdown",
-        )
+    async def _start_tasks_locked(self) -> None:
+        """Start all tasks with lock protection."""
+        async with self._task_lock:
+            self._stop_countdown_task_unlocked()
+            self._stop_sync_task_unlocked()
+            self._countdown_task = self._task_scheduler.create_task(
+                target=self._countdown_update_loop(),
+                name="install_mode_countdown",
+            )
+            self._sync_task = self._task_scheduler.create_task(
+                target=self._backend_sync_loop(),
+                name="install_mode_sync",
+            )
 
-    def _stop_countdown_task(self) -> None:
-        """Stop countdown task."""
+    def _stop_countdown_task_unlocked(self) -> None:
+        """Stop countdown task without lock. Must be called with _task_lock held."""
         if self._countdown_task and not self._countdown_task.done():
             self._countdown_task.cancel()
         self._countdown_task = None
 
-    def _stop_sync_task(self) -> None:
-        """Stop sync task."""
+    def _stop_sync_task_unlocked(self) -> None:
+        """Stop sync task without lock. Must be called with _task_lock held."""
         if self._sync_task and not self._sync_task.done():
             self._sync_task.cancel()
         self._sync_task = None
 
-    def _stop_tasks(self) -> None:
-        """Stop all running tasks."""
-        self._stop_countdown_task()
-        self._stop_sync_task()
+    async def _stop_tasks_locked(self) -> None:
+        """Stop all tasks with lock protection."""
+        async with self._task_lock:
+            self._stop_countdown_task_unlocked()
+            self._stop_sync_task_unlocked()
 
 
 class InstallModeDpButton(_BaseInstallModeDataPoint):

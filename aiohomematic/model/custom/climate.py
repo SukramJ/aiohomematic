@@ -44,7 +44,7 @@ from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegist
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
 from aiohomematic.property_decorators import config_property, state_property
-from aiohomematic.type_aliases import UnsubscribeHandler
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         "_old_manu_setpoint",
         "_peer_level_dp",
         "_peer_state_dp",
-        "_peer_unsubscribe_handlers",
+        "_peer_unsubscribe_callbacks",
     )
     _category = DataPointCategory.CLIMATE
 
@@ -165,7 +165,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Initialize base climate data_point."""
         self._peer_level_dp: DpFloat | None = None
         self._peer_state_dp: DpBinarySensor | None = None
-        self._peer_unsubscribe_handlers: list[UnsubscribeHandler] = []
+        self._peer_unsubscribe_callbacks: list[UnsubscribeCallback] = []
         super().__init__(
             channel=channel,
             unique_id=unique_id,
@@ -513,7 +513,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Post action after initialisation of the data point fields."""
         super()._post_init_data_point_fields()
 
-        self._unsubscribe_handlers.append(
+        self._unsubscribe_callbacks.append(
             self._dp_setpoint.subscribe_to_data_point_updated(
                 handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
@@ -528,7 +528,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         for ch in self._device.channels.values():
             # subscribe to link-peer change events; store unsubscribe handle
             if (unreg := ch.subscribe_to_link_peer_changed(handler=self._on_link_peer_changed)) is not None:
-                self._unsubscribe_handlers.append(unreg)
+                self._unsubscribe_callbacks.append(unreg)
         # pre-populate peer references (if any) once
         self._refresh_link_peer_activity_sources()
 
@@ -541,16 +541,17 @@ class BaseCustomDpClimate(CustomDataPoint):
         - Subscribe to their updates to keep `activity` current.
         """
         # Unsubscribe from previous peer DPs
-        for unreg in self._peer_unsubscribe_handlers:
+        # Make a copy to avoid modifying list during iteration
+        for unreg in list(self._peer_unsubscribe_callbacks):
             if unreg is not None:
                 try:
                     unreg()
                 finally:
-                    self._peer_unsubscribe_handlers.remove(unreg)
-                    if unreg in self._unsubscribe_handlers:
-                        self._unsubscribe_handlers.remove(unreg)
+                    # Remove from both lists to prevent double-cleanup
+                    if unreg in self._unsubscribe_callbacks:
+                        self._unsubscribe_callbacks.remove(unreg)
 
-        self._peer_unsubscribe_handlers.clear()
+        self._peer_unsubscribe_callbacks.clear()
         self._peer_level_dp = None
         self._peer_state_dp = None
 
@@ -582,8 +583,8 @@ class BaseCustomDpClimate(CustomDataPoint):
             )
             if unreg is not None:
                 # Track for both refresh-time cleanup and object removal cleanup
-                self._peer_unsubscribe_handlers.append(unreg)
-                self._unsubscribe_handlers.append(unreg)
+                self._peer_unsubscribe_callbacks.append(unreg)
+                self._unsubscribe_callbacks.append(unreg)
 
 
 class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
@@ -798,7 +799,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         super()._post_init_data_point_fields()
 
         # subscribe to control_mode updates to track manual target temp
-        self._unsubscribe_handlers.append(
+        self._unsubscribe_callbacks.append(
             self._dp_control_mode.subscribe_to_data_point_updated(
                 handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
@@ -1078,7 +1079,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         super()._post_init_data_point_fields()
 
         # subscribe to set_point_mode updates to track manual target temp
-        self._unsubscribe_handlers.append(
+        self._unsubscribe_callbacks.append(
             self._dp_set_point_mode.subscribe_to_data_point_updated(
                 handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )

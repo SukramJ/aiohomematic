@@ -204,6 +204,7 @@ from aiohomematic.support import (
     is_ipv4_address,
     is_port,
 )
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 # No longer needed - types are in coordinators
 
@@ -216,9 +217,8 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
 ConnectionProblemIssuer = AioJsonRpcAioHttpClient | BaseRpcProxy
 
-# Type aliases for connection state callbacks
+# Type alias for connection state callback
 StateChangeCallback = Callable[[str, bool], None]  # (interface_id, connected)
-UnsubscribeCallback = Callable[[], None]
 
 
 class CentralUnit(
@@ -1109,9 +1109,9 @@ class CentralUnit(
         """Remove central links."""
         await self._device_coordinator.remove_central_links()
 
-    def remove_device(self, *, device: DeviceProtocol) -> None:
+    async def remove_device(self, *, device: DeviceProtocol) -> None:
         """Remove device from central collections."""
-        self._device_coordinator.remove_device(device=device)
+        await self._device_coordinator.remove_device(device=device)
 
     def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
@@ -1249,7 +1249,7 @@ class CentralUnit(
             ):
                 self._xml_rpc_server = xml_rpc_server
                 self._listen_port_xml_rpc = xml_rpc_server.listen_port
-                self._xml_rpc_server.add_central(central=self)
+                self._xml_rpc_server.add_central(central=self, looper=self.looper)
         except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
             self._state = CentralUnitState.STOPPED_BY_ERROR
             raise AioHomematicException(

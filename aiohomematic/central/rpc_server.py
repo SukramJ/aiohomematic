@@ -15,11 +15,11 @@ import threading
 from typing import Any, Final, cast
 from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
-from aiohomematic import central as hmcu, i18n
+from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
+from aiohomematic.interfaces.central import RpcServerCentralProtocol, RpcServerTaskScheduler
 from aiohomematic.support import log_boundary_error
-from aiohomematic.type_aliases import AsyncTaskFactory
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -37,10 +37,9 @@ class RPCFunctions:
 
     def deleteDevices(self, interface_id: str, addresses: list[str], /) -> None:
         """Delete devices send from the backend."""
-        central: hmcu.CentralUnit | None
-        if central := self.get_central(interface_id=interface_id):
-            central.looper.create_task(
-                target=lambda: central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
+        if entry := self.get_central_entry(interface_id=interface_id):
+            entry.looper.create_task(
+                target=lambda: entry.central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
                 name=f"deleteDevices-{interface_id}",
             )
 
@@ -70,36 +69,34 @@ class RPCFunctions:
 
     def event(self, interface_id: str, channel_address: str, parameter: str, value: Any, /) -> None:
         """If a device publishes some sort event, we will handle it here."""
-        if central := self.get_central(interface_id=interface_id):
-            central.looper.create_task(
-                target=cast(
-                    AsyncTaskFactory,
-                    lambda: central.data_point_event(
-                        interface_id=interface_id,
-                        channel_address=channel_address,
-                        parameter=parameter,
-                        value=value,
-                    ),
+        if entry := self.get_central_entry(interface_id=interface_id):
+            entry.looper.create_task(
+                target=lambda: entry.central.data_point_event(
+                    interface_id=interface_id,
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    value=value,
                 ),
                 name=f"event-{interface_id}-{channel_address}-{parameter}",
             )
 
-    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
-        """Return the central by interface_id."""
-        return self._rpc_server.get_central(interface_id=interface_id)
+    def get_central_entry(self, *, interface_id: str) -> _CentralEntry | None:
+        """Return the central entry by interface_id."""
+        return self._rpc_server.get_central_entry(interface_id=interface_id)
 
     def listDevices(self, interface_id: str, /) -> list[dict[str, Any]]:
         """Return already existing devices to the backend."""
-        if central := self.get_central(interface_id=interface_id):
-            return [dict(device_description) for device_description in central.list_devices(interface_id=interface_id)]
+        if entry := self.get_central_entry(interface_id=interface_id):
+            return [
+                dict(device_description) for device_description in entry.central.list_devices(interface_id=interface_id)
+            ]
         return []
 
     def newDevices(self, interface_id: str, device_descriptions: list[dict[str, Any]], /) -> None:
         """Add new devices send from the backend."""
-        central: hmcu.CentralUnit | None
-        if central := self.get_central(interface_id=interface_id):
-            central.looper.create_task(
-                target=central.add_new_devices(
+        if entry := self.get_central_entry(interface_id=interface_id):
+            entry.looper.create_task(
+                target=entry.central.add_new_devices(
                     interface_id=interface_id, device_descriptions=tuple(device_descriptions)
                 ),
                 name=f"newDevices-{interface_id}",
@@ -177,6 +174,17 @@ class HomematicXMLRPCServer(SimpleXMLRPCServer):
         return SimpleXMLRPCServer.system_listMethods(self)
 
 
+class _CentralEntry:
+    """Container for central unit with its task scheduler."""
+
+    __slots__ = ("central", "looper")
+
+    def __init__(self, *, central: RpcServerCentralProtocol, looper: RpcServerTaskScheduler) -> None:
+        """Initialize central entry."""
+        self.central: Final = central
+        self.looper: Final = looper
+
+
 class RpcServer(threading.Thread):
     """RPC server thread to handle messages from the backend."""
 
@@ -193,7 +201,7 @@ class RpcServer(threading.Thread):
         self._address: Final[tuple[str, int]] = cast(tuple[str, int], server.server_address)
         self._listen_ip_addr: Final = self._address[0]
         self._listen_port: Final = self._address[1]
-        self._centrals: Final[dict[str, hmcu.CentralUnit]] = {}
+        self._centrals: Final[dict[str, _CentralEntry]] = {}
         self._instances[self._address] = self
         threading.Thread.__init__(self, name=f"RpcServer {self._listen_ip_addr}:{self._listen_port}")
 
@@ -217,19 +225,19 @@ class RpcServer(threading.Thread):
         """Return if thread is active."""
         return self._started.is_set() is True  # type: ignore[attr-defined]
 
-    def add_central(self, *, central: hmcu.CentralUnit) -> None:
+    def add_central(self, *, central: RpcServerCentralProtocol, looper: RpcServerTaskScheduler) -> None:
         """Register a central in the RPC-Server."""
         if not self._centrals.get(central.name):
-            self._centrals[central.name] = central
+            self._centrals[central.name] = _CentralEntry(central=central, looper=looper)
 
-    def get_central(self, *, interface_id: str) -> hmcu.CentralUnit | None:
-        """Return a central by interface_id."""
-        for central in self._centrals.values():
-            if central.has_client(interface_id=interface_id):
-                return central
+    def get_central_entry(self, *, interface_id: str) -> _CentralEntry | None:
+        """Return a central entry by interface_id."""
+        for entry in self._centrals.values():
+            if entry.central.has_client(interface_id=interface_id):
+                return entry
         return None
 
-    def remove_central(self, *, central: hmcu.CentralUnit) -> None:
+    def remove_central(self, *, central: RpcServerCentralProtocol) -> None:
         """Unregister a central from RPC-Server."""
         if self._centrals.get(central.name):
             del self._centrals[central.name]

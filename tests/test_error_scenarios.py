@@ -89,7 +89,7 @@ class TestCentralErrorScenarios:
         mock_device.address = "NONEXISTENT_DEVICE"
 
         # Should not raise an error
-        central.remove_device(device=mock_device)
+        await central.remove_device(device=mock_device)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

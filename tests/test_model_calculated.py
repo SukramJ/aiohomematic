@@ -321,7 +321,7 @@ class TestCalculatedDataPoint:
         )
 
         # Add a None into unregister callbacks list to hit the branch not calling it
-        calc._unsubscribe_handlers.append(None)  # type: ignore[arg-type]
+        calc._unsubscribe_callbacks.append(None)  # type: ignore[arg-type]
 
         # And then call unregister to iterate over both a callable and a None
         calc.unsubscribe_from_data_point_updated()

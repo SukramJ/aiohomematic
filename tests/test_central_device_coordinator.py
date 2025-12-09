@@ -59,8 +59,12 @@ class _FakeDeviceRegistry:
         """Return all devices."""
         return tuple(self._devices.values())
 
-    def add_device(self, *, device: _FakeDevice) -> None:
-        """Add device to registry."""
+    async def add_device(self, *, device: _FakeDevice) -> None:
+        """Add device to registry (async for DeviceCoordinator compatibility)."""
+        self._devices[device.address] = device
+
+    def add_device_sync(self, *, device: _FakeDevice) -> None:
+        """Add device to registry (sync helper for tests)."""
         self._devices[device.address] = device
 
     def get_channel(self, *, channel_address: str) -> _FakeChannel | None:
@@ -93,8 +97,13 @@ class _FakeDeviceRegistry:
                     return channel
         return None
 
-    def remove_device(self, *, device_address: str) -> None:
-        """Remove device from registry."""
+    async def remove_device(self, *, device_address: str) -> None:
+        """Remove device from registry (async for DeviceCoordinator compatibility)."""
+        if device_address in self._devices:
+            del self._devices[device_address]
+
+    def remove_device_sync(self, *, device_address: str) -> None:
+        """Remove device from registry (sync helper for tests)."""
         if device_address in self._devices:
             del self._devices[device_address]
 
@@ -265,8 +274,8 @@ class TestDeviceCoordinatorBasics:
         device1 = _FakeDevice(address="VCU0000001")
         device2 = _FakeDevice(address="VCU0000002")
 
-        central.device_registry.add_device(device=device1)
-        central.device_registry.add_device(device=device2)
+        central.device_registry.add_device_sync(device=device1)
+        central.device_registry.add_device_sync(device=device2)
 
         devices = coordinator.devices
         assert len(devices) == 2
@@ -328,7 +337,7 @@ class TestDeviceCoordinatorGetOperations:
 
         channel = _FakeChannel(address="VCU0000001:1")
         device = _FakeDevice(address="VCU0000001", channels={"VCU0000001:1": channel})
-        central.device_registry.add_device(device=device)
+        central.device_registry.add_device_sync(device=device)
 
         retrieved = coordinator.get_channel(channel_address="VCU0000001:1")
         assert retrieved == channel
@@ -383,7 +392,7 @@ class TestDeviceCoordinatorGetOperations:
         )  # type: ignore[arg-type]
 
         device = _FakeDevice(address="VCU0000001")
-        central.device_registry.add_device(device=device)
+        central.device_registry.add_device_sync(device=device)
 
         retrieved = coordinator.get_device(address="VCU0000001")
         assert retrieved == device
@@ -465,7 +474,7 @@ class TestDeviceCoordinatorGetOperations:
 
         channel = _FakeChannel(address="VCU0000001:1")
         device = _FakeDevice(address="VCU0000001", channels={"VCU0000001:1": channel})
-        central.device_registry.add_device(device=device)
+        central.device_registry.add_device_sync(device=device)
 
         identified = coordinator.identify_channel(text="Channel VCU0000001:1 is active")
         assert identified == channel
@@ -483,7 +492,7 @@ class TestDeviceCoordinatorRemoveOperations:
         device = _FakeDevice(address="VCU0000001", channels={"VCU0000001:1": channel})
         device.remove = MagicMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device)
+        central.device_registry.add_device_sync(device=device)
 
         # Mock delete_devices at class level
         with patch.object(DeviceCoordinator, "delete_devices", new=AsyncMock()) as mock_delete:
@@ -571,8 +580,8 @@ class TestDeviceCoordinatorRemoveOperations:
         device1.remove = MagicMock()  # type: ignore[method-assign]
         device2.remove = MagicMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device1)
-        central.device_registry.add_device(device=device2)
+        central.device_registry.add_device_sync(device=device1)
+        central.device_registry.add_device_sync(device=device2)
 
         await coordinator.delete_devices(
             interface_id="BidCos-RF",
@@ -586,7 +595,8 @@ class TestDeviceCoordinatorRemoveOperations:
         # Caches should be saved
         central.cache_coordinator.save_all.assert_called_once()
 
-    def test_remove_device_not_registered(self) -> None:
+    @pytest.mark.asyncio
+    async def test_remove_device_not_registered(self) -> None:
         """Remove device should handle device not in registry gracefully."""
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
@@ -612,9 +622,10 @@ class TestDeviceCoordinatorRemoveOperations:
         device = _FakeDevice(address="VCU9999999")
 
         # Should not raise
-        coordinator.remove_device(device=device)
+        await coordinator.remove_device(device=device)
 
-    def test_remove_device_success(self) -> None:
+    @pytest.mark.asyncio
+    async def test_remove_device_success(self) -> None:
         """Remove device should remove device from registry and caches."""
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
@@ -640,10 +651,10 @@ class TestDeviceCoordinatorRemoveOperations:
         device = _FakeDevice(address="VCU0000001")
         device.remove = MagicMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device)
+        central.device_registry.add_device_sync(device=device)
         assert central.device_registry.has_device(address="VCU0000001") is True
 
-        coordinator.remove_device(device=device)
+        await coordinator.remove_device(device=device)
 
         # Device should be removed from registry
         assert central.device_registry.has_device(address="VCU0000001") is False
@@ -829,8 +840,8 @@ class TestDeviceCoordinatorFirmwareOperations:
         device1.refresh_firmware_data = MagicMock()  # type: ignore[method-assign]
         device2.refresh_firmware_data = MagicMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device1)
-        central.device_registry.add_device(device=device2)
+        central.device_registry.add_device_sync(device=device1)
+        central.device_registry.add_device_sync(device=device2)
 
         client = _FakeClient(interface_id="BidCos-RF")
         central.client_coordinator.add_client(client=client)
@@ -870,7 +881,7 @@ class TestDeviceCoordinatorFirmwareOperations:
         device = _FakeDevice(address="VCU0000001", is_updatable=True)
         device.refresh_firmware_data = MagicMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device)
+        central.device_registry.add_device_sync(device=device)
 
         # Mock refresh_device_descriptions_and_create_missing_devices
         with patch.object(
@@ -935,8 +946,8 @@ class TestDeviceCoordinatorCentralLinks:
         device1.create_central_links = AsyncMock()  # type: ignore[method-assign]
         device2.create_central_links = AsyncMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device1)
-        central.device_registry.add_device(device=device2)
+        central.device_registry.add_device_sync(device=device1)
+        central.device_registry.add_device_sync(device=device2)
 
         await coordinator.create_central_links()
 
@@ -974,8 +985,8 @@ class TestDeviceCoordinatorCentralLinks:
         device1.remove_central_links = AsyncMock()  # type: ignore[method-assign]
         device2.remove_central_links = AsyncMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device1)
-        central.device_registry.add_device(device=device2)
+        central.device_registry.add_device_sync(device=device1)
+        central.device_registry.add_device_sync(device=device2)
 
         await coordinator.remove_central_links()
 
@@ -1062,14 +1073,14 @@ class TestDeviceCoordinatorIntegration:
         device = _FakeDevice(address="VCU0000001")
         device.remove = MagicMock()  # type: ignore[method-assign]
 
-        central.device_registry.add_device(device=device)
+        central.device_registry.add_device_sync(device=device)
 
         # Verify device exists
         assert coordinator.get_device(address="VCU0000001") == device
         assert len(coordinator.devices) == 1
 
         # Remove device
-        coordinator.remove_device(device=device)
+        await coordinator.remove_device(device=device)
 
         # Verify device is removed
         assert coordinator.get_device(address="VCU0000001") is None

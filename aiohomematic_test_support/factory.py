@@ -81,13 +81,13 @@ class FactoryWithClient:
         )
         self.system_event_mock = MagicMock()
         self.ha_event_mock = MagicMock()
-        self._event_bus_unsubscribe_handlers: list[Callable[[], None]] = []
+        self._event_bus_unsubscribe_callbacks: list[Callable[[], None]] = []
 
     def cleanup_event_bus_subscriptions(self) -> None:
         """Clean up all event bus subscriptions."""
-        for unsubscribe in self._event_bus_unsubscribe_handlers:
+        for unsubscribe in self._event_bus_unsubscribe_callbacks:
             unsubscribe()
-        self._event_bus_unsubscribe_handlers.clear()
+        self._event_bus_unsubscribe_callbacks.clear()
 
     async def get_default_central(self, *, start: bool = True) -> CentralUnit:
         """Return a central based on give address_device_translation."""
@@ -146,12 +146,12 @@ class FactoryWithClient:
             """Handle homematic events."""
             self.ha_event_mock(event)
 
-        self._event_bus_unsubscribe_handlers.append(
+        self._event_bus_unsubscribe_callbacks.append(
             central.event_bus.subscribe(
                 event_type=BackendSystemEventData, event_key=None, handler=_system_event_handler
             )
         )
-        self._event_bus_unsubscribe_handlers.append(
+        self._event_bus_unsubscribe_callbacks.append(
             central.event_bus.subscribe(event_type=HomematicEvent, event_key=None, handler=_ha_event_handler)
         )
 

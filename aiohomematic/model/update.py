@@ -21,7 +21,7 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.support import PayloadMixin
-from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeHandler
+from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeCallback
 
 __all__ = ["DpUpdate"]
 
@@ -115,9 +115,9 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         await self._device.device_data_refresher.refresh_firmware_data(device_address=self._device.address)
         self._set_modified_at(modified_at=datetime.now())
 
-    def unsubscribe_from_data_point_updated(
+    def subscribe_to_data_point_updated(
         self, *, handler: DataPointUpdatedHandler, custom_id: str
-    ) -> UnsubscribeHandler:
+    ) -> UnsubscribeCallback:
         """Subscribe to data point updates via EventBus."""
         if custom_id != InternalCustomID.DEFAULT:
             if self._custom_id is not None:
@@ -126,15 +126,15 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
                 )
             self._custom_id = custom_id
 
-        if unsubscribe := self._device.subscribe_to_firmware_updated(handler=handler):
-            # Wrap unsubscribe to also reset custom_id
-            def wrapped_unsubscribe() -> None:
-                unsubscribe()
-                if custom_id != InternalCustomID.DEFAULT:
-                    self._custom_id = None
+        unsubscribe = self._device.subscribe_to_firmware_updated(handler=handler)
 
-            return wrapped_unsubscribe
-        return None
+        # Wrap unsubscribe to also reset custom_id
+        def wrapped_unsubscribe() -> None:
+            unsubscribe()
+            if custom_id != InternalCustomID.DEFAULT:
+                self._custom_id = None
+
+        return wrapped_unsubscribe
 
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:

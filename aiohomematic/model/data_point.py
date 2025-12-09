@@ -84,7 +84,7 @@ from aiohomematic.type_aliases import (
     DeviceRemovedHandler,
     ParamType,
     ServiceMethodMap,
-    UnsubscribeHandler,
+    UnsubscribeCallback,
 )
 
 __all__ = [
@@ -338,6 +338,18 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Return all service methods."""
         return get_service_calls(obj=self)
 
+    def cleanup_subscriptions(self) -> None:
+        """
+        Clean up all EventBus subscriptions for this data point.
+
+        This should be called when the data point is being removed to prevent
+        memory leaks from orphaned handlers. It clears all subscriptions
+        registered with this data point's unique_id as the event_key.
+        """
+        self._event_bus_provider.event_bus.clear_subscriptions_by_key(event_key=self._unique_id)
+        self._registered_custom_ids.clear()
+        self._subscription_counts.clear()
+
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""
 
@@ -383,23 +395,25 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     def publish_device_removed_event(self) -> None:
         """Do what is needed when the data_point has been removed."""
 
-        # Publish to EventBus asynchronously
-        async def _publish_device_removed() -> None:
+        # Publish to EventBus asynchronously, then cleanup subscriptions
+        async def _publish_device_removed_and_cleanup() -> None:
             await self._event_bus_provider.event_bus.publish(
                 event=DeviceRemovedEvent(
                     timestamp=datetime.now(),
                     unique_id=self._unique_id,
                 )
             )
+            # Clean up subscriptions after event is published to prevent memory leaks
+            self.cleanup_subscriptions()
 
         self._task_scheduler.create_task(
-            target=_publish_device_removed,
+            target=_publish_device_removed_and_cleanup,
             name=f"publish-device-removed-{self._unique_id}",
         )
 
     def subscribe_to_data_point_updated(
         self, *, handler: DataPointUpdatedHandler, custom_id: str
-    ) -> UnsubscribeHandler:
+    ) -> UnsubscribeCallback:
         """Subscribe to data_point updated event."""
         if custom_id not in InternalCustomID:
             if self._custom_id is not None and self._custom_id != custom_id:
@@ -445,7 +459,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
 
         return wrapped_unsubscribe
 
-    def subscribe_to_device_removed(self, *, handler: DeviceRemovedHandler) -> UnsubscribeHandler:
+    def subscribe_to_device_removed(self, *, handler: DeviceRemovedHandler) -> UnsubscribeCallback:
         """Subscribe to the device removed event."""
 
         # Create adapter that filters for this data point's events
@@ -459,7 +473,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             handler=event_handler,
         )
 
-    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeHandler:
+    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeCallback:
         """Subscribe to internal data_point updated event."""
         return self.subscribe_to_data_point_updated(handler=handler, custom_id=InternalCustomID.DEFAULT)
 

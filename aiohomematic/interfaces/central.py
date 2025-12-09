@@ -9,12 +9,13 @@ to the full CentralUnit implementation.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping
+from collections.abc import Awaitable, Mapping
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
     BackendSystemEvent,
     CentralUnitState,
+    DeviceDescription,
     DeviceFirmwareState,
     EventKey,
     EventType,
@@ -306,16 +307,13 @@ class DataCacheProvider(Protocol):
 
 
 @runtime_checkable
-class HubDataFetcher(Protocol):
+class HubFetchOperations(Protocol):
     """
-    Protocol for fetching hub data.
+    Base protocol for hub fetch operations.
 
-    Implemented by CentralUnit.
+    Defines the common fetch methods shared between HubDataFetcher and HubProtocol.
+    This eliminates duplication of fetch method signatures.
     """
-
-    @abstractmethod
-    async def execute_program(self, *, pid: str) -> bool:
-        """Execute a program on the backend."""
 
     @abstractmethod
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
@@ -332,6 +330,20 @@ class HubDataFetcher(Protocol):
     @abstractmethod
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch system variable data from the backend."""
+
+
+@runtime_checkable
+class HubDataFetcher(HubFetchOperations, Protocol):
+    """
+    Protocol for fetching hub data.
+
+    Extends HubFetchOperations with program execution and state management.
+    Implemented by HubCoordinator.
+    """
+
+    @abstractmethod
+    async def execute_program(self, *, pid: str) -> bool:
+        """Execute a program on the backend."""
 
     @abstractmethod
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
@@ -392,3 +404,63 @@ class EventSubscriptionManager(Protocol):
     @abstractmethod
     def add_event_subscription(self, *, data_point: Any) -> None:
         """Add an event subscription for a data point."""
+
+
+@runtime_checkable
+class RpcServerCentralProtocol(Protocol):
+    """
+    Protocol for CentralUnit operations required by RpcServer.
+
+    This protocol defines the minimal interface needed by the XML-RPC server
+    to interact with a central unit, avoiding direct coupling to CentralUnit.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the central name."""
+
+    @abstractmethod
+    async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[dict[str, Any], ...]) -> None:
+        """Add new devices from the backend."""
+
+    @abstractmethod
+    def data_point_event(
+        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
+    ) -> Awaitable[None] | Awaitable[Awaitable[None]]:
+        """Handle a data point event from the backend."""
+
+    @abstractmethod
+    async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
+        """Delete devices by addresses."""
+
+    @abstractmethod
+    def has_client(self, *, interface_id: str) -> bool:
+        """Check if a client exists for the given interface."""
+
+    @abstractmethod
+    def list_devices(self, *, interface_id: str) -> tuple[DeviceDescription, ...]:
+        """Return device descriptions for the interface."""
+
+
+@runtime_checkable
+class RpcServerTaskScheduler(Protocol):
+    """
+    Protocol for task scheduling in RpcServer context.
+
+    This protocol provides a way to schedule async tasks from the synchronous
+    XML-RPC callbacks without coupling to the full CentralUnit.
+
+    Implemented by CentralUnit.looper or a dedicated task scheduler.
+    """
+
+    @abstractmethod
+    def create_task(
+        self,
+        *,
+        target: Any,
+        name: str,
+    ) -> None:
+        """Create and schedule an async task."""

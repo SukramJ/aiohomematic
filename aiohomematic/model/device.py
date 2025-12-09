@@ -126,7 +126,7 @@ from aiohomematic.type_aliases import (
     DeviceUpdatedHandler,
     FirmwareUpdateHandler,
     LinkPeerChangedHandler,
-    UnsubscribeHandler,
+    UnsubscribeCallback,
 )
 
 __all__ = ["Channel", "Device"]
@@ -906,7 +906,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             for dp in self.generic_data_points:
                 dp.publish_data_point_updated_event()
 
-    def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeHandler:
+    def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeCallback:
         """Subscribe update handler."""
 
         # Create adapter that filters for this device's events
@@ -920,7 +920,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             handler=event_handler,
         )
 
-    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeHandler:
+    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeCallback:
         """Subscribe firmware update handler."""
 
         # Create adapter that filters for this device's events
@@ -1467,6 +1467,9 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             self._remove_data_point(data_point=self._custom_data_point)
         self._state_path_to_dpk.clear()
 
+        # Clean up channel-level EventBus subscriptions (e.g., LinkPeerChangedEvent)
+        self._device.event_bus_provider.event_bus.clear_subscriptions_by_key(event_key=self._address)
+
     @inspector(scope=ServiceScope.INTERNAL)
     async def remove_central_link(self) -> None:
         """Remove a central link."""
@@ -1480,7 +1483,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         """Rename the channel on the CCU."""
         return await self._device.client.rename_channel(rega_id=self._rega_id, new_name=new_name)
 
-    def subscribe_to_link_peer_changed(self, *, handler: LinkPeerChangedHandler) -> UnsubscribeHandler:
+    def subscribe_to_link_peer_changed(self, *, handler: LinkPeerChangedHandler) -> UnsubscribeCallback:
         """Subscribe to the link peer changed event."""
 
         # Create adapter that filters for this channel's events
@@ -1531,7 +1534,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         if isinstance(data_point, (hmce.CustomDataPoint, CalculatedDataPointProtocol)):
             data_point.unsubscribe_from_data_point_updated()
 
-        # EventBus subscriptions are automatically cleaned up via DeviceRemovedEvent
+        # Remove from collections
         if isinstance(data_point, BaseParameterDataPointProtocol):
             self._state_path_to_dpk.pop(data_point.state_path, None)
         if isinstance(data_point, CalculatedDataPointProtocol):
@@ -1542,6 +1545,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             self._custom_data_point = None
         if isinstance(data_point, GenericEventProtocol):
             self._generic_events.pop(data_point.dpk, None)
+
+        # Publish removed event and cleanup subscriptions (async, cleanup after event)
         data_point.publish_device_removed_event()
 
     def _set_modified_at(self) -> None:

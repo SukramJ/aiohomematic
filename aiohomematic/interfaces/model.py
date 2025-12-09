@@ -173,6 +173,10 @@ class CallbackDataPointProtocol(Protocol):
         """Return the data point usage."""
 
     @abstractmethod
+    def cleanup_subscriptions(self) -> None:
+        """Clean up all EventBus subscriptions for this data point."""
+
+    @abstractmethod
     def publish_data_point_updated_event(self, **kwargs: Any) -> None:
         """Publish a data point updated event."""
 
@@ -1481,6 +1485,7 @@ class HubProtocol(Protocol):
 
     Provides access to hub data points (inbox, update) and methods
     for fetching programs, system variables, and other hub data.
+    Inherits fetch operations from HubFetchOperations (interfaces.central).
     Implemented by Hub.
     """
 

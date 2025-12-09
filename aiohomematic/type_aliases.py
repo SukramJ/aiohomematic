@@ -17,9 +17,9 @@ type ParamType = bool | int | float | str | None
 # Generic zero-argument handler that returns nothing
 ZeroArgHandler: TypeAlias = Callable[[], None]
 
-# Unsubscribe handler used throughout the project either return a zero-arg
-# handler to unsubscribe or None when subscription did not occur.
-UnsubscribeHandler: TypeAlias = ZeroArgHandler | None
+# Unsubscribe callback - used as return type for subscription methods
+# Single source of truth (formerly duplicated in api.py, central/__init__.py, event_bus.py)
+UnsubscribeCallback: TypeAlias = ZeroArgHandler
 
 # Device- and channel-scoped handlers
 DeviceRemovedHandler: TypeAlias = ZeroArgHandler

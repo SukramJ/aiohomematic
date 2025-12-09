@@ -2,6 +2,32 @@
 
 ## What's Changed
 
+### Concurrency and Thread-Safety
+
+- Add asyncio.Lock for thread-safe task management in InstallModeDpSensor
+- Replace bool state flags with asyncio.Event in BackgroundScheduler for thread-safety
+- Fix list-modification-during-iteration bug in climate.py subscription cleanup
+- Add asyncio.Lock to DeviceRegistry for thread-safe device operations
+
+### Memory Leak Prevention
+
+- Add auto-cleanup of EventBus subscriptions when devices/data points are removed
+- Add clear_subscriptions_by_key() method to EventBus for key-based cleanup
+
+### Error Handling
+
+- Add exception logging for scheduler jobs, background tasks, and install mode loops
+
+### Architecture and Dependency Injection
+
+- Add RpcServerCentralProtocol and RpcServerTaskScheduler protocols
+- Refactor RpcServer to use protocol interfaces instead of direct CentralUnit dependency
+- Introduce \_CentralEntry container class for decoupled central/looper storage
+- Add HubFetchOperations base protocol for consolidated hub data fetching
+- Consolidate UnsubscribeCallback definition in type_aliases.py
+
+### Other changes
+
 - Add basic rega script linter to ensure support for session recorder
 - Cleanup scripts for recorder
 - Improve backend detection

@@ -134,8 +134,8 @@ class TestBackgroundSchedulerBasics:
         )
 
         assert scheduler._central_info == central
-        assert scheduler._active is False
-        assert scheduler._devices_created is False
+        assert scheduler.is_active is False
+        assert scheduler.devices_created is False
         assert scheduler._scheduler_task is None
         assert len(scheduler._scheduler_jobs) == 9  # Should have 9 jobs
 
@@ -159,14 +159,14 @@ class TestBackgroundSchedulerBasics:
             event_bus_provider=central,
             state_provider=central,
         )
-        assert scheduler._active is False
+        assert scheduler.is_active is False
         assert scheduler._scheduler_task is None
 
         # Mock the scheduler loop to prevent actual execution
         with patch.object(scheduler, "_run_scheduler_loop", return_value=AsyncMock()):
             await scheduler.start()
 
-        assert scheduler._active is True
+        assert scheduler.is_active is True
         assert scheduler._scheduler_task is not None
 
     @pytest.mark.asyncio
@@ -206,8 +206,8 @@ class TestBackgroundSchedulerBasics:
         """BackgroundScheduler.stop should deactivate the scheduler."""
         central = MagicMock()
         central.event_bus = MagicMock()
-        unsubscribe_handler = MagicMock()
-        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_handler)
+        unsubscribe_callback = MagicMock()
+        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_callback)
         central.config = MagicMock()
         central.config.periodic_refresh_interval = 60
         central.config.sys_scan_interval = 300
@@ -226,14 +226,14 @@ class TestBackgroundSchedulerBasics:
         # Start the scheduler
         with patch.object(scheduler, "_run_scheduler_loop", return_value=AsyncMock()):
             await scheduler.start()
-            assert scheduler._active is True
+            assert scheduler.is_active is True
 
         # Stop the scheduler
         await scheduler.stop()
 
-        assert scheduler._active is False
-        unsubscribe_handler.assert_called_once()
-        assert scheduler._unsubscribe_handler is None
+        assert scheduler.is_active is False
+        unsubscribe_callback.assert_called_once()
+        assert scheduler._unsubscribe_callback is None
 
     @pytest.mark.asyncio
     async def test_background_scheduler_stop_when_not_running(self) -> None:
@@ -255,19 +255,19 @@ class TestBackgroundSchedulerBasics:
             event_bus_provider=central,
             state_provider=central,
         )
-        assert scheduler._active is False
+        assert scheduler.is_active is False
 
         # Stopping when not running should be safe
         await scheduler.stop()
 
-        assert scheduler._active is False
+        assert scheduler.is_active is False
 
     def test_background_scheduler_subscribes_to_events(self) -> None:
         """BackgroundScheduler should subscribe to DEVICES_CREATED event."""
         central = MagicMock()
         central.event_bus = MagicMock()
-        unsubscribe_handler = MagicMock()
-        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_handler)
+        unsubscribe_callback = MagicMock()
+        central.event_bus.subscribe = MagicMock(return_value=unsubscribe_callback)
         central.config = MagicMock()
         central.config.periodic_refresh_interval = 60
         central.config.sys_scan_interval = 300
@@ -285,7 +285,7 @@ class TestBackgroundSchedulerBasics:
 
         # Verify subscribe was called
         central.event_bus.subscribe.assert_called_once()
-        assert scheduler._unsubscribe_handler == unsubscribe_handler
+        assert scheduler._unsubscribe_callback == unsubscribe_callback
 
 
 class TestBackgroundSchedulerEventHandling:
@@ -310,7 +310,7 @@ class TestBackgroundSchedulerEventHandling:
             event_bus_provider=central,
             state_provider=central,
         )
-        assert scheduler._devices_created is False
+        assert scheduler.devices_created is False
 
         # Create a mock event
         event = MagicMock()
@@ -318,7 +318,7 @@ class TestBackgroundSchedulerEventHandling:
 
         scheduler._on_backend_system_event(event=event)
 
-        assert scheduler._devices_created is True
+        assert scheduler.devices_created is True
 
     def test_on_backend_system_event_other_events(self) -> None:
         """BackgroundScheduler should ignore non-DEVICES_CREATED events."""
@@ -339,7 +339,7 @@ class TestBackgroundSchedulerEventHandling:
             event_bus_provider=central,
             state_provider=central,
         )
-        assert scheduler._devices_created is False
+        assert scheduler.devices_created is False
 
         # Create a mock event with different system event
         event = MagicMock()
@@ -347,7 +347,7 @@ class TestBackgroundSchedulerEventHandling:
 
         scheduler._on_backend_system_event(event=event)
 
-        assert scheduler._devices_created is False
+        assert scheduler.devices_created is False
 
 
 class TestBackgroundSchedulerJobExecution:
@@ -561,7 +561,7 @@ class TestBackgroundSchedulerJobExecution:
             event_bus_provider=central,
             state_provider=central,
         )
-        scheduler._devices_created = True
+        scheduler._devices_created_event.set()
 
         await scheduler._refresh_program_data()
 
@@ -591,7 +591,7 @@ class TestBackgroundSchedulerJobExecution:
             event_bus_provider=central,
             state_provider=central,
         )
-        scheduler._devices_created = True
+        scheduler._devices_created_event.set()
 
         await scheduler._refresh_sysvar_data()
 
@@ -740,7 +740,7 @@ class TestSchedulerLoopExecution:
         # Stop the scheduler
         await scheduler.stop()
 
-        assert scheduler._active is False
+        assert scheduler.is_active is False
         assert task.cancelled() is True
 
 
@@ -859,7 +859,7 @@ class TestSchedulerJobFiltering:
             event_bus_provider=central,
             state_provider=central,
         )
-        assert scheduler._devices_created is False
+        assert scheduler.devices_created is False
         central.fetch_program_data = AsyncMock()
 
         await scheduler._refresh_program_data()
@@ -920,7 +920,7 @@ class TestSchedulerJobFiltering:
             event_bus_provider=central,
             state_provider=central,
         )
-        assert scheduler._devices_created is False
+        assert scheduler.devices_created is False
         central.fetch_sysvar_data = AsyncMock()
 
         await scheduler._refresh_sysvar_data()
@@ -985,7 +985,7 @@ class TestSchedulerFirmwareChecks:
             event_bus_provider=central,
             state_provider=central,
         )
-        scheduler._devices_created = True
+        scheduler._devices_created_event.set()
 
         await scheduler._fetch_device_firmware_update_data()
 
@@ -1014,7 +1014,7 @@ class TestSchedulerFirmwareChecks:
             event_bus_provider=central,
             state_provider=central,
         )
-        scheduler._devices_created = True
+        scheduler._devices_created_event.set()
 
         await scheduler._fetch_device_firmware_update_data_in_delivery()
 
@@ -1043,7 +1043,7 @@ class TestSchedulerFirmwareChecks:
             event_bus_provider=central,
             state_provider=central,
         )
-        scheduler._devices_created = True
+        scheduler._devices_created_event.set()
 
         await scheduler._fetch_device_firmware_update_data_in_update()
 

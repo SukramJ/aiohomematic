@@ -12,7 +12,7 @@ from typing import Any
 
 from aiohomematic.const import HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES, HMIP_FIRMWARE_UPDATE_READY_STATES, Interface
 from aiohomematic.model.update import DpUpdate
-from aiohomematic.type_aliases import FirmwareUpdateHandler, UnsubscribeHandler
+from aiohomematic.type_aliases import FirmwareUpdateHandler, UnsubscribeCallback
 
 
 class _FakeCentral:
@@ -96,7 +96,7 @@ class _FakeDevice:
         self.parameter_visibility_provider = _FakeParameterVisibilityProvider()
         self.device_data_refresher = _FakeDeviceDataRefresher(central=self.central)
 
-    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeHandler:
+    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeCallback:
         self._handlers.append(handler)
 
         def _unsubscribe() -> None:

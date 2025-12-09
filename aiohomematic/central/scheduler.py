@@ -80,6 +80,11 @@ class SchedulerJob:
         self._run_interval: Final = run_interval
 
     @property
+    def name(self) -> str:
+        """Return the name of the task."""
+        return self._task.__name__
+
+    @property
     def next_run(self) -> datetime:
         """Return the next scheduled run timestamp."""
         return self._next_run
@@ -148,17 +153,18 @@ class BackgroundScheduler:
         self._event_bus_provider: Final = event_bus_provider
         self._state_provider: Final = state_provider
 
-        self._active = False
-        self._devices_created = False
+        # Use asyncio.Event for thread-safe state flags
+        self._active_event: Final = asyncio.Event()
+        self._devices_created_event: Final = asyncio.Event()
         self._scheduler_task: asyncio.Task[None] | None = None
-        self._unsubscribe_handler: Callable[[], None] | None = None
+        self._unsubscribe_callback: Callable[[], None] | None = None
 
         # Subscribe to DEVICES_CREATED event
         # Create a wrapper to match the EventHandler signature (positional event argument)
         def _event_handler(event: BackendSystemEventData) -> None:
             self._on_backend_system_event(event=event)
 
-        self._unsubscribe_handler = self._event_bus_provider.event_bus.subscribe(
+        self._unsubscribe_callback = self._event_bus_provider.event_bus.subscribe(
             event_type=BackendSystemEventData,
             event_key=None,
             handler=_event_handler,
@@ -204,28 +210,38 @@ class BackgroundScheduler:
             ),
         ]
 
+    @property
+    def devices_created(self) -> bool:
+        """Return True if devices have been created."""
+        return self._devices_created_event.is_set()
+
+    @property
+    def is_active(self) -> bool:
+        """Return True if the scheduler is active."""
+        return self._active_event.is_set()
+
     async def start(self) -> None:
         """Start the scheduler and begin running scheduled tasks."""
-        if self._active:
+        if self._active_event.is_set():
             _LOGGER.warning("Scheduler for %s is already running", self._central_info.name)  # i18n-log: ignore
             return
 
         _LOGGER.debug("Starting scheduler for %s", self._central_info.name)
-        self._active = True
+        self._active_event.set()
         self._scheduler_task = asyncio.create_task(self._run_scheduler_loop())
 
     async def stop(self) -> None:
         """Stop the scheduler and cancel all running tasks."""
-        if not self._active:
+        if not self._active_event.is_set():
             return
 
         _LOGGER.debug("Stopping scheduler for %s", self._central_info.name)
-        self._active = False
+        self._active_event.clear()
 
         # Unsubscribe from events
-        if self._unsubscribe_handler:
-            self._unsubscribe_handler()
-            self._unsubscribe_handler = None
+        if self._unsubscribe_callback:
+            self._unsubscribe_callback()
+            self._unsubscribe_callback = None
 
         # Cancel scheduler task
         if self._scheduler_task and not self._scheduler_task.done():
@@ -281,7 +297,7 @@ class BackgroundScheduler:
         if (
             not self._config_provider.config.enable_device_firmware_check
             or not self._central_info.available
-            or not self._devices_created
+            or not self.devices_created
         ):
             return
 
@@ -296,7 +312,7 @@ class BackgroundScheduler:
         if (
             not self._config_provider.config.enable_device_firmware_check
             or not self._central_info.available
-            or not self._devices_created
+            or not self.devices_created
         ):
             return
 
@@ -316,7 +332,7 @@ class BackgroundScheduler:
         if (
             not self._config_provider.config.enable_device_firmware_check
             or not self._central_info.available
-            or not self._devices_created
+            or not self.devices_created
         ):
             return
 
@@ -342,7 +358,7 @@ class BackgroundScheduler:
 
         """
         if event.system_event == BackendSystemEvent.DEVICES_CREATED:
-            self._devices_created = True
+            self._devices_created_event.set()
 
     async def _refresh_client_data(self) -> None:
         """Refresh client data for polled interfaces."""
@@ -357,7 +373,7 @@ class BackgroundScheduler:
 
     async def _refresh_inbox_data(self) -> None:
         """Refresh inbox data."""
-        if not self._central_info.available or not self._devices_created:
+        if not self._central_info.available or not self.devices_created:
             return
 
         _LOGGER.debug("REFRESH_INBOX_DATA: For %s", self._central_info.name)
@@ -368,7 +384,7 @@ class BackgroundScheduler:
         if (
             not self._config_provider.config.enable_program_scan
             or not self._central_info.available
-            or not self._devices_created
+            or not self.devices_created
         ):
             return
 
@@ -377,7 +393,7 @@ class BackgroundScheduler:
 
     async def _refresh_system_update_data(self) -> None:
         """Refresh system update data."""
-        if not self._central_info.available or not self._devices_created:
+        if not self._central_info.available or not self.devices_created:
             return
 
         _LOGGER.debug("REFRESH_SYSTEM_UPDATE_DATA: For %s", self._central_info.name)
@@ -388,7 +404,7 @@ class BackgroundScheduler:
         if (
             not self._config_provider.config.enable_sysvar_scan
             or not self._central_info.available
-            or not self._devices_created
+            or not self.devices_created
         ):
             return
 
@@ -397,7 +413,7 @@ class BackgroundScheduler:
 
     async def _run_scheduler_loop(self) -> None:
         """Execute the main scheduler loop that runs jobs based on their schedule."""
-        while self._active:
+        while self.is_active:
             # Wait until central is running
             if self._state_provider.state != CentralUnitState.RUNNING:
                 _LOGGER.debug("Scheduler: Waiting until central %s is started", self._central_info.name)
@@ -407,14 +423,21 @@ class BackgroundScheduler:
             # Execute ready jobs
             any_executed = False
             for job in self._scheduler_jobs:
-                if not self._active or not job.ready:
+                if not self.is_active or not job.ready:
                     continue
 
-                await job.run()
+                try:
+                    await job.run()
+                except Exception:
+                    _LOGGER.exception(  # i18n-log: ignore
+                        "SCHEDULER: Job %s failed for %s",
+                        job.name,
+                        self._central_info.name,
+                    )
                 job.schedule_next_execution()
                 any_executed = True
 
-            if not self._active:
+            if not self.is_active:
                 break  # type: ignore[unreachable]
 
             # Sleep logic: minimize CPU usage when idle

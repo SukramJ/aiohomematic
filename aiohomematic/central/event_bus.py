@@ -65,6 +65,7 @@ import logging
 from typing import Any, TypeVar, cast
 
 from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, ParamsetKey
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,7 +76,6 @@ T_Event = TypeVar("T_Event", bound="Event")
 SyncEventHandler = Callable[[Any], None]
 AsyncEventHandler = Callable[[Any], Coroutine[Any, Any, None]]
 EventHandler = SyncEventHandler | AsyncEventHandler
-UnsubscribeCallback = Callable[[], None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -358,6 +358,35 @@ class EventBus:
         else:
             self._subscriptions[event_type].clear()
             _LOGGER.debug("CLEAR_SUBSCRIPTION: Cleared subscriptions for %s", event_type.__name__)
+
+    def clear_subscriptions_by_key(self, *, event_key: Any) -> int:
+        """
+        Clear all subscriptions for a specific event key across all event types.
+
+        This is used to clean up subscriptions when a device or data point is removed,
+        preventing memory leaks from orphaned handlers.
+
+        Args:
+        ----
+            event_key: The key to clear subscriptions for (e.g., unique_id, dpk, channel_address)
+
+        Returns:
+        -------
+            Number of handlers removed
+
+        """
+        total_removed = 0
+        for event_type, keys_handlers in self._subscriptions.items():
+            if event_key in keys_handlers and (count := len(keys_handlers[event_key])) > 0:
+                total_removed += count
+                keys_handlers[event_key].clear()
+                _LOGGER.debug(
+                    "CLEAR_SUBSCRIPTION_BY_KEY: Cleared %d subscription(s) for key=%s, event_type=%s",
+                    count,
+                    event_key,
+                    event_type.__name__,
+                )
+        return total_removed
 
     def get_event_stats(self) -> dict[str, int]:
         """

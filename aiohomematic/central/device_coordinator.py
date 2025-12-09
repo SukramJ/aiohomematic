@@ -355,7 +355,7 @@ class DeviceCoordinator:
                         create_data_points_and_events(device=device)
                         create_custom_data_points(device=device)
                         new_devices.add(device)
-                        self.device_registry.add_device(device=device)
+                        await self.device_registry.add_device(device=device)
                 except Exception as exc:
                     _LOGGER.error(  # i18n-log: ignore
                         "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
@@ -417,7 +417,7 @@ class DeviceCoordinator:
 
         for address in addresses:
             if device := self.device_registry.get_device(address=address):
-                self.remove_device(device=device)
+                await self.remove_device(device=device)
 
         await self._coordinator_provider.cache_coordinator.save_all(
             save_device_descriptions=True,
@@ -568,7 +568,7 @@ class DeviceCoordinator:
         for device in self.devices:
             await device.remove_central_links()
 
-    def remove_device(self, *, device: DeviceProtocol) -> None:
+    async def remove_device(self, *, device: DeviceProtocol) -> None:
         """
         Remove device from central collections.
 
@@ -586,7 +586,7 @@ class DeviceCoordinator:
 
         device.remove()
         self._coordinator_provider.cache_coordinator.remove_device_from_caches(device=device)
-        self.device_registry.remove_device(device_address=device.address)
+        await self.device_registry.remove_device(device_address=device.address)
 
     @inspector(measure_performance=True)
     async def _add_new_devices(

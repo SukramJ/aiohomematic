@@ -47,13 +47,19 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
             try:
                 unit = args[0]
                 central: hmcu.CentralUnit | None = None
+                looper: Any = None
                 if isinstance(unit, hmcu.CentralUnit):
                     central = unit
-                if central is None and isinstance(unit, rpc.RPCFunctions):
-                    central = unit.get_central(interface_id=str(args[1]))
-                if central:
+                    looper = central.looper
+                if (
+                    central is None
+                    and isinstance(unit, rpc.RPCFunctions)
+                    and (entry := unit.get_central_entry(interface_id=str(args[1])))
+                ):
+                    looper = entry.looper
+                if looper:
                     # Use partial to avoid lambda closure capturing args/kwargs
-                    central.looper.create_task(
+                    looper.create_task(
                         target=partial(_exec_backend_system_callback, *args, **kwargs),
                         name="wrapper_backend_system_callback",
                     )

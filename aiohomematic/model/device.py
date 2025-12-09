@@ -8,16 +8,36 @@ channels, including creation and lookup of data points/events, firmware and
 availability handling, link management, value caching, and exporting of device
 definitions for diagnostics.
 
-Key classes:
+Key classes
+-----------
 - Device: Encapsulates metadata, channels, and operations for a single device.
 - Channel: Represents a functional channel with its data points and events.
 
-Other components:
+Other components
+----------------
 - _ValueCache: Lazy loading and caching of parameter values to minimize RPCs.
-- _DefinitionExporter: Utility to export device and paramset descriptions.
+  Accessed externally via ``device.value_cache``.
+- _DefinitionExporter: Internal utility to export device and paramset descriptions.
+
+Architecture notes
+------------------
+Device acts as a **Facade** aggregating 15+ protocol interfaces injected via
+constructor. This design enables:
+- Centralized access to all protocol interfaces for DataPoints
+- Single instantiation point in DeviceCoordinator.create_devices()
+- Full Protocol-based dependency injection (no direct CentralUnit reference)
+
+Device responsibilities are organized into 7 areas:
+1. **Metadata & Identity**: Address, model, name, manufacturer, firmware version
+2. **Channel Hierarchy**: Channel management, grouping, data point access
+3. **Value Caching**: Lazy loading and caching of parameter values
+4. **Availability & State**: Device availability, config pending status
+5. **Firmware Management**: Firmware updates, available updates, update state
+6. **Links & Export**: Central link management, device definition export
+7. **Week Profile**: Schedule/time program support
 
 The Device/Channel classes are the anchor used by generic, custom, calculated,
- and hub model code to attach data points and events.
+and hub model code to attach data points and events.
 """
 
 from __future__ import annotations
@@ -136,10 +156,33 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     """
-    Represents a Homematic device with channels and data points.
+    Represent a Homematic device with channels and data points.
 
-    Manages device lifecycle, channel hierarchy, firmware state, and
-    provides access to all associated data points and metadata.
+    Device is the central runtime model for a physical Homematic device. It acts
+    as a **Facade** that aggregates 15+ protocol interfaces (injected via constructor)
+    and provides unified access for all DataPoint classes.
+
+    Responsibilities
+    ----------------
+    1. **Metadata & Identity**: Device address, model, name, manufacturer, interface.
+    2. **Channel Hierarchy**: Channel creation, grouping, data point lookup.
+    3. **Value Caching**: Lazy loading via ``_ValueCache`` (accessed via ``value_cache``).
+    4. **Availability & State**: UN_REACH/STICKY_UN_REACH handling, forced availability.
+    5. **Firmware Management**: Firmware version, available updates, update operations.
+    6. **Links & Export**: Central link management for press events, definition export.
+    7. **Week Profile**: Schedule support for climate devices.
+
+    Instantiation
+    -------------
+    Devices are created exclusively by ``DeviceCoordinator.create_devices()``. All
+    dependencies are injected as protocol interfaces, enabling full dependency
+    injection without direct CentralUnit references.
+
+    Protocol compliance
+    -------------------
+    Implements ``DeviceProtocol`` (55 properties + 15 methods) which defines the
+    complete public API. All properties/methods in DeviceProtocol are part of the
+    stable public contract.
     """
 
     __slots__ = (
@@ -963,10 +1006,26 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
 class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     """
-    Represents a device channel containing data points and events.
+    Represent a device channel containing data points and events.
 
     Channels group related parameters and provide the organizational structure
-    for data points within a device.
+    for data points within a device. Each channel has a unique address (e.g.,
+    ``VCU0000001:1``) and contains generic, custom, and calculated data points.
+
+    Responsibilities
+    ----------------
+    1. **Data Point Storage**: Stores generic, custom, and calculated data points.
+    2. **Event Storage**: Stores generic events (KEYPRESS, MOTION, etc.).
+    3. **Grouping**: Multi-channel grouping support (e.g., for multi-gang switches).
+    4. **Link Peers**: Link partner management for peer-to-peer communication.
+    5. **Paramset Access**: Access to VALUES and MASTER paramset descriptions.
+
+    Access pattern
+    --------------
+    Channels access protocol interfaces through their parent device:
+    ``self._device.event_bus_provider``, ``self._device.client``, etc.
+
+    Implements ``ChannelProtocol`` which defines the public API.
     """
 
     __slots__ = (
@@ -1554,7 +1613,23 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
 
 class _ValueCache:
-    """A Cache to temporarily stored values."""
+    """
+    Cache for lazy loading and temporary storage of parameter values.
+
+    This cache minimizes RPC calls by storing fetched parameter values and
+    providing them on subsequent requests within a validity period.
+
+    External access
+    ---------------
+    Accessed via ``device.value_cache`` property. Used by DataPoint classes in
+    ``model/data_point.py`` to load values via ``get_value()``.
+
+    Cache strategy
+    --------------
+    - First checks the central data cache for VALUES paramset
+    - Falls back to device-local cache with timestamp-based validity
+    - Uses semaphore for thread-safe concurrent access
+    """
 
     __slots__ = (
         "_device",
@@ -1706,7 +1781,22 @@ class _ValueCache:
 
 
 class _DefinitionExporter:
-    """Export device definitions from cache."""
+    """
+    Export device and paramset descriptions for diagnostics.
+
+    This internal utility class exports device definitions to JSON files for
+    debugging and issue reporting. Device addresses are anonymized before export.
+
+    Internal use only
+    -----------------
+    Used exclusively by ``Device.export_device_definition()``. Not accessible
+    from external code.
+
+    Output files
+    ------------
+    - ``{storage_dir}/device_descriptions/{model}.json`` - Device descriptions
+    - ``{storage_dir}/paramset_descriptions/{model}.json`` - Paramset descriptions
+    """
 
     __slots__ = (
         "_client",

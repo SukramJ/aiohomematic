@@ -40,11 +40,24 @@ from aiohomematic.interfaces.central import (
     SystemInfoProvider,
 )
 from aiohomematic.interfaces.client import (
+    CallbackAddressProvider,
     ClientCoordination,
+    ClientDependencies,
     ClientFactory,
     ClientProtocol,
     ClientProvider,
+    ConnectionStateProvider,
+    DataCacheWriter,
+    DeviceDescriptionsAccess,
+    DeviceDetailsWriter,
+    DeviceLookup,
+    InterfaceEventPublisher,
+    JsonRpcClientProvider,
+    LastEventTracker,
+    NewDeviceHandler,
+    ParamsetDescriptionWriter,
     PrimaryClientProvider,
+    SessionRecorderProvider,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProvider
 from aiohomematic.interfaces.model import (
@@ -94,11 +107,24 @@ __all__ = [
     "HubFetchOperations",
     "SystemInfoProvider",
     # Client protocols
+    "CallbackAddressProvider",
     "ClientCoordination",
+    "ClientDependencies",
     "ClientFactory",
     "ClientProtocol",
     "ClientProvider",
+    "ConnectionStateProvider",
+    "DataCacheWriter",
+    "DeviceDescriptionsAccess",
+    "DeviceDetailsWriter",
+    "DeviceLookup",
+    "InterfaceEventPublisher",
+    "JsonRpcClientProvider",
+    "LastEventTracker",
+    "NewDeviceHandler",
+    "ParamsetDescriptionWriter",
     "PrimaryClientProvider",
+    "SessionRecorderProvider",
     # Coordinator protocols
     "CoordinatorProvider",
     # Model protocols

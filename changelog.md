@@ -25,6 +25,8 @@
 - Introduce \_CentralEntry container class for decoupled central/looper storage
 - Add HubFetchOperations base protocol for consolidated hub data fetching
 - Consolidate UnsubscribeCallback definition in type_aliases.py
+- Add ClientDependencies composite protocol for decoupled client architecture
+- Refactor ClientConfig and ClientCCU to use ClientDependencies instead of CentralUnit
 
 ### Other changes
 

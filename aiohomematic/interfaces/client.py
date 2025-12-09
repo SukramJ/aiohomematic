@@ -9,6 +9,7 @@ to specific implementations (ClientCCU, ClientJsonCCU, ClientHomegear).
 from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
@@ -26,8 +27,12 @@ from aiohomematic.const import (
 )
 
 if TYPE_CHECKING:
-    from aiohomematic.client import InterfaceConfig
+    from aiohomematic.async_support import Looper
+    from aiohomematic.central import CentralConfig, CentralConnectionState
+    from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
+    from aiohomematic.interfaces import ChannelProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
+    from aiohomematic.store import ParamsetDescriptionCache, SessionRecorder
 
 
 @runtime_checkable
@@ -485,3 +490,371 @@ class PrimaryClientProvider(Protocol):
     @abstractmethod
     def primary_client(self) -> ClientProtocol | None:
         """Get primary client."""
+
+
+@runtime_checkable
+class InterfaceEventPublisher(Protocol):
+    """
+    Protocol for publishing interface-level events.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    def publish_interface_event(
+        self,
+        *,
+        interface_id: str,
+        interface_event_type: Any,
+        data: dict[Any, Any],
+    ) -> None:
+        """Publish an interface event."""
+
+
+@runtime_checkable
+class LastEventTracker(Protocol):
+    """
+    Protocol for tracking last event times per interface.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
+        """Get the last event timestamp for an interface."""
+
+
+@runtime_checkable
+class DeviceLookup(Protocol):
+    """
+    Protocol for looking up devices and data points.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    def get_device(self, *, address: str) -> DeviceProtocol | None:
+        """Get device by address."""
+
+    @abstractmethod
+    def get_generic_data_point(
+        self,
+        *,
+        channel_address: str,
+        parameter: str,
+        paramset_key: ParamsetKey,
+    ) -> Any | None:
+        """Get generic data point."""
+
+
+@runtime_checkable
+class NewDeviceHandler(Protocol):
+    """
+    Protocol for handling new device registration.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def add_new_devices(
+        self,
+        *,
+        interface_id: str,
+        device_descriptions: tuple[DeviceDescription, ...],
+    ) -> None:
+        """Add new devices from the backend."""
+
+
+@runtime_checkable
+class DataCacheWriter(Protocol):
+    """
+    Protocol for writing data to the central data cache.
+
+    Implemented by CentralDataCache.
+    """
+
+    @abstractmethod
+    def add_data(self, *, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
+        """Add all device data to the cache."""
+
+
+@runtime_checkable
+class ParamsetDescriptionWriter(Protocol):
+    """
+    Protocol for writing paramset descriptions.
+
+    Implemented by ParamsetDescriptionCache.
+    """
+
+    @abstractmethod
+    def add(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        paramset_description: dict[str, Any],
+    ) -> None:
+        """Add a paramset description."""
+
+
+@runtime_checkable
+class DeviceDetailsWriter(Protocol):
+    """
+    Protocol for writing device details.
+
+    Implemented by DeviceDetailsCache.
+    """
+
+    @property
+    @abstractmethod
+    def device_channel_rega_ids(self) -> Mapping[str, int]:
+        """Return the device channel ReGa IDs."""
+
+    @abstractmethod
+    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
+        """Add a ReGa ID for an address."""
+
+    @abstractmethod
+    def add_interface(self, *, address: str, interface: Interface) -> None:
+        """Add an interface for an address."""
+
+    @abstractmethod
+    def add_name(self, *, address: str, name: str) -> None:
+        """Add a name for an address."""
+
+
+@runtime_checkable
+class DeviceDescriptionsAccess(Protocol):
+    """
+    Protocol for accessing device descriptions from cache.
+
+    Implemented by DeviceDescriptionCache.
+    """
+
+    @abstractmethod
+    def find_device_description(
+        self,
+        *,
+        interface_id: str,
+        device_address: str,
+    ) -> DeviceDescription | None:
+        """Find a device description."""
+
+    @abstractmethod
+    def get_device_descriptions(self, *, interface_id: str) -> Mapping[str, DeviceDescription]:
+        """Get all device descriptions for an interface."""
+
+
+@runtime_checkable
+class ConnectionStateProvider(Protocol):
+    """
+    Protocol for accessing connection state.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def connection_state(self) -> CentralConnectionState:
+        """Get connection state."""
+
+
+@runtime_checkable
+class SessionRecorderProvider(Protocol):
+    """
+    Protocol for accessing session recorder.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def recorder(self) -> SessionRecorder:
+        """Get session recorder."""
+
+
+@runtime_checkable
+class JsonRpcClientProvider(Protocol):
+    """
+    Protocol for accessing JSON-RPC client.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
+        """Get JSON-RPC client."""
+
+
+@runtime_checkable
+class CallbackAddressProvider(Protocol):
+    """
+    Protocol for accessing callback address information.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def callback_ip_addr(self) -> str:
+        """Get callback IP address."""
+
+    @property
+    @abstractmethod
+    def listen_port_xml_rpc(self) -> int:
+        """Get XML-RPC listen port."""
+
+
+@runtime_checkable
+class ClientDependencies(Protocol):
+    """
+    Composite protocol for all dependencies required by Client classes.
+
+    This protocol combines all the individual protocols needed by ClientCCU,
+    ClientConfig, and related classes. CentralUnit implements this protocol.
+
+    Using a composite protocol allows clients to depend on a single interface
+    instead of many individual protocols, while still maintaining decoupling
+    from the full CentralUnit implementation.
+    """
+
+    # CentralInfo
+    @property
+    @abstractmethod
+    def available(self) -> bool:
+        """Check if central is available."""
+
+    @property
+    @abstractmethod
+    def callback_ip_addr(self) -> str:
+        """Return callback IP address."""
+
+    @property
+    @abstractmethod
+    def config(self) -> CentralConfig:
+        """Return central configuration."""
+
+    @property
+    @abstractmethod
+    def connection_state(self) -> CentralConnectionState:
+        """Return connection state."""
+
+    @property
+    @abstractmethod
+    def data_cache(self) -> DataCacheWriter:
+        """Return data cache."""
+
+    @property
+    @abstractmethod
+    def device_descriptions(self) -> DeviceDescriptionsAccess:
+        """Return device descriptions cache."""
+
+    @property
+    @abstractmethod
+    def device_details(self) -> DeviceDetailsWriter:
+        """Return device details."""
+
+    @property
+    @abstractmethod
+    def devices(self) -> tuple[DeviceProtocol, ...]:
+        """Return all devices."""
+
+    @property
+    @abstractmethod
+    def info_payload(self) -> Mapping[str, Any]:
+        """Return the info payload."""
+
+    @property
+    @abstractmethod
+    def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
+        """Return JSON-RPC client."""
+
+    @property
+    @abstractmethod
+    def listen_port_xml_rpc(self) -> int:
+        """Return XML-RPC listen port."""
+
+    @property
+    @abstractmethod
+    def looper(self) -> Looper:
+        """Return task scheduler/looper."""
+
+    @property
+    @abstractmethod
+    def model(self) -> str | None:
+        """Return backend model."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return central name."""
+
+    @property
+    @abstractmethod
+    def paramset_descriptions(self) -> ParamsetDescriptionCache:
+        """Return paramset descriptions cache."""
+
+    @property
+    @abstractmethod
+    def recorder(self) -> SessionRecorder:
+        """Return session recorder."""
+
+    @abstractmethod
+    async def add_new_devices(
+        self,
+        *,
+        interface_id: str,
+        device_descriptions: tuple[DeviceDescription, ...],
+    ) -> None:
+        """Add new devices from the backend."""
+
+    @abstractmethod
+    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
+        """Return channel by address."""
+
+    @abstractmethod
+    def get_device(self, *, address: str) -> DeviceProtocol | None:
+        """Return device by address."""
+
+    @abstractmethod
+    def get_generic_data_point(
+        self,
+        *,
+        channel_address: str,
+        parameter: str,
+        paramset_key: ParamsetKey,
+    ) -> Any | None:
+        """Return generic data point."""
+
+    @abstractmethod
+    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
+        """Return last event timestamp for an interface."""
+
+    @abstractmethod
+    def publish_backend_system_event(self, *, system_event: Any, **kwargs: Any) -> None:
+        """Publish a backend system event."""
+
+    @abstractmethod
+    def publish_homematic_event(self, *, event_type: Any, event_data: dict[Any, Any]) -> None:
+        """Publish a Homematic event."""
+
+    @abstractmethod
+    def publish_interface_event(
+        self,
+        *,
+        interface_id: str,
+        interface_event_type: Any,
+        data: dict[Any, Any],
+    ) -> None:
+        """Publish an interface event."""
+
+    @abstractmethod
+    async def save_files(
+        self,
+        *,
+        save_device_descriptions: bool = False,
+        save_paramset_descriptions: bool = False,
+    ) -> None:
+        """Save persistent files to disk."""

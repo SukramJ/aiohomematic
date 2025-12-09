@@ -59,7 +59,7 @@ from aiohomematic.interfaces.central import (
     DeviceProvider,
     EventPublisher,
 )
-from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
+from aiohomematic.interfaces.client import ClientProvider, DataCacheWriter, DeviceDetailsWriter, PrimaryClientProvider
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.interfaces.operations import DeviceDetailsProvider
 from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
@@ -241,7 +241,7 @@ class CommandCache:
             )
 
 
-class DeviceDetailsCache(DeviceDetailsProvider):
+class DeviceDetailsCache(DeviceDetailsProvider, DeviceDetailsWriter):
     """Cache for device/channel details."""
 
     __slots__ = (
@@ -388,7 +388,7 @@ class DeviceDetailsCache(DeviceDetailsProvider):
         return _device_rooms
 
 
-class CentralDataCache(DataCacheProvider):
+class CentralDataCache(DataCacheProvider, DataCacheWriter):
     """Central cache for device/channel initial data."""
 
     __slots__ = (

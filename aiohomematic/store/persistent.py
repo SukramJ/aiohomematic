@@ -67,6 +67,7 @@ from aiohomematic.const import (
     RPCType,
 )
 from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, DeviceProvider
+from aiohomematic.interfaces.client import DeviceDescriptionsAccess, ParamsetDescriptionWriter
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.interfaces.operations import DeviceDescriptionProvider, ParamsetDescriptionProvider, TaskScheduler
 from aiohomematic.support import (
@@ -276,7 +277,7 @@ class BasePersistentFile(ABC):
         return text.encode(encoding=UTF_8)
 
 
-class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider):
+class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider, DeviceDescriptionsAccess):
     """Cache for device/channel names."""
 
     __slots__ = (
@@ -427,7 +428,7 @@ class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider):
             desc_map.pop(address, None)
 
 
-class ParamsetDescriptionCache(BasePersistentFile, ParamsetDescriptionProvider):
+class ParamsetDescriptionCache(BasePersistentFile, ParamsetDescriptionProvider, ParamsetDescriptionWriter):
     """Cache for paramset descriptions."""
 
     __slots__ = (

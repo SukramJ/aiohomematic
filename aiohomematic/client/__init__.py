@@ -2320,12 +2320,7 @@ async def _track_single_data_point_state_change_or_timeout(
                 dpk,
             )
             return
-        if (
-            unreg := dp.subscribe_to_data_point_updated(
-                handler=_async_event_changed, custom_id=InternalCustomID.DEFAULT
-            )
-        ) is None:
-            return
+        unreg = dp.subscribe_to_data_point_updated(handler=_async_event_changed, custom_id=InternalCustomID.DEFAULT)
 
         try:
             async with asyncio.timeout(wait_for_callback):

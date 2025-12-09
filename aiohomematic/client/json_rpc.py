@@ -107,6 +107,7 @@ from aiohomematic.retry import with_retry
 from aiohomematic.store import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
+    cleanup_script_for_session_recorder,
     cleanup_text_from_html_tags,
     element_matches_key,
     extract_exc_args,
@@ -1838,15 +1839,19 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         exc: Exception | None = None,
     ) -> bool:
         """Record the session."""
+        params = dict(params)
         if method == _JsonRpcMethod.SESSION_LOGIN and isinstance(params, dict):
             if params.get(_JsonKey.USERNAME):
                 params[_JsonKey.USERNAME] = "********"
             if params.get(_JsonKey.PASSWORD):
                 params[_JsonKey.PASSWORD] = "********"
 
+        if script := params.get(_JsonKey.SCRIPT):
+            params[_JsonKey.SCRIPT] = cleanup_script_for_session_recorder(script=script)
+
         if self._session_recorder and self._session_recorder.active:
             self._session_recorder.add_json_rpc_session(
-                method=method, params=dict(params), response=response, session_exc=exc
+                method=method, params=params, response=response, session_exc=exc
             )
             return True
         return False

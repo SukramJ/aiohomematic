@@ -3,6 +3,7 @@
 ## What's Changed
 
 - Cleanup scripts for recorder
+- Improve backend detection
 
 # Version 2025.12.15 (2025-12-08)
 

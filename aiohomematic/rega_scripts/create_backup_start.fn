@@ -1,4 +1,4 @@
-!# create_backup_start.fn
+!# name: create_backup_start.fn
 !#
 !# This script starts a system backup in the background.
 !# It returns immediately without waiting for completion.

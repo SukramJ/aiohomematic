@@ -1,4 +1,4 @@
-!# get_backend_info.fn
+!# name: get_backend_info.fn
 !#
 !# This script retrieves detailed backend information to identify
 !# the CCU type (CCU2, CCU3, OpenCCU, RaspberryMatic, etc.)

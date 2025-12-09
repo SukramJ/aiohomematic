@@ -1,4 +1,4 @@
-!# get_inbox_devices.fn
+!# name: get_inbox_devices.fn
 !#
 !# This script returns all devices in the CCU inbox (not yet configured).
 !# These are newly paired devices that haven't been set up yet.

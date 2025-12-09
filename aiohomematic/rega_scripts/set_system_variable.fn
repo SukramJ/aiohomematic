@@ -1,8 +1,12 @@
-!# set_system_variable
+!# name: set_system_variable.fn
 !#
 !#  Erstellt durch @baxxy13 2022-04-11
 !#
 !#  Dieses Script schreibt eine Systemvariable vom Typ Zeichenkette.
+!#
+!# Params for session recorder
+!# param: "##name##"
+!# param: "##value##"
 !#
 
 string sv_name = "##name##";

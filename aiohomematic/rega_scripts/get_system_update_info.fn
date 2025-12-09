@@ -1,4 +1,4 @@
-!# get_system_update_info.fn
+!# name: get_system_update_info.fn
 !#
 !# This script checks if a firmware update is available for the CCU.
 !# Works for CCU2/CCU3/OpenCCU/RaspberryMatic.

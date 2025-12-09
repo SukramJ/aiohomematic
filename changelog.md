@@ -2,6 +2,7 @@
 
 ## What's Changed
 
+- Add basic rega script linter to ensure support for session recorder
 - Cleanup scripts for recorder
 - Improve backend detection
 

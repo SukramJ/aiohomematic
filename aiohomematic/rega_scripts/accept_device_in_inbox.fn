@@ -1,10 +1,10 @@
 !# name: accept_device_in_inbox.fn
+!# param: "##device_address##"
 !#
 !# Accept a device from the CCU inbox by setting ReadyConfig to true.
 !# The device address is passed as parameter.
 !#
 !# Params for session recorder
-!# param: "##device_address##"
 !#
 
 string sDeviceAddress = "##device_address##";

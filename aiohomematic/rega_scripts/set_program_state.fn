@@ -1,10 +1,10 @@
 !# name: set_program_state.fn
+!# param: "##id##"
+!# param: "##state##"
 !#
 !#  Dieses Script setzt den Zustand eines Programmes auf der CCU.
 !#
 !# Params for session recorder
-!# param: "##id##"
-!# param: "##state##"
 !#
 
 string p_id = "##id##";

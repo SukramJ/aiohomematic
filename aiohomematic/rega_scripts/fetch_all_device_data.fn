@@ -1,4 +1,5 @@
 !# name: fetch_all_device_data.fn
+!# param: "##interface##"
 !#
 !# This script fetches all device data required to initialize the entities without affecting the duty cycle.
 !#
@@ -16,7 +17,6 @@
 !# Zum Testen direkt auf der Homematic-Zentrale muss das Interface wie folgt eingetragen werden: sUse_Interface = "HmIP-RF";
 !#
 !# Params for session recorder
-!# param: "##interface##"
 !#
 
 string sUse_Interface = "##interface##";

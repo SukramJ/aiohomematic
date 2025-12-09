@@ -19,6 +19,11 @@ repos:
         language: script
         always_run: true
         pass_filenames: false
+      - id: lint-rega-scripts
+        name: lint-rega-scripts
+        entry: script/run-in-env.sh python script/lint_rega_scripts.py --fix
+        language: script
+        files: ^aiohomematic/rega_scripts/.+\.fn$
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.14.7
     hooks:

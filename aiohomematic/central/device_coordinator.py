@@ -237,6 +237,25 @@ class DeviceCoordinator:
         """
         Check if there are new devices that need to be created.
 
+        Algorithm:
+            This method identifies device addresses that exist in the cache
+            (from device descriptions) but haven't been created as Device objects yet.
+
+            1. Get all existing device addresses from device registry (O(1) lookup set)
+            2. For each interface, get cached addresses from device descriptions
+            3. Compute set difference: cached_addresses - existing_addresses
+            4. Non-empty differences indicate devices that need creation
+
+        Why use a helper function?
+            The helper function allows the same logic to work for:
+            - Single interface check (when interface_id is provided)
+            - All interfaces check (when interface_id is None)
+            This avoids code duplication while keeping the interface flexible.
+
+        Performance note:
+            Set difference (addresses - existing_addresses) is O(n) where n is the
+            smaller set, making this efficient even for large device counts.
+
         Args:
         ----
             interface_id: Optional interface identifier to check
@@ -248,11 +267,17 @@ class DeviceCoordinator:
         """
         new_device_addresses: dict[str, set[str]] = {}
 
-        # Cache existing device addresses once to avoid repeated mapping lookups
+        # Cache existing device addresses once - this set is used for all difference operations
         existing_addresses = self.device_registry.get_device_addresses()
 
         def _check_for_new_device_addresses_helper(*, iid: str) -> None:
-            """Check if there are new devices that need to be created."""
+            """
+            Check a single interface for new devices.
+
+            Encapsulates the per-interface logic to avoid duplication between
+            single-interface and all-interfaces code paths.
+            """
+            # Skip interfaces without paramset descriptions (not fully initialized)
             if not self._coordinator_provider.cache_coordinator.paramset_descriptions.has_interface_id(
                 interface_id=iid
             ):
@@ -261,15 +286,17 @@ class DeviceCoordinator:
                     iid,
                 )
                 return
-            # Build the set locally and assign only if non-empty to avoid add-then-delete pattern
-            # Use set difference for speed on large collections
+
+            # Convert to set once for efficient set difference operation
             addresses = set(
                 self._coordinator_provider.cache_coordinator.device_descriptions.get_addresses(interface_id=iid)
             )
-            # get_addresses returns an iterable (likely tuple); convert to set once for efficient diff
+
+            # Set difference: addresses in cache but not yet created as Device objects
             if new_set := addresses - existing_addresses:
                 new_device_addresses[iid] = new_set
 
+        # Dispatch: single interface or all interfaces
         if interface_id:
             _check_for_new_device_addresses_helper(iid=interface_id)
         else:
@@ -595,11 +622,35 @@ class DeviceCoordinator:
         """
         Add new devices to central unit.
 
+        Device creation pipeline:
+            This is a multi-step orchestration process:
+
+            1. Validation: Skip if no descriptions or client missing
+            2. Semaphore: Acquire lock to prevent concurrent device creation
+            3. Filtering: Identify truly new devices (not already known)
+            4. Delay check: Optionally defer creation for user confirmation
+            5. Cache population:
+               - Add device descriptions to cache
+               - Fetch paramset descriptions from backend
+            6. Persistence: Save updated caches to disk
+            7. Device creation: Create Device objects from cached descriptions
+
+        Semaphore pattern:
+            The _device_add_semaphore ensures only one device addition operation
+            runs at a time. This prevents race conditions when multiple interfaces
+            report new devices simultaneously.
+
+        Delayed device creation:
+            When delay_new_device_creation is enabled, newly discovered devices
+            are stored in _delayed_device_descriptions instead of being created.
+            This allows the user to review and approve new devices before they
+            appear in Home Assistant.
+
         Args:
         ----
             interface_id: Interface identifier
             device_descriptions: Tuple of device descriptions
-            source: Source of device creation
+            source: Source of device creation (STARTUP, NEW, MANUAL)
 
         """
         if not device_descriptions:
@@ -675,6 +726,21 @@ class DeviceCoordinator:
         """
         Identify devices whose ADDRESS isn't already known on any interface.
 
+        Address resolution with PARENT fallback:
+            Device descriptions come in two forms:
+            - Device entries: ADDRESS is the device address, PARENT is empty/missing
+            - Channel entries: ADDRESS is channel address (e.g., "ABC:1"), PARENT is device address
+
+            When checking if a device is new, we need to check the device address,
+            not the channel address. The expression:
+                dev_desc["ADDRESS"] if not parent_address else parent_address
+            Handles both cases:
+            - For device entries: Use ADDRESS (PARENT is empty)
+            - For channel entries: Use PARENT (the actual device address)
+
+            This ensures we don't treat the same device as "new" multiple times
+            when we receive descriptions for both the device and its channels.
+
         Args:
         ----
             device_descriptions: Tuple of device descriptions
@@ -691,6 +757,7 @@ class DeviceCoordinator:
         return tuple(
             dev_desc
             for dev_desc in device_descriptions
+            # Use PARENT if present (channel entry), else ADDRESS (device entry)
             if (dev_desc["ADDRESS"] if not (parent_address := dev_desc.get("PARENT")) else parent_address)
             not in known_addresses
         )

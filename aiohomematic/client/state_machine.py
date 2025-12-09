@@ -22,38 +22,63 @@ from aiohomematic.const import ClientState
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-# Define valid state transitions
+# Valid state transitions define which state changes are allowed.
+# This forms a directed graph where each state maps to its valid successors.
+#
+# State Diagram:
+#
+#   CREATED ──► INITIALIZING ──► INITIALIZED ──► CONNECTING ──► CONNECTED
+#                    │                               ▲              │
+#                    ▼                               │              ▼
+#                 FAILED ◄─────────────────────────┬┴─────── DISCONNECTED
+#                    │                             │              │
+#                    └─────► INITIALIZING          │              ▼
+#                            CONNECTING ◄──────────┴──────── RECONNECTING
+#                                                                 │
+#                                                                 ▼
+#   STOPPED ◄── STOPPING ◄───────────────────────────────────────┘
+#
 _VALID_TRANSITIONS: Final[dict[ClientState, frozenset[ClientState]]] = {
+    # Initial state after client creation - can only begin initialization
     ClientState.CREATED: frozenset({ClientState.INITIALIZING}),
+    # During initialization (loading metadata, etc.) - succeeds or fails
     ClientState.INITIALIZING: frozenset({ClientState.INITIALIZED, ClientState.FAILED}),
+    # Initialization complete - ready to establish connection
     ClientState.INITIALIZED: frozenset({ClientState.CONNECTING}),
+    # Attempting to connect to backend - succeeds or fails
     ClientState.CONNECTING: frozenset({ClientState.CONNECTED, ClientState.FAILED}),
+    # Fully connected and operational
     ClientState.CONNECTED: frozenset(
         {
-            ClientState.DISCONNECTED,
-            ClientState.RECONNECTING,
-            ClientState.STOPPING,
+            ClientState.DISCONNECTED,  # Connection lost unexpectedly
+            ClientState.RECONNECTING,  # Attempting automatic reconnection
+            ClientState.STOPPING,  # Graceful shutdown requested
         }
     ),
+    # Connection was lost or intentionally closed
     ClientState.DISCONNECTED: frozenset(
         {
-            ClientState.CONNECTING,  # Allow re-connect after disconnect
-            ClientState.DISCONNECTED,  # Allow idempotent deinitialize calls
-            ClientState.RECONNECTING,
-            ClientState.STOPPING,
+            ClientState.CONNECTING,  # Manual reconnection attempt
+            ClientState.DISCONNECTED,  # Idempotent - allows repeated deinitialize calls
+            ClientState.RECONNECTING,  # Automatic reconnection attempt
+            ClientState.STOPPING,  # Graceful shutdown requested
         }
     ),
+    # Automatic reconnection in progress
     ClientState.RECONNECTING: frozenset(
         {
-            ClientState.CONNECTED,
-            ClientState.DISCONNECTED,
-            ClientState.FAILED,
-            ClientState.CONNECTING,  # Allow transition to CONNECTING during reconnect
+            ClientState.CONNECTED,  # Reconnection succeeded
+            ClientState.DISCONNECTED,  # Reconnection abandoned
+            ClientState.FAILED,  # Reconnection failed permanently
+            ClientState.CONNECTING,  # Retry connection establishment
         }
     ),
+    # Graceful shutdown in progress - one-way to STOPPED
     ClientState.STOPPING: frozenset({ClientState.STOPPED}),
-    ClientState.STOPPED: frozenset(),  # Terminal state
-    ClientState.FAILED: frozenset({ClientState.INITIALIZING, ClientState.CONNECTING}),  # Allow retry
+    # Terminal state - client is fully stopped, no transitions allowed
+    ClientState.STOPPED: frozenset(),
+    # Error state - allows retry via re-initialization or reconnection
+    ClientState.FAILED: frozenset({ClientState.INITIALIZING, ClientState.CONNECTING}),
 }
 
 

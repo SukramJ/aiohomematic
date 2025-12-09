@@ -360,18 +360,29 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             return
         self._published_event_at = datetime.now()
 
-        # Early exit if no subscribers
+        # Early exit if no subscribers - avoid creating unnecessary tasks
         if not self._registered_custom_ids:
             return
 
-        # Add the data_point reference to kwargs once
+        # Add the data_point reference to kwargs once (avoid repeated dict creation)
         event_kwargs = {**kwargs, KWARGS_ARG_DATA_POINT: self}
 
-        # Capture current custom_ids to avoid mutation during iteration
+        # Capture current custom_ids as tuple to prevent issues if set is modified
+        # during async iteration (e.g., if a handler unsubscribes during callback)
         custom_ids = tuple(self._registered_custom_ids)
 
         async def _publish_all_events() -> None:
-            """Publish events to all registered custom_ids in a single task."""
+            """
+            Publish events to all registered custom_ids in a single task.
+
+            Performance optimization: Instead of creating one task per subscriber,
+            we create a single task that uses asyncio.gather() to publish all events
+            concurrently. This reduces task creation overhead when there are many
+            subscribers (common in Home Assistant with multiple entities).
+
+            The return_exceptions=True ensures one failing handler doesn't prevent
+            other handlers from receiving the event.
+            """
             publish_tasks = [
                 self._event_bus_provider.event_bus.publish(
                     event=DataPointUpdatedCallbackEvent(
@@ -385,7 +396,8 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             ]
             await asyncio.gather(*publish_tasks, return_exceptions=True)
 
-        # Single task for all events instead of one task per custom_id
+        # Single task for all events instead of one task per custom_id.
+        # This batching approach significantly reduces scheduler overhead.
         self._task_scheduler.create_task(
             target=_publish_all_events,
             name=f"publish-dp-updated-events-{self._unique_id}",
@@ -414,7 +426,19 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     def subscribe_to_data_point_updated(
         self, *, handler: DataPointUpdatedHandler, custom_id: str
     ) -> UnsubscribeCallback:
-        """Subscribe to data_point updated event."""
+        """
+        Subscribe to data_point updated event.
+
+        Subscription pattern with reference counting:
+            Multiple handlers can subscribe with the same custom_id (e.g., Home Assistant
+            entity and its device tracker). We track subscription counts per custom_id
+            so that the custom_id is only removed from _registered_custom_ids when ALL
+            subscriptions for that custom_id have been unsubscribed.
+
+        The wrapped_unsubscribe function handles the reference counting cleanup.
+        """
+        # Validate custom_id ownership - external custom_ids can only be registered once
+        # Internal custom_ids (system use) bypass this check
         if custom_id not in InternalCustomID:
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise AioHomematicException(
@@ -426,10 +450,12 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
                 )
             self._custom_id = custom_id
 
-        # Track registration for publish method
+        # Track registration for publish method - this set drives event publishing
         self._registered_custom_ids.add(custom_id)
 
-        # Create adapter that filters for this data point's events with matching custom_id
+        # Create adapter that filters for this data point's events with matching custom_id.
+        # The EventBus receives events for ALL data points, so we filter by unique_id
+        # and custom_id to ensure only the correct handler receives each event.
         def event_handler(event: DataPointUpdatedCallbackEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
                 handler(**event.kwargs)
@@ -440,18 +466,25 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             handler=event_handler,
         )
 
-        # Track subscription count per custom_id for proper cleanup
+        # Reference counting: Track how many subscriptions exist for each custom_id.
+        # This enables multiple handlers per custom_id while ensuring proper cleanup.
         current_count = self._subscription_counts.get(custom_id, 0)
         self._subscription_counts[custom_id] = current_count + 1
 
-        # Wrap unsubscribe to also remove from tracking when last subscription is removed
         def wrapped_unsubscribe() -> None:
+            """
+            Unsubscribe and manage reference count.
+
+            Only removes custom_id from _registered_custom_ids when count reaches 0,
+            ensuring publish_data_point_updated_event still notifies other handlers
+            that share the same custom_id.
+            """
             unsubscribe()
             # Decrement subscription count
             count = self._subscription_counts.get(custom_id, 1)
             count -= 1
             if count <= 0:
-                # Last subscription for this custom_id, remove from tracking
+                # Last subscription for this custom_id - safe to remove from tracking
                 self._registered_custom_ids.discard(custom_id)
                 self._subscription_counts.pop(custom_id, None)
             else:
@@ -1232,40 +1265,69 @@ def bind_collector[CallableBC: CallableAny](
 
     def bind_decorator(func: CallableBC) -> CallableBC:
         """Decorate function to automatically add collector if not set."""
+        # Inspect the function signature to find where 'collector' parameter is located.
+        # It can be either a positional argument (in spec.args) or keyword-only.
         spec = getfullargspec(func)
-        # Support both positional and keyword-only 'collector' parameters
         if _COLLECTOR_ARGUMENT_NAME in spec.args:
             argument_index: int | None = spec.args.index(_COLLECTOR_ARGUMENT_NAME)
         else:
+            # collector is keyword-only or doesn't exist
             argument_index = None
 
         @wraps(func)
         async def bind_wrapper(*args: Any, **kwargs: Any) -> Any:
-            """Wrap method to add collector."""
+            """
+            Wrap method to add collector.
+
+            Context variable pattern for nested service calls:
+                IN_SERVICE_VAR tracks whether we're already inside a service call.
+                This prevents nested calls from creating duplicate collectors and
+                ensures errors are only logged at the outermost boundary.
+
+            Algorithm:
+                1. Set IN_SERVICE_VAR context if not already set (track via token)
+                2. Check if collector already exists in args or kwargs
+                3. If no collector exists, create one and inject into kwargs
+                4. Execute the wrapped function
+                5. If we created the collector, send batched data
+                6. Reset context variable on exit (success or exception)
+            """
+            # Context variable management: Track if this is the outermost service call.
+            # The token allows us to reset exactly to the previous state on exit.
             token: Token[bool] | None = None
             if not IN_SERVICE_VAR.get():
                 token = IN_SERVICE_VAR.set(True)
             try:
+                # Short-circuit if collector binding is disabled
                 if not enabled:
                     return_value = await func(*args, **kwargs)
                     if token:
                         IN_SERVICE_VAR.reset(token)
                     return return_value
+
+                # Detect if a collector was already provided by the caller.
+                # Check both positional args (by index) and keyword args.
                 try:
                     collector_exists = (
                         argument_index is not None and len(args) > argument_index and args[argument_index] is not None
                     ) or kwargs.get(_COLLECTOR_ARGUMENT_NAME) is not None
                 except Exception:
+                    # Fallback: only check kwargs if positional check fails
                     collector_exists = kwargs.get(_COLLECTOR_ARGUMENT_NAME) is not None
 
                 if collector_exists:
+                    # Collector provided by caller - they handle send_data()
                     return_value = await func(*args, **kwargs)
                     if token:
                         IN_SERVICE_VAR.reset(token)
                     return return_value
+
+                # No collector provided - create one automatically.
+                # args[0] is 'self' (the data point), which has channel.device.client
                 collector = CallParameterCollector(client=args[0].channel.device.client)
                 kwargs[_COLLECTOR_ARGUMENT_NAME] = collector
                 return_value = await func(*args, **kwargs)
+                # Send batched commands after function completes successfully
                 await collector.send_data(wait_for_callback=wait_for_callback)
             except BaseHomematicException as bhexc:
                 if token:

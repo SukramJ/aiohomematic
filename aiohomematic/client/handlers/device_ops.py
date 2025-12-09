@@ -86,7 +86,21 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
-        """Fetch all device data from the backend."""
+        """
+        Fetch all device data from the backend via JSON-RPC.
+
+        Retrieves current values for all data points on this interface in a single
+        bulk request. This is more efficient than fetching values individually.
+
+        The fetched data is stored in the central data cache for later use during
+        device initialization.
+
+        Raises
+        ------
+            ClientException: If the JSON-RPC call fails. Also publishes a
+                FETCH_DATA interface event with AVAILABLE=False.
+
+        """
         try:
             if all_device_data := await self._json_rpc_client.get_all_device_data(interface=self._interface):
                 _LOGGER.debug(
@@ -110,7 +124,20 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_device_details(self) -> None:
-        """Get all names via JSON-RPC and store in data.NAMES."""
+        """
+        Fetch device details (names, interfaces, rega IDs) via JSON-RPC.
+
+        Retrieves metadata for all devices and channels from the CCU's ReGaHSS
+        scripting engine. The JSON response contains:
+        - address: Device/channel address (e.g., "VCU0000001" or "VCU0000001:1")
+        - name: User-defined name from the CCU interface
+        - id: ReGaHSS internal ID for scripting
+        - interface: Interface type (HmIP-RF, BidCos-RF, etc.)
+        - channels: Array of child channel objects
+
+        Data is stored in the central's device_details cache for later use
+        during device/channel creation.
+        """
         _JSON_ADDRESS: Final = "address"
         _JSON_CHANNELS: Final = "channels"
         _JSON_ID: Final = "id"
@@ -138,7 +165,14 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
-        """Fetch a specific paramset and add it to the known ones."""
+        """
+        Fetch a single paramset description and add it to the cache.
+
+        Args:
+            channel_address: Channel address (e.g., "VCU0000001:1").
+            paramset_key: Type of paramset (VALUES, MASTER, or LINK).
+
+        """
         _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION: %s for %s", paramset_key, channel_address)
 
         if paramset_description := await self._get_paramset_description(
@@ -153,7 +187,18 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
-        """Fetch paramsets for provided device description."""
+        """
+        Fetch all paramset descriptions for a device and store in cache.
+
+        Iterates through all available paramsets (VALUES, MASTER, LINK) for the
+        device/channel specified in the device_description and adds each to the
+        central's paramset_descriptions cache.
+
+        Args:
+            device_description: Device description from listDevices() containing
+                ADDRESS and PARAMSETS fields.
+
+        """
         data = await self.get_paramset_descriptions(device_description=device_description)
         for address, paramsets in data.items():
             _LOGGER.debug("FETCH_PARAMSET_DESCRIPTIONS for %s", address)
@@ -167,7 +212,21 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
-        """Get all device descriptions from the backend."""
+        """
+        Return device description and all child channel descriptions.
+
+        Fetches the main device description, then iterates through its CHILDREN
+        field to fetch each channel's description. Logs warnings for any
+        missing descriptions but continues processing.
+
+        Args:
+            device_address: Device address without channel suffix (e.g., "VCU0000001").
+
+        Returns:
+            Tuple of DeviceDescription dicts, starting with the main device
+            followed by all its channels. Empty tuple if device not found.
+
+        """
         all_device_description: list[DeviceDescription] = []
         if main_dd := await self.get_device_description(address=device_address):
             all_device_description.append(main_dd)
@@ -192,7 +251,19 @@ class DeviceOperationsHandler(BaseHandler):
     async def get_all_paramset_descriptions(
         self, *, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
-        """Get all paramset descriptions for provided device descriptions."""
+        """
+        Return aggregated paramset descriptions for multiple devices.
+
+        Iterates through each device description, fetching its paramset
+        descriptions and merging them into a single dictionary.
+
+        Args:
+            device_descriptions: Tuple of DeviceDescription dicts to process.
+
+        Returns:
+            Nested dict mapping: address -> paramset_key -> parameter -> ParameterData.
+
+        """
         all_paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
         for device_description in device_descriptions:
             all_paramsets.update(await self.get_paramset_descriptions(device_description=device_description))
@@ -200,7 +271,17 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
-        """Get device descriptions from the backend."""
+        """
+        Return device description for a single address.
+
+        Args:
+            address: Device or channel address (e.g., "VCU0000001" or "VCU0000001:1").
+
+        Returns:
+            DeviceDescription dict with TYPE, ADDRESS, CHILDREN, PARAMSETS, etc.
+            None if the address is not found or the RPC call fails.
+
+        """
         try:
             if device_description := cast(
                 DeviceDescription | None,
@@ -249,7 +330,21 @@ class DeviceOperationsHandler(BaseHandler):
     async def get_paramset_descriptions(
         self, *, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
-        """Get paramsets for provided device description."""
+        """
+        Return paramset descriptions for a single device/channel.
+
+        Iterates through the PARAMSETS field of the device_description to fetch
+        each available paramset (VALUES, MASTER, LINK) from the backend.
+
+        Args:
+            device_description: DeviceDescription dict containing ADDRESS and
+                PARAMSETS fields.
+
+        Returns:
+            Dict mapping address -> paramset_key -> parameter_name -> ParameterData.
+            Empty dict if all paramset fetches fail.
+
+        """
         paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
         address = device_description["ADDRESS"]
         paramsets[address] = {}
@@ -269,7 +364,26 @@ class DeviceOperationsHandler(BaseHandler):
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> Any:
-        """Return a value from the backend."""
+        """
+        Return a single parameter value from the backend.
+
+        For VALUES paramset: Uses the optimized getValue() RPC call.
+        For MASTER paramset: Fetches entire paramset via getParamset() and
+        extracts the requested parameter, as there's no direct getValue for MASTER.
+
+        Args:
+            channel_address: Channel address (e.g., "VCU0000001:1").
+            paramset_key: VALUES or MASTER paramset key.
+            parameter: Parameter name (e.g., "STATE", "LEVEL").
+            call_source: Origin of the call for logging/metrics.
+
+        Returns:
+            Parameter value (type varies by parameter definition).
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         try:
             _LOGGER.debug(
                 "GET_VALUE: channel_address %s, parameter %s, paramset_key, %s, source:%s",
@@ -295,7 +409,17 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """List devices of the backend."""
+        """
+        Return all device descriptions from the backend.
+
+        Calls the XML-RPC listDevices() method to retrieve descriptions for all
+        devices and channels known to this interface.
+
+        Returns:
+            Tuple of DeviceDescription dicts for all devices/channels.
+            None if the RPC call fails (e.g., connection error).
+
+        """
         try:
             return tuple(await self._proxy_read.listDevices())
         except BaseHomematicException as bhexc:
@@ -416,7 +540,26 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int, supports: bool) -> bool:
-        """Report value usage."""
+        """
+        Report value usage to the backend for subscription management.
+
+        Used by the Homematic backend to track which parameters are actively
+        being used. This helps optimize event delivery by only sending events
+        for subscribed parameters.
+
+        Args:
+            address: Channel address (e.g., "VCU0000001:1").
+            value_id: Parameter identifier.
+            ref_counter: Reference count (positive = subscribe, 0 = unsubscribe).
+            supports: Whether this client type supports value usage reporting.
+
+        Returns:
+            True if the report was successful, False if not supported or failed.
+
+        Raises:
+            ClientException: If the RPC call fails (when supports=True).
+
+        """
         if not supports:
             _LOGGER.debug("REPORT_VALUE_USAGE: Not supported by client for %s", self._interface_id)
             return False
@@ -446,7 +589,25 @@ class DeviceOperationsHandler(BaseHandler):
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
     ) -> set[DP_KEY_VALUE]:
-        """Set single value on paramset VALUES."""
+        """
+        Set a single parameter value.
+
+        Routes to set_value_internal() for VALUES paramset or put_paramset()
+        for MASTER paramset.
+
+        Args:
+            channel_address: Channel address (e.g., "VCU0000001:1").
+            paramset_key: VALUES or MASTER paramset key.
+            parameter: Parameter name (e.g., "STATE", "LEVEL").
+            value: New value to set.
+            wait_for_callback: Seconds to wait for confirmation event (None = don't wait).
+            rx_mode: Optional transmission mode (BURST, WAKEUP, etc.).
+            check_against_pd: Validate value against paramset description.
+
+        Returns:
+            Set of (DataPointKey, value) tuples for the affected data points.
+
+        """
         if paramset_key == ParamsetKey.VALUES:
             return await self.set_value_internal(
                 channel_address=channel_address,
@@ -476,7 +637,31 @@ class DeviceOperationsHandler(BaseHandler):
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
     ) -> set[DP_KEY_VALUE]:
-        """Set single value on paramset VALUES (internal implementation)."""
+        """
+        Set a single value on the VALUES paramset via setValue() RPC.
+
+        This is the core implementation for sending values to devices. It:
+        1. Optionally validates the value against paramset description
+        2. Sends the value via XML-RPC setValue()
+        3. Caches the sent value for comparison with callback events
+        4. Writes a temporary value to the data point for immediate UI feedback
+        5. Optionally waits for the backend callback confirming the change
+
+        Args:
+            channel_address: Channel address (e.g., "VCU0000001:1").
+            parameter: Parameter name (e.g., "STATE", "LEVEL").
+            value: New value to set.
+            wait_for_callback: Seconds to wait for confirmation event (None = don't wait).
+            rx_mode: Optional transmission mode (BURST, WAKEUP, etc.).
+            check_against_pd: Validate value against paramset description.
+
+        Returns:
+            Set of (DataPointKey, value) tuples for the affected data points.
+
+        Raises:
+            ClientException: If the RPC call fails or rx_mode is unsupported.
+
+        """
         try:
             checked_value = (
                 self._check_set_value(
@@ -530,7 +715,17 @@ class DeviceOperationsHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def update_paramset_descriptions(self, *, device_address: str) -> None:
-        """Update paramsets descriptions for provided device_address."""
+        """
+        Re-fetch and update paramset descriptions for a device.
+
+        Used when a device's firmware is updated or its configuration changes.
+        Fetches fresh paramset descriptions from the backend and saves them
+        to the persistent cache.
+
+        Args:
+            device_address: Device address without channel suffix (e.g., "VCU0000001").
+
+        """
         if not self._central.device_descriptions.get_device_descriptions(interface_id=self._interface_id):
             _LOGGER.warning(  # i18n-log: ignore
                 "UPDATE_PARAMSET_DESCRIPTIONS failed: Interface missing in central cache. Not updating paramsets for %s",
@@ -553,7 +748,19 @@ class DeviceOperationsHandler(BaseHandler):
     def _check_put_paramset(
         self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> dict[str, Any]:
-        """Check put_paramset."""
+        """
+        Validate and convert all values in a paramset against their descriptions.
+
+        Iterates through each parameter in the values dict, converting types
+        and validating against MIN/MAX constraints.
+
+        Returns:
+            Dict with validated/converted values.
+
+        Raises:
+            ClientException: If any parameter validation fails.
+
+        """
         checked_values: dict[str, Any] = {}
         for param, value in values.items():
             checked_values[param] = self._convert_value(
@@ -566,7 +773,7 @@ class DeviceOperationsHandler(BaseHandler):
         return checked_values
 
     def _check_set_value(self, *, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any) -> Any:
-        """Check set_value."""
+        """Validate and convert a single value against its parameter description."""
         return self._convert_value(
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -584,7 +791,23 @@ class DeviceOperationsHandler(BaseHandler):
         value: Any,
         operation: Operations,
     ) -> Any:
-        """Check a single parameter against paramset descriptions and convert the value."""
+        """
+        Validate and convert a parameter value against its description.
+
+        Performs the following checks:
+        1. Parameter exists in paramset description
+        2. Requested operation (READ/WRITE/EVENT) is supported
+        3. Value is converted to the correct type (INTEGER, FLOAT, BOOL, ENUM, STRING)
+        4. For numeric types, value is within MIN/MAX bounds
+
+        Returns:
+            Converted value matching the parameter's type definition.
+
+        Raises:
+            ClientException: If parameter not found or operation not supported.
+            ValidationException: If value is outside MIN/MAX bounds.
+
+        """
         if parameter_data := self._central.paramset_descriptions.get_parameter_data(
             interface_id=self._interface_id,
             channel_address=channel_address,
@@ -647,7 +870,7 @@ class DeviceOperationsHandler(BaseHandler):
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
     ) -> None:
-        """Put paramset into the backend."""
+        """Execute the XML-RPC putParamset call with optional rx_mode."""
         if rx_mode:
             await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
         else:
@@ -661,7 +884,7 @@ class DeviceOperationsHandler(BaseHandler):
         value: Any,
         rx_mode: CommandRxMode | None = None,
     ) -> None:
-        """Set single value on paramset VALUES."""
+        """Execute the XML-RPC setValue call with optional rx_mode."""
         if rx_mode:
             await self._proxy.setValue(channel_address, parameter, value, rx_mode)
         else:
@@ -674,7 +897,7 @@ class DeviceOperationsHandler(BaseHandler):
         paramset_key: ParamsetKey,
         parameter: str,
     ) -> ParameterType | None:
-        """Return the parameter type for a given parameter."""
+        """Return the parameter's TYPE field from its description, or None if not found."""
         if parameter_data := self._central.paramset_descriptions.get_parameter_data(
             interface_id=self._interface_id,
             channel_address=channel_address,
@@ -687,7 +910,7 @@ class DeviceOperationsHandler(BaseHandler):
     async def _get_paramset_description(
         self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Get paramset description from the backend."""
+        """Fetch a paramset description via XML-RPC, returning None on failure."""
         try:
             return cast(
                 dict[str, ParameterData],
@@ -704,7 +927,7 @@ class DeviceOperationsHandler(BaseHandler):
         return None
 
     def _write_temporary_value(self, *, dpk_values: set[DP_KEY_VALUE]) -> None:
-        """Write data point temp value."""
+        """Write temporary values to polling data points for immediate UI feedback."""
         for dpk, value in dpk_values:
             if (
                 data_point := self._central.get_generic_data_point(
@@ -723,7 +946,7 @@ async def _wait_for_state_change_or_timeout(
     dpk_values: set[DP_KEY_VALUE],
     wait_for_callback: int,
 ) -> None:
-    """Wait for a data_point to change state."""
+    """Wait for all affected data points to receive confirmation callbacks in parallel."""
     waits = [
         _track_single_data_point_state_change_or_timeout(
             device=device,
@@ -739,7 +962,12 @@ async def _wait_for_state_change_or_timeout(
 async def _track_single_data_point_state_change_or_timeout(
     *, device: DeviceProtocol, dpk_value: DP_KEY_VALUE, wait_for_callback: int
 ) -> None:
-    """Wait for a data_point to change state."""
+    """
+    Wait for a single data point to receive its confirmation callback.
+
+    Subscribes to the data point's update events and waits until the received
+    value matches the sent value (using fuzzy float comparison) or times out.
+    """
     ev = asyncio.Event()
     dpk, value = dpk_value
 
@@ -785,7 +1013,7 @@ async def _track_single_data_point_state_change_or_timeout(
 
 
 def _isclose(*, value1: Any, value2: Any) -> bool:
-    """Check if the both values are close to each other."""
+    """Compare values with fuzzy float matching (2 decimal places) for confirmation."""
     if isinstance(value1, float):
         return bool(round(value1, 2) == round(value2, 2))
     return bool(value1 == value2)

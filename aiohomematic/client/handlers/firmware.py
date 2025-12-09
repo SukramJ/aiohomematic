@@ -75,7 +75,16 @@ class FirmwareHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def trigger_firmware_update(self) -> bool:
-        """Trigger the CCU firmware update process."""
+        """
+        Trigger the CCU system firmware update process.
+
+        Initiates the CCU's own firmware update (not device firmware). The CCU
+        will download and install available system updates.
+
+        Returns:
+            True if the update was triggered successfully, False if unsupported.
+
+        """
         if not self._supports_firmware_update_trigger:
             _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: Not supported by client for %s", self._interface_id)
             return False
@@ -84,7 +93,23 @@ class FirmwareHandler(BaseHandler):
 
     @inspector
     async def update_device_firmware(self, *, device_address: str) -> bool:
-        """Update the firmware of a Homematic device."""
+        """
+        Update firmware on a single Homematic device.
+
+        Uses installFirmware() for HmIP/HmIPW devices and updateFirmware() for
+        BidCos devices. The device must have a firmware update available.
+
+        Args:
+            device_address: Device address (e.g., "VCU0000001").
+
+        Returns:
+            True if the update was initiated successfully, False if device not
+            found or update unsupported.
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_device_firmware_update:
             _LOGGER.debug("UPDATE_DEVICE_FIRMWARE: Not supported by client for %s", self._interface_id)
             return False

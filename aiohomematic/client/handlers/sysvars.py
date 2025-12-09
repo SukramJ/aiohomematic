@@ -34,7 +34,16 @@ class SystemVariableHandler(BaseHandler):
 
     @inspector
     async def delete_system_variable(self, *, name: str) -> bool:
-        """Delete a system variable from the backend."""
+        """
+        Delete a system variable from the CCU.
+
+        Args:
+            name: Name of the system variable to delete.
+
+        Returns:
+            True if deleted successfully.
+
+        """
         return await self._json_rpc_client.delete_system_variable(name=name)
 
     @inspector(re_raise=False)
@@ -43,15 +52,47 @@ class SystemVariableHandler(BaseHandler):
         *,
         markers: tuple[DescriptionMarker | str, ...],
     ) -> tuple[SystemVariableData, ...] | None:
-        """Get all system variables from the backend."""
+        """
+        Return all CCU system variables matching the given markers.
+
+        System variables are global variables stored on the CCU that can be
+        used in programs and scripts. Variables can be filtered by markers
+        in their description field.
+
+        Args:
+            markers: Tuple of DescriptionMarker values or strings to filter by.
+
+        Returns:
+            Tuple of SystemVariableData dicts, or None on error.
+
+        """
         return await self._json_rpc_client.get_all_system_variables(markers=markers)
 
     @inspector
     async def get_system_variable(self, *, name: str) -> Any:
-        """Get single system variable from the backend."""
+        """
+        Return the current value of a system variable.
+
+        Args:
+            name: Name of the system variable.
+
+        Returns:
+            Current value (type depends on variable definition).
+
+        """
         return await self._json_rpc_client.get_system_variable(name=name)
 
     @inspector(measure_performance=True)
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on the backend."""
+        """
+        Set the value of a system variable.
+
+        Args:
+            legacy_name: Original name of the system variable.
+            value: New value to set (must match variable's type definition).
+
+        Returns:
+            True if the value was set successfully.
+
+        """
         return await self._json_rpc_client.set_system_variable(legacy_name=legacy_name, value=value)

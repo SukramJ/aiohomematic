@@ -92,7 +92,19 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
-        """Accept a device from the CCU inbox."""
+        """
+        Accept a device from the CCU inbox, completing its pairing process.
+
+        The inbox contains newly paired devices waiting for user confirmation.
+        Accepting moves the device to the active device list.
+
+        Args:
+            device_address: SGTIN or address of the inbox device.
+
+        Returns:
+            True if accepted successfully, False if not supported or failed.
+
+        """
         if not self._supports_inbox_devices:
             _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: Not supported by client for %s", self._interface_id)
             return False
@@ -101,7 +113,16 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from the backend."""
+        """
+        Return function assignments for all channels.
+
+        Functions are user-defined groupings in the CCU (e.g., "Lighting", "Heating").
+        Maps each channel's ReGa ID to its assigned functions.
+
+        Returns:
+            Dict mapping channel address to set of function names.
+
+        """
         if not self._supports_functions:
             _LOGGER.debug("GET_ALL_FUNCTIONS: Not supported by client for %s", self._interface_id)
             return {}
@@ -117,7 +138,16 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from the backend."""
+        """
+        Return room assignments for all channels.
+
+        Rooms are user-defined location groupings in the CCU. Maps each
+        channel's ReGa ID to its assigned rooms.
+
+        Returns:
+            Dict mapping channel address to set of room names.
+
+        """
         if not self._supports_rooms:
             _LOGGER.debug("GET_ALL_ROOMS: Not supported by client for %s", self._interface_id)
             return {}
@@ -133,7 +163,16 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False, no_raise_return=())
     async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
-        """Get all devices in the inbox (not yet configured)."""
+        """
+        Return devices awaiting user acceptance in the CCU inbox.
+
+        After pairing, HmIP devices appear in the inbox until explicitly
+        accepted. Each entry contains device type, address, and SGTIN.
+
+        Returns:
+            Tuple of InboxDeviceData dicts for pending devices.
+
+        """
         if not self._supports_inbox_devices:
             _LOGGER.debug("GET_INBOX_DEVICES: Not supported by client for %s", self._interface_id)
             return ()
@@ -142,7 +181,19 @@ class MetadataHandler(BaseHandler):
 
     @inspector
     async def get_install_mode(self) -> int:
-        """Return the remaining time in install mode."""
+        """
+        Return remaining seconds in pairing/install mode.
+
+        Install mode allows new devices to be paired with the CCU. Uses JSON-RPC
+        for HmIP-RF interface and XML-RPC for BidCos interfaces.
+
+        Returns:
+            Remaining seconds, or 0 if install mode is off or unsupported.
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_install_mode:
             _LOGGER.debug("GET_INSTALL_MODE: Not supported by client for %s", self._interface_id)
             return 0
@@ -166,7 +217,23 @@ class MetadataHandler(BaseHandler):
 
     @inspector
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
-        """Return the metadata for an object."""
+        """
+        Return backend metadata for a device or channel.
+
+        Metadata is key-value storage attached to Homematic objects, used by
+        some backends for configuration data.
+
+        Args:
+            address: Device or channel address.
+            data_id: Metadata key identifier.
+
+        Returns:
+            Metadata value dict, or empty dict if unsupported.
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_metadata:
             _LOGGER.debug("GET_METADATA: Not supported by client for %s", self._interface_id)
             return {}
@@ -185,7 +252,20 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Get the ReGa ID for a device or channel address."""
+        """
+        Return the ReGaHSS internal ID for an address.
+
+        ReGa IDs are used by the CCU's scripting engine (ReGaHSS) to identify
+        devices and channels. Required for rename operations and room/function
+        lookups.
+
+        Args:
+            address: Device or channel address.
+
+        Returns:
+            ReGa ID integer, or None if not found or unsupported.
+
+        """
         if not self._supports_rega_id_lookup:
             _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: Not supported by client for %s", self._interface_id)
             return None
@@ -213,7 +293,15 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def get_system_update_info(self) -> SystemUpdateData | None:
-        """Get system update information from the backend."""
+        """
+        Return CCU firmware update availability status.
+
+        Checks if a newer CCU firmware version is available for download.
+
+        Returns:
+            SystemUpdateData with version info, or None if unsupported/unavailable.
+
+        """
         if not self._supports_system_update_info:
             _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: Not supported by client for %s", self._interface_id)
             return None
@@ -222,7 +310,17 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
-        """Rename a channel on the CCU."""
+        """
+        Rename a channel in the CCU's ReGaHSS database.
+
+        Args:
+            rega_id: ReGaHSS internal ID of the channel.
+            new_name: New display name for the channel.
+
+        Returns:
+            True if renamed successfully, False if unsupported or failed.
+
+        """
         if not self._supports_rename:
             _LOGGER.debug("RENAME_CHANNEL: Not supported by client for %s", self._interface_id)
             return False
@@ -231,7 +329,17 @@ class MetadataHandler(BaseHandler):
 
     @inspector(re_raise=False)
     async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
-        """Rename a device on the CCU."""
+        """
+        Rename a device in the CCU's ReGaHSS database.
+
+        Args:
+            rega_id: ReGaHSS internal ID of the device.
+            new_name: New display name for the device.
+
+        Returns:
+            True if renamed successfully, False if unsupported or failed.
+
+        """
         if not self._supports_rename:
             _LOGGER.debug("RENAME_DEVICE: Not supported by client for %s", self._interface_id)
             return False
@@ -291,7 +399,21 @@ class MetadataHandler(BaseHandler):
 
     @inspector
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
-        """Write the metadata for an object."""
+        """
+        Write metadata for a device or channel.
+
+        Args:
+            address: Device or channel address.
+            data_id: Metadata key identifier.
+            value: Metadata value dict to store.
+
+        Returns:
+            Result dict from the backend, or empty dict if unsupported.
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_metadata:
             _LOGGER.debug("SET_METADATA: Not supported by client for %s", self._interface_id)
             return {}

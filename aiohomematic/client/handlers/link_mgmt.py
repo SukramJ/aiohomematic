@@ -72,7 +72,22 @@ class LinkManagementHandler(BaseHandler):
         name: str,
         description: str,
     ) -> None:
-        """Add a link between two devices."""
+        """
+        Create a direct link between two device channels.
+
+        Direct links allow devices to communicate without the CCU. The sender
+        triggers actions on the receiver (e.g., a button press turning on a light).
+
+        Args:
+            sender_address: Source channel address (e.g., "VCU0000001:1").
+            receiver_address: Target channel address (e.g., "VCU0000002:1").
+            name: User-defined link name.
+            description: User-defined link description.
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_linking:
             _LOGGER.debug("ADD_LINK: Not supported by client for %s", self._interface_id)
             return
@@ -93,7 +108,19 @@ class LinkManagementHandler(BaseHandler):
 
     @inspector
     async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
-        """Return a list of link peers."""
+        """
+        Return addresses of all channels linked to the given address.
+
+        Args:
+            address: Channel address to query (e.g., "VCU0000001:1").
+
+        Returns:
+            Tuple of peer channel addresses that are linked to this channel.
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_linking:
             _LOGGER.debug("GET_LINK_PEERS: Not supported by client for %s", self._interface_id)
             return ()
@@ -111,7 +138,20 @@ class LinkManagementHandler(BaseHandler):
 
     @inspector
     async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
-        """Return a list of links."""
+        """
+        Return detailed link information for a channel.
+
+        Args:
+            address: Channel address to query (e.g., "VCU0000001:1").
+            flags: Bitmask controlling returned information (backend-specific).
+
+        Returns:
+            Dict containing link details including sender, receiver, and paramsets.
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_linking:
             _LOGGER.debug("GET_LINKS: Not supported by client for %s", self._interface_id)
             return {}
@@ -129,7 +169,17 @@ class LinkManagementHandler(BaseHandler):
 
     @inspector
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
-        """Remove a link between two devices."""
+        """
+        Remove a direct link between two device channels.
+
+        Args:
+            sender_address: Source channel address (e.g., "VCU0000001:1").
+            receiver_address: Target channel address (e.g., "VCU0000002:1").
+
+        Raises:
+            ClientException: If the RPC call fails.
+
+        """
         if not self._supports_linking:
             _LOGGER.debug("REMOVE_LINK: Not supported by client for %s", self._interface_id)
             return

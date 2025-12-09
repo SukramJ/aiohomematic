@@ -74,6 +74,14 @@ class CommandCache:
 
     Tracks recently sent commands per data point with automatic expiry
     and configurable size limits to prevent unbounded memory growth.
+
+    Memory management strategy (three-tier approach):
+        1. Lazy cleanup: When cache exceeds CLEANUP_THRESHOLD, remove expired entries
+        2. Warning threshold: Log warning when approaching MAX_SIZE (hysteresis prevents spam)
+        3. Hard limit eviction: When MAX_SIZE reached, remove oldest 20% of entries
+
+    The 20% eviction rate balances memory reclamation against the cost of repeated
+    evictions (avoiding evicting just 1 entry repeatedly).
     """
 
     __slots__ = (
@@ -85,8 +93,10 @@ class CommandCache:
     def __init__(self, *, interface_id: str) -> None:
         """Initialize command cache."""
         self._interface_id: Final = interface_id
-        # (paramset_key, device_address, channel_no, parameter)
+        # Maps DataPointKey to (value, timestamp) for tracking recent commands.
+        # Used to detect duplicate sends and for unconfirmed value tracking.
         self._last_send_command: Final[dict[DataPointKey, tuple[Any, datetime]]] = {}
+        # Hysteresis flag to prevent repeated warning logs
         self._warning_logged: bool = False
 
     @property
@@ -165,12 +175,20 @@ class CommandCache:
         Remove expired command cache entries.
 
         Returns the number of entries removed.
+
+        Two-pass algorithm (safer than deleting during iteration):
+            1. First pass: Collect keys of expired entries into a list
+            2. Second pass: Delete collected keys from the dictionary
+
+        This avoids "dictionary changed size during iteration" errors.
         """
+        # Pass 1: Identify expired entries without modifying the dict
         expired_keys = [
             dpk
             for dpk, (_, last_send_dt) in self._last_send_command.items()
             if not changed_within_seconds(last_change=last_send_dt, max_age=max_age)
         ]
+        # Pass 2: Delete expired entries
         for dpk in expired_keys:
             del self._last_send_command[dpk]
         return len(expired_keys)
@@ -207,10 +225,24 @@ class CommandCache:
                 del self._last_send_command[dpk]
 
     def _enforce_size_limit(self) -> None:
-        """Enforce size limits on the cache to prevent unbounded growth."""
+        """
+        Enforce size limits on the cache to prevent unbounded growth.
+
+        LRU-style eviction algorithm:
+            When cache reaches MAX_SIZE, evict the oldest 20% of entries.
+            The 20% threshold is a heuristic that balances:
+            - Memory reclamation (enough entries removed to be meaningful)
+            - Performance (not called too frequently)
+            - Data retention (most recent entries are preserved)
+
+        Warning hysteresis:
+            The _warning_logged flag prevents log spam when cache size oscillates
+            near the warning threshold. Warning is logged once when threshold is
+            exceeded, then reset only when size drops below threshold.
+        """
         current_size = len(self._last_send_command)
 
-        # Log warning when approaching limit
+        # Warning with hysteresis: log once when crossing threshold, reset when below
         if current_size >= COMMAND_CACHE_WARNING_THRESHOLD and not self._warning_logged:
             _LOGGER.warning(  # i18n-log: ignore
                 "CommandCache for %s approaching size limit: %d/%d entries",
@@ -220,16 +252,17 @@ class CommandCache:
             )
             self._warning_logged = True
         elif current_size < COMMAND_CACHE_WARNING_THRESHOLD:
+            # Reset warning flag when cache shrinks below threshold
             self._warning_logged = False
 
-        # Enforce hard limit by removing oldest entries
+        # Hard limit enforcement with LRU eviction
         if current_size >= COMMAND_CACHE_MAX_SIZE:
-            # Sort by timestamp and remove oldest entries
+            # Sort entries by timestamp (oldest first) for LRU eviction
             sorted_entries = sorted(
                 self._last_send_command.items(),
-                key=lambda item: item[1][1],  # Sort by datetime
+                key=lambda item: item[1][1],  # item[1] is (value, datetime), [1] is datetime
             )
-            # Remove oldest 20% of entries
+            # Remove oldest 20% of entries (at least 1)
             remove_count = max(1, current_size // 5)
             for dpk, _ in sorted_entries[:remove_count]:
                 del self._last_send_command[dpk]
@@ -380,10 +413,24 @@ class DeviceDetailsCache(DeviceDetailsProvider, DeviceDetailsWriter):
         return {}
 
     def _prepare_device_rooms(self) -> dict[str, set[str]]:
-        """Return rooms by device_address."""
+        """
+        Return rooms by device_address.
+
+        Aggregation algorithm:
+            The CCU stores room assignments at the channel level (e.g., "ABC123:1" is in "Living Room").
+            Devices themselves don't have direct room assignments - they inherit from their channels.
+            This method aggregates channel rooms to the device level by:
+            1. Iterating all channel_address -> rooms mappings
+            2. Extracting the device_address from each channel_address
+            3. Merging all channel rooms into a set per device
+
+        Result: A device is considered "in" all rooms that any of its channels are in.
+        """
         _device_rooms: Final[dict[str, set[str]]] = defaultdict(set)
         for channel_address, rooms in self._channel_rooms.items():
             if rooms:
+                # Extract device address (e.g., "ABC123:1" -> "ABC123")
+                # and merge this channel's rooms into the device's room set
                 _device_rooms[get_device_address(address=channel_address)].update(rooms)
         return _device_rooms
 

@@ -64,7 +64,19 @@ class ProgramHandler(BaseHandler):
 
     @inspector
     async def execute_program(self, *, pid: str) -> bool:
-        """Execute a program on the backend."""
+        """
+        Trigger execution of a CCU program.
+
+        CCU programs are user-defined scripts created in the CCU's web interface.
+        This method triggers immediate execution of the program.
+
+        Args:
+            pid: Program ID (ReGa internal identifier).
+
+        Returns:
+            True if execution was triggered, False if unsupported.
+
+        """
         if not self._supports_programs:
             _LOGGER.debug("EXECUTE_PROGRAM: Not supported by client for %s", self._interface_id)
             return False
@@ -77,7 +89,19 @@ class ProgramHandler(BaseHandler):
         *,
         markers: tuple[DescriptionMarker | str, ...],
     ) -> tuple[ProgramData, ...]:
-        """Get all programs, if available."""
+        """
+        Return all CCU programs matching the given markers.
+
+        Programs can be filtered by markers in their description field. Only
+        programs containing at least one of the specified markers are returned.
+
+        Args:
+            markers: Tuple of DescriptionMarker values or strings to filter by.
+
+        Returns:
+            Tuple of ProgramData dicts containing id, name, description, etc.
+
+        """
         if not self._supports_programs:
             _LOGGER.debug("GET_ALL_PROGRAMS: Not supported by client for %s", self._interface_id)
             return ()
@@ -86,7 +110,16 @@ class ProgramHandler(BaseHandler):
 
     @inspector
     async def has_program_ids(self, *, rega_id: int) -> bool:
-        """Return if a channel has program ids."""
+        """
+        Check if a channel is used in any CCU programs.
+
+        Args:
+            rega_id: ReGaHSS internal ID of the channel to check.
+
+        Returns:
+            True if the channel is referenced in at least one program.
+
+        """
         if not self._supports_programs:
             _LOGGER.debug("HAS_PROGRAM_IDS: Not supported by client for %s", self._interface_id)
             return False
@@ -95,5 +128,15 @@ class ProgramHandler(BaseHandler):
 
     @inspector
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
-        """Set the program state on the backend."""
+        """
+        Enable or disable a CCU program.
+
+        Args:
+            pid: Program ID (ReGa internal identifier).
+            state: True to enable, False to disable the program.
+
+        Returns:
+            True if the state was changed successfully.
+
+        """
         return await self._json_rpc_client.set_program_state(pid=pid, state=state)

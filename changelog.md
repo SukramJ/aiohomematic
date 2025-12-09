@@ -31,6 +31,7 @@
 ### Other changes
 
 - Add basic rega script linter to ensure support for session recorder
+- Add architecture analysis
 - Cleanup scripts for recorder
 - Improve backend detection
 

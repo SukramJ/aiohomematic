@@ -32,6 +32,7 @@ from aiohomematic.const import (
     RxMode,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.type_aliases import DataPointUpdatedHandler, FirmwareUpdateHandler
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.central import (
@@ -55,6 +56,7 @@ if TYPE_CHECKING:
     )
     from aiohomematic.model.custom.registry import DeviceConfig
     from aiohomematic.model.support import DataPointNameData
+    from aiohomematic.type_aliases import UnsubscribeCallback
 
 # =============================================================================
 # DataPoint Protocol Interfaces
@@ -185,13 +187,11 @@ class CallbackDataPointProtocol(Protocol):
         """Publish a device removed event."""
 
     @abstractmethod
-    def subscribe_to_data_point_updated(
-        self, *, handler: Callable[..., None], custom_id: str
-    ) -> Callable[[], None] | None:
+    def subscribe_to_data_point_updated(self, *, handler: Callable[..., None], custom_id: str) -> UnsubscribeCallback:
         """Subscribe to data point updated event."""
 
     @abstractmethod
-    def subscribe_to_device_removed(self, *, handler: Callable[[], None]) -> Callable[[], None] | None:
+    def subscribe_to_device_removed(self, *, handler: Callable[[], None]) -> UnsubscribeCallback:
         """Subscribe to the device removed event."""
 
 
@@ -661,7 +661,7 @@ class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
         """Send value to CCU or use collector if set."""
 
     @abstractmethod
-    def subscribe_to_internal_data_point_updated(self, *, handler: Any) -> Any:
+    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeCallback:
         """Subscribe to internal data point updated event."""
 
 
@@ -1465,7 +1465,7 @@ class DeviceProtocol(Protocol):
         """Set the availability of the device."""
 
     @abstractmethod
-    def subscribe_to_firmware_updated(self, *, handler: Any) -> Any:
+    def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeCallback:
         """Subscribe to firmware updated event."""
 
     @abstractmethod

@@ -1,3 +1,9 @@
+# Version 2025.12.17 (2025-12-09)
+
+## What's Changed
+
+- Fix return types
+
 # Version 2025.12.16 (2025-12-09)
 
 ## What's Changed

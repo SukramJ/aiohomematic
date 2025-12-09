@@ -48,6 +48,7 @@ from aiohomematic.interfaces.central import (
 )
 from aiohomematic.interfaces.client import ClientCoordination
 from aiohomematic.support import extract_exc_args
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -157,7 +158,7 @@ class BackgroundScheduler:
         self._active_event: Final = asyncio.Event()
         self._devices_created_event: Final = asyncio.Event()
         self._scheduler_task: asyncio.Task[None] | None = None
-        self._unsubscribe_callback: Callable[[], None] | None = None
+        self._unsubscribe_callback: UnsubscribeCallback | None = None
 
         # Subscribe to DEVICES_CREATED event
         # Create a wrapper to match the EventHandler signature (positional event argument)

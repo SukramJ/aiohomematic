@@ -1,3 +1,19 @@
+# Version 2025.12.18 (2025-12-09)
+
+## What's Changed
+
+### Architecture
+
+- Refactor ClientCCU into specialized handler classes (BackupHandler, DeviceOpsHandler, FirmwareHandler, LinkManagementHandler, MetadataHandler, ProgramsHandler, SysvarsHandler)
+- Add ClientStateMachine for managing client connection lifecycle with validated state transitions
+- Add ClientState enum for client connection states (CREATED, INITIALIZING, INITIALIZED, CONNECTING, CONNECTED, DISCONNECTED, RECONNECTING, STOPPING, STOPPED, FAILED)
+
+### Bug Fixes
+
+- Fix hub data points initialization by ensuring clients are connected before init_hub() is called
+- Fix mock property delegation to support dynamic property value updates in tests
+- Add **slots** support to get_mock() in test support module
+
 # Version 2025.12.17 (2025-12-09)
 
 ## What's Changed

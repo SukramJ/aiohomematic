@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.17"
+VERSION: Final = "2025.12.18"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -827,6 +827,60 @@ class ProxyInitState(Enum):
     DE_INIT_FAILED = 4
     DE_INIT_SUCCESS = 8
     DE_INIT_SKIPPED = 16
+
+
+class ClientState(StrEnum):
+    """
+    Client connection lifecycle states.
+
+    State Machine
+    -------------
+    The client follows this state machine:
+
+    ```
+    CREATED ─────► INITIALIZING ─────► INITIALIZED
+                        │                    │
+                        │ (failure)          │
+                        ▼                    ▼
+                     FAILED           CONNECTING ◄────┐
+                        ▲                    │        │
+                        │                    │        │ (re-connect)
+                        │ (failure)          │        │
+                        │                    ▼        │
+                        └───────────── CONNECTED     │
+                                            │        │
+                              ┌─────────────┼────────┼──┐
+                              │             │        │  │
+                              ▼             ▼        │  ▼
+                       DISCONNECTED   RECONNECTING──┘ STOPPING
+                              │             │            │
+                              └─────────────┘            ▼
+                                                     STOPPED
+    ```
+
+    Valid Transitions
+    -----------------
+    - CREATED → INITIALIZING
+    - INITIALIZING → INITIALIZED | FAILED
+    - INITIALIZED → CONNECTING
+    - CONNECTING → CONNECTED | FAILED
+    - CONNECTED → DISCONNECTED | RECONNECTING | STOPPING
+    - DISCONNECTED → CONNECTING | RECONNECTING | STOPPING
+    - RECONNECTING → CONNECTED | DISCONNECTED | FAILED | CONNECTING
+    - STOPPING → STOPPED
+    - FAILED → INITIALIZING (retry)
+    """
+
+    CREATED = "created"
+    INITIALIZING = "initializing"
+    INITIALIZED = "initialized"
+    CONNECTING = "connecting"
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
+    RECONNECTING = "reconnecting"
+    STOPPING = "stopping"
+    STOPPED = "stopped"
+    FAILED = "failed"
 
 
 class RpcServerType(StrEnum):

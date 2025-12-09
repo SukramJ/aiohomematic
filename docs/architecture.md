@@ -200,6 +200,76 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 - [Data flow](../docs/data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
 - [Sequence diagrams](../docs/sequence_diagrams.md) (connect, discovery, propagation)
 
+## Architectural Decisions and Rationale
+
+This section documents key architectural decisions and their rationale for future reviews.
+
+### Caching Strategies
+
+#### ParameterVisibilityCache: Unbounded Memoization
+
+**Decision**: The `ParameterVisibilityCache` uses unbounded memoization (via `@functools.lru_cache` or similar) without explicit size limits.
+
+**Rationale**: Unbounded memoization is intentional and appropriate here because:
+
+1. **Natural bounds from domain**: The cache is inherently bounded by the finite number of devices and parameters in a Homematic installation. A typical installation has:
+
+   - 10-200 devices
+   - Each device has 1-20 channels
+   - Each channel has 5-50 parameters
+   - Total unique (interface_id, channel_address, paramset_key, parameter) tuples: typically < 50,000
+
+2. **Static data**: Parameter visibility rules don't change during runtime. Once computed, the visibility of a parameter remains constant until the system restarts.
+
+3. **Memory efficiency**: Each cache entry is small (key tuple + boolean result). Even with 50,000 entries, memory usage is negligible (< 5 MB).
+
+4. **Performance critical path**: Visibility checks are called frequently during device/data point creation and UI rendering. Caching eliminates repeated rule evaluation.
+
+**Conclusion**: Adding LRU eviction or TTL expiration would add complexity without benefit. The cache naturally stays bounded by the physical device count in the installation.
+
+### Protocol Injection: Explicit over Composite
+
+**Decision**: Use explicit protocol injection per component rather than grouping protocols into composite interfaces for internal components.
+
+**Analysis**: Protocol usage across components was analyzed:
+
+| Component         | Protocol Count |
+| ----------------- | -------------- |
+| Device            | 16 protocols   |
+| Hub               | 12 protocols   |
+| DeviceCoordinator | 17 protocols   |
+| HubCoordinator    | 10 protocols   |
+| CacheCoordinator  | 7 protocols    |
+
+**Common protocol groups identified**:
+
+1. **Core** (all components): `central_info`, `config_provider`, `task_scheduler`
+2. **Events** (Device, Hub, coordinators): `event_bus_provider`, `event_publisher`
+3. **Visibility** (Device, Hub, coordinators): `parameter_visibility_provider`, `paramset_description_provider`
+
+**Existing composite protocols**:
+
+- `ClientDependencies` - Groups ~20 methods for client external API
+- `BaseHandler` - Abstracts common handler dependencies (6 protocols)
+
+**Rationale**: No additional composite protocols are needed because:
+
+1. **Explicitness**: Each component documents exactly what it needs via its constructor signature. This makes dependencies visible without consulting external type definitions.
+
+2. **Testability**: Explicit protocols make it easy to mock specific dependencies. Tests can provide minimal implementations for only the protocols a component actually uses.
+
+3. **Decoupling**: CentralUnit already acts as a de-facto composite by implementing all protocols. Components receive the specific slices they need without coupling to the full interface.
+
+4. **Structural typing**: Python's protocol system provides flexibility. Components depend on behavior (methods/properties) rather than nominal types, so there's no need to define intermediate composite types.
+
+**Trade-offs considered**: Creating formal composite protocols for internal components would:
+
+- Add maintenance overhead (another layer of types to keep synchronized)
+- Hide actual dependencies (consumers would need to inspect the composite to understand requirements)
+- Not significantly improve testability (explicit protocols already enable focused mocking)
+
+**Conclusion**: `ClientDependencies` makes sense for the external client API contract where a stable public interface is valuable. Internal coordinators and model classes benefit from explicit dependency injection, which prioritizes clarity and testability over brevity.
+
 ## Notes
 
 - This is a high‑level overview. For detailed API and exact behavior, consult the module docstrings and tests under tests/ which cover most features and edge cases.

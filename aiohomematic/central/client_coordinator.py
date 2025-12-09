@@ -230,11 +230,11 @@ class ClientCoordinator(ClientProvider):
         # Load caches after clients are created
         await self._coordinator_provider.cache_coordinator.load_all()
 
-        # Initialize hub
-        await self._coordinator_provider.hub_coordinator.init_hub()
-
-        # Initialize clients
+        # Initialize clients (sets them to CONNECTED state)
         await self._init_clients()
+
+        # Initialize hub (requires connected clients to fetch programs/sysvars)
+        await self._coordinator_provider.hub_coordinator.init_hub()
 
         self._clients_started = True
         return True

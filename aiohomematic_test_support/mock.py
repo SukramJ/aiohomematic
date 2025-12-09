@@ -37,6 +37,8 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from collections.abc import Callable
+import contextlib
 import json
 import logging
 import os
@@ -376,26 +378,117 @@ def get_xml_rpc_proxy(  # noqa: C901
     return cast(BaseRpcProxy, _AioXmlRpcProxyFromSession())
 
 
+def _get_instance_attributes(instance: Any) -> set[str]:
+    """
+    Get all instance attribute names, supporting both __dict__ and __slots__.
+
+    For classes with __slots__, iterates through the class hierarchy to collect
+    all slot names. For classes with __dict__, returns the keys of __dict__.
+    Handles hybrid classes that have both __slots__ and __dict__.
+    """
+    attrs: set[str] = set()
+
+    # Collect __slots__ from the entire class hierarchy
+    for cls in type(instance).__mro__:
+        if hasattr(cls, "__slots__"):
+            for slot in cls.__slots__:
+                # Skip internal slots like __dict__ and __weakref__
+                if not slot.startswith("__"):
+                    try:
+                        # Only include if the attribute actually exists on the instance
+                        getattr(instance, slot)
+                        attrs.add(slot)
+                    except AttributeError:
+                        pass
+
+    # Also include __dict__ attributes if the instance has __dict__
+    if hasattr(instance, "__dict__"):
+        attrs.update(instance.__dict__.keys())
+
+    return attrs
+
+
 def get_mock(
     *, instance: Any, exclude_methods: set[str] | None = None, include_properties: set[str] | None = None, **kwargs: Any
 ) -> Any:
-    """Create a mock and copy instance attributes over mock."""
+    """
+    Create a mock that wraps an instance with proper property delegation.
+
+    Supports both __dict__-based and __slots__-based classes. Properties are
+    delegated dynamically to the wrapped instance to ensure current values
+    are always returned.
+    """
     if exclude_methods is None:
         exclude_methods = set()
     if include_properties is None:
         include_properties = set()
 
     if isinstance(instance, Mock):
-        instance.__dict__.update(instance._mock_wraps.__dict__)
+        # For existing mocks, copy attributes from wrapped instance if available
+        if hasattr(instance, "_mock_wraps") and instance._mock_wraps is not None:
+            for attr in _get_instance_attributes(instance._mock_wraps):
+                with contextlib.suppress(AttributeError, TypeError):
+                    setattr(instance, attr, getattr(instance._mock_wraps, attr))
         return instance
-    mock = MagicMock(spec=instance, wraps=instance, **kwargs)
-    mock.__dict__.update(instance.__dict__)
+
+    # Get actual property names (those that are property descriptors on the class)
+    property_names = _get_properties(data_object=instance, decorator=property)
+
+    # Create a dynamic subclass of MagicMock to support property delegation
+    # This is necessary because MagicMock doesn't natively support properties
+    class _DynamicMock(MagicMock):
+        pass
+
+    def _make_getter(name: str) -> Callable[[Any], Any]:
+        """Create a typed getter function for property delegation."""
+
+        def getter(self: Any) -> Any:
+            return getattr(self._mock_wraps, name)
+
+        return getter
+
+    def _make_setter(name: str) -> Callable[[Any, Any], None]:
+        """Create a typed setter function for property delegation."""
+
+        def setter(self: Any, value: Any) -> None:
+            setattr(self._mock_wraps, name, value)
+
+        return setter
+
+    # Add property delegators to the subclass
+    for prop_name in property_names:
+        if prop_name not in include_properties and prop_name not in kwargs:
+            # Check if the property has a setter on the original class
+            prop_descriptor = getattr(type(instance), prop_name, None)
+            if prop_descriptor is not None and getattr(prop_descriptor, "fset", None) is not None:
+                # Create property with both getter and setter that delegates to the wrapped instance
+                setattr(
+                    _DynamicMock,
+                    prop_name,
+                    property(_make_getter(prop_name), _make_setter(prop_name)),
+                )
+            else:
+                # Create read-only property that delegates to the wrapped instance
+                setattr(
+                    _DynamicMock,
+                    prop_name,
+                    property(_make_getter(prop_name)),
+                )
+
+    mock = _DynamicMock(spec=instance, wraps=instance, **kwargs)
+
+    # Copy instance attributes to mock (supports both __slots__ and __dict__)
+    for attr in _get_instance_attributes(instance):
+        with contextlib.suppress(AttributeError, TypeError):
+            setattr(mock, attr, getattr(instance, attr))
+
     try:
         for method_name in [
             prop
             for prop in _get_not_mockable_method_names(instance=instance, exclude_methods=exclude_methods)
-            if prop not in include_properties and prop not in kwargs
+            if prop not in include_properties and prop not in kwargs and prop not in property_names
         ]:
+            # Copy non-property attributes directly
             setattr(mock, method_name, getattr(instance, method_name))
     except Exception:
         pass

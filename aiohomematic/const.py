@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.15"
+VERSION: Final = "2025.12.16"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1198,9 +1198,8 @@ class SystemInformation:
     serial: str | None = None
     # Backend info fields
     version: str = ""
-    product: str = ""
     hostname: str = ""
-    ccu_type: CCUType = field(default_factory=lambda: CCUType.UNKNOWN)
+    ccu_type: CCUType = CCUType.UNKNOWN
 
     @property
     def is_ccu(self) -> bool:

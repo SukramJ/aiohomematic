@@ -1,3 +1,11 @@
+# Version 2025.12.16 (2025-12-09)
+
+## What's Changed
+
+- Add basic rega script linter to ensure support for session recorder
+- Cleanup scripts for recorder
+- Improve backend detection
+
 # Version 2025.12.15 (2025-12-08)
 
 ## What's Changed

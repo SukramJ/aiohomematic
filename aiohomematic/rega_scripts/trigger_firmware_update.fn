@@ -1,4 +1,4 @@
-!# trigger_firmware_update.fn
+!# name: trigger_firmware_update.fn
 !#
 !# This script triggers the CCU firmware update process.
 !# Requires firmware to be already downloaded to /usr/local/.firmwareUpdate

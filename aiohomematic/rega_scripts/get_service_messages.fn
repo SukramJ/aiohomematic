@@ -1,10 +1,11 @@
-!# get_service_messages.fn
+!# name: get_service_messages.fn
 !#
 !# Return all active service messages from the CCU.
 !# Service messages include connectivity issues (UNREACH), configuration
 !# pending, low battery warnings, and other device alerts.
 !#
 !# Note: Inbox devices are handled separately by get_inbox_devices.fn.
+!#
 
 string sAlarmId;
 boolean bFirst = true;

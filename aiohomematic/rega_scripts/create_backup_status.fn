@@ -1,4 +1,4 @@
-!# create_backup_status.fn
+!# name: create_backup_status.fn
 !#
 !# This script checks the status of a backup started by create_backup_start.fn.
 !# Returns:

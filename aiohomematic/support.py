@@ -103,6 +103,22 @@ def delete_file(directory: str, file_name: str) -> None:  # kwonly: disable
                 os.remove(file_path)
 
 
+def cleanup_script_for_session_recorder(*, script: str) -> str:
+    """
+    Cleanup the script for session recording.
+
+    Keep only the first line (script name) and lines starting with '!# param:'.
+    The first line contains the script identifier (e.g., '!# name: script.fn' or '!# script.fn').
+    """
+
+    if not (lines := script.splitlines()):
+        return ""
+    # Keep the first line (script name) and all param lines
+    result = [lines[0]]
+    result.extend(line for line in lines[1:] if line.startswith("!# param:"))
+    return "\n".join(result)
+
+
 def check_or_create_directory(*, directory: str) -> bool:
     """Check / create directory."""
     if not directory:

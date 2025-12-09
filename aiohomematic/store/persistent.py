@@ -71,6 +71,7 @@ from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.interfaces.operations import DeviceDescriptionProvider, ParamsetDescriptionProvider, TaskScheduler
 from aiohomematic.support import (
     check_or_create_directory,
+    cleanup_script_for_session_recorder,
     create_random_device_addresses,
     delete_file,
     extract_exc_args,
@@ -81,6 +82,17 @@ from aiohomematic.support import (
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+_SCRIPT_KEY: Final = "script"
+
+
+def _cleanup_params_for_session(*, params: Any) -> Any:
+    """Cleanup script in params for session lookup, keeping only !# name: and !# param: lines."""
+    if isinstance(params, dict) and _SCRIPT_KEY in params:
+        cleaned_params = dict(params)
+        cleaned_params[_SCRIPT_KEY] = cleanup_script_for_session_recorder(script=params[_SCRIPT_KEY])
+        return cleaned_params
+    return params
 
 
 class BasePersistentFile(ABC):
@@ -727,7 +739,7 @@ class SessionRecorder(BasePersistentFile):
             return False
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return False
-        if (frozen_param := _freeze_params(params)) not in bucket_by_parameter:
+        if (frozen_param := _freeze_params(_cleanup_params_for_session(params=params))) not in bucket_by_parameter:
             return False
         # Perform deletion
         bucket_by_parameter.pop(frozen_param, None)
@@ -759,7 +771,7 @@ class SessionRecorder(BasePersistentFile):
             return default
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return default
-        frozen_param = _freeze_params(params)
+        frozen_param = _freeze_params(_cleanup_params_for_session(params=params))
         if not (bucket_by_ts := bucket_by_parameter.get(frozen_param)):
             return default
         try:
@@ -811,7 +823,7 @@ class SessionRecorder(BasePersistentFile):
             return None
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return None
-        frozen_params = _freeze_params(params=params)
+        frozen_params = _freeze_params(params=_cleanup_params_for_session(params=params))
 
         # For each parameter, choose the response at the latest timestamp.
         if (bucket_by_ts := bucket_by_parameter.get(frozen_params)) is None:
@@ -837,7 +849,7 @@ class SessionRecorder(BasePersistentFile):
             return None
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return None
-        frozen_param = _freeze_params(params)
+        frozen_param = _freeze_params(_cleanup_params_for_session(params=params))
         if (bucket_by_ts := bucket_by_parameter.get(frozen_param)) is None or not bucket_by_ts:
             return None
         # After purge, remaining entries are alive; return the latest timestamp.

@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
     CallSource,
+    DataPointKey,
     DeviceDescription,
     InboxDeviceData,
     Interface,
@@ -25,9 +26,9 @@ from aiohomematic.const import (
     ProxyInitState,
     SystemInformation,
 )
+from aiohomematic.interfaces.operations import TaskScheduler
 
 if TYPE_CHECKING:
-    from aiohomematic.async_support import Looper
     from aiohomematic.central import CentralConfig, CentralConnectionState
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
     from aiohomematic.interfaces import ChannelProtocol
@@ -55,7 +56,7 @@ class ClientProtocol(Protocol):
         """Return the availability of the client."""
 
     @property
-    def central(self) -> Any:
+    def central(self) -> ClientDependencies:
         """Return the central of the client."""
 
     @property
@@ -71,7 +72,7 @@ class ClientProtocol(Protocol):
         """Return if interface is initialized."""
 
     @property
-    def last_value_send_cache(self) -> Any:
+    def last_value_send_cache(self) -> CommandCacheProtocol:
         """Return the last value send cache."""
 
     @property
@@ -87,7 +88,7 @@ class ClientProtocol(Protocol):
         """Write the last update datetime value."""
 
     @property
-    def ping_pong_cache(self) -> Any:
+    def ping_pong_cache(self) -> PingPongCacheProtocol:
         """Return the ping pong cache."""
 
     @property
@@ -708,6 +709,62 @@ class CallbackAddressProvider(Protocol):
 
 
 @runtime_checkable
+class CommandCacheProtocol(Protocol):
+    """Protocol for command cache operations."""
+
+    @abstractmethod
+    def add_put_paramset(
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+    ) -> set[tuple[DataPointKey, Any]]:
+        """Add data from put paramset command."""
+
+    @abstractmethod
+    def add_set_value(
+        self,
+        *,
+        channel_address: str,
+        parameter: str,
+        value: Any,
+    ) -> set[tuple[DataPointKey, Any]]:
+        """Add data from set value command."""
+
+    @abstractmethod
+    def clear(self) -> None:
+        """Clear all cached command entries."""
+
+    @abstractmethod
+    def get_last_value_send(self, *, dpk: DataPointKey, max_age: int = ...) -> Any:
+        """Return the last send value."""
+
+    @abstractmethod
+    def remove_last_value_send(
+        self,
+        *,
+        dpk: DataPointKey,
+        value: Any = None,
+        max_age: int = ...,
+    ) -> None:
+        """Remove the last send value."""
+
+
+@runtime_checkable
+class PingPongCacheProtocol(Protocol):
+    """Protocol for ping/pong cache operations."""
+
+    @abstractmethod
+    def clear(self) -> None:
+        """Clear the cache."""
+
+    @abstractmethod
+    def handle_received_pong(self, *, pong_token: str) -> None:
+        """Handle received pong token."""
+
+    @abstractmethod
+    def handle_send_ping(self, *, ping_token: str) -> None:
+        """Handle send ping token."""
+
+
+@runtime_checkable
 class ClientDependencies(Protocol):
     """
     Composite protocol for all dependencies required by Client classes.
@@ -778,7 +835,7 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
-    def looper(self) -> Looper:
+    def looper(self) -> TaskScheduler:
         """Return task scheduler/looper."""
 
     @property
@@ -831,6 +888,12 @@ class ClientDependencies(Protocol):
     @abstractmethod
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Return last event timestamp for an interface."""
+
+    @abstractmethod
+    def publish_backend_parameter_event(
+        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
+    ) -> None:
+        """Publish backend parameter callback in central."""
 
     @abstractmethod
     def publish_backend_system_event(self, *, system_event: Any, **kwargs: Any) -> None:

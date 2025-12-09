@@ -35,6 +35,14 @@ class TaskScheduler(Protocol):
         """Add an executor job from within the event_loop."""
 
     @abstractmethod
+    async def block_till_done(self, *, wait_time: float | None = None) -> None:
+        """Block until all pending work is done."""
+
+    @abstractmethod
+    def cancel_tasks(self) -> None:
+        """Cancel running tasks."""
+
+    @abstractmethod
     def create_task(self, *, target: CoroutineAny | AsyncTaskFactoryAny, name: str) -> None:
         """Create and schedule an async task."""
 

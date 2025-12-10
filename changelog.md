@@ -8,6 +8,9 @@
   - Prevents retry-storms during backend outages for JSON-RPC calls
   - Consistent resilience pattern across both XML-RPC and JSON-RPC clients
   - Session management methods (login/logout/renew) bypass circuit breaker
+- Add RequestCoalescer for get_device_description in DeviceOperationsHandler:
+  - Deduplicates concurrent requests for the same device address
+  - Reduces backend load during device discovery
 
 ### Documentation
 

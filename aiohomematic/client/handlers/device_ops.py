@@ -61,7 +61,7 @@ class DeviceOperationsHandler(BaseHandler):
     - Value conversion and validation
     """
 
-    __slots__ = ("_last_value_send_cache", "_paramset_coalescer")
+    __slots__ = ("_device_description_coalescer", "_last_value_send_cache", "_paramset_description_coalescer")
 
     def __init__(
         self,
@@ -84,7 +84,8 @@ class DeviceOperationsHandler(BaseHandler):
             proxy_read=proxy_read,
         )
         self._last_value_send_cache: Final = last_value_send_cache
-        self._paramset_coalescer: Final = RequestCoalescer(name=f"paramset:{interface_id}")
+        self._device_description_coalescer: Final = RequestCoalescer(name=f"device_desc:{interface_id}")
+        self._paramset_description_coalescer: Final = RequestCoalescer(name=f"paramset:{interface_id}")
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
@@ -276,6 +277,10 @@ class DeviceOperationsHandler(BaseHandler):
         """
         Return device description for a single address.
 
+        Uses request coalescing to deduplicate concurrent requests for the same
+        address. This is beneficial during device discovery when multiple callers
+        may request the same device description simultaneously.
+
         Args:
             address: Device or channel address (e.g., "VCU0000001" or "VCU0000001:1").
 
@@ -284,17 +289,22 @@ class DeviceOperationsHandler(BaseHandler):
             None if the address is not found or the RPC call fails.
 
         """
-        try:
-            if device_description := cast(
-                DeviceDescription | None,
-                await self._proxy_read.getDeviceDescription(address),
-            ):
-                return device_description
-        except BaseHomematicException as bhexc:
-            _LOGGER.warning(  # i18n-log: ignore
-                "GET_DEVICE_DESCRIPTIONS failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc)
-            )
-        return None
+        key = make_coalesce_key(method="getDeviceDescription", args=(address,))
+
+        async def _fetch() -> DeviceDescription | None:
+            try:
+                if device_description := cast(
+                    DeviceDescription | None,
+                    await self._proxy_read.getDeviceDescription(address),
+                ):
+                    return device_description
+            except BaseHomematicException as bhexc:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "GET_DEVICE_DESCRIPTION failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc)
+                )
+            return None
+
+        return await self._device_description_coalescer.execute(key=key, executor=_fetch)
 
     @inspector
     async def get_paramset(
@@ -937,7 +947,7 @@ class DeviceOperationsHandler(BaseHandler):
                 )
                 return None
 
-        return await self._paramset_coalescer.execute(key=key, executor=_fetch)
+        return await self._paramset_description_coalescer.execute(key=key, executor=_fetch)
 
     def _write_temporary_value(self, *, dpk_values: set[DP_KEY_VALUE]) -> None:
         """Write temporary values to polling data points for immediate UI feedback."""

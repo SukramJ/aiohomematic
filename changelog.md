@@ -1,3 +1,23 @@
+# Version 2025.12.19 (2025-12-10)
+
+## What's Changed
+
+### Architecture
+
+- Add CircuitBreaker integration to JSON-RPC client (AioJsonRpcAioHttpClient):
+  - Prevents retry-storms during backend outages for JSON-RPC calls
+  - Consistent resilience pattern across both XML-RPC and JSON-RPC clients
+  - Session management methods (login/logout/renew) bypass circuit breaker
+
+### Documentation
+
+- Update architecture_analysis.md with comprehensive evaluation:
+  - Accurate metrics: 43,218 LOC across 102 files, 63 protocol interfaces
+  - Detailed module breakdown (central, client, model, interfaces, store)
+  - New sections for CircuitBreaker, RequestCoalescer, and Handler patterns
+  - Architecture maturity assessment with ratings
+  - ADR reference table with all 8 decisions
+
 # Version 2025.12.18 (2025-12-10)
 
 ## What's Changed

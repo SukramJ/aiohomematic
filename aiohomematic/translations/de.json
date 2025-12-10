@@ -30,6 +30,7 @@
   "exception.client.json_post.no_credentials": "Keine Zugangsdaten gesetzt",
   "exception.client.json_post.no_response": "POST-Methode ohne Antwort fehlgeschlagen",
   "exception.client.json_post.no_session": "ClientSession nicht initialisiert",
+  "exception.client.json_rpc.circuit_open": "Circuit Breaker ist offen für {url} - Anfragen werden vorübergehend blockiert",
   "exception.client.parameter.not_found": "Parameter {parameter} wurde nicht gefunden: {interface_id}/{channel_address}/{paramset_key}",
   "exception.client.parameter.operation_unsupported": "Parameter {parameter} unterstützt die angeforderte Operation {operation} nicht",
   "exception.client.parameter.value_above_max": "Wert {value} für Parameter {parameter} überschreitet Maximum {max_value}",

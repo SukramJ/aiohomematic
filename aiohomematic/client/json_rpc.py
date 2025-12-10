@@ -60,6 +60,7 @@ import orjson
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
@@ -221,6 +222,13 @@ _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
     _JsonRpcMethod.INTERFACE_GET_VALUE,
 )
 
+# Methods allowed through even when circuit breaker is open (session management)
+_CIRCUIT_BREAKER_BYPASS_METHODS: Final = (
+    _JsonRpcMethod.SESSION_LOGIN,
+    _JsonRpcMethod.SESSION_LOGOUT,
+    _JsonRpcMethod.SESSION_RENEW,
+)
+
 
 class AioJsonRpcAioHttpClient(LogContextMixin):
     """Connection to CCU JSON-RPC Server."""
@@ -236,6 +244,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         tls: bool = False,
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
+        circuit_breaker_config: CircuitBreakerConfig | None = None,
     ) -> None:
         """Session setup."""
         self._client_session: Final = (
@@ -262,6 +271,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._failed_login_attempts: int = 0
         self._last_failed_login: datetime | None = None
         self._current_backoff: float = LOGIN_INITIAL_BACKOFF_SECONDS
+
+        # Circuit breaker for preventing retry-storms during backend outages
+        self._circuit_breaker: Final = CircuitBreaker(
+            config=circuit_breaker_config,
+            interface_id=self._url,
+            connection_state=connection_state,
+            issuer=self,
+        )
 
     @staticmethod
     def _convert_device_description(*, json_data: dict[str, Any]) -> DeviceDescription:
@@ -333,6 +350,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             return False
         delta = datetime.now() - self._last_session_id_refresh
         return delta.seconds < JSON_SESSION_AGE
+
+    @property
+    def circuit_breaker(self) -> CircuitBreaker:
+        """Return the circuit breaker instance."""
+        return self._circuit_breaker
 
     @property
     def is_activated(self) -> bool:
@@ -1430,6 +1452,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         if self._supported_methods and method not in self._supported_methods:
             raise UnsupportedException(i18n.tr("exception.client.json_post.method_unsupported", method=method))
 
+        # Check circuit breaker state (allow session management methods through)
+        if method not in _CIRCUIT_BREAKER_BYPASS_METHODS and not self._circuit_breaker.is_available:
+            self._circuit_breaker.record_rejection()
+            raise NoConnectionException(i18n.tr("exception.client.json_rpc.circuit_open", url=self._url))
+
         params = _get_params(session_id=session_id, extra_params=extra_params, use_default_params=use_default_params)
 
         try:
@@ -1475,6 +1502,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     raise exc
 
                 self._connection_state.remove_issue(issuer=self, iid=self._url)
+                self._circuit_breaker.record_success()
                 return json_response
 
             message = i18n.tr("exception.client.json_post.http_status", status=response.status)
@@ -1494,7 +1522,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             raise ClientException(message)
         except BaseHomematicException as bhe:
             self._record_session(method=method, params=params, exc=bhe)
-            if method in (_JsonRpcMethod.SESSION_LOGIN, _JsonRpcMethod.SESSION_LOGOUT, _JsonRpcMethod.SESSION_RENEW):
+            if method in _CIRCUIT_BREAKER_BYPASS_METHODS:
                 self.clear_session()
             # Domain error at boundary -> warning
             log_boundary_error(
@@ -1509,6 +1537,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         except ClientConnectorCertificateError as cccerr:
             self.clear_session()
+            self._circuit_breaker.record_failure()
             message = f"ClientConnectorCertificateError[{cccerr}]"
             if self._tls is False and cccerr.ssl is True:
                 message = (
@@ -1529,6 +1558,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             ) from cccerr
         except ClientConnectorError as cceerr:
             self.clear_session()
+            self._circuit_breaker.record_failure()
             message = f"ClientConnectorError[{cceerr}]"
             level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
@@ -1542,6 +1572,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             raise ClientException(i18n.tr("exception.client.json_post.connector_error", reason=message)) from cceerr
         except (ClientError, OSError) as err:
             self.clear_session()
+            self._circuit_breaker.record_failure()
             level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
                 logger=_LOGGER,

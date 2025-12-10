@@ -447,6 +447,8 @@ class TestJsonRpcClientErrorHandling:
         monkeypatch.setattr(client._client_session, "post", raise_post)
         with pytest.raises(ClientException):
             await client._do_post(session_id="s", method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
+        # Reset circuit breaker to prevent accumulation across test cases
+        client.circuit_breaker.reset()
 
         # ClientConnectorCertificateError branch with https redirect hint when tls False and ssl True
         class _ConnKeyCert:
@@ -463,6 +465,8 @@ class TestJsonRpcClientErrorHandling:
             await client._do_post(session_id="s", method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
         # Check for i18n key or translated message
         assert "connector_certificate_error" in str(ce.value) or "Automatic forwarding to HTTPS" in str(ce.value)
+        # Reset circuit breaker to prevent accumulation across test cases
+        client.circuit_breaker.reset()
 
         # ClientError/OSError -> NoConnectionException
         async def raise_client_err(*args, **kwargs):  # noqa: ANN001, ARG001
@@ -471,6 +475,8 @@ class TestJsonRpcClientErrorHandling:
         monkeypatch.setattr(client._client_session, "post", raise_client_err)
         with pytest.raises(NoConnectionException):
             await client._do_post(session_id="s", method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
+        # Reset circuit breaker to prevent accumulation across test cases
+        client.circuit_breaker.reset()
 
         # Generic TypeError -> ClientException
         async def raise_type_err(*args, **kwargs):  # noqa: ANN001, ARG001

@@ -66,7 +66,7 @@ class _RpcMethod(StrEnum):
     SYSTEM_LIST_METHODS = "system.listMethods"
 
 
-_VALID_RPC_COMMANDS_ON_NO_CONNECTION: Final[tuple[str, ...]] = (
+_CIRCUIT_BREAKER_BYPASS_METHODS: Final[tuple[str, ...]] = (
     _RpcMethod.GET_VERSION,
     _RpcMethod.HOMEGEAR_INIT,
     _RpcMethod.INIT,
@@ -220,13 +220,13 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 raise UnsupportedException(i18n.tr("exception.client.xmlrpc.method_unsupported", method=method))
 
             # Check circuit breaker state (allow recovery commands through)
-            if method not in _VALID_RPC_COMMANDS_ON_NO_CONNECTION and not self._circuit_breaker.is_available:
+            if method not in _CIRCUIT_BREAKER_BYPASS_METHODS and not self._circuit_breaker.is_available:
                 self._circuit_breaker.record_rejection()
                 raise NoConnectionException(
                     i18n.tr("exception.client.xmlrpc.circuit_open", interface_id=self._interface_id)
                 )
 
-            if method in _VALID_RPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
+            if method in _CIRCUIT_BREAKER_BYPASS_METHODS or not self._connection_state.has_issue(
                 issuer=self, iid=self._interface_id
             ):
                 args = _cleanup_args(*args)

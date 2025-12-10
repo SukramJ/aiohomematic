@@ -441,7 +441,345 @@ classDiagram
 
 ---
 
+## 7. Client reconnection flow (connection recovery)
+
+```mermaid
+sequenceDiagram
+  participant Sched as BackgroundScheduler
+  participant CC as ClientCoordination
+  participant CX as ClientCCU
+  participant SM as ClientStateMachine
+  participant Proxy as BaseRpcProxy
+  participant CCU as Backend (CCU/Homegear)
+  participant CS as CentralConnectionState
+  participant EB as EventBus
+
+  Note over Sched: Periodic check_connection (120s default)
+  Sched->>CC: all_clients_active?
+
+  alt All clients inactive
+    CC-->>Sched: false
+    Sched->>CC: restart_clients()
+    Note over CC: Full client restart
+  else Check individual clients
+    CC-->>Sched: true
+
+    loop For each interface_id
+      Sched->>CC: get_client(interface_id)
+      CC-->>Sched: client
+
+      Sched->>CX: available?
+      Sched->>CX: is_connected()
+      Sched->>CX: is_callback_alive()
+
+      alt Connection unhealthy
+        Note over Sched: available=false OR not connected OR callback dead
+
+        Sched->>CX: reconnect()
+        CX->>SM: transition_to(RECONNECTING)
+
+        CX->>CX: deinitialize_proxy()
+        CX->>Proxy: stop()
+        Proxy->>CCU: de-register callback
+        CCU-->>Proxy: ok
+        Proxy-->>CX: stopped
+
+        CX->>SM: transition_to(CONNECTING)
+
+        CX->>CX: reinitialize_proxy()
+        CX->>Proxy: init(callback_url)
+        Proxy->>CCU: register callback
+        CCU-->>Proxy: ok
+        Proxy-->>CX: initialized
+
+        CX->>SM: transition_to(CONNECTED)
+        CX->>CS: remove_issue(interface_id)
+        CS->>EB: publish(InterfaceEvent, connected=true)
+
+        CX-->>Sched: reconnected
+
+        Sched->>CC: load_and_refresh_data_point_data(interface)
+        Note over CC: Refresh device data after reconnect
+      else Connection healthy
+        Note over Sched: Skip reconnect
+      end
+    end
+  end
+```
+
+### Connection health checks
+
+| Check            | Method                          | Description                           |
+| ---------------- | ------------------------------- | ------------------------------------- |
+| Client available | `client.available`              | Client not in error state             |
+| Proxy connected  | `client.is_connected()`         | Proxy init successful                 |
+| Callback alive   | `client.is_callback_alive()`    | Events received within threshold      |
+| Ping/Pong        | `check_connection_availability` | Backend responds to ping (if enabled) |
+
+### State transitions during reconnect
+
+```
+CONNECTED → RECONNECTING → CONNECTING → CONNECTED
+     │                          │
+     └──────────────────────────┴───→ FAILED (on permanent error)
+```
+
+### Notes
+
+- BackgroundScheduler runs `_check_connection` every 120 seconds (configurable via `RECONNECT_WAIT`).
+- Reconnection is attempted for each unhealthy client independently.
+- After successful reconnect, device data is refreshed via `load_and_refresh_data_point_data`.
+- CentralConnectionState tracks issues and notifies external consumers (Home Assistant) via callbacks.
+
+---
+
+## 8. Cache invalidation strategy
+
+```mermaid
+sequenceDiagram
+  participant App as Application
+  participant C as CentralUnit
+  participant CaC as CacheCoordinator
+  participant DDC as DeviceDescriptionCache
+  participant PDC as ParamsetDescriptionCache
+  participant CDC as CentralDataCache
+  participant DDtC as DeviceDetailsCache
+  participant CX as ClientCCU
+  participant CCU as Backend
+
+  Note over C: Startup - Cache Loading
+  C->>CaC: load_all()
+
+  par Load persistent caches
+    CaC->>DDC: load()
+    DDC->>DDC: check file exists & age
+    alt Cache valid (< MAX_CACHE_AGE)
+      DDC-->>CaC: loaded from disk
+    else Cache stale or missing
+      DDC->>CX: list_devices()
+      CX->>CCU: listDevices()
+      CCU-->>CX: device_descriptions
+      CX-->>DDC: device_descriptions
+      DDC->>DDC: save to disk
+      DDC-->>CaC: loaded from backend
+    end
+
+    CaC->>PDC: load()
+    PDC->>PDC: check file exists & age
+    alt Cache valid
+      PDC-->>CaC: loaded from disk
+    else Cache stale or missing
+      PDC->>CX: get_paramset_descriptions()
+      CX->>CCU: getParamsetDescription()
+      CCU-->>CX: paramset_descriptions
+      CX-->>PDC: paramset_descriptions
+      PDC->>PDC: save to disk
+      PDC-->>CaC: loaded from backend
+    end
+  end
+
+  CaC-->>C: caches loaded
+
+  Note over C: Runtime - Dynamic Cache Updates
+
+  rect rgb(240, 248, 255)
+    Note over CDC: CentralDataCache (in-memory)
+    CX->>CDC: add_data(interface, all_device_data)
+    Note over CDC: Stores parameter values per interface
+    CDC->>CDC: update _refreshed_at timestamp
+  end
+
+  rect rgb(255, 248, 240)
+    Note over DDtC: DeviceDetailsCache (in-memory)
+    CX->>DDtC: add_name(address, name)
+    CX->>DDtC: add_interface(address, interface)
+    Note over DDtC: Cached until explicit clear() or refresh
+  end
+
+  Note over C: Invalidation Triggers
+
+  alt Device added/removed (NEW_DEVICES/DELETE_DEVICES event)
+    C->>DDC: clear()
+    C->>PDC: clear()
+    C->>CX: fetch fresh descriptions
+    CX->>CCU: listDevices()
+    CCU-->>CX: updated descriptions
+    CX-->>C: devices
+    C->>DDC: save()
+    C->>PDC: save()
+  end
+
+  alt Connection lost/reconnect
+    C->>CDC: clear(interface)
+    Note over CDC: Clear stale values for interface
+    C->>CX: fetch_all_device_data()
+    CX->>CCU: getAllValues()
+    CCU-->>CX: values
+    CX-->>CDC: add_data()
+  end
+
+  alt Periodic refresh (periodic_refresh_interval)
+    C->>CDC: load(interface)
+    Note over CDC: Refresh if age > MAX_CACHE_AGE/3
+    CDC->>CX: fetch_all_device_data()
+    CX->>CCU: getAllValues()
+    CCU-->>CX: fresh values
+    CX-->>CDC: update values
+  end
+
+  alt Manual clear_all
+    App->>C: clear_all_caches()
+    C->>DDC: clear()
+    C->>PDC: clear()
+    C->>CDC: clear()
+    C->>DDtC: clear()
+  end
+```
+
+### Cache types and invalidation rules
+
+| Cache                    | Type       | Storage | Invalidation Trigger                         | TTL             |
+| ------------------------ | ---------- | ------- | -------------------------------------------- | --------------- |
+| DeviceDescriptionCache   | Persistent | Disk    | NEW_DEVICES, DELETE_DEVICES, manual clear    | MAX_CACHE_AGE   |
+| ParamsetDescriptionCache | Persistent | Disk    | Device structure change, manual clear        | MAX_CACHE_AGE   |
+| CentralDataCache         | Dynamic    | Memory  | Reconnect, periodic refresh, interface clear | MAX_CACHE_AGE/3 |
+| DeviceDetailsCache       | Dynamic    | Memory  | Explicit refresh, manual clear               | None (refresh)  |
+| CommandCache             | Dynamic    | Memory  | TTL expiry per entry, clear on write confirm | Per-entry TTL   |
+| PingPongCache            | Dynamic    | Memory  | Pong received, TTL expiry                    | Per-entry TTL   |
+| ParameterVisibilityCache | Computed   | Memory  | Never (static rules)                         | Unbounded       |
+
+### Notes
+
+- **Persistent caches** survive restarts and reduce cold-start time.
+- **Dynamic caches** are cleared on connection issues to ensure data freshness.
+- **MAX_CACHE_AGE** default is typically 24 hours for persistent caches.
+- **ParameterVisibilityCache** is intentionally unbounded (see ADR 0005).
+- Backend events (NEW_DEVICES, DELETE_DEVICES) trigger cache invalidation automatically.
+
+---
+
+## 9. Week profile update flow
+
+```mermaid
+sequenceDiagram
+  participant App as Application/Consumer
+  participant DP as CustomDpClimate
+  participant WP as WeekProfile
+  participant D as Device
+  participant CX as ClientCCU
+  participant Proxy as BaseRpcProxy
+  participant CCU as Backend
+
+  Note over App: Get current schedule
+
+  App->>DP: get_schedule(force_load=false)
+  DP->>WP: get_schedule(force_load=false)
+
+  alt Schedule cached and not forced
+    WP->>WP: return _schedule_cache
+    WP-->>DP: cached schedule_data
+  else Force load or no cache
+    WP->>WP: reload_and_cache_schedule()
+    WP->>WP: _validate_and_get_schedule_channel_address()
+
+    WP->>CX: get_paramset(channel_address, MASTER)
+    CX->>Proxy: getParamset(address, "MASTER")
+    Proxy->>CCU: getParamset(...)
+    CCU-->>Proxy: raw_paramset (all MASTER params)
+    Proxy-->>CX: raw_paramset
+    CX-->>WP: raw_paramset
+
+    WP->>WP: _convert_schedule_entries(raw_paramset)
+    Note over WP: Extract XX_WP_* entries only
+
+    WP->>WP: convert_raw_to_dict_schedule()
+    Note over WP: Convert to structured dict<br/>e.g., {1: {WEEKDAY: [...], LEVEL: 0.5}}
+
+    WP->>WP: _filter_schedule_entries()
+    WP->>WP: _schedule_cache = schedule_data
+    WP-->>DP: schedule_data
+  end
+
+  DP-->>App: schedule_data
+
+  Note over App: Modify and set new schedule
+
+  App->>App: modify schedule_data
+  App->>DP: set_schedule(schedule_data)
+  DP->>WP: set_schedule(schedule_data)
+
+  WP->>WP: _validate_and_get_schedule_channel_address()
+  WP->>WP: convert_dict_to_raw_schedule(schedule_data)
+  Note over WP: Convert back to raw format<br/>e.g., {"01_WP_WEEKDAY": 127, ...}
+
+  WP->>CX: put_paramset(channel_address, MASTER, raw_schedule)
+  CX->>Proxy: putParamset(address, "MASTER", values)
+  Proxy->>CCU: putParamset(...)
+  CCU-->>Proxy: ok
+  Proxy-->>CX: ok
+  CX-->>WP: ok
+
+  WP->>WP: reload_and_cache_schedule(force=true)
+  Note over WP: Verify write by reloading
+
+  WP->>CX: get_paramset(channel_address, MASTER)
+  CX->>CCU: getParamset(...)
+  CCU-->>CX: updated raw_paramset
+  CX-->>WP: raw_paramset
+  WP->>WP: update _schedule_cache
+  WP-->>DP: ok
+
+  DP-->>App: schedule updated
+```
+
+### Schedule data structure
+
+```python
+# Raw CCU format (MASTER paramset)
+raw_schedule = {
+    "01_WP_WEEKDAY": 127,        # Bitmask: all days
+    "01_WP_LEVEL": 0.5,          # Target level (0.0-1.0)
+    "01_WP_FIXED_HOUR": 6,       # Start hour
+    "01_WP_FIXED_MINUTE": 0,     # Start minute
+    "01_WP_ASTRO_TYPE": 0,       # Astro type enum
+    "01_WP_CONDITION": 0,        # Condition enum
+    # ... more entries for groups 01-10
+}
+
+# Structured Python format
+schedule_data = {
+    1: {
+        ScheduleField.WEEKDAY: [Weekday.MONDAY, Weekday.TUESDAY, ...],
+        ScheduleField.LEVEL: 0.5,
+        ScheduleField.FIXED_HOUR: 6,
+        ScheduleField.FIXED_MINUTE: 0,
+        ScheduleField.ASTRO_TYPE: AstroType.NONE,
+        ScheduleField.CONDITION: ScheduleCondition.NONE,
+    },
+    2: { ... },
+    # ... up to 10 schedule groups
+}
+```
+
+### Week profile types
+
+| Type               | Device Types             | Schedule Fields                   |
+| ------------------ | ------------------------ | --------------------------------- |
+| DefaultWeekProfile | Switches, lights, covers | WEEKDAY, LEVEL, TIME, ASTRO, etc. |
+| ClimateWeekProfile | Thermostats              | WEEKDAY, TEMPERATURE, TIME, etc.  |
+
+### Notes
+
+- Week profiles are stored in the MASTER paramset of the schedule channel.
+- Schedules are cached after loading to avoid repeated backend calls.
+- Conversion between raw CCU format and structured Python dicts is bidirectional.
+- Setting a schedule triggers a reload to verify the write was successful.
+- Schedule entries are identified by pattern `XX_WP_FIELDNAME` where XX is group number (01-10).
+
+---
+
 ## See also
 
 - [Architecture](../docs/architecture.md) for high-level components and responsibilities
 - [Data flow](../docs/data_flow.md) for textual data flow and additional sequence diagrams (reads/writes)
+- [ADR 0005](../docs/adr/0005-unbounded-parameter-visibility-cache.md) for cache strategy rationale

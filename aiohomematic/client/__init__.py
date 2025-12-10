@@ -52,6 +52,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
 from aiohomematic.client.handlers import (
     BackupHandler,
     DeviceOperationsHandler,
@@ -62,6 +63,7 @@ from aiohomematic.client.handlers import (
     SystemVariableHandler,
 )
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
+from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.client.state_machine import ClientStateMachine, InvalidStateTransitionError
 from aiohomematic.const import (
@@ -114,11 +116,16 @@ from aiohomematic.support import LogContextMixin, build_xml_rpc_headers, build_x
 __all__ = [
     "AioJsonRpcAioHttpClient",
     "BaseRpcProxy",
+    "CircuitBreaker",
+    "CircuitBreakerConfig",
+    "CircuitState",
+    "ClientConfig",
     "ClientState",
     "ClientStateMachine",
     "InterfaceConfig",
-    "ClientConfig",
     "InvalidStateTransitionError",
+    "RequestCoalescer",
+    "make_coalesce_key",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

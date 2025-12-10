@@ -16,7 +16,7 @@ Rules:
     configured levels, if the first positional arg (or `msg` kw) is a string literal or f-string,
     it must be wrapped using `i18n.tr(...)` or `tr(...)`.
   - Pragmas to skip a single occurrence:
-    - Inline on the same line: `# i18n-log: ignore`
+    - Inline on the same line: ``
     - On the previous line: `# i18n-log: ignore-next`
 
 Outputs lines in the form:

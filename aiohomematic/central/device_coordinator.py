@@ -45,7 +45,7 @@ from aiohomematic.interfaces.central import (
     EventSubscriptionManager,
     FileOperations,
 )
-from aiohomematic.interfaces.client import ClientProtocol, ClientProvider
+from aiohomematic.interfaces.client import ClientProvider, DeviceDiscoveryAndMetadata, DeviceDiscoveryWithIdentity
 from aiohomematic.interfaces.coordinators import CoordinatorProvider
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
@@ -520,7 +520,7 @@ class DeviceCoordinator:
         return result
 
     async def refresh_device_descriptions_and_create_missing_devices(
-        self, *, client: ClientProtocol, refresh_only_existing: bool, device_address: str | None = None
+        self, *, client: DeviceDiscoveryWithIdentity, refresh_only_existing: bool, device_address: str | None = None
     ) -> None:
         """
         Refresh device descriptions and create missing devices.
@@ -765,7 +765,7 @@ class DeviceCoordinator:
     async def _rename_new_device(
         self,
         *,
-        client: ClientProtocol,
+        client: DeviceDiscoveryAndMetadata,
         device_descriptions: tuple[DeviceDescription, ...],
         device_name: str,
     ) -> None:

@@ -4,6 +4,18 @@
 
 ### Architecture
 
+- Add combined sub-protocol interfaces to reduce coupling:
+  - **Client Combined Protocols (3):** ValueAndParamsetOperations, DeviceDiscoveryWithIdentity, DeviceDiscoveryAndMetadata
+  - **Device Combined Protocols (1):** DeviceRemovalInfo
+  - Components now depend on minimal protocol combinations instead of full composite protocols
+- Refactor components to use combined sub-protocols:
+  - CacheCoordinator.remove_device_from_caches uses DeviceRemovalInfo instead of DeviceProtocol
+  - DeviceCoordinator.refresh_device_descriptions_and_create_missing_devices uses DeviceDiscoveryWithIdentity
+  - DeviceCoordinator.\_rename_new_device uses DeviceDiscoveryAndMetadata
+  - CallParameterCollector uses ValueAndParamsetOperations instead of ClientProtocol
+  - DeviceDetailsCache.remove_device uses DeviceRemovalInfo instead of DeviceProtocol
+  - DeviceDescriptionCache.remove_device uses DeviceRemovalInfo instead of DeviceProtocol
+  - ParamsetDescriptionCache.remove_device uses DeviceRemovalInfo instead of DeviceProtocol
 - Split ClientProtocol (85 members) into 14 focused sub-protocols following Interface Segregation Principle:
   - **Core Protocols (4):** ClientIdentity, ClientConnection, ClientLifecycle, ClientCapabilities
   - **Handler-Based Protocols (9):** DeviceDiscoveryOperations, ParamsetOperations, ValueOperations,

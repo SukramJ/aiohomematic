@@ -547,6 +547,56 @@ class ClientSupport(Protocol):
 
 
 # =============================================================================
+# Client Combined Sub-Protocol Interfaces
+# =============================================================================
+
+
+@runtime_checkable
+class ValueAndParamsetOperations(ValueOperations, ParamsetOperations, Protocol):
+    """
+    Combined protocol for value and paramset operations.
+
+    Used by components that need to send values to the backend,
+    either individually (set_value) or in batches (put_paramset).
+    Reduces coupling compared to using full ClientProtocol.
+
+    Implemented by: ClientCCU, ClientJsonCCU, ClientHomegear
+    """
+
+    __slots__ = ()
+
+
+@runtime_checkable
+class DeviceDiscoveryWithIdentity(DeviceDiscoveryOperations, ClientIdentity, Protocol):
+    """
+    Combined protocol for device discovery with client identity.
+
+    Used by components that need to discover devices and access
+    basic client identification (interface_id, interface).
+    Reduces coupling compared to using full ClientProtocol.
+
+    Implemented by: ClientCCU, ClientJsonCCU, ClientHomegear
+    """
+
+    __slots__ = ()
+
+
+@runtime_checkable
+class DeviceDiscoveryAndMetadata(DeviceDiscoveryOperations, MetadataOperations, Protocol):
+    """
+    Combined protocol for device discovery and metadata operations.
+
+    Used by components that need to discover devices and perform
+    metadata operations like renaming devices/channels.
+    Reduces coupling compared to using full ClientProtocol.
+
+    Implemented by: ClientCCU, ClientJsonCCU, ClientHomegear
+    """
+
+    __slots__ = ()
+
+
+# =============================================================================
 # Client Composite Protocol Interface
 # =============================================================================
 

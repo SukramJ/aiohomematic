@@ -21,7 +21,7 @@ from typing import Final
 from aiohomematic.const import DataOperationResult, Interface
 from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, DataPointProvider, DeviceProvider
 from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
-from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.interfaces.model import DeviceRemovalInfo
 from aiohomematic.interfaces.operations import TaskScheduler
 from aiohomematic.store import (
     CentralDataCache,
@@ -195,7 +195,7 @@ class CacheCoordinator:
         """
         await self._data_cache.load(interface=interface)
 
-    def remove_device_from_caches(self, *, device: DeviceProtocol) -> None:
+    def remove_device_from_caches(self, *, device: DeviceRemovalInfo) -> None:
         """
         Remove a device from all relevant caches.
 

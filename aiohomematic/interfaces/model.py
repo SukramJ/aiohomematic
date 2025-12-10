@@ -1671,6 +1671,26 @@ class DeviceLifecycle(Protocol):
 
 
 # =============================================================================
+# Device Combined Sub-Protocol Interfaces
+# =============================================================================
+
+
+@runtime_checkable
+class DeviceRemovalInfo(DeviceIdentity, DeviceChannelAccess, Protocol):
+    """
+    Combined protocol for device removal operations.
+
+    Used by cache and store components that need to remove device data.
+    Provides access to device address, interface_id, and channel addresses.
+    Reduces coupling compared to using full DeviceProtocol.
+
+    Implemented by: Device
+    """
+
+    __slots__ = ()
+
+
+# =============================================================================
 # Device Composite Protocol Interface
 # =============================================================================
 

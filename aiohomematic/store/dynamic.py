@@ -60,7 +60,7 @@ from aiohomematic.interfaces.central import (
     EventPublisher,
 )
 from aiohomematic.interfaces.client import ClientProvider, DataCacheWriter, DeviceDetailsWriter, PrimaryClientProvider
-from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.interfaces.model import DeviceRemovalInfo
 from aiohomematic.interfaces.operations import DeviceDetailsProvider
 from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 from aiohomematic.support import changed_within_seconds, get_device_address
@@ -377,7 +377,7 @@ class DeviceDetailsCache(DeviceDetailsProvider, DeviceDetailsWriter):
         self._functions.update(await self._get_all_functions())
         self._refreshed_at = datetime.now()
 
-    def remove_device(self, *, device: DeviceProtocol) -> None:
+    def remove_device(self, *, device: DeviceRemovalInfo) -> None:
         """Remove device data from all caches."""
         # Clean device-level entries
         self._names_cache.pop(device.address, None)

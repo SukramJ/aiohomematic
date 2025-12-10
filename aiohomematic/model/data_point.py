@@ -66,7 +66,7 @@ from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces.central import CentralInfo, EventBusProvider, EventPublisher
-from aiohomematic.interfaces.client import ClientProtocol
+from aiohomematic.interfaces.client import ClientProtocol, ValueAndParamsetOperations
 from aiohomematic.interfaces.model import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
@@ -1159,9 +1159,9 @@ class CallParameterCollector:
         "_paramsets",
     )
 
-    def __init__(self, *, client: ClientProtocol) -> None:
+    def __init__(self, *, client: ValueAndParamsetOperations) -> None:
         """Initialize the generator."""
-        self._client: Final = client
+        self._client: Final[ValueAndParamsetOperations] = client
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}
         self._paramsets: Final[dict[ParamsetKey, dict[int, dict[str, dict[str, Any]]]]] = {}
 

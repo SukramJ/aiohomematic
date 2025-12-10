@@ -11,6 +11,10 @@
     BackupOperations, MetadataOperations
   - **Support Protocol (1):** ClientSupport (utility methods and caches)
   - Handler classes explicitly inherit their sub-protocols for compile-time type checking
+- Add CentralProtocol composite protocol combining 29 sub-protocols:
+  - CentralUnit now inherits from CentralProtocol (+ PayloadMixin, LogContextMixin)
+  - Provides single protocol for complete central unit access
+  - Maintains ability to depend on specific sub-protocols for better decoupling
 - Add CircuitBreaker integration to JSON-RPC client (AioJsonRpcAioHttpClient):
   - Prevents retry-storms during backend outages for JSON-RPC calls
   - Consistent resilience pattern across both XML-RPC and JSON-RPC clients
@@ -18,6 +22,10 @@
 - Add RequestCoalescer for get_device_description in DeviceOperationsHandler:
   - Deduplicates concurrent requests for the same device address
   - Reduces backend load during device discovery
+- Add explicit protocol inheritance to coordinators:
+  - EventCoordinator now inherits from EventBusProvider, EventPublisher, LastEventTracker, InterfaceEventPublisher
+  - HubCoordinator now inherits from HubDataFetcher, HubDataPointManager
+  - Improves type safety and removes type: ignore comments
 
 ### Documentation
 

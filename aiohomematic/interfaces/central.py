@@ -464,3 +464,120 @@ class RpcServerTaskScheduler(Protocol):
         name: str,
     ) -> None:
         """Create and schedule an async task."""
+
+
+# =============================================================================
+# CentralProtocol Composite
+# =============================================================================
+
+# Import protocols from other interface modules for CentralProtocol composition.
+# These imports are placed here (after all local protocols are defined) to avoid
+# circular import issues while allowing proper inheritance.
+from aiohomematic.interfaces.client import (  # noqa: E402
+    CallbackAddressProvider,
+    ClientCoordination,
+    ClientDependencies,
+    ClientFactory,
+    ClientProvider,
+    ConnectionStateProvider,
+    DeviceLookup,
+    InterfaceEventPublisher,
+    JsonRpcClientProvider,
+    LastEventTracker,
+    NewDeviceHandler,
+    PrimaryClientProvider,
+    SessionRecorderProvider,
+)
+from aiohomematic.interfaces.coordinators import CoordinatorProvider  # noqa: E402
+
+
+@runtime_checkable
+class CentralProtocol(
+    # From interfaces/central.py (this module)
+    BackupProvider,
+    CentralInfo,
+    CentralUnitStateProvider,
+    ChannelLookup,
+    ConfigProvider,
+    DataPointProvider,
+    DeviceDataRefresher,
+    DeviceProvider,
+    EventBusProvider,
+    EventPublisher,
+    EventSubscriptionManager,
+    FileOperations,
+    HubDataFetcher,
+    HubDataPointManager,
+    SystemInfoProvider,
+    # From interfaces/client.py
+    CallbackAddressProvider,
+    ClientCoordination,
+    ClientDependencies,
+    ClientFactory,
+    ClientProvider,
+    ConnectionStateProvider,
+    DeviceLookup,
+    InterfaceEventPublisher,
+    JsonRpcClientProvider,
+    LastEventTracker,
+    NewDeviceHandler,
+    PrimaryClientProvider,
+    SessionRecorderProvider,
+    # From interfaces/coordinators.py
+    CoordinatorProvider,
+    Protocol,
+):
+    """
+    Composite protocol for CentralUnit.
+
+    Combines all sub-protocols that CentralUnit implements, providing a single
+    protocol for complete central unit access while maintaining the ability to
+    depend on specific sub-protocols when only partial functionality is needed.
+
+    Sub-protocols are organized into categories:
+
+    **Identity & Configuration:**
+        - CentralInfo: Central system identification
+        - CentralUnitStateProvider: Central unit lifecycle state
+        - ConfigProvider: Configuration access
+        - SystemInfoProvider: Backend system information
+
+    **Event System:**
+        - EventBusProvider: Access to the central event bus
+        - EventPublisher: Publishing backend and Homematic events
+        - InterfaceEventPublisher: Interface-specific event publishing
+        - EventSubscriptionManager: Managing event subscriptions
+        - LastEventTracker: Tracking last event timestamps
+
+    **Cache & Data Access:**
+        - DataPointProvider: Find data points
+        - DeviceProvider: Access device registry
+        - ChannelLookup: Find channels by address
+        - DeviceLookup: Find devices by address
+        - FileOperations: File I/O operations
+
+    **Device Operations:**
+        - DeviceDataRefresher: Refresh device data from backend
+        - NewDeviceHandler: Handle new device discovery
+        - BackupProvider: Backup operations
+
+    **Hub Operations:**
+        - HubDataFetcher: Fetch hub data
+        - HubDataPointManager: Manage hub data points
+
+    **Client Management:**
+        - ClientProvider: Lookup clients by interface_id
+        - ClientFactory: Create new client instances
+        - ClientDependencies: Dependencies for clients
+        - ClientCoordination: Client coordination operations
+        - PrimaryClientProvider: Access to primary client
+        - JsonRpcClientProvider: JSON-RPC client access
+        - ConnectionStateProvider: Connection state information
+        - CallbackAddressProvider: Callback address management
+        - SessionRecorderProvider: Session recording access
+
+    **Coordinators:**
+        - CoordinatorProvider: Access to coordinators
+    """
+
+    __slots__ = ()

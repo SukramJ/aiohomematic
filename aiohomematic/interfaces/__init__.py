@@ -157,6 +157,8 @@ from __future__ import annotations
 from aiohomematic.interfaces.central import (
     BackupProvider,
     CentralInfo,
+    # Central composite protocol
+    CentralProtocol,
     CentralUnitStateProvider,
     ChannelLookup,
     ConfigProvider,
@@ -259,6 +261,8 @@ from aiohomematic.interfaces.operations import (
 )
 
 __all__ = [
+    # Central Composite Protocol
+    "CentralProtocol",
     # Identity & Configuration
     "CentralInfo",
     "CentralUnitStateProvider",

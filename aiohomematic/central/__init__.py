@@ -144,40 +144,8 @@ from aiohomematic.exceptions import (
     BaseHomematicException,
     NoClientsException,
 )
-from aiohomematic.interfaces.central import (
-    BackupProvider,
-    CentralInfo,
-    CentralUnitStateProvider,
-    ChannelLookup,
-    ConfigProvider,
-    DataPointProvider,
-    DeviceDataRefresher,
-    DeviceProvider,
-    EventBusProvider,
-    EventPublisher,
-    EventSubscriptionManager,
-    FileOperations,
-    HubDataFetcher,
-    HubDataPointManager,
-    SystemInfoProvider,
-)
-from aiohomematic.interfaces.client import (
-    CallbackAddressProvider,
-    ClientCoordination,
-    ClientDependencies,
-    ClientFactory,
-    ClientProtocol,
-    ClientProvider,
-    ConnectionStateProvider,
-    DeviceLookup,
-    InterfaceEventPublisher,
-    JsonRpcClientProvider,
-    LastEventTracker,
-    NewDeviceHandler,
-    PrimaryClientProvider,
-    SessionRecorderProvider,
-)
-from aiohomematic.interfaces.coordinators import CoordinatorProvider
+from aiohomematic.interfaces.central import CentralProtocol
+from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
     BaseParameterDataPointProtocol,
     CallbackDataPointProtocol,
@@ -240,40 +208,12 @@ StateChangeCallback = Callable[[str, bool], None]  # (interface_id, connected)
 
 class CentralUnit(
     PayloadMixin,
-    BackupProvider,
-    CallbackAddressProvider,
-    CentralInfo,
-    CentralUnitStateProvider,
-    ChannelLookup,
-    ClientCoordination,
-    ClientDependencies,
-    ClientFactory,
-    ClientProvider,
-    ConfigProvider,
-    ConnectionStateProvider,
-    CoordinatorProvider,
-    DataPointProvider,
-    DeviceDataRefresher,
-    DeviceLookup,
-    DeviceProvider,
-    EventBusProvider,
-    EventPublisher,
-    EventSubscriptionManager,
-    FileOperations,
-    HubDataFetcher,
-    HubDataPointManager,
-    InterfaceEventPublisher,
-    JsonRpcClientProvider,
-    LastEventTracker,
     LogContextMixin,
-    NewDeviceHandler,
-    PrimaryClientProvider,
-    SessionRecorderProvider,
-    SystemInfoProvider,
+    CentralProtocol,
 ):
     """Central unit that collects everything to handle communication from/to the backend."""
 
-    def __init__(self, *, central_config: CentralConfig) -> None:
+    def __init__(self, *, central_config: CentralConfig) -> None:  # pylint: disable=super-init-not-called
         """Initialize the central unit."""
         self._state: CentralUnitState = CentralUnitState.NEW
         self._connection_state: Final = CentralConnectionState()
@@ -1141,7 +1081,7 @@ class CentralUnit(
 
     def remove_program_button(self, *, pid: str) -> None:
         """Remove a program button."""
-        self._hub_coordinator.remove_program_data_point(pid=pid)
+        self._hub_coordinator.remove_program_button(pid=pid)
 
     def remove_sysvar_data_point(self, *, vid: str) -> None:
         """Remove a sysvar data_point."""

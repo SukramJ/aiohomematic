@@ -37,7 +37,8 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from aiohomematic.interfaces.client import ClientProvider
+from aiohomematic.interfaces.central import EventBusProvider, EventPublisher
+from aiohomematic.interfaces.client import ClientProvider, InterfaceEventPublisher, LastEventTracker
 from aiohomematic.interfaces.model import BaseParameterDataPointProtocol, GenericDataPointProtocol, GenericEventProtocol
 from aiohomematic.interfaces.operations import TaskScheduler
 from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
@@ -46,7 +47,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 
 
-class EventCoordinator:
+class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker, InterfaceEventPublisher):
     """Coordinator for event subscription and handling."""
 
     __slots__ = (

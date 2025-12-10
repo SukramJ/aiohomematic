@@ -683,8 +683,8 @@ class ClientCoordination(Protocol):
         """Get clients that require polling."""
 
     @abstractmethod
-    def get_client(self, *, interface_id: str) -> ClientProtocol:
-        """Get client by interface ID."""
+    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
+        """Get client by interface_id or interface type."""
 
     @abstractmethod
     async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:

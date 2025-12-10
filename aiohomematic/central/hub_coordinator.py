@@ -23,7 +23,15 @@ from aiohomematic import i18n
 from aiohomematic.central.event_bus import SysvarUpdatedEvent
 from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.central import CentralInfo, ChannelLookup, ConfigProvider, EventBusProvider, EventPublisher
+from aiohomematic.interfaces.central import (
+    CentralInfo,
+    ChannelLookup,
+    ConfigProvider,
+    EventBusProvider,
+    EventPublisher,
+    HubDataFetcher,
+    HubDataPointManager,
+)
 from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
 from aiohomematic.interfaces.model import GenericProgramDataPointProtocol, GenericSysvarDataPointProtocol
 from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
@@ -32,7 +40,7 @@ from aiohomematic.model.hub import Hub, InstallModeDpType, ProgramDpType
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HubCoordinator:
+class HubCoordinator(HubDataFetcher, HubDataPointManager):
     """Coordinator for hub-level entities (programs and system variables)."""
 
     __slots__ = (
@@ -94,8 +102,8 @@ class HubCoordinator:
             config_provider=config_provider,
             event_bus_provider=event_bus_provider,
             event_publisher=event_publisher,
-            hub_data_fetcher=self,  # HubCoordinator implements HubDataFetcher
-            hub_data_point_manager=self,  # type: ignore[arg-type]  # HubCoordinator implements HubDataPointManager
+            hub_data_fetcher=self,
+            hub_data_point_manager=self,
             parameter_visibility_provider=parameter_visibility_provider,
             paramset_description_provider=paramset_description_provider,
             primary_client_provider=primary_client_provider,
@@ -371,9 +379,9 @@ class HubCoordinator:
         """Publish HUB_REFRESHED event for install mode data points."""
         self._hub.publish_install_mode_refreshed()
 
-    def remove_program_data_point(self, *, pid: str) -> None:
+    def remove_program_button(self, *, pid: str) -> None:
         """
-        Remove a program data point.
+        Remove a program button.
 
         Args:
         ----
@@ -386,7 +394,7 @@ class HubCoordinator:
             self._program_data_points.pop(pid, None)
             self._state_path_to_name.pop(program_dp.button.state_path, None)
             _LOGGER.debug(
-                "REMOVE_PROGRAM_DATA_POINT: Removed program %s from %s",
+                "REMOVE_PROGRAM_BUTTON: Removed program %s from %s",
                 pid,
                 self._central_info.name,
             )

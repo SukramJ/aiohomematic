@@ -1,3 +1,41 @@
+# Version 2025.12.19 (2025-12-10)
+
+## What's Changed
+
+### Architecture
+
+- Split ClientProtocol (85 members) into 14 focused sub-protocols following Interface Segregation Principle:
+  - **Core Protocols (4):** ClientIdentity, ClientConnection, ClientLifecycle, ClientCapabilities
+  - **Handler-Based Protocols (9):** DeviceDiscoveryOperations, ParamsetOperations, ValueOperations,
+    LinkOperations, FirmwareOperations, SystemVariableOperations, ProgramOperations,
+    BackupOperations, MetadataOperations
+  - **Support Protocol (1):** ClientSupport (utility methods and caches)
+  - Handler classes explicitly inherit their sub-protocols for compile-time type checking
+- Add CentralProtocol composite protocol combining 29 sub-protocols:
+  - CentralUnit now inherits from CentralProtocol (+ PayloadMixin, LogContextMixin)
+  - Provides single protocol for complete central unit access
+  - Maintains ability to depend on specific sub-protocols for better decoupling
+- Add CircuitBreaker integration to JSON-RPC client (AioJsonRpcAioHttpClient):
+  - Prevents retry-storms during backend outages for JSON-RPC calls
+  - Consistent resilience pattern across both XML-RPC and JSON-RPC clients
+  - Session management methods (login/logout/renew) bypass circuit breaker
+- Add RequestCoalescer for get_device_description in DeviceOperationsHandler:
+  - Deduplicates concurrent requests for the same device address
+  - Reduces backend load during device discovery
+- Add explicit protocol inheritance to coordinators:
+  - EventCoordinator now inherits from EventBusProvider, EventPublisher, LastEventTracker, InterfaceEventPublisher
+  - HubCoordinator now inherits from HubDataFetcher, HubDataPointManager
+  - Improves type safety and removes type: ignore comments
+
+### Documentation
+
+- Update architecture_analysis.md with comprehensive evaluation:
+  - Accurate metrics: 43,218 LOC across 102 files, 63 protocol interfaces
+  - Detailed module breakdown (central, client, model, interfaces, store)
+  - New sections for CircuitBreaker, RequestCoalescer, and Handler patterns
+  - Architecture maturity assessment with ratings
+  - ADR reference table with all 8 decisions
+
 # Version 2025.12.18 (2025-12-10)
 
 ## What's Changed

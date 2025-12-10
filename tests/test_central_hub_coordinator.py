@@ -380,8 +380,8 @@ class TestHubCoordinatorProgramOperations:
         retrieved = coordinator.get_program_data_point(pid="999")
         assert retrieved is None
 
-    def test_remove_program_data_point(self) -> None:
-        """Remove program data point should unsubscribe the program."""
+    def test_remove_program_button(self) -> None:
+        """Remove program button should unsubscribe the program."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
             central_info=central,
@@ -403,7 +403,7 @@ class TestHubCoordinatorProgramOperations:
         coordinator.add_program_data_point(program_dp=program_dp)
         assert "123" in coordinator._program_data_points
 
-        coordinator.remove_program_data_point(pid="123")
+        coordinator.remove_program_button(pid="123")
 
         # Should be removed
         assert "123" not in coordinator._program_data_points
@@ -847,7 +847,7 @@ class TestHubCoordinatorIntegration:
         assert result is True
 
         # Remove program
-        coordinator.remove_program_data_point(pid="123")
+        coordinator.remove_program_button(pid="123")
         assert coordinator.get_program_data_point(pid="123") is None
 
     @pytest.mark.asyncio

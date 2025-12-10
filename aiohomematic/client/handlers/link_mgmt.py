@@ -13,6 +13,7 @@ from aiohomematic import i18n
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
+from aiohomematic.interfaces.client import LinkOperations
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -24,9 +25,11 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class LinkManagementHandler(BaseHandler):
+class LinkManagementHandler(BaseHandler, LinkOperations):
     """
     Handler for device linking operations.
+
+    Implements LinkOperations protocol for ISP-compliant client operations.
 
     Handles:
     - Adding links between devices

@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.18"
+VERSION: Final = "2025.12.19"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1256,17 +1256,12 @@ class SystemInformation:
     ccu_type: CCUType = CCUType.UNKNOWN
 
     @property
-    def is_ccu(self) -> bool:
-        """Return True if backend is original CCU or debmatic."""
-        return self.ccu_type == CCUType.CCU
-
-    @property
     def is_openccu(self) -> bool:
         """Return True if backend is OpenCCU or RaspberryMatic."""
         return self.ccu_type == CCUType.OPENCCU
 
     @property
-    def supports_online_update_check(self) -> bool:
+    def supports_backup(self) -> bool:
         """Return True if backend supports online firmware update checks."""
         return self.ccu_type == CCUType.OPENCCU
 

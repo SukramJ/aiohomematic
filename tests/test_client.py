@@ -631,14 +631,18 @@ class TestClientClasses:
         client_ccu = _ClientCCU(client_config=ccfg)
         client_json = _ClientJsonCCU(client_config=ccfg)
 
-        # Provide a fake xml-rpc proxy to client_ccu
+        # Provide a fake xml-rpc proxy and system information to client_ccu
+        from aiohomematic.const import SystemInformation
+
         client_ccu._proxy = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
         client_ccu._proxy_read = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_ccu._system_information = SystemInformation()  # type: ignore[attr-defined]
         client_ccu._init_handlers()
 
-        # Provide a fake xml-rpc proxy to client_json
+        # Provide a fake xml-rpc proxy and system information to client_json
         client_json._proxy = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
         client_json._proxy_read = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_json._system_information = SystemInformation()  # type: ignore[attr-defined]
         client_json._init_handlers()
 
         # Simple properties and __str__ and product groups
@@ -768,9 +772,12 @@ class TestClientClasses:
         ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
         client_ccu = _ClientCCU(client_config=ccfg)
 
-        # Provide fake proxies and initialize handlers
+        # Provide fake proxies, system information and initialize handlers
+        from aiohomematic.const import SystemInformation
+
         client_ccu._proxy = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
         client_ccu._proxy_read = _FakeXmlRpcProxy()  # type: ignore[attr-defined]
+        client_ccu._system_information = SystemInformation()  # type: ignore[attr-defined]
         client_ccu._init_handlers()
 
         # Patch json client to raise ClientException on get_all_device_data
@@ -959,9 +966,12 @@ class TestClientProxyLifecycle:
 
         client = ClientCCU(client_config=ccfg)
 
-        # Patch proxies on client directly and initialize handlers
+        # Patch proxies, system information on client directly and initialize handlers
+        from aiohomematic.const import SystemInformation
+
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()  # Initialize handlers after setting proxies
 
         # Transition state machine to INITIALIZED (simulate init_client completion)
@@ -1053,11 +1063,14 @@ class TestClientValueAndParamset:
     @pytest.mark.asyncio
     async def test_get_device_descriptions_and_wrappers_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Cover get_all_device_descriptions and link/metadata wrappers raising ClientException."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()  # Initialize handlers after setting proxies
 
         res = await client.get_all_device_descriptions(device_address="dev1")
@@ -1090,11 +1103,14 @@ class TestClientValueAndParamset:
     @pytest.mark.asyncio
     async def test_set_value_and_put_paramset_paths_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Cover set_value/_set_value branches including validation errors."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()  # Initialize handlers after setting proxies
 
         dpk_values = await client._set_value(
@@ -1141,11 +1157,14 @@ class TestClientFirmwareAndUpdates:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Cover update_device_firmware branches and update_paramset_descriptions missing cases."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()  # Initialize handlers after setting proxies
 
         assert await client.update_device_firmware(device_address="dev1") is False
@@ -1243,6 +1262,8 @@ class TestClientInstallMode:
     @pytest.mark.asyncio
     async def test_get_install_mode_raises_on_error(self) -> None:
         """get_install_mode should raise ClientException on proxy error."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
@@ -1253,6 +1274,7 @@ class TestClientInstallMode:
 
         client._proxy = _ErrProxy()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()
 
         with pytest.raises(ClientException):
@@ -1261,6 +1283,8 @@ class TestClientInstallMode:
     @pytest.mark.asyncio
     async def test_get_install_mode_returns_zero_on_none(self) -> None:
         """get_install_mode should return 0 when proxy returns None."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
@@ -1271,6 +1295,7 @@ class TestClientInstallMode:
 
         client._proxy = _NoneProxy()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()
 
         result = await client.get_install_mode()
@@ -1279,11 +1304,14 @@ class TestClientInstallMode:
     @pytest.mark.asyncio
     async def test_get_install_mode_success(self) -> None:
         """get_install_mode should return the remaining time in install mode."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()
 
         result = await client.get_install_mode()
@@ -1292,6 +1320,8 @@ class TestClientInstallMode:
     @pytest.mark.asyncio
     async def test_set_install_mode_raises_on_error(self) -> None:
         """set_install_mode should raise ClientException on proxy error."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
@@ -1302,6 +1332,7 @@ class TestClientInstallMode:
 
         client._proxy = _ErrProxy()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()
 
         with pytest.raises(ClientException):
@@ -1310,11 +1341,14 @@ class TestClientInstallMode:
     @pytest.mark.asyncio
     async def test_set_install_mode_success(self) -> None:
         """set_install_mode should return True on success."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()
 
         result = await client.set_install_mode(on=True, time=60, mode=1)
@@ -1323,6 +1357,8 @@ class TestClientInstallMode:
     @pytest.mark.asyncio
     async def test_set_install_mode_with_device_address(self) -> None:
         """set_install_mode should pass device_address when provided."""
+        from aiohomematic.const import SystemInformation
+
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
@@ -1335,6 +1371,7 @@ class TestClientInstallMode:
 
         client._proxy = _TrackingProxy()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
         client._init_handlers()
 
         await client.set_install_mode(on=True, time=120, mode=2, device_address="ABC123")

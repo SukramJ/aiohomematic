@@ -1,49 +1,104 @@
 !# name: trigger_firmware_update.fn
 !#
-!# This script triggers the CCU firmware update process.
-!# Requires firmware to be already downloaded to /usr/local/.firmwareUpdate
-!# Works for CCU3/OpenCCU/RaspberryMatic.
+!# This script triggers an unattended firmware update.
+!# Only supported on OpenCCU/RaspberryMatic (uses checkFirmwareUpdate.sh).
+!#
+!# The script validates:
+!# 1. checkFirmwareUpdate.sh exists and is executable
+!# 2. Script supports required flags (-a, -r) via --help output
+!#
+!# Then runs the update with flags:
+!# -a = apply update (download and stage)
+!# -r = reboot immediately after staging
+!#
+!# Note: Backup (-b) is NOT used here. Use create_backup_and_download()
+!# before triggering the firmware update to download a backup.
+!#
+!# Exit codes from checkFirmwareUpdate.sh:
+!# 0 = no update available
+!# 1 = update available
+!# 2 = update scheduled (applied)
+!# 3 = update applied with immediate reboot
+!# >3 = error
 !#
 
 string sResult = "";
-boolean bFirmwareExists = false;
+boolean bScriptAvailable = false;
 boolean bSuccess = false;
+integer iExitCode = 0;
+string sMessage = "";
 
-!# Check if firmware file exists
-sResult = "";
-system.Exec("test -f /usr/local/.firmwareUpdate && echo 'OK' || test -L /usr/local/.firmwareUpdate && echo 'OK' || echo 'FAIL'", &sResult);
-sResult = sResult.Trim();
+!# Check if checkFirmwareUpdate.sh is available and supports required flags
+system.Exec("test -x /bin/checkFirmwareUpdate.sh && /bin/checkFirmwareUpdate.sh --help 2>&1", &sResult);
+if (sResult) {
+    !# Verify script supports required flags: -a (apply), -r (reboot)
+    boolean bHasApply = (sResult.Find("-a") >= 0);
+    boolean bHasReboot = (sResult.Find("-r") >= 0);
 
-if (sResult == "OK") {
-    bFirmwareExists = true;
+    if (bHasApply && bHasReboot) {
+        bScriptAvailable = true;
+    }
 }
 
-if (bFirmwareExists) {
-    !# Save system state
+if (bScriptAvailable) {
+    !# Save system state before update
     system.Save();
 
-    !# Set recovery mode flag (triggers update on reboot)
+    !# Run checkFirmwareUpdate.sh with flags:
+    !# -a = apply update (download and stage)
+    !# -r = reboot immediately after staging
+    !# Note: Use create_backup_and_download() before this for backup
     sResult = "";
-    system.Exec("/bin/sh -c 'touch /usr/local/.recoveryMode'", &sResult);
+    system.Exec("/bin/checkFirmwareUpdate.sh -a -r 2>&1; echo \"EXIT_CODE=$?\"", &sResult);
 
-    !# Verify recovery mode was set
-    sResult = "";
-    system.Exec("test -f /usr/local/.recoveryMode && echo 'OK' || echo 'FAIL'", &sResult);
-    sResult = sResult.Trim();
-
-    if (sResult == "OK") {
-        bSuccess = true;
-        !# Trigger reboot (non-blocking)
-        system.Exec("/bin/sh -c '/sbin/reboot -d 5 2>/dev/null >/dev/null &'", &sResult);
+    !# Parse exit code
+    integer iPos = sResult.Find("EXIT_CODE=");
+    if (iPos >= 0) {
+        string sTemp = sResult.Substr(iPos + 10, sResult.Length());
+        iPos = sTemp.Find("\n");
+        if (iPos > 0) {
+            sTemp = sTemp.Substr(0, iPos).Trim();
+        } else {
+            sTemp = sTemp.Trim();
+        }
+        iExitCode = sTemp.ToInteger();
     }
-}
 
-if (bSuccess) {
-    Write('{"success":true,"message":"Update started, system is rebooting"}');
-} else {
-    if (bFirmwareExists) {
-        Write('{"success":false,"message":"Failed to set recovery mode"}');
+    !# Interpret exit code
+    if (iExitCode == 0) {
+        sMessage = "No update available";
     } else {
-        Write('{"success":false,"message":"No firmware file found at /usr/local/.firmwareUpdate"}');
+        if (iExitCode == 1) {
+            sMessage = "Update available but not applied";
+        } else {
+            if (iExitCode == 2) {
+                bSuccess = true;
+                sMessage = "Update scheduled, will be applied on next reboot";
+            } else {
+                if (iExitCode == 3) {
+                    bSuccess = true;
+                    sMessage = "Update applied, system is rebooting";
+                } else {
+                    sMessage = "Error during update (exit code: " # iExitCode.ToString() # ")";
+                }
+            }
+        }
     }
+} else {
+    sMessage = "checkFirmwareUpdate.sh not available or missing required flags (only supported on OpenCCU/RaspberryMatic)";
 }
+
+Write('{"success":');
+if (bSuccess) {
+    Write('true,');
+} else {
+    Write('false,');
+}
+Write('"exit_code":' # iExitCode.ToString() # ',');
+Write('"script_available":');
+if (bScriptAvailable) {
+    Write('true,');
+} else {
+    Write('false,');
+}
+Write('"message":"' # sMessage # '"}');

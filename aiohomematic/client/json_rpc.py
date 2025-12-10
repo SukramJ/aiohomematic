@@ -129,6 +129,7 @@ class _JsonKey(StrEnum):
     AVAILABLE_FIRMWARE = "available_firmware"
     CHANNELS = "channels"
     CHANNEL_IDS = "channelIds"
+    CHECK_SCRIPT_AVAILABLE = "check_script_available"
     CURRENT_FIRMWARE = "current_firmware"
     DESCRIPTION = "description"
     DEVICE_ADDRESS = "device_address"
@@ -1042,6 +1043,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     current_firmware=json_result.get(_JsonKey.CURRENT_FIRMWARE, ""),
                     available_firmware=json_result.get(_JsonKey.AVAILABLE_FIRMWARE, ""),
                     update_available=json_result.get(_JsonKey.UPDATE_AVAILABLE, False),
+                    check_script_available=json_result.get(_JsonKey.CHECK_SCRIPT_AVAILABLE, False),
                 )
         except JSONDecodeError as jderr:
             _LOGGER.error(
@@ -1325,13 +1327,41 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             await self._client_session.close()
 
     async def trigger_firmware_update(self) -> bool:
-        """Trigger the CCU firmware update process."""
+        """
+        Trigger unattended firmware update.
+
+        Only supported on OpenCCU/RaspberryMatic (uses checkFirmwareUpdate.sh).
+        The script will download the update, create a backup, and reboot to apply.
+
+        Returns:
+            True if update was successfully triggered, False otherwise.
+
+        """
         try:
             response = await self._post_script(script_name=RegaScript.TRIGGER_FIRMWARE_UPDATE)
 
             _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: Triggering firmware update")
             if json_result := response[_JsonKey.RESULT]:
-                return bool(json_result.get("success", False))
+                success = bool(json_result.get(_JsonKey.SUCCESS, False))
+                message = json_result.get(_JsonKey.MESSAGE, "")
+                exit_code = json_result.get("exit_code", -1)
+
+                if success:
+                    _LOGGER.info(
+                        i18n.tr(
+                            "log.client.json_rpc.trigger_firmware_update.success",
+                            message=message,
+                        )
+                    )
+                else:
+                    _LOGGER.warning(
+                        i18n.tr(
+                            "log.client.json_rpc.trigger_firmware_update.not_triggered",
+                            message=message,
+                            exit_code=exit_code,
+                        )
+                    )
+                return success
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(

@@ -574,8 +574,16 @@ class Hub(HubProtocol):
             )
 
     async def _update_system_update_data_point(self) -> None:
-        """Retrieve system update info and update the data point."""
+        """
+        Retrieve system update info and update the data point.
+
+        Only supported on OpenCCU/RaspberryMatic.
+        """
         if not (client := self._primary_client_provider.primary_client):
+            return
+
+        # Only supported on OpenCCU/RaspberryMatic
+        if not client.system_information.supports_backup:
             return
 
         if (update_data := await client.get_system_update_info()) is None:

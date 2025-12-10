@@ -1296,6 +1296,7 @@ class SystemUpdateData:
     current_firmware: str
     available_firmware: str
     update_available: bool
+    check_script_available: bool = False
 
 
 class BackupStatus(StrEnum):

@@ -171,6 +171,8 @@
   "log.client.json_rpc.rename_device.failed": "RENAME_DEVICE für {device_address} fehlgeschlagen: JSON konnte nicht dekodiert werden: {reason}",
   "log.client.json_rpc.set_system_variable.value_contains_html": "SET_SYSTEM_VARIABLE: Wert ({value}) enthält HTML-Tags. Diese werden beim Schreiben herausgefiltert.",
   "log.client.json_rpc.trigger_firmware_update.failed": "TRIGGER_FIRMWARE_UPDATE fehlgeschlagen: JSON konnte nicht dekodiert werden: {reason}",
+  "log.client.json_rpc.trigger_firmware_update.not_triggered": "TRIGGER_FIRMWARE_UPDATE: {message} (Exit-Code: {exit_code})",
+  "log.client.json_rpc.trigger_firmware_update.success": "TRIGGER_FIRMWARE_UPDATE: {message}",
   "log.client.reconnect.reconnected": "RECONNECT: Client {interface_id} wurde erneut verbunden",
   "log.client.update_device_firmware.result": "UPDATE_DEVICE_FIRMWARE: Firmware-Update für {device_address} ausgeführt mit Ergebnis '{result}'",
   "log.client.update_device_firmware.try": "UPDATE_DEVICE_FIRMWARE: Firmware-Update für {device_address} wird versucht",

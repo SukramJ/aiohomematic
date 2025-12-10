@@ -7,6 +7,16 @@
 - Add BackupData dataclass with filename and content for backup downloads
 - Backup filename now includes hostname and CCU version (e.g., `Otto-3.83.6.20251025-2025-12-10-1937.sbk`)
 - `create_backup_and_download()` now returns `BackupData | None` instead of `bytes | None`
+- Add firmware update support for OpenCCU/RaspberryMatic via `checkFirmwareUpdate.sh`
+- Add `HmUpdate` hub entity for system firmware updates (OpenCCU/RaspberryMatic only)
+- Add `get_system_update_info()` method to check for available firmware updates
+- Add `trigger_firmware_update()` method to initiate firmware update with automatic reboot
+- Add `SystemUpdateData` dataclass with `check_script_available` field to verify script availability
+
+### Notes
+
+- Firmware update features are only available on OpenCCU/RaspberryMatic systems where `/bin/checkFirmwareUpdate.sh` is present
+- Backup before firmware update should be done via `create_backup_and_download()` in Home Assistant before triggering the update
 
 # Version 2025.12.19 (2025-12-10)
 

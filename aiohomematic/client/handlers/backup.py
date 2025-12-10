@@ -14,6 +14,7 @@ from aiohomematic import i18n
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import BackupStatus
 from aiohomematic.decorators import inspector
+from aiohomematic.interfaces.client import BackupOperations
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
@@ -24,9 +25,11 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class BackupHandler(BaseHandler):
+class BackupHandler(BaseHandler, BackupOperations):
     """
     Handler for backup operations.
+
+    Implements BackupOperations protocol for ISP-compliant client operations.
 
     Handles:
     - Creating backups on the CCU

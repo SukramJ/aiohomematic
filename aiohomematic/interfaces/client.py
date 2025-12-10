@@ -4,6 +4,31 @@ Client protocol interfaces.
 This module defines protocol interfaces for client operations,
 allowing components to depend on client functionality without coupling
 to specific implementations (ClientCCU, ClientJsonCCU, ClientHomegear).
+
+Protocol Hierarchy
+------------------
+
+Client protocols are organized following the Interface Segregation Principle:
+
+**Core Protocols (4):**
+    - `ClientIdentity`: Basic identification (interface, interface_id, model, version)
+    - `ClientConnection`: Connection state management (available, is_connected, reconnect)
+    - `ClientLifecycle`: Lifecycle operations (init_client, stop, proxy management)
+    - `ClientCapabilities`: Feature support flags (all supports_* properties)
+
+**Handler-Based Protocols (9):**
+    - `DeviceDiscoveryOperations`: Device discovery (list_devices, get_device_description)
+    - `ParamsetOperations`: Paramset operations (get_paramset, put_paramset, fetch)
+    - `ValueOperations`: Value operations (get_value, set_value, report_value_usage)
+    - `LinkOperations`: Device linking (add_link, remove_link, get_link_peers)
+    - `FirmwareOperations`: Firmware updates (update_device_firmware, trigger_firmware_update)
+    - `SystemVariableOperations`: System variables (get/set/delete_system_variable)
+    - `ProgramOperations`: Program execution (get_all_programs, execute_program)
+    - `BackupOperations`: Backup creation (create_backup_and_download)
+    - `MetadataOperations`: Metadata, rooms, functions, install mode, inbox, service messages
+
+**Composite Protocol:**
+    - `ClientProtocol`: Combines all sub-protocols for complete client access
 """
 
 from __future__ import annotations
@@ -36,24 +61,19 @@ if TYPE_CHECKING:
     from aiohomematic.store import ParamsetDescriptionCache, SessionRecorder
 
 
-@runtime_checkable
-class ClientProtocol(Protocol):
-    """
-    Protocol for Homematic client operations.
+# =============================================================================
+# Client Sub-Protocol Interfaces
+# =============================================================================
 
-    Provides access to backend communication, device management, and
-    system operations. Implemented by ClientCCU, ClientJsonCCU, and ClientHomegear.
+
+class ClientIdentity(Protocol):
+    """
+    Protocol for client identification.
+
+    Provides basic identity information for a client.
     """
 
     __slots__ = ()
-
-    # -------------------------------------------------------------------------
-    # Properties
-    # -------------------------------------------------------------------------
-
-    @property
-    def available(self) -> bool:
-        """Return the availability of the client."""
 
     @property
     def central(self) -> ClientDependencies:
@@ -72,12 +92,30 @@ class ClientProtocol(Protocol):
         """Return if interface is initialized."""
 
     @property
-    def last_value_send_cache(self) -> CommandCacheProtocol:
-        """Return the last value send cache."""
-
-    @property
     def model(self) -> str:
         """Return the model of the backend."""
+
+    @property
+    def system_information(self) -> SystemInformation:
+        """Return the system_information of the client."""
+
+    @property
+    def version(self) -> str:
+        """Return the version id of the client."""
+
+
+class ClientConnection(Protocol):
+    """
+    Protocol for client connection state management.
+
+    Provides connection state and health check operations.
+    """
+
+    __slots__ = ()
+
+    @property
+    def available(self) -> bool:
+        """Return the availability of the client."""
 
     @property
     def modified_at(self) -> datetime:
@@ -87,9 +125,52 @@ class ClientProtocol(Protocol):
     def modified_at(self, value: datetime) -> None:
         """Write the last update datetime value."""
 
-    @property
-    def ping_pong_cache(self) -> PingPongCacheProtocol:
-        """Return the ping pong cache."""
+    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
+        """Check if proxy is still initialized."""
+
+    def is_callback_alive(self) -> bool:
+        """Return if XmlRPC-Server is alive based on received events for this client."""
+
+    async def is_connected(self) -> bool:
+        """Perform actions required for connectivity check."""
+
+    async def reconnect(self) -> bool:
+        """Re-init all RPC clients."""
+
+
+class ClientLifecycle(Protocol):
+    """
+    Protocol for client lifecycle operations.
+
+    Provides initialization and shutdown operations.
+    """
+
+    __slots__ = ()
+
+    async def deinitialize_proxy(self) -> ProxyInitState:
+        """De-init to stop the backend from sending events for this remote."""
+
+    async def init_client(self) -> None:
+        """Initialize the client."""
+
+    async def initialize_proxy(self) -> ProxyInitState:
+        """Initialize the proxy has to tell the backend where to send the events."""
+
+    async def reinitialize_proxy(self) -> ProxyInitState:
+        """Reinit Proxy."""
+
+    async def stop(self) -> None:
+        """Stop depending services."""
+
+
+class ClientCapabilities(Protocol):
+    """
+    Protocol for client capability flags.
+
+    Provides access to feature support flags indicating backend capabilities.
+    """
+
+    __slots__ = ()
 
     @property
     def supports_backup(self) -> bool:
@@ -167,34 +248,16 @@ class ClientProtocol(Protocol):
     def supports_value_usage_reporting(self) -> bool:
         """Return if the backend supports value usage reporting."""
 
-    @property
-    def system_information(self) -> SystemInformation:
-        """Return the system_information of the client."""
 
-    @property
-    def version(self) -> str:
-        """Return the version id of the client."""
+class DeviceDiscoveryOperations(Protocol):
+    """
+    Protocol for device discovery operations.
 
-    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
-        """Accept a device from the CCU inbox."""
+    Provides methods for listing and discovering devices from the backend.
+    Implemented by DeviceOperationsHandler.
+    """
 
-    async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
-        """Add a link between two devices."""
-
-    async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
-        """Check if proxy is still initialized."""
-
-    async def create_backup_and_download(self) -> bytes | None:
-        """Create a backup on the CCU and download it."""
-
-    async def deinitialize_proxy(self) -> ProxyInitState:
-        """De-init to stop the backend from sending events for this remote."""
-
-    async def delete_system_variable(self, *, name: str) -> bool:
-        """Delete a system variable from the backend."""
-
-    async def execute_program(self, *, pid: str) -> bool:
-        """Execute a program on the backend."""
+    __slots__ = ()
 
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from the backend."""
@@ -202,49 +265,36 @@ class ClientProtocol(Protocol):
     async def fetch_device_details(self) -> None:
         """Get all names via JSON-RPC and store in data."""
 
+    async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
+        """Get all device descriptions from the backend."""
+
+    async def get_device_description(self, *, address: str) -> DeviceDescription | None:
+        """Get device descriptions from the backend."""
+
+    async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
+        """List devices of the backend."""
+
+
+class ParamsetOperations(Protocol):
+    """
+    Protocol for paramset operations.
+
+    Provides methods for reading and writing paramsets and paramset descriptions.
+    Implemented by DeviceOperationsHandler.
+    """
+
+    __slots__ = ()
+
     async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
         """Fetch a specific paramset and add it to the known ones."""
 
     async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
 
-    async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
-        """Get all device descriptions from the backend."""
-
-    async def get_all_functions(self) -> dict[str, set[str]]:
-        """Get all functions from the backend."""
-
     async def get_all_paramset_descriptions(
         self, *, device_descriptions: tuple[DeviceDescription, ...]
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
         """Get all paramset descriptions for provided device descriptions."""
-
-    async def get_all_programs(self, *, markers: tuple[Any, ...]) -> tuple[ProgramData, ...]:
-        """Get all programs, if available."""
-
-    async def get_all_rooms(self) -> dict[str, set[str]]:
-        """Get all rooms from the backend."""
-
-    async def get_all_system_variables(self, *, markers: tuple[Any, ...]) -> tuple[Any, ...] | None:
-        """Get all system variables from the backend."""
-
-    async def get_device_description(self, *, address: str) -> DeviceDescription | None:
-        """Get device descriptions from the backend."""
-
-    async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
-        """Get all devices in the inbox (not yet configured)."""
-
-    async def get_install_mode(self) -> int:
-        """Return the remaining time in install mode."""
-
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
-        """Return a list of link peers."""
-
-    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
-        """Return a list of links."""
-
-    async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
-        """Return the metadata for an object."""
 
     async def get_paramset(
         self,
@@ -260,52 +310,6 @@ class ClientProtocol(Protocol):
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
         """Get paramsets for provided device description."""
 
-    def get_product_group(self, *, model: str) -> ProductGroup:
-        """Return the product group."""
-
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Get the ReGa ID for a device or channel address."""
-
-    async def get_service_messages(self, *, message_type: Any | None = None) -> tuple[Any, ...]:
-        """Get all active service messages from the backend."""
-
-    async def get_system_update_info(self) -> Any | None:
-        """Get system update information from the backend."""
-
-    async def get_system_variable(self, *, name: str) -> Any:
-        """Get single system variable from the backend."""
-
-    async def get_value(
-        self,
-        *,
-        channel_address: str,
-        paramset_key: ParamsetKey,
-        parameter: str,
-        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
-    ) -> Any:
-        """Return a value from the backend."""
-
-    def get_virtual_remote(self) -> DeviceProtocol | None:
-        """Get the virtual remote for the Client."""
-
-    async def has_program_ids(self, *, rega_id: int) -> bool:
-        """Return if a channel has program ids."""
-
-    async def init_client(self) -> None:
-        """Initialize the client."""
-
-    async def initialize_proxy(self) -> ProxyInitState:
-        """Initialize the proxy has to tell the backend where to send the events."""
-
-    def is_callback_alive(self) -> bool:
-        """Return if XmlRPC-Server is alive based on received events for this client."""
-
-    async def is_connected(self) -> bool:
-        """Perform actions required for connectivity check."""
-
-    async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """List devices of the backend."""
-
     async def put_paramset(
         self,
         *,
@@ -318,42 +322,32 @@ class ClientProtocol(Protocol):
     ) -> set[Any]:
         """Set paramsets manually."""
 
-    async def reconnect(self) -> bool:
-        """Re-init all RPC clients."""
+    async def update_paramset_descriptions(self, *, device_address: str) -> None:
+        """Update paramsets descriptions for provided device_address."""
 
-    async def reinitialize_proxy(self) -> ProxyInitState:
-        """Reinit Proxy."""
 
-    async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
-        """Remove a link between two devices."""
+class ValueOperations(Protocol):
+    """
+    Protocol for value read/write operations.
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
-        """Rename a channel on the CCU."""
+    Provides methods for reading and writing single parameter values.
+    Implemented by DeviceOperationsHandler.
+    """
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
-        """Rename a device on the CCU."""
+    __slots__ = ()
+
+    async def get_value(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+    ) -> Any:
+        """Return a value from the backend."""
 
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
-
-    async def set_install_mode(
-        self,
-        *,
-        on: bool = True,
-        time: int = 60,
-        mode: int = 1,
-        device_address: str | None = None,
-    ) -> bool:
-        """Set the install mode on the backend."""
-
-    async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
-        """Write the metadata for an object."""
-
-    async def set_program_state(self, *, pid: str, state: bool) -> bool:
-        """Set the program state on the backend."""
-
-    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
-        """Set a system variable on the backend."""
 
     async def set_value(
         self,
@@ -368,8 +362,39 @@ class ClientProtocol(Protocol):
     ) -> set[Any]:
         """Set single value on paramset VALUES."""
 
-    async def stop(self) -> None:
-        """Stop depending services."""
+
+class LinkOperations(Protocol):
+    """
+    Protocol for device linking operations.
+
+    Provides methods for creating and managing direct links between devices.
+    Implemented by LinkManagementHandler.
+    """
+
+    __slots__ = ()
+
+    async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
+        """Add a link between two devices."""
+
+    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
+        """Return a list of link peers."""
+
+    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
+        """Return a list of links."""
+
+    async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
+        """Remove a link between two devices."""
+
+
+class FirmwareOperations(Protocol):
+    """
+    Protocol for firmware update operations.
+
+    Provides methods for updating device and system firmware.
+    Implemented by FirmwareHandler.
+    """
+
+    __slots__ = ()
 
     async def trigger_firmware_update(self) -> bool:
         """Trigger the CCU firmware update process."""
@@ -377,8 +402,203 @@ class ClientProtocol(Protocol):
     async def update_device_firmware(self, *, device_address: str) -> bool:
         """Update the firmware of a Homematic device."""
 
-    async def update_paramset_descriptions(self, *, device_address: str) -> None:
-        """Update paramsets descriptions for provided device_address."""
+
+class SystemVariableOperations(Protocol):
+    """
+    Protocol for system variable operations.
+
+    Provides methods for managing CCU system variables.
+    Implemented by SystemVariableHandler.
+    """
+
+    __slots__ = ()
+
+    async def delete_system_variable(self, *, name: str) -> bool:
+        """Delete a system variable from the backend."""
+
+    async def get_all_system_variables(self, *, markers: tuple[Any, ...]) -> tuple[Any, ...] | None:
+        """Get all system variables from the backend."""
+
+    async def get_system_variable(self, *, name: str) -> Any:
+        """Get single system variable from the backend."""
+
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
+        """Set a system variable on the backend."""
+
+
+class ProgramOperations(Protocol):
+    """
+    Protocol for program operations.
+
+    Provides methods for managing CCU programs.
+    Implemented by ProgramHandler.
+    """
+
+    __slots__ = ()
+
+    async def execute_program(self, *, pid: str) -> bool:
+        """Execute a program on the backend."""
+
+    async def get_all_programs(self, *, markers: tuple[Any, ...]) -> tuple[ProgramData, ...]:
+        """Get all programs, if available."""
+
+    async def has_program_ids(self, *, rega_id: int) -> bool:
+        """Return if a channel has program ids."""
+
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
+        """Set the program state on the backend."""
+
+
+class BackupOperations(Protocol):
+    """
+    Protocol for backup operations.
+
+    Provides methods for creating and downloading CCU backups.
+    Implemented by BackupHandler.
+    """
+
+    __slots__ = ()
+
+    async def create_backup_and_download(self) -> bytes | None:
+        """Create a backup on the CCU and download it."""
+
+
+class MetadataOperations(Protocol):
+    """
+    Protocol for metadata and system operations.
+
+    Provides methods for metadata, rooms, functions, install mode, inbox devices,
+    service messages, and other system-level operations.
+    Implemented by MetadataHandler.
+    """
+
+    __slots__ = ()
+
+    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
+        """Accept a device from the CCU inbox."""
+
+    async def get_all_functions(self) -> dict[str, set[str]]:
+        """Get all functions from the backend."""
+
+    async def get_all_rooms(self) -> dict[str, set[str]]:
+        """Get all rooms from the backend."""
+
+    async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
+        """Get all devices in the inbox (not yet configured)."""
+
+    async def get_install_mode(self) -> int:
+        """Return the remaining time in install mode."""
+
+    async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
+        """Return the metadata for an object."""
+
+    async def get_rega_id_by_address(self, *, address: str) -> int | None:
+        """Get the ReGa ID for a device or channel address."""
+
+    async def get_service_messages(self, *, message_type: Any | None = None) -> tuple[Any, ...]:
+        """Get all active service messages from the backend."""
+
+    async def get_system_update_info(self) -> Any | None:
+        """Get system update information from the backend."""
+
+    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
+        """Rename a channel on the CCU."""
+
+    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
+        """Rename a device on the CCU."""
+
+    async def set_install_mode(
+        self,
+        *,
+        on: bool = True,
+        time: int = 60,
+        mode: int = 1,
+        device_address: str | None = None,
+    ) -> bool:
+        """Set the install mode on the backend."""
+
+    async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
+        """Write the metadata for an object."""
+
+
+class ClientSupport(Protocol):
+    """
+    Protocol for client support operations.
+
+    Provides utility methods and caches that are implemented directly by ClientCCU
+    rather than by handlers.
+    """
+
+    __slots__ = ()
+
+    @property
+    def last_value_send_cache(self) -> CommandCacheProtocol:
+        """Return the last value send cache."""
+
+    @property
+    def ping_pong_cache(self) -> PingPongCacheProtocol:
+        """Return the ping pong cache."""
+
+    def get_product_group(self, *, model: str) -> ProductGroup:
+        """Return the product group."""
+
+    def get_virtual_remote(self) -> DeviceProtocol | None:
+        """Get the virtual remote for the Client."""
+
+
+# =============================================================================
+# Client Composite Protocol Interface
+# =============================================================================
+
+
+@runtime_checkable
+class ClientProtocol(
+    ClientIdentity,
+    ClientConnection,
+    ClientLifecycle,
+    ClientCapabilities,
+    DeviceDiscoveryOperations,
+    ParamsetOperations,
+    ValueOperations,
+    LinkOperations,
+    FirmwareOperations,
+    SystemVariableOperations,
+    ProgramOperations,
+    BackupOperations,
+    MetadataOperations,
+    ClientSupport,
+    Protocol,
+):
+    """
+    Composite protocol for complete Homematic client operations.
+
+    Combines all client sub-protocols into a single interface providing full
+    access to backend communication, device management, and system operations.
+    Implemented by ClientCCU, ClientJsonCCU, and ClientHomegear.
+
+    Sub-protocols:
+        - ClientIdentity: Basic identification
+        - ClientConnection: Connection state management
+        - ClientLifecycle: Lifecycle operations
+        - ClientCapabilities: Feature support flags
+        - DeviceDiscoveryOperations: Device discovery
+        - ParamsetOperations: Paramset operations
+        - ValueOperations: Value read/write
+        - LinkOperations: Device linking
+        - FirmwareOperations: Firmware updates
+        - SystemVariableOperations: System variables
+        - ProgramOperations: Program execution
+        - BackupOperations: Backup creation
+        - MetadataOperations: Metadata and system operations
+        - ClientSupport: Utility methods and caches
+    """
+
+    __slots__ = ()
+
+
+# =============================================================================
+# Client-Related Protocols
+# =============================================================================
 
 
 @runtime_checkable

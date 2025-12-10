@@ -14,6 +14,7 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import ProductGroup
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
+from aiohomematic.interfaces.client import FirmwareOperations
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -25,9 +26,11 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class FirmwareHandler(BaseHandler):
+class FirmwareHandler(BaseHandler, FirmwareOperations):
     """
     Handler for firmware update operations.
+
+    Implements FirmwareOperations protocol for ISP-compliant client operations.
 
     Handles:
     - Updating device firmware

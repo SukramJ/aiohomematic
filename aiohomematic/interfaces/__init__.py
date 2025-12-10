@@ -46,13 +46,32 @@ Protocol Categories
 **Client Management:**
     Protocols for client lifecycle and communication.
 
-    - `ClientProtocol`: Full client interface (60+ methods)
-    - `ClientProvider`: Lookup clients by interface_id
-    - `ClientFactory`: Create new client instances
-    - `ClientDependencies`: Composite of dependencies for clients
-    - `PrimaryClientProvider`: Access to primary client
-    - `JsonRpcClientProvider`: JSON-RPC client access
-    - `ConnectionStateProvider`: Connection state information
+    *Client Sub-Protocols (ISP):*
+        - `ClientIdentity`: Basic identification (interface, interface_id, model)
+        - `ClientConnection`: Connection state management
+        - `ClientLifecycle`: Lifecycle operations (init, stop, proxy)
+        - `ClientCapabilities`: Feature support flags (supports_*)
+        - `DeviceDiscoveryOperations`: Device discovery operations
+        - `ParamsetOperations`: Paramset operations
+        - `ValueOperations`: Value read/write operations
+        - `LinkOperations`: Device linking operations
+        - `FirmwareOperations`: Firmware update operations
+        - `SystemVariableOperations`: System variable operations
+        - `ProgramOperations`: Program execution operations
+        - `BackupOperations`: Backup operations
+        - `MetadataOperations`: Metadata and system operations
+        - `ClientSupport`: Utility methods and caches
+
+    *Client Composite:*
+        - `ClientProtocol`: Composite of all client sub-protocols
+
+    *Client Utilities:*
+        - `ClientProvider`: Lookup clients by interface_id
+        - `ClientFactory`: Create new client instances
+        - `ClientDependencies`: Composite of dependencies for clients
+        - `PrimaryClientProvider`: Access to primary client
+        - `JsonRpcClientProvider`: JSON-RPC client access
+        - `ConnectionStateProvider`: Connection state information
 
 **Device & Channel Lookup:**
     Protocols for finding devices and channels.
@@ -156,26 +175,43 @@ from aiohomematic.interfaces.central import (
     SystemInfoProvider,
 )
 from aiohomematic.interfaces.client import (
+    # Client sub-protocols
+    BackupOperations,
+    # Client utilities
     CallbackAddressProvider,
+    ClientCapabilities,
+    ClientConnection,
     ClientCoordination,
     ClientDependencies,
     ClientFactory,
+    ClientIdentity,
+    ClientLifecycle,
+    # Client composite protocol
     ClientProtocol,
     ClientProvider,
+    ClientSupport,
     CommandCacheProtocol,
     ConnectionStateProvider,
     DataCacheWriter,
     DeviceDescriptionsAccess,
     DeviceDetailsWriter,
+    DeviceDiscoveryOperations,
     DeviceLookup,
+    FirmwareOperations,
     InterfaceEventPublisher,
     JsonRpcClientProvider,
     LastEventTracker,
+    LinkOperations,
+    MetadataOperations,
     NewDeviceHandler,
     ParamsetDescriptionWriter,
+    ParamsetOperations,
     PingPongCacheProtocol,
     PrimaryClientProvider,
+    ProgramOperations,
     SessionRecorderProvider,
+    SystemVariableOperations,
+    ValueOperations,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProvider
 from aiohomematic.interfaces.model import (
@@ -245,10 +281,26 @@ __all__ = [
     "DataCacheWriter",
     "DeviceDetailsWriter",
     "ParamsetDescriptionWriter",
-    # Client Management
+    # Client Management - Sub-Protocols (ISP)
+    "BackupOperations",
+    "ClientCapabilities",
+    "ClientConnection",
+    "ClientIdentity",
+    "ClientLifecycle",
+    "ClientSupport",
+    "DeviceDiscoveryOperations",
+    "FirmwareOperations",
+    "LinkOperations",
+    "MetadataOperations",
+    "ParamsetOperations",
+    "ProgramOperations",
+    "SystemVariableOperations",
+    "ValueOperations",
+    # Client Management - Composite
+    "ClientProtocol",
+    # Client Management - Utilities
     "ClientDependencies",
     "ClientFactory",
-    "ClientProtocol",
     "ClientProvider",
     "ConnectionStateProvider",
     "JsonRpcClientProvider",

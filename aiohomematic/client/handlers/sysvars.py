@@ -7,21 +7,21 @@ Handles system variable CRUD operations.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import DescriptionMarker, SystemVariableData
 from aiohomematic.decorators import inspector
-
-if TYPE_CHECKING:
-    pass
+from aiohomematic.interfaces.client import SystemVariableOperations
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class SystemVariableHandler(BaseHandler):
+class SystemVariableHandler(BaseHandler, SystemVariableOperations):
     """
     Handler for system variable operations.
+
+    Implements SystemVariableOperations protocol for ISP-compliant client operations.
 
     Handles:
     - Getting all system variables

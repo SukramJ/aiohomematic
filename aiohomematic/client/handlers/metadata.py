@@ -15,6 +15,7 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import InboxDeviceData, Interface, ServiceMessageData, ServiceMessageType, SystemUpdateData
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
+from aiohomematic.interfaces.client import MetadataOperations
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -25,9 +26,11 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class MetadataHandler(BaseHandler):
+class MetadataHandler(BaseHandler, MetadataOperations):
     """
     Handler for metadata and system information operations.
+
+    Implements MetadataOperations protocol for ISP-compliant client operations.
 
     Handles:
     - Metadata read/write operations

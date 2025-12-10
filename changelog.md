@@ -4,6 +4,13 @@
 
 ### Architecture
 
+- Split ClientProtocol (85 members) into 14 focused sub-protocols following Interface Segregation Principle:
+  - **Core Protocols (4):** ClientIdentity, ClientConnection, ClientLifecycle, ClientCapabilities
+  - **Handler-Based Protocols (9):** DeviceDiscoveryOperations, ParamsetOperations, ValueOperations,
+    LinkOperations, FirmwareOperations, SystemVariableOperations, ProgramOperations,
+    BackupOperations, MetadataOperations
+  - **Support Protocol (1):** ClientSupport (utility methods and caches)
+  - Handler classes explicitly inherit their sub-protocols for compile-time type checking
 - Add CircuitBreaker integration to JSON-RPC client (AioJsonRpcAioHttpClient):
   - Prevents retry-storms during backend outages for JSON-RPC calls
   - Consistent resilience pattern across both XML-RPC and JSON-RPC clients

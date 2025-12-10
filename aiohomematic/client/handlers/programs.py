@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import DescriptionMarker, ProgramData
 from aiohomematic.decorators import inspector
+from aiohomematic.interfaces.client import ProgramOperations
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
@@ -22,9 +23,11 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class ProgramHandler(BaseHandler):
+class ProgramHandler(BaseHandler, ProgramOperations):
     """
     Handler for program operations.
+
+    Implements ProgramOperations protocol for ISP-compliant client operations.
 
     Handles:
     - Getting all programs

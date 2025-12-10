@@ -31,6 +31,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, ValidationException
+from aiohomematic.interfaces.client import DeviceDiscoveryOperations, ParamsetOperations, ValueOperations
 from aiohomematic.model.support import convert_value
 from aiohomematic.support import (
     extract_exc_args,
@@ -50,9 +51,17 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class DeviceOperationsHandler(BaseHandler):
+class DeviceOperationsHandler(
+    BaseHandler,
+    DeviceDiscoveryOperations,
+    ParamsetOperations,
+    ValueOperations,
+):
     """
     Handler for device value and paramset operations.
+
+    Implements DeviceDiscoveryOperations, ParamsetOperations, and ValueOperations
+    protocols for ISP-compliant client operations.
 
     Handles:
     - Reading and writing data point values
@@ -551,7 +560,14 @@ class DeviceOperationsHandler(BaseHandler):
             return dpk_values
 
     @inspector
-    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int, supports: bool) -> bool:
+    async def report_value_usage(
+        self,
+        *,
+        address: str,
+        value_id: str,
+        ref_counter: int,
+        supports: bool = True,
+    ) -> bool:
         """
         Report value usage to the backend for subscription management.
 
@@ -564,6 +580,7 @@ class DeviceOperationsHandler(BaseHandler):
             value_id: Parameter identifier.
             ref_counter: Reference count (positive = subscribe, 0 = unsubscribe).
             supports: Whether this client type supports value usage reporting.
+                Defaults to True; ClientCCU passes actual capability.
 
         Returns:
             True if the report was successful, False if not supported or failed.

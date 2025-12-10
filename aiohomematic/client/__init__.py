@@ -267,7 +267,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     @property
     def supports_backup(self) -> bool:
         """Return if the backend supports backup creation and download."""
-        return True
+        return self._system_information.supports_backup
 
     @property
     def supports_device_firmware_update(self) -> bool:

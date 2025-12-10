@@ -1,4 +1,4 @@
-# Version 2025.12.18 (2025-12-09)
+# Version 2025.12.18 (2025-12-10)
 
 ## What's Changed
 
@@ -7,6 +7,25 @@
 - Refactor ClientCCU into specialized handler classes (BackupHandler, DeviceOpsHandler, FirmwareHandler, LinkManagementHandler, MetadataHandler, ProgramsHandler, SysvarsHandler)
 - Add ClientStateMachine for managing client connection lifecycle with validated state transitions
 - Add ClientState enum for client connection states (CREATED, INITIALIZING, INITIALIZED, CONNECTING, CONNECTED, DISCONNECTED, RECONNECTING, STOPPING, STOPPED, FAILED)
+- Split DeviceProtocol (72 members) into 10 focused sub-protocols following Interface Segregation Principle:
+  - DeviceIdentity, DeviceChannelAccess, DeviceAvailability, DeviceFirmware
+  - DeviceLinkManagement, DeviceGroupManagement, DeviceConfiguration
+  - DeviceWeekProfile, DeviceProviders, DeviceLifecycle
+- Split ChannelProtocol (39 members) into 6 focused sub-protocols:
+  - ChannelIdentity, ChannelDataPointAccess, ChannelGrouping
+  - ChannelMetadata, ChannelLinkManagement, ChannelLifecycle
+- Add EventPriority enum with four priority levels (CRITICAL, HIGH, NORMAL, LOW) for handler ordering
+- Add EventBatch context manager for efficient batch event publishing
+- Add publish_batch() method to EventBus for optimized bulk event publishing
+- Add CircuitBreaker for preventing retry-storms during backend outages:
+  - Three-state machine (CLOSED → OPEN → HALF_OPEN → CLOSED)
+  - Configurable failure threshold, recovery timeout, and success threshold
+  - Integrated with CentralConnectionState for coordinated health tracking
+  - Metrics tracking for failures, successes, and rejections
+- Add RequestCoalescer for efficient RPC call deduplication:
+  - Merges identical concurrent requests into a single backend call
+  - Particularly beneficial during device discovery (getParamsetDescription calls)
+  - Includes metrics for monitoring coalesce rate effectiveness
 
 ### Bug Fixes
 
@@ -26,6 +45,10 @@
   - EventBus dual-key handler lookup and polymorphic handler detection
   - Device discovery set difference algorithm and PARENT address fallback
   - DeviceProfileRegistry hierarchical model matching (exact → prefix)
+- Add migration guide for protocol sub-protocols (docs/migrations/protocol_subprotocols_2025_12.md)
+- Refactor architecture.md: Move inline decisions to ADRs, reduce from ~450 to ~245 lines
+- Add ADR 0007: Device Slots Reduction via Composition (Rejected)
+- Add ADR 0008: TaskGroup Migration (Deferred)
 
 # Version 2025.12.17 (2025-12-09)
 

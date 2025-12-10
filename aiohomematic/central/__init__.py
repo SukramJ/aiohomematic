@@ -81,7 +81,7 @@ from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
-from aiohomematic.central.event_bus import EventBus
+from aiohomematic.central.event_bus import EventBatch, EventBus, EventPriority
 from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.central.hub_coordinator import HubCoordinator
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob as _SchedulerJob
@@ -217,7 +217,15 @@ from aiohomematic.type_aliases import UnsubscribeCallback
 
 # No longer needed - types are in coordinators
 
-__all__ = ["CentralConfig", "CentralUnit", "DeviceRegistry", "INTERFACE_EVENT_SCHEMA", "_SchedulerJob"]
+__all__ = [
+    "CentralConfig",
+    "CentralUnit",
+    "DeviceRegistry",
+    "EventBatch",
+    "EventPriority",
+    "INTERFACE_EVENT_SCHEMA",
+    "_SchedulerJob",
+]
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")

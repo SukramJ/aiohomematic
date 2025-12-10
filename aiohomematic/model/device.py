@@ -180,9 +180,20 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     Protocol compliance
     -------------------
-    Implements ``DeviceProtocol`` (55 properties + 15 methods) which defines the
-    complete public API. All properties/methods in DeviceProtocol are part of the
-    stable public contract.
+    Implements ``DeviceProtocol`` which is a composite of sub-protocols:
+
+    - ``DeviceIdentity``: Basic identification (address, name, model, manufacturer)
+    - ``DeviceChannelAccess``: Channel and DataPoint access methods
+    - ``DeviceAvailability``: Availability state management
+    - ``DeviceFirmware``: Firmware information and update operations
+    - ``DeviceLinkManagement``: Central link operations
+    - ``DeviceGroupManagement``: Channel group management
+    - ``DeviceConfiguration``: Device configuration and metadata
+    - ``DeviceWeekProfile``: Week profile support
+    - ``DeviceProviders``: Protocol interface providers
+    - ``DeviceLifecycle``: Lifecycle methods
+
+    Consumers can depend on specific sub-protocols for narrower contracts.
     """
 
     __slots__ = (
@@ -1025,7 +1036,18 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     Channels access protocol interfaces through their parent device:
     ``self._device.event_bus_provider``, ``self._device.client``, etc.
 
-    Implements ``ChannelProtocol`` which defines the public API.
+    Protocol compliance
+    -------------------
+    Implements ``ChannelProtocol`` which is a composite of sub-protocols:
+
+    - ``ChannelIdentity``: Basic identification (address, name, no, type_name)
+    - ``ChannelDataPointAccess``: DataPoint and event access methods
+    - ``ChannelGrouping``: Channel group management (group_master, link_peer_channels)
+    - ``ChannelMetadata``: Additional metadata (device, function, room, paramset_descriptions)
+    - ``ChannelLinkManagement``: Central link operations
+    - ``ChannelLifecycle``: Lifecycle methods (finalize_init, on_config_changed, remove)
+
+    Consumers can depend on specific sub-protocols for narrower contracts.
     """
 
     __slots__ = (

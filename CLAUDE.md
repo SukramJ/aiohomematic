@@ -1496,6 +1496,55 @@ from aiohomematic.model.custom.registry import DeviceProfileRegistry, DeviceConf
 
 ---
 
+## Implementation Policy
+
+This section defines mandatory rules for all implementations in this project.
+
+### Clean Code Policy
+
+When implementing new features or refactoring existing code:
+
+1. **No Legacy Code**: After implementation, the codebase must be clean without any legacy compatibility layers, deprecated aliases, or backward-compatibility shims introduced during the change.
+
+2. **No Backward Compatibility Layers**: Do not create:
+
+   - Type aliases for old names
+   - Re-exports of renamed symbols
+   - Deprecation warnings for removed APIs
+   - Compatibility adapters or wrappers
+
+3. **Complete Migration**: All usages of changed APIs must be updated in a single change. Partial migrations that leave legacy code are not acceptable.
+
+4. **Protocol Inheritance**: When splitting protocols (e.g., `DeviceProtocol` into sub-protocols):
+
+   - The implementation class (e.g., `Device`) must inherit from all sub-protocols
+   - The composite protocol (e.g., `DeviceProtocol`) must inherit from all sub-protocols
+   - No separate "legacy" protocol should remain
+
+5. **Documentation Updates**: All changes must include:
+   - Updated docstrings for modified classes/methods
+   - Updated `*.md` documentation files
+   - Migration guide for downstream consumers (e.g., Home Assistant)
+
+### Rationale
+
+This policy ensures:
+
+- Codebase remains clean and maintainable
+- No accumulation of technical debt
+- Clear migration path for downstream projects
+- Single source of truth for APIs
+
+### Migration Responsibility
+
+For breaking changes affecting downstream projects (e.g., Home Assistant integration):
+
+- Create a migration guide in `docs/migrations/`
+- Document all changed APIs with before/after examples
+- Provide search-and-replace patterns where applicable
+
+---
+
 ## Tips for AI Assistants
 
 ### Do's

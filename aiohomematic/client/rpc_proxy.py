@@ -35,6 +35,7 @@ import xmlrpc.client
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.const import ISO_8859_1
 from aiohomematic.exceptions import (
     AuthFailure,
@@ -100,6 +101,7 @@ class BaseRpcProxy(ABC):
         tls: bool = False,
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
+        circuit_breaker_config: CircuitBreakerConfig | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         self._interface_id: Final = interface_id
@@ -118,9 +120,22 @@ class BaseRpcProxy(ABC):
         # Due to magic method the log_context must be defined manually.
         self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": tls}
 
+        # Circuit breaker for preventing retry-storms during backend outages
+        self._circuit_breaker: Final = CircuitBreaker(
+            config=circuit_breaker_config,
+            interface_id=interface_id,
+            connection_state=connection_state,
+            issuer=self,
+        )
+
     def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Magic method dispatcher."""
         return self._magic_method(self._async_request, *args, **kwargs)
+
+    @property
+    def circuit_breaker(self) -> CircuitBreaker:
+        """Return the circuit breaker instance."""
+        return self._circuit_breaker
 
     @property
     def supported_methods(self) -> tuple[str, ...]:
@@ -204,6 +219,13 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             if self._supported_methods and method not in self._supported_methods:
                 raise UnsupportedException(i18n.tr("exception.client.xmlrpc.method_unsupported", method=method))
 
+            # Check circuit breaker state (allow recovery commands through)
+            if method not in _VALID_RPC_COMMANDS_ON_NO_CONNECTION and not self._circuit_breaker.is_available:
+                self._circuit_breaker.record_rejection()
+                raise NoConnectionException(
+                    i18n.tr("exception.client.xmlrpc.circuit_open", interface_id=self._interface_id)
+                )
+
             if method in _VALID_RPC_COMMANDS_ON_NO_CONNECTION or not self._connection_state.has_issue(
                 issuer=self, iid=self._interface_id
             ):
@@ -221,12 +243,16 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 )
                 self._record_session(method=method, params=args[1], response=result)
                 self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
+                self._circuit_breaker.record_success()
                 return result
             raise NoConnectionException(
                 i18n.tr("exception.client.xmlrpc.no_connection", interface_id=self._interface_id)
             )
         except BaseHomematicException as bhe:
             self._record_session(method=args[0], params=args[1:], exc=bhe)
+            # Record failure for circuit breaker (connection-related exceptions)
+            if isinstance(bhe, NoConnectionException):
+                self._circuit_breaker.record_failure()
             raise
         except SSLError as sslerr:  # pragma: no cover - SSL handshake/cert errors are OS/OpenSSL dependent and not reliably reproducible in CI
             message = f"SSLError on {self._interface_id}: {extract_exc_args(exc=sslerr)}"
@@ -248,6 +274,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 message=message,
                 log_context=self.log_context,
             )
+            self._circuit_breaker.record_failure()
             raise NoConnectionException(
                 i18n.tr("exception.client.xmlrpc.ssl_error", interface_id=self._interface_id, reason=message)
             ) from sslerr
@@ -267,6 +294,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 level=level,
                 log_context=self.log_context,
             )
+            self._circuit_breaker.record_failure()
             raise NoConnectionException(
                 i18n.tr(
                     "exception.client.xmlrpc.os_error",

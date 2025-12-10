@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
 from aiohomematic.client.handlers.base import BaseHandler
+from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.const import (
     DP_KEY_VALUE,
     WAIT_FOR_CALLBACK,
@@ -60,7 +61,7 @@ class DeviceOperationsHandler(BaseHandler):
     - Value conversion and validation
     """
 
-    __slots__ = ("_last_value_send_cache",)
+    __slots__ = ("_last_value_send_cache", "_paramset_coalescer")
 
     def __init__(
         self,
@@ -83,6 +84,7 @@ class DeviceOperationsHandler(BaseHandler):
             proxy_read=proxy_read,
         )
         self._last_value_send_cache: Final = last_value_send_cache
+        self._paramset_coalescer: Final = RequestCoalescer(name=f"paramset:{interface_id}")
 
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
@@ -910,21 +912,32 @@ class DeviceOperationsHandler(BaseHandler):
     async def _get_paramset_description(
         self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Fetch a paramset description via XML-RPC, returning None on failure."""
-        try:
-            return cast(
-                dict[str, ParameterData],
-                await self._proxy_read.getParamsetDescription(address, paramset_key),
-            )
-        except BaseHomematicException as bhexc:
-            _LOGGER.debug(
-                "GET_PARAMSET_DESCRIPTIONS failed with %s [%s] for %s address %s",
-                bhexc.name,
-                extract_exc_args(exc=bhexc),
-                paramset_key,
-                address,
-            )
-        return None
+        """
+        Fetch a paramset description via XML-RPC, returning None on failure.
+
+        Uses request coalescing to deduplicate concurrent requests for the same
+        address and paramset_key combination. This is particularly beneficial
+        during device discovery when multiple channels request the same descriptions.
+        """
+        key = make_coalesce_key(method="getParamsetDescription", args=(address, paramset_key))
+
+        async def _fetch() -> dict[str, ParameterData] | None:
+            try:
+                return cast(
+                    dict[str, ParameterData],
+                    await self._proxy_read.getParamsetDescription(address, paramset_key),
+                )
+            except BaseHomematicException as bhexc:
+                _LOGGER.debug(
+                    "GET_PARAMSET_DESCRIPTIONS failed with %s [%s] for %s address %s",
+                    bhexc.name,
+                    extract_exc_args(exc=bhexc),
+                    paramset_key,
+                    address,
+                )
+                return None
+
+        return await self._paramset_coalescer.execute(key=key, executor=_fetch)
 
     def _write_temporary_value(self, *, dpk_values: set[DP_KEY_VALUE]) -> None:
         """Write temporary values to polling data points for immediate UI feedback."""

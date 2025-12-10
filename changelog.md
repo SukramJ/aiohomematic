@@ -1,3 +1,13 @@
+# Version 2025.12.20 (2025-12-10)
+
+## What's Changed
+
+### Enhancements
+
+- Add BackupData dataclass with filename and content for backup downloads
+- Backup filename now includes hostname and CCU version (e.g., `Otto-3.83.6.20251025-2025-12-10-1937.sbk`)
+- `create_backup_and_download()` now returns `BackupData | None` instead of `bytes | None`
+
 # Version 2025.12.19 (2025-12-10)
 
 ## What's Changed

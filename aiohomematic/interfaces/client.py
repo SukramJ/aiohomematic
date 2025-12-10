@@ -39,6 +39,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
+    BackupData,
     CallSource,
     DataPointKey,
     DeviceDescription,
@@ -454,12 +455,17 @@ class BackupOperations(Protocol):
     Protocol for backup operations.
 
     Provides methods for creating and downloading CCU backups.
-    Implemented by BackupHandler.
+    Implemented by ClientCCU.
     """
 
     __slots__ = ()
 
-    async def create_backup_and_download(self) -> bytes | None:
+    async def create_backup_and_download(
+        self,
+        *,
+        max_wait_time: float = ...,
+        poll_interval: float = ...,
+    ) -> BackupData | None:
         """Create a backup on the CCU and download it."""
 
 

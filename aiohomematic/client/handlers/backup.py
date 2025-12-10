@@ -7,12 +7,13 @@ Handles backup creation and download operations.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
 from aiohomematic.client.handlers.base import BaseHandler
-from aiohomematic.const import BackupStatus
+from aiohomematic.const import BackupData, BackupStatus, SystemInformation
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.client import BackupOperations
 
@@ -36,7 +37,7 @@ class BackupHandler(BaseHandler, BackupOperations):
     - Downloading backup files
     """
 
-    __slots__ = ("_supports_backup",)
+    __slots__ = ("_supports_backup", "_system_information")
 
     def __init__(
         self,
@@ -48,6 +49,7 @@ class BackupHandler(BaseHandler, BackupOperations):
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
         supports_backup: bool,
+        system_information: SystemInformation,
     ) -> None:
         """Initialize the backup handler."""
         super().__init__(
@@ -59,6 +61,7 @@ class BackupHandler(BaseHandler, BackupOperations):
             proxy_read=proxy_read,
         )
         self._supports_backup: Final = supports_backup
+        self._system_information: Final = system_information
 
     @property
     def supports_backup(self) -> bool:
@@ -71,7 +74,7 @@ class BackupHandler(BaseHandler, BackupOperations):
         *,
         max_wait_time: float = 300.0,
         poll_interval: float = 5.0,
-    ) -> bytes | None:
+    ) -> BackupData | None:
         """
         Create a backup on the CCU and download it.
 
@@ -83,7 +86,7 @@ class BackupHandler(BaseHandler, BackupOperations):
             poll_interval: Time between status polls in seconds.
 
         Returns:
-            Backup file content as bytes, or None if backup creation or download failed.
+            BackupData with filename and content, or None if backup creation or download failed.
 
         """
         if not self._supports_backup:
@@ -115,7 +118,9 @@ class BackupHandler(BaseHandler, BackupOperations):
                         size=status_data.size,
                     )
                 )
-                return await self._json_rpc_client.download_backup()
+                if (content := await self._json_rpc_client.download_backup()) is None:
+                    return None
+                return BackupData(filename=self._generate_filename(), content=content)
 
             if status_data.status == BackupStatus.FAILED:
                 _LOGGER.warning(i18n.tr("log.client.create_backup_and_download.failed"))
@@ -139,3 +144,15 @@ class BackupHandler(BaseHandler, BackupOperations):
             )
         )
         return None
+
+    def _generate_filename(self) -> str:
+        """
+        Generate backup filename with hostname, version, and timestamp.
+
+        Format: <hostname>-<version>-<date>-<time>.sbk
+        Example: Otto-3.83.6.20251025-2025-12-10-1937.sbk
+        """
+        hostname = self._system_information.hostname or "CCU"
+        version = self._system_information.version or "unknown"
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H%M")
+        return f"{hostname}-{version}-{timestamp}.sbk"

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
     BackendSystemEvent,
+    BackupData,
     CentralUnitState,
     DeviceDescription,
     DeviceFirmwareState,
@@ -118,7 +119,7 @@ class BackupProvider(Protocol):
     """
 
     @abstractmethod
-    async def create_backup_and_download(self) -> bytes | None:
+    async def create_backup_and_download(self) -> BackupData | None:
         """Create a backup on the CCU and download it."""
 
 

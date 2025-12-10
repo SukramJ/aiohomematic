@@ -119,6 +119,7 @@ from aiohomematic.const import (
     TIMEOUT,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
+    BackupData,
     CentralUnitState,
     DataPointCategory,
     DescriptionMarker,
@@ -590,12 +591,12 @@ class CentralUnit(
         """Remove all stored files and caches."""
         await self._cache_coordinator.clear_all()
 
-    async def create_backup_and_download(self) -> bytes | None:
+    async def create_backup_and_download(self) -> BackupData | None:
         """
         Create a backup on the CCU and download it.
 
         Returns:
-            Backup file content as bytes, or None if backup creation or download failed.
+            BackupData with filename and content, or None if backup creation or download failed.
 
         """
         if client := self.primary_client:

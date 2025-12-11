@@ -256,14 +256,15 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             raise
         except SSLError as sslerr:  # pragma: no cover - SSL handshake/cert errors are OS/OpenSSL dependent and not reliably reproducible in CI
             message = f"SSLError on {self._interface_id}: {extract_exc_args(exc=sslerr)}"
-            level = logging.ERROR
+            # Log ERROR only on first occurrence, DEBUG for subsequent failures
+            level = logging.DEBUG
             if sslerr.args[0] in _SSL_ERROR_CODES:
                 message = (
                     f"{message} - {sslerr.args[0]}: {sslerr.args[1]}. "
                     f"Please check your configuration for {self._interface_id}."
                 )
-                if not self._connection_state.add_issue(issuer=self, iid=self._interface_id):
-                    level = logging.DEBUG
+                if self._connection_state.add_issue(issuer=self, iid=self._interface_id):
+                    level = logging.ERROR
 
             log_boundary_error(
                 logger=_LOGGER,
@@ -279,10 +280,11 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 i18n.tr("exception.client.xmlrpc.ssl_error", interface_id=self._interface_id, reason=message)
             ) from sslerr
         except OSError as oserr:  # pragma: no cover - Network/socket errno differences are platform/environment specific; simulating reliably in CI would be flaky
+            # Log ERROR only on first occurrence, DEBUG for subsequent failures
             level = (
                 logging.ERROR
                 if oserr.args[0] in _OS_ERROR_CODES
-                and not self._connection_state.add_issue(issuer=self, iid=self._interface_id)
+                and self._connection_state.add_issue(issuer=self, iid=self._interface_id)
                 else logging.DEBUG
             )
 

@@ -1,4 +1,4 @@
-# Version 2025.12.20 (2025-12-10)
+# Version 2025.12.20 (2025-12-11)
 
 ## What's Changed
 
@@ -10,8 +10,12 @@
 - Add firmware update support for OpenCCU/RaspberryMatic via `checkFirmwareUpdate.sh`
 - Add `HmUpdate` hub entity for system firmware updates (OpenCCU/RaspberryMatic only)
 - Add `get_system_update_info()` method to check for available firmware updates
-- Add `trigger_firmware_update()` method to initiate firmware update with automatic reboot
+- Add `trigger_firmware_update()` method to initiate firmware update with automatic reboot (runs with nohup)
 - Add `SystemUpdateData` dataclass with `check_script_available` field to verify script availability
+
+### Bug Fixes
+
+- Fix excessive ERROR logging during CCU restart/reconnect - connection errors now log ERROR only on first occurrence, DEBUG for subsequent failures (fixes inverted logic in `CentralConnectionState.add_issue()` usage)
 
 ### Notes
 

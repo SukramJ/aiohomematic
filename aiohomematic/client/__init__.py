@@ -792,6 +792,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             await asyncio.sleep(RECONNECT_WAIT)
 
             if await self.reinitialize_proxy() == ProxyInitState.INIT_SUCCESS:
+                # Reset circuit breakers after successful reconnect to allow
+                # immediate data refresh without waiting for recovery timeout
+                self.reset_circuit_breakers()
                 _LOGGER.info(
                     i18n.tr(
                         "log.client.reconnect.reconnected",
@@ -830,6 +833,17 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             value_id=value_id,
             ref_counter=ref_counter,
             supports=self.supports_value_usage_reporting,
+        )
+
+    def reset_circuit_breakers(self) -> None:
+        """Reset all circuit breakers to closed state."""
+        self._proxy.circuit_breaker.reset()
+        if hasattr(self, "_proxy_read") and self._proxy_read is not self._proxy:
+            self._proxy_read.circuit_breaker.reset()
+        self._json_rpc_client.circuit_breaker.reset()
+        _LOGGER.debug(
+            "RESET_CIRCUIT_BREAKERS: All circuit breakers reset for %s",
+            self.interface_id,
         )
 
     async def set_install_mode(

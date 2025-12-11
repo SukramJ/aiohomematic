@@ -139,6 +139,9 @@ class ClientConnection(Protocol):
     async def reconnect(self) -> bool:
         """Re-init all RPC clients."""
 
+    def reset_circuit_breakers(self) -> None:
+        """Reset all circuit breakers to closed state."""
+
 
 class ClientLifecycle(Protocol):
     """

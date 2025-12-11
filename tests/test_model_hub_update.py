@@ -107,10 +107,15 @@ class _FakeClient:
             update_available=True,
             check_script_available=True,
         )
+        self.circuit_breakers_reset = False
 
     async def get_system_update_info(self) -> SystemUpdateData:
         """Get system update info."""
         return self.system_update_info
+
+    def reset_circuit_breakers(self) -> None:
+        """Reset circuit breakers."""
+        self.circuit_breakers_reset = True
 
     async def trigger_firmware_update(self) -> bool:
         """Trigger firmware update."""
@@ -260,6 +265,8 @@ class TestHmUpdateProgressTracking:
         assert hm_update.in_progress is False
         assert hm_update.current_firmware == "3.77.0"
         assert hm_update.update_available is False
+        # Circuit breakers should be reset after successful update
+        assert primary_client_provider._client.circuit_breakers_reset is True
 
     @pytest.mark.asyncio
     async def test_monitor_handles_poll_error(self) -> None:

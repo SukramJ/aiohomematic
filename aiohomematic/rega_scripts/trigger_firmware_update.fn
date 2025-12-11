@@ -7,25 +7,20 @@
 !# 1. checkFirmwareUpdate.sh exists and is executable
 !# 2. Script supports required flags (-a, -r) via -h output
 !#
-!# Then runs the update with flags:
+!# Then runs the update with nohup in background:
 !# -a = apply update (download and stage)
 !# -r = reboot immediately after staging
 !#
 !# Note: Backup (-b) is NOT used here. Use create_backup_and_download()
 !# before triggering the firmware update to download a backup.
 !#
-!# Exit codes from checkFirmwareUpdate.sh:
-!# 0 = no update available
-!# 1 = update available
-!# 2 = update scheduled (applied)
-!# 3 = update applied with immediate reboot
-!# >3 = error
+!# The script is started with nohup to ensure it continues running
+!# even if the connection is lost during the update/reboot process.
 !#
 
 string sResult = "";
 boolean bScriptAvailable = false;
 boolean bSuccess = false;
-integer iExitCode = 0;
 string sMessage = "";
 
 !# Check if checkFirmwareUpdate.sh is available and supports required flags
@@ -44,46 +39,15 @@ if (bScriptAvailable) {
     !# Save system state before update
     system.Save();
 
-    !# Run checkFirmwareUpdate.sh with flags:
+    !# Run checkFirmwareUpdate.sh with nohup in background
     !# -a = apply update (download and stage)
     !# -r = reboot immediately after staging
     !# Note: Use create_backup_and_download() before this for backup
     sResult = "";
-    system.Exec("/bin/checkFirmwareUpdate.sh -a -r 2>&1; echo \"EXIT_CODE=$?\"", &sResult);
+    system.Exec("nohup /bin/checkFirmwareUpdate.sh -a -r >/dev/null 2>&1 &", &sResult);
 
-    !# Parse exit code
-    integer iPos = sResult.Find("EXIT_CODE=");
-    if (iPos >= 0) {
-        string sTemp = sResult.Substr(iPos + 10, sResult.Length());
-        iPos = sTemp.Find("\n");
-        if (iPos > 0) {
-            sTemp = sTemp.Substr(0, iPos).Trim();
-        } else {
-            sTemp = sTemp.Trim();
-        }
-        iExitCode = sTemp.ToInteger();
-    }
-
-    !# Interpret exit code
-    if (iExitCode == 0) {
-        sMessage = "No update available";
-    } else {
-        if (iExitCode == 1) {
-            sMessage = "Update available but not applied";
-        } else {
-            if (iExitCode == 2) {
-                bSuccess = true;
-                sMessage = "Update scheduled, will be applied on next reboot";
-            } else {
-                if (iExitCode == 3) {
-                    bSuccess = true;
-                    sMessage = "Update applied, system is rebooting";
-                } else {
-                    sMessage = "Error during update (exit code: " # iExitCode.ToString() # ")";
-                }
-            }
-        }
-    }
+    bSuccess = true;
+    sMessage = "Firmware update triggered, system will reboot when ready";
 } else {
     sMessage = "checkFirmwareUpdate.sh not available or missing required flags (only supported on OpenCCU/RaspberryMatic)";
 }
@@ -94,7 +58,6 @@ if (bSuccess) {
 } else {
     Write('false,');
 }
-Write('"exit_code":' # iExitCode.ToString() # ',');
 Write('"script_available":');
 if (bScriptAvailable) {
     Write('true,');

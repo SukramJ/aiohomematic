@@ -1331,7 +1331,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         Trigger unattended firmware update.
 
         Only supported on OpenCCU/RaspberryMatic (uses checkFirmwareUpdate.sh).
-        The script will download the update, create a backup, and reboot to apply.
+        The script runs with nohup in the background and will download the update
+        and reboot to apply. Use create_backup_and_download() before this method
+        to create a backup.
 
         Returns:
             True if update was successfully triggered, False otherwise.
@@ -1344,7 +1346,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             if json_result := response[_JsonKey.RESULT]:
                 success = bool(json_result.get(_JsonKey.SUCCESS, False))
                 message = json_result.get(_JsonKey.MESSAGE, "")
-                exit_code = json_result.get("exit_code", -1)
 
                 if success:
                     _LOGGER.info(
@@ -1358,7 +1359,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                         i18n.tr(
                             "log.client.json_rpc.trigger_firmware_update.not_triggered",
                             message=message,
-                            exit_code=exit_code,
                         )
                     )
                 return success

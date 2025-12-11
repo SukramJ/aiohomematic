@@ -1330,7 +1330,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """
         Trigger unattended firmware update.
 
-        Only supported on OpenCCU/RaspberryMatic (uses checkFirmwareUpdate.sh).
+        Only supported on OpenCCU (uses checkFirmwareUpdate.sh).
         The script runs with nohup in the background and will download the update
         and reboot to apply. Use create_backup_and_download() before this method
         to create a backup.
@@ -1924,7 +1924,7 @@ def _determine_ccu_type(*, product: str) -> CCUType:
 
     CCU types:
     - CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone)
-    - OPENCCU: OpenCCU and RaspberryMatic (modern variants with online update check)
+    - OPENCCU: OpenCCU (modern variants with online update check)
 
     """
     # Check for original CCU hardware and debmatic

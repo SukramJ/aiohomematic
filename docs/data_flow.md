@@ -4,6 +4,8 @@ This document describes the end-to-end flow of data through aiohomematic for the
 
 Audience: Contributors and integrators who need a precise understanding of message paths, responsibilities, and lifecycle of values and events.
 
+> **Terminology:** For definitions of Backend, Interface, Channel, Parameter, and Callback, see the [Glossary](glossary.md).
+
 ## Overview
 
 - Outbound reads/writes use the client layer (XML-RPC or JSON-RPC) to talk to the backend (CCU/Homegear).

@@ -39,6 +39,7 @@ make clean
 - `user/` - User guides (installation, quickstart, configuration, examples)
 - `dev/` - Developer documentation
 - Markdown files - Architecture and integration guides
+- [glossary.md](glossary.md) - Terminology reference (Integration vs Add-on, Backend, Interface, etc.)
 
 ## Contributing to Documentation
 

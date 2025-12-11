@@ -2,6 +2,8 @@
 
 This document covers the most frequently used operations in aiohomematic, with detailed examples and best practices.
 
+> **Tip:** For definitions of terms like Device, Channel, Parameter, and System Variable, see the [Glossary](glossary.md).
+
 ## Table of Contents
 
 1. [Connection Management](#connection-management)

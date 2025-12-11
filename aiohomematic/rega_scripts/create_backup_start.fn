@@ -5,7 +5,7 @@
 !# Use create_backup_status.fn to check the backup status.
 !#
 !# The backup file is saved to /usr/local/tmp/last_backup.sbk
-!# Works for CCU3/OpenCCU/RaspberryMatic.
+!# Works for OpenCCU.
 !#
 
 string sPid = "";

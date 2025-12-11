@@ -27,6 +27,8 @@ Unlike pyhomematic, which required manual device mappings, aiohomematic automati
 
 Use the Home Assistant custom integration "Homematic(IP) Local", which is powered by aiohomematic.
 
+> **New to Homematic?** See the [Glossary](docs/glossary.md) for definitions of terms like Backend, Interface, Device, Channel, and the difference between Integration and Add-on.
+
 1. Prerequisites
    - Use latest version of Home Assistant.
    - A CCU3, OpenCCU, or Homegear instance reachable from Home Assistant.

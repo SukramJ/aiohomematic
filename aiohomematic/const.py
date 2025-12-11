@@ -206,7 +206,7 @@ class CCUType(StrEnum):
     Enum with CCU types.
 
     CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone).
-    OPENCCU: OpenCCU and RaspberryMatic - modern variants with online update check.
+    OPENCCU: OpenCCU - modern variants with online update check.
     """
 
     CCU = "CCU"
@@ -1243,7 +1243,7 @@ class SystemInformation:
 
     CCU types:
     - CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone)
-    - OPENCCU: OpenCCU and RaspberryMatic (modern variants)
+    - OPENCCU: OpenCCU (modern variants)
     """
 
     available_interfaces: tuple[str, ...] = field(default_factory=tuple)
@@ -1257,7 +1257,7 @@ class SystemInformation:
 
     @property
     def is_openccu(self) -> bool:
-        """Return True if backend is OpenCCU or RaspberryMatic."""
+        """Return True if backend is OpenCCU."""
         return self.ccu_type == CCUType.OPENCCU
 
     @property

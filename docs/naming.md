@@ -8,6 +8,8 @@ The logic lives primarily in `aiohomematic/model/support.py` and relies on names
 
 ## Terminology
 
+> For a complete terminology reference, see the [Glossary](glossary.md).
+
 - Device: The physical device (e.g., HmIP‑BROLL) identified by a device address (e.g., `000A1B2C3D4E00`).
 - Channel: A sub‑unit of a device identified by a channel address (e.g., `000A1B2C3D4E00:1`). Channels may have a user‑editable name in the CCU.
 - Data point: A parameter on a channel (e.g., `LEVEL`, `STATE`). These become entities in upper layers.

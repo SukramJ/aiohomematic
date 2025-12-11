@@ -1,7 +1,7 @@
 !# name: get_system_update_info.fn
 !#
 !# This script checks if a firmware update is available.
-!# Only supported on OpenCCU/RaspberryMatic (uses checkFirmwareUpdate.sh).
+!# Only supported on OpenCCU (uses checkFirmwareUpdate.sh).
 !#
 !# The script validates:
 !# 1. checkFirmwareUpdate.sh exists and is executable

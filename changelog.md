@@ -12,6 +12,12 @@
 - Add `get_system_update_info()` method to check for available firmware updates
 - Add `trigger_firmware_update()` method to initiate firmware update with automatic reboot (runs with nohup)
 - Add `SystemUpdateData` dataclass with `check_script_available` field to verify script availability
+- Add progress tracking for hub firmware updates:
+  - New `in_progress` property on `HmUpdate` to track update status
+  - Automatic polling every 30 seconds during update to detect completion
+  - Progress detection via firmware version change
+  - 30-minute timeout with graceful cleanup
+  - Events published on progress state changes for Home Assistant integration
 
 ### Architecture
 

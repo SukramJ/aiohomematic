@@ -18,6 +18,8 @@
   - Progress detection via firmware version change
   - 30-minute timeout with graceful cleanup
   - Events published on progress state changes for Home Assistant integration
+  - Circuit breakers automatically reset after successful update to allow immediate data refresh
+- Add `reset_circuit_breakers()` method to `ClientConnection` protocol for resetting all circuit breakers to closed state
 
 ### Architecture
 
@@ -42,6 +44,7 @@
 
 ### Bug Fixes
 
+- Fix entities remaining unavailable after CCU reconnect - circuit breakers are now automatically reset after successful reconnect, allowing immediate data refresh instead of waiting for slow recovery
 - Fix excessive ERROR logging during CCU restart/reconnect - connection errors now log ERROR only on first occurrence, DEBUG for subsequent failures (fixes inverted logic in `CentralConnectionState.add_issue()` usage)
 - Fix PING_PONG false alarm mismatch events during CCU restart - PINGs sent during downtime are no longer tracked when connection is known to be down, and cache is cleared on reconnect
 - Scheduler now pauses non-essential jobs during connection issues - only `_check_connection` continues to run during CCU downtime, preventing unnecessary RPC calls and log spam

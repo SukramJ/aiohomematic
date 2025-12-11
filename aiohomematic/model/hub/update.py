@@ -222,6 +222,9 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
                             self._current_firmware = update_info.current_firmware
                             self._available_firmware = update_info.available_firmware
                             self._update_available = update_info.update_available
+                            # Reset circuit breakers after successful update
+                            # to allow immediate data refresh
+                            client.reset_circuit_breakers()
                             break
                     except Exception as err:
                         # CCU may be offline during reboot - continue polling

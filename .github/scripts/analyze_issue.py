@@ -28,6 +28,7 @@ DOCS_LINKS = {
     "unignore": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/unignore.md",
     "input_select_helper": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/input_select_helper.md",
     "lifecycle": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_lifecycle.md",
+    "glossary": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/glossary.md",
     "discussions": "https://github.com/sukramj/aiohomematic/discussions",
 }
 
@@ -46,17 +47,36 @@ Context:
 - Issues may relate to either the library itself or the Home Assistant integration "Homematic(IP) Local"
 - Issues should follow a specific template with required information
 
+Terminology (from our Glossary):
+- Integration: A Home Assistant component connecting to external services. Homematic(IP) Local is an INTEGRATION.
+- Add-on: A separate application running alongside Home Assistant (e.g., OpenCCU Add-on). NOT the same as Integration.
+- Plugin: NOT an official Home Assistant term - users should use "Integration" or "Add-on" instead.
+- Backend: The CCU hardware/software (OpenCCU, CCU3, Debmatic, Homegear) that manages Homematic devices.
+- Interface: Communication channel to device types (HmIP-RF, BidCos-RF, BidCos-Wired, VirtualDevices/CUxD, Groups).
+- Device: Physical or virtual Homematic device with unique address containing channels.
+- Channel: Logical unit within device grouping related functionality.
+- Parameter: Named value on a channel (VALUES for runtime, MASTER for config).
+- Data Point / Entity: Representation of a parameter in Home Assistant.
+
 Your task:
 1. Analyze the issue content and determine if it's complete and well-formed
-2. Identify any missing required information:
+2. Check for terminology misuse (e.g., "Plugin" instead of "Integration", confusion between Integration and Add-on)
+3. Identify any missing required information:
    - Version of Homematic(IP) Local integration
    - Type of Home Assistant installation
-   - Type of Homematic backend (CCU3, RaspberryMatic, etc.)
+   - Type of Homematic backend (CCU3, OpenCCU, etc.)
    - Clear problem description
    - Diagnostics data (if applicable)
    - Protocol/log file (if applicable)
-3. Suggest relevant documentation links from the available docs
-4. Identify key terms for searching similar issues
+4. If diagnostics data, log files, or other attachments are mentioned or included, analyze them for:
+   - Homematic device issues (UN_REACH, STICKY_UN_REACH, CONFIG_PENDING)
+   - Connection errors or timeouts (XML-RPC, JSON-RPC)
+   - Interface problems (callback issues, registration failures)
+   - Version mismatches or compatibility issues
+   - Device-specific errors (device addresses, channel issues)
+   - Configuration problems (ports, TLS, authentication)
+5. Suggest relevant documentation links from the available docs (ALWAYS include glossary if terminology is misused)
+6. Identify key terms for searching similar issues
 
 Issue Title: {title}
 
@@ -76,6 +96,24 @@ Please respond in JSON format with the following structure:
       "language": "de" or "en" (detected from issue)
     }}
   ],
+  "terminology_issues": [
+    {{
+      "term_used": "incorrect term used",
+      "correct_term": "what they should use instead",
+      "explanation": "brief explanation in detected language"
+    }}
+  ],
+  "attachment_analysis": {{
+    "has_diagnostics": boolean,
+    "has_logs": boolean,
+    "findings": [
+      {{
+        "category": "device_issue|connection|interface|config|other",
+        "description": "what was found",
+        "severity": "info|warning|error"
+      }}
+    ]
+  }},
   "suggested_docs": [
     {{
       "doc_key": "key from available docs",
@@ -88,7 +126,8 @@ Please respond in JSON format with the following structure:
   "summary": "brief summary of the issue in the detected language"
 }}
 
-Be helpful and constructive. Only flag missing information if it's genuinely required to help solve the issue."""
+Be helpful and constructive. Only flag missing information if it's genuinely required to help solve the issue.
+If the user uses incorrect terminology, gently suggest the correct terms and link to the glossary."""
 
 
 def get_claude_analysis(title: str, body: str, api_key: str) -> dict[str, Any]:
@@ -180,6 +219,26 @@ def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]
         comment = "## Automatic Issue Analysis\n\n"
         comment += f"**Summary:** {analysis.get('summary', 'Issue detected')}\n\n"
 
+    # Terminology issues
+    terminology_issues = analysis.get("terminology_issues", [])
+    if terminology_issues:
+        if is_german:
+            comment += "### Hinweise zur Terminologie\n\n"
+            comment += (
+                "Um Verwirrung zu vermeiden, beachte bitte die korrekte "
+                f"[Terminologie (Glossar)]({DOCS_LINKS['glossary']}):\n\n"
+            )
+        else:
+            comment += "### Terminology Notes\n\n"
+            comment += (
+                "To avoid confusion, please note the correct "
+                f"[terminology (Glossary)]({DOCS_LINKS['glossary']}):\n\n"
+            )
+
+        for item in terminology_issues:
+            comment += f"- **{item['term_used']}** → **{item['correct_term']}**: {item['explanation']}\n"
+        comment += "\n"
+
     # Missing information
     missing = analysis.get("missing_information", [])
     if missing:
@@ -192,6 +251,33 @@ def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]
 
         for item in missing:
             comment += f"- **{item['field']}**: {item['description']}\n"
+        comment += "\n"
+
+    # Attachment analysis findings
+    attachment_analysis = analysis.get("attachment_analysis", {})
+    findings = attachment_analysis.get("findings", [])
+    if findings:
+        if is_german:
+            comment += "### Analyse der angehängten Daten\n\n"
+            if attachment_analysis.get("has_diagnostics"):
+                comment += "Diagnostik-Daten gefunden. "
+            if attachment_analysis.get("has_logs"):
+                comment += "Protokoll-Daten gefunden. "
+            comment += "\n\n**Erkenntnisse:**\n\n"
+        else:
+            comment += "### Attachment Analysis\n\n"
+            if attachment_analysis.get("has_diagnostics"):
+                comment += "Diagnostics data found. "
+            if attachment_analysis.get("has_logs"):
+                comment += "Log data found. "
+            comment += "\n\n**Findings:**\n\n"
+
+        severity_emoji = {"info": "ℹ️", "warning": "⚠️", "error": "❌"}
+        for finding in findings:
+            emoji = severity_emoji.get(finding.get("severity", "info"), "ℹ️")
+            category = finding.get("category", "other")
+            description = finding.get("description", "")
+            comment += f"- {emoji} **[{category}]** {description}\n"
         comment += "\n"
 
     # Suggested documentation
@@ -294,7 +380,15 @@ def main() -> None:
     comment_body = format_comment(analysis, similar_items)
 
     # Only post if there's something useful to say
-    if analysis.get("missing_information") or analysis.get("suggested_docs") or similar_items:
+    has_useful_feedback = (
+        analysis.get("missing_information")
+        or analysis.get("terminology_issues")
+        or analysis.get("attachment_analysis", {}).get("findings")
+        or analysis.get("suggested_docs")
+        or similar_items
+    )
+
+    if has_useful_feedback:
         try:
             issue.create_comment(comment_body)
             print("Comment posted successfully")  # noqa: T201

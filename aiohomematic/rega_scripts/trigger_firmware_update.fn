@@ -1,7 +1,7 @@
 !# name: trigger_firmware_update.fn
 !#
 !# This script triggers an unattended firmware update.
-!# Only supported on OpenCCU/RaspberryMatic (uses checkFirmwareUpdate.sh).
+!# Only supported on OpenCCU (uses checkFirmwareUpdate.sh).
 !#
 !# The script validates:
 !# 1. checkFirmwareUpdate.sh exists and is executable
@@ -49,7 +49,7 @@ if (bScriptAvailable) {
     bSuccess = true;
     sMessage = "Firmware update triggered, system will reboot when ready";
 } else {
-    sMessage = "checkFirmwareUpdate.sh not available or missing required flags (only supported on OpenCCU/RaspberryMatic)";
+    sMessage = "checkFirmwareUpdate.sh not available or missing required flags (only supported on OpenCCU)";
 }
 
 Write('{"success":');

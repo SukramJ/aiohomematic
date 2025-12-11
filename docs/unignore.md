@@ -7,6 +7,8 @@ But there is also a group of users that wants to do more... _things_.
 
 These advanced users can use the _unignore mechanism_ provided by _aiohomematic_.
 
+> **Note:** For definitions of terms like Parameter, Channel, and Paramset (VALUES, MASTER), see the [Glossary](glossary.md).
+
 You must accept the following before using the _unignore mechanism_:
 
 - Use at your own risk!

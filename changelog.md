@@ -7,8 +7,8 @@
 - Add BackupData dataclass with filename and content for backup downloads
 - Backup filename now includes hostname and CCU version (e.g., `Otto-3.83.6.20251025-2025-12-10-1937.sbk`)
 - `create_backup_and_download()` now returns `BackupData | None` instead of `bytes | None`
-- Add firmware update support for OpenCCU/RaspberryMatic via `checkFirmwareUpdate.sh`
-- Add `HmUpdate` hub entity for system firmware updates (OpenCCU/RaspberryMatic only)
+- Add firmware update support for OpenCCU via `checkFirmwareUpdate.sh`
+- Add `HmUpdate` hub entity for system firmware updates (OpenCCU only)
 - Add `get_system_update_info()` method to check for available firmware updates
 - Add `trigger_firmware_update()` method to initiate firmware update with automatic reboot (runs with nohup)
 - Add `SystemUpdateData` dataclass with `check_script_available` field to verify script availability
@@ -33,7 +33,7 @@
 
 ### Notes
 
-- Firmware update features are only available on OpenCCU/RaspberryMatic systems where `/bin/checkFirmwareUpdate.sh` is present
+- Firmware update features are only available on OpenCCU systems where `/bin/checkFirmwareUpdate.sh` is present
 - Backup before firmware update should be done via `create_backup_and_download()` in Home Assistant before triggering the update
 
 # Version 2025.12.19 (2025-12-10)
@@ -359,13 +359,13 @@
 - New method download_firmware() for downloading firmware to CCU
 - New method get_service_messages to fetch CCU service messages
 - New method get_system_update_info for firmware update status
-- Extended SystemInformation with CCU type identification (CCU vs OpenCCU/RaspberryMatic)
+- Extended SystemInformation with CCU type identification (CCU vs OpenCCU)
 - New CCUType enum for backend identification
 - New protocols for model data points for better decoupling
 - New script trigger_firmware_update.fn to trigger firmware updates
 - New script create_backup.fn to create system backups
 - New script get_backend_info.fn to retrieve backend information
-- Extended get_system_update_info.fn to support OpenCCU/RaspberryMatic online version check
+- Extended get_system_update_info.fn to support OpenCCU online version check
 
 # Version 2025.11.30 (2025-11-26)
 

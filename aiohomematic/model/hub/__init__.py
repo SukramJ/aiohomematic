@@ -577,12 +577,12 @@ class Hub(HubProtocol):
         """
         Retrieve system update info and update the data point.
 
-        Only supported on OpenCCU/RaspberryMatic.
+        Only supported on OpenCCU.
         """
         if not (client := self._primary_client_provider.primary_client):
             return
 
-        # Only supported on OpenCCU/RaspberryMatic
+        # Only supported on OpenCCU
         if not client.system_information.supports_backup:
             return
 

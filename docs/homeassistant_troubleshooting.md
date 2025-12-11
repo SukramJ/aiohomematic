@@ -1,6 +1,8 @@
 # Common Issues and Troubleshooting (Home Assistant)
 
-This document helps you quickly analyze and resolve typical problems when using aiohomematic with Home Assistant (integration: Homematic(IP) Local). The notes apply to CCU (CCU2/3, OpenCCU, piVCCU) and Homegear unless stated otherwise.
+This document helps you quickly analyze and resolve typical problems when using aiohomematic with Home Assistant (integration: Homematic(IP) Local). The notes apply to CCU (CCU2/3, OpenCCU, piVCCU/Debmatic) and Homegear unless stated otherwise.
+
+> **Note:** If you're unfamiliar with terms like Integration, Add-on, Backend, Interface, or Channel, please read the [Glossary](glossary.md) first.
 
 Contents:
 
@@ -561,7 +563,7 @@ When reporting issues on GitHub, include the following information to help with 
 
 ### Environment information
 
-- **CCU type and firmware version**: CCU3 firmware 3.x.x, piVCCU version, Homegear version, etc.
+- **CCU type and firmware version**: CCU3 firmware 3.x.x, OpenCCU version, piVCCU/Debmatic version, Homegear version, etc.
 - **Home Assistant version**: Core version (e.g., 2024.1.0)
 - **Integration version**: Homematic(IP) Local version
 - **Python version** (if relevant): Usually matches Home Assistant's Python

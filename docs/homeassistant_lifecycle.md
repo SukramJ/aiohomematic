@@ -4,6 +4,8 @@ This document explains how aiohomematic handles devices and DataPoints (paramete
 
 ## Terms
 
+> For a complete terminology reference including Home Assistant ecosystem terms, see the [Glossary](glossary.md).
+
 - Device: A physical or virtual Homematic/HomematicIP device. Implemented by `aiohomematic.model.device.Device`.
 - Channel: Logical sub‑unit of a device; contains DataPoints and events. Implemented by `Device.Channel`.
 - DataPoint: Representation of a single parameter (e.g., LEVEL, STATE). Implemented generically by `aiohomematic.model.generic.data_point.GenericDataPoint` or specialized classes; firmware update exposed via `aiohomematic.model.update.DpUpdate`.

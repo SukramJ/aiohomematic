@@ -1,7 +1,7 @@
 !# name: get_backend_info.fn
 !#
 !# This script retrieves backend information and identifies the CCU type.
-!# Product is normalized to CCU (CCU2/CCU3/debmatic) or OpenCCU (RaspberryMatic, etc.)
+!# Product is normalized to CCU (CCU2/CCU3/debmatic) or OpenCCU
 !#
 
 string sVersion = "";

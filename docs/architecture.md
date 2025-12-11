@@ -2,6 +2,8 @@
 
 This document describes the high‑level architecture of aiohomematic, focusing on the main components and how they interact at runtime. It is intended for contributors and integrators who want to understand data flow, responsibilities, and the boundaries between modules.
 
+> **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs Add-on), see the [Glossary](glossary.md).
+
 ## Top‑level components
 
 - Central (aiohomematic/central): Orchestrates the whole system. Manages client lifecycles, creates devices and data points, runs a lightweight scheduler, exposes the local XML‑RPC callback server for events, and provides a query facade over the runtime model and caches. The central is created via CentralConfig and realized by CentralUnit.

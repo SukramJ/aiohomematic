@@ -16,6 +16,8 @@ body:
           required: true
         - label: Ich habe die [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions) gelesen
           required: true
+        - label: Ich habe das [Glossar](https://github.com/SukramJ/aiohomematic/blob/devel/docs/glossary.md) gelesen und verstehe den Unterschied zwischen Integration, Add-on und Backend
+          required: true
         - label: Ich kenne die neuesten [Versionshinweise](https://github.com/sukramj/homematicip_local/releases)
           required: true
         - label: Mir ist klar, dass eine Integration, die über HACS installiert wurde, auch über HACS aktualisiert werden muss
@@ -74,9 +76,9 @@ body:
     attributes:
       label: Welche Art von Installation verwendest Du als Homematic-Backend?
       options:
-        - OpenCCU/RaspberryMatic Einzeln
-        - OpenCCU/RaspberryMatic HA-Addon
-        - Debmatic
+        - OpenCCU Einzeln
+        - OpenCCU HA-Addon
+        - piVCCU/Debmatic
         - CCU3
         - CCU2
         - Homegear

@@ -602,7 +602,7 @@ class TestHostnameValidation:
         assert is_host(host="ccu.de") is True
         assert is_host(host="ccu.123") is True
         assert is_host(host="192.168.178.2") is True
-        assert is_host(host="5422eb72-raspberrymatic") is True
+        assert is_host(host="5422eb72-openccu") is True
 
 
 class TestIPv4Validation:

@@ -25,11 +25,21 @@
   - `publish_sync()` uses TaskScheduler when available for task tracking, shutdown handling, and exception logging
   - Falls back to raw asyncio when no TaskScheduler is provided (e.g., in tests)
 
+### Developer Tools
+
+- Enhance `check_i18n_catalogs.py` to detect unused translation keys:
+  - Add detection of translation keys in `strings.json` that are not used in the codebase
+  - Add `--remove-unused` flag to automatically remove unused keys from all catalog files
+  - Unused keys are reported as warnings (non-blocking) to avoid disrupting commits
+  - Current statistics: 185 total keys, 181 used (97.8%), 4 unused (2.2%)
+- Add comprehensive i18n management documentation at `docs/i18n_management.md`
+
 ### Bug Fixes
 
 - Fix excessive ERROR logging during CCU restart/reconnect - connection errors now log ERROR only on first occurrence, DEBUG for subsequent failures (fixes inverted logic in `CentralConnectionState.add_issue()` usage)
 - Fix PING_PONG false alarm mismatch events during CCU restart - PINGs sent during downtime are no longer tracked when connection is known to be down, and cache is cleared on reconnect
 - Scheduler now pauses non-essential jobs during connection issues - only `_check_connection` continues to run during CCU downtime, preventing unnecessary RPC calls and log spam
+- Reduce INFO-level log noise during reconnection - circuit breaker successful recovery transitions (half_open → closed) now log at DEBUG level instead of INFO
 
 ### Notes
 

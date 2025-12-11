@@ -272,16 +272,29 @@ class CircuitBreaker:
         self._metrics.state_transitions += 1
         self._metrics.last_state_change = datetime.now()
 
-        _LOGGER.info(
-            i18n.tr(
-                "log.client.circuit_breaker.state_transition",
-                old_state=old_state,
-                new_state=new_state,
-                interface_id=self._interface_id,
-                failure_count=self._failure_count,
-                success_count=self._success_count,
+        # Use DEBUG for expected recovery transitions, INFO for issues and recovery attempts
+        if old_state == CircuitState.HALF_OPEN and new_state == CircuitState.CLOSED:
+            # Recovery successful - expected behavior during reconnection (DEBUG is allowed without i18n)
+            _LOGGER.debug(
+                "CIRCUIT_BREAKER: %s → %s for %s (failures=%d, successes=%d)",
+                old_state,
+                new_state,
+                self._interface_id,
+                self._failure_count,
+                self._success_count,
             )
-        )
+        else:
+            # Problem detected (CLOSED→OPEN) or testing recovery (OPEN→HALF_OPEN)
+            _LOGGER.info(
+                i18n.tr(
+                    "log.client.circuit_breaker.state_transition",
+                    old_state=old_state,
+                    new_state=new_state,
+                    interface_id=self._interface_id,
+                    failure_count=self._failure_count,
+                    success_count=self._success_count,
+                )
+            )
 
         # Reset counters based on new state
         if new_state == CircuitState.CLOSED:

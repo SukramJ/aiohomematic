@@ -1574,7 +1574,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     f"{message}. Possible reason: 'Automatic forwarding to HTTPS' is enabled in the backend, "
                     f"but this integration is not configured to use TLS"
                 )
-            level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
+            # Log ERROR only on first occurrence, DEBUG for subsequent failures
+            level = logging.ERROR if self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
                 logger=_LOGGER,
                 boundary="json-rpc",
@@ -1590,7 +1591,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             self.clear_session()
             self._circuit_breaker.record_failure()
             message = f"ClientConnectorError[{cceerr}]"
-            level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
+            # Log ERROR only on first occurrence, DEBUG for subsequent failures
+            level = logging.ERROR if self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
                 logger=_LOGGER,
                 boundary="json-rpc",
@@ -1603,7 +1605,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except (ClientError, OSError) as err:
             self.clear_session()
             self._circuit_breaker.record_failure()
-            level = logging.ERROR if not self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
+            # Log ERROR only on first occurrence, DEBUG for subsequent failures
+            level = logging.ERROR if self._connection_state.add_issue(issuer=self, iid=self._url) else logging.DEBUG
             log_boundary_error(
                 logger=_LOGGER,
                 boundary="json-rpc",

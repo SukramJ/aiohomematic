@@ -26,18 +26,19 @@ from typing import Any, Final
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import BackendSystemEventData
 from aiohomematic.const import (
-    CONNECTION_CHECKER_INTERVAL,
     DEVICE_FIRMWARE_CHECK_INTERVAL,
     DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
     DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
     SCHEDULER_LOOP_SLEEP,
     SCHEDULER_NOT_STARTED_SLEEP,
     SYSTEM_UPDATE_CHECK_INTERVAL,
+    Backend,
     BackendSystemEvent,
     CentralUnitState,
     DeviceFirmwareState,
+    Interface,
 )
-from aiohomematic.exceptions import NoConnectionException
+from aiohomematic.exceptions import BaseHomematicException, NoConnectionException
 from aiohomematic.interfaces.central import (
     CentralInfo,
     CentralUnitStateProvider,
@@ -46,11 +47,20 @@ from aiohomematic.interfaces.central import (
     EventBusProvider,
     HubDataFetcher,
 )
-from aiohomematic.interfaces.client import ClientCoordination, ConnectionStateProvider
+from aiohomematic.interfaces.client import ClientCoordination, ConnectionStateProvider, JsonRpcClientProvider
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+# Constants for post-reconnect data loading retry
+# JSON-RPC service can take 30-60 seconds to become available after CCU restart
+_POST_RECONNECT_RETRY_DELAY: Final = 10.0  # seconds between retries
+_POST_RECONNECT_MAX_RETRIES: Final = 15  # maximum retry attempts (150 seconds total)
+# Data loading retries - CCU may respond to pings but not be ready for data operations
+# for an extended period after restart. ReGa/script engine may take additional time.
+_DATA_LOAD_MAX_RETRIES: Final = 8  # maximum data loading retries after stability confirmed
+_DATA_LOAD_RETRY_DELAY: Final = 20.0  # seconds between data loading retries (160s total)
 
 # Type alias for async task factory
 _AsyncTaskFactory = Callable[[], Awaitable[None]]
@@ -131,6 +141,7 @@ class BackgroundScheduler:
         device_data_refresher: DeviceDataRefresher,
         hub_data_fetcher: HubDataFetcher,
         event_bus_provider: EventBusProvider,
+        json_rpc_client_provider: JsonRpcClientProvider,
         state_provider: CentralUnitStateProvider,
     ) -> None:
         """
@@ -145,6 +156,7 @@ class BackgroundScheduler:
             device_data_refresher: Provider for device data refresh operations
             hub_data_fetcher: Provider for hub data fetch operations
             event_bus_provider: Provider for event bus access
+            json_rpc_client_provider: Provider for JSON-RPC client access
             state_provider: Provider for central unit state
 
         """
@@ -155,6 +167,7 @@ class BackgroundScheduler:
         self._device_data_refresher: Final = device_data_refresher
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._event_bus_provider: Final = event_bus_provider
+        self._json_rpc_client_provider: Final = json_rpc_client_provider
         self._state_provider: Final = state_provider
 
         # Use asyncio.Event for thread-safe state flags
@@ -177,7 +190,7 @@ class BackgroundScheduler:
         self._scheduler_jobs: Final[list[SchedulerJob]] = [
             SchedulerJob(
                 task=self._check_connection,
-                run_interval=CONNECTION_CHECKER_INTERVAL,
+                run_interval=int(self._config_provider.config.timeout_config.connection_checker_interval),
             ),
             SchedulerJob(
                 task=self._refresh_client_data,
@@ -271,19 +284,25 @@ class BackgroundScheduler:
                 await self._client_coordination.restart_clients()
             else:
                 reconnects: list[Any] = []
-                reloads: list[Any] = []
-                for interface_id in self._client_coordination.interface_ids:
+                interfaces_to_reload: list[Interface] = []
+                # Use clients tuple (snapshot) to prevent race condition if clients
+                # are modified during iteration
+                clients_to_reconnect = []
+                for client in self._client_coordination.clients:
                     # Check: client available, connected, callback alive
-                    client = self._client_coordination.get_client(interface_id=interface_id)
                     if client.available is False or not await client.is_connected() or not client.is_callback_alive():
                         reconnects.append(client.reconnect())
-                        reloads.append(
-                            self._client_coordination.load_and_refresh_data_point_data(interface=client.interface)
-                        )
+                        interfaces_to_reload.append(client.interface)
+                        clients_to_reconnect.append(client)
                 if reconnects:
                     await asyncio.gather(*reconnects)
-                    if self._central_info.available:
-                        await asyncio.gather(*reloads)
+                    # After reconnect, filter to only interfaces that are now available
+                    # This handles the case where some interfaces reconnect before others
+                    available_interfaces = [client.interface for client in clients_to_reconnect if client.available]
+                    if available_interfaces:
+                        # Load data with retry logic - JSON-RPC service may not be
+                        # fully available immediately after CCU restart
+                        await self._load_data_with_retry(interfaces=available_interfaces)
         except NoConnectionException as nex:
             _LOGGER.error(
                 i18n.tr(
@@ -355,6 +374,185 @@ class BackgroundScheduler:
                 DeviceFirmwareState.PERFORMING_UPDATE,
             )
         )
+
+    async def _load_data_with_retry(self, *, interfaces: list[Interface]) -> None:
+        """
+        Load data point data for interfaces with retry logic.
+
+        After CCU restart, both JSON-RPC and XML-RPC services may not be immediately
+        available. This method waits for both services to become available before
+        loading data.
+
+        For non-CCU backends (Homegear, PyDevCCU), retry logic is skipped as they
+        don't have the same service availability issues.
+
+        Args:
+        ----
+            interfaces: List of interfaces to reload data for
+
+        """
+        # Check if any client uses the CCU backend (which has JSON-RPC service)
+        uses_ccu_backend = any(
+            client.model == Backend.CCU
+            for client in self._client_coordination.clients
+            if client.interface in interfaces
+        )
+
+        # For CCU backends, wait for JSON-RPC service to become available
+        if uses_ccu_backend:
+            json_rpc_client = self._json_rpc_client_provider.json_rpc_client
+            for attempt in range(_POST_RECONNECT_MAX_RETRIES):
+                if await json_rpc_client.is_service_available():
+                    _LOGGER.debug(
+                        "LOAD_DATA_WITH_RETRY: JSON-RPC service available for %s (attempt %d)",
+                        self._central_info.name,
+                        attempt + 1,
+                    )
+                    break
+                if attempt < _POST_RECONNECT_MAX_RETRIES - 1:
+                    _LOGGER.debug(
+                        "LOAD_DATA_WITH_RETRY: JSON-RPC service not yet available for %s "
+                        "- retrying in %.1fs (attempt %d/%d)",
+                        self._central_info.name,
+                        _POST_RECONNECT_RETRY_DELAY,
+                        attempt + 1,
+                        _POST_RECONNECT_MAX_RETRIES,
+                    )
+                    await asyncio.sleep(_POST_RECONNECT_RETRY_DELAY)
+                else:
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "LOAD_DATA_WITH_RETRY: JSON-RPC service not available after %d attempts for %s "
+                        "- proceeding with data load anyway",
+                        _POST_RECONNECT_MAX_RETRIES,
+                        self._central_info.name,
+                    )
+
+        # Wait for XML-RPC stability - verify all clients are in CONNECTED state AND
+        # can actually communicate with the backend. The state machine may be in CONNECTED
+        # state but the backend ports may not be fully ready yet.
+        clients_to_check = [client for client in self._client_coordination.clients if client.interface in interfaces]
+        for attempt in range(_POST_RECONNECT_MAX_RETRIES):
+            all_stable = True
+            for client in clients_to_check:
+                # Check both state machine status AND actual connection availability
+                if not client.available or not await client.check_connection_availability(handle_ping_pong=False):
+                    all_stable = False
+                    break
+            if all_stable:
+                _LOGGER.debug(
+                    "LOAD_DATA_WITH_RETRY: All clients stable for %s (attempt %d)",
+                    self._central_info.name,
+                    attempt + 1,
+                )
+                break
+            if attempt < _POST_RECONNECT_MAX_RETRIES - 1:
+                _LOGGER.debug(
+                    "LOAD_DATA_WITH_RETRY: Not all clients stable for %s - retrying in %.1fs (attempt %d/%d)",
+                    self._central_info.name,
+                    _POST_RECONNECT_RETRY_DELAY,
+                    attempt + 1,
+                    _POST_RECONNECT_MAX_RETRIES,
+                )
+                await asyncio.sleep(_POST_RECONNECT_RETRY_DELAY)
+            else:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "LOAD_DATA_WITH_RETRY: Not all clients stable after %d attempts for %s "
+                    "- proceeding with data load anyway",
+                    _POST_RECONNECT_MAX_RETRIES,
+                    self._central_info.name,
+                )
+
+        # Load data for all interfaces with retry logic
+        # Even after stability checks pass, data operations may fail if CCU is still initializing.
+        # Data loading doesn't raise exceptions for individual failures - instead check if circuit
+        # breakers opened during loading (indicating backend wasn't ready).
+        for data_attempt in range(_DATA_LOAD_MAX_RETRIES):
+            # Before each data load attempt, verify XML-RPC is actually ready
+            # by doing an active connection check. The CCU may accept init() but
+            # not be ready for data operations yet.
+            if data_attempt > 0:
+                # Wait before retry
+                _LOGGER.debug(
+                    "LOAD_DATA_WITH_RETRY: Waiting %.1fs before data load retry %d/%d for %s",
+                    _DATA_LOAD_RETRY_DELAY,
+                    data_attempt + 1,
+                    _DATA_LOAD_MAX_RETRIES,
+                    self._central_info.name,
+                )
+                await asyncio.sleep(_DATA_LOAD_RETRY_DELAY)
+
+                # Re-check XML-RPC stability before retry
+                all_stable = True
+                for client in clients_to_check:
+                    if not await client.check_connection_availability(handle_ping_pong=False):
+                        all_stable = False
+                        _LOGGER.debug(
+                            "LOAD_DATA_WITH_RETRY: Client %s not stable before retry %d/%d",
+                            client.interface_id,
+                            data_attempt + 1,
+                            _DATA_LOAD_MAX_RETRIES,
+                        )
+                        break
+                if not all_stable:
+                    # Skip this attempt, circuit breakers will be checked at end of loop
+                    continue
+
+            try:
+                reloads = [
+                    self._client_coordination.load_and_refresh_data_point_data(interface=interface)
+                    for interface in interfaces
+                ]
+                await asyncio.gather(*reloads)
+            except BaseHomematicException as bhexc:
+                _LOGGER.debug(
+                    "LOAD_DATA_WITH_RETRY: Data load attempt %d/%d raised exception for %s: %s [%s]",
+                    data_attempt + 1,
+                    _DATA_LOAD_MAX_RETRIES,
+                    self._central_info.name,
+                    bhexc.name,
+                    extract_exc_args(exc=bhexc),
+                )
+                # Reset circuit breakers to allow retry
+                for client in clients_to_check:
+                    client.reset_circuit_breakers()
+                if data_attempt >= _DATA_LOAD_MAX_RETRIES - 1:
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "LOAD_DATA_WITH_RETRY: Data load failed after %d attempts for %s: %s [%s]",
+                        _DATA_LOAD_MAX_RETRIES,
+                        self._central_info.name,
+                        bhexc.name,
+                        extract_exc_args(exc=bhexc),
+                    )
+                    return
+                continue
+
+            # Check if any circuit breakers opened during data loading
+            # This indicates the CCU wasn't ready even though stability checks passed
+            if all(client.all_circuit_breakers_closed for client in clients_to_check):
+                _LOGGER.debug(
+                    "LOAD_DATA_WITH_RETRY: Data loaded successfully for %s",
+                    self._central_info.name,
+                )
+                return
+
+            # Circuit breakers opened - CCU not fully ready
+            _LOGGER.debug(
+                "LOAD_DATA_WITH_RETRY: Circuit breakers opened during data load attempt %d/%d for %s",
+                data_attempt + 1,
+                _DATA_LOAD_MAX_RETRIES,
+                self._central_info.name,
+            )
+            # Reset circuit breakers to allow retry
+            for client in clients_to_check:
+                client.reset_circuit_breakers()
+
+            if data_attempt >= _DATA_LOAD_MAX_RETRIES - 1:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "LOAD_DATA_WITH_RETRY: Circuit breakers opened during all %d data load attempts for %s "
+                    "- CCU may not be fully ready",
+                    _DATA_LOAD_MAX_RETRIES,
+                    self._central_info.name,
+                )
 
     def _on_backend_system_event(self, *, event: BackendSystemEventData) -> None:
         """

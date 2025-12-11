@@ -27,6 +27,7 @@ from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, IntEnum, StrEnum
 import errno
+import http.client
 import logging
 from ssl import SSLContext, SSLError
 from typing import Any, Final
@@ -40,6 +41,7 @@ from aiohomematic.const import ISO_8859_1
 from aiohomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
+    CircuitBreakerOpenException,
     ClientException,
     NoConnectionException,
     UnsupportedException,
@@ -142,6 +144,16 @@ class BaseRpcProxy(ABC):
         """Return the supported methods."""
         return self._supported_methods
 
+    def clear_connection_issue(self) -> None:
+        """
+        Clear the connection issue flag for this interface.
+
+        This should be called after a successful proxy init to ensure
+        that subsequent RPC calls are not blocked by stale connection issues
+        from previous failed attempts.
+        """
+        self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
+
     @abstractmethod
     async def do_init(self) -> None:
         """Initialize the rpc proxy."""
@@ -222,7 +234,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             # Check circuit breaker state (allow recovery commands through)
             if method not in _CIRCUIT_BREAKER_BYPASS_METHODS and not self._circuit_breaker.is_available:
                 self._circuit_breaker.record_rejection()
-                raise NoConnectionException(
+                raise CircuitBreakerOpenException(
                     i18n.tr("exception.client.xmlrpc.circuit_open", interface_id=self._interface_id)
                 )
 
@@ -251,7 +263,8 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         except BaseHomematicException as bhe:
             self._record_session(method=args[0], params=args[1:], exc=bhe)
             # Record failure for circuit breaker (connection-related exceptions)
-            if isinstance(bhe, NoConnectionException):
+            # Don't record failure for CircuitBreakerOpenException - circuit is already open
+            if isinstance(bhe, NoConnectionException) and not isinstance(bhe, CircuitBreakerOpenException):
                 self._circuit_breaker.record_failure()
             raise
         except SSLError as sslerr:  # pragma: no cover - SSL handshake/cert errors are OS/OpenSSL dependent and not reliably reproducible in CI
@@ -320,8 +333,49 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                         reason=perr.errmsg,
                     )
                 ) from perr
+        except http.client.ImproperConnectionState as icserr:
+            # HTTP connection state errors (ResponseNotReady, CannotSendRequest, etc.)
+            # These indicate the connection is in an inconsistent state and should be retried
+            # Log at DEBUG level as this is expected during reconnection scenarios
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="xml-rpc",
+                action=str(args[0]),
+                err=icserr,
+                level=logging.DEBUG,
+                log_context=self.log_context,
+            )
+            # Reset transport to force new connection on next request
+            self._reset_transport()
+            self._circuit_breaker.record_failure()
+            raise NoConnectionException(
+                i18n.tr(
+                    "exception.client.xmlrpc.http_connection_state_error",
+                    interface_id=self._interface_id,
+                    reason=extract_exc_args(exc=icserr),
+                )
+            ) from icserr
         except Exception as exc:
             raise ClientException(exc) from exc
+
+    def _reset_transport(self) -> None:
+        """
+        Reset the XML-RPC transport to force a new connection on next request.
+
+        This is necessary when the underlying HTTP connection gets into an
+        inconsistent state (e.g., after ResponseNotReady errors).
+        """
+        # Access the private transport attribute and close it
+        # pylint: disable=protected-access
+        if transport := self._ServerProxy__transport:
+            try:
+                transport.close()
+                _LOGGER.debug(
+                    "XmlRPC._RESET_TRANSPORT: Transport reset for %s",
+                    self._interface_id,
+                )
+            except Exception:  # noqa: BLE001 - Best effort cleanup
+                pass
 
 
 def _cleanup_args(*args: Any) -> Any:

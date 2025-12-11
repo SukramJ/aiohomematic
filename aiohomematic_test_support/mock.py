@@ -279,6 +279,9 @@ def get_xml_rpc_proxy(  # noqa: C901
             """Return the supported methods."""
             return self._supported_methods
 
+        def clear_connection_issue(self) -> None:
+            """Clear connection issue (no-op for test mock)."""
+
         async def clientServerInitialized(self, interface_id: str) -> None:
             """Answer clientServerInitialized with pong."""
             await self.ping(callerId=interface_id)

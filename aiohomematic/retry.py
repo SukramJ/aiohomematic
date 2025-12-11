@@ -53,6 +53,7 @@ from aiohomematic.const import (
 from aiohomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
+    CircuitBreakerOpenException,
     InternalBackendException,
     NoConnectionException,
     UnsupportedException,
@@ -80,6 +81,7 @@ _TRANSIENT_OS_ERROR_CODES: Final[frozenset[int]] = frozenset(
 # Exception types that indicate permanent failures - never retry these
 _PERMANENT_EXCEPTION_TYPES: Final[tuple[type[BaseException], ...]] = (
     AuthFailure,
+    CircuitBreakerOpenException,  # Circuit breaker has its own recovery mechanism
     ClientConnectorCertificateError,  # TLS/SSL certificate errors won't resolve with retry
     InternalBackendException,  # Server-side errors typically need manual intervention
     UnsupportedException,
@@ -211,10 +213,19 @@ class RetryStrategy:
             except BaseException as exc:
                 last_exception = exc
 
-                if not self.should_retry(exc=exc):
+                if not is_retryable_exception(exc):
                     _LOGGER.debug(
                         "Retry: %s failed with non-retryable exception: %s",
                         operation_name,
+                        type(exc).__name__,
+                    )
+                    raise
+
+                if self._current_attempt >= self._max_attempts:
+                    _LOGGER.debug(
+                        "Retry: %s exhausted all %d attempts with %s",
+                        operation_name,
+                        self._max_attempts,
                         type(exc).__name__,
                     )
                     raise
@@ -228,7 +239,7 @@ class RetryStrategy:
                     self._current_backoff,
                 )
 
-        # All retries exhausted
+        # All retries exhausted (shouldn't reach here normally as we raise in the loop)
         if last_exception:
             _LOGGER.debug(
                 "Retry: %s exhausted all %d attempts",

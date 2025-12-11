@@ -16,7 +16,7 @@ from aiohomematic.client.handlers.device_ops import (
     _wait_for_state_change_or_timeout,
 )
 from aiohomematic.const import (
-    CALLBACK_WARN_INTERVAL,
+    DEFAULT_TIMEOUT_CONFIG,
     DataPointKey,
     EventKey,
     Interface,
@@ -277,6 +277,7 @@ class _FakeCentral:
             callback_host = "127.0.0.1"
             callback_port_xml_rpc = 0
             interfaces_requiring_periodic_refresh = frozenset()
+            timeout_config = DEFAULT_TIMEOUT_CONFIG
 
         self.config = Cfg()
         self._listen_port_xml_rpc = 32001
@@ -329,6 +330,9 @@ class _XmlProxy2:
 
     async def addLink(self, *args: Any):  # noqa: D401,N802,ANN401
         raise ClientException("addLink-fail")
+
+    def clear_connection_issue(self) -> None:  # noqa: D401
+        """Clear connection issue (no-op for test mock)."""
 
     async def do_init(self) -> None:  # noqa: D401
         return None
@@ -439,6 +443,7 @@ class _FakeCentral2:
             callback_port_xml_rpc = 0
             interfaces_requiring_periodic_refresh = frozenset()
             hm_master_poll_after_send_intervals = (0,)
+            timeout_config = DEFAULT_TIMEOUT_CONFIG
 
         self.config = Cfg()
         if not push_updates:
@@ -1030,7 +1035,7 @@ class TestClientReconnectAndConnection:
 
         assert client.is_callback_alive() is True
 
-        central._last_event = datetime.now() - timedelta(seconds=CALLBACK_WARN_INTERVAL + 1)
+        central._last_event = datetime.now() - timedelta(seconds=DEFAULT_TIMEOUT_CONFIG.callback_warn_interval + 1)
         assert client.is_callback_alive() is False
         assert client.is_callback_alive() is False
 

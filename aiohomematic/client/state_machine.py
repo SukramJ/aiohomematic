@@ -32,11 +32,12 @@ _LOGGER: Final = logging.getLogger(__name__)
 #                    ▼                               │              ▼
 #                 FAILED ◄─────────────────────────┬┴─────── DISCONNECTED
 #                    │                             │              │
-#                    └─────► INITIALIZING          │              ▼
-#                            CONNECTING ◄──────────┴──────── RECONNECTING
-#                                                                 │
-#                                                                 ▼
-#   STOPPED ◄── STOPPING ◄───────────────────────────────────────┘
+#                    ├─────► INITIALIZING          │              ▼
+#                    ├─────► CONNECTING ◄──────────┴──────── RECONNECTING
+#                    │                                            ▲
+#                    └────────────────────────────────────────────┘
+#
+#   STOPPED ◄── STOPPING ◄─────────────────────────(from CONNECTED/DISCONNECTED/RECONNECTING)
 #
 _VALID_TRANSITIONS: Final[dict[ClientState, frozenset[ClientState]]] = {
     # Initial state after client creation - can only begin initialization
@@ -78,7 +79,7 @@ _VALID_TRANSITIONS: Final[dict[ClientState, frozenset[ClientState]]] = {
     # Terminal state - client is fully stopped, no transitions allowed
     ClientState.STOPPED: frozenset(),
     # Error state - allows retry via re-initialization or reconnection
-    ClientState.FAILED: frozenset({ClientState.INITIALIZING, ClientState.CONNECTING}),
+    ClientState.FAILED: frozenset({ClientState.INITIALIZING, ClientState.CONNECTING, ClientState.RECONNECTING}),
 }
 
 

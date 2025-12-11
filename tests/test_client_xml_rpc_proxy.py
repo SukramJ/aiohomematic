@@ -177,6 +177,77 @@ class TestErrorHandling:
         await proxy.stop()
 
     @pytest.mark.asyncio
+    async def test_improper_connection_state_raises_no_connection_exception(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        Test that http.client.ImproperConnectionState is mapped to NoConnectionException.
+
+        This tests the handling of ResponseNotReady and similar HTTP connection state errors
+        that occur when the underlying connection is in an inconsistent state.
+        """
+        import http.client
+
+        def raise_response_not_ready(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            raise http.client.ResponseNotReady("Request-sent")
+
+        monkeypatch.setattr(xmlrpc.client.ServerProxy, "_ServerProxy__request", raise_response_not_ready, raising=True)
+
+        conn_state = hmcu.CentralConnectionState()
+        proxy = AioXmlRpcProxy(
+            max_workers=1,
+            interface_id="test-if",
+            connection_state=conn_state,
+            uri="http://example/xmlrpc",
+            headers=[],
+            tls=False,
+        )
+
+        with pytest.raises(NoConnectionException):
+            await proxy._async_request("system.listMethods", ())
+
+        await proxy.stop()
+
+    @pytest.mark.asyncio
+    async def test_improper_connection_state_resets_transport(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that ImproperConnectionState triggers transport reset."""
+        import http.client
+
+        reset_called = []
+
+        def raise_response_not_ready(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            raise http.client.ResponseNotReady("Request-sent")
+
+        monkeypatch.setattr(xmlrpc.client.ServerProxy, "_ServerProxy__request", raise_response_not_ready, raising=True)
+
+        conn_state = hmcu.CentralConnectionState()
+        proxy = AioXmlRpcProxy(
+            max_workers=1,
+            interface_id="test-if",
+            connection_state=conn_state,
+            uri="http://example/xmlrpc",
+            headers=[],
+            tls=False,
+        )
+
+        # Patch _reset_transport to track calls
+        original_reset = proxy._reset_transport
+
+        def mock_reset_transport() -> None:
+            reset_called.append(True)
+            original_reset()
+
+        monkeypatch.setattr(proxy, "_reset_transport", mock_reset_transport)
+
+        with pytest.raises(NoConnectionException):
+            await proxy._async_request("system.listMethods", ())
+
+        # Transport should have been reset during retry attempts
+        assert len(reset_called) > 0
+
+        await proxy.stop()
+
+    @pytest.mark.asyncio
     async def test_no_connection_when_has_issue(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that NoConnectionException is raised when connection has issue."""
         conn_state = hmcu.CentralConnectionState()

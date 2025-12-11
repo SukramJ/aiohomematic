@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.19"
+VERSION: Final = "2025.12.20"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1296,6 +1296,7 @@ class SystemUpdateData:
     current_firmware: str
     available_firmware: str
     update_available: bool
+    check_script_available: bool = False
 
 
 class BackupStatus(StrEnum):
@@ -1315,6 +1316,14 @@ class BackupStatusData:
     file_path: str = ""
     filename: str = ""
     size: int = 0
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class BackupData:
+    """Dataclass for backup download result."""
+
+    filename: str
+    content: bytes
 
 
 class ParameterData(TypedDict, total=False):

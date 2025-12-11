@@ -1,23 +1,26 @@
 !# name: get_system_update_info.fn
 !#
-!# This script checks if a firmware update is available for the CCU.
-!# Works for CCU2/CCU3/OpenCCU/RaspberryMatic.
+!# This script checks if a firmware update is available.
+!# Only supported on OpenCCU/RaspberryMatic (uses checkFirmwareUpdate.sh).
+!#
+!# The script validates:
+!# 1. checkFirmwareUpdate.sh exists and is executable
+!# 2. Script supports required flags (-a, -r) via -h output
 !#
 
 string sFwCurrent = "";
 string sFwAvailable = "";
 boolean bUpdateAvailable = false;
+boolean bCheckScriptAvailable = false;
 string sResult = "";
 string sTemp = "";
-string sProduct = "";
 integer iPos;
+integer iExitCode;
 
-!# Get current firmware version and product from /VERSION file
+!# Get current firmware version from /VERSION file
 system.Exec("cat /VERSION 2>/dev/null", &sResult);
 if (sResult) {
     sResult = sResult.Trim();
-
-    !# Extract VERSION
     iPos = sResult.Find("VERSION=");
     if (iPos >= 0) {
         sTemp = sResult.Substr(iPos + 8, sResult.Length());
@@ -28,111 +31,59 @@ if (sResult) {
             sFwCurrent = sTemp.Trim();
         }
     }
-
-    !# Extract PRODUCT
-    iPos = sResult.Find("PRODUCT=");
-    if (iPos >= 0) {
-        sTemp = sResult.Substr(iPos + 8, sResult.Length());
-        iPos = sTemp.Find("\n");
-        if (iPos > 0) {
-            sProduct = sTemp.Substr(0, iPos).Trim();
-        } else {
-            sProduct = sTemp.Trim();
-        }
-    }
 }
 
-!# Check for available update - try multiple locations
-!# Location 1: /usr/local/.firmwareUpdate (CCU3/RaspberryMatic - after manual upload)
-if (sFwAvailable == "") {
-    sResult = "";
-    system.Exec("cat /usr/local/.firmwareUpdate 2>/dev/null", &sResult);
-    if (sResult) {
-        sResult = sResult.Trim();
-        iPos = sResult.Find("VERSION=");
-        if (iPos >= 0) {
-            sTemp = sResult.Substr(iPos + 8, sResult.Length());
-            iPos = sTemp.Find("\n");
-            if (iPos > 0) {
-                sFwAvailable = sTemp.Substr(0, iPos).Trim();
-            } else {
-                sFwAvailable = sTemp.Trim();
-            }
-        }
-    }
-}
+!# Check if checkFirmwareUpdate.sh is available and supports required flags
+sResult = "";
+system.Exec("test -x /bin/checkFirmwareUpdate.sh && /bin/checkFirmwareUpdate.sh -h 2>&1", &sResult);
+if (sResult) {
+    !# Verify script supports required flags: -a (apply), -r (reboot)
+    boolean bHasApply = (sResult.Find("-a") >= 0);
+    boolean bHasReboot = (sResult.Find("-r") >= 0);
 
-!# Location 2: /tmp/.firmwareUpdate (some OpenCCU versions)
-if (sFwAvailable == "") {
-    sResult = "";
-    system.Exec("cat /tmp/.firmwareUpdate 2>/dev/null", &sResult);
-    if (sResult) {
-        sResult = sResult.Trim();
-        iPos = sResult.Find("VERSION=");
-        if (iPos >= 0) {
-            sTemp = sResult.Substr(iPos + 8, sResult.Length());
-            iPos = sTemp.Find("\n");
-            if (iPos > 0) {
-                sFwAvailable = sTemp.Substr(0, iPos).Trim();
-            } else {
-                sFwAvailable = sTemp.Trim();
-            }
-        }
-    }
-}
+    if (bHasApply && bHasReboot) {
+        bCheckScriptAvailable = true;
 
-!# Location 3: Online check for OpenCCU/RaspberryMatic
-!# Query openccu.de for latest version (returns: homematic.com.setLatestVersion('3.85.7.20251129', 'HM-RASPBERRYMATIC');)
-if (sFwAvailable == "") {
-    if ((sProduct == "ova") || (sProduct == "rpi3") || (sProduct == "rpi4") || (sProduct == "rpi5") || (sProduct == "tinkerboard") || (sProduct == "oci")) {
+        !# Check for updates using checkFirmwareUpdate.sh
+        !# Exit codes: 0 = no update, 1 = update available
         sResult = "";
-        system.Exec("wget -q -O - 'https://openccu.de/LATEST-VERSION.js' 2>/dev/null", &sResult);
-        if (sResult) {
-            iPos = sResult.Find("'");
-            if (iPos >= 0) {
-                sTemp = sResult.Substr(iPos + 1, sResult.Length());
-                iPos = sTemp.Find("'");
-                if (iPos > 0) {
-                    sFwAvailable = sTemp.Substr(0, iPos).Trim();
+        system.Exec("/bin/checkFirmwareUpdate.sh 2>/dev/null; echo \"EXIT_CODE=$?\"", &sResult);
+
+        !# Parse exit code from output
+        iPos = sResult.Find("EXIT_CODE=");
+        if (iPos >= 0) {
+            sTemp = sResult.Substr(iPos + 10, sResult.Length());
+            iPos = sTemp.Find("\n");
+            if (iPos > 0) {
+                sTemp = sTemp.Substr(0, iPos).Trim();
+            } else {
+                sTemp = sTemp.Trim();
+            }
+            iExitCode = sTemp.ToInteger();
+
+            !# Exit code 1 means update is available
+            if (iExitCode == 1) {
+                bUpdateAvailable = true;
+                !# Get available version from GitHub API
+                sResult = "";
+                system.Exec("wget -q -O - 'https://api.github.com/repos/openccu/openccu/releases/latest' 2>/dev/null | grep -o '\"tag_name\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | head -1 | cut -d'\"' -f4", &sResult);
+                if (sResult) {
+                    sFwAvailable = sResult.Trim();
                 }
             }
         }
-    }
-}
-
-!# Location 4: Online check for RaspberryMatic via update server
-if (sFwAvailable == "") {
-    if ((sProduct == "rpi3") || (sProduct == "rpi4") || (sProduct == "rpi5") || (sProduct == "tinkerboard") || (sProduct == "oci")) {
-        sResult = "";
-        system.Exec("wget -q -O - 'https://ccu3-update.homematic.com/firmware/download?cmd=js_check_version&product=HM-RASPBERRYMATIC&serial=0' 2>/dev/null", &sResult);
-        if (sResult) {
-            iPos = sResult.Find("'");
-            if (iPos >= 0) {
-                sTemp = sResult.Substr(iPos + 1, sResult.Length());
-                iPos = sTemp.Find("'");
-                if (iPos > 0) {
-                    sFwAvailable = sTemp.Substr(0, iPos).Trim();
-                }
-            }
-        }
-    }
-}
-
-!# Determine if update is available
-if (sFwAvailable == "") {
-    !# No update info found
-} else {
-    if (sFwAvailable == sFwCurrent) {
-        sFwAvailable = "";
-    } else {
-        bUpdateAvailable = true;
     }
 }
 
 Write('{"current_firmware":"' # sFwCurrent # '",');
 Write('"available_firmware":"' # sFwAvailable # '",');
 if (bUpdateAvailable) {
-    Write('"update_available":true}');
+    Write('"update_available":true,');
 } else {
-    Write('"update_available":false}');
+    Write('"update_available":false,');
+}
+if (bCheckScriptAvailable) {
+    Write('"check_script_available":true}');
+} else {
+    Write('"check_script_available":false}');
 }

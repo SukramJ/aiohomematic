@@ -82,6 +82,7 @@ from aiohomematic.const import (
     VIRTUAL_REMOTE_MODELS,
     WAIT_FOR_CALLBACK,
     Backend,
+    BackupData,
     CallSource,
     ClientState,
     CommandRxMode,
@@ -423,7 +424,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         *,
         max_wait_time: float = 300.0,
         poll_interval: float = 5.0,
-    ) -> bytes | None:
+    ) -> BackupData | None:
         """Create a backup on the CCU and download it."""
         return await self._backup_handler.create_backup_and_download(
             max_wait_time=max_wait_time,
@@ -954,6 +955,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             proxy=self._proxy,
             proxy_read=self._proxy_read,
             supports_backup=self.supports_backup,
+            system_information=self._system_information,
         )
 
         self._metadata_handler = MetadataHandler(

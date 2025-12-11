@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.21"
+VERSION: Final = "2025.12.22"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -51,6 +51,35 @@ DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
 DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
+
+
+class TimeoutConfig(NamedTuple):
+    """
+    Configuration for various timeout and interval settings.
+
+    All values are in seconds unless otherwise noted.
+    """
+
+    connection_checker_interval: float = 1 if _TEST_SPEEDUP else 15
+    """Interval between connection health checks (default: 15s)."""
+
+    reconnect_initial_delay: float = 0.5 if _TEST_SPEEDUP else 2
+    """Initial delay before first reconnect attempt (default: 2s)."""
+
+    reconnect_max_delay: float = 1 if _TEST_SPEEDUP else 120
+    """Maximum delay between reconnect attempts after exponential backoff (default: 120s)."""
+
+    reconnect_backoff_factor: float = 2
+    """Multiplier for exponential backoff on reconnect attempts (default: 2)."""
+
+    callback_warn_interval: float = (1 if _TEST_SPEEDUP else 15) * 40
+    """Interval before warning about missing callback events (default: 600s = 10min)."""
+
+    rpc_timeout: float = 5 if _TEST_SPEEDUP else 60
+    """Default timeout for RPC calls (default: 60s)."""
+
+
+DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()
 
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"
@@ -97,7 +126,6 @@ CONTENT_PATH: Final = "cache"
 CONF_PASSWORD: Final = "password"
 CONF_USERNAME: Final = "username"
 
-CONNECTION_CHECKER_INTERVAL: Final = 1 if _TEST_SPEEDUP else 15  # check if connection is available via rpc ping
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
 DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
 DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
@@ -167,7 +195,6 @@ DEFAULT_JSON_RPC_TLS_PORT: Final = 443
 HUB_ADDRESS: Final = "hub"
 INSTALL_MODE_ADDRESS: Final = "install_mode"
 PROGRAM_ADDRESS: Final = "program"
-RECONNECT_WAIT: Final = 1 if _TEST_SPEEDUP else 120  # wait with reconnect after a first ping was successful
 REGA_SCRIPT_PATH: Final = "../rega_scripts"
 REPORT_VALUE_USAGE_DATA: Final = "reportValueUsageData"
 REPORT_VALUE_USAGE_VALUE_ID: Final = "PRESS_SHORT"
@@ -179,8 +206,6 @@ WAIT_FOR_CALLBACK: Final[int | None] = None
 # Scheduler sleep durations (used by central scheduler loop)
 SCHEDULER_NOT_STARTED_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 10
 SCHEDULER_LOOP_SLEEP: Final = 0.2 if _TEST_SPEEDUP else 5
-
-CALLBACK_WARN_INTERVAL: Final = CONNECTION_CHECKER_INTERVAL * 40
 
 # Path
 HUB_SET_PATH_ROOT: Final = "hub/set"

@@ -116,6 +116,10 @@ class ClientConnection(Protocol):
     __slots__ = ()
 
     @property
+    def all_circuit_breakers_closed(self) -> bool:
+        """Return True if all circuit breakers are in closed state."""
+
+    @property
     def available(self) -> bool:
         """Return the availability of the client."""
 
@@ -731,6 +735,11 @@ class ClientCoordination(Protocol):
     @abstractmethod
     def all_clients_active(self) -> bool:
         """Check if all clients are active."""
+
+    @property
+    @abstractmethod
+    def clients(self) -> tuple[ClientProtocol, ...]:
+        """Get all clients as a tuple (snapshot for safe iteration)."""
 
     @property
     @abstractmethod

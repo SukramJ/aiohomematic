@@ -46,6 +46,7 @@
   "exception.client.set_value.failed": "SET_VALUE fehlgeschlagen für {channel_address}/{parameter}={value}: {reason}",
   "exception.client.update_device_firmware.failed": "UPDATE_DEVICE_FIRMWARE fehlgeschlagen: {reason}",
   "exception.client.xmlrpc.circuit_open": "Circuit Breaker ist offen für {interface_id} - Anfragen vorübergehend blockiert",
+  "exception.client.xmlrpc.http_connection_state_error": "HTTP-Verbindungszustandsfehler auf {interface_id}: {reason}",
   "exception.client.xmlrpc.method_unsupported": "XmlRPC.__ASYNC_REQUEST: Methode '{method} wird vom Backend nicht unterstützt.",
   "exception.client.xmlrpc.no_connection": "Keine Verbindung zu {interface_id}",
   "exception.client.xmlrpc.no_connection_with_reason": "Keine Verbindung zu {context}: {reason}",

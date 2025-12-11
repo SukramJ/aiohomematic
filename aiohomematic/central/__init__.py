@@ -88,7 +88,6 @@ from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob as 
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import (
     CATEGORIES,
-    CONNECTION_CHECKER_INTERVAL,
     DATA_POINT_EVENTS,
     DEFAULT_DELAY_NEW_DEVICE_CREATION,
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
@@ -106,6 +105,7 @@ from aiohomematic.const import (
     DEFAULT_STORAGE_DIRECTORY,
     DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
+    DEFAULT_TIMEOUT_CONFIG,
     DEFAULT_TLS,
     DEFAULT_UN_IGNORES,
     DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE,
@@ -116,7 +116,6 @@ from aiohomematic.const import (
     LOCAL_HOST,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
-    TIMEOUT,
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
     BackupData,
@@ -135,6 +134,7 @@ from aiohomematic.const import (
     RpcServerType,
     SourceOfDeviceCreation,
     SystemInformation,
+    TimeoutConfig,
     get_interface_default_port,
     get_json_rpc_default_port,
 )
@@ -293,6 +293,7 @@ class CentralUnit(
             device_data_refresher=self,
             hub_data_fetcher=self,
             event_bus_provider=self,
+            json_rpc_client_provider=self,
             state_provider=self,
         )
         self._version: str | None = None
@@ -1345,10 +1346,11 @@ class CentralUnit(
             except AioHomematicException:
                 ip_addr = LOCAL_HOST
             if ip_addr is None:
+                timeout_cfg = self._config.timeout_config
                 _LOGGER.warning(  # i18n-log: ignore
-                    "GET_IP_ADDR: Waiting for %i s,", CONNECTION_CHECKER_INTERVAL
+                    "GET_IP_ADDR: Waiting for %.1f s,", timeout_cfg.connection_checker_interval
                 )
-                await asyncio.sleep(TIMEOUT / 10)
+                await asyncio.sleep(timeout_cfg.rpc_timeout / 10)
         return ip_addr
 
     def _start_scheduler(self) -> None:
@@ -1406,6 +1408,7 @@ class CentralConfig:
         storage_directory: str = DEFAULT_STORAGE_DIRECTORY,
         sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
+        timeout_config: TimeoutConfig = DEFAULT_TIMEOUT_CONFIG,
         tls: bool = DEFAULT_TLS,
         un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES,
         use_group_channel_for_cover_state: bool = DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE,
@@ -1452,6 +1455,7 @@ class CentralConfig:
         self.storage_directory: Final = storage_directory
         self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers
+        self.timeout_config: Final = timeout_config
         self.tls: Final = tls
         self.un_ignore_list: Final = un_ignore_list
         self.use_group_channel_for_cover_state: Final = use_group_channel_for_cover_state

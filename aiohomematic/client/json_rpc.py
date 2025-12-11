@@ -96,7 +96,9 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.exceptions import (
+    AuthFailure,
     BaseHomematicException,
+    CircuitBreakerOpenException,
     ClientException,
     InternalBackendException,
     NoConnectionException,
@@ -1118,6 +1120,23 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return value
 
+    async def is_service_available(self) -> bool:
+        """
+        Check if the JSON-RPC service is available.
+
+        This method attempts a login to verify the service is ready.
+        Useful after CCU restart to ensure the service is fully available
+        before attempting other operations.
+
+        Returns True if login succeeds, False otherwise.
+        """
+        try:
+            session_id = await self._do_login()
+        except BaseHomematicException:
+            return False
+        else:
+            return session_id is not None
+
     async def list_devices(self, *, interface: Interface) -> tuple[DeviceDescription, ...]:
         """List devices from the backend."""
         devices: tuple[DeviceDescription, ...] = ()
@@ -1485,7 +1504,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         # Check circuit breaker state (allow session management methods through)
         if method not in _CIRCUIT_BREAKER_BYPASS_METHODS and not self._circuit_breaker.is_available:
             self._circuit_breaker.record_rejection()
-            raise NoConnectionException(i18n.tr("exception.client.json_rpc.circuit_open", url=self._url))
+            raise CircuitBreakerOpenException(i18n.tr("exception.client.json_rpc.circuit_open", url=self._url))
 
         params = _get_params(session_id=session_id, extra_params=extra_params, use_default_params=use_default_params)
 
@@ -1519,13 +1538,16 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     # Map JSON-RPC error to actionable exception with context
                     ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
                     exc = map_jsonrpc_error(error=error, ctx=ctx)
-                    # Structured boundary log at warning level (recoverable per-call failure)
+                    # For session management methods (login, renew), use DEBUG level
+                    # as these may fail during CCU restart polling and are expected
+                    # For other methods, use WARNING level
+                    level = logging.DEBUG if method in _CIRCUIT_BREAKER_BYPASS_METHODS else logging.WARNING
                     log_boundary_error(
                         logger=_LOGGER,
                         boundary="json-rpc",
                         action=str(method),
                         err=exc,
-                        level=logging.WARNING,
+                        level=level,
                         log_context=self.log_context,
                     )
                     _LOGGER.debug("POST: %s", exc)
@@ -1540,12 +1562,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             if error := json_response[_JsonKey.ERROR]:
                 ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
                 exc = map_jsonrpc_error(error=error, ctx=ctx)
+                # Use DEBUG level for session management methods during CCU restart polling
+                level = logging.DEBUG if method in _CIRCUIT_BREAKER_BYPASS_METHODS else logging.WARNING
                 log_boundary_error(
                     logger=_LOGGER,
                     boundary="json-rpc",
                     action=str(method),
                     err=exc,
-                    level=logging.WARNING,
+                    level=level,
                     log_context=dict(self.log_context) | {"status": response.status},
                 )
                 raise exc
@@ -1554,15 +1578,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             self._record_session(method=method, params=params, exc=bhe)
             if method in _CIRCUIT_BREAKER_BYPASS_METHODS:
                 self.clear_session()
-            # Domain error at boundary -> warning
-            log_boundary_error(
-                logger=_LOGGER,
-                boundary="json-rpc",
-                action=str(method),
-                err=bhe,
-                level=logging.WARNING,
-                log_context=self.log_context,
-            )
+            # Note: Don't log here - the exception was already logged at its source
+            # (either by map_jsonrpc_error handler above or by the caller)
             raise
 
         except ClientConnectorCertificateError as cccerr:
@@ -1633,15 +1650,19 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         if self._has_session_recently_refreshed:
             return session_id
         method = _JsonRpcMethod.SESSION_RENEW
-        response = await self._do_post(
-            session_id=session_id,
-            method=method,
-            extra_params={_JsonKey.SESSION_ID: session_id},
-        )
-        if response[_JsonKey.RESULT] is True:
-            self._last_session_id_refresh = datetime.now()
-            _LOGGER.debug("DO_RENEW_LOGIN: method: %s [%s]", method, session_id)
-            return session_id
+        try:
+            response = await self._do_post(
+                session_id=session_id,
+                method=method,
+                extra_params={_JsonKey.SESSION_ID: session_id},
+            )
+            if response[_JsonKey.RESULT] is True:
+                self._last_session_id_refresh = datetime.now()
+                _LOGGER.debug("DO_RENEW_LOGIN: method: %s [%s]", method, session_id)
+                return session_id
+        except AuthFailure:
+            # Session is invalid (e.g., after CCU restart), perform fresh login
+            _LOGGER.debug("DO_RENEW_LOGIN: Session expired, performing fresh login")
 
         return await self._do_login()
 

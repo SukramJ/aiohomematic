@@ -1,15 +1,33 @@
+# Version 2025.12.22 (2025-12-11)
+
+## What's Changed
+
+### Enhancements
+
+- Improve CCU reconnection behavior with exponential backoff (2s initial, doubles up to 120s max)
+- Add configurable `TimeoutConfig` in `CentralConfig` for connection/reconnect timing settings
+
+### Bug Fixes
+
+- Fix data loading after partial reconnect - load data for available interfaces immediately instead of waiting for all
+- Fix premature data loading - verify both state machine and actual connection before loading; retry up to 8 times with circuit breaker reset between attempts
+- Fix client reconnect logic - use state machine check to prevent skipping reconnect when connection is lost
+- Fix state machine allowing recovery from `FAILED` state via reconnect attempts
+- Fix JSON-RPC session renewal after CCU restart - `AuthFailure` now triggers fresh login
+- Fix race condition in scheduler client iteration with snapshot
+
 # Version 2025.12.21 (2025-12-11)
 
 ## What's Changed
 
 ### Enhancements
 
-- Circuit breakers automatically reset after successful update to allow immediate data refresh
-- Add `reset_circuit_breakers()` method to `ClientConnection` protocol for resetting all circuit breakers to closed state
+- Circuit breakers automatically reset after successful reconnect to allow immediate data refresh
+- Add `reset_circuit_breakers()` method to `ClientConnection` protocol
 
 ### Bug Fixes
 
-- Fix entities remaining unavailable after CCU reconnect - circuit breakers are now automatically reset after successful reconnect, allowing immediate data refresh instead of waiting for slow recovery
+- Fix entities remaining unavailable after CCU reconnect - circuit breakers now reset automatically, allowing immediate data refresh instead of waiting for slow recovery
 
 # Version 2025.12.20 (2025-12-11)
 

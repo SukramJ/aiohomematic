@@ -62,6 +62,20 @@ class NoConnectionException(BaseHomematicException):
         super().__init__("NoConnectionException", *args)
 
 
+class CircuitBreakerOpenException(BaseHomematicException):
+    """
+    Exception raised when the circuit breaker is open.
+
+    This exception is NOT retryable because the circuit breaker has its own
+    recovery mechanism (transitions to HALF_OPEN after recovery_timeout).
+    Retrying immediately would just waste resources.
+    """
+
+    def __init__(self, *args: Any) -> None:
+        """Initialize the CircuitBreakerOpenException."""
+        super().__init__("CircuitBreakerOpenException", *args)
+
+
 class NoClientsException(BaseHomematicException):
     """aiohomematic NoClientsException exception."""
 

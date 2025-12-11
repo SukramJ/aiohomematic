@@ -68,7 +68,6 @@ from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesc
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.client.state_machine import ClientStateMachine, InvalidStateTransitionError
 from aiohomematic.const import (
-    CALLBACK_WARN_INTERVAL,
     DATETIME_FORMAT_MILLIS,
     DEFAULT_MAX_WORKERS,
     DP_KEY_VALUE,
@@ -79,7 +78,6 @@ from aiohomematic.const import (
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
     LINKABLE_INTERFACES,
-    RECONNECT_WAIT,
     VIRTUAL_REMOTE_MODELS,
     WAIT_FOR_CALLBACK,
     Backend,
@@ -176,6 +174,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         "_program_handler",
         "_proxy",
         "_proxy_read",
+        "_reconnect_attempts",
         "_state_machine",
         "_sysvar_handler",
         "_system_information",
@@ -189,6 +188,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._state_machine: Final = ClientStateMachine(interface_id=client_config.interface_id)
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
+        self._reconnect_attempts: int = 0
         self._ping_pong_cache: Final = PingPongCache(
             event_publisher=client_config.central,
             central_info=client_config.central,
@@ -221,6 +221,19 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def __str__(self) -> str:
         """Provide some useful information."""
         return f"interface_id: {self.interface_id}"
+
+    @property
+    def all_circuit_breakers_closed(self) -> bool:
+        """Return True if all circuit breakers are in closed state."""
+        if self._proxy.circuit_breaker.state != CircuitState.CLOSED:
+            return False
+        if (
+            hasattr(self, "_proxy_read")
+            and self._proxy_read is not self._proxy
+            and self._proxy_read.circuit_breaker.state != CircuitState.CLOSED
+        ):
+            return False
+        return self._json_rpc_client.circuit_breaker.state == CircuitState.CLOSED
 
     @property
     def available(self) -> bool:
@@ -684,6 +697,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             await self._proxy.init(self._config.init_url, self.interface_id)
             self._state_machine.transition_to(target=ClientState.CONNECTED)
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
+            # Clear any stale connection issues from failed attempts during reconnection
+            # This ensures subsequent RPC calls are not blocked
+            self._proxy.clear_connection_issue()
             _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
         except BaseHomematicException as bhexc:
             _LOGGER.error(  # i18n-log: ignore
@@ -706,7 +722,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         if (
             last_events_dt := self.central.get_last_event_seen_for_interface(interface_id=self.interface_id)
         ) is not None:
-            if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > CALLBACK_WARN_INTERVAL:
+            callback_warn = self._config.central.config.timeout_config.callback_warn_interval
+            if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > callback_warn:
                 if self._is_callback_alive:
                     self.central.publish_interface_event(
                         interface_id=self.interface_id,
@@ -750,11 +767,15 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
         if self._connection_error_count > 3:
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+            # Update state machine to reflect connection loss
+            if self._state_machine.state == ClientState.CONNECTED:
+                self._state_machine.transition_to(target=ClientState.DISCONNECTED)
             return False
         if not self.supports_push_updates:
             return True
 
-        return (datetime.now() - self.modified_at).total_seconds() < CALLBACK_WARN_INTERVAL
+        callback_warn = self._config.central.config.timeout_config.callback_warn_interval
+        return (datetime.now() - self.modified_at).total_seconds() < callback_warn
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of the backend."""
@@ -781,20 +802,30 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         )
 
     async def reconnect(self) -> bool:
-        """Re-init all RPC clients."""
-        if await self.is_connected():
+        """Re-init all RPC clients with exponential backoff."""
+        if self._state_machine.can_reconnect:
             self._state_machine.transition_to(target=ClientState.RECONNECTING)
-            _LOGGER.debug(
-                "RECONNECT: waiting to re-connect client %s for %is",
-                self.interface_id,
-                int(RECONNECT_WAIT),
+
+            # Calculate exponential backoff delay using timeout_config
+            timeout_cfg = self._config.central.config.timeout_config
+            delay = min(
+                timeout_cfg.reconnect_initial_delay * (timeout_cfg.reconnect_backoff_factor**self._reconnect_attempts),
+                timeout_cfg.reconnect_max_delay,
             )
-            await asyncio.sleep(RECONNECT_WAIT)
+            _LOGGER.debug(
+                "RECONNECT: waiting to re-connect client %s for %.1fs (attempt %d)",
+                self.interface_id,
+                delay,
+                self._reconnect_attempts + 1,
+            )
+            await asyncio.sleep(delay)
 
             if await self.reinitialize_proxy() == ProxyInitState.INIT_SUCCESS:
                 # Reset circuit breakers after successful reconnect to allow
                 # immediate data refresh without waiting for recovery timeout
                 self.reset_circuit_breakers()
+                self._reconnect_attempts = 0  # Reset on success
+                self._connection_error_count = 0  # Reset error count on success
                 _LOGGER.info(
                     i18n.tr(
                         "log.client.reconnect.reconnected",
@@ -802,6 +833,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                     )
                 )
                 return True
+            # Increment attempt counter for next reconnect try
+            self._reconnect_attempts += 1
             # State machine already transitioned in reinitialize_proxy
         return False
 

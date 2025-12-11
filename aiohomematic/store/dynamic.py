@@ -28,9 +28,12 @@ from collections.abc import Mapping
 from datetime import datetime
 import logging
 import time
-from typing import Any, Final, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
+
+if TYPE_CHECKING:
+    from aiohomematic.central import CentralConnectionState
 from aiohomematic.const import (
     COMMAND_CACHE_MAX_SIZE,
     COMMAND_CACHE_WARNING_THRESHOLD,
@@ -538,6 +541,7 @@ class PingPongCache:
     __slots__ = (
         "_allowed_delta",
         "_central_info",
+        "_connection_state",
         "_event_publisher",
         "_interface_id",
         "_pending_pong_logged",
@@ -556,6 +560,7 @@ class PingPongCache:
         event_publisher: EventPublisher,
         central_info: CentralInfo,
         interface_id: str,
+        connection_state: CentralConnectionState | None = None,
         allowed_delta: int = PING_PONG_MISMATCH_COUNT,
         ttl: int = PING_PONG_MISMATCH_COUNT_TTL,
     ):
@@ -564,6 +569,7 @@ class PingPongCache:
         self._event_publisher: Final = event_publisher
         self._central_info: Final = central_info
         self._interface_id: Final = interface_id
+        self._connection_state: Final = connection_state
         self._allowed_delta: Final = allowed_delta
         self._ttl: Final = ttl
         self._pending_pong_logged: bool = False
@@ -588,6 +594,13 @@ class PingPongCache:
     def allowed_delta(self) -> int:
         """Return the allowed delta."""
         return self._allowed_delta
+
+    @property
+    def has_connection_issue(self) -> bool:
+        """Return True if there is a known connection issue for this interface."""
+        if self._connection_state is None:
+            return False
+        return self._connection_state.has_rpc_proxy_issue(interface_id=self._interface_id)
 
     @property
     def size(self) -> int:
@@ -635,6 +648,15 @@ class PingPongCache:
 
     def handle_send_ping(self, *, ping_token: str) -> None:
         """Handle send ping token by tracking it as pending and publishing events."""
+        # Skip tracking if connection is known to be down - prevents false alarm
+        # mismatch events during CCU restart when PINGs cannot be received.
+        if self.has_connection_issue:
+            _LOGGER.debug(
+                "PING PONG CACHE: Skip tracking PING (connection issue): %s - token: %s",
+                self._interface_id,
+                ping_token,
+            )
+            return
         self._pending_pongs.add(ping_token)
         self._pending_seen_at[ping_token] = time.monotonic()
         self._cleanup_pending_pongs()

@@ -255,7 +255,10 @@ class _FakeCentral:
     def __init__(self) -> None:
         from types import SimpleNamespace
 
-        self.connection_state = hmcu.CentralConnectionState()
+        from aiohomematic.central.event_bus import EventBus
+
+        self._event_bus = EventBus()
+        self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = _FakeJsonRpcClient()
         self.device_details = _FakeDeviceDetails()
         self.data_cache = _FakeDataCache()
@@ -282,6 +285,11 @@ class _FakeCentral:
     @property
     def callback_ip_addr(self) -> str:  # noqa: D401
         return self._callback_ip_addr
+
+    @property
+    def event_bus(self):  # noqa: D401,ANN001
+        """Return the event bus."""
+        return self._event_bus
 
     @property
     def listen_port_xml_rpc(self) -> int:  # noqa: D401
@@ -393,7 +401,10 @@ class _FakeCentral2:
     """
 
     def __init__(self, *, push_updates: bool = True) -> None:
-        self.connection_state = hmcu.CentralConnectionState()
+        from aiohomematic.central.event_bus import EventBus
+
+        self._event_bus = EventBus()
+        self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = SimpleNamespace()  # not used in these tests
         self.device_details = SimpleNamespace(
             device_channel_rega_ids={},
@@ -438,6 +449,11 @@ class _FakeCentral2:
     @property
     def callback_ip_addr(self) -> str:  # noqa: D401
         return self._callback_ip_addr
+
+    @property
+    def event_bus(self):  # noqa: D401,ANN001
+        """Return the event bus."""
+        return self._event_bus
 
     @property
     def listen_port_xml_rpc(self) -> int:  # noqa: D401

@@ -13,9 +13,23 @@
 - Add `trigger_firmware_update()` method to initiate firmware update with automatic reboot (runs with nohup)
 - Add `SystemUpdateData` dataclass with `check_script_available` field to verify script availability
 
+### Architecture
+
+- Migrate `CentralConnectionState` callbacks to unified EventBus pattern:
+  - Add `ConnectionStateChangedEvent` for connection state changes (connected/disconnected)
+  - Add `EventBus.publish_sync()` method for synchronous event publishing from non-async code
+  - Remove `StateChangeCallback` type alias and `register_state_change_callback()` method
+  - Add `event_bus` property to `ClientDependencies` protocol
+  - All connection state notifications now use the same EventBus as other events
+- EventBus now uses TaskScheduler (Looper) for proper task lifecycle management:
+  - `publish_sync()` uses TaskScheduler when available for task tracking, shutdown handling, and exception logging
+  - Falls back to raw asyncio when no TaskScheduler is provided (e.g., in tests)
+
 ### Bug Fixes
 
 - Fix excessive ERROR logging during CCU restart/reconnect - connection errors now log ERROR only on first occurrence, DEBUG for subsequent failures (fixes inverted logic in `CentralConnectionState.add_issue()` usage)
+- Fix PING_PONG false alarm mismatch events during CCU restart - PINGs sent during downtime are no longer tracked when connection is known to be down, and cache is cleared on reconnect
+- Scheduler now pauses non-essential jobs during connection issues - only `_check_connection` continues to run during CCU downtime, preventing unnecessary RPC calls and log spam
 
 ### Notes
 

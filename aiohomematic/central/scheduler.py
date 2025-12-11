@@ -46,14 +46,14 @@ from aiohomematic.interfaces.central import (
     EventBusProvider,
     HubDataFetcher,
 )
-from aiohomematic.interfaces.client import ClientCoordination
+from aiohomematic.interfaces.client import ClientCoordination, ConnectionStateProvider
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 # Type alias for async task factory
-AsyncTaskFactory = Callable[[], Awaitable[None]]
+_AsyncTaskFactory = Callable[[], Awaitable[None]]
 
 
 class SchedulerJob:
@@ -62,7 +62,7 @@ class SchedulerJob:
     def __init__(
         self,
         *,
-        task: AsyncTaskFactory,
+        task: _AsyncTaskFactory,
         run_interval: int,
         next_run: datetime | None = None,
     ):
@@ -127,6 +127,7 @@ class BackgroundScheduler:
         central_info: CentralInfo,
         config_provider: ConfigProvider,
         client_coordination: ClientCoordination,
+        connection_state_provider: ConnectionStateProvider,
         device_data_refresher: DeviceDataRefresher,
         hub_data_fetcher: HubDataFetcher,
         event_bus_provider: EventBusProvider,
@@ -140,6 +141,7 @@ class BackgroundScheduler:
             central_info: Provider for central system information
             config_provider: Provider for configuration access
             client_coordination: Provider for client coordination operations
+            connection_state_provider: Provider for connection state access
             device_data_refresher: Provider for device data refresh operations
             hub_data_fetcher: Provider for hub data fetch operations
             event_bus_provider: Provider for event bus access
@@ -149,6 +151,7 @@ class BackgroundScheduler:
         self._central_info: Final = central_info
         self._config_provider: Final = config_provider
         self._client_coordination: Final = client_coordination
+        self._connection_state_provider: Final = connection_state_provider
         self._device_data_refresher: Final = device_data_refresher
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._event_bus_provider: Final = event_bus_provider
@@ -161,8 +164,7 @@ class BackgroundScheduler:
         self._unsubscribe_callback: UnsubscribeCallback | None = None
 
         # Subscribe to DEVICES_CREATED event
-        # Create a wrapper to match the EventHandler signature (positional event argument)
-        def _event_handler(event: BackendSystemEventData) -> None:
+        def _event_handler(*, event: BackendSystemEventData) -> None:
             self._on_backend_system_event(event=event)
 
         self._unsubscribe_callback = self._event_bus_provider.event_bus.subscribe(
@@ -215,6 +217,11 @@ class BackgroundScheduler:
     def devices_created(self) -> bool:
         """Return True if devices have been created."""
         return self._devices_created_event.is_set()
+
+    @property
+    def has_connection_issue(self) -> bool:
+        """Return True if there is a known connection issue."""
+        return self._connection_state_provider.connection_state.has_any_issue
 
     @property
     def is_active(self) -> bool:
@@ -414,6 +421,7 @@ class BackgroundScheduler:
 
     async def _run_scheduler_loop(self) -> None:
         """Execute the main scheduler loop that runs jobs based on their schedule."""
+        connection_issue_logged = False
         while self.is_active:
             # Wait until central is running
             if self._state_provider.state != CentralUnitState.RUNNING:
@@ -421,10 +429,31 @@ class BackgroundScheduler:
                 await asyncio.sleep(SCHEDULER_NOT_STARTED_SLEEP)
                 continue
 
+            # Check for connection issues - pause most jobs when connection is down
+            # Only _check_connection continues to run to detect reconnection
+            has_issue = self.has_connection_issue
+            if has_issue and not connection_issue_logged:
+                _LOGGER.debug(
+                    "Scheduler: Pausing jobs due to connection issue for %s (connection check continues)",
+                    self._central_info.name,
+                )
+                connection_issue_logged = True
+            elif not has_issue and connection_issue_logged:
+                _LOGGER.debug(
+                    "Scheduler: Resuming jobs after connection restored for %s",
+                    self._central_info.name,
+                )
+                connection_issue_logged = False
+
             # Execute ready jobs
             any_executed = False
             for job in self._scheduler_jobs:
                 if not self.is_active or not job.ready:
+                    continue
+
+                # Skip non-connection-check jobs when there's a connection issue
+                # This prevents unnecessary RPC calls and log spam during CCU restart
+                if has_issue and job.name != "_check_connection":
                     continue
 
                 try:

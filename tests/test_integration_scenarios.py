@@ -258,41 +258,61 @@ class TestConnectionStateWorkflow:
     """Test connection state management workflows."""
 
     @pytest.mark.asyncio
-    async def test_connection_state_callback_on_issue(self) -> None:
-        """Test that connection state callbacks are invoked on issues."""
+    async def test_connection_state_event_on_issue(self) -> None:
+        """Test that ConnectionStateChangedEvent is published on issues."""
         from aiohomematic.central import CentralConnectionState
+        from aiohomematic.central.event_bus import ConnectionStateChangedEvent, EventBus
         from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 
-        state = CentralConnectionState()
-        callback_calls: list[tuple[str, bool]] = []
+        # Create event bus and mock provider
+        event_bus = EventBus()
 
-        def on_state_change(interface_id: str, connected: bool) -> None:
-            callback_calls.append((interface_id, connected))
+        class MockEventBusProvider:
+            @property
+            def event_bus(self) -> EventBus:
+                return event_bus
 
-        # Register callback
-        unsubscribe = state.register_state_change_callback(callback=on_state_change)
+        state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
+        received_events: list[ConnectionStateChangedEvent] = []
+
+        def on_state_change(event: ConnectionStateChangedEvent) -> None:
+            received_events.append(event)
+
+        # Subscribe to events
+        unsubscribe = event_bus.subscribe(
+            event_type=ConnectionStateChangedEvent,
+            event_key=None,  # Subscribe to all events
+            handler=on_state_change,
+        )
 
         # Create a mock issuer that isinstance checks will recognize
         mock_issuer = Mock(spec=AioJsonRpcAioHttpClient)
 
-        # Add an issue
+        # Add an issue - event is published async via create_task
         state.add_issue(issuer=mock_issuer, iid="HmIP-RF")
 
-        # Verify callback was invoked
-        assert len(callback_calls) == 1
-        assert callback_calls[0] == ("HmIP-RF", False)
+        # Let the event loop process the created task
+        await asyncio.sleep(0.01)
+
+        # Verify event was published
+        assert len(received_events) == 1
+        assert received_events[0].interface_id == "HmIP-RF"
+        assert received_events[0].connected is False
 
         # Remove issue
         state.remove_issue(issuer=mock_issuer, iid="HmIP-RF")
+        await asyncio.sleep(0.01)
 
-        # Verify callback for reconnection
-        assert len(callback_calls) == 2
-        assert callback_calls[1] == ("HmIP-RF", True)
+        # Verify event for reconnection
+        assert len(received_events) == 2
+        assert received_events[1].interface_id == "HmIP-RF"
+        assert received_events[1].connected is True
 
         # Unsubscribe and verify no more calls
         unsubscribe()
         state.add_issue(issuer=mock_issuer, iid="HmIP-RF")
-        assert len(callback_calls) == 2  # Still 2
+        await asyncio.sleep(0.01)
+        assert len(received_events) == 2  # Still 2
 
     @pytest.mark.asyncio
     async def test_connection_state_multiple_issues(self) -> None:

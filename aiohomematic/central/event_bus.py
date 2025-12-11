@@ -44,8 +44,8 @@ Example Usage
 
     bus = EventBus()
 
-    # Subscribe with default priority
-    async def on_data_point_updated(event: DataPointUpdatedEvent) -> None:
+    # Subscribe with default priority (note: event is keyword-only)
+    async def on_data_point_updated(*, event: DataPointUpdatedEvent) -> None:
         print(f"DataPoint {event.dpk} updated to {event.value}")
 
     unsubscribe = bus.subscribe(
@@ -91,19 +91,21 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import asyncio
 from collections import defaultdict
-from collections.abc import Callable, Coroutine, Sequence
+from collections.abc import Coroutine, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
 import logging
 import types
-from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
 from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, ParamsetKey
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 if TYPE_CHECKING:
     from typing import Self
+
+    from aiohomematic.interfaces.operations import TaskScheduler
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -136,9 +138,21 @@ class EventPriority(IntEnum):
     """Highest priority - runs before all other handlers (e.g., logging, metrics)."""
 
 
-# Callback type aliases
-SyncEventHandler = Callable[[Any], None]
-AsyncEventHandler = Callable[[Any], Coroutine[Any, Any, None]]
+# Event handler protocols - handlers receive event as keyword-only argument
+class SyncEventHandler(Protocol):
+    """Protocol for synchronous event handlers with keyword-only event parameter."""
+
+    def __call__(self, *, event: Any) -> None:
+        """Handle event synchronously."""
+
+
+class AsyncEventHandler(Protocol):
+    """Protocol for asynchronous event handlers with keyword-only event parameter."""
+
+    def __call__(self, *, event: Any) -> Coroutine[Any, Any, None]:
+        """Handle event asynchronously."""
+
+
 EventHandler = SyncEventHandler | AsyncEventHandler
 
 
@@ -379,6 +393,24 @@ class DeviceRemovedEvent(Event):
         return self.unique_id
 
 
+@dataclass(frozen=True, slots=True)
+class ConnectionStateChangedEvent(Event):
+    """
+    Connection state has changed for an interface.
+
+    Published when connection issues are added or removed.
+    Key is interface_id.
+    """
+
+    interface_id: str
+    connected: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
 class EventBus:
     """
     Async-first, type-safe event bus for decoupled communication.
@@ -397,13 +429,20 @@ class EventBus:
     All subscriptions and publishes should happen in the same event loop.
     """
 
-    def __init__(self, *, enable_event_logging: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        enable_event_logging: bool = False,
+        task_scheduler: TaskScheduler | None = None,
+    ) -> None:
         """
         Initialize the event bus.
 
         Args:
         ----
             enable_event_logging: If True, log all published events (debug only)
+            task_scheduler: Optional task scheduler for proper task lifecycle management.
+                If provided, publish_sync() will use it instead of raw asyncio.
 
         """
         self._subscriptions: dict[type[Event], dict[Any, list[_PrioritizedHandler]]] = defaultdict(
@@ -412,6 +451,9 @@ class EventBus:
         self._enable_event_logging = enable_event_logging
         self._event_count: dict[type[Event], int] = defaultdict(int)
         self._handler_order_counter: int = 0  # For stable sorting within same priority
+        self._task_scheduler = task_scheduler
+        # Track pending tasks to prevent garbage collection (used only when no task_scheduler)
+        self._pending_tasks: set[asyncio.Task[None]] = set()
 
     def clear_event_stats(self) -> None:
         """Clear event statistics counters to free memory."""
@@ -675,12 +717,51 @@ class EventBus:
         if all_tasks:
             await asyncio.gather(*all_tasks, return_exceptions=True)
 
+    def publish_sync(self, *, event: Event) -> None:
+        """
+        Schedule an event for publishing from synchronous code.
+
+        This method schedules the event to be published asynchronously via the
+        running event loop. Use this when you need to publish events from
+        synchronous callbacks or methods that cannot be made async.
+
+        If a TaskScheduler was provided during initialization, it will be used
+        for proper task lifecycle management (tracking, shutdown, exception logging).
+        Otherwise, falls back to raw asyncio.create_task().
+
+        Note: The event will be published asynchronously after this method returns.
+        There is no guarantee about when handlers will be invoked.
+
+        Args:
+        ----
+            event: The event instance to publish
+
+        """
+        if self._task_scheduler is not None:
+            # Use TaskScheduler for proper lifecycle management
+            self._task_scheduler.create_task(
+                target=self.publish(event=event),
+                name=f"event_bus_publish_{type(event).__name__}",
+            )
+            return
+
+        # Fallback to raw asyncio when no TaskScheduler is available
+        try:
+            loop = asyncio.get_running_loop()
+            # Store task reference to prevent garbage collection
+            task = loop.create_task(self.publish(event=event))
+            self._pending_tasks.add(task)
+            task.add_done_callback(self._pending_tasks.discard)
+        except RuntimeError:
+            # No running loop - this can happen during shutdown or in tests
+            _LOGGER.debug("Cannot publish event %s: no running event loop", type(event).__name__)
+
     def subscribe(
         self,
         *,
         event_type: type[T_Event],
         event_key: Any,
-        handler: Callable[[T_Event], None] | Callable[[T_Event], Coroutine[Any, Any, None]],
+        handler: EventHandler,
         priority: EventPriority = EventPriority.NORMAL,
     ) -> UnsubscribeCallback:
         """
@@ -690,7 +771,7 @@ class EventBus:
         ----
             event_type: The event class to listen for
             event_key: The key for unique identification
-            handler: Async or sync callback that accepts the event
+            handler: Async or sync callback with signature (*, event: EventType) -> None
             priority: Handler priority (default: NORMAL). Higher priority handlers
                       are called before lower priority handlers.
 
@@ -700,7 +781,7 @@ class EventBus:
 
         Example:
         -------
-            async def on_update(event: DataPointUpdatedEvent) -> None:
+            async def on_update(*, event: DataPointUpdatedEvent) -> None:
                 print(f"Updated: {event.dpk}")
 
             # Subscribe with default priority
@@ -717,7 +798,7 @@ class EventBus:
 
         """
         # Create prioritized handler wrapper
-        generic_handler = cast(EventHandler, handler)
+        generic_handler = handler
         prioritized_handler = _PrioritizedHandler(
             handler=generic_handler,
             priority=priority,
@@ -771,8 +852,8 @@ class EventBus:
 
         """
         try:
-            # Invoke handler - works for both sync and async
-            result = handler(event)
+            # Invoke handler with keyword-only event parameter
+            result = handler(event=event)
             # If async, the result is a coroutine that needs to be awaited
             if asyncio.iscoroutine(result):
                 await result

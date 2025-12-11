@@ -4,27 +4,17 @@
 
 ### Enhancements
 
-- Add exponential backoff for reconnect attempts - starts at 2 seconds and doubles up to 120 seconds maximum, improving reconnection behavior during CCU downtime instead of fixed 120-second delays
-- Add configurable timeout settings via `TimeoutConfig` NamedTuple in `CentralConfig`:
-  - `connection_checker_interval` (default 15s) - interval between connection health checks
-  - `reconnect_initial_delay` (default 2s) - initial delay before first reconnect attempt
-  - `reconnect_max_delay` (default 120s) - maximum delay between reconnect attempts
-  - `reconnect_backoff_factor` (default 2) - multiplier for exponential backoff
-  - `callback_warn_interval` (default 600s) - interval before warning about missing callbacks
-  - `rpc_timeout` (default 60s) - default timeout for RPC calls
-- Remove deprecated timeout constants (now in `TimeoutConfig`): `RECONNECT_INITIAL_DELAY`, `RECONNECT_MAX_DELAY`, `RECONNECT_BACKOFF_FACTOR`, `RECONNECT_WAIT`, `CONNECTION_CHECKER_INTERVAL`, `CALLBACK_WARN_INTERVAL`
-- Wait for JSON-RPC and client CONNECTED state after CCU reconnect - Both JSON-RPC service and client state machine must be ready before loading data. JSON-RPC may take 30-60 seconds after restart; scheduler waits up to 15 times (5-second intervals, 75 seconds total) for readiness
+- Improve CCU reconnection behavior with exponential backoff (2s initial, doubles up to 120s max)
+- Add configurable `TimeoutConfig` in `CentralConfig` for connection/reconnect timing settings
 
 ### Bug Fixes
 
-- Fix data loading after partial reconnect - when interfaces reconnect at different times (e.g., BidCos-RF and HmIP-RF before VirtualDevices), data is now loaded for available interfaces immediately instead of waiting for all interfaces to be available
-- Fix premature data loading after reconnect - now checks both `client.available` (state machine CONNECTED state) AND `check_connection_availability()` (actual ping/connection test). Data loading now has up to 8 retries with 20-second delays (160s total), detecting circuit breaker opens as failure indicator and resetting them between attempts. Re-verifies XML-RPC stability before each retry, since CCU may respond to pings but ReGa/script engine may not be ready for data operations immediately after restart
-- Fix race condition in scheduler client iteration - use client snapshot to prevent crashes when clients are modified during connection check
-- Fix client reconnect logic - use state machine check instead of active connection test to prevent reconnect being skipped when connection is already lost
-- Fix state machine integration - `is_connected()` now transitions state machine to `DISCONNECTED` when connection is lost, and `reconnect()` resets `_connection_error_count` on success
-- Fix state machine allowing reconnect from `FAILED` state - clients can now recover from failed state via reconnect attempts
-- Fix JSON-RPC session renewal after CCU restart - `AuthFailure` during `Session.renew` now triggers fresh login instead of propagating the exception
-- Reduce log noise during CCU restart polling - JSON-RPC session management errors (login, logout, renew) are now logged at DEBUG level instead of WARNING for both 200 and non-200 HTTP responses, as failures during availability polling are expected
+- Fix data loading after partial reconnect - load data for available interfaces immediately instead of waiting for all
+- Fix premature data loading - verify both state machine and actual connection before loading; retry up to 8 times with circuit breaker reset between attempts
+- Fix client reconnect logic - use state machine check to prevent skipping reconnect when connection is lost
+- Fix state machine allowing recovery from `FAILED` state via reconnect attempts
+- Fix JSON-RPC session renewal after CCU restart - `AuthFailure` now triggers fresh login
+- Fix race condition in scheduler client iteration with snapshot
 
 # Version 2025.12.21 (2025-12-11)
 
@@ -32,12 +22,12 @@
 
 ### Enhancements
 
-- Circuit breakers automatically reset after successful update to allow immediate data refresh
-- Add `reset_circuit_breakers()` method to `ClientConnection` protocol for resetting all circuit breakers to closed state
+- Circuit breakers automatically reset after successful reconnect to allow immediate data refresh
+- Add `reset_circuit_breakers()` method to `ClientConnection` protocol
 
 ### Bug Fixes
 
-- Fix entities remaining unavailable after CCU reconnect - circuit breakers are now automatically reset after successful reconnect, allowing immediate data refresh instead of waiting for slow recovery
+- Fix entities remaining unavailable after CCU reconnect - circuit breakers now reset automatically, allowing immediate data refresh instead of waiting for slow recovery
 
 # Version 2025.12.20 (2025-12-11)
 

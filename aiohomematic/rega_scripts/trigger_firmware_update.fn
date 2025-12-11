@@ -5,7 +5,7 @@
 !#
 !# The script validates:
 !# 1. checkFirmwareUpdate.sh exists and is executable
-!# 2. Script supports required flags (-a, -r) via --help output
+!# 2. Script supports required flags (-a, -r) via -h output
 !#
 !# Then runs the update with flags:
 !# -a = apply update (download and stage)
@@ -29,7 +29,7 @@ integer iExitCode = 0;
 string sMessage = "";
 
 !# Check if checkFirmwareUpdate.sh is available and supports required flags
-system.Exec("test -x /bin/checkFirmwareUpdate.sh && /bin/checkFirmwareUpdate.sh --help 2>&1", &sResult);
+system.Exec("test -x /bin/checkFirmwareUpdate.sh && /bin/checkFirmwareUpdate.sh -h 2>&1", &sResult);
 if (sResult) {
     !# Verify script supports required flags: -a (apply), -r (reboot)
     boolean bHasApply = (sResult.Find("-a") >= 0);

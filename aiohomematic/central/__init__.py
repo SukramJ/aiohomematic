@@ -66,7 +66,7 @@ Notes
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Mapping, Set as AbstractSet
+from collections.abc import Mapping, Set as AbstractSet
 from datetime import datetime
 import logging
 from typing import Any, Final
@@ -81,7 +81,7 @@ from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
-from aiohomematic.central.event_bus import EventBatch, EventBus, EventPriority
+from aiohomematic.central.event_bus import ConnectionStateChangedEvent, EventBatch, EventBus, EventPriority
 from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.central.hub_coordinator import HubCoordinator
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob as _SchedulerJob
@@ -145,7 +145,7 @@ from aiohomematic.exceptions import (
     BaseHomematicException,
     NoClientsException,
 )
-from aiohomematic.interfaces.central import CentralProtocol
+from aiohomematic.interfaces.central import CentralProtocol, EventBusProvider
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
     BaseParameterDataPointProtocol,
@@ -182,9 +182,6 @@ from aiohomematic.support import (
     is_ipv4_address,
     is_port,
 )
-from aiohomematic.type_aliases import UnsubscribeCallback
-
-# No longer needed - types are in coordinators
 
 __all__ = [
     "CentralConfig",
@@ -203,9 +200,6 @@ _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
 ConnectionProblemIssuer = AioJsonRpcAioHttpClient | BaseRpcProxy
 
-# Type alias for connection state callback
-StateChangeCallback = Callable[[str, bool], None]  # (interface_id, connected)
-
 
 class CentralUnit(
     PayloadMixin,
@@ -217,7 +211,6 @@ class CentralUnit(
     def __init__(self, *, central_config: CentralConfig) -> None:  # pylint: disable=super-init-not-called
         """Initialize the central unit."""
         self._state: CentralUnitState = CentralUnitState.NEW
-        self._connection_state: Final = CentralConnectionState()
         # Keep the config for the central
         self._config: Final = central_config
         # Apply locale for translations
@@ -246,6 +239,8 @@ class CentralUnit(
             client_provider=self,
             task_scheduler=self.looper,
         )
+
+        self._connection_state: Final = CentralConnectionState(event_bus_provider=self)
         self._device_registry: Final = DeviceRegistry(
             central_info=self,
             client_provider=self,
@@ -294,6 +289,7 @@ class CentralUnit(
             central_info=self,
             config_provider=self,
             client_coordination=self,
+            connection_state_provider=self,
             device_data_refresher=self,
             hub_data_fetcher=self,
             event_bus_provider=self,
@@ -1715,14 +1711,14 @@ class CentralConnectionState:
     Track connection status for the central unit.
 
     Manages connection issues per transport (JSON-RPC and XML-RPC proxies),
-    providing state change notifications and overall health status.
+    publishing ConnectionStateChangedEvent via EventBus for state changes.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, event_bus_provider: EventBusProvider | None = None) -> None:
         """Initialize the CentralConnectionStatus."""
         self._json_issues: Final[list[str]] = []
         self._rpc_proxy_issues: Final[list[str]] = []
-        self._state_change_callbacks: Final[list[StateChangeCallback]] = []
+        self._event_bus_provider = event_bus_provider
 
     @property
     def has_any_issue(self) -> bool:
@@ -1745,7 +1741,7 @@ class CentralConnectionState:
         return len(self._rpc_proxy_issues)
 
     def add_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Add issue to collection and notify listeners."""
+        """Add issue to collection and publish event."""
         added = False
         if isinstance(issuer, AioJsonRpcAioHttpClient) and iid not in self._json_issues:
             self._json_issues.append(iid)
@@ -1757,7 +1753,7 @@ class CentralConnectionState:
             added = True
 
         if added:
-            self._notify_state_change(interface_id=iid, connected=False)
+            self._publish_state_change(interface_id=iid, connected=False)
         return added
 
     def clear_all_issues(self) -> int:
@@ -1771,7 +1767,7 @@ class CentralConnectionState:
             self._json_issues.clear()
             self._rpc_proxy_issues.clear()
             for iid in all_iids:
-                self._notify_state_change(interface_id=iid, connected=True)
+                self._publish_state_change(interface_id=iid, connected=True)
             return count
         return 0
 
@@ -1814,22 +1810,12 @@ class CentralConnectionState:
         # issuer is BaseRpcProxy (exhaustive union coverage)
         return iid in self._rpc_proxy_issues
 
-    def register_state_change_callback(self, *, callback: StateChangeCallback) -> UnsubscribeCallback:
-        """
-        Register a callback for connection state changes.
-
-        Returns an unsubscribe callable to remove the callback.
-        """
-        self._state_change_callbacks.append(callback)
-
-        def unsubscribe() -> None:
-            if callback in self._state_change_callbacks:
-                self._state_change_callbacks.remove(callback)
-
-        return unsubscribe
+    def has_rpc_proxy_issue(self, *, interface_id: str) -> bool:
+        """Return True if XML-RPC proxy has a known connection issue for interface_id."""
+        return interface_id in self._rpc_proxy_issues
 
     def remove_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
-        """Remove issue from collection and notify listeners."""
+        """Remove issue from collection and publish event."""
         removed = False
         if isinstance(issuer, AioJsonRpcAioHttpClient) and iid in self._json_issues:
             self._json_issues.remove(iid)
@@ -1841,16 +1827,19 @@ class CentralConnectionState:
             removed = True
 
         if removed:
-            self._notify_state_change(interface_id=iid, connected=True)
+            self._publish_state_change(interface_id=iid, connected=True)
         return removed
 
-    def _notify_state_change(self, *, interface_id: str, connected: bool) -> None:
-        """Notify all registered callbacks about state change."""
-        for callback in self._state_change_callbacks:
-            try:
-                callback(interface_id, connected)
-            except Exception as exc:
-                _LOGGER.debug("State change callback error: %s", exc)
+    def _publish_state_change(self, *, interface_id: str, connected: bool) -> None:
+        """Publish ConnectionStateChangedEvent via EventBus."""
+        if self._event_bus_provider is None:
+            return
+        event = ConnectionStateChangedEvent(
+            timestamp=datetime.now(),
+            interface_id=interface_id,
+            connected=connected,
+        )
+        self._event_bus_provider.event_bus.publish_sync(event=event)
 
 
 def check_config(

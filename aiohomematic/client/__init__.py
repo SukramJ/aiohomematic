@@ -52,6 +52,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
+from aiohomematic.central.event_bus import ConnectionStateChangedEvent
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
 from aiohomematic.client.handlers import (
     BackupHandler,
@@ -192,11 +193,21 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             event_publisher=client_config.central,
             central_info=client_config.central,
             interface_id=client_config.interface_id,
+            connection_state=client_config.central.connection_state,
         )
         self._proxy: BaseRpcProxy
         self._proxy_read: BaseRpcProxy
         self._system_information: SystemInformation
         self._modified_at: datetime = INIT_DATETIME
+
+        # Subscribe to connection state changes to clear ping/pong cache on reconnect.
+        # This prevents stale pending pongs from causing false mismatch alarms
+        # after CCU restart when PINGs sent during downtime cannot be answered.
+        client_config.central.event_bus.subscribe(
+            event_type=ConnectionStateChangedEvent,
+            event_key=client_config.interface_id,
+            handler=self._on_connection_state_changed,
+        )
 
         # Handler instances (initialized after proxy setup in init_client)
         self._device_ops_handler: DeviceOperationsHandler
@@ -994,6 +1005,18 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             interface_event_type=InterfaceEventType.PROXY,
             data={EventKey.AVAILABLE: available},
         )
+
+    def _on_connection_state_changed(self, *, event: ConnectionStateChangedEvent) -> None:
+        """Handle connection state changes to clear ping/pong cache on reconnect."""
+        if event.connected:
+            # Clear stale ping/pong state when connection is restored.
+            # PINGs sent during CCU downtime cannot receive PONGs, so the cache
+            # would contain stale entries that cause false mismatch alarms.
+            self._ping_pong_cache.clear()
+            _LOGGER.debug(
+                "PING PONG CACHE: Cleared on connection restored: %s",
+                self.interface_id,
+            )
 
     async def _set_value(
         self,

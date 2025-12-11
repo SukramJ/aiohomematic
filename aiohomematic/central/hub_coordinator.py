@@ -170,7 +170,7 @@ class HubCoordinator(HubDataFetcher, HubDataPointManager):
             self._state_path_to_name[sysvar_data_point.state_path] = sysvar_data_point.vid
 
             # Add event subscription for this sysvar via EventBus with filtering
-            async def event_handler(event: SysvarUpdatedEvent) -> None:
+            async def event_handler(*, event: SysvarUpdatedEvent) -> None:
                 """Filter and handle sysvar events."""
                 if event.state_path == sysvar_data_point.state_path:
                     await sysvar_data_point.event(value=event.value, received_at=event.received_at)

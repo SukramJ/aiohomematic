@@ -56,6 +56,7 @@ from aiohomematic.interfaces.operations import TaskScheduler
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
+    from aiohomematic.central.event_bus import EventBus
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
     from aiohomematic.interfaces import ChannelProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
@@ -1093,6 +1094,11 @@ class ClientDependencies(Protocol):
     @abstractmethod
     def devices(self) -> tuple[DeviceProtocol, ...]:
         """Return all devices."""
+
+    @property
+    @abstractmethod
+    def event_bus(self) -> EventBus:
+        """Return the event bus."""
 
     @property
     @abstractmethod

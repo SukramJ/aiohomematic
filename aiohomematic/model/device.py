@@ -964,7 +964,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Subscribe update handler."""
 
         # Create adapter that filters for this device's events
-        def event_handler(event: DeviceUpdatedEvent) -> None:
+        def event_handler(*, event: DeviceUpdatedEvent) -> None:
             if event.device_address == self._address:
                 handler()
 
@@ -978,7 +978,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Subscribe firmware update handler."""
 
         # Create adapter that filters for this device's events
-        def event_handler(event: FirmwareUpdatedEvent) -> None:
+        def event_handler(*, event: FirmwareUpdatedEvent) -> None:
             if event.device_address == self._address:
                 handler()
 
@@ -1568,7 +1568,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         """Subscribe to the link peer changed event."""
 
         # Create adapter that filters for this channel's events
-        def event_handler(event: LinkPeerChangedEvent) -> None:
+        def event_handler(*, event: LinkPeerChangedEvent) -> None:
             if event.channel_address == self._address:
                 handler()
 

@@ -456,7 +456,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         # Create adapter that filters for this data point's events with matching custom_id.
         # The EventBus receives events for ALL data points, so we filter by unique_id
         # and custom_id to ensure only the correct handler receives each event.
-        def event_handler(event: DataPointUpdatedCallbackEvent) -> None:
+        def event_handler(*, event: DataPointUpdatedCallbackEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
                 handler(**event.kwargs)
 
@@ -496,7 +496,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Subscribe to the device removed event."""
 
         # Create adapter that filters for this data point's events
-        def event_handler(event: DeviceRemovedEvent) -> None:
+        def event_handler(*, event: DeviceRemovedEvent) -> None:
             if event.unique_id == self._unique_id:
                 handler()
 

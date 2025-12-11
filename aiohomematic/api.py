@@ -364,7 +364,7 @@ class HomematicAPI:
 
         """
 
-        async def event_handler(event: DataPointUpdatedEvent) -> None:
+        async def event_handler(*, event: DataPointUpdatedEvent) -> None:
             callback(event.dpk.channel_address, event.dpk.parameter, event.value)
 
         return self.central.event_bus.subscribe(

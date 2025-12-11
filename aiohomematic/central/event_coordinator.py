@@ -75,8 +75,11 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker, Inter
         self._client_provider: Final = client_provider
         self._task_scheduler: Final = task_scheduler
 
-        # Initialize event bus
-        self._event_bus: Final = EventBus(enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG))
+        # Initialize event bus with task scheduler for proper task lifecycle management
+        self._event_bus: Final = EventBus(
+            enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG),
+            task_scheduler=task_scheduler,
+        )
 
         # Store last event seen datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
@@ -111,7 +114,7 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker, Inter
         ):
             # Subscribe data point's event method to EventBus with filtering
 
-            async def event_handler(event: DataPointUpdatedEvent) -> None:
+            async def event_handler(*, event: DataPointUpdatedEvent) -> None:
                 """Filter and handle data point events."""
                 if event.dpk == data_point.dpk:
                     await data_point.event(value=event.value, received_at=event.received_at)

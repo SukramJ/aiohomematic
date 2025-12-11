@@ -5,11 +5,13 @@ Pre-commit hook to validate i18n catalogs and usage.
 Checks performed:
 1) Ensure that every translation key used in code via i18n.tr("key")/tr("key")
    exists in the base catalog `aiohomematic/strings.json`.
-2) Ensure `translations/en.json` is always an exact copy of `strings.json`.
+2) Ensure that every key in `strings.json` is actually used in the codebase.
+   Unused keys are reported as warnings. With --remove-unused, they are removed.
+3) Ensure `translations/en.json` is always an exact copy of `strings.json`.
    With --fix, overwrite `en.json` accordingly.
-3) For `translations/de.json`, report which entries are missing (compared to
+4) For `translations/de.json`, report which entries are missing (compared to
    `strings.json`) and which are extra. Do not auto-remove/auto-add.
-4) Ensure the json files (`strings.json`, `en.json`, `de.json`) are sorted by key
+5) Ensure the json files (`strings.json`, `en.json`, `de.json`) are sorted by key
    and pretty formatted. With --fix, rewrite sorted files.
 
 Exit code:
@@ -43,12 +45,17 @@ class Findings:
     """Container for problems detected across catalogs and usage."""
 
     missing_in_strings: set[str]
+    unused_in_strings: set[str]
     de_missing: set[str]
     de_extra: set[str]
 
     def has_problems(self) -> bool:
         """Return True if any issue has been detected."""
         return bool(self.missing_in_strings or self.de_missing or self.de_extra)
+
+    def has_warnings(self) -> bool:
+        """Return True if any warnings were detected."""
+        return bool(self.unused_in_strings)
 
 
 def _iter_py_files() -> Iterable[Path]:
@@ -123,14 +130,17 @@ def _dump_sorted_json(path: Path, data: dict[str, str]) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def run(fix: bool) -> int:
+def run(fix: bool, remove_unused: bool) -> int:
     """
     Run the i18n catalogs check and return an appropriate exit code.
 
     When `fix` is True, the function will synchronize `en.json` to `strings.json`
     and sort/pretty-print the catalogs, asking pre-commit to re-run by returning 1.
+
+    When `remove_unused` is True, unused keys will be removed from all catalog files.
     """
     problems: list[str] = []
+    warnings: list[str] = []
     modified = False
 
     used_keys = _collect_used_keys()
@@ -144,7 +154,29 @@ def run(fix: bool) -> int:
     if missing_in_strings:
         problems.extend(f"Missing key in strings.json: {k}" for k in sorted(missing_in_strings))
 
-    # 2) en.json must equal strings.json
+    # 2) detect unused keys in strings.json
+    strings_keys = set(strings.keys())
+    unused_in_strings = strings_keys - used_keys
+    if unused_in_strings:
+        if remove_unused:
+            # Remove unused keys from all catalogs
+            for key in unused_in_strings:
+                strings.pop(key, None)
+                en.pop(key, None)
+                de.pop(key, None)
+            _dump_sorted_json(STRINGS_JSON, strings)
+            _dump_sorted_json(EN_JSON, strings)  # en.json mirrors strings.json
+            if de:  # Only update de.json if it exists and has content
+                _dump_sorted_json(DE_JSON, de)
+            modified = True
+            warnings.extend(f"Removed unused key from catalogs: {k}" for k in sorted(unused_in_strings))
+        else:
+            warnings.extend(
+                f"Unused key in strings.json: {k} (run with --remove-unused to remove)"
+                for k in sorted(unused_in_strings)
+            )
+
+    # 3) en.json must equal strings.json
     if en != strings:
         if fix:
             # Overwrite en.json to match strings.json, sorted
@@ -153,15 +185,15 @@ def run(fix: bool) -> int:
         else:
             problems.append("en.json differs from strings.json (run with --fix to sync)")
 
-    # 3) de.json differences
-    strings_keys = set(strings.keys())
+    # 4) de.json differences
+    strings_keys_current = set(strings.keys())  # Update after possible removal
     de_keys = set(de.keys())
-    de_missing = strings_keys - de_keys
-    de_extra = de_keys - strings_keys
+    de_missing = strings_keys_current - de_keys
+    de_extra = de_keys - strings_keys_current
     problems.extend(f"de.json missing key: {k}" for k in sorted(de_missing))
     problems.extend(f"de.json has extra key not in strings.json: {k}" for k in sorted(de_extra))
 
-    # 4) ensure sorted JSON files
+    # 5) ensure sorted JSON files
     def ensure_sorted(path: Path, current: dict[str, str]) -> None:
         nonlocal modified
         # Compare to sorted dump
@@ -182,9 +214,18 @@ def run(fix: bool) -> int:
     ensure_sorted(EN_JSON, _load_json(EN_JSON))  # re-load in case it was missing
     ensure_sorted(DE_JSON, de)
 
+    # Print warnings first (less severe)
+    if warnings:
+        print("Warnings:")
+        for msg in warnings:
+            print(f"  {msg}")
+        print()
+
     # Print problems
-    for msg in problems:
-        print(msg)
+    if problems:
+        print("Errors:")
+        for msg in problems:
+            print(f"  {msg}")
 
     # If anything modified, ask pre-commit to re-run (exit non-zero)
     if modified:
@@ -194,6 +235,7 @@ def run(fix: bool) -> int:
     if problems:
         return 1
 
+    # Exit 0 even if there are only warnings (to allow commit)
     return 0
 
 
@@ -201,8 +243,13 @@ def main(argv: Iterable[str] | None = None) -> int:
     """CLI entry point for running the catalogs check."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--fix", action="store_true", help="Apply automatic fixes (sync en.json, sort files)")
+    parser.add_argument(
+        "--remove-unused",
+        action="store_true",
+        help="Remove unused translation keys from all catalog files",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
-    return run(fix=args.fix)
+    return run(fix=args.fix, remove_unused=args.remove_unused)
 
 
 if __name__ == "__main__":

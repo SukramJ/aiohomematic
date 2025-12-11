@@ -4,13 +4,21 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 import logging
 from typing import Final
 
 from slugify import slugify
 
-from aiohomematic.const import HUB_ADDRESS, DataPointCategory, SystemUpdateData
+from aiohomematic import i18n
+from aiohomematic.const import (
+    HUB_ADDRESS,
+    SYSTEM_UPDATE_PROGRESS_CHECK_INTERVAL,
+    SYSTEM_UPDATE_PROGRESS_TIMEOUT,
+    DataPointCategory,
+    SystemUpdateData,
+)
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, EventBusProvider, EventPublisher
 from aiohomematic.interfaces.client import PrimaryClientProvider
@@ -36,6 +44,8 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         "_primary_client_provider",
         "_state_uncertain",
         "_update_available",
+        "_update_in_progress",
+        "_version_before_update",
     )
 
     _category = DataPointCategory.HUB_UPDATE
@@ -78,6 +88,8 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         self._current_firmware: str = ""
         self._available_firmware: str = ""
         self._update_available: bool = False
+        self._update_in_progress: bool = False
+        self._version_before_update: str | None = None
 
     @property
     def channel(self) -> ChannelProtocol | None:
@@ -130,15 +142,32 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         return self._current_firmware
 
     @state_property
+    def in_progress(self) -> bool:
+        """Return if an update is currently in progress."""
+        return self._update_in_progress
+
+    @state_property
     def update_available(self) -> bool:
         """Return if an update is available."""
         return self._update_available
 
     @inspector
     async def install(self) -> bool:
-        """Trigger the firmware update process."""
+        """Trigger the firmware update process with progress monitoring."""
         if client := self._primary_client_provider.primary_client:
-            return await client.trigger_firmware_update()
+            # Store current version for progress detection
+            self._version_before_update = self._current_firmware
+            if result := await client.trigger_firmware_update():
+                self._update_in_progress = True
+                self.publish_data_point_updated_event()
+
+                # Start progress monitoring task
+                self._task_scheduler.create_task(
+                    target=self._monitor_update_progress(),
+                    name="hub_update_progress_monitor",
+                )
+
+            return result
         return False
 
     def update_data(self, *, data: SystemUpdateData, write_at: datetime) -> None:
@@ -168,3 +197,49 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self.name}"
+
+    async def _monitor_update_progress(self) -> None:
+        """Monitor update progress by polling system information."""
+        start_time = datetime.now()
+
+        try:
+            while (datetime.now() - start_time).total_seconds() < SYSTEM_UPDATE_PROGRESS_TIMEOUT:
+                await asyncio.sleep(SYSTEM_UPDATE_PROGRESS_CHECK_INTERVAL)
+
+                if client := self._primary_client_provider.primary_client:
+                    try:
+                        update_info = await client.get_system_update_info()
+
+                        if update_info and update_info.current_firmware != self._version_before_update:
+                            _LOGGER.info(
+                                i18n.tr(
+                                    "log.model.hub.update.progress_completed",
+                                    old_version=self._version_before_update,
+                                    new_version=update_info.current_firmware,
+                                )
+                            )
+                            # Update data with new firmware info
+                            self._current_firmware = update_info.current_firmware
+                            self._available_firmware = update_info.available_firmware
+                            self._update_available = update_info.update_available
+                            break
+                    except Exception as err:
+                        # CCU may be offline during reboot - continue polling
+                        _LOGGER.debug(
+                            i18n.tr(
+                                "log.model.hub.update.progress_poll_error",
+                                error=str(err),
+                            )
+                        )
+            else:
+                _LOGGER.warning(
+                    i18n.tr(
+                        "log.model.hub.update.progress_timeout",
+                        timeout=SYSTEM_UPDATE_PROGRESS_TIMEOUT,
+                    )
+                )
+        finally:
+            self._update_in_progress = False
+            self._version_before_update = None
+            self._set_modified_at(modified_at=datetime.now())
+            self.publish_data_point_updated_event()

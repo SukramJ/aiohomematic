@@ -1107,29 +1107,39 @@ class NewCalculation(CalculatedDataPoint):
 
 ### Adding a Translation
 
+**IMPORTANT**: `aiohomematic/strings.json` is the **primary source** for all translation keys. The file `translations/en.json` is automatically synchronized from `strings.json`.
+
 1. **Use translation in code**:
 
 ```python
-from aiohomematic.i18n import gettext as _
+from aiohomematic import i18n
 
-# In code
-message = _("ERROR_MESSAGE_KEY")
+# In code (for log messages)
+_LOGGER.info(i18n.tr("log.my.message.key", param=value))
 ```
 
-2. **Add to translation catalog**:
+2. **Add to translation catalogs** (in this order):
 
 ```bash
-# Edit aiohomematic/translations/en.json
+# Step 1: Add key to aiohomematic/strings.json (PRIMARY SOURCE)
 {
-  "ERROR_MESSAGE_KEY": "Error message in English"
+  "log.my.message.key": "My message with {param}"
+}
+
+# Step 2: Run sync script to copy to en.json
+python script/check_i18n_catalogs.py --fix
+
+# Step 3: Add German translation to translations/de.json
+{
+  "log.my.message.key": "Meine Nachricht mit {param}"
 }
 ```
 
 3. **Validate translations**:
 
 ```bash
-python script/check_i18n.py
-python script/check_i18n_catalogs.py
+python script/check_i18n.py aiohomematic/  # Check usage in code
+python script/check_i18n_catalogs.py       # Check catalog sync
 ```
 
 ### Debugging Tips

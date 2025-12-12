@@ -1,43 +1,16 @@
-"""Tests for model/generic text data points of aiohomematic."""
+"""Tests for model/hub text data points of aiohomematic."""
 
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 
-from aiohomematic.central import CentralUnit
 from aiohomematic.const import DataPointUsage
-from aiohomematic.interfaces.client import ClientProtocol
-from aiohomematic.model.generic import DpText
 from aiohomematic.model.hub import SysvarDpText
 
-TEST_DEVICES: set[str] = {}
-
 # pylint: disable=protected-access
-
-
-class TestGenericText:
-    """Tests for DpText data points."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def no_test_generic_text_data_point(self, central_client: tuple[CentralUnit, ClientProtocol | Mock]) -> None:
-        """Test DpText. There are currently no text data points."""
-        central, _ = central_client
-        text: DpText = cast(DpText, central.get_generic_data_point(channel_address="VCU7981740:1", parameter="STATE"))
-        assert text.usage == DataPointUsage.DATA_POINT
 
 
 class TestSysvarText:

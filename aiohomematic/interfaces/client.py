@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from aiohomematic.const import (
     BackupData,
     CallSource,
+    ClientState,
     DataPointKey,
     DeviceDescription,
     InboxDeviceData,
@@ -130,6 +131,10 @@ class ClientConnection(Protocol):
     @modified_at.setter
     def modified_at(self, value: datetime) -> None:
         """Write the last update datetime value."""
+
+    @property
+    def state(self) -> ClientState:
+        """Return the current client state."""
 
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""

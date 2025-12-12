@@ -468,6 +468,232 @@ class RpcServerTaskScheduler(Protocol):
 
 
 # =============================================================================
+# Central State Machine Protocol
+# =============================================================================
+
+
+@runtime_checkable
+class CentralStateMachineProtocol(Protocol):
+    """
+    Protocol for the central state machine.
+
+    Provides access to the overall system state and state transitions.
+    Implemented by CentralStateMachine.
+    """
+
+    from aiohomematic.const import CentralState  # noqa: PLC0415
+
+    @property
+    @abstractmethod
+    def is_degraded(self) -> bool:
+        """Return True if system is in degraded state."""
+
+    @property
+    @abstractmethod
+    def is_failed(self) -> bool:
+        """Return True if system is in failed state."""
+
+    @property
+    @abstractmethod
+    def is_operational(self) -> bool:
+        """Return True if system is operational (RUNNING or DEGRADED)."""
+
+    @property
+    @abstractmethod
+    def is_recovering(self) -> bool:
+        """Return True if recovery is in progress."""
+
+    @property
+    @abstractmethod
+    def is_running(self) -> bool:
+        """Return True if system is fully running."""
+
+    @property
+    @abstractmethod
+    def is_stopped(self) -> bool:
+        """Return True if system is stopped."""
+
+    @property
+    @abstractmethod
+    def state(self) -> CentralState:
+        """Return the current state."""
+
+    @abstractmethod
+    def can_transition_to(self, *, target: CentralState) -> bool:
+        """Check if transition to target state is valid."""
+
+    @abstractmethod
+    def transition_to(self, *, target: CentralState, reason: str = "", force: bool = False) -> None:
+        """Transition to a new state."""
+
+
+@runtime_checkable
+class CentralStateMachineProvider(Protocol):
+    """
+    Protocol for accessing the central state machine.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def central_state_machine(self) -> CentralStateMachineProtocol:
+        """Return the central state machine."""
+
+
+# =============================================================================
+# Health Tracking Protocols
+# =============================================================================
+
+
+@runtime_checkable
+class ConnectionHealthProtocol(Protocol):
+    """
+    Protocol for per-client connection health.
+
+    Implemented by ConnectionHealth.
+    """
+
+    from aiohomematic.client.circuit_breaker import CircuitState  # noqa: PLC0415
+    from aiohomematic.const import ClientState  # noqa: PLC0415
+
+    @property
+    @abstractmethod
+    def client_state(self) -> ClientState:
+        """Return the client state."""
+
+    @property
+    @abstractmethod
+    def health_score(self) -> float:
+        """Calculate a numeric health score (0.0 - 1.0)."""
+
+    @property
+    @abstractmethod
+    def interface(self) -> Interface:
+        """Return the interface type."""
+
+    @property
+    @abstractmethod
+    def interface_id(self) -> str:
+        """Return the interface ID."""
+
+    @property
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Check if client is available for operations."""
+
+    @property
+    @abstractmethod
+    def is_connected(self) -> bool:
+        """Check if client is in connected state."""
+
+    @property
+    @abstractmethod
+    def is_degraded(self) -> bool:
+        """Check if client is in degraded state."""
+
+    @property
+    @abstractmethod
+    def is_failed(self) -> bool:
+        """Check if client is in failed state."""
+
+
+@runtime_checkable
+class CentralHealthProtocol(Protocol):
+    """
+    Protocol for aggregated central health.
+
+    Implemented by CentralHealth.
+    """
+
+    from aiohomematic.const import CentralState  # noqa: PLC0415
+
+    @property
+    @abstractmethod
+    def all_clients_healthy(self) -> bool:
+        """Check if all clients are fully healthy."""
+
+    @property
+    @abstractmethod
+    def any_client_healthy(self) -> bool:
+        """Check if at least one client is healthy."""
+
+    @property
+    @abstractmethod
+    def central_state(self) -> CentralState:
+        """Return current central state."""
+
+    @property
+    @abstractmethod
+    def degraded_clients(self) -> list[str]:
+        """Return list of interface IDs with degraded health."""
+
+    @property
+    @abstractmethod
+    def failed_clients(self) -> list[str]:
+        """Return list of interface IDs that have failed."""
+
+    @property
+    @abstractmethod
+    def healthy_clients(self) -> list[str]:
+        """Return list of healthy interface IDs."""
+
+    @property
+    @abstractmethod
+    def overall_health_score(self) -> float:
+        """Calculate weighted average health score across all clients."""
+
+    @property
+    @abstractmethod
+    def primary_client_healthy(self) -> bool:
+        """Check if the primary client is healthy."""
+
+    @abstractmethod
+    def get_client_health(self, *, interface_id: str) -> ConnectionHealthProtocol | None:
+        """Get health for a specific client."""
+
+    @abstractmethod
+    def should_be_degraded(self) -> bool:
+        """Determine if central should be in DEGRADED state."""
+
+    @abstractmethod
+    def should_be_running(self) -> bool:
+        """Determine if central should be in RUNNING state."""
+
+
+@runtime_checkable
+class HealthTrackerProtocol(Protocol):
+    """
+    Protocol for the health tracker.
+
+    Implemented by HealthTracker.
+    """
+
+    @property
+    @abstractmethod
+    def health(self) -> CentralHealthProtocol:
+        """Return the aggregated central health."""
+
+    @abstractmethod
+    def get_client_health(self, *, interface_id: str) -> ConnectionHealthProtocol | None:
+        """Get health for a specific client."""
+
+
+@runtime_checkable
+class HealthProvider(Protocol):
+    """
+    Protocol for accessing the health tracker.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def health_tracker(self) -> HealthTrackerProtocol:
+        """Return the health tracker."""
+
+
+# =============================================================================
 # CentralProtocol Composite
 # =============================================================================
 

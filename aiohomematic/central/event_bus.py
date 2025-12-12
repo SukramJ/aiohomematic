@@ -99,7 +99,15 @@ import logging
 import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
-from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, ParamsetKey
+from aiohomematic.const import (
+    BackendSystemEvent,
+    CentralState,
+    ClientState,
+    DataPointKey,
+    EventKey,
+    EventType,
+    ParamsetKey,
+)
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 if TYPE_CHECKING:
@@ -409,6 +417,44 @@ class ConnectionStateChangedEvent(Event):
     def key(self) -> Any:
         """Key identifier for this event."""
         return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class ClientStateChangedEvent(Event):
+    """
+    Client state machine state has changed.
+
+    Published when a client transitions between states.
+    Key is interface_id.
+    """
+
+    interface_id: str
+    old_state: ClientState
+    new_state: ClientState
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class CentralStateChangedEvent(Event):
+    """
+    Central state machine state has changed.
+
+    Published when the overall central system state transitions.
+    Key is None (global event).
+    """
+
+    old_state: CentralState
+    new_state: CentralState
+    reason: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return None
 
 
 class EventBus:

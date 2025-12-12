@@ -366,8 +366,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         inconsistent state (e.g., after ResponseNotReady errors).
         """
         # Access the private transport attribute and close it
-        # pylint: disable=protected-access
-        if transport := self._ServerProxy__transport:
+        if transport := self._ServerProxy__transport:  # pylint: disable=protected-access
             try:
                 transport.close()
                 _LOGGER.debug(

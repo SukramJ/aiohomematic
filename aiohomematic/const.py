@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.22"
+VERSION: Final = "2025.12.23"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -341,6 +341,63 @@ class CentralUnitState(StrEnum):
     STOPPED = "stopped"
     STOPPED_BY_ERROR = "stopped_by_error"
     STOPPING = "stopping"
+
+
+class CentralState(StrEnum):
+    """
+    Central State Machine states for overall system health orchestration.
+
+    This enum defines the states for the Central State Machine which
+    orchestrates the overall system state based on individual client states.
+
+    State Machine
+    -------------
+    ```
+    STARTING ──► INITIALIZING ──► RUNNING ◄──► DEGRADED
+                      │              │            │
+                      │              ▼            ▼
+                      │          RECOVERING ◄────┘
+                      │              │
+                      │              ├──► RUNNING (all recovered)
+                      │              ├──► DEGRADED (partial recovery)
+                      │              └──► FAILED (max retries)
+                      │
+                      └──► FAILED (critical init error)
+
+    STOPPED ◄── (from any state via stop())
+    ```
+
+    Valid Transitions
+    -----------------
+    - STARTING → INITIALIZING, STOPPED
+    - INITIALIZING → RUNNING, DEGRADED, FAILED, STOPPED
+    - RUNNING → DEGRADED, RECOVERING, STOPPED
+    - DEGRADED → RUNNING, RECOVERING, FAILED, STOPPED
+    - RECOVERING → RUNNING, DEGRADED, FAILED, STOPPED
+    - FAILED → RECOVERING, STOPPED
+    - STOPPED → (terminal)
+    """
+
+    STARTING = "starting"
+    """Central is being created."""
+
+    INITIALIZING = "initializing"
+    """Clients are being initialized."""
+
+    RUNNING = "running"
+    """Normal operation - all clients connected."""
+
+    DEGRADED = "degraded"
+    """Limited operation - at least one client not connected."""
+
+    RECOVERING = "recovering"
+    """Active recovery in progress."""
+
+    FAILED = "failed"
+    """Critical error - manual intervention required."""
+
+    STOPPED = "stopped"
+    """Central has been stopped."""
 
 
 class CommandRxMode(StrEnum):

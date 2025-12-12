@@ -14,11 +14,18 @@ The state machine ensures:
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import logging
-from typing import Final
+from typing import Final, Protocol
 
 from aiohomematic.const import ClientState
+
+
+class StateChangeCallback(Protocol):
+    """Protocol for state change callbacks."""
+
+    def __call__(self, *, old_state: ClientState, new_state: ClientState) -> None:
+        """Handle state change."""
+
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -110,16 +117,16 @@ class ClientStateMachine:
 
     Example:
     -------
-        def on_state_change(old_state: ClientState, new_state: ClientState) -> None:
+        def on_state_change(*, old_state: ClientState, new_state: ClientState) -> None:
             print(f"State changed: {old_state} -> {new_state}")
 
         sm = ClientStateMachine(interface_id="BidCos-RF")
         sm.on_state_change = on_state_change
 
-        sm.transition_to(ClientState.INITIALIZING)
-        sm.transition_to(ClientState.INITIALIZED)
-        sm.transition_to(ClientState.CONNECTING)
-        sm.transition_to(ClientState.CONNECTED)
+        sm.transition_to(target=ClientState.INITIALIZING)
+        sm.transition_to(target=ClientState.INITIALIZED)
+        sm.transition_to(target=ClientState.CONNECTING)
+        sm.transition_to(target=ClientState.CONNECTED)
 
     """
 
@@ -140,7 +147,7 @@ class ClientStateMachine:
         """
         self._interface_id: Final = interface_id
         self._state: ClientState = ClientState.CREATED
-        self.on_state_change: Callable[[ClientState, ClientState], None] | None = None
+        self.on_state_change: StateChangeCallback | None = None
 
     @property
     def can_reconnect(self) -> bool:
@@ -234,7 +241,7 @@ class ClientStateMachine:
 
         if self.on_state_change is not None:
             try:
-                self.on_state_change(old_state, target)
+                self.on_state_change(old_state=old_state, new_state=target)
             except Exception:
                 _LOGGER.exception(  # i18n-log: ignore
                     "STATE_MACHINE: Error in state change callback for %s",

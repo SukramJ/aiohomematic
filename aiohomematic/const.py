@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.24"
+VERSION: Final = "2025.12.25"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -72,8 +72,14 @@ class TimeoutConfig(NamedTuple):
     reconnect_backoff_factor: float = 2
     """Multiplier for exponential backoff on reconnect attempts (default: 2)."""
 
-    reconnect_cooldown_delay: float = 1 if _TEST_SPEEDUP else 60
-    """Cool-down period after connection loss before starting reconnect attempts (default: 60s)."""
+    reconnect_initial_cooldown: float = 0.5 if _TEST_SPEEDUP else 10
+    """Initial cool-down period after connection loss before starting TCP checks (default: 10s)."""
+
+    reconnect_tcp_check_timeout: float = 1 if _TEST_SPEEDUP else 60
+    """Maximum time to wait for TCP port to become available before giving up (default: 60s)."""
+
+    reconnect_tcp_check_interval: float = 0.5 if _TEST_SPEEDUP else 5
+    """Interval between TCP port checks during reconnection (default: 5s)."""
 
     callback_warn_interval: float = (1 if _TEST_SPEEDUP else 15) * 40
     """Interval before warning about missing callback events (default: 600s = 10min)."""

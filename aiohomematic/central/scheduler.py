@@ -21,7 +21,7 @@ from collections.abc import Awaitable, Callable
 import contextlib
 from datetime import datetime, timedelta
 import logging
-from typing import Any, Final
+from typing import Final
 
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import BackendSystemEventData
@@ -176,8 +176,10 @@ class BackgroundScheduler:
         self._scheduler_task: asyncio.Task[None] | None = None
         self._unsubscribe_callback: UnsubscribeCallback | None = None
 
-        # Track when connection was lost for cool-down period
+        # Track when connection was lost for staged reconnection
         self._connection_lost_at: datetime | None = None
+        # Track if TCP port became available (stage 1 passed)
+        self._tcp_port_available: bool = False
 
         # Subscribe to DEVICES_CREATED event
         def _event_handler(*, event: BackendSystemEventData) -> None:
@@ -274,7 +276,14 @@ class BackgroundScheduler:
                 await self._scheduler_task
 
     async def _check_connection(self) -> None:
-        """Check connection health to all clients and reconnect if necessary."""
+        """
+        Check connection health to all clients and reconnect if necessary.
+
+        Uses a staged reconnection approach when connection is lost:
+        - Stage 1: TCP port check (non-invasive, no CCU load)
+        - Stage 2: system.listMethods (read-only RPC check)
+        - Stage 3: Full reconnect (init + proxy recreate)
+        """
         _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central_info.name)
         try:
             if not self._client_coordination.all_clients_active:
@@ -285,52 +294,13 @@ class BackgroundScheduler:
                     )
                 )
                 await self._client_coordination.restart_clients()
-            # IMPORTANT: If we're in cool-down phase, skip ALL communication (including pings)
-            # to give CCU time to fully restart without being hammered with requests
+
+            # Staged reconnection when connection is lost
             elif self._connection_lost_at is not None:
-                # Check if cool-down period has elapsed
-                cooldown_elapsed = (datetime.now() - self._connection_lost_at).total_seconds()
-                cooldown_delay = self._config_provider.config.timeout_config.reconnect_cooldown_delay
-
-                if cooldown_elapsed < cooldown_delay:
-                    remaining = cooldown_delay - cooldown_elapsed
-                    _LOGGER.debug(
-                        "CHECK_CONNECTION: Cool-down period active for %s - %.1fs remaining (no communication)",
-                        self._central_info.name,
-                        remaining,
-                    )
-                    return  # Skip ALL communication during cool-down
-
-                # Cool-down elapsed - proceed with reconnection
-                _LOGGER.info(
-                    i18n.tr(
-                        "log.central.scheduler.check_connection.cooldown_elapsed",
-                        name=self._central_info.name,
-                    )
-                )
-
-                # Attempt reconnection for all clients
-                reconnects: list[Any] = []
-                interfaces_to_reload: list[Interface] = []
-                for client in self._client_coordination.clients:
-                    reconnects.append(client.reconnect())
-                    interfaces_to_reload.append(client.interface)
-
-                await asyncio.gather(*reconnects)
-
-                # After reconnect, check which interfaces are now available
-                available_interfaces = [
-                    client.interface for client in self._client_coordination.clients if client.available
-                ]
-                if available_interfaces:
-                    # Reconnection successful - reset cool-down timestamp
-                    self._connection_lost_at = None
-                    # Load data with retry logic - JSON-RPC service may not be
-                    # fully available immediately after CCU restart
-                    await self._load_data_with_retry(interfaces=available_interfaces)
+                await self._handle_staged_reconnection()
 
             else:
-                # Not in cool-down - perform normal client health checks
+                # Normal operation - perform client health checks
                 # These checks may involve pings to the CCU
                 clients_to_reconnect = [
                     client
@@ -339,16 +309,16 @@ class BackgroundScheduler:
                 ]
 
                 if clients_to_reconnect:
-                    # Connection loss detected - start cool-down period
+                    # Connection loss detected - start staged reconnection
                     self._connection_lost_at = datetime.now()
+                    self._tcp_port_available = False
                     _LOGGER.info(
                         i18n.tr(
-                            "log.central.scheduler.check_connection.connection_loss_cooldown_start",
+                            "log.central.scheduler.check_connection.connection_loss_detected",
                             name=self._central_info.name,
-                            cooldown=self._config_provider.config.timeout_config.reconnect_cooldown_delay,
                         )
                     )
-                    # Don't attempt reconnect yet - wait for cool-down period
+
         except NoConnectionException as nex:
             _LOGGER.error(
                 i18n.tr(
@@ -364,6 +334,26 @@ class BackgroundScheduler:
                     reason=extract_exc_args(exc=exc),
                 )
             )
+
+    async def _check_tcp_port_available(self, *, host: str, port: int) -> bool:
+        """
+        Check if a TCP port is available (non-invasive connectivity check).
+
+        This is used as the first stage of reconnection to verify the CCU
+        is responding before attempting RPC calls. It's non-invasive as it
+        only opens and immediately closes a TCP connection.
+        """
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port),
+                timeout=2.0,
+            )
+            writer.close()
+            await writer.wait_closed()
+        except (TimeoutError, OSError):
+            return False
+        else:
+            return True
 
     async def _fetch_device_firmware_update_data(self) -> None:
         """Periodically fetch device firmware update data from backend."""
@@ -420,6 +410,119 @@ class BackgroundScheduler:
                 DeviceFirmwareState.PERFORMING_UPDATE,
             )
         )
+
+    def _get_first_client_port(self) -> int | None:
+        """Get the port from the first configured client."""
+        for client in self._client_coordination.clients:
+            # Access internal config to get port - pylint: disable=protected-access
+            if hasattr(client, "_config") and hasattr(client._config, "interface_config"):
+                port = client._config.interface_config.port  # pylint: disable=protected-access
+                return port if isinstance(port, int) else None
+        return None
+
+    async def _handle_staged_reconnection(self) -> None:
+        """
+        Handle staged reconnection after connection loss.
+
+        Stage 0: Initial cool-down (give CCU time to start shutting down gracefully)
+        Stage 1: Check TCP port availability (non-invasive)
+        Stage 2: Check RPC availability via system.listMethods (read-only)
+        Stage 3: Perform full reconnection
+        """
+        timeout_config = self._config_provider.config.timeout_config
+        # _connection_lost_at is guaranteed non-None when this method is called
+        assert self._connection_lost_at is not None
+        elapsed = (datetime.now() - self._connection_lost_at).total_seconds()
+
+        # Stage 0: Initial cool-down before any checks
+        if elapsed < timeout_config.reconnect_initial_cooldown:
+            remaining = timeout_config.reconnect_initial_cooldown - elapsed
+            _LOGGER.debug(
+                "CHECK_CONNECTION: Initial cool-down for %s - %.1fs remaining",
+                self._central_info.name,
+                remaining,
+            )
+            return  # Wait for cool-down to complete
+
+        # Stage 1: TCP port check (non-invasive)
+        # Calculate time since cool-down ended (TCP check phase)
+        tcp_check_elapsed = elapsed - timeout_config.reconnect_initial_cooldown
+        if not self._tcp_port_available:
+            # Check if max TCP check timeout exceeded (measured from after cool-down)
+            if tcp_check_elapsed >= timeout_config.reconnect_tcp_check_timeout:
+                _LOGGER.warning(
+                    i18n.tr(
+                        "log.central.scheduler.check_connection.tcp_check_timeout",
+                        name=self._central_info.name,
+                        timeout=timeout_config.reconnect_tcp_check_timeout,
+                    )
+                )
+                # Reset and retry from beginning
+                self._connection_lost_at = datetime.now()
+                return
+
+            # Perform TCP port check
+            host = self._config_provider.config.host
+            port = self._get_first_client_port()
+            if port and await self._check_tcp_port_available(host=host, port=port):
+                self._tcp_port_available = True
+                _LOGGER.info(
+                    i18n.tr(
+                        "log.central.scheduler.check_connection.tcp_port_available",
+                        name=self._central_info.name,
+                        host=host,
+                        port=port,
+                    )
+                )
+            else:
+                _LOGGER.debug(
+                    "CHECK_CONNECTION: TCP port check for %s - port %s:%s not yet available (%.1fs of %.1fs)",
+                    self._central_info.name,
+                    host,
+                    port,
+                    tcp_check_elapsed,
+                    timeout_config.reconnect_tcp_check_timeout,
+                )
+                return  # Wait for next check interval
+
+        # Stage 2 & 3: RPC check and full reconnection
+        # Attempt reconnection for all clients (includes system.listMethods via proxy.do_init)
+        _LOGGER.info(
+            i18n.tr(
+                "log.central.scheduler.check_connection.attempting_reconnect",
+                name=self._central_info.name,
+            )
+        )
+
+        reconnects = [client.reconnect() for client in self._client_coordination.clients]
+        await asyncio.gather(*reconnects)
+
+        # Check which interfaces are now available
+        available_interfaces = [client.interface for client in self._client_coordination.clients if client.available]
+
+        if available_interfaces:
+            # Reconnection successful - reset state
+            self._connection_lost_at = None
+            self._tcp_port_available = False
+            _LOGGER.info(
+                i18n.tr(
+                    "log.central.scheduler.check_connection.reconnect_success",
+                    name=self._central_info.name,
+                    interfaces=", ".join(str(i) for i in available_interfaces),
+                )
+            )
+            # Load data with retry logic - JSON-RPC service may not be
+            # fully available immediately after CCU restart
+            await self._load_data_with_retry(interfaces=available_interfaces)
+        else:
+            # Reconnection failed - reset TCP check to retry from stage 1
+            self._tcp_port_available = False
+            _LOGGER.warning(
+                i18n.tr(
+                    "log.central.scheduler.check_connection.reconnect_failed",
+                    name=self._central_info.name,
+                )
+            )
 
     async def _load_data_with_retry(self, *, interfaces: list[Interface]) -> None:
         """

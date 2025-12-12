@@ -30,7 +30,7 @@ import sys
 from typing import TYPE_CHECKING
 
 from aiohomematic import const
-from aiohomematic.central import CentralConfig
+from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.event_bus import BackendSystemEventData, CentralStateChangedEvent, ClientStateChangedEvent
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import CentralState, ClientState
@@ -118,7 +118,7 @@ class StateMachineTestMonitor:
 
     def __init__(self) -> None:
         """Initialize the monitor."""
-        self.central = None
+        self.central: CentralUnit | None = None
         self.start_time = datetime.now()
         self.shutdown_event = asyncio.Event()
 
@@ -269,17 +269,17 @@ class StateMachineTestMonitor:
         # Client state transitions (grouped by interface)
         print("\nClient State Transitions:")  # noqa: T201
         print("-" * 40)  # noqa: T201
-        interfaces: dict[str, list] = {}
-        for ts, iid, old_state, new_state in self.client_state_history:
+        interfaces: dict[str, list[tuple[datetime, ClientState, ClientState]]] = {}
+        for ts, iid, client_old, client_new in self.client_state_history:
             short_name = iid.split("-")[-1] if "-" in iid else iid
             if short_name not in interfaces:
                 interfaces[short_name] = []
-            interfaces[short_name].append((ts, old_state, new_state))
+            interfaces[short_name].append((ts, client_old, client_new))
 
         for iface, transitions in interfaces.items():
             print(f"  {iface}:")  # noqa: T201
-            for ts, old_state, new_state in transitions:
-                print(f"    {ts.strftime('%H:%M:%S')} {old_state.value:15} -> {new_state.value}")  # noqa: T201
+            for ts, client_old, client_new in transitions:
+                print(f"    {ts.strftime('%H:%M:%S')} {client_old.value:15} -> {client_new.value}")  # noqa: T201
 
         # Health snapshots
         if self.health_snapshots:

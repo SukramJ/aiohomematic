@@ -1,3 +1,12 @@
+# Version 2025.12.24 (2025-12-12)
+
+## What's Changed
+
+### Bug Fixes
+
+- Fix "ResponseNotReady" errors after CCU reconnection by recreating proxy objects with fresh HTTP transport after successful PROXY_INIT
+- Add configurable cool-down period (`reconnect_cooldown_delay`, default 60s) after connection loss - all communication including pings is suspended during cool-down to allow CCU time to fully restart
+
 # Version 2025.12.23 (2025-12-12)
 
 ## What's Changed
@@ -27,8 +36,6 @@
 ### Bug Fixes
 
 - Fix entities not marked unavailable after failed proxy initialization - devices now correctly show unavailable during CCU restart/recovery
-- Fix "ResponseNotReady" errors after CCU reconnection by recreating proxy objects with fresh HTTP transport after successful PROXY_INIT
-- Add configurable cool-down period (`reconnect_cooldown_delay`, default 60s) after connection loss - all communication including pings is suspended during cool-down to allow CCU time to fully restart
 
 # Version 2025.12.22 (2025-12-12)
 

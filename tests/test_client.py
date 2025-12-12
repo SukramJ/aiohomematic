@@ -977,6 +977,50 @@ class TestClientProxyLifecycle:
     """Test proxy initialization and deinitialization."""
 
     @pytest.mark.asyncio
+    async def test_initialize_proxy_failure_marks_devices_unavailable(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that initialize_proxy marks devices as unavailable on failure."""
+        from unittest.mock import MagicMock
+
+        from aiohomematic.const import ClientState, ForcedDeviceAvailability
+
+        central = _FakeCentral2()
+
+        # Create mock device with set_forced_availability
+        # interface_id must match client's interface_id (central_name-interface)
+        mock_device = MagicMock()
+        mock_device.set_forced_availability = MagicMock()
+        mock_device.interface_id = "c-BidCos-RF"  # Matches client's interface_id
+        central.devices = (mock_device,)
+
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        ccfg = ClientConfig(central=central, interface_config=iface_cfg)
+
+        client = ClientCCU(client_config=ccfg)
+
+        # Patch proxies and system information
+        from aiohomematic.const import SystemInformation
+
+        client._proxy = _XmlProxy2(fail_init=True)  # type: ignore[attr-defined]
+        client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
+        client._system_information = SystemInformation()  # type: ignore[attr-defined]
+        client._init_handlers()  # Initialize handlers after setting proxies
+
+        # Transition state machine to INITIALIZED
+        client._state_machine.transition_to(target=ClientState.INITIALIZING)  # type: ignore[attr-defined]
+        client._state_machine.transition_to(target=ClientState.INITIALIZED)  # type: ignore[attr-defined]
+
+        # Initialize proxy should fail
+        state = await client.initialize_proxy()
+        from aiohomematic.const import ProxyInitState
+
+        assert state is ProxyInitState.INIT_FAILED
+
+        # Verify device was marked as unavailable
+        mock_device.set_forced_availability.assert_called_once_with(
+            forced_availability=ForcedDeviceAvailability.FORCE_FALSE
+        )
+
+    @pytest.mark.asyncio
     async def test_proxy_lifecycle_success_and_failure_consolidated(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """initialize_proxy/deinitialize_proxy paths including exceptions and non-callback path."""
         from aiohomematic.const import ClientState

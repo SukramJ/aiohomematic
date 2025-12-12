@@ -156,12 +156,16 @@ from __future__ import annotations
 
 from aiohomematic.interfaces.central import (
     BackupProvider,
+    CentralHealthProtocol,
     CentralInfo,
     # Central composite protocol
     CentralProtocol,
+    CentralStateMachineProtocol,
+    CentralStateMachineProvider,
     CentralUnitStateProvider,
     ChannelLookup,
     ConfigProvider,
+    ConnectionHealthProtocol,
     DataCacheProvider,
     DataPointProvider,
     DeviceDataRefresher,
@@ -171,6 +175,8 @@ from aiohomematic.interfaces.central import (
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    HealthProvider,
+    HealthTrackerProtocol,
     HubDataFetcher,
     HubDataPointManager,
     HubFetchOperations,
@@ -268,6 +274,14 @@ __all__ = [
     "CentralUnitStateProvider",
     "ConfigProvider",
     "SystemInfoProvider",
+    # Central State Machine
+    "CentralStateMachineProtocol",
+    "CentralStateMachineProvider",
+    # Health Tracking
+    "CentralHealthProtocol",
+    "ConnectionHealthProtocol",
+    "HealthProvider",
+    "HealthTrackerProtocol",
     # Event System
     "EventBusProvider",
     "EventPublisher",

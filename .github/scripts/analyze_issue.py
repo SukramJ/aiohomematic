@@ -231,8 +231,7 @@ def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]
         else:
             comment += "### Terminology Notes\n\n"
             comment += (
-                "To avoid confusion, please note the correct "
-                f"[terminology (Glossary)]({DOCS_LINKS['glossary']}):\n\n"
+                f"To avoid confusion, please note the correct [terminology (Glossary)]({DOCS_LINKS['glossary']}):\n\n"
             )
 
         for item in terminology_issues:

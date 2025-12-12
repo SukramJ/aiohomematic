@@ -222,7 +222,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 ## Further reading
 
 - [Data flow](data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
-- [Sequence diagrams](sequence_diagrams.md) (connect, discovery, propagation)
+- [Sequence diagrams](sequence_diagrams.md) (connect, discovery, propagation, state machines, health tracking, recovery)
 - [Implementation plan](implementation_plan.md) roadmap for architecture improvements
 - [Architecture improvements](architecture_improvements.md) proposed enhancements and their evaluation
 

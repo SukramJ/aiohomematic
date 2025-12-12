@@ -236,6 +236,7 @@ stateDiagram-v2
 
   FAILED --> INITIALIZING: retry init
   FAILED --> CONNECTING: retry connect
+  FAILED --> RECONNECTING: recovery retry
 
   STOPPING --> STOPPED: cleanup complete
 
@@ -257,12 +258,115 @@ stateDiagram-v2
 | STOPPED      | Terminal state, no further transitions                    |
 | FAILED       | Error state, allows retry via re-initialization           |
 
+### State change callback
+
+The ClientStateMachine supports a typed callback for state changes:
+
+```python
+from aiohomematic.client.state_machine import ClientStateMachine, StateChangeCallback
+from aiohomematic.const import ClientState
+
+def on_state_change(*, old_state: ClientState, new_state: ClientState) -> None:
+    print(f"Client state changed: {old_state} -> {new_state}")
+
+sm = ClientStateMachine(interface_id="ccu-main-HmIP-RF")
+sm.on_state_change = on_state_change  # Must match StateChangeCallback protocol
+```
+
 ### Notes
 
 - ClientStateMachine enforces valid transitions and raises InvalidStateTransitionError for invalid ones.
 - State changes are logged for debugging and can trigger optional callbacks.
 - The DISCONNECTED state allows idempotent deinitialize calls (self-transition).
-- FAILED state provides recovery paths back to INITIALIZING or CONNECTING.
+- FAILED state provides recovery paths back to INITIALIZING, CONNECTING, or RECONNECTING.
+- Callback signature uses keyword-only arguments (`*, old_state, new_state`) for type safety.
+
+---
+
+## 4a. Central state machine (system health orchestration)
+
+The CentralStateMachine manages the overall state of the system based on individual client states. It acts as an orchestrator above the per-client state machines.
+
+```mermaid
+stateDiagram-v2
+  [*] --> STARTING: new CentralUnit()
+
+  STARTING --> INITIALIZING: start() called
+  STARTING --> STOPPED: stop() before start()
+
+  INITIALIZING --> RUNNING: all clients OK
+  INITIALIZING --> DEGRADED: some clients not OK
+  INITIALIZING --> FAILED: critical init error
+  INITIALIZING --> STOPPED: stop() during init
+
+  RUNNING --> DEGRADED: client problem detected
+  RUNNING --> RECOVERING: proactive recovery
+  RUNNING --> STOPPED: graceful shutdown
+
+  DEGRADED --> RUNNING: all clients recovered
+  DEGRADED --> RECOVERING: start recovery
+  DEGRADED --> FAILED: too long degraded
+  DEGRADED --> STOPPED: shutdown
+
+  RECOVERING --> RUNNING: recovery successful
+  RECOVERING --> DEGRADED: partial recovery
+  RECOVERING --> FAILED: max retries reached
+  RECOVERING --> STOPPED: shutdown during recovery
+
+  FAILED --> RECOVERING: manual/heartbeat retry
+  FAILED --> STOPPED: shutdown
+
+  STOPPED --> [*]
+```
+
+### Central state descriptions
+
+| State        | Description                                          | Exit Conditions                               |
+| ------------ | ---------------------------------------------------- | --------------------------------------------- |
+| STARTING     | Central is being created, no clients initialized yet | `start()` called or `stop()` before start     |
+| INITIALIZING | Clients are being created and initialized            | All OK → RUNNING, some fail → DEGRADED        |
+| RUNNING      | All clients are CONNECTED and healthy                | Client problem → DEGRADED or RECOVERING       |
+| DEGRADED     | At least one client is not CONNECTED                 | Recovery → RECOVERING, all OK → RUNNING       |
+| RECOVERING   | Active recovery of failed clients in progress        | Success → RUNNING, partial → DEGRADED         |
+| FAILED       | Max retries reached, manual intervention required    | Manual retry → RECOVERING, shutdown → STOPPED |
+| STOPPED      | Terminal state, central is fully stopped             | None (terminal)                               |
+
+### State transition rules
+
+The CentralStateMachine enforces a strict set of valid transitions:
+
+```python
+VALID_CENTRAL_TRANSITIONS = {
+    CentralState.STARTING: {INITIALIZING, STOPPED},
+    CentralState.INITIALIZING: {RUNNING, DEGRADED, FAILED, STOPPED},
+    CentralState.RUNNING: {DEGRADED, RECOVERING, STOPPED},
+    CentralState.DEGRADED: {RUNNING, RECOVERING, FAILED, STOPPED},
+    CentralState.RECOVERING: {RUNNING, DEGRADED, FAILED, STOPPED},
+    CentralState.FAILED: {RECOVERING, STOPPED},
+    CentralState.STOPPED: {},  # Terminal - no transitions allowed
+}
+```
+
+### Event emission
+
+State changes are published to the EventBus as `CentralStateChangedEvent`:
+
+```python
+@dataclass
+class CentralStateChangedEvent:
+    timestamp: datetime
+    old_state: CentralState
+    new_state: CentralState
+    reason: str
+```
+
+### Notes
+
+- RUNNING requires ALL clients to be CONNECTED (user-chosen conservative approach).
+- DEGRADED allows operations with reduced functionality.
+- FAILED state includes heartbeat retry mechanism every 60 seconds.
+- State history is maintained (last 100 transitions) for debugging.
+- Thread Safety: NOT thread-safe, all calls should happen from the same event loop.
 
 ---
 
@@ -775,6 +879,369 @@ schedule_data = {
 - Conversion between raw CCU format and structured Python dicts is bidirectional.
 - Setting a schedule triggers a reload to verify the write was successful.
 - Schedule entries are identified by pattern `XX_WP_FIELDNAME` where XX is group number (01-10).
+
+---
+
+## 10. Connection health tracking
+
+The health tracking system provides a unified view of connection health across all clients. It replaces overlapping availability systems with a single source of truth.
+
+```mermaid
+classDiagram
+    class HealthTracker {
+        -central_name: str
+        -state_machine: CentralStateMachine
+        -central_health: CentralHealth
+        +health: CentralHealth
+        +get_client_health(interface_id): ConnectionHealth
+        +register_client(interface_id, interface): ConnectionHealth
+        +unregister_client(interface_id): void
+        +update_client_health(interface_id, old_state, new_state): void
+        +update_all_from_clients(clients): void
+    }
+
+    class CentralHealth {
+        +central_state: CentralState
+        +client_health: dict[str, ConnectionHealth]
+        +primary_interface: Interface
+        +all_clients_healthy: bool
+        +any_client_healthy: bool
+        +overall_health_score: float
+        +failed_clients: list[str]
+        +healthy_clients: list[str]
+        +degraded_clients: list[str]
+        +should_be_running(): bool
+        +should_be_degraded(): bool
+    }
+
+    class ConnectionHealth {
+        +interface_id: str
+        +interface: Interface
+        +client_state: ClientState
+        +xml_rpc_circuit: CircuitState
+        +json_rpc_circuit: CircuitState
+        +last_successful_request: datetime
+        +last_failed_request: datetime
+        +last_event_received: datetime
+        +consecutive_failures: int
+        +reconnect_attempts: int
+        +health_score: float
+        +is_available: bool
+        +is_connected: bool
+        +is_degraded: bool
+        +is_failed: bool
+        +can_receive_events: bool
+    }
+
+    HealthTracker --> CentralHealth
+    CentralHealth --> "*" ConnectionHealth
+```
+
+### Health score calculation
+
+The health score (0.0 - 1.0) is calculated using weighted components:
+
+| Component        | Weight | Calculation                                            |
+| ---------------- | ------ | ------------------------------------------------------ |
+| State Machine    | 40%    | CONNECTED = 100%, RECONNECTING = 50%, other = 0%       |
+| Circuit Breakers | 30%    | CLOSED = 100%, HALF_OPEN = 33%, OPEN = 0%              |
+| Recent Activity  | 30%    | Based on age of last request/event (<60s = 100%, etc.) |
+
+### Health state determination
+
+```python
+# ConnectionHealth.is_available
+is_available = (
+    client_state == ClientState.CONNECTED
+    and xml_rpc_circuit == CircuitState.CLOSED
+    and (json_rpc_circuit is None or json_rpc_circuit == CircuitState.CLOSED)
+)
+
+# ConnectionHealth.is_degraded
+is_degraded = (
+    client_state in (CONNECTED, RECONNECTING)
+    and (xml_rpc_circuit != CLOSED or json_rpc_circuit != CLOSED)
+)
+
+# CentralHealth.should_be_running
+should_be_running = all_clients_healthy  # ALL clients must be CONNECTED
+```
+
+### Health update sequence
+
+```mermaid
+sequenceDiagram
+    participant Client as ClientCCU
+    participant CSM as ClientStateMachine
+    participant CB as CircuitBreaker
+    participant HT as HealthTracker
+    participant CH as ConnectionHealth
+    participant CnH as CentralHealth
+    participant EB as EventBus
+
+    Note over Client: State change detected
+    Client->>CSM: transition_to(new_state)
+    CSM->>CSM: validate transition
+    CSM->>CSM: update _state
+
+    alt Callback registered
+        CSM->>Client: on_state_change(old_state, new_state)
+        Client->>EB: publish(ClientStateChangedEvent)
+    end
+
+    Note over HT: Update health tracking
+    Client->>HT: update_client_health(interface_id, old_state, new_state)
+    HT->>CH: client_state = new_state
+
+    alt new_state == RECONNECTING
+        HT->>CH: record_reconnect_attempt()
+    else new_state == CONNECTED
+        HT->>CH: reset_reconnect_counter()
+    end
+
+    HT->>CH: update_from_client(client)
+    CH->>CB: read circuit state
+    CB-->>CH: xml_rpc_circuit, json_rpc_circuit
+
+    HT->>CnH: update_central_state(state_machine.state)
+```
+
+### Notes
+
+- HealthTracker coordinates health tracking for all clients.
+- ConnectionHealth uses hasattr checks to read circuit breaker state (proper protocol will be added in Phase 1.4).
+- Event staleness threshold is 5 minutes (EVENT_STALENESS_THRESHOLD = 300s).
+- Health is updated on state machine transitions and can be polled via `update_all_from_clients`.
+
+---
+
+## 11. Recovery coordinator (client reconnection orchestration)
+
+The RecoveryCoordinator manages the recovery process for failed or degraded client connections with max retry tracking and multi-stage verification.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle: init
+
+    Idle --> Recovering: recover_all_failed()
+    Idle --> RecoveringClient: recover_client(id)
+
+    Recovering --> RecoveringClient: for each failed client
+
+    RecoveringClient --> StageBasic: attempt reconnect
+    StageBasic --> StageDevices: basic OK
+    StageBasic --> RecordFailure: basic failed
+
+    StageDevices --> StageParamsets: devices OK
+    StageParamsets --> StageValues: paramsets OK
+    StageValues --> StageFull: values OK
+    StageFull --> RecordSuccess: full verification
+
+    RecordFailure --> CheckRetries: record attempt
+    RecordSuccess --> UpdateState: reset state
+
+    CheckRetries --> RecoveringClient: can_retry
+    CheckRetries --> MaxRetries: max_retries reached
+
+    MaxRetries --> Failed: transition to FAILED
+
+    UpdateState --> NextClient: more clients
+    NextClient --> RecoveringClient: continue
+    NextClient --> DetermineState: all done
+
+    DetermineState --> Running: all recovered
+    DetermineState --> Degraded: partial recovery
+    DetermineState --> Failed: all max retries
+
+    Running --> Idle: done
+    Degraded --> Idle: done
+    Failed --> HeartbeatRetry: every 60s
+    HeartbeatRetry --> Recovering: heartbeat_retry()
+```
+
+### Recovery result types
+
+| Result      | Description                                 | Central State Transition |
+| ----------- | ------------------------------------------- | ------------------------ |
+| SUCCESS     | All clients recovered successfully          | → RUNNING                |
+| PARTIAL     | Some clients recovered, others still failed | → DEGRADED               |
+| FAILED      | Recovery failed but retries remain          | → DEGRADED               |
+| MAX_RETRIES | Maximum retry attempts (8) reached          | → FAILED                 |
+| CANCELLED   | Recovery cancelled (shutdown)               | (no change)              |
+
+### Data load verification stages
+
+```mermaid
+flowchart LR
+    BASIC --> DEVICES --> PARAMSETS --> VALUES --> FULL
+
+    BASIC[BASIC<br/>ping/pong]
+    DEVICES[DEVICES<br/>list_devices]
+    PARAMSETS[PARAMSETS<br/>paramset descriptions]
+    VALUES[VALUES<br/>current values]
+    FULL[FULL<br/>all OK]
+```
+
+### Recovery timing
+
+| Parameter                | Value | Description                             |
+| ------------------------ | ----- | --------------------------------------- |
+| MAX_RECOVERY_ATTEMPTS    | 8     | Max retries before FAILED state         |
+| HEARTBEAT_RETRY_INTERVAL | 60s   | Interval between heartbeat retries      |
+| BASE_RETRY_DELAY         | 5s    | Initial delay between retries           |
+| MAX_RETRY_DELAY          | 60s   | Maximum delay (exponential backoff cap) |
+
+### Exponential backoff formula
+
+```python
+delay = min(BASE_RETRY_DELAY * (2 ** (consecutive_failures - 1)), MAX_RETRY_DELAY)
+# failures=1: 5s, failures=2: 10s, failures=3: 20s, failures=4: 40s, failures=5+: 60s
+```
+
+### Recovery sequence
+
+```mermaid
+sequenceDiagram
+    participant Sched as Scheduler
+    participant RC as RecoveryCoordinator
+    participant RS as RecoveryState
+    participant HT as HealthTracker
+    participant CSM as CentralStateMachine
+    participant Client as ClientCCU
+
+    Note over Sched: Periodic health check
+    Sched->>HT: health.failed_clients
+    HT-->>Sched: ["ccu-main-HmIP-RF"]
+
+    alt Failed clients exist
+        Sched->>RC: recover_all_failed()
+        RC->>CSM: transition_to(RECOVERING)
+
+        loop For each failed client
+            RC->>RS: get_recovery_state(interface_id)
+
+            alt can_retry (attempts < 8)
+                RC->>Client: reconnect_func()
+                Client-->>RC: success/failure
+
+                alt reconnect OK
+                    RC->>Client: verify_func()
+                    Client-->>RC: DataLoadStage
+
+                    alt stage == FULL
+                        RC->>RS: record_attempt(SUCCESS, FULL)
+                        RC->>RS: reset()
+                    else partial
+                        RC->>RS: record_attempt(PARTIAL, stage)
+                    end
+                else reconnect failed
+                    RC->>RS: record_attempt(FAILED, BASIC)
+                end
+            else max_retries
+                Note over RC: Skip, already at max
+            end
+
+            RC->>RC: sleep(next_retry_delay)
+        end
+
+        RC->>RC: _determine_and_set_final_state()
+
+        alt all_success
+            RC->>CSM: transition_to(RUNNING)
+        else partial
+            RC->>CSM: transition_to(DEGRADED)
+        else all_max_retries
+            RC->>CSM: transition_to(FAILED)
+            Note over RC: Heartbeat retry every 60s
+        end
+    end
+```
+
+### Notes
+
+- RecoveryCoordinator tracks per-interface recovery state (attempt count, history).
+- History is limited to last 20 attempts per interface for memory management.
+- In FAILED state, heartbeat retry resets attempt counter to allow one more try.
+- Shutdown signal cancels any in-progress recovery.
+- Thread Safety: NOT thread-safe, all calls should happen from the same event loop.
+
+---
+
+## 12. State machine integration overview
+
+This diagram shows how the state machines, health tracking, and recovery coordinator work together.
+
+```mermaid
+flowchart TB
+    subgraph Central["CentralUnit"]
+        CSM[CentralStateMachine]
+        HT[HealthTracker]
+        RC[RecoveryCoordinator]
+        EB[EventBus]
+    end
+
+    subgraph Client1["ClientCCU (HmIP-RF)"]
+        SM1[ClientStateMachine]
+        CB1[CircuitBreaker]
+    end
+
+    subgraph Client2["ClientCCU (BidCos-RF)"]
+        SM2[ClientStateMachine]
+        CB2[CircuitBreaker]
+    end
+
+    SM1 -->|state change| EB
+    SM2 -->|state change| EB
+    CB1 -->|state| HT
+    CB2 -->|state| HT
+
+    HT -->|health status| CSM
+    HT -->|failed_clients| RC
+    RC -->|transition_to| CSM
+    CSM -->|CentralStateChangedEvent| EB
+
+    EB -->|ClientStateChangedEvent| HT
+    HT -->|update health| HT
+
+    RC -->|reconnect| SM1
+    RC -->|reconnect| SM2
+```
+
+### State propagation flow
+
+1. **Client state change**: ClientStateMachine transitions (e.g., CONNECTED → DISCONNECTED)
+2. **Event emission**: Client emits ClientStateChangedEvent to EventBus
+3. **Health update**: HealthTracker updates ConnectionHealth for the interface
+4. **Central state evaluation**: CentralHealth determines if state change is needed
+5. **Central transition**: CentralStateMachine transitions (e.g., RUNNING → DEGRADED)
+6. **Central event**: CentralStateChangedEvent emitted for external consumers
+
+### Key decision points
+
+```python
+# When to transition Central to DEGRADED
+if central.is_running and not health.all_clients_healthy:
+    central_sm.transition_to(CentralState.DEGRADED)
+
+# When to start recovery
+if central.is_degraded and health.failed_clients:
+    recovery_coordinator.recover_all_failed()
+
+# When to transition back to RUNNING
+if central.is_degraded and health.all_clients_healthy:
+    central_sm.transition_to(CentralState.RUNNING)
+
+# When to enter FAILED state
+if recovery_result == RecoveryResult.MAX_RETRIES:
+    central_sm.transition_to(CentralState.FAILED)
+```
+
+### Notes
+
+- All state machines follow the same pattern: validated transitions, event emission, callback support.
+- CircuitBreakers are independent from state machines but contribute to health scoring.
+- Recovery is automatic for failed clients, with exponential backoff.
+- FAILED state is recoverable via heartbeat retry mechanism.
 
 ---
 

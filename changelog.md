@@ -1,4 +1,34 @@
-# Version 2025.12.22 (2025-12-11)
+# Version 2025.12.23 (2025-12-12)
+
+## What's Changed
+
+### Breaking Changes
+
+- New Central State Machine architecture for improved reconnection reliability
+  - Introduces `CentralState` enum with states: STARTING, INITIALIZING, RUNNING, DEGRADED, RECOVERING, FAILED, STOPPED
+  - Central is RUNNING only when ALL clients are CONNECTED
+  - DEGRADED state when at least one client is not connected
+  - FAILED state after max retries (8 attempts) with heartbeat retry every 60 seconds
+  - New protocol interfaces: `CentralStateMachineProtocol`, `CentralHealthProtocol`, `HealthTrackerProtocol`
+
+### New Features
+
+- Add `CentralStateMachine` class for orchestrating overall system state (`central/state_machine.py`)
+- Add `ConnectionHealth` and `CentralHealth` classes for unified health tracking (`central/health.py`)
+- Add `RecoveryCoordinator` for coordinated client recovery with max retry tracking (`central/recovery.py`)
+- Add `CentralStateChangedEvent` to EventBus for monitoring state transitions
+- Add `ClientStateChangedEvent` to EventBus for monitoring client state changes
+- Add `state` property to `ClientConnection` protocol for accessing current client state
+- Add health score calculation (0.0-1.0) based on state machine, circuit breakers, and activity
+- Add exponential backoff for recovery retries (5s base, up to 60s max)
+- Add multi-stage data load verification in recovery process
+- New test suite for central state machine architecture (33 tests)
+
+### Bug Fixes
+
+- Fix entities not marked unavailable after failed proxy initialization - devices now correctly show unavailable during CCU restart/recovery
+
+# Version 2025.12.22 (2025-12-12)
 
 ## What's Changed
 

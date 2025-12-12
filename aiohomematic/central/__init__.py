@@ -81,10 +81,26 @@ from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
-from aiohomematic.central.event_bus import ConnectionStateChangedEvent, EventBatch, EventBus, EventPriority
+from aiohomematic.central.event_bus import (
+    ClientStateChangedEvent,
+    ConnectionStateChangedEvent,
+    EventBatch,
+    EventBus,
+    EventPriority,
+)
 from aiohomematic.central.event_coordinator import EventCoordinator
+from aiohomematic.central.health import (  # noqa: F401 - ConnectionHealth used for re-export
+    CentralHealth,
+    ConnectionHealth,
+    HealthTracker,
+)
 from aiohomematic.central.hub_coordinator import HubCoordinator
+from aiohomematic.central.recovery import (  # noqa: F401 - RecoveryResult used for re-export
+    RecoveryCoordinator,
+    RecoveryResult,
+)
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob as _SchedulerJob
+from aiohomematic.central.state_machine import CentralStateMachine
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import (
     CATEGORIES,
@@ -119,7 +135,9 @@ from aiohomematic.const import (
     UN_IGNORE_WILDCARD,
     BackendSystemEvent,
     BackupData,
+    CentralState,
     CentralUnitState,
+    ClientState,
     DataPointCategory,
     DescriptionMarker,
     DeviceDescription,
@@ -296,6 +314,29 @@ class CentralUnit(
             json_rpc_client_provider=self,
             state_provider=self,
         )
+
+        # Initialize central state machine and health tracking
+        self._central_state_machine: Final = CentralStateMachine(
+            central_name=self.name,
+            event_bus=self.event_bus,
+        )
+        self._health_tracker: Final = HealthTracker(
+            central_name=self.name,
+            state_machine=self._central_state_machine,
+        )
+        self._recovery_coordinator: Final = RecoveryCoordinator(
+            central_name=self.name,
+            state_machine=self._central_state_machine,
+            health_tracker=self._health_tracker,
+        )
+
+        # Subscribe to client state changes to update central state machine
+        self.event_bus.subscribe(
+            event_type=ClientStateChangedEvent,
+            event_key=None,  # Subscribe to all client state changes
+            handler=self._on_client_state_changed,
+        )
+
         self._version: str | None = None
         self._rpc_callback_ip: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
@@ -333,6 +374,16 @@ class CentralUnit(
     def callback_ip_addr(self) -> str:
         """Return the xml rpc server callback ip address."""
         return self._rpc_callback_ip
+
+    @property
+    def central_state(self) -> CentralState:
+        """Return the current central state from the state machine."""
+        return self._central_state_machine.state
+
+    @property
+    def central_state_machine(self) -> CentralStateMachine:
+        """Return the central state machine."""
+        return self._central_state_machine
 
     @property
     def client_coordinator(self) -> ClientCoordinator:
@@ -407,6 +458,16 @@ class CentralUnit(
     def has_clients(self) -> bool:
         """Check if clients exists in central."""
         return self._client_coordinator.has_clients
+
+    @property
+    def health(self) -> CentralHealth:
+        """Return the aggregated central health."""
+        return self._health_tracker.health
+
+    @property
+    def health_tracker(self) -> HealthTracker:
+        """Return the health tracker."""
+        return self._health_tracker
 
     @property
     def hub_coordinator(self) -> HubCoordinator:
@@ -484,6 +545,11 @@ class CentralUnit(
     def recorder(self) -> SessionRecorder:
         """Return the session recorder."""
         return self._cache_coordinator.recorder
+
+    @property
+    def recovery_coordinator(self) -> RecoveryCoordinator:
+        """Return the recovery coordinator."""
+        return self._recovery_coordinator
 
     @property
     def state(self) -> CentralUnitState:
@@ -1183,6 +1249,13 @@ class CentralUnit(
             _LOGGER.debug("START: Central %s already started", self.name)
             return
 
+        # Transition central state machine to INITIALIZING
+        if self._central_state_machine.can_transition_to(target=CentralState.INITIALIZING):
+            self._central_state_machine.transition_to(
+                target=CentralState.INITIALIZING,
+                reason="start() called",
+            )
+
         if self._config.session_recorder_start:
             await self.recorder.deactivate(
                 delay=self._config.session_recorder_start_for_seconds,
@@ -1216,6 +1289,11 @@ class CentralUnit(
                 self._xml_rpc_server.add_central(central=self, looper=self.looper)
         except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
             self._state = CentralUnitState.STOPPED_BY_ERROR
+            if self._central_state_machine.can_transition_to(target=CentralState.FAILED):
+                self._central_state_machine.transition_to(
+                    target=CentralState.FAILED,
+                    reason=f"XML-RPC server failed: {extract_exc_args(exc=oserr)}",
+                )
             raise AioHomematicException(
                 i18n.tr(
                     "exception.central.start.failed",
@@ -1244,6 +1322,25 @@ class CentralUnit(
 
         self._state = CentralUnitState.RUNNING
         _LOGGER.debug("START: Central %s is %s", self.name, self._state)
+
+        # Transition central state machine based on client status
+        all_connected = all(client.state == ClientState.CONNECTED for client in self.clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in self.clients)
+        if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
+            self._central_state_machine.transition_to(
+                target=CentralState.RUNNING,
+                reason="all clients connected",
+            )
+        elif any_connected and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
+            self._central_state_machine.transition_to(
+                target=CentralState.DEGRADED,
+                reason="some clients not connected",
+            )
+        elif not any_connected and self._central_state_machine.can_transition_to(target=CentralState.FAILED):
+            self._central_state_machine.transition_to(
+                target=CentralState.FAILED,
+                reason="no clients connected",
+            )
 
     async def stop(self) -> None:
         """Stop processing of the central unit."""
@@ -1314,6 +1411,13 @@ class CentralUnit(
         self._state = CentralUnitState.STOPPED
         _LOGGER.debug("STOP: Central %s is %s", self.name, self._state)
 
+        # Transition central state machine to STOPPED
+        if self._central_state_machine.can_transition_to(target=CentralState.STOPPED):
+            self._central_state_machine.transition_to(
+                target=CentralState.STOPPED,
+                reason="stop() completed",
+            )
+
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
         if len(self._config.enabled_interface_configs) == 0:
@@ -1352,6 +1456,44 @@ class CentralUnit(
                 )
                 await asyncio.sleep(timeout_cfg.rpc_timeout / 10)
         return ip_addr
+
+    def _on_client_state_changed(self, *, event: ClientStateChangedEvent) -> None:
+        """Handle client state changes and update central state machine accordingly."""
+        # Update health tracker with new client state
+        self._health_tracker.update_client_health(
+            interface_id=event.interface_id,
+            old_state=event.old_state,
+            new_state=event.new_state,
+        )
+
+        # Determine overall central state based on all client states
+        all_connected = all(client.state == ClientState.CONNECTED for client in self.clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in self.clients)
+
+        # Only transition if central is in a state that allows it
+        if (current_state := self._central_state_machine.state) not in (CentralState.STARTING, CentralState.STOPPED):
+            if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
+                self._central_state_machine.transition_to(
+                    target=CentralState.RUNNING,
+                    reason=f"all clients connected (triggered by {event.interface_id})",
+                )
+            elif any_connected and current_state == CentralState.RUNNING:
+                # Only transition to DEGRADED from RUNNING
+                if self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
+                    self._central_state_machine.transition_to(
+                        target=CentralState.DEGRADED,
+                        reason=f"client {event.interface_id} disconnected",
+                    )
+            elif (
+                not any_connected
+                and current_state in (CentralState.RUNNING, CentralState.DEGRADED)
+                and self._central_state_machine.can_transition_to(target=CentralState.FAILED)
+            ):
+                # All clients failed
+                self._central_state_machine.transition_to(
+                    target=CentralState.FAILED,
+                    reason="all clients disconnected",
+                )
 
     def _start_scheduler(self) -> None:
         """Start the background scheduler."""

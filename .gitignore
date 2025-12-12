@@ -13,6 +13,7 @@
 /.tox/
 /.pylint.d/
 /*_mj.py
+script/*_mj.sh
 /.idea/*
 build
 

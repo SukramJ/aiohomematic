@@ -52,7 +52,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
-from aiohomematic.central.event_bus import ConnectionStateChangedEvent
+from aiohomematic.central.event_bus import ClientStateChangedEvent, ConnectionStateChangedEvent
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
 from aiohomematic.client.handlers import (
     BackupHandler,
@@ -186,6 +186,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._json_rpc_client: Final = client_config.central.json_rpc_client
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
         self._state_machine: Final = ClientStateMachine(interface_id=client_config.interface_id)
+        # Wire up state machine callback to emit events
+        self._state_machine.on_state_change = self._on_client_state_change
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
         self._reconnect_attempts: int = 0
@@ -690,6 +692,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 self._state_machine.transition_to(target=ClientState.CONNECTED)
                 return ProxyInitState.INIT_SUCCESS
             self._state_machine.transition_to(target=ClientState.FAILED)
+            # Mark devices as unavailable when device listing fails
+            self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             return ProxyInitState.INIT_FAILED
         try:
             _LOGGER.debug("PROXY_INIT: init('%s', '%s')", self._config.init_url, self.interface_id)
@@ -710,6 +714,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             )
             self.modified_at = INIT_DATETIME
             self._state_machine.transition_to(target=ClientState.FAILED)
+            # Mark devices as unavailable when proxy init fails
+            # This ensures entities show unavailable during CCU restart/recovery
+            self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             return ProxyInitState.INIT_FAILED
         self.modified_at = datetime.now()
         return ProxyInitState.INIT_SUCCESS
@@ -1037,8 +1044,10 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def _mark_all_devices_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Mark device's availability state for this interface."""
         available = forced_availability != ForcedDeviceAvailability.FORCE_FALSE
-        # Only update devices if state actually changed
-        if self._state_machine.is_available != available:
+        # Always update devices when marking unavailable (FORCE_FALSE) to ensure
+        # entities show unavailable during connection failures.
+        # Only skip updates when already in matching available state.
+        if not available or self._state_machine.is_available != available:
             for device in self.central.devices:
                 if device.interface_id == self.interface_id:
                     device.set_forced_availability(forced_availability=forced_availability)
@@ -1051,6 +1060,17 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             interface_id=self.interface_id,
             interface_event_type=InterfaceEventType.PROXY,
             data={EventKey.AVAILABLE: available},
+        )
+
+    def _on_client_state_change(self, *, old_state: ClientState, new_state: ClientState) -> None:
+        """Handle client state machine transitions by emitting events."""
+        self._config.central.event_bus.publish_sync(
+            event=ClientStateChangedEvent(
+                timestamp=datetime.now(),
+                interface_id=self.interface_id,
+                old_state=old_state,
+                new_state=new_state,
+            )
         )
 
     def _on_connection_state_changed(self, *, event: ConnectionStateChangedEvent) -> None:

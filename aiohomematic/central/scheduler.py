@@ -180,6 +180,8 @@ class BackgroundScheduler:
         self._connection_lost_at: datetime | None = None
         # Track if TCP port became available (stage 1 passed)
         self._tcp_port_available: bool = False
+        # Track when first RPC check (listMethods) passed - start of warmup phase
+        self._rpc_check_passed_at: datetime | None = None
 
         # Subscribe to DEVICES_CREATED event
         def _event_handler(*, event: BackendSystemEventData) -> None:
@@ -312,6 +314,7 @@ class BackgroundScheduler:
                     # Connection loss detected - start staged reconnection
                     self._connection_lost_at = datetime.now()
                     self._tcp_port_available = False
+                    self._rpc_check_passed_at = None
                     _LOGGER.info(
                         i18n.tr(
                             "log.central.scheduler.check_connection.connection_loss_detected",
@@ -334,6 +337,25 @@ class BackgroundScheduler:
                     reason=extract_exc_args(exc=exc),
                 )
             )
+
+    async def _check_rpc_available(self) -> bool:
+        """
+        Check if RPC interface is available via system.listMethods.
+
+        This is a read-only RPC call that verifies the CCU XML-RPC service
+        is responding. Used during staged reconnection to verify service
+        availability before attempting full init.
+        """
+        for client in self._client_coordination.clients:
+            # Access proxy's system.listMethods via XML-RPC magic method
+            # pylint: disable=protected-access
+            if hasattr(client, "_proxy") and hasattr(client._proxy, "system"):
+                try:
+                    result = await client._proxy.system.listMethods()
+                    return bool(result)  # Return True if we got a valid response
+                except Exception:  # noqa: BLE001
+                    return False
+        return False
 
     async def _check_tcp_port_available(self, *, host: str, port: int) -> bool:
         """
@@ -426,8 +448,10 @@ class BackgroundScheduler:
 
         Stage 0: Initial cool-down (give CCU time to start shutting down gracefully)
         Stage 1: Check TCP port availability (non-invasive)
-        Stage 2: Check RPC availability via system.listMethods (read-only)
-        Stage 3: Perform full reconnection
+        Stage 2: First listMethods check (verify RPC is responding)
+        Stage 3: Warmup delay (allow CCU services to stabilize)
+        Stage 4: Second listMethods check (confirm stability)
+        Stage 5: Perform full reconnection (init + proxy recreate)
         """
         timeout_config = self._config_provider.config.timeout_config
         # _connection_lost_at is guaranteed non-None when this method is called
@@ -485,8 +509,54 @@ class BackgroundScheduler:
                 )
                 return  # Wait for next check interval
 
-        # Stage 2 & 3: RPC check and full reconnection
-        # Attempt reconnection for all clients (includes system.listMethods via proxy.do_init)
+        # Stage 2: First listMethods check (verify RPC is responding)
+        if self._rpc_check_passed_at is None:
+            if await self._check_rpc_available():
+                self._rpc_check_passed_at = datetime.now()
+                _LOGGER.info(
+                    i18n.tr(
+                        "log.central.scheduler.check_connection.rpc_check_passed",
+                        name=self._central_info.name,
+                    )
+                )
+            else:
+                _LOGGER.debug(
+                    "CHECK_CONNECTION: RPC check for %s - listMethods not yet responding",
+                    self._central_info.name,
+                )
+                return  # Wait for next check interval
+
+        # Stage 3: Warmup delay (allow CCU services to stabilize)
+        warmup_elapsed = (datetime.now() - self._rpc_check_passed_at).total_seconds()
+        if warmup_elapsed < timeout_config.reconnect_warmup_delay:
+            remaining = timeout_config.reconnect_warmup_delay - warmup_elapsed
+            _LOGGER.debug(
+                "CHECK_CONNECTION: Warmup for %s - %.1fs remaining",
+                self._central_info.name,
+                remaining,
+            )
+            return  # Wait for warmup to complete
+
+        # Stage 4: Second listMethods check (confirm stability)
+        if not await self._check_rpc_available():
+            # RPC became unavailable during warmup - reset to stage 2
+            _LOGGER.warning(
+                i18n.tr(
+                    "log.central.scheduler.check_connection.rpc_unstable",
+                    name=self._central_info.name,
+                )
+            )
+            self._rpc_check_passed_at = None
+            return  # Retry RPC check
+
+        _LOGGER.info(
+            i18n.tr(
+                "log.central.scheduler.check_connection.rpc_stable",
+                name=self._central_info.name,
+            )
+        )
+
+        # Stage 5: Full reconnection (init + proxy recreate)
         _LOGGER.info(
             i18n.tr(
                 "log.central.scheduler.check_connection.attempting_reconnect",
@@ -504,6 +574,7 @@ class BackgroundScheduler:
             # Reconnection successful - reset state
             self._connection_lost_at = None
             self._tcp_port_available = False
+            self._rpc_check_passed_at = None
             _LOGGER.info(
                 i18n.tr(
                     "log.central.scheduler.check_connection.reconnect_success",
@@ -515,8 +586,9 @@ class BackgroundScheduler:
             # fully available immediately after CCU restart
             await self._load_data_with_retry(interfaces=available_interfaces)
         else:
-            # Reconnection failed - reset TCP check to retry from stage 1
+            # Reconnection failed - reset to retry from stage 1
             self._tcp_port_available = False
+            self._rpc_check_passed_at = None
             _LOGGER.warning(
                 i18n.tr(
                     "log.central.scheduler.check_connection.reconnect_failed",

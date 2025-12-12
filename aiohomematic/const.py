@@ -72,14 +72,23 @@ class TimeoutConfig(NamedTuple):
     reconnect_backoff_factor: float = 2
     """Multiplier for exponential backoff on reconnect attempts (default: 2)."""
 
-    reconnect_initial_cooldown: float = 0.5 if _TEST_SPEEDUP else 10
-    """Initial cool-down period after connection loss before starting TCP checks (default: 10s)."""
+    reconnect_initial_cooldown: float = 0.5 if _TEST_SPEEDUP else 30
+    """Initial cool-down period after connection loss before starting TCP checks (default: 30s)."""
 
     reconnect_tcp_check_timeout: float = 1 if _TEST_SPEEDUP else 60
     """Maximum time to wait for TCP port to become available before giving up (default: 60s)."""
 
     reconnect_tcp_check_interval: float = 0.5 if _TEST_SPEEDUP else 5
     """Interval between TCP port checks during reconnection (default: 5s)."""
+
+    reconnect_warmup_delay: float = 0.5 if _TEST_SPEEDUP else 15
+    """
+    Warmup delay after first successful RPC check before attempting init (default: 15s).
+
+    After TCP port becomes available and first listMethods succeeds, this delay allows
+    CCU services to fully stabilize. A second listMethods call verifies stability before
+    init() is attempted.
+    """
 
     callback_warn_interval: float = (1 if _TEST_SPEEDUP else 15) * 40
     """Interval before warning about missing callback events (default: 600s = 10min)."""

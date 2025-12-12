@@ -50,25 +50,57 @@ if api.is_connected:
 
 # Using CentralUnit for detailed state
 from aiohomematic.central import CentralUnit
+from aiohomematic.const import CentralState
 
 central: CentralUnit = api.central
 
-# Check overall connection health
+# Check overall system state
+print(f"Central state: {central.central_state}")
+
+# Different states indicate different system health:
+if central.central_state == CentralState.RUNNING:
+    print("✅ All interfaces connected")
+elif central.central_state == CentralState.DEGRADED:
+    print("⚠️ Some interfaces disconnected")
+elif central.central_state == CentralState.FAILED:
+    print("❌ System failed - max retries reached")
+
+# Check connection health per interface
 if central.connection_state.has_any_issue:
     print(f"Connection issues: {central.connection_state.issue_count}")
 
-# Register for state change notifications
-def on_state_change(interface_id: str, connected: bool) -> None:
-    status = "connected" if connected else "disconnected"
-    print(f"{interface_id}: {status}")
+# Subscribe to connection state changes (per interface)
+from aiohomematic.central.event_bus import ConnectionStateChangedEvent
 
-unsubscribe = central.connection_state.register_state_change_callback(
-    callback=on_state_change
+async def on_connection_state_changed(event: ConnectionStateChangedEvent) -> None:
+    """Handle interface connection state changes."""
+    status = "connected" if event.connected else "disconnected"
+    print(f"{event.interface_id}: {status}")
+
+unsubscribe_connection = central.event_bus.subscribe(
+    event_type=ConnectionStateChangedEvent,
+    handler=on_connection_state_changed
+)
+
+# Subscribe to central state changes (overall system)
+from aiohomematic.central.event_bus import CentralStateChangedEvent
+
+async def on_central_state_changed(event: CentralStateChangedEvent) -> None:
+    """Handle overall system state changes."""
+    print(f"Central: {event.old_state} → {event.new_state}")
+    print(f"Reason: {event.reason}")
+
+unsubscribe_central = central.event_bus.subscribe(
+    event_type=CentralStateChangedEvent,
+    handler=on_central_state_changed
 )
 
 # Later: stop receiving notifications
-unsubscribe()
+unsubscribe_connection()
+unsubscribe_central()
 ```
+
+> **Migration Note:** The old `register_state_change_callback()` API has been removed in version 2025.12.23. Use the EventBus-based API shown above. See [Migration Guide](migrations/central_state_machine_2025_12.md) for details.
 
 ### Reconnection Handling
 

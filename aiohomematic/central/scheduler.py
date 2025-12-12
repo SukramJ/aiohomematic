@@ -176,6 +176,9 @@ class BackgroundScheduler:
         self._scheduler_task: asyncio.Task[None] | None = None
         self._unsubscribe_callback: UnsubscribeCallback | None = None
 
+        # Track when connection was lost for cool-down period
+        self._connection_lost_at: datetime | None = None
+
         # Subscribe to DEVICES_CREATED event
         def _event_handler(*, event: BackendSystemEventData) -> None:
             self._on_backend_system_event(event=event)
@@ -282,27 +285,70 @@ class BackgroundScheduler:
                     )
                 )
                 await self._client_coordination.restart_clients()
-            else:
+            # IMPORTANT: If we're in cool-down phase, skip ALL communication (including pings)
+            # to give CCU time to fully restart without being hammered with requests
+            elif self._connection_lost_at is not None:
+                # Check if cool-down period has elapsed
+                cooldown_elapsed = (datetime.now() - self._connection_lost_at).total_seconds()
+                cooldown_delay = self._config_provider.config.timeout_config.reconnect_cooldown_delay
+
+                if cooldown_elapsed < cooldown_delay:
+                    remaining = cooldown_delay - cooldown_elapsed
+                    _LOGGER.debug(
+                        "CHECK_CONNECTION: Cool-down period active for %s - %.1fs remaining (no communication)",
+                        self._central_info.name,
+                        remaining,
+                    )
+                    return  # Skip ALL communication during cool-down
+
+                # Cool-down elapsed - proceed with reconnection
+                _LOGGER.info(
+                    i18n.tr(
+                        "log.central.scheduler.check_connection.cooldown_elapsed",
+                        name=self._central_info.name,
+                    )
+                )
+
+                # Attempt reconnection for all clients
                 reconnects: list[Any] = []
                 interfaces_to_reload: list[Interface] = []
-                # Use clients tuple (snapshot) to prevent race condition if clients
-                # are modified during iteration
-                clients_to_reconnect = []
                 for client in self._client_coordination.clients:
-                    # Check: client available, connected, callback alive
-                    if client.available is False or not await client.is_connected() or not client.is_callback_alive():
-                        reconnects.append(client.reconnect())
-                        interfaces_to_reload.append(client.interface)
-                        clients_to_reconnect.append(client)
-                if reconnects:
-                    await asyncio.gather(*reconnects)
-                    # After reconnect, filter to only interfaces that are now available
-                    # This handles the case where some interfaces reconnect before others
-                    available_interfaces = [client.interface for client in clients_to_reconnect if client.available]
-                    if available_interfaces:
-                        # Load data with retry logic - JSON-RPC service may not be
-                        # fully available immediately after CCU restart
-                        await self._load_data_with_retry(interfaces=available_interfaces)
+                    reconnects.append(client.reconnect())
+                    interfaces_to_reload.append(client.interface)
+
+                await asyncio.gather(*reconnects)
+
+                # After reconnect, check which interfaces are now available
+                available_interfaces = [
+                    client.interface for client in self._client_coordination.clients if client.available
+                ]
+                if available_interfaces:
+                    # Reconnection successful - reset cool-down timestamp
+                    self._connection_lost_at = None
+                    # Load data with retry logic - JSON-RPC service may not be
+                    # fully available immediately after CCU restart
+                    await self._load_data_with_retry(interfaces=available_interfaces)
+
+            else:
+                # Not in cool-down - perform normal client health checks
+                # These checks may involve pings to the CCU
+                clients_to_reconnect = [
+                    client
+                    for client in self._client_coordination.clients
+                    if client.available is False or not await client.is_connected() or not client.is_callback_alive()
+                ]
+
+                if clients_to_reconnect:
+                    # Connection loss detected - start cool-down period
+                    self._connection_lost_at = datetime.now()
+                    _LOGGER.info(
+                        i18n.tr(
+                            "log.central.scheduler.check_connection.connection_loss_cooldown_start",
+                            name=self._central_info.name,
+                            cooldown=self._config_provider.config.timeout_config.reconnect_cooldown_delay,
+                        )
+                    )
+                    # Don't attempt reconnect yet - wait for cool-down period
         except NoConnectionException as nex:
             _LOGGER.error(
                 i18n.tr(

@@ -137,6 +137,8 @@
   "log.central.rename_device.not_found": "RENAME_DEVICE fehlgeschlagen: Gerät {device_address} nicht gefunden auf {name}",
   "log.central.restart_clients.restarted": "RESTART_CLIENTS: Zentrale {name} hat Clients neu gestartet",
   "log.central.rpc_server.error": "ERROR fehlgeschlagen: interface_id = {interface_id}, error_code = {error_code}, message = {msg}",
+  "log.central.scheduler.check_connection.connection_loss_cooldown_start": "CHECK_CONNECTION: Verbindungsverlust für {name} erkannt - starte Abkühlphase von {cooldown}s",
+  "log.central.scheduler.check_connection.cooldown_elapsed": "CHECK_CONNECTION: Abkühlphase für {name} abgelaufen - versuche Wiederverbindung",
   "log.central.scheduler.check_connection.failed": "CHECK_CONNECTION fehlgeschlagen: {exc_type} [{reason}]",
   "log.central.scheduler.check_connection.no_clients": "CHECK_CONNECTION fehlgeschlagen: Es existieren keine Clients. Versuche, Clients für Server {name} zu erstellen",
   "log.central.scheduler.check_connection.no_connection": "CHECK_CONNECTION fehlgeschlagen: keine Verbindung: {reason}",

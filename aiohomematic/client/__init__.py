@@ -705,6 +705,33 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             # This ensures subsequent RPC calls are not blocked
             self._proxy.clear_connection_issue()
             _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
+
+            # Recreate proxies AFTER successful init to get fresh HTTP transport
+            # This prevents "ResponseNotReady" errors on subsequent requests that occur
+            # when the HTTP connection is in an inconsistent state after reconnection.
+            # The callback URL remains unchanged (XML-RPC server port stays the same).
+            try:
+                _LOGGER.debug(
+                    "PROXY_INIT: Recreating proxy objects for %s to get fresh HTTP transport",
+                    self.interface_id,
+                )
+                self._proxy = await self._config.create_rpc_proxy(
+                    interface=self.interface,
+                    auth_enabled=self.system_information.auth_enabled,
+                )
+                self._proxy_read = await self._config.create_rpc_proxy(
+                    interface=self.interface,
+                    auth_enabled=self.system_information.auth_enabled,
+                    max_workers=self._config.max_read_workers,
+                )
+                self._init_handlers()
+                _LOGGER.debug("PROXY_INIT: Proxies recreated with fresh transport for %s", self.interface_id)
+            except Exception as exc:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "PROXY_INIT: Failed to recreate proxies for %s: %s - continuing with existing proxies",
+                    self.interface_id,
+                    exc,
+                )
         except BaseHomematicException as bhexc:
             _LOGGER.error(  # i18n-log: ignore
                 "PROXY_INIT failed: %s [%s] Unable to initialize proxy for %s",
@@ -726,6 +753,12 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         if not self.supports_ping_pong:
             return True
 
+        # If client is in RECONNECTING or FAILED state, callback is definitely not alive
+        # This ensures reconnection continues after CCU restart until init() succeeds
+        if self._state_machine.is_failed or self._state_machine.state == ClientState.RECONNECTING:
+            return False
+
+        # Check event timestamp for all other states (including startup states)
         if (
             last_events_dt := self.central.get_last_event_seen_for_interface(interface_id=self.interface_id)
         ) is not None:
@@ -847,9 +880,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     async def reinitialize_proxy(self) -> ProxyInitState:
         """Reinit Proxy."""
-        if await self.deinitialize_proxy() != ProxyInitState.DE_INIT_FAILED:
-            return await self.initialize_proxy()
-        return ProxyInitState.DE_INIT_FAILED
+        await self.deinitialize_proxy()
+        return await self.initialize_proxy()
 
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Remove a link between two devices."""

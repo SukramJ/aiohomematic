@@ -25,6 +25,7 @@ from abc import ABC, abstractmethod
 import asyncio
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from enum import Enum, IntEnum, StrEnum
 import errno
 import http.client
@@ -345,8 +346,11 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 level=logging.DEBUG,
                 log_context=self.log_context,
             )
-            # Reset transport to force new connection on next request
-            self._reset_transport()
+            # Note: We do NOT reset the transport here because:
+            # 1. transport.close() alone doesn't fix the issue (transport reuses closed connection)
+            # 2. setting transport=None causes AttributeError on retry
+            # The retry mechanism with backoff should handle transient connection issues.
+            # If the issue persists, circuit breaker will open and client will reconnect.
             self._circuit_breaker.record_failure()
             raise NoConnectionException(
                 i18n.tr(
@@ -365,16 +369,17 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         This is necessary when the underlying HTTP connection gets into an
         inconsistent state (e.g., after ResponseNotReady errors).
         """
-        # Access the private transport attribute and close it
-        if transport := self._ServerProxy__transport:  # pylint: disable=protected-access
-            try:
+        # Close the transport connection, which will force a new connection
+        # on the next request. We DO NOT set transport to None because that
+        # causes AttributeError - ServerProxy expects the transport to exist.
+        # pylint: disable=protected-access
+        if transport := self._ServerProxy__transport:
+            with suppress(Exception):  # Best effort cleanup
                 transport.close()
                 _LOGGER.debug(
-                    "XmlRPC._RESET_TRANSPORT: Transport reset for %s",
+                    "XmlRPC._RESET_TRANSPORT: Transport closed for %s",
                     self._interface_id,
                 )
-            except Exception:  # noqa: BLE001 - Best effort cleanup
-                pass
 
 
 def _cleanup_args(*args: Any) -> Any:

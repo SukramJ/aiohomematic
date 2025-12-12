@@ -90,7 +90,7 @@ from aiohomematic.const import (
     get_link_target_categories,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ClientException
 from aiohomematic.interfaces.central import (
     CentralInfo,
     ChannelLookup,
@@ -1479,7 +1479,12 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     async def init_link_peer(self) -> None:
         """Initialize the link partners."""
         if self._link_source_categories and self._device.model not in VIRTUAL_REMOTE_MODELS:
-            link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
+            try:
+                link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
+            except ClientException:
+                # Device may have been deleted or is temporarily unavailable
+                _LOGGER.debug("INIT_LINK_PEER: Failed to get link peers for %s", self._address)
+                return
             if self._link_peer_addresses != link_peer_addresses:
                 self._link_peer_addresses = link_peer_addresses
                 self.publish_link_peer_changed_event()

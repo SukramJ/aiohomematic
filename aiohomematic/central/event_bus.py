@@ -785,8 +785,10 @@ class EventBus:
         """
         if self._task_scheduler is not None:
             # Use TaskScheduler for proper lifecycle management
+            # Pass a factory (lambda) instead of a coroutine to defer creation
+            # until inside the event loop - avoids "was never awaited" warnings
             self._task_scheduler.create_task(
-                target=self.publish(event=event),
+                target=lambda: self.publish(event=event),
                 name=f"event_bus_publish_{type(event).__name__}",
             )
             return

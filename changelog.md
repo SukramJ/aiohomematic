@@ -1,11 +1,25 @@
-# Version 2025.12.24 (2025-12-12)
+# Version 2025.12.25 (2025-12-12)
 
 ## What's Changed
+
+### Enhancements
+
+- Replace fixed cool-down with staged reconnection for faster recovery after CCU restart:
+  - Stage 0: Initial cool-down (`reconnect_initial_cooldown`, default 10s)
+  - Stage 1: Non-invasive TCP port check (no CCU load, bypasses firewall ICMP blocks)
+  - Stage 2: First `system.listMethods` check (verify RPC is responding)
+  - Stage 3: Warmup delay (`reconnect_warmup_delay`, default 10s)
+  - Stage 4: Second `system.listMethods` check (confirm services stable)
+  - Stage 5: Full reconnection with proxy recreation
+- New `TimeoutConfig` options:
+  - `reconnect_initial_cooldown`: Initial wait before checks (default 10s)
+  - `reconnect_tcp_check_timeout`: Max time for TCP checks (default 60s)
+  - `reconnect_tcp_check_interval`: TCP check interval (default 5s)
+  - `reconnect_warmup_delay`: Warmup delay after first RPC check (default 10s)
 
 ### Bug Fixes
 
 - Fix "ResponseNotReady" errors after CCU reconnection by recreating proxy objects with fresh HTTP transport after successful PROXY_INIT
-- Add configurable cool-down period (`reconnect_cooldown_delay`, default 60s) after connection loss - all communication including pings is suspended during cool-down to allow CCU time to fully restart
 
 # Version 2025.12.23 (2025-12-12)
 

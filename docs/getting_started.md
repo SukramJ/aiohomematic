@@ -346,13 +346,16 @@ if api.is_connected:
 else:
     print("Not connected")
 
-# Register for connection state changes (using CentralUnit directly)
-def on_state_change(interface_id: str, connected: bool) -> None:
-    status = "connected" if connected else "disconnected"
-    print(f"Interface {interface_id} is now {status}")
+# Subscribe to connection state changes (using EventBus)
+from aiohomematic.central.event_bus import ConnectionStateChangedEvent
 
-unsubscribe = central.connection_state.register_state_change_callback(
-    callback=on_state_change
+async def on_connection_state_changed(event: ConnectionStateChangedEvent) -> None:
+    status = "connected" if event.connected else "disconnected"
+    print(f"Interface {event.interface_id} is now {status}")
+
+unsubscribe = central.event_bus.subscribe(
+    event_type=ConnectionStateChangedEvent,
+    handler=on_connection_state_changed
 )
 ```
 

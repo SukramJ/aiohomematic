@@ -1477,8 +1477,8 @@ class CentralUnit(
                     target=CentralState.RUNNING,
                     reason=f"all clients connected (triggered by {event.interface_id})",
                 )
-            elif any_connected and current_state == CentralState.RUNNING:
-                # Only transition to DEGRADED from RUNNING
+            elif any_connected and not all_connected and current_state == CentralState.RUNNING:
+                # Only transition to DEGRADED from RUNNING when some (but not all) clients connected
                 if self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
                     self._central_state_machine.transition_to(
                         target=CentralState.DEGRADED,

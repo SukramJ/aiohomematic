@@ -72,6 +72,9 @@ class TimeoutConfig(NamedTuple):
     reconnect_backoff_factor: float = 2
     """Multiplier for exponential backoff on reconnect attempts (default: 2)."""
 
+    reconnect_cooldown_delay: float = 1 if _TEST_SPEEDUP else 60
+    """Cool-down period after connection loss before starting reconnect attempts (default: 60s)."""
+
     callback_warn_interval: float = (1 if _TEST_SPEEDUP else 15) * 40
     """Interval before warning about missing callback events (default: 600s = 10min)."""
 

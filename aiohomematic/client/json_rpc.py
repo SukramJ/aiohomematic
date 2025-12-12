@@ -217,14 +217,6 @@ class _JsonRpcMethod(StrEnum):
     SYSVAR_SET_FLOAT = "SysVar.setFloat"
 
 
-_PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS: Final = (
-    _JsonRpcMethod.INTERFACE_GET_DEVICE_DESCRIPTION,
-    _JsonRpcMethod.INTERFACE_GET_MASTER_VALUE,
-    _JsonRpcMethod.INTERFACE_GET_PARAMSET,
-    _JsonRpcMethod.INTERFACE_GET_PARAMSET_DESCRIPTION,
-    _JsonRpcMethod.INTERFACE_GET_VALUE,
-)
-
 # Methods allowed through even when circuit breaker is open (session management)
 _CIRCUIT_BREAKER_BYPASS_METHODS: Final = (
     _JsonRpcMethod.SESSION_LOGIN,
@@ -268,7 +260,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._session_id: str | None = None
         self._session_recorder: Final = session_recorder
         self._supported_methods: tuple[str, ...] | None = None
-        self._sema: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
+        self._http_session_semaphore: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
 
         # Login rate limiting state
         self._failed_login_attempts: int = 0
@@ -1524,12 +1516,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 timeout=ClientTimeout(total=TIMEOUT),
                 ssl=self._tls_context,
             )
-            if method in _PARALLEL_EXECUTION_LIMITED_JSONRPC_METHODS:
-                async with self._sema:
-                    if (response := await asyncio.shield(post_call())) is None:
-                        raise ClientException(i18n.tr("exception.client.json_post.no_response"))
-            elif (response := await asyncio.shield(post_call())) is None:
-                raise ClientException(i18n.tr("exception.client.json_post.no_response"))
+            # Limit all JSON-RPC requests to prevent CCU session overload
+            async with self._http_session_semaphore:
+                if (response := await asyncio.shield(post_call())) is None:
+                    raise ClientException(i18n.tr("exception.client.json_post.no_response"))
 
             if response.status == 200:
                 json_response = await asyncio.shield(self._get_json_reponse(response=response))
@@ -1661,8 +1651,15 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 _LOGGER.debug("DO_RENEW_LOGIN: method: %s [%s]", method, session_id)
                 return session_id
         except AuthFailure:
-            # Session is invalid (e.g., after CCU restart), perform fresh login
-            _LOGGER.debug("DO_RENEW_LOGIN: Session expired, performing fresh login")
+            # Session is invalid (e.g., after CCU restart)
+            # Try to logout old session before creating new one to prevent session leaks
+            _LOGGER.debug("DO_RENEW_LOGIN: Session expired, attempting logout before fresh login")
+            try:
+                await self._do_logout(session_id=session_id)
+            except BaseHomematicException:
+                # Logout may fail if CCU was restarted, but that's okay
+                # The CCU will eventually clean up expired sessions
+                _LOGGER.debug("DO_RENEW_LOGIN: Logout of expired session failed (expected after CCU restart)")
 
         return await self._do_login()
 

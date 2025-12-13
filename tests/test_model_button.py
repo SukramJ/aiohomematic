@@ -81,7 +81,9 @@ class TestProgramButton:
     ) -> None:
         """Test ProgramDpButton functionality and data updates."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        button: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point(pid="pid1").button)
+        button: ProgramDpButton = cast(
+            ProgramDpButton, central.hub_coordinator.get_program_data_point(pid="pid1").button
+        )
         assert button.usage == DataPointUsage.DATA_POINT
         assert button.available is True
         assert button.is_active is True
@@ -101,7 +103,9 @@ class TestProgramButton:
         assert button.is_active is False
         assert button.is_internal is True
 
-        button2: ProgramDpButton = cast(ProgramDpButton, central.get_program_data_point(pid="pid2").button)
+        button2: ProgramDpButton = cast(
+            ProgramDpButton, central.hub_coordinator.get_program_data_point(pid="pid2").button
+        )
         assert button2.usage == DataPointUsage.DATA_POINT
         assert button2.is_active is False
         assert button2.is_internal is False

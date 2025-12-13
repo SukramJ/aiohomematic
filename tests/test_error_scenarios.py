@@ -63,7 +63,7 @@ class TestCentralErrorScenarios:
         central, _, _ = central_client_factory_with_ccu_client
 
         # Try to remove non-existent program
-        central.remove_program_button(pid="nonexistent_program_id")
+        central.hub_coordinator.remove_program_button(pid="nonexistent_program_id")
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -111,7 +111,7 @@ class TestCentralErrorScenarios:
         central, _, _ = central_client_factory_with_homegear_client
 
         # Try to remove non-existent sysvar
-        central.remove_sysvar_data_point(vid="nonexistent_sysvar_id")
+        central.hub_coordinator.remove_sysvar_data_point(vid="nonexistent_sysvar_id")
 
         # Should not raise an error
 

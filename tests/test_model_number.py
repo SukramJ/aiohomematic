@@ -198,7 +198,7 @@ class TestSysvarNumber:
         central, mock_client, _ = central_client_factory_with_ccu_client
         enumber: SysvarDpNumber = cast(
             SysvarDpNumber,
-            central.get_sysvar_data_point(legacy_name="float_ext"),
+            central.hub_coordinator.get_sysvar_data_point(legacy_name="float_ext"),
         )
         assert enumber.usage == DataPointUsage.DATA_POINT
         assert enumber.unit == "°C"
@@ -235,7 +235,7 @@ class TestSysvarNumber:
         central, mock_client, _ = central_client_factory_with_homegear_client
         enumber: SysvarDpNumber = cast(
             SysvarDpNumber,
-            central.get_sysvar_data_point(legacy_name="integer_ext"),
+            central.hub_coordinator.get_sysvar_data_point(legacy_name="integer_ext"),
         )
         assert enumber.usage == DataPointUsage.DATA_POINT
 

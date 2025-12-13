@@ -724,8 +724,6 @@ class CentralProtocol(
     DeviceProvider,
     EventBusProvider,
     FileOperations,
-    HubDataFetcher,
-    HubDataPointManager,
     SystemInfoProvider,
     # From interfaces/client.py
     CallbackAddressProvider,

@@ -87,7 +87,7 @@ class TestSysvarBinarySensor:
         central, _, _ = central_client_factory_with_ccu_client
         binary_sensor: SysvarDpBinarySensor = cast(
             SysvarDpBinarySensor,
-            central.get_sysvar_data_point(legacy_name="logic"),
+            central.hub_coordinator.get_sysvar_data_point(legacy_name="logic"),
         )
         assert binary_sensor.name == "logic"
         assert binary_sensor.full_name == "CentralTest logic"

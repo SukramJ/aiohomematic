@@ -167,11 +167,8 @@ from aiohomematic.interfaces.model import (
     DeviceProtocol,
     GenericDataPointProtocol,
     GenericEventProtocol,
-    GenericHubDataPointProtocol,
-    GenericProgramDataPointProtocol,
-    GenericSysvarDataPointProtocol,
 )
-from aiohomematic.model.hub import InstallModeDpType, ProgramDpType
+from aiohomematic.model.hub import InstallModeDpType
 from aiohomematic.property_decorators import info_property
 from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import (
@@ -296,7 +293,7 @@ class CentralUnit(
             connection_state_provider=self,
             device_data_refresher=self,
             event_coordinator=self._event_coordinator,
-            hub_data_fetcher=self,
+            hub_data_fetcher=self._hub_coordinator,
             event_bus_provider=self,
             json_rpc_client_provider=self,
             state_provider=self,
@@ -432,11 +429,6 @@ class CentralUnit(
         return self._hub_coordinator
 
     @property
-    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
-        """Return install mode data points (internal use - use hub_coordinator for external access)."""
-        return self._hub_coordinator.install_mode_dps
-
-    @property
     def interfaces(self) -> frozenset[Interface]:
         """Return all interfaces (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.interfaces
@@ -462,11 +454,6 @@ class CentralUnit(
     def looper(self) -> Looper:
         """Return the loop support."""
         return self._looper
-
-    @property
-    def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
-        """Return program data points (internal use - use hub_coordinator for external access)."""
-        return self._hub_coordinator.program_data_points
 
     @property
     def recorder(self) -> SessionRecorder:
@@ -496,11 +483,6 @@ class CentralUnit(
         if client := self._client_coordinator.primary_client:
             return client.system_information
         return SystemInformation()
-
-    @property
-    def sysvar_data_points(self) -> tuple[GenericSysvarDataPointProtocol, ...]:
-        """Return sysvar data points (internal use - use hub_coordinator for external access)."""
-        return self._hub_coordinator.sysvar_data_points
 
     @info_property(log_context=True)
     def model(self) -> str | None:
@@ -558,14 +540,6 @@ class CentralUnit(
         """
         await self._device_coordinator.add_new_devices_manually(interface_id=interface_id, address_names=address_names)
 
-    def add_program_data_point(self, *, program_dp: ProgramDpType) -> None:
-        """Add program button (internal use - use hub_coordinator for external access)."""
-        self._hub_coordinator.add_program_data_point(program_dp=program_dp)
-
-    def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPointProtocol) -> None:
-        """Add sysvar data point (internal use - use hub_coordinator for external access)."""
-        self._hub_coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_data_point)
-
     async def create_backup_and_download(self) -> BackupData | None:
         """
         Create a backup on the CCU and download it.
@@ -607,43 +581,6 @@ class CentralUnit(
             central=self,
             interface_config=interface_config,
         )
-
-    def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
-        """
-        Create install mode data points (internal use - use hub_coordinator for external access).
-
-        Returns a dict of InstallModeDpType by Interface.
-        """
-        return self._hub_coordinator.create_install_mode_dps()
-
-    async def execute_program(self, *, pid: str) -> bool:
-        """Execute program (internal use - use hub_coordinator for external access)."""
-        return await self._hub_coordinator.execute_program(pid=pid)
-
-    @inspector(re_raise=False)
-    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
-        """Fetch inbox data (internal use - use hub_coordinator for external access)."""
-        await self._hub_coordinator.fetch_inbox_data(scheduled=scheduled)
-
-    @inspector(re_raise=False)
-    async def fetch_install_mode_data(self, *, scheduled: bool = False) -> None:
-        """Fetch install mode data (internal use - use hub_coordinator for external access)."""
-        await self._hub_coordinator.fetch_install_mode_data(scheduled=scheduled)
-
-    @inspector(re_raise=False)
-    async def fetch_program_data(self, *, scheduled: bool) -> None:
-        """Fetch program data (internal use - use hub_coordinator for external access)."""
-        await self._hub_coordinator.fetch_program_data(scheduled=scheduled)
-
-    @inspector(re_raise=False)
-    async def fetch_system_update_data(self, *, scheduled: bool) -> None:
-        """Fetch system update data (internal use - use hub_coordinator for external access)."""
-        await self._hub_coordinator.fetch_system_update_data(scheduled=scheduled)
-
-    @inspector(re_raise=False)
-    async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
-        """Fetch sysvar data (internal use - use hub_coordinator for external access)."""
-        await self._hub_coordinator.fetch_sysvar_data(scheduled=scheduled)
 
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """Return channel (internal use - use device_coordinator for external access)."""
@@ -732,12 +669,6 @@ class CentralUnit(
                 channel_address=channel_address, parameter=parameter, paramset_key=paramset_key, state_path=state_path
             )
         return None
-
-    def get_hub_data_points(
-        self, *, category: DataPointCategory | None = None, registered: bool | None = None
-    ) -> tuple[GenericHubDataPointProtocol, ...]:
-        """Return hub data points (internal use - use hub_coordinator for external access)."""
-        return self._hub_coordinator.get_hub_data_points(category=category, registered=registered)
 
     async def get_install_mode(self, *, interface: Interface) -> int:
         """
@@ -836,10 +767,6 @@ class CentralUnit(
 
         return tuple(parameters)
 
-    def get_program_data_point(self, *, pid: str | None = None, legacy_name: str | None = None) -> ProgramDpType | None:
-        """Return program data point (internal use - use hub_coordinator for external access)."""
-        return self._hub_coordinator.get_program_data_point(pid=pid, legacy_name=legacy_name)
-
     def get_readable_generic_data_points(
         self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
     ) -> tuple[GenericDataPointProtocol, ...]:
@@ -862,16 +789,6 @@ class CentralUnit(
                 data_point_paths.extend(device.data_point_paths)
         data_point_paths.extend(self.hub_coordinator.data_point_paths)
         return tuple(data_point_paths)
-
-    async def get_system_variable(self, *, legacy_name: str) -> Any | None:
-        """Get system variable (internal use - use hub_coordinator for external access)."""
-        return await self._hub_coordinator.get_system_variable(legacy_name=legacy_name)
-
-    def get_sysvar_data_point(
-        self, *, vid: str | None = None, legacy_name: str | None = None
-    ) -> GenericSysvarDataPointProtocol | None:
-        """Return sysvar data point (internal use - use hub_coordinator for external access)."""
-        return self._hub_coordinator.get_sysvar_data_point(vid=vid, legacy_name=legacy_name)
 
     def get_un_ignore_candidates(self, *, include_master: bool = False) -> list[str]:
         """Return the candidates for un_ignore."""
@@ -942,10 +859,6 @@ class CentralUnit(
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
-    def publish_install_mode_refreshed(self) -> None:
-        """Publish HUB_REFRESHED event (internal use - use hub_coordinator for external access)."""
-        self._hub_coordinator.publish_install_mode_refreshed()
-
     @inspector(re_raise=False)
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
         """Refresh firmware data (internal use - use device_coordinator for external access)."""
@@ -969,14 +882,6 @@ class CentralUnit(
     async def remove_device(self, *, device: DeviceProtocol) -> None:
         """Remove device (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.remove_device(device=device)
-
-    def remove_program_button(self, *, pid: str) -> None:
-        """Remove program button (internal use - use hub_coordinator for external access)."""
-        self._hub_coordinator.remove_program_button(pid=pid)
-
-    def remove_sysvar_data_point(self, *, vid: str) -> None:
-        """Remove sysvar data point (internal use - use hub_coordinator for external access)."""
-        self._hub_coordinator.remove_sysvar_data_point(vid=vid)
 
     async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
         """
@@ -1048,14 +953,6 @@ class CentralUnit(
             return await client.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
         except AioHomematicException:
             return False
-
-    async def set_program_state(self, *, pid: str, state: bool) -> bool:
-        """Set program state (internal use - use hub_coordinator for external access)."""
-        return await self._hub_coordinator.set_program_state(pid=pid, state=state)
-
-    async def set_system_variable(self, *, legacy_name: str, value: Any) -> None:
-        """Set system variable (internal use - use hub_coordinator for external access)."""
-        await self._hub_coordinator.set_system_variable(legacy_name=legacy_name, value=value)
 
     async def start(self) -> None:
         """Start processing of the central unit."""

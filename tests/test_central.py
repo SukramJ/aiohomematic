@@ -586,7 +586,7 @@ class TestCentralDataPointsByCategory:
     ) -> None:
         """Test hub_data_points_by_category."""
         central, _, _ = central_client_factory_with_ccu_client
-        ebp_sensor = central.get_hub_data_points(category=DataPointCategory.HUB_SENSOR)
+        ebp_sensor = central.hub_coordinator.get_hub_data_points(category=DataPointCategory.HUB_SENSOR)
         assert ebp_sensor
         assert len(ebp_sensor) == 4
 
@@ -594,18 +594,20 @@ class TestCentralDataPointsByCategory:
             """Handle device state changes."""
 
         ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
-        ebp_sensor2 = central.get_hub_data_points(
+        ebp_sensor2 = central.hub_coordinator.get_hub_data_points(
             category=DataPointCategory.HUB_SENSOR,
             registered=False,
         )
         assert ebp_sensor2
         assert len(ebp_sensor2) == 3
 
-        ebp_sensor3 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON)
+        ebp_sensor3 = central.hub_coordinator.get_hub_data_points(category=DataPointCategory.HUB_BUTTON)
         assert ebp_sensor3
         assert len(ebp_sensor3) == 2
         ebp_sensor3[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
-        ebp_sensor4 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON, registered=False)
+        ebp_sensor4 = central.hub_coordinator.get_hub_data_points(
+            category=DataPointCategory.HUB_BUTTON, registered=False
+        )
         assert ebp_sensor4
         assert len(ebp_sensor4) == 1
 
@@ -796,11 +798,11 @@ class TestCentralCallbacksAndServices:
     ) -> None:
         """Test central fetch sysvar and programs."""
         central, mock_client, _ = central_client_factory_with_homegear_client
-        await central.fetch_program_data(scheduled=True)
+        await central.hub_coordinator.fetch_program_data(scheduled=True)
         # Check that get_all_programs was called (not necessarily last due to handler delegation)
         assert call.get_all_programs(markers=()) in mock_client.method_calls
 
-        await central.fetch_sysvar_data(scheduled=True)
+        await central.hub_coordinator.fetch_sysvar_data(scheduled=True)
         # Check that get_all_system_variables was called
         assert call.get_all_system_variables(markers=()) in mock_client.method_calls
 
@@ -810,14 +812,14 @@ class TestCentralCallbacksAndServices:
         await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
         assert len(mock_client.method_calls) == init_len_method_calls + 11
 
-        await central.get_system_variable(legacy_name="SysVar_Name")
+        await central.hub_coordinator.get_system_variable(legacy_name="SysVar_Name")
         assert mock_client.method_calls[-1] == call.get_system_variable(name="SysVar_Name")
 
         assert len(mock_client.method_calls) == init_len_method_calls + 12
-        await central.set_system_variable(legacy_name="alarm", value=True)
+        await central.hub_coordinator.set_system_variable(legacy_name="alarm", value=True)
         assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm", value=True)
         assert len(mock_client.method_calls) == init_len_method_calls + 13
-        await central.set_system_variable(legacy_name="SysVar_Name", value=True)
+        await central.hub_coordinator.set_system_variable(legacy_name="SysVar_Name", value=True)
         assert len(mock_client.method_calls) == init_len_method_calls + 13
 
         await central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).set_value(
@@ -887,7 +889,7 @@ class TestCentralCallbacksAndServices:
             assert len(central.devices) == 0
             assert len(central.get_data_points()) == 0
 
-            assert await central.get_system_variable(legacy_name="SysVar_Name") is None
+            assert await central.hub_coordinator.get_system_variable(legacy_name="SysVar_Name") is None
             assert central.device_coordinator.get_device(address="VCU4264293") is None
         finally:
             await central.stop()
@@ -1049,8 +1051,8 @@ class TestCentralCaches:
         assert central.get_custom_data_point(address="123", channel_no=1) is None
         assert central.get_generic_data_point(channel_address="123", parameter=1) is None
         assert central.get_event(channel_address="123", parameter=1) is None
-        assert central.get_program_data_point(pid="123") is None
-        assert central.get_sysvar_data_point(legacy_name="123") is None
+        assert central.hub_coordinator.get_program_data_point(pid="123") is None
+        assert central.hub_coordinator.get_sysvar_data_point(legacy_name="123") is None
 
 
 class TestSchedulerJob:

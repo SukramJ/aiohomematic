@@ -177,7 +177,9 @@ class TestSysvarSelect:
     async def test_hmsysvarselect_basic_operations(self, central_client_factory_with_ccu_client) -> None:
         """Test basic HmSysvarSelect operations."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
+        select: SysvarDpSelect = cast(
+            SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
+        )
         assert select.usage == DataPointUsage.DATA_POINT
         assert select.unit is None
         assert select.min is None
@@ -200,7 +202,9 @@ class TestSysvarSelect:
     async def test_hmsysvarselect_invalid_int_value(self, central_client_factory_with_ccu_client) -> None:
         """Test sending invalid int value (out of range)."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
+        select: SysvarDpSelect = cast(
+            SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
+        )
 
         # Send invalid int (out of range)
         await select.send_variable(value=10)
@@ -222,7 +226,9 @@ class TestSysvarSelect:
     async def test_hmsysvarselect_invalid_string_value(self, central_client_factory_with_ccu_client) -> None:
         """Test sending invalid string value (not in values list)."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
+        select: SysvarDpSelect = cast(
+            SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
+        )
 
         # Send invalid string (not in values)
         await select.send_variable(value="invalid_value")
@@ -244,7 +250,9 @@ class TestSysvarSelect:
     async def test_hmsysvarselect_send_invalid_value(self, central_client_factory_with_ccu_client) -> None:
         """Test sending invalid variable value triggers error logging."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
+        select: SysvarDpSelect = cast(
+            SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
+        )
 
         initial_value = select.value
         call_count_before = len(mock_client.method_calls)
@@ -272,7 +280,9 @@ class TestSysvarSelect:
     async def test_hmsysvarselect_send_variable_by_int(self, central_client_factory_with_ccu_client) -> None:
         """Test sending variable by integer index."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
+        select: SysvarDpSelect = cast(
+            SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
+        )
 
         # Send by valid int index
         await select.send_variable(value=1)
@@ -294,7 +304,9 @@ class TestSysvarSelect:
     async def test_hmsysvarselect_send_variable_by_string(self, central_client_factory_with_ccu_client) -> None:
         """Test sending variable by string value."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        select: SysvarDpSelect = cast(SysvarDpSelect, central.get_sysvar_data_point(legacy_name="list_ext"))
+        select: SysvarDpSelect = cast(
+            SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
+        )
 
         await select.send_variable(value="v2")
         assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="list_ext", value=1)

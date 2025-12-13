@@ -302,7 +302,9 @@ class TestSysvarSwitch:
     ) -> None:
         """Test SysvarDpSwitch basic functionality."""
         central, mock_client, _ = central_client_factory_with_ccu_client
-        switch: SysvarDpSwitch = cast(SysvarDpSwitch, central.get_sysvar_data_point(legacy_name="alarm_ext"))
+        switch: SysvarDpSwitch = cast(
+            SysvarDpSwitch, central.hub_coordinator.get_sysvar_data_point(legacy_name="alarm_ext")
+        )
         assert switch.usage == DataPointUsage.DATA_POINT
 
         assert switch.value is False
@@ -663,7 +665,7 @@ class TestProgramSwitch:
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         # Get a program switch
-        program_dp = central.get_program_data_point(pid="pid1")
+        program_dp = central.hub_coordinator.get_program_data_point(pid="pid1")
         assert program_dp
         assert hasattr(program_dp, "switch")
         switch: ProgramDpSwitch = cast(ProgramDpSwitch, program_dp.switch)

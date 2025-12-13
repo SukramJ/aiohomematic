@@ -146,9 +146,9 @@ class TestCentralPyDevCCU:
                 assert hasattr(cc, "__dict__") is False
             if device.update_data_point:
                 assert hasattr(device.update_data_point, "__dict__") is False
-        for prg in central.program_data_points:
+        for prg in central.hub_coordinator.program_data_points:
             assert hasattr(prg, "__dict__") is False
-        for sv in central.sysvar_data_points:
+        for sv in central.hub_coordinator.sysvar_data_points:
             assert hasattr(sv, "__dict__") is False
 
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 275

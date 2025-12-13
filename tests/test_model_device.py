@@ -143,7 +143,7 @@ class TestDeviceAvailability:
         for cdp in device.custom_data_points:
             assert cdp.available is True
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6354483:0", parameter="UNREACH", value=1
         )
         assert device.available is False
@@ -152,7 +152,7 @@ class TestDeviceAvailability:
         for cdp in device.custom_data_points:
             assert cdp.available is False
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6354483:0", parameter="UNREACH", value=0
         )
         assert device.available is True
@@ -183,13 +183,13 @@ class TestDeviceAvailability:
         assert device._dp_config_pending.value is False
         cache_hash = central.paramset_descriptions.content_hash
         last_save_triggered = central.paramset_descriptions.last_save_triggered
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="CONFIG_PENDING", value=True
         )
         assert device._dp_config_pending.value is True
         assert cache_hash == central.paramset_descriptions.content_hash
         assert last_save_triggered == central.paramset_descriptions.last_save_triggered
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="CONFIG_PENDING", value=False
         )
         assert device._dp_config_pending.value is False
@@ -230,22 +230,22 @@ class TestDeviceAvailability:
         # Reset forced availability -> availability falls back to UNREACH flags
         device.set_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
         # Simulate UNREACH via event
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address=f"{device.address}:0", parameter="UNREACH", value=1
         )
         assert device.available is False
         # Clear UNREACH; stick to STICKY_UNREACH when present
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address=f"{device.address}:0", parameter="UNREACH", value=0
         )
         # STICKY_UNREACH is ignored if UNREACH datapoint exists; availability is True again
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address=f"{device.address}:0", parameter="STICKY_UNREACH", value=1
         )
         assert device.available is True
 
         # Clear STICKY_UNREACH
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address=f"{device.address}:0", parameter="STICKY_UNREACH", value=0
         )
         assert device.available is True

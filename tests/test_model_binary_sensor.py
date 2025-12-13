@@ -46,15 +46,15 @@ class TestGenericBinarySensor:
         assert binary_sensor.value is False
         assert binary_sensor.is_writable is False
         assert binary_sensor.visible is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU5864966:1", parameter="STATE", value=1
         )
         assert binary_sensor.value is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU5864966:1", parameter="STATE", value=0
         )
         assert binary_sensor.value is False
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU5864966:1", parameter="STATE", value=None
         )
         assert binary_sensor.value is False

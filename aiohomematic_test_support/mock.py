@@ -186,7 +186,7 @@ def get_client_session(  # noqa: C901
                         )
 
                 if method == _JsonRpcMethod.INTERFACE_SET_VALUE:
-                    await self._central.data_point_event(
+                    await self._central.event_coordinator.data_point_event(
                         interface_id=params[_JsonKey.INTERFACE],
                         channel_address=params[_JsonKey.ADDRESS],
                         parameter=params[_JsonKey.VALUE_KEY],
@@ -199,7 +199,7 @@ def get_client_session(  # noqa: C901
                         channel_address = params[_JsonKey.ADDRESS]
                         values = params[_JsonKey.SET]
                         for param, value in values.items():
-                            await self._central.data_point_event(
+                            await self._central.event_coordinator.data_point_event(
                                 interface_id=interface_id,
                                 channel_address=channel_address,
                                 parameter=param,
@@ -335,7 +335,7 @@ def get_xml_rpc_proxy(  # noqa: C901
         async def ping(self, callerId: str) -> None:
             """Answer ping with pong."""
             if self._central:
-                await self._central.data_point_event(
+                await self._central.event_coordinator.data_point_event(
                     interface_id=callerId,
                     channel_address="",
                     parameter=Parameter.PONG,
@@ -349,14 +349,14 @@ def get_xml_rpc_proxy(  # noqa: C901
             if self._central and paramset_key == ParamsetKey.VALUES:
                 interface_id = self._central.primary_client.interface_id  # type: ignore[union-attr]
                 for param, value in values.items():
-                    await self._central.data_point_event(
+                    await self._central.event_coordinator.data_point_event(
                         interface_id=interface_id, channel_address=channel_address, parameter=param, value=value
                     )
 
         async def setValue(self, channel_address: str, parameter: str, value: Any, rx_mode: Any | None = None) -> None:
             """Set a value."""
             if self._central:
-                await self._central.data_point_event(
+                await self._central.event_coordinator.data_point_event(
                     interface_id=self._central.primary_client.interface_id,  # type: ignore[union-attr]
                     channel_address=channel_address,
                     parameter=parameter,

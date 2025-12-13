@@ -163,11 +163,11 @@ class TestCentralPyDevCCU:
 
         assert len(central.devices) == 396
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
         assert len(central.devices) == 393
         del_addresses = list(central.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID))
         del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
         assert len(central.devices) == 0
         assert len(central.get_data_points(exclude_no_create=False)) == 0
 

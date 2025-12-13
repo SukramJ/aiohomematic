@@ -99,7 +99,7 @@ class TestCustomDpDimmer:
         assert light.is_on
 
         assert light.group_brightness is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.4
         )
         assert light.group_brightness == 102
@@ -294,11 +294,11 @@ class TestCustomDpColorDimmerEffect:
 
         assert light.effect == "Slow color change"
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3747418:2", parameter="COLOR", value=201
         )
         assert light.hs_color == (0.0, 0.0)
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3747418:2", parameter="COLOR", value=None
         )
         assert light.hs_color == (0.0, 0.0)
@@ -563,12 +563,12 @@ class TestCustomDpIpFixedColorLight:
         )
         assert light.color_name == _FixedColor.PURPLE
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6985973:7", parameter="LEVEL", value=0.5
         )
         assert light.group_brightness == 127
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6985973:7", parameter="COLOR", value=1
         )
         assert light.channel_hs_color == (240.0, 100.0)
@@ -1217,11 +1217,11 @@ class TestCustomDpColorDimmer:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.hs_color == (0.0, 0.0)
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9973336:15", parameter="COLOR", value=201
         )
         assert light.hs_color == (0.0, 0.0)
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9973336:15", parameter="COLOR", value=None
         )
         assert light.hs_color == (0.0, 0.0)

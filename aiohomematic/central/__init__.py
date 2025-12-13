@@ -138,7 +138,6 @@ from aiohomematic.const import (
     ClientState,
     DataPointCategory,
     DescriptionMarker,
-    DeviceDescription,
     DeviceFirmwareState,
     EventType,
     Interface,
@@ -610,12 +609,6 @@ class CentralUnit(
         result = await client.accept_device_in_inbox(device_address=device_address)
         return bool(result)
 
-    async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
-        """Add new devices (convenience method - delegates to device_coordinator)."""
-        await self._device_coordinator.add_new_devices(
-            interface_id=interface_id, device_descriptions=device_descriptions
-        )
-
     async def add_new_devices_manually(self, *, interface_id: str, address_names: Mapping[str, str | None]) -> None:
         """
         Add new devices manually (internal use - use device_coordinator for external access).
@@ -688,23 +681,6 @@ class CentralUnit(
         Returns a dict of InstallModeDpType by Interface.
         """
         return self._hub_coordinator.create_install_mode_dps()
-
-    async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
-        """Handle data point event (convenience method - delegates to event_coordinator)."""
-        await self._event_coordinator.data_point_event(
-            interface_id=interface_id,
-            channel_address=channel_address,
-            parameter=parameter,
-            value=value,
-        )
-
-    async def delete_device(self, *, interface_id: str, device_address: str) -> None:
-        """Delete device (internal use - use device_coordinator for external access)."""
-        await self._device_coordinator.delete_device(interface_id=interface_id, device_address=device_address)
-
-    async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...] | list[str]) -> None:
-        """Delete devices (convenience method - delegates to device_coordinator)."""
-        await self._device_coordinator.delete_devices(interface_id=interface_id, addresses=tuple(addresses))
 
     async def execute_program(self, *, pid: str) -> bool:
         """Execute program (internal use - use hub_coordinator for external access)."""

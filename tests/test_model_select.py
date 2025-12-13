@@ -153,7 +153,7 @@ class TestGenericSelect:
         )
         assert select.value == "OPEN"
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6354483:1", parameter="WINDOW_STATE", value=0
         )
         assert select.value == "CLOSED"

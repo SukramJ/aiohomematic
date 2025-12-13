@@ -636,12 +636,14 @@ class TestCentralDeviceManagement:
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
-        await central.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
+        await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
         assert len(central.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
-        await central.add_new_devices(interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc)
+        await central.device_coordinator.add_new_devices(
+            interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc
+        )
         assert len(central.devices) == 2
 
     @pytest.mark.asyncio
@@ -667,7 +669,7 @@ class TestCentralDeviceManagement:
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
 
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
         assert len(central.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
         assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
@@ -704,19 +706,25 @@ class TestCentralDeviceManagement:
 
         assert central.device_coordinator.get_device(address="VCU0000057")
 
-        await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
+        await central.device_coordinator.delete_device(
+            interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID"
+        )
 
         assert len(central.devices) == 3
         assert len(central.get_data_points()) == 350
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"])
+        await central.device_coordinator.delete_devices(
+            interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"]
+        )
         assert len(central.devices) == 1
         assert len(central.get_data_points()) == 100
-        await central.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
+        await central.device_coordinator.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
         assert len(central.devices) == 0
         assert len(central.get_data_points()) == 0
         assert central.get_virtual_remotes() == ()
 
-        await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
+        await central.device_coordinator.delete_device(
+            interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID"
+        )
 
 
 class TestCentralCallbacksAndServices:
@@ -937,7 +945,7 @@ class TestCentralPingPong:
         await client.check_connection_availability(handle_ping_pong=True)
         assert client.ping_pong_cache._pending_pong_count == 1
         for token_stored in list(client.ping_pong_cache._pending_pongs):
-            await central.data_point_event(
+            await central.event_coordinator.data_point_event(
                 interface_id=interface_id,
                 channel_address="",
                 parameter=Parameter.PONG,
@@ -967,7 +975,7 @@ class TestCentralPingPong:
         count = 0
         max_count = PING_PONG_MISMATCH_COUNT + 1
         while count < max_count:
-            await central.data_point_event(
+            await central.event_coordinator.data_point_event(
                 interface_id=interface_id,
                 channel_address="",
                 parameter=Parameter.PONG,
@@ -1319,7 +1327,7 @@ class TestCentralEventHandling:
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         """
-        Central.data_point_event should complete without raising exceptions.
+        central.event_coordinator.data_point_event should complete without raising exceptions.
 
         Note: Legacy callback exception handling has been removed. Events are now
         handled via EventBus. This test verifies data_point_event completes successfully.
@@ -1354,7 +1362,7 @@ class TestCentralEventHandling:
         event_coordinator._client_provider = mock_client_provider  # type: ignore[attr-defined]
 
         # Exercise the path; should complete without exceptions
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id="if1",
             channel_address="A:1",
             parameter="STATE",

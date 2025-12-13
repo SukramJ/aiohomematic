@@ -47,19 +47,19 @@ class TestIpSiren:
         )
 
         assert siren.is_on is False
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU8249617:3", parameter="ACOUSTIC_ALARM_ACTIVE", value=1
         )
         assert siren.is_on is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU8249617:3", parameter="ACOUSTIC_ALARM_ACTIVE", value=0
         )
         assert siren.is_on is False
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU8249617:3", parameter="OPTICAL_ALARM_ACTIVE", value=1
         )
         assert siren.is_on is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU8249617:3", parameter="OPTICAL_ALARM_ACTIVE", value=0
         )
         assert siren.is_on is False
@@ -160,28 +160,28 @@ class TestIpSirenSmoke:
         assert siren.usage == DataPointUsage.CDP_PRIMARY
 
         assert siren.is_on is False
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU2822385:1",
             parameter="SMOKE_DETECTOR_ALARM_STATUS",
             value=1,
         )
         assert siren.is_on is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU2822385:1",
             parameter="SMOKE_DETECTOR_ALARM_STATUS",
             value=2,
         )
         assert siren.is_on is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU2822385:1",
             parameter="SMOKE_DETECTOR_ALARM_STATUS",
             value=3,
         )
         assert siren.is_on is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU2822385:1",
             parameter="SMOKE_DETECTOR_ALARM_STATUS",

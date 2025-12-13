@@ -142,7 +142,6 @@ from aiohomematic.const import (
     DescriptionMarker,
     DeviceDescription,
     DeviceFirmwareState,
-    EventKey,
     EventType,
     Interface,
     Operations,
@@ -273,7 +272,7 @@ class CentralUnit(
             device_description_provider=self.device_descriptions,
             device_details_provider=self.device_details,
             event_bus_provider=self,
-            event_publisher=self,
+            event_publisher=self._event_coordinator,
             event_subscription_manager=self,
             file_operations=self,
             parameter_visibility_provider=self.parameter_visibility,
@@ -293,7 +292,7 @@ class CentralUnit(
             client_provider=self,
             config_provider=self,
             event_bus_provider=self,
-            event_publisher=self,
+            event_publisher=self._event_coordinator,
             parameter_visibility_provider=self.parameter_visibility,
             paramset_description_provider=self.paramset_descriptions,
             primary_client_provider=self,
@@ -1079,24 +1078,6 @@ class CentralUnit(
             parameter=parameter,
             value=value,
         )
-
-    @loop_check
-    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """
-        Publish system_event callback in central.
-
-        e.g. DEVICES_CREATED, HUB_REFRESHED
-        """
-        self._event_coordinator.publish_backend_system_event(system_event=system_event, **kwargs)
-
-    @loop_check
-    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
-        """
-        Publish homematic_event in central.
-
-        # Events like INTERFACE, KEYPRESS, ...
-        """
-        self._event_coordinator.publish_homematic_event(event_type=event_type, event_data=event_data)
 
     def publish_install_mode_refreshed(self) -> None:
         """Publish HUB_REFRESHED event for install mode data points."""

@@ -904,7 +904,7 @@ class CentralInfo(Protocol):
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
 - **EventBusProvider**: Event system access (event_bus property)
-- **EventPublisher**: Event emission (publish_backend_system_event, publish_homematic_event)
+- **EventPublisher**: Event emission via EventCoordinator (publish_backend_system_event, publish_homematic_event)
 - **TaskScheduler**: Background task scheduling (create_task method)
 - **PrimaryClientProvider**: Primary client access
 - **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)

@@ -58,6 +58,7 @@ from aiohomematic.interfaces.operations import TaskScheduler
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
     from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
     from aiohomematic.interfaces import ChannelProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
@@ -1100,6 +1101,11 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
+    def event_coordinator(self) -> EventCoordinator:
+        """Return the event coordinator for publishing events."""
+
+    @property
+    @abstractmethod
     def info_payload(self) -> Mapping[str, Any]:
         """Return the info payload."""
 
@@ -1174,14 +1180,6 @@ class ClientDependencies(Protocol):
         self, *, interface_id: str, channel_address: str, parameter: str, value: Any
     ) -> None:
         """Publish backend parameter callback in central."""
-
-    @abstractmethod
-    def publish_backend_system_event(self, *, system_event: Any, **kwargs: Any) -> None:
-        """Publish a backend system event."""
-
-    @abstractmethod
-    def publish_homematic_event(self, *, event_type: Any, event_data: dict[Any, Any]) -> None:
-        """Publish a Homematic event."""
 
     @abstractmethod
     async def save_files(

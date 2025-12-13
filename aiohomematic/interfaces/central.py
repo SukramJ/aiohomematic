@@ -188,7 +188,7 @@ class EventPublisher(Protocol):
     """
     Protocol for publishing events to the system.
 
-    Implemented by CentralUnit.
+    Implemented by EventCoordinator.
     """
 
     @abstractmethod
@@ -729,7 +729,6 @@ class CentralProtocol(
     DeviceDataRefresher,
     DeviceProvider,
     EventBusProvider,
-    EventPublisher,
     EventSubscriptionManager,
     FileOperations,
     HubDataFetcher,

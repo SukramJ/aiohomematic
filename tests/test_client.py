@@ -285,6 +285,11 @@ class _FakeCentral:
         return self._event_bus
 
     @property
+    def event_coordinator(self) -> _FakeEventPublisher:  # noqa: D401
+        """Return the event coordinator."""
+        return _FakeEventPublisher()
+
+    @property
     def listen_port_xml_rpc(self) -> int:  # noqa: D401
         return self._listen_port_xml_rpc
 
@@ -294,11 +299,18 @@ class _FakeCentral:
     def has_client(self, *, interface_id: str) -> bool:  # noqa: D401,ARG002
         return interface_id in self._clients
 
-    def publish_homematic_event(self, *, event_type: Any, event_data: dict[str, Any]) -> None:  # noqa: D401,ARG002,ANN401
-        return None
-
     def save_files(self, *, save_paramset_descriptions: bool = False) -> None:  # noqa: ARG002,D401
         return None
+
+
+class _FakeEventPublisher:
+    """Minimal fake EventPublisher for testing."""
+
+    def publish_backend_system_event(self, **kwargs: Any) -> None:  # noqa: D401,ARG002,ANN401
+        """Do nothing for publish in tests."""
+
+    def publish_homematic_event(self, **kwargs: Any) -> None:  # noqa: D401,ARG002,ANN401
+        """Do nothing for publish in tests."""
 
 
 class _XmlProxy2:

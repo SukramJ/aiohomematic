@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from aiohomematic.const import (
     BackupData,
     CallSource,
+    CentralState,
     ClientState,
     DataPointKey,
     DeviceDescription,
@@ -1122,6 +1123,11 @@ class ClientDependencies(Protocol):
     @abstractmethod
     def name(self) -> str:
         """Return central name."""
+
+    @property
+    @abstractmethod
+    def state(self) -> CentralState:
+        """Return the current central state from the state machine."""
 
     @abstractmethod
     def get_generic_data_point(

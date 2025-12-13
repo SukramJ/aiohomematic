@@ -48,6 +48,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic.const import CentralState
+from aiohomematic.interfaces.central import CentralStateMachineProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.central.event_bus import EventBus
@@ -122,7 +123,7 @@ class InvalidCentralStateTransitionError(Exception):
         super().__init__(f"Invalid central state transition from {current.value} to {target.value} for {central_name}")
 
 
-class CentralStateMachine:
+class CentralStateMachine(CentralStateMachineProtocol):
     """
     State machine for central system health orchestration.
 

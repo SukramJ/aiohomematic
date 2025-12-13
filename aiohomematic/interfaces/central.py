@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from aiohomematic.const import (
     BackendSystemEvent,
     BackupData,
-    CentralUnitState,
+    CentralState,
     DeviceFirmwareState,
     EventKey,
     EventType,
@@ -69,6 +69,11 @@ class CentralInfo(Protocol):
     def name(self) -> str:
         """Get central name."""
 
+    @property
+    @abstractmethod
+    def state(self) -> CentralState:
+        """Return the current central state from the state machine."""
+
 
 @runtime_checkable
 class CentralUnitStateProvider(Protocol):
@@ -80,7 +85,7 @@ class CentralUnitStateProvider(Protocol):
 
     @property
     @abstractmethod
-    def state(self) -> CentralUnitState:
+    def state(self) -> CentralState:
         """Get current central state."""
 
 
@@ -488,8 +493,6 @@ class CentralStateMachineProtocol(Protocol):
     Implemented by CentralStateMachine.
     """
 
-    from aiohomematic.const import CentralState  # noqa: PLC0415
-
     @property
     @abstractmethod
     def is_degraded(self) -> bool:
@@ -613,8 +616,6 @@ class CentralHealthProtocol(Protocol):
     Implemented by CentralHealth.
     """
 
-    from aiohomematic.const import CentralState  # noqa: PLC0415
-
     @property
     @abstractmethod
     def all_clients_healthy(self) -> bool:
@@ -624,11 +625,6 @@ class CentralHealthProtocol(Protocol):
     @abstractmethod
     def any_client_healthy(self) -> bool:
         """Check if at least one client is healthy."""
-
-    @property
-    @abstractmethod
-    def central_state(self) -> CentralState:
-        """Return current central state."""
 
     @property
     @abstractmethod
@@ -654,6 +650,11 @@ class CentralHealthProtocol(Protocol):
     @abstractmethod
     def primary_client_healthy(self) -> bool:
         """Check if the primary client is healthy."""
+
+    @property
+    @abstractmethod
+    def state(self) -> CentralState:
+        """Return current central state."""
 
     @abstractmethod
     def get_client_health(self, *, interface_id: str) -> ConnectionHealthProtocol | None:
@@ -713,7 +714,6 @@ from aiohomematic.interfaces.client import (  # noqa: E402
     ClientFactory,
     ConnectionStateProvider,
     JsonRpcClientProvider,
-    SessionRecorderProvider,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProvider  # noqa: E402
 
@@ -737,7 +737,6 @@ class CentralProtocol(
     ClientFactory,
     ConnectionStateProvider,
     JsonRpcClientProvider,
-    SessionRecorderProvider,
     # From interfaces/coordinators.py
     CoordinatorProvider,
     Protocol,

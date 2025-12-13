@@ -36,7 +36,7 @@ from aiohomematic.const import (
     SYSTEM_UPDATE_CHECK_INTERVAL,
     Backend,
     BackendSystemEvent,
-    CentralUnitState,
+    CentralState,
     DeviceFirmwareState,
     Interface,
 )
@@ -850,7 +850,7 @@ class BackgroundScheduler:
         connection_issue_logged = False
         while self.is_active:
             # Wait until central is running
-            if self._state_provider.state != CentralUnitState.RUNNING:
+            if self._state_provider.state != CentralState.RUNNING:
                 _LOGGER.debug("Scheduler: Waiting until central %s is started", self._central_info.name)
                 await asyncio.sleep(SCHEDULER_NOT_STARTED_SLEEP)
                 continue

@@ -350,17 +350,6 @@ class ChannelOffset(IntEnum):
     """Configuration channel offset (e.g., for WGTC thermostat)."""
 
 
-class CentralUnitState(StrEnum):
-    """Enum with central unit states."""
-
-    INITIALIZING = "initializing"
-    NEW = "new"
-    RUNNING = "running"
-    STOPPED = "stopped"
-    STOPPED_BY_ERROR = "stopped_by_error"
-    STOPPING = "stopping"
-
-
 class CentralState(StrEnum):
     """
     Central State Machine states for overall system health orchestration.

@@ -1,4 +1,4 @@
-# Version 2025.12.26 (2025-12-13)
+# Version 2025.12.25 (2025-12-12)
 
 ## What's Changed
 
@@ -9,6 +9,25 @@
 - Remove `publish_interface_event` method from `CentralUnit` and `EventCoordinator`
 - Remove `InterfaceEventPublisher` protocol from interfaces
 - Remove `INTERFACE_EVENT_SCHEMA` from schemas
+- Remove delegation methods from `CentralUnit` - use coordinators directly:
+  - Remove `get_device()` - use `central.device_coordinator.get_device()` instead
+  - Remove `get_channel()` - use `central.device_coordinator.get_channel()` instead
+  - Remove `get_virtual_remotes()` - use `central.device_coordinator.get_virtual_remotes()` instead
+  - Remove `remove_device()` - use `await central.device_coordinator.remove_device()` instead
+- Remove `CentralUnitState` enum - use `CentralState` instead:
+  - Removed legacy `_state` attribute from `CentralUnit` - all state now managed by state machine
+  - Removed `central_state` property - use `state` property instead (returns `CentralState` from state machine)
+  - `CentralUnitState.NEW` → `CentralState.STARTING`
+  - `CentralUnitState.INITIALIZING` → `CentralState.INITIALIZING`
+  - `CentralUnitState.RUNNING` → `CentralState.RUNNING`
+  - `CentralUnitState.STOPPED` → `CentralState.STOPPED`
+  - `CentralUnitState.STOPPED_BY_ERROR` → `CentralState.FAILED`
+  - `CentralUnitState.STOPPING` state removed (no intermediate stopping state)
+- Change `BackgroundScheduler.__init__()` signature - now requires `firmware_data_refresher` parameter
+- Change `CentralUnitStateProvider.state` property type from `CentralUnitState` to `CentralState`
+- Change `CentralInfo` protocol - renamed `central_state` property to `state` (returns `CentralState`)
+- Change `CentralHealthProtocol` - renamed `central_state` property to `state` (returns `CentralState`)
+- Change `ClientDependencies` protocol - renamed `central_state` property to `state` (returns `CentralState`)
 
 ### New Features
 
@@ -17,11 +36,13 @@
 - Add `DeviceAvailabilityChangedEvent` - typed event for device availability changes (replaces `EventType.DEVICE_AVAILABILITY`)
 - Add `PingPongMismatchType` enum with `PENDING` and `UNKNOWN` values
 
-# Version 2025.12.25 (2025-12-12)
-
-## What's Changed
-
 ### Enhancements
+
+- Consolidate state management in `CentralUnit` - `state` property now directly delegates to state machine
+- Separate `FirmwareDataRefresher` protocol from `DeviceDataRefresher` protocol for clearer separation of concerns
+- Implement `FirmwareDataRefresher` in `DeviceCoordinator` instead of `CentralUnit`
+- Direct coordinator access pattern improves code clarity and reduces unnecessary delegation
+- Unified protocol property naming - all protocols now use `state` instead of mixed `central_state`/`state`
 
 - Replace fixed cool-down with staged reconnection for faster recovery after CCU restart:
   - Stage 0: Initial cool-down (`reconnect_initial_cooldown`, default 10s)
@@ -36,9 +57,14 @@
   - `reconnect_tcp_check_interval`: TCP check interval (default 5s)
   - `reconnect_warmup_delay`: Warmup delay after first RPC check (default 10s)
 
+# Version 2025.12.24 (2025-12-12)
+
+## What's Changed
+
 ### Bug Fixes
 
 - Fix "ResponseNotReady" errors after CCU reconnection by recreating proxy objects with fresh HTTP transport after successful PROXY_INIT
+- Add configurable cool-down period (`reconnect_cooldown_delay`, default 60s) after connection loss - all communication including pings is suspended during cool-down to allow CCU time to fully restart
 
 # Version 2025.12.23 (2025-12-12)
 

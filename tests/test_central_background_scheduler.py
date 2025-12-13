@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 import pytest
 
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob
-from aiohomematic.const import BackendSystemEvent, CentralUnitState
+from aiohomematic.const import BackendSystemEvent, CentralState
 
 
 class TestSchedulerJobBasics:
@@ -766,7 +766,7 @@ class TestSchedulerLoopExecution:
         central.config.periodic_refresh_interval = 3600  # Very long interval
         central.config.sys_scan_interval = 3600
         central.config.enable_device_firmware_check = False
-        central.state = CentralUnitState.RUNNING
+        central.state = CentralState.RUNNING
         central.available = False
 
         executions: list[str] = []
@@ -813,7 +813,7 @@ class TestSchedulerLoopExecution:
         central.config.periodic_refresh_interval = 60
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
-        central.state = CentralUnitState.INITIALIZING
+        central.state = CentralState.INITIALIZING
         central.connection_state = MagicMock()
         central.connection_state.has_any_issue = False
 

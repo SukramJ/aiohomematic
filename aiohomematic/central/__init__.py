@@ -134,7 +134,6 @@ from aiohomematic.const import (
     UN_IGNORE_WILDCARD,
     BackupData,
     CentralState,
-    CentralUnitState,
     ClientState,
     DataPointCategory,
     DescriptionMarker,
@@ -168,7 +167,6 @@ from aiohomematic.interfaces.model import (
 )
 from aiohomematic.model.hub import InstallModeDpType
 from aiohomematic.property_decorators import info_property
-from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
@@ -209,7 +207,6 @@ class CentralUnit(
 
     def __init__(self, *, central_config: CentralConfig) -> None:
         """Initialize the central unit."""
-        self._state: CentralUnitState = CentralUnitState.NEW
         # Keep the config for the central
         self._config: Final = central_config
         # Apply locale for translations
@@ -352,11 +349,6 @@ class CentralUnit(
         return self._rpc_callback_ip
 
     @property
-    def central_state(self) -> CentralState:
-        """Return the current central state from the state machine."""
-        return self._central_state_machine.state
-
-    @property
     def central_state_machine(self) -> CentralStateMachine:
         """Return the central state machine."""
         return self._central_state_machine
@@ -453,19 +445,14 @@ class CentralUnit(
         return self._looper
 
     @property
-    def recorder(self) -> SessionRecorder:
-        """Return the session recorder (internal use - use cache_coordinator.recorder for external access)."""
-        return self._cache_coordinator.recorder
-
-    @property
     def recovery_coordinator(self) -> RecoveryCoordinator:
         """Return the recovery coordinator."""
         return self._recovery_coordinator
 
     @property
-    def state(self) -> CentralUnitState:
-        """Return the central state."""
-        return self._state
+    def state(self) -> CentralState:
+        """Return the current central state from the state machine."""
+        return self._central_state_machine.state
 
     @property
     def supports_ping_pong(self) -> bool:
@@ -897,12 +884,12 @@ class CentralUnit(
 
     async def start(self) -> None:
         """Start processing of the central unit."""
-        _LOGGER.debug("START: Central %s is %s", self.name, self._state)
-        if self._state == CentralUnitState.INITIALIZING:
+        _LOGGER.debug("START: Central %s is %s", self.name, self.state)
+        if self.state == CentralState.INITIALIZING:
             _LOGGER.debug("START: Central %s already starting", self.name)
             return
 
-        if self._state == CentralUnitState.RUNNING:
+        if self.state == CentralState.RUNNING:
             _LOGGER.debug("START: Central %s already started", self.name)
             return
 
@@ -914,7 +901,7 @@ class CentralUnit(
             )
 
         if self._config.session_recorder_start:
-            await self.recorder.deactivate(
+            await self._cache_coordinator.recorder.deactivate(
                 delay=self._config.session_recorder_start_for_seconds,
                 auto_save=True,
                 randomize_output=self._config.session_recorder_randomize_output,
@@ -922,7 +909,6 @@ class CentralUnit(
             )
             _LOGGER.debug("START: Starting Recorder for %s seconds", self._config.session_recorder_start_for_seconds)
 
-        self._state = CentralUnitState.INITIALIZING
         _LOGGER.debug("START: Initializing Central %s", self.name)
         if self._config.enabled_interface_configs and (
             ip_addr := await self._identify_ip_addr(port=self._config.connection_check_port)
@@ -945,7 +931,6 @@ class CentralUnit(
                 self._listen_port_xml_rpc = xml_rpc_server.listen_port
                 self._xml_rpc_server.add_central(central=self, looper=self.looper)
         except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
-            self._state = CentralUnitState.STOPPED_BY_ERROR
             if self._central_state_machine.can_transition_to(target=CentralState.FAILED):
                 self._central_state_machine.transition_to(
                     target=CentralState.FAILED,
@@ -977,8 +962,7 @@ class CentralUnit(
             if self._config.enable_xml_rpc_server:
                 self._start_scheduler()
 
-        self._state = CentralUnitState.RUNNING
-        _LOGGER.debug("START: Central %s is %s", self.name, self._state)
+        _LOGGER.debug("START: Central %s is %s", self.name, self.state)
 
         # Transition central state machine based on client status
         all_connected = all(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
@@ -1001,17 +985,14 @@ class CentralUnit(
 
     async def stop(self) -> None:
         """Stop processing of the central unit."""
-        _LOGGER.debug("STOP: Central %s is %s", self.name, self._state)
-        if self._state == CentralUnitState.STOPPING:
-            _LOGGER.debug("STOP: Central %s is already stopping", self.name)
-            return
-        if self._state == CentralUnitState.STOPPED:
+        _LOGGER.debug("STOP: Central %s is %s", self.name, self.state)
+        if self.state == CentralState.STOPPED:
             _LOGGER.debug("STOP: Central %s is already stopped", self.name)
             return
-        if self._state != CentralUnitState.RUNNING:
+        if self.state != CentralState.RUNNING:
             _LOGGER.debug("STOP: Central %s not started", self.name)
             return
-        self._state = CentralUnitState.STOPPING
+        # Transition to STOPPED directly (no intermediate STOPPING state in CentralState)
         _LOGGER.debug("STOP: Stopping Central %s", self.name)
 
         await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
@@ -1065,8 +1046,7 @@ class CentralUnit(
         while self._has_active_threads and waited < max_wait_seconds:
             await asyncio.sleep(interval)
             waited += interval
-        self._state = CentralUnitState.STOPPED
-        _LOGGER.debug("STOP: Central %s is %s", self.name, self._state)
+        _LOGGER.debug("STOP: Central %s is %s", self.name, self.state)
 
         # Transition central state machine to STOPPED
         if self._central_state_machine.can_transition_to(target=CentralState.STOPPED):

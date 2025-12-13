@@ -482,6 +482,22 @@ class _FakeCentral2:
         return self._callback_ip_addr
 
     @property
+    def device_coordinator(self):  # noqa: D401,ANN001
+        """Return the device coordinator."""
+        return self
+
+    @property
+    def device_registry(self):  # noqa: D401,ANN001
+        """Return a mock device registry."""
+        if not hasattr(self, "_device_registry"):
+            from types import SimpleNamespace
+
+            self._device_registry = SimpleNamespace(
+                devices=tuple(self._devices.values()),
+            )
+        return self._device_registry
+
+    @property
     def event_bus(self):  # noqa: D401,ANN001
         """Return the event bus."""
         return self._event_bus
@@ -1022,7 +1038,7 @@ class TestClientProxyLifecycle:
         mock_device = MagicMock()
         mock_device.set_forced_availability = MagicMock()
         mock_device.interface_id = "c-BidCos-RF"  # Matches client's interface_id
-        central.devices = (mock_device,)
+        central.device_registry.devices = (mock_device,)
 
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         ccfg = ClientConfig(central=central, interface_config=iface_cfg)
@@ -1288,7 +1304,7 @@ class TestClientVirtualRemote:
     """Test virtual remote device retrieval."""
 
     def test_get_virtual_remote_returns_device(self) -> None:
-        """Client.get_virtual_remote should return matching virtual remote device from central.devices."""
+        """Client.get_virtual_remote should return matching virtual remote device from central.device_registry.devices."""
         from aiohomematic.const import VIRTUAL_REMOTE_MODELS
 
         central = _FakeCentral2()
@@ -1301,7 +1317,7 @@ class TestClientVirtualRemote:
         # Add a device with the expected model and matching interface_id
         vr_model = VIRTUAL_REMOTE_MODELS[0] if VIRTUAL_REMOTE_MODELS else "HM-RCV-50"
         dev = SimpleNamespace(interface_id=client.interface_id, model=vr_model)
-        central.devices = (dev,)
+        central.device_registry.devices = (dev,)
 
         vr = client.get_virtual_remote()
         assert vr is dev

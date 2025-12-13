@@ -105,7 +105,7 @@ class TestCentralBasics:
         assert central.version == "pydevccu 0.1.17"
         system_information = await central.validate_config_and_get_system_information()
         assert system_information.serial == "BidCos-RF_SN0815"
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         assert device
         dps = central.get_readable_generic_data_points()
         assert dps
@@ -136,7 +136,7 @@ class TestCentralBasics:
     ) -> None:
         """Test device export."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         await device.export_device_definition()
 
     @pytest.mark.asyncio
@@ -633,7 +633,7 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test add_device."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central.devices) == 1
+        assert len(central.device_registry.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert (
@@ -641,7 +641,7 @@ class TestCentralDeviceManagement:
         )
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
         await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
-        assert len(central.devices) == 2
+        assert len(central.device_registry.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
@@ -651,7 +651,7 @@ class TestCentralDeviceManagement:
         await central.device_coordinator.add_new_devices(
             interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc
         )
-        assert len(central.devices) == 2
+        assert len(central.device_registry.devices) == 2
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -671,7 +671,7 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test device delete_device."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central.devices) == 2
+        assert len(central.device_registry.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
@@ -680,7 +680,7 @@ class TestCentralDeviceManagement:
         )
 
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
-        assert len(central.devices) == 1
+        assert len(central.device_registry.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert (
@@ -722,15 +722,15 @@ class TestCentralDeviceManagement:
             interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID"
         )
 
-        assert len(central.devices) == 3
+        assert len(central.device_registry.devices) == 3
         assert len(central.get_data_points()) == 350
         await central.device_coordinator.delete_devices(
             interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"]
         )
-        assert len(central.devices) == 1
+        assert len(central.device_registry.devices) == 1
         assert len(central.get_data_points()) == 100
         await central.device_coordinator.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
-        assert len(central.devices) == 0
+        assert len(central.device_registry.devices) == 0
         assert len(central.get_data_points()) == 0
         assert central.get_virtual_remotes() == ()
 
@@ -886,7 +886,7 @@ class TestCentralCallbacksAndServices:
 
             assert central.available is True
             assert central.system_information.serial is None
-            assert len(central.devices) == 0
+            assert len(central.device_registry.devices) == 0
             assert len(central.get_data_points()) == 0
 
             assert await central.hub_coordinator.get_system_variable(legacy_name="SysVar_Name") is None
@@ -1047,7 +1047,7 @@ class TestCentralCaches:
     ) -> None:
         """Test central getter."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert central.get_device(address="123") is None
+        assert central.device_coordinator.get_device(address="123") is None
         assert central.get_custom_data_point(address="123", channel_no=1) is None
         assert central.get_generic_data_point(channel_address="123", parameter=1) is None
         assert central.get_event(channel_address="123", parameter=1) is None

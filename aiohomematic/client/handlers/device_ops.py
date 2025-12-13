@@ -498,7 +498,7 @@ class DeviceOperationsHandler(
                     raise ClientException(i18n.tr("exception.client.paramset_key.invalid"))
 
             _LOGGER.debug("PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key_or_link_address, checked_values)
-            if rx_mode and (device := self._central.get_device(address=channel_address)):
+            if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._exec_put_paramset(
                         channel_address=channel_address,
@@ -530,7 +530,8 @@ class DeviceOperationsHandler(
             if (
                 self._interface in ("BidCos-RF", "BidCos-Wired")
                 and paramset_key_or_link_address == ParamsetKey.MASTER
-                and (channel := self._central.get_channel(channel_address=channel_address)) is not None
+                and (channel := self._central.device_coordinator.get_channel(channel_address=channel_address))
+                is not None
             ):
 
                 async def poll_master_dp_values() -> None:
@@ -547,7 +548,9 @@ class DeviceOperationsHandler(
                 self._central.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
 
             if wait_for_callback is not None and (
-                device := self._central.get_device(address=get_device_address(address=channel_address))
+                device := self._central.device_coordinator.get_device(
+                    address=get_device_address(address=channel_address)
+                )
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,
@@ -711,7 +714,7 @@ class DeviceOperationsHandler(
                 else value
             )
             _LOGGER.debug("SET_VALUE: %s, %s, %s", channel_address, parameter, checked_value)
-            if rx_mode and (device := self._central.get_device(address=channel_address)):
+            if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._exec_set_value(
                         channel_address=channel_address,
@@ -730,7 +733,9 @@ class DeviceOperationsHandler(
             self._write_temporary_value(dpk_values=dpk_values)
 
             if wait_for_callback is not None and (
-                device := self._central.get_device(address=get_device_address(address=channel_address))
+                device := self._central.device_coordinator.get_device(
+                    address=get_device_address(address=channel_address)
+                )
             ):
                 await _wait_for_state_change_or_timeout(
                     device=device,

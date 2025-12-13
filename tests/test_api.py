@@ -214,7 +214,7 @@ class TestHomematicAPIOperations:
         central.client_coordinator.get_client = MagicMock()
         central.device_coordinator = MagicMock()
         central.device_coordinator.get_device = MagicMock(return_value=None)
-        central.device_coordinator.devices = []
+        central.device_registry.devices = []
         central.connection_state.has_any_issue = False
         return central
 
@@ -223,7 +223,7 @@ class TestHomematicAPIOperations:
         mock_device = MagicMock()
         mock_central.device_coordinator.get_device.return_value = mock_device
 
-        result = api_with_mock_central.get_device(address="VCU0000001")
+        result = api_with_mock_central.central.device_coordinator.get_device(address="VCU0000001")
 
         assert result is mock_device
         mock_central.device_coordinator.get_device.assert_called_once_with(address="VCU0000001")
@@ -248,7 +248,7 @@ class TestHomematicAPIOperations:
         """Test list_devices returns devices from central.device_coordinator."""
         mock_device = MagicMock()
         mock_device.address = "VCU0000001"
-        mock_central.device_coordinator.devices = [mock_device]
+        mock_central.device_registry.devices = [mock_device]
 
         devices = list(api_with_mock_central.list_devices())
 
@@ -425,7 +425,7 @@ class TestHomematicAPIRetry:
         central.client_coordinator.get_client = MagicMock()
         central.device_coordinator = MagicMock()
         central.device_coordinator.get_device = MagicMock(return_value=None)
-        central.device_coordinator.devices = []
+        central.device_registry.devices = []
         central.connection_state.has_any_issue = False
         return central
 

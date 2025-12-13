@@ -30,7 +30,7 @@ Using the factory to create a test central with session playback:
 
     # Test operations
     await central.start()
-    device = central.get_device_by_address("VCU0000001")
+    device = central.device_coordinator.get_device_by_address("VCU0000001")
     await central.stop()
 
 The session player replays pre-recorded backend responses, enabling fast and

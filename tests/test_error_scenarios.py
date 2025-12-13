@@ -138,10 +138,10 @@ class TestDeviceErrorScenarios:
         """Test getting a channel that doesn't exist."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             # Try to get a channel that doesn't exist
-            channel = device.get_channel(channel_no=9999)
+            channel = central.device_coordinator.get_channel(channel_no=9999)
             assert channel is None
 
     @pytest.mark.asyncio
@@ -163,10 +163,10 @@ class TestDeviceErrorScenarios:
         """Test getting channels by type when none match."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             # Try to get channels by a type that doesn't exist
-            channels = device.get_channels_by_type(channel_type="NONEXISTENT_TYPE")
+            channels = central.device_coordinator.get_channels_by_type(channel_type="NONEXISTENT_TYPE")
             assert isinstance(channels, list)
             assert len(channels) == 0
 
@@ -193,7 +193,7 @@ class TestDataPointErrorScenarios:
         """Test loading data point value with collector."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             collector = CallParameterCollector()
             for channel in list(device.channels.values())[:1]:
@@ -227,7 +227,7 @@ class TestDataPointErrorScenarios:
         """Test sending invalid value that fails validation."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
@@ -289,7 +289,7 @@ class TestParameterVisibility:
         """Test checking if parameters are hidden."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
@@ -324,7 +324,7 @@ class TestCentralUtilities:
         """Test accessing devices collection."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        devices = central.devices
+        devices = central.device_registry.devices
         assert isinstance(devices, (list, tuple))
 
 
@@ -350,7 +350,7 @@ class TestDeviceUtilities:
         """Test clearing device collections."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             # Clear all collections
             device.clear_all_collections()
@@ -374,7 +374,7 @@ class TestDeviceUtilities:
         """Test refreshing device firmware data."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             with contextlib.suppress(Exception):
                 await central.refresh_firmware_data(device_address=device.address)
@@ -403,7 +403,7 @@ class TestEventSubscriptions:
         """Test that device removed events are published for data points."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:

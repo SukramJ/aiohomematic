@@ -54,11 +54,18 @@ class _CentralStub:
     """Minimal Central stub exposing the attributes used by persistent caches."""
 
     def __init__(self, name: str, storage_directory: str, use_caches: bool = True) -> None:
+        from types import SimpleNamespace
+
         self.name = name
         self.config = _Cfg(storage_directory=storage_directory, use_caches=use_caches)
         self.looper = Looper()
         # Used by BasePersistentFile._manipulate_content when randomizing
-        self.devices: list[_DeviceObj] = []
+        self.device_registry = SimpleNamespace(devices=[])
+
+    @property
+    def devices(self) -> list[_DeviceObj]:
+        """Return devices from device_registry."""
+        return self.device_registry.devices
 
 
 class TestHelperFunctions:
@@ -386,8 +393,8 @@ class TestDeviceDescriptionCache:
             },
         )
 
-        # Randomization uses central.devices
-        central.devices = [_DeviceObj(address=dev_addr)]
+        # Randomization uses central.device_registry.devices
+        central.device_registry.devices = [_DeviceObj(address=dev_addr)]
 
         # Save with randomization and timestamped filename
         result = await ddc.save(randomize_output=True, use_ts_in_file_name=True)

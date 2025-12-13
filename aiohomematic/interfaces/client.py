@@ -59,10 +59,10 @@ if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
     from aiohomematic.central.cache_coordinator import CacheCoordinator
     from aiohomematic.central.device_coordinator import DeviceCoordinator
+    from aiohomematic.central.device_registry import DeviceRegistry
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
-    from aiohomematic.interfaces import ChannelProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
     from aiohomematic.store import SessionRecorder
 
@@ -1080,8 +1080,8 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
-    def devices(self) -> tuple[DeviceProtocol, ...]:
-        """Return all devices."""
+    def device_registry(self) -> DeviceRegistry:
+        """Return the device registry."""
 
     @property
     @abstractmethod
@@ -1122,14 +1122,6 @@ class ClientDependencies(Protocol):
     @abstractmethod
     def name(self) -> str:
         """Return central name."""
-
-    @abstractmethod
-    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
-        """Return channel by address."""
-
-    @abstractmethod
-    def get_device(self, *, address: str) -> DeviceProtocol | None:
-        """Return device by address."""
 
     @abstractmethod
     def get_generic_data_point(

@@ -57,7 +57,7 @@ Typical usage pattern:
     await central.start()
 
     # Access devices and data points
-    device = central.get_device_by_address("VCU0000001")
+    device = central.device_coordinator.get_device_by_address("VCU0000001")
 
     await central.stop()
 

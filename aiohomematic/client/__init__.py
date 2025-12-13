@@ -652,7 +652,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def get_virtual_remote(self) -> DeviceProtocol | None:
         """Get the virtual remote for the Client."""
         for model in VIRTUAL_REMOTE_MODELS:
-            for device in self.central.devices:
+            for device in self.central.device_registry.devices:
                 if device.interface_id == self.interface_id and device.model == model:
                     return device
         return None
@@ -1087,7 +1087,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         # entities show unavailable during connection failures.
         # Only skip updates when already in matching available state.
         if not available or self._state_machine.is_available != available:
-            for device in self.central.devices:
+            for device in self.central.device_registry.devices:
                 if device.interface_id == self.interface_id:
                     device.set_forced_availability(forced_availability=forced_availability)
             _LOGGER.debug(

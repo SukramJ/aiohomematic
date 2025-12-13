@@ -189,7 +189,7 @@ class TestCustomSwitch:
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
 
         mock_client.get_paramset = AsyncMock(return_value={"UNRELATED": 1})
-        chn = switch.channel.device.get_channel(channel_address="VCU2128127:9")
+        chn = switch.channel.device.channel_lookup.get_channel(channel_address="VCU2128127:9")
         chn._is_schedule_channel = False
         with pytest.raises(ValidationException):
             await switch.get_schedule(force_load=True)

@@ -224,9 +224,9 @@ class TestNamingHelpers:
     ) -> None:
         """Test get_custom_data_point_name."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         assert device
-        channel4 = device.get_channel(channel_address=f"{device.address}:4")
+        channel4 = central.device_coordinator.get_channel(channel_address=f"{device.address}:4")
         name_data = get_custom_data_point_name(
             channel=channel4,
             is_only_primary_channel=True,
@@ -246,7 +246,7 @@ class TestNamingHelpers:
         assert name_data.name == "vch4"
 
         central.cache_coordinator.device_details.add_name(address=f"{device.address}:5", name="Roof")
-        channel5 = device.get_channel(channel_address=f"{device.address}:5")
+        channel5 = central.device_coordinator.get_channel(channel_address=f"{device.address}:5")
         name_data = get_custom_data_point_name(
             channel=channel5,
             is_only_primary_channel=True,
@@ -296,15 +296,15 @@ class TestNamingHelpers:
     ) -> None:
         """Test get_data_point_name."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         assert device
-        channel4 = device.get_channel(channel_address=f"{device.address}:5")
+        channel4 = central.device_coordinator.get_channel(channel_address=f"{device.address}:5")
         name_data = get_data_point_name_data(channel=channel4, parameter="LEVEL")
         assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
         assert name_data.name == "Level"
 
         central.cache_coordinator.device_details.add_name(address=f"{device.address}:5", name="Roof")
-        channel5 = device.get_channel(channel_address=f"{device.address}:5")
+        channel5 = central.device_coordinator.get_channel(channel_address=f"{device.address}:5")
         name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
         assert name_data.name == "Roof Level"
@@ -371,16 +371,16 @@ class TestNamingHelpers:
     ) -> None:
         """Test get_event_name."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         assert device
-        channel4 = device.get_channel(channel_address=f"{device.address}:4")
+        channel4 = central.device_coordinator.get_channel(channel_address=f"{device.address}:4")
         name_data = get_event_name(channel=channel4, parameter="LEVEL")
         assert name_data.channel_name == "ch4"
         assert name_data.name == "ch4 Level"
         assert name_data.full_name == "HmIP-BSM_VCU2128127 ch4 Level"
 
         central.cache_coordinator.device_details.add_name(address=f"{device.address}:5", name="Roof")
-        channel5 = device.get_channel(channel_address=f"{device.address}:5")
+        channel5 = central.device_coordinator.get_channel(channel_address=f"{device.address}:5")
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
         assert name_data.channel_name == "Roof"
         assert name_data.name == "Roof Level"

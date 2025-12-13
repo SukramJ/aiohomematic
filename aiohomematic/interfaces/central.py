@@ -276,16 +276,12 @@ class FileOperations(Protocol):
 
 
 @runtime_checkable
-class DeviceDataRefresher(Protocol):
+class FirmwareDataRefresher(Protocol):
     """
-    Protocol for refreshing device data.
+    Protocol for refreshing firmware data.
 
-    Implemented by CentralUnit.
+    Implemented by DeviceCoordinator and CentralUnit.
     """
-
-    @abstractmethod
-    async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:
-        """Load and refresh data point data for an interface."""
 
     @abstractmethod
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
@@ -298,6 +294,18 @@ class DeviceDataRefresher(Protocol):
         device_firmware_states: tuple[DeviceFirmwareState, ...],
     ) -> None:
         """Refresh device firmware data for devices in specific states."""
+
+
+class DeviceDataRefresher(FirmwareDataRefresher, Protocol):
+    """
+    Protocol for refreshing device data.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:
+        """Load and refresh data point data for an interface."""
 
 
 @runtime_checkable
@@ -717,7 +725,6 @@ class CentralProtocol(
     BackupProvider,
     CentralInfo,
     CentralUnitStateProvider,
-    ChannelLookup,
     ConfigProvider,
     DataPointProvider,
     DeviceDataRefresher,

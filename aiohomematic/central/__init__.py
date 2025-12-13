@@ -255,13 +255,11 @@ class CentralUnit(
         )
         self._device_coordinator: Final = DeviceCoordinator(
             central_info=self,
-            channel_lookup=self,
             client_provider=self._client_coordinator,
             config_provider=self,
             coordinator_provider=self,
             data_cache_provider=self._cache_coordinator.data_cache,
             data_point_provider=self,
-            device_data_refresher=self,
             device_description_provider=self._cache_coordinator.device_descriptions,
             device_details_provider=self._cache_coordinator.device_details,
             event_bus_provider=self,
@@ -274,7 +272,7 @@ class CentralUnit(
         )
         self._hub_coordinator: Final = HubCoordinator(
             central_info=self,
-            channel_lookup=self,
+            channel_lookup=self._device_coordinator,
             client_provider=self._client_coordinator,
             config_provider=self,
             event_bus_provider=self,
@@ -391,8 +389,8 @@ class CentralUnit(
 
     @property
     def devices(self) -> tuple[DeviceProtocol, ...]:
-        """Return all devices (internal use - use device_coordinator for external access)."""
-        return self._device_coordinator.devices
+        """Return all devices."""
+        return self._device_registry.devices
 
     @property
     def event_bus(self) -> EventBus:
@@ -529,17 +527,6 @@ class CentralUnit(
         result = await client.accept_device_in_inbox(device_address=device_address)
         return bool(result)
 
-    async def add_new_devices_manually(self, *, interface_id: str, address_names: Mapping[str, str | None]) -> None:
-        """
-        Add new devices manually (internal use - use device_coordinator for external access).
-
-        Args:
-            interface_id: Interface identifier.
-            address_names: Device addresses and their names.
-
-        """
-        await self._device_coordinator.add_new_devices_manually(interface_id=interface_id, address_names=address_names)
-
     async def create_backup_and_download(self) -> BackupData | None:
         """
         Create a backup on the CCU and download it.
@@ -551,11 +538,6 @@ class CentralUnit(
         if client := self._client_coordinator.primary_client:
             return await client.create_backup_and_download()
         return None
-
-    @inspector
-    async def create_central_links(self) -> None:
-        """Create central links (internal use - use device_coordinator for external access)."""
-        await self._device_coordinator.create_central_links()
 
     async def create_client_instance(
         self,
@@ -583,12 +565,12 @@ class CentralUnit(
         )
 
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
-        """Return channel (internal use - use device_coordinator for external access)."""
+        """Return channel by address."""
         return self._device_coordinator.get_channel(channel_address=channel_address)
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
         """Return the hm custom_data_point."""
-        if device := self.get_device(address=address):
+        if device := self._device_coordinator.get_device(address=address):
             return device.get_custom_data_point(channel_no=channel_no)
         return None
 
@@ -618,7 +600,7 @@ class CentralUnit(
         return tuple(all_data_points)
 
     def get_device(self, *, address: str) -> DeviceProtocol | None:
-        """Return device (internal use - use device_coordinator for external access)."""
+        """Return device by address."""
         return self._device_coordinator.get_device(address=address)
 
     def get_event(
@@ -626,12 +608,12 @@ class CentralUnit(
     ) -> GenericEventProtocol | None:
         """Return the hm event."""
         if channel_address is None:
-            for dev in self.devices:
+            for dev in self._device_registry.devices:
                 if event := dev.get_generic_event(parameter=parameter, state_path=state_path):
                     return event
             return None
 
-        if device := self.get_device(address=channel_address):
+        if device := self._device_coordinator.get_device(address=channel_address):
             return device.get_generic_event(channel_address=channel_address, parameter=parameter, state_path=state_path)
         return None
 
@@ -640,7 +622,7 @@ class CentralUnit(
     ) -> tuple[tuple[GenericEventProtocol, ...], ...]:
         """Return all channel event data points."""
         hm_channel_events: list[tuple[GenericEventProtocol, ...]] = []
-        for device in self.devices:
+        for device in self._device_registry.devices:
             for channel_events in device.get_events(event_type=event_type).values():
                 if registered is None or (channel_events[0].is_registered == registered):
                     hm_channel_events.append(channel_events)
@@ -657,14 +639,14 @@ class CentralUnit(
     ) -> GenericDataPointProtocol | None:
         """Get data_point by channel_address and parameter."""
         if channel_address is None:
-            for dev in self.devices:
+            for dev in self._device_registry.devices:
                 if dp := dev.get_generic_data_point(
                     parameter=parameter, paramset_key=paramset_key, state_path=state_path
                 ):
                     return dp
             return None
 
-        if device := self.get_device(address=channel_address):
+        if device := self._device_coordinator.get_device(address=channel_address):
             return device.get_generic_data_point(
                 channel_address=channel_address, parameter=parameter, paramset_key=paramset_key, state_path=state_path
             )
@@ -828,12 +810,8 @@ class CentralUnit(
         return candidates
 
     def get_virtual_remotes(self) -> tuple[DeviceProtocol, ...]:
-        """Get virtual remotes (internal use - use device_coordinator for external access)."""
+        """Return all virtual remote devices."""
         return self._device_coordinator.get_virtual_remotes()
-
-    def identify_channel(self, *, text: str) -> ChannelProtocol | None:
-        """Identify channel (internal use - use device_coordinator for external access)."""
-        return self._device_coordinator.identify_channel(text=text)
 
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
@@ -859,28 +837,16 @@ class CentralUnit(
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
-    @inspector(re_raise=False)
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
-        """Refresh firmware data (internal use - use device_coordinator for external access)."""
+        """Refresh firmware data for devices."""
         await self._device_coordinator.refresh_firmware_data(device_address=device_address)
 
-    @inspector(re_raise=False)
     async def refresh_firmware_data_by_state(self, *, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
-        """Refresh firmware by state (internal use - use device_coordinator for external access)."""
-        for device in [
-            device_in_state
-            for device_in_state in self.devices
-            if device_in_state.firmware_update_state in device_firmware_states
-        ]:
-            await self.refresh_firmware_data(device_address=device.address)
-
-    @inspector
-    async def remove_central_links(self) -> None:
-        """Remove central links (internal use - use device_coordinator for external access)."""
-        await self._device_coordinator.remove_central_links()
+        """Refresh firmware data for devices by state."""
+        await self._device_coordinator.refresh_firmware_data_by_state(device_firmware_states=device_firmware_states)
 
     async def remove_device(self, *, device: DeviceProtocol) -> None:
-        """Remove device (internal use - use device_coordinator for external access)."""
+        """Remove device from central."""
         await self._device_coordinator.remove_device(device=device)
 
     async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:

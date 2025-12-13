@@ -31,8 +31,8 @@ class TestChannelLinkPeers:
     ) -> None:
         """Test link peer change detection and property behavior for single vs multiple peers."""
         central, client, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
-        ch = device.get_channel(channel_address=f"{device.address}:1")
+        device = central.device_coordinator.get_device(address="VCU2128127")
+        ch = central.device_coordinator.get_channel(channel_address=f"{device.address}:1")
 
         # Force transmitter condition
         ch._link_source_categories = True  # type: ignore[attr-defined]
@@ -100,9 +100,9 @@ class TestChannelLinkPeers:
     ) -> None:
         """Test link peer address loading and change event emission on initialization."""
         central, client, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         # Use channel 1, which exists for this device in the test dataset
-        ch = device.get_channel(channel_address=f"{device.address}:1")
+        ch = central.device_coordinator.get_channel(channel_address=f"{device.address}:1")
 
         # Force transmitter condition to ensure init_link_peer tries to fetch peers
         ch._link_source_categories = True  # type: ignore[attr-defined]

@@ -532,7 +532,7 @@ class TestReconnectionWithCentral:
         """Test that devices are accessible after central initialization."""
         central, _, _ = central_client_factory_with_homegear_client
 
-        devices = list(central.devices)
+        devices = list(central.device_registry.devices)
         assert len(devices) > 0
 
         # Verify device properties are populated

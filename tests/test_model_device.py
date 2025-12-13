@@ -46,7 +46,7 @@ class TestDeviceBasics:
     ) -> None:
         """Test device general properties and information."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         assert device.address == "VCU2128127"
         assert device.name == "HmIP-BSM_VCU2128127"
         assert (
@@ -83,7 +83,7 @@ class TestDeviceBasics:
     ) -> None:
         """Test export_device_definition writes files and __str__ returns info string; exceptions are wrapped."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
 
         # Ensure export goes to temp storage by patching central.config.storage_directory
         monkeypatch.setattr(device.client.central.config, "storage_directory", str(tmp_path))
@@ -136,7 +136,7 @@ class TestDeviceAvailability:
     ) -> None:
         """Test device availability changes via UNREACH parameter."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         assert device.available is True
         for gdp in device.generic_data_points:
             assert gdp.available is True
@@ -179,7 +179,7 @@ class TestDeviceAvailability:
     ) -> None:
         """Test device CONFIG_PENDING parameter and paramset description save triggering."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         assert device._dp_config_pending.value is False
         cache_hash = central.cache_coordinator.paramset_descriptions.content_hash
         last_save_triggered = central.cache_coordinator.paramset_descriptions.last_save_triggered
@@ -213,7 +213,7 @@ class TestDeviceAvailability:
     ) -> None:
         """Test Device.set_forced_availability toggles and UNREACH/STICKY_UNREACH precedence with callbacks."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
 
         # Ensure base availability is True
         assert device.available is True
@@ -275,7 +275,7 @@ class TestDeviceFirmware:
     ) -> None:
         """Test firmware properties and refresh_firmware_data triggering callbacks only on change."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
 
         # Register firmware callback
         published: list[int] = []
@@ -301,7 +301,7 @@ class TestDeviceFirmware:
             DeviceDescriptionCache, "get_device_description", _patched_get_device_description, raising=True
         )
 
-        device.refresh_firmware_data()
+        await central.device_coordinator.refresh_firmware_data()
         await central.looper.block_till_done()
         assert not published
 
@@ -309,7 +309,7 @@ class TestDeviceFirmware:
         current_desc["AVAILABLE_FIRMWARE"] = "99.99"
         current_desc["FIRMWARE_UPDATE_STATE"] = 1  # any int that maps differently
 
-        device.refresh_firmware_data()
+        await central.device_coordinator.refresh_firmware_data()
         await central.looper.block_till_done()
         assert published
 
@@ -334,7 +334,7 @@ class TestDeviceFirmware:
     ) -> None:
         """Test update_firmware returns client result and schedules refresh task when intervals provided."""
         central, client, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
 
         async def upd(*, device_address: str) -> bool:  # noqa: D401
             return True
@@ -370,7 +370,7 @@ class TestDeviceChannelOperations:
     ) -> None:
         """Test Device.create/remove_central_links invoke channel logic and metadata cleanup branches."""
         central, client, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
 
         # pick a channel that has KEYPRESS events
         ch = next(
@@ -446,7 +446,7 @@ class TestDeviceChannelOperations:
         # Final: device-level iterators call channel paths
         reported.clear()
         await device.create_central_links()
-        await device.remove_central_links()
+        await central.device_coordinator.remove_central_links()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -461,21 +461,21 @@ class TestDeviceChannelOperations:
     async def test_identify_channel_and_grouping(self, central_client_factory_with_homegear_client) -> None:
         """Test identify_channel variants and grouping helpers."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
 
         # Take a non-base channel
         ch = next(ch for addr, ch in device.channels.items() if addr.endswith(":1"))
 
         # Identify by suffixing address
-        assert device.identify_channel(text=f"foo {ch.address}") is ch
+        assert central.device_coordinator.identify_channel(text=f"foo {ch.address}") is ch
         # Identify by channel id in text - ensure a channel is returned and belongs to same device
-        ch_by_id = device.identify_channel(text=f"id={ch.rega_id}")
+        ch_by_id = central.device_coordinator.identify_channel(text=f"id={ch.rega_id}")
         assert ch_by_id is not None and ch_by_id.device is device
         # Identify by device id in text - first channel of device is a valid match
-        ch_by_dev_id = device.identify_channel(text=f"device={ch.device.rega_id}")
+        ch_by_dev_id = central.device_coordinator.identify_channel(text=f"device={ch.device.rega_id}")
         assert ch_by_dev_id is not None and ch_by_dev_id.device is device
         # No match
-        assert device.identify_channel(text="no-match") is None
+        assert central.device_coordinator.identify_channel(text="no-match") is None
 
         # Grouping helpers
         device.add_channel_to_group(group_no=1, channel_no=1)
@@ -502,7 +502,7 @@ class TestDeviceDataPoints:
     async def test_getters_filters_and_reload(self, central_client_factory_with_homegear_client, monkeypatch) -> None:
         """Test getters with filters, not-found lookups, load_value_cache and reload_paramset_descriptions."""
         central, client, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
 
         # Not found lookups
         assert device.get_generic_event(channel_address=f"{device.address}:99", parameter="X") is None
@@ -551,7 +551,7 @@ class TestDeviceDataPoints:
     async def test_misc_properties_and_caching(self, central_client_factory_with_homegear_client, monkeypatch) -> None:
         """Test various Device/Channel simple properties and error paths to increase coverage."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
 
         # Simple info properties
         assert device.identifier.endswith(device.interface_id)

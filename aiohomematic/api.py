@@ -270,7 +270,7 @@ class HomematicAPI:
                 print(f"{device.address}: {device.name} ({device.model})")
 
         """
-        return self.central.device_coordinator.devices
+        return self.central.device_registry.devices
 
     async def read_value(
         self,

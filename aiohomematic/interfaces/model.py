@@ -64,10 +64,10 @@ if TYPE_CHECKING:
         ConfigProvider,
         DataCacheProvider,
         DataPointProvider,
-        DeviceDataRefresher,
         EventBusProvider,
         EventPublisher,
         EventSubscriptionManager,
+        FirmwareDataRefresher,
     )
     from aiohomematic.interfaces.client import ClientProtocol
     from aiohomematic.interfaces.operations import (
@@ -1591,7 +1591,7 @@ class DeviceProviders(Protocol):
 
     @property
     @abstractmethod
-    def device_data_refresher(self) -> DeviceDataRefresher:
+    def device_data_refresher(self) -> FirmwareDataRefresher:
         """Return the device data refresher."""
 
     @property

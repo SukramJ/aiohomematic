@@ -188,7 +188,7 @@ class EventPublisher(Protocol):
     """
     Protocol for publishing events to the system.
 
-    Implemented by CentralUnit.
+    Implemented by EventCoordinator.
     """
 
     @abstractmethod
@@ -708,7 +708,6 @@ from aiohomematic.interfaces.client import (  # noqa: E402
     ClientProvider,
     ConnectionStateProvider,
     DeviceLookup,
-    InterfaceEventPublisher,
     JsonRpcClientProvider,
     LastEventTracker,
     NewDeviceHandler,
@@ -730,7 +729,6 @@ class CentralProtocol(
     DeviceDataRefresher,
     DeviceProvider,
     EventBusProvider,
-    EventPublisher,
     EventSubscriptionManager,
     FileOperations,
     HubDataFetcher,
@@ -744,7 +742,6 @@ class CentralProtocol(
     ClientProvider,
     ConnectionStateProvider,
     DeviceLookup,
-    InterfaceEventPublisher,
     JsonRpcClientProvider,
     LastEventTracker,
     NewDeviceHandler,
@@ -772,7 +769,6 @@ class CentralProtocol(
     **Event System:**
         - EventBusProvider: Access to the central event bus
         - EventPublisher: Publishing backend and Homematic events
-        - InterfaceEventPublisher: Interface-specific event publishing
         - EventSubscriptionManager: Managing event subscriptions
         - LastEventTracker: Tracking last event timestamps
 

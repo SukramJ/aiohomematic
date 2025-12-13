@@ -15,15 +15,7 @@ from aiohomematic.client.handlers.device_ops import (
     _track_single_data_point_state_change_or_timeout,
     _wait_for_state_change_or_timeout,
 )
-from aiohomematic.const import (
-    DEFAULT_TIMEOUT_CONFIG,
-    DataPointKey,
-    EventKey,
-    Interface,
-    InterfaceEventType,
-    ParamsetKey,
-    ProductGroup,
-)
+from aiohomematic.const import DEFAULT_TIMEOUT_CONFIG, DataPointKey, Interface, ParamsetKey, ProductGroup
 from aiohomematic.exceptions import ClientException, NoConnectionException
 
 
@@ -293,6 +285,11 @@ class _FakeCentral:
         return self._event_bus
 
     @property
+    def event_coordinator(self) -> _FakeEventPublisher:  # noqa: D401
+        """Return the event coordinator."""
+        return _FakeEventPublisher()
+
+    @property
     def listen_port_xml_rpc(self) -> int:  # noqa: D401
         return self._listen_port_xml_rpc
 
@@ -302,16 +299,18 @@ class _FakeCentral:
     def has_client(self, *, interface_id: str) -> bool:  # noqa: D401,ARG002
         return interface_id in self._clients
 
-    def publish_homematic_event(self, *, event_type: Any, event_data: dict[str, Any]) -> None:  # noqa: D401,ARG002,ANN401
-        return None
-
-    def publish_interface_event(
-        self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, str]
-    ):  # noqa: D401,ARG002,E501
-        return None
-
     def save_files(self, *, save_paramset_descriptions: bool = False) -> None:  # noqa: ARG002,D401
         return None
+
+
+class _FakeEventPublisher:
+    """Minimal fake EventPublisher for testing."""
+
+    def publish_backend_system_event(self, **kwargs: Any) -> None:  # noqa: D401,ARG002,ANN401
+        """Do nothing for publish in tests."""
+
+    def publish_homematic_event(self, **kwargs: Any) -> None:  # noqa: D401,ARG002,ANN401
+        """Do nothing for publish in tests."""
 
 
 class _XmlProxy2:
@@ -426,7 +425,6 @@ class _FakeCentral2:
         self._devices: dict[str, Any] = {}
         self._channels: dict[str, Any] = {}
         self._last_event: datetime | None = None
-        self._events: list[tuple[str, InterfaceEventType, dict[EventKey, Any]]] = []
         self._clients: dict[str, Any] = {}
         self._listen_port_xml_rpc = 32001
         self._callback_ip_addr = "127.0.0.1"
@@ -483,11 +481,6 @@ class _FakeCentral2:
 
     def get_last_event_seen_for_interface(self, *, interface_id: str):  # noqa: D401,ARG002
         return self._last_event
-
-    def publish_interface_event(
-        self, *, interface_id: str, interface_event_type: InterfaceEventType, data: dict[EventKey, Any]
-    ):  # noqa: D401,E501
-        self._events.append((interface_id, interface_event_type, data))
 
     async def save_files(self, *, save_paramset_descriptions: bool = False):  # noqa: ARG002,D401
         return None
@@ -785,7 +778,9 @@ class TestClientClasses:
 
     @pytest.mark.asyncio
     async def test_fetch_all_device_data_exception_event(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """fetch_all_device_data should publish interface event on ClientException and not raise when decorated with re_raise=False."""
+        """fetch_all_device_data should publish FetchDataFailedEvent on ClientException and not raise when decorated with re_raise=False."""
+        from aiohomematic.central.event_bus import FetchDataFailedEvent
+
         central = _FakeCentral()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         from aiohomematic.client import ClientCCU as _ClientCCU, ClientConfig as _ClientConfig
@@ -807,18 +802,22 @@ class TestClientClasses:
 
         central.json_rpc_client.get_all_device_data = raise_client_exc  # type: ignore[assignment]
 
-        # Capture publish_interface_event calls
-        called: dict[str, Any] = {}
+        # Capture FetchDataFailedEvent by patching publish_sync
+        received_events: list[FetchDataFailedEvent] = []
+        original_publish_sync = central.event_bus.publish_sync
 
-        def _emit(**kwargs: Any) -> None:  # noqa: ANN001
-            called.update(kwargs)
+        def _capturing_publish_sync(*, event: Any) -> None:
+            if isinstance(event, FetchDataFailedEvent):
+                received_events.append(event)
+            original_publish_sync(event=event)
 
-        central.publish_interface_event = _emit  # type: ignore[assignment]
+        central._event_bus.publish_sync = _capturing_publish_sync  # type: ignore[method-assign]
 
         # Should not raise due to inspector(re_raise=False)
         await client_ccu.fetch_all_device_data()
 
-        assert called.get("interface_event_type") == InterfaceEventType.FETCH_DATA
+        assert len(received_events) == 1
+        assert received_events[0].interface_id == "c-BidCos-RF"
 
 
 class TestClientConfig:

@@ -14,7 +14,6 @@ from aiohomematic.central.event_bus import (
     DataPointUpdatedEvent,
     EventBus,
     HomematicEvent,
-    InterfaceEvent,
     SysvarUpdatedEvent,
 )
 from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, ParamsetKey
@@ -276,11 +275,10 @@ class TestEventBus:
         """Publishing with no subscribers should not raise errors."""
         bus = EventBus()
 
-        event = InterfaceEvent(
+        event = HomematicEvent(
             timestamp=datetime.now(),
-            interface_id="HmIP-RF",
-            event_type="CONNECTED",
-            data={},
+            event_type=EventType.KEYPRESS,
+            event_data={EventKey.ADDRESS: "HmIP-RF:1"},
         )
 
         # Should not raise

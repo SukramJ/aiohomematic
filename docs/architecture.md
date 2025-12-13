@@ -65,7 +65,7 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
 - **EventBusProvider**: Event system access (event_bus property)
-- **EventPublisher**: Event emission (publish_backend_system_event, publish_homematic_event)
+- **EventPublisher**: Event emission via EventCoordinator (publish_backend_system_event, publish_homematic_event)
 - **DataCacheProvider**: Data cache access (get_data method)
 - **ChannelLookup**: Channel lookup by address
 - **EventSubscriptionManager**: Event subscription management

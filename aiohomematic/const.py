@@ -567,10 +567,8 @@ class EventKey(StrEnum):
 class EventType(StrEnum):
     """Enum with aiohomematic event types."""
 
-    DEVICE_AVAILABILITY = "homematic.device_availability"
     DEVICE_ERROR = "homematic.device_error"
     IMPULSE = "homematic.impulse"
-    INTERFACE = "homematic.interface"
     KEYPRESS = "homematic.keypress"
 
 
@@ -898,14 +896,11 @@ class Interface(StrEnum):
     VIRTUAL_DEVICES = "VirtualDevices"
 
 
-class InterfaceEventType(StrEnum):
-    """Enum with aiohomematic interface event types."""
+class PingPongMismatchType(StrEnum):
+    """Enum for PING/PONG mismatch event types."""
 
-    CALLBACK = "callback"
-    FETCH_DATA = "fetch_data"
-    PENDING_PONG = "pending_pong"
-    PROXY = "proxy"
-    UNKNOWN_PONG = "unknown_pong"
+    PENDING = "pending"  # PING sent but no PONG received
+    UNKNOWN = "unknown"  # PONG received without matching PING
 
 
 class ParameterType(StrEnum):

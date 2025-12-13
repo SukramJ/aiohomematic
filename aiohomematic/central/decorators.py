@@ -83,7 +83,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
                 interface_id: str = args[0] if len(args) > 0 else str(kwargs[_INTERFACE_ID])
                 if client := hmcl.get_client(interface_id=interface_id):
                     client.modified_at = datetime.now()
-                    client.central.publish_backend_system_event(system_event=system_event, **kwargs)
+                    client.central.event_coordinator.publish_backend_system_event(system_event=system_event, **kwargs)
             except Exception as exc:  # pragma: no cover
                 _LOGGER.error(  # i18n-log: ignore
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Unable to reduce kwargs for backend_system_callback"

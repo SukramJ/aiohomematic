@@ -13,7 +13,8 @@ import logging
 from typing import Any, Final, TypeAlias
 
 from aiohomematic import i18n
-from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, EventType, Parameter, ParameterData, ParamsetKey
+from aiohomematic.central.event_bus import DeviceAvailabilityChangedEvent
+from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
@@ -80,9 +81,14 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             Parameter.STICKY_UN_REACH,
         ):
             self._device.publish_device_updated_event()
-            self._event_publisher.publish_homematic_event(
-                event_type=EventType.DEVICE_AVAILABILITY,
-                event_data=self.get_event_data(value=new_value),
+            self._event_bus_provider.event_bus.publish_sync(
+                event=DeviceAvailabilityChangedEvent(
+                    timestamp=datetime.now(),
+                    device_address=self._device.address,
+                    channel_address=self._channel.address,
+                    parameter=self._parameter,
+                    available=new_value is False,  # UN_REACH=True means unavailable
+                )
             )
 
     def is_state_change(self, *, value: ParameterT) -> bool:

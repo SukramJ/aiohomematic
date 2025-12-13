@@ -53,9 +53,15 @@ Key event types:
 - **DataPointUpdatedEvent**: Data point value changed
 - **BackendParameterEvent**: Raw parameter update from backend
 - **BackendSystemEventData**: System events (devices created, deleted, etc.)
-- **HomematicEvent**: Homematic-specific events (KEYPRESS, INTERFACE, etc.)
+- **HomematicEvent**: Homematic-specific events (KEYPRESS, etc.)
 - **SysvarUpdatedEvent**: System variable changed
-- **InterfaceEvent**: Interface-level events (connection state, etc.)
+- **CentralStateChangedEvent**: Central state machine state changed
+- **ClientStateChangedEvent**: Client state machine state changed
+- **CallbackStateChangedEvent**: Callback channel state changed
+- **ConnectionStateChangedEvent**: Interface connection state changed
+- **FetchDataFailedEvent**: Data fetch operation failed
+- **PingPongMismatchEvent**: PING/PONG mismatch detected
+- **DeviceAvailabilityChangedEvent**: Device availability changed
 
 ### EventBus Class
 
@@ -415,11 +421,20 @@ print(f"Failed handlers: {stats['failed_handlers']}")
 
 ## Related Documentation
 
+- [Event Reference](event_reference.md) - Complete reference of all event types
 - [Architecture Overview](architecture.md)
 - [Extension Points](extension_points.md)
 - [Testing Guidelines](../CLAUDE.md#testing-guidelines)
 
 ## Changelog
+
+### 2025-12-26 - Legacy Events Removed
+
+- Removed legacy `InterfaceEvent` system completely
+- Added `FetchDataFailedEvent` (replaces `InterfaceEventType.FETCH_DATA`)
+- Added `PingPongMismatchEvent` (replaces `PENDING_PONG` and `UNKNOWN_PONG`)
+- Added `DeviceAvailabilityChangedEvent` (new)
+- Updated event types list
 
 ### 2025-12-07 - Documentation Update
 

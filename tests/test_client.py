@@ -1312,9 +1312,12 @@ class TestClientRegistry:
         """get_client should return a client when CENTRAL_INSTANCES contains a matching central."""
         dummy_client = object()
 
-        fake_central = SimpleNamespace(
+        fake_client_coordinator = SimpleNamespace(
             has_client=lambda interface_id: interface_id == "iid",
             get_client=lambda interface_id: dummy_client if interface_id == "iid" else None,
+        )
+        fake_central = SimpleNamespace(
+            client_coordinator=fake_client_coordinator,
         )
 
         import aiohomematic.central as hmcu

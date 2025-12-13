@@ -112,7 +112,7 @@ class TestCentralBasics:
         await central.refresh_firmware_data(device_address="VCU2128127")
         await central.refresh_firmware_data()
         await central.refresh_firmware_data_by_state(device_firmware_states=DeviceFirmwareState.NEW_FIRMWARE_AVAILABLE)
-        await central.restart_clients()
+        await central.client_coordinator.restart_clients()
 
         await central.stop()
         assert central._has_active_threads is False

@@ -302,7 +302,7 @@ class CentralUnit(
         self._scheduler: Final = BackgroundScheduler(
             central_info=self,
             config_provider=self,
-            client_coordination=self,
+            client_coordinator=self._client_coordinator,
             connection_state_provider=self,
             device_data_refresher=self,
             event_coordinator=self._event_coordinator,
@@ -354,12 +354,12 @@ class CentralUnit(
 
     @property
     def all_clients_active(self) -> bool:
-        """Check if all configured clients exists in central."""
+        """Check if all clients are active (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.all_clients_active
 
     @property
     def available(self) -> bool:
-        """Return the availability of the central."""
+        """Return availability (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.available
 
     @property
@@ -389,7 +389,7 @@ class CentralUnit(
 
     @property
     def clients(self) -> tuple[ClientProtocol, ...]:
-        """Return all clients."""
+        """Return all clients (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.clients
 
     @property
@@ -404,7 +404,7 @@ class CentralUnit(
 
     @property
     def data_cache(self) -> CentralDataCache:
-        """Return data_cache cache."""
+        """Return data cache (internal use - use cache_coordinator for external access)."""
         return self._cache_coordinator.data_cache
 
     @property
@@ -414,12 +414,12 @@ class CentralUnit(
 
     @property
     def device_descriptions(self) -> DeviceDescriptionCache:
-        """Return device_descriptions cache."""
+        """Return device descriptions (internal use - use cache_coordinator for external access)."""
         return self._cache_coordinator.device_descriptions
 
     @property
     def device_details(self) -> DeviceDetailsCache:
-        """Return device_details cache."""
+        """Return device details (internal use - use cache_coordinator for external access)."""
         return self._cache_coordinator.device_details
 
     @property
@@ -429,7 +429,7 @@ class CentralUnit(
 
     @property
     def devices(self) -> tuple[DeviceProtocol, ...]:
-        """Return all devices."""
+        """Return all devices (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.devices
 
     @property
@@ -453,7 +453,7 @@ class CentralUnit(
 
     @property
     def has_clients(self) -> bool:
-        """Check if clients exists in central."""
+        """Check if clients exist (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.has_clients
 
     @property
@@ -473,22 +473,22 @@ class CentralUnit(
 
     @property
     def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
-        """Return the install mode data points by interface."""
+        """Return install mode data points (internal use - use hub_coordinator for external access)."""
         return self._hub_coordinator.install_mode_dps
 
     @property
     def interface_ids(self) -> frozenset[str]:
-        """Return all associated interface ids."""
+        """Return all interface IDs (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.interface_ids
 
     @property
     def interfaces(self) -> frozenset[Interface]:
-        """Return all associated interfaces."""
+        """Return all interfaces (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.interfaces
 
     @property
     def is_alive(self) -> bool:
-        """Return if XmlRPC-Server is alive."""
+        """Return if XmlRPC-Server is alive (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.is_alive
 
     @property
@@ -515,32 +515,27 @@ class CentralUnit(
 
     @property
     def parameter_visibility(self) -> ParameterVisibilityCache:
-        """Return parameter_visibility cache."""
+        """Return parameter visibility (internal use - use cache_coordinator for external access)."""
         return self._cache_coordinator.parameter_visibility
 
     @property
     def paramset_descriptions(self) -> ParamsetDescriptionCache:
-        """Return paramset_descriptions cache."""
+        """Return paramset descriptions (internal use - use cache_coordinator for external access)."""
         return self._cache_coordinator.paramset_descriptions
 
     @property
-    def poll_clients(self) -> tuple[ClientProtocol, ...]:
-        """Return clients that need to poll data."""
-        return self._client_coordinator.poll_clients
-
-    @property
     def primary_client(self) -> ClientProtocol | None:
-        """Return the primary client of the backend."""
+        """Return the primary client (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.primary_client
 
     @property
     def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
-        """Return the program data points."""
+        """Return program data points (internal use - use hub_coordinator for external access)."""
         return self._hub_coordinator.program_data_points
 
     @property
     def recorder(self) -> SessionRecorder:
-        """Return the session recorder."""
+        """Return session recorder (internal use - use cache_coordinator for external access)."""
         return self._cache_coordinator.recorder
 
     @property
@@ -556,26 +551,26 @@ class CentralUnit(
     @property
     def supports_ping_pong(self) -> bool:
         """Return the backend supports ping pong."""
-        if primary_client := self.primary_client:
+        if primary_client := self._client_coordinator.primary_client:
             return primary_client.supports_ping_pong
         return False
 
     @property
     def system_information(self) -> SystemInformation:
         """Return the system_information of the backend."""
-        if client := self.primary_client:
+        if client := self._client_coordinator.primary_client:
             return client.system_information
         return SystemInformation()
 
     @property
     def sysvar_data_points(self) -> tuple[GenericSysvarDataPointProtocol, ...]:
-        """Return the sysvar data points."""
+        """Return sysvar data points (internal use - use hub_coordinator for external access)."""
         return self._hub_coordinator.sysvar_data_points
 
     @info_property(log_context=True)
     def model(self) -> str | None:
         """Return the model of the backend."""
-        if not self._model and (client := self.primary_client):
+        if not self._model and (client := self._client_coordinator.primary_client):
             self._model = client.model
         return self._model
 
@@ -593,7 +588,7 @@ class CentralUnit(
     def version(self) -> str | None:
         """Return the version of the backend."""
         if self._version is None:
-            versions = [client.version for client in self.clients if client.version]
+            versions = [client.version for client in self._client_coordinator.clients if client.version]
             self._version = max(versions) if versions else None
         return self._version
 
@@ -608,7 +603,7 @@ class CentralUnit(
             True if the device was successfully accepted, False otherwise.
 
         """
-        if not (client := self.primary_client):
+        if not (client := self._client_coordinator.primary_client):
             _LOGGER.warning(
                 i18n.tr("log.central.accept_device_in_inbox.no_client", device_address=device_address, name=self.name)
             )
@@ -619,14 +614,14 @@ class CentralUnit(
 
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
-        """Add new devices to central unit."""
+        """Add new devices to central unit (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.add_new_devices(
             interface_id=interface_id, device_descriptions=device_descriptions
         )
 
     async def add_new_devices_manually(self, *, interface_id: str, address_names: Mapping[str, str | None]) -> None:
         """
-        Add new devices manually triggered to central unit.
+        Add new devices manually (internal use - use device_coordinator for external access).
 
         Args:
             interface_id: Interface identifier.
@@ -636,15 +631,15 @@ class CentralUnit(
         await self._device_coordinator.add_new_devices_manually(interface_id=interface_id, address_names=address_names)
 
     def add_program_data_point(self, *, program_dp: ProgramDpType) -> None:
-        """Add new program button."""
+        """Add program button (internal use - use hub_coordinator for external access)."""
         self._hub_coordinator.add_program_data_point(program_dp=program_dp)
 
     def add_sysvar_data_point(self, *, sysvar_data_point: GenericSysvarDataPointProtocol) -> None:
-        """Add new sysvar data point."""
+        """Add sysvar data point (internal use - use hub_coordinator for external access)."""
         self._hub_coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_data_point)
 
     async def clear_files(self) -> None:
-        """Remove all stored files and caches."""
+        """Clear all files (internal use - use cache_coordinator for external access)."""
         await self._cache_coordinator.clear_all()
 
     async def create_backup_and_download(self) -> BackupData | None:
@@ -655,13 +650,13 @@ class CentralUnit(
             BackupData with filename and content, or None if backup creation or download failed.
 
         """
-        if client := self.primary_client:
+        if client := self._client_coordinator.primary_client:
             return await client.create_backup_and_download()
         return None
 
     @inspector
     async def create_central_links(self) -> None:
-        """Create a central links to support press events on all channels with click events."""
+        """Create central links (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.create_central_links()
 
     async def create_client_instance(
@@ -691,7 +686,7 @@ class CentralUnit(
 
     def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Create install mode data points for all supported interfaces.
+        Create install mode data points (internal use - use hub_coordinator for external access).
 
         Returns a dict of InstallModeDpType by Interface.
         """
@@ -708,49 +703,49 @@ class CentralUnit(
         )
 
     async def delete_device(self, *, interface_id: str, device_address: str) -> None:
-        """Delete device from central."""
+        """Delete device (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.delete_device(interface_id=interface_id, device_address=device_address)
 
     @callback_backend_system(system_event=BackendSystemEvent.DELETE_DEVICES)
     async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
-        """Delete devices from central."""
+        """Delete devices (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.delete_devices(interface_id=interface_id, addresses=addresses)
 
     async def execute_program(self, *, pid: str) -> bool:
-        """Execute a program on the backend."""
+        """Execute program (internal use - use hub_coordinator for external access)."""
         return await self._hub_coordinator.execute_program(pid=pid)
 
     @inspector(re_raise=False)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
-        """Fetch inbox data for the hub."""
+        """Fetch inbox data (internal use - use hub_coordinator for external access)."""
         await self._hub_coordinator.fetch_inbox_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_install_mode_data(self, *, scheduled: bool = False) -> None:
-        """Fetch install mode data from the backend."""
+        """Fetch install mode data (internal use - use hub_coordinator for external access)."""
         await self._hub_coordinator.fetch_install_mode_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
-        """Fetch program data for the hub."""
+        """Fetch program data (internal use - use hub_coordinator for external access)."""
         await self._hub_coordinator.fetch_program_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_system_update_data(self, *, scheduled: bool) -> None:
-        """Fetch system update data for the hub."""
+        """Fetch system update data (internal use - use hub_coordinator for external access)."""
         await self._hub_coordinator.fetch_system_update_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
-        """Fetch sysvar data for the hub."""
+        """Fetch sysvar data (internal use - use hub_coordinator for external access)."""
         await self._hub_coordinator.fetch_sysvar_data(scheduled=scheduled)
 
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
-        """Return Homematic channel."""
+        """Return channel (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.get_channel(channel_address=channel_address)
 
     def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
-        """Return a client by interface_id or interface type."""
+        """Return a client (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.get_client(interface_id=interface_id, interface=interface)
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
@@ -785,7 +780,7 @@ class CentralUnit(
         return tuple(all_data_points)
 
     def get_device(self, *, address: str) -> DeviceProtocol | None:
-        """Return Homematic device."""
+        """Return device (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.get_device(address=address)
 
     def get_event(
@@ -840,7 +835,7 @@ class CentralUnit(
     def get_hub_data_points(
         self, *, category: DataPointCategory | None = None, registered: bool | None = None
     ) -> tuple[GenericHubDataPointProtocol, ...]:
-        """Return the program data points."""
+        """Return hub data points (internal use - use hub_coordinator for external access)."""
         return self._hub_coordinator.get_hub_data_points(category=category, registered=registered)
 
     async def get_install_mode(self, *, interface: Interface) -> int:
@@ -855,7 +850,7 @@ class CentralUnit(
 
         """
         try:
-            client = self.get_client(interface=interface)
+            client = self._client_coordinator.get_client(interface=interface)
             return await client.get_install_mode()
         except AioHomematicException:
             return 0
@@ -941,7 +936,7 @@ class CentralUnit(
         return tuple(parameters)
 
     def get_program_data_point(self, *, pid: str | None = None, legacy_name: str | None = None) -> ProgramDpType | None:
-        """Return the program data points."""
+        """Return program data point (internal use - use hub_coordinator for external access)."""
         return self._hub_coordinator.get_program_data_point(pid=pid, legacy_name=legacy_name)
 
     def get_readable_generic_data_points(
@@ -968,13 +963,13 @@ class CentralUnit(
         return tuple(data_point_paths)
 
     async def get_system_variable(self, *, legacy_name: str) -> Any | None:
-        """Get system variable from the backend."""
+        """Get system variable (internal use - use hub_coordinator for external access)."""
         return await self._hub_coordinator.get_system_variable(legacy_name=legacy_name)
 
     def get_sysvar_data_point(
         self, *, vid: str | None = None, legacy_name: str | None = None
     ) -> GenericSysvarDataPointProtocol | None:
-        """Return the sysvar data_point."""
+        """Return sysvar data point (internal use - use hub_coordinator for external access)."""
         return self._hub_coordinator.get_sysvar_data_point(vid=vid, legacy_name=legacy_name)
 
     def get_un_ignore_candidates(self, *, include_master: bool = False) -> list[str]:
@@ -1015,20 +1010,20 @@ class CentralUnit(
         return candidates
 
     def get_virtual_remotes(self) -> tuple[DeviceProtocol, ...]:
-        """Get the virtual remotes for all clients."""
+        """Get virtual remotes (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.get_virtual_remotes()
 
     def has_client(self, *, interface_id: str) -> bool:
-        """Check if client exists in central."""
+        """Check if client exists (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.has_client(interface_id=interface_id)
 
     def identify_channel(self, *, text: str) -> ChannelProtocol | None:
-        """Identify channel within a text."""
+        """Identify channel (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.identify_channel(text=text)
 
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
-        Initialize install mode data points for all supported interfaces.
+        Initialize install mode data points (internal use - use hub_coordinator for external access).
 
         Creates data points, fetches initial state from backend, and publishes refresh event.
         Returns a dict of InstallModeDpType by Interface.
@@ -1037,7 +1032,7 @@ class CentralUnit(
 
     @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
-        """Return already existing devices to the backend."""
+        """Return devices to backend (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.list_devices(interface_id=interface_id)
 
     @inspector(measure_performance=True)
@@ -1056,17 +1051,17 @@ class CentralUnit(
         )
 
     def publish_install_mode_refreshed(self) -> None:
-        """Publish HUB_REFRESHED event for install mode data points."""
+        """Publish HUB_REFRESHED event (internal use - use hub_coordinator for external access)."""
         self._hub_coordinator.publish_install_mode_refreshed()
 
     @inspector(re_raise=False)
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
-        """Refresh device firmware data."""
+        """Refresh firmware data (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.refresh_firmware_data(device_address=device_address)
 
     @inspector(re_raise=False)
     async def refresh_firmware_data_by_state(self, *, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
-        """Refresh device firmware data for processing devices."""
+        """Refresh firmware by state (internal use - use device_coordinator for external access)."""
         for device in [
             device_in_state
             for device_in_state in self.devices
@@ -1076,19 +1071,19 @@ class CentralUnit(
 
     @inspector
     async def remove_central_links(self) -> None:
-        """Remove central links."""
+        """Remove central links (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.remove_central_links()
 
     async def remove_device(self, *, device: DeviceProtocol) -> None:
-        """Remove device from central collections."""
+        """Remove device (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.remove_device(device=device)
 
     def remove_program_button(self, *, pid: str) -> None:
-        """Remove a program button."""
+        """Remove program button (internal use - use hub_coordinator for external access)."""
         self._hub_coordinator.remove_program_button(pid=pid)
 
     def remove_sysvar_data_point(self, *, vid: str) -> None:
-        """Remove a sysvar data_point."""
+        """Remove sysvar data point (internal use - use hub_coordinator for external access)."""
         self._hub_coordinator.remove_sysvar_data_point(vid=vid)
 
     async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
@@ -1121,17 +1116,13 @@ class CentralUnit(
 
         return True
 
-    async def restart_clients(self) -> None:
-        """Restart clients."""
-        await self._client_coordinator.restart_clients()
-
     async def save_files(
         self,
         *,
         save_device_descriptions: bool = False,
         save_paramset_descriptions: bool = False,
     ) -> None:
-        """Save persistent files to disk."""
+        """Save files (internal use - use cache_coordinator for external access)."""
         await self._cache_coordinator.save_all(
             save_device_descriptions=save_device_descriptions,
             save_paramset_descriptions=save_paramset_descriptions,
@@ -1161,17 +1152,17 @@ class CentralUnit(
 
         """
         try:
-            client = self.get_client(interface=interface)
+            client = self._client_coordinator.get_client(interface=interface)
             return await client.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
         except AioHomematicException:
             return False
 
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
-        """Execute a program on the backend."""
+        """Set program state (internal use - use hub_coordinator for external access)."""
         return await self._hub_coordinator.set_program_state(pid=pid, state=state)
 
     async def set_system_variable(self, *, legacy_name: str, value: Any) -> None:
-        """Set variable value on the backend."""
+        """Set system variable (internal use - use hub_coordinator for external access)."""
         await self._hub_coordinator.set_system_variable(legacy_name=legacy_name, value=value)
 
     async def start(self) -> None:
@@ -1240,7 +1231,7 @@ class CentralUnit(
 
         if self._config.start_direct:
             if await self._client_coordinator.start_clients():
-                for client in self.clients:
+                for client in self._client_coordinator.clients:
                     await self._device_coordinator.refresh_device_descriptions_and_create_missing_devices(
                         client=client,
                         refresh_only_existing=False,
@@ -1260,8 +1251,8 @@ class CentralUnit(
         _LOGGER.debug("START: Central %s is %s", self.name, self._state)
 
         # Transition central state machine based on client status
-        all_connected = all(client.state == ClientState.CONNECTED for client in self.clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in self.clients)
+        all_connected = all(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
         if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
             self._central_state_machine.transition_to(
                 target=CentralState.RUNNING,
@@ -1327,7 +1318,7 @@ class CentralUnit(
         _LOGGER.debug("STOP: In-memory caches cleared")
 
         # Clear client-level caches (command cache, ping-pong cache)
-        for client in self.clients:
+        for client in self._client_coordinator.clients:
             client.last_value_send_cache.clear()
             client.ping_pong_cache.clear()
         _LOGGER.debug("STOP: Client caches cleared")
@@ -1403,8 +1394,8 @@ class CentralUnit(
         )
 
         # Determine overall central state based on all client states
-        all_connected = all(client.state == ClientState.CONNECTED for client in self.clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in self.clients)
+        all_connected = all(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
 
         # Only transition if central is in a state that allows it
         if (current_state := self._central_state_machine.state) not in (CentralState.STARTING, CentralState.STOPPED):

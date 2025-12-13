@@ -27,6 +27,7 @@ from aiohomematic.const import (
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig
+    from aiohomematic.central.client_coordinator import ClientCoordinator
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.interfaces.model import (
         CallbackDataPointProtocol,
@@ -282,6 +283,10 @@ class DeviceDataRefresher(Protocol):
     """
 
     @abstractmethod
+    async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:
+        """Load and refresh data point data for an interface."""
+
+    @abstractmethod
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
         """Refresh device firmware data."""
 
@@ -420,6 +425,11 @@ class RpcServerCentralProtocol(Protocol):
 
     @property
     @abstractmethod
+    def client_coordinator(self) -> ClientCoordinator:
+        """Return the client coordinator."""
+
+    @property
+    @abstractmethod
     def name(self) -> str:
         """Return the central name."""
 
@@ -436,10 +446,6 @@ class RpcServerCentralProtocol(Protocol):
     @abstractmethod
     async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
         """Delete devices by addresses."""
-
-    @abstractmethod
-    def has_client(self, *, interface_id: str) -> bool:
-        """Check if a client exists for the given interface."""
 
     @abstractmethod
     def list_devices(self, *, interface_id: str) -> tuple[DeviceDescription, ...]:
@@ -702,15 +708,12 @@ class HealthProvider(Protocol):
 # circular import issues while allowing proper inheritance.
 from aiohomematic.interfaces.client import (  # noqa: E402
     CallbackAddressProvider,
-    ClientCoordination,
     ClientDependencies,
     ClientFactory,
-    ClientProvider,
     ConnectionStateProvider,
     DeviceLookup,
     JsonRpcClientProvider,
     NewDeviceHandler,
-    PrimaryClientProvider,
     SessionRecorderProvider,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProvider  # noqa: E402
@@ -734,15 +737,12 @@ class CentralProtocol(
     SystemInfoProvider,
     # From interfaces/client.py
     CallbackAddressProvider,
-    ClientCoordination,
     ClientDependencies,
     ClientFactory,
-    ClientProvider,
     ConnectionStateProvider,
     DeviceLookup,
     JsonRpcClientProvider,
     NewDeviceHandler,
-    PrimaryClientProvider,
     SessionRecorderProvider,
     # From interfaces/coordinators.py
     CoordinatorProvider,
@@ -765,9 +765,6 @@ class CentralProtocol(
 
     **Event System:**
         - EventBusProvider: Access to the central event bus
-        - EventPublisher: Publishing backend and Homematic events
-        - EventSubscriptionManager: Managing event subscriptions
-        - LastEventTracker: Tracking last event timestamps
 
     **Cache & Data Access:**
         - DataPointProvider: Find data points
@@ -785,19 +782,16 @@ class CentralProtocol(
         - HubDataFetcher: Fetch hub data
         - HubDataPointManager: Manage hub data points
 
-    **Client Management:**
-        - ClientProvider: Lookup clients by interface_id
+    **Client Management (via CoordinatorProvider.client_coordinator):**
         - ClientFactory: Create new client instances
         - ClientDependencies: Dependencies for clients
-        - ClientCoordination: Client coordination operations
-        - PrimaryClientProvider: Access to primary client
         - JsonRpcClientProvider: JSON-RPC client access
         - ConnectionStateProvider: Connection state information
         - CallbackAddressProvider: Callback address management
         - SessionRecorderProvider: Session recording access
 
     **Coordinators:**
-        - CoordinatorProvider: Access to coordinators
+        - CoordinatorProvider: Access to coordinators (client_coordinator, event_coordinator, etc.)
     """
 
     __slots__ = ()

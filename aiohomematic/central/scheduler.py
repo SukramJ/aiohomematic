@@ -24,6 +24,7 @@ import logging
 from typing import Final
 
 from aiohomematic import i18n
+from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.event_bus import BackendSystemEventData
 from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.const import (
@@ -48,7 +49,7 @@ from aiohomematic.interfaces.central import (
     EventBusProvider,
     HubDataFetcher,
 )
-from aiohomematic.interfaces.client import ClientCoordination, ConnectionStateProvider, JsonRpcClientProvider
+from aiohomematic.interfaces.client import ConnectionStateProvider, JsonRpcClientProvider
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -137,7 +138,7 @@ class BackgroundScheduler:
         *,
         central_info: CentralInfo,
         config_provider: ConfigProvider,
-        client_coordination: ClientCoordination,
+        client_coordinator: ClientCoordinator,
         connection_state_provider: ConnectionStateProvider,
         device_data_refresher: DeviceDataRefresher,
         event_coordinator: EventCoordinator,
@@ -153,7 +154,7 @@ class BackgroundScheduler:
         ----
             central_info: Provider for central system information
             config_provider: Provider for configuration access
-            client_coordination: Provider for client coordination operations
+            client_coordinator: Client coordinator for client operations
             connection_state_provider: Provider for connection state access
             device_data_refresher: Provider for device data refresh operations
             event_coordinator: Event coordinator for event management
@@ -165,7 +166,7 @@ class BackgroundScheduler:
         """
         self._central_info: Final = central_info
         self._config_provider: Final = config_provider
-        self._client_coordination: Final = client_coordination
+        self._client_coordinator: Final = client_coordinator
         self._connection_state_provider: Final = connection_state_provider
         self._device_data_refresher: Final = device_data_refresher
         self._event_coordinator: Final = event_coordinator
@@ -292,14 +293,14 @@ class BackgroundScheduler:
         """
         _LOGGER.debug("CHECK_CONNECTION: Checking connection to server %s", self._central_info.name)
         try:
-            if not self._client_coordination.all_clients_active:
+            if not self._client_coordinator.all_clients_active:
                 _LOGGER.error(
                     i18n.tr(
                         "log.central.scheduler.check_connection.no_clients",
                         name=self._central_info.name,
                     )
                 )
-                await self._client_coordination.restart_clients()
+                await self._client_coordinator.restart_clients()
 
             # Staged reconnection when connection is lost
             elif self._connection_lost_at is not None:
@@ -310,7 +311,7 @@ class BackgroundScheduler:
                 # These checks may involve pings to the CCU
                 clients_to_reconnect = [
                     client
-                    for client in self._client_coordination.clients
+                    for client in self._client_coordinator.clients
                     if client.available is False or not await client.is_connected() or not client.is_callback_alive()
                 ]
 
@@ -350,7 +351,7 @@ class BackgroundScheduler:
         is responding. Used during staged reconnection to verify service
         availability before attempting full init.
         """
-        for client in self._client_coordination.clients:
+        for client in self._client_coordinator.clients:
             # Access proxy's system.listMethods via XML-RPC magic method
             # pylint: disable=protected-access
             if hasattr(client, "_proxy") and hasattr(client._proxy, "system"):
@@ -439,7 +440,7 @@ class BackgroundScheduler:
 
     def _get_first_client_port(self) -> int | None:
         """Get the port from the first configured client."""
-        for client in self._client_coordination.clients:
+        for client in self._client_coordinator.clients:
             # Access internal config to get port - pylint: disable=protected-access
             if hasattr(client, "_config") and hasattr(client._config, "interface_config"):
                 port = client._config.interface_config.port  # pylint: disable=protected-access
@@ -568,11 +569,11 @@ class BackgroundScheduler:
             )
         )
 
-        reconnects = [client.reconnect() for client in self._client_coordination.clients]
+        reconnects = [client.reconnect() for client in self._client_coordinator.clients]
         await asyncio.gather(*reconnects)
 
         # Check which interfaces are now available
-        available_interfaces = [client.interface for client in self._client_coordination.clients if client.available]
+        available_interfaces = [client.interface for client in self._client_coordinator.clients if client.available]
 
         if available_interfaces:
             # Reconnection successful - reset state
@@ -618,9 +619,7 @@ class BackgroundScheduler:
         """
         # Check if any client uses the CCU backend (which has JSON-RPC service)
         uses_ccu_backend = any(
-            client.model == Backend.CCU
-            for client in self._client_coordination.clients
-            if client.interface in interfaces
+            client.model == Backend.CCU for client in self._client_coordinator.clients if client.interface in interfaces
         )
 
         # For CCU backends, wait for JSON-RPC service to become available
@@ -655,7 +654,7 @@ class BackgroundScheduler:
         # Wait for XML-RPC stability - verify all clients are in CONNECTED state AND
         # can actually communicate with the backend. The state machine may be in CONNECTED
         # state but the backend ports may not be fully ready yet.
-        clients_to_check = [client for client in self._client_coordination.clients if client.interface in interfaces]
+        clients_to_check = [client for client in self._client_coordinator.clients if client.interface in interfaces]
         for attempt in range(_POST_RECONNECT_MAX_RETRIES):
             all_stable = True
             for client in clients_to_check:
@@ -724,7 +723,7 @@ class BackgroundScheduler:
 
             try:
                 reloads = [
-                    self._client_coordination.load_and_refresh_data_point_data(interface=interface)
+                    self._device_data_refresher.load_and_refresh_data_point_data(interface=interface)
                     for interface in interfaces
                 ]
                 await asyncio.gather(*reloads)
@@ -796,10 +795,10 @@ class BackgroundScheduler:
         if not self._central_info.available:
             return
 
-        if (poll_clients := self._client_coordination.poll_clients) is not None and len(poll_clients) > 0:
+        if (poll_clients := self._client_coordinator.poll_clients) is not None and len(poll_clients) > 0:
             _LOGGER.debug("REFRESH_CLIENT_DATA: Loading data for %s", self._central_info.name)
             for client in poll_clients:
-                await self._client_coordination.load_and_refresh_data_point_data(interface=client.interface)
+                await self._device_data_refresher.load_and_refresh_data_point_data(interface=client.interface)
                 self._event_coordinator.set_last_event_seen_for_interface(interface_id=client.interface_id)
 
     async def _refresh_inbox_data(self) -> None:

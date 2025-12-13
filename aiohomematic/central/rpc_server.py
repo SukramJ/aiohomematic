@@ -233,7 +233,7 @@ class RpcServer(threading.Thread):
     def get_central_entry(self, *, interface_id: str) -> _CentralEntry | None:
         """Return a central entry by interface_id."""
         for entry in self._centrals.values():
-            if entry.central.has_client(interface_id=interface_id):
+            if entry.central.client_coordinator.has_client(interface_id=interface_id):
                 return entry
         return None
 

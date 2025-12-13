@@ -129,7 +129,7 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -162,7 +162,7 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -199,7 +199,7 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -237,7 +237,7 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -276,7 +276,7 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -309,7 +309,7 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -343,7 +343,7 @@ class TestBackgroundSchedulerEventHandling:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -378,7 +378,7 @@ class TestBackgroundSchedulerEventHandling:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -422,7 +422,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -456,7 +456,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -492,7 +492,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -524,7 +524,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -561,7 +561,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -606,7 +606,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -642,7 +642,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -678,7 +678,7 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -762,7 +762,7 @@ class TestSchedulerLoopExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -801,7 +801,7 @@ class TestSchedulerLoopExecution:
         BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -834,7 +834,7 @@ class TestSchedulerLoopExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -880,7 +880,7 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -916,7 +916,7 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -951,7 +951,7 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -987,7 +987,7 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -1024,7 +1024,7 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -1060,7 +1060,7 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -1097,7 +1097,7 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -1137,7 +1137,7 @@ class TestSchedulerFirmwareChecks:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -1172,7 +1172,7 @@ class TestSchedulerFirmwareChecks:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -1207,7 +1207,7 @@ class TestSchedulerFirmwareChecks:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,
@@ -1322,7 +1322,7 @@ class TestSchedulerErrorRecovery:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
             event_coordinator=central,

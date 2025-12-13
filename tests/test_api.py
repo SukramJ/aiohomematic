@@ -208,24 +208,29 @@ class TestHomematicAPIOperations:
     def mock_central(self) -> MagicMock:
         """Create a mock CentralUnit."""
         central = MagicMock()
-        central.has_clients = True
+        central.client_coordinator = MagicMock()
+        central.client_coordinator.has_clients = True
+        central.client_coordinator.clients = []
+        central.client_coordinator.get_client = MagicMock()
+        central.device_coordinator = MagicMock()
+        central.device_coordinator.get_device = MagicMock(return_value=None)
+        central.device_coordinator.devices = []
         central.connection_state.has_any_issue = False
-        central.devices = []
         return central
 
     def test_get_device(self, api_with_mock_central: HomematicAPI, mock_central: MagicMock) -> None:
-        """Test get_device calls central.get_device."""
+        """Test get_device calls central.device_coordinator.get_device."""
         mock_device = MagicMock()
-        mock_central.get_device.return_value = mock_device
+        mock_central.device_coordinator.get_device.return_value = mock_device
 
         result = api_with_mock_central.get_device(address="VCU0000001")
 
         assert result is mock_device
-        mock_central.get_device.assert_called_once_with(address="VCU0000001")
+        mock_central.device_coordinator.get_device.assert_called_once_with(address="VCU0000001")
 
     def test_is_connected_false_no_clients(self, api_with_mock_central: HomematicAPI, mock_central: MagicMock) -> None:
         """Test is_connected returns False when no clients."""
-        mock_central.has_clients = False
+        mock_central.client_coordinator.has_clients = False
 
         assert api_with_mock_central.is_connected is False
 
@@ -240,10 +245,10 @@ class TestHomematicAPIOperations:
         assert api_with_mock_central.is_connected is True
 
     def test_list_devices(self, api_with_mock_central: HomematicAPI, mock_central: MagicMock) -> None:
-        """Test list_devices returns devices from central."""
+        """Test list_devices returns devices from central.device_coordinator."""
         mock_device = MagicMock()
         mock_device.address = "VCU0000001"
-        mock_central.devices = [mock_device]
+        mock_central.device_coordinator.devices = [mock_device]
 
         devices = list(api_with_mock_central.list_devices())
 
@@ -255,11 +260,11 @@ class TestHomematicAPIOperations:
         """Test read_value calls client.get_value."""
         mock_device = MagicMock()
         mock_device.interface_id = "BidCos-RF"
-        mock_central.get_device.return_value = mock_device
+        mock_central.device_coordinator.get_device.return_value = mock_device
 
         mock_client = AsyncMock()
         mock_client.get_value.return_value = True
-        mock_central.get_client.return_value = mock_client
+        mock_central.client_coordinator.get_client.return_value = mock_client
 
         result = await api_with_mock_central.read_value(
             channel_address="VCU0000001:1",
@@ -267,15 +272,15 @@ class TestHomematicAPIOperations:
         )
 
         assert result is True
-        mock_central.get_device.assert_called_once_with(address="VCU0000001")
-        mock_central.get_client.assert_called_once_with(interface_id="BidCos-RF")
+        mock_central.device_coordinator.get_device.assert_called_once_with(address="VCU0000001")
+        mock_central.client_coordinator.get_client.assert_called_once_with(interface_id="BidCos-RF")
 
     @pytest.mark.asyncio
     async def test_read_value_device_not_found(
         self, api_with_mock_central: HomematicAPI, mock_central: MagicMock
     ) -> None:
         """Test read_value raises ValueError when device not found."""
-        mock_central.get_device.return_value = None
+        mock_central.device_coordinator.get_device.return_value = None
 
         with pytest.raises(ValueError, match="Device not found"):
             await api_with_mock_central.read_value(
@@ -288,7 +293,7 @@ class TestHomematicAPIOperations:
         """Test refresh_data calls fetch_all_device_data on all clients."""
         mock_client1 = AsyncMock()
         mock_client2 = AsyncMock()
-        mock_central.clients = [mock_client1, mock_client2]
+        mock_central.client_coordinator.clients = [mock_client1, mock_client2]
 
         await api_with_mock_central.refresh_data()
 
@@ -315,10 +320,10 @@ class TestHomematicAPIOperations:
         """Test write_value calls client.set_value."""
         mock_device = MagicMock()
         mock_device.interface_id = "BidCos-RF"
-        mock_central.get_device.return_value = mock_device
+        mock_central.device_coordinator.get_device.return_value = mock_device
 
         mock_client = AsyncMock()
-        mock_central.get_client.return_value = mock_client
+        mock_central.client_coordinator.get_client.return_value = mock_client
 
         await api_with_mock_central.write_value(
             channel_address="VCU0000001:1",
@@ -333,7 +338,7 @@ class TestHomematicAPIOperations:
         self, api_with_mock_central: HomematicAPI, mock_central: MagicMock
     ) -> None:
         """Test write_value raises ValueError when device not found."""
-        mock_central.get_device.return_value = None
+        mock_central.device_coordinator.get_device.return_value = None
 
         with pytest.raises(ValueError, match="Device not found"):
             await api_with_mock_central.write_value(
@@ -414,9 +419,14 @@ class TestHomematicAPIRetry:
     def mock_central(self) -> MagicMock:
         """Create a mock CentralUnit."""
         central = MagicMock()
-        central.has_clients = True
+        central.client_coordinator = MagicMock()
+        central.client_coordinator.has_clients = True
+        central.client_coordinator.clients = []
+        central.client_coordinator.get_client = MagicMock()
+        central.device_coordinator = MagicMock()
+        central.device_coordinator.get_device = MagicMock(return_value=None)
+        central.device_coordinator.devices = []
         central.connection_state.has_any_issue = False
-        central.devices = []
         return central
 
     @pytest.mark.asyncio
@@ -426,12 +436,12 @@ class TestHomematicAPIRetry:
         """Test read_value raises after exhausting all retries."""
         mock_device = MagicMock()
         mock_device.interface_id = "BidCos-RF"
-        mock_central.get_device.return_value = mock_device
+        mock_central.device_coordinator.get_device.return_value = mock_device
 
         mock_client = AsyncMock()
         # All calls fail with connection error
         mock_client.get_value.side_effect = ConnectionError("Connection refused")
-        mock_central.get_client.return_value = mock_client
+        mock_central.client_coordinator.get_client.return_value = mock_client
 
         with pytest.raises(ConnectionError, match="Connection refused"):
             await api_with_mock_central.read_value(
@@ -451,11 +461,11 @@ class TestHomematicAPIRetry:
 
         mock_device = MagicMock()
         mock_device.interface_id = "BidCos-RF"
-        mock_central.get_device.return_value = mock_device
+        mock_central.device_coordinator.get_device.return_value = mock_device
 
         mock_client = AsyncMock()
         mock_client.get_value.side_effect = AuthFailure("Invalid credentials")
-        mock_central.get_client.return_value = mock_client
+        mock_central.client_coordinator.get_client.return_value = mock_client
 
         with pytest.raises(AuthFailure):
             await api_with_mock_central.read_value(
@@ -473,12 +483,12 @@ class TestHomematicAPIRetry:
         """Test read_value retries on transient connection errors."""
         mock_device = MagicMock()
         mock_device.interface_id = "BidCos-RF"
-        mock_central.get_device.return_value = mock_device
+        mock_central.device_coordinator.get_device.return_value = mock_device
 
         mock_client = AsyncMock()
         # First call fails with ConnectionError, second succeeds
         mock_client.get_value.side_effect = [ConnectionError("Connection refused"), "success"]
-        mock_central.get_client.return_value = mock_client
+        mock_central.client_coordinator.get_client.return_value = mock_client
 
         result = await api_with_mock_central.read_value(
             channel_address="VCU0000001:1",
@@ -503,7 +513,7 @@ class TestHomematicAPIRetry:
         # Succeeds on first try
         mock_client2.fetch_all_device_data.return_value = None
 
-        mock_central.clients = [mock_client1, mock_client2]
+        mock_central.client_coordinator.clients = [mock_client1, mock_client2]
 
         await api_with_mock_central.refresh_data()
 
@@ -519,12 +529,12 @@ class TestHomematicAPIRetry:
         """Test write_value retries on timeout errors."""
         mock_device = MagicMock()
         mock_device.interface_id = "BidCos-RF"
-        mock_central.get_device.return_value = mock_device
+        mock_central.device_coordinator.get_device.return_value = mock_device
 
         mock_client = AsyncMock()
         # First call times out, second succeeds
         mock_client.set_value.side_effect = [TimeoutError(), None]
-        mock_central.get_client.return_value = mock_client
+        mock_central.client_coordinator.get_client.return_value = mock_client
 
         await api_with_mock_central.write_value(
             channel_address="VCU0000001:1",

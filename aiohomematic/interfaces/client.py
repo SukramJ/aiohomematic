@@ -762,10 +762,6 @@ class ClientCoordination(Protocol):
         """Get client by interface_id or interface type."""
 
     @abstractmethod
-    async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:
-        """Load and refresh data point data for an interface."""
-
-    @abstractmethod
     async def restart_clients(self) -> None:
         """Restart all clients."""
 

@@ -57,6 +57,7 @@ from aiohomematic.interfaces.operations import TaskScheduler
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
+    from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
@@ -1073,6 +1074,11 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
+    def device_coordinator(self) -> DeviceCoordinator:
+        """Return the device coordinator."""
+
+    @property
+    @abstractmethod
     def device_descriptions(self) -> DeviceDescriptionsAccess:
         """Return device descriptions cache."""
 
@@ -1135,15 +1141,6 @@ class ClientDependencies(Protocol):
     @abstractmethod
     def recorder(self) -> SessionRecorder:
         """Return session recorder."""
-
-    @abstractmethod
-    async def add_new_devices(
-        self,
-        *,
-        interface_id: str,
-        device_descriptions: tuple[DeviceDescription, ...],
-    ) -> None:
-        """Add new devices from the backend."""
 
     @abstractmethod
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:

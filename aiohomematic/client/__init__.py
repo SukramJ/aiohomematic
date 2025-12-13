@@ -688,7 +688,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._state_machine.transition_to(target=ClientState.CONNECTING)
         if not self.supports_rpc_callback:
             if device_descriptions := await self.list_devices():
-                await self.central.add_new_devices(
+                await self.central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
                 )
                 self._state_machine.transition_to(target=ClientState.CONNECTED)

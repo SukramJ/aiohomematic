@@ -23,6 +23,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
+from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
@@ -171,6 +172,7 @@ class DeviceCoordinator:
         """Return all devices."""
         return self.device_registry.devices
 
+    @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """
         Add new devices to central unit (callback from backend).
@@ -426,6 +428,7 @@ class DeviceCoordinator:
 
         await self.delete_devices(interface_id=interface_id, addresses=(device_address, *tuple(device.channels.keys())))
 
+    @callback_backend_system(system_event=BackendSystemEvent.DELETE_DEVICES)
     async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
         """
         Delete multiple devices from central.
@@ -500,6 +503,7 @@ class DeviceCoordinator:
         """
         return self.device_registry.identify_channel(text=text)
 
+    @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
         """
         Return already existing devices to the backend.

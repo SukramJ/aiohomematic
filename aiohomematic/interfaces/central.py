@@ -9,14 +9,13 @@ to the full CentralUnit implementation.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Awaitable, Mapping
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
     BackendSystemEvent,
     BackupData,
     CentralUnitState,
-    DeviceDescription,
     DeviceFirmwareState,
     EventKey,
     EventType,
@@ -28,7 +27,9 @@ from aiohomematic.const import (
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig
     from aiohomematic.central.client_coordinator import ClientCoordinator
+    from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.interfaces.model import (
         CallbackDataPointProtocol,
         ChannelProtocol,
@@ -430,26 +431,18 @@ class RpcServerCentralProtocol(Protocol):
 
     @property
     @abstractmethod
+    def device_coordinator(self) -> DeviceCoordinator:
+        """Return the device coordinator."""
+
+    @property
+    @abstractmethod
+    def event_coordinator(self) -> EventCoordinator:
+        """Return the event coordinator."""
+
+    @property
+    @abstractmethod
     def name(self) -> str:
         """Return the central name."""
-
-    @abstractmethod
-    async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[dict[str, Any], ...]) -> None:
-        """Add new devices from the backend."""
-
-    @abstractmethod
-    def data_point_event(
-        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
-    ) -> Awaitable[None] | Awaitable[Awaitable[None]]:
-        """Handle a data point event from the backend."""
-
-    @abstractmethod
-    async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
-        """Delete devices by addresses."""
-
-    @abstractmethod
-    def list_devices(self, *, interface_id: str) -> tuple[DeviceDescription, ...]:
-        """Return device descriptions for the interface."""
 
 
 @runtime_checkable
@@ -713,7 +706,6 @@ from aiohomematic.interfaces.client import (  # noqa: E402
     ConnectionStateProvider,
     DeviceLookup,
     JsonRpcClientProvider,
-    NewDeviceHandler,
     SessionRecorderProvider,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProvider  # noqa: E402
@@ -742,7 +734,6 @@ class CentralProtocol(
     ConnectionStateProvider,
     DeviceLookup,
     JsonRpcClientProvider,
-    NewDeviceHandler,
     SessionRecorderProvider,
     # From interfaces/coordinators.py
     CoordinatorProvider,
@@ -775,7 +766,6 @@ class CentralProtocol(
 
     **Device Operations:**
         - DeviceDataRefresher: Refresh device data from backend
-        - NewDeviceHandler: Handle new device discovery
         - BackupProvider: Backup operations
 
     **Hub Operations:**

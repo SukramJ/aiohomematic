@@ -155,8 +155,16 @@ class TestEventCoordinatorDataPointEvent:
             value=True,
         )
 
-        # Should not create any tasks when client doesn't exist
-        assert len(central.looper.tasks) == 0
+        # Method returns early when client doesn't exist:
+        # - last_event_seen_for_interface should not be set
+        assert len(coordinator._last_event_seen_for_interface) == 0
+
+        # Note: The @callback_event decorator on data_point_event creates a task
+        # after the method returns (for re-publishing to external callbacks).
+        # This is separate from the early return behavior we're testing.
+        # Filter out decorator wrapper tasks to verify no other tasks were created
+        non_decorator_tasks = [t for t in central.looper.tasks if t["name"] != "wrapper_event_callback"]
+        assert len(non_decorator_tasks) == 0
 
     @pytest.mark.asyncio
     async def test_data_point_event_pong_response(self) -> None:

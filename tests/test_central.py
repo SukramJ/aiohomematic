@@ -1323,6 +1323,7 @@ class TestCentralEventHandling:
 
         Note: Legacy callback exception handling has been removed. Events are now
         handled via EventBus. This test verifies data_point_event completes successfully.
+        The @callback_event decorator is now on EventCoordinator.data_point_event.
         """
         from unittest.mock import AsyncMock, MagicMock
 
@@ -1335,9 +1336,10 @@ class TestCentralEventHandling:
         event_coordinator = EventCoordinator.__new__(EventCoordinator)  # type: ignore[call-arg]
         event_coordinator._last_event_seen_for_interface = {}  # type: ignore[attr-defined]
 
-        # Mock looper and event_bus to prevent AttributeError during arg evaluation
-        mock_looper = MagicMock()
-        mock_looper.create_task = MagicMock()
+        # Mock task_scheduler for decorator (decorator is now on EventCoordinator.data_point_event)
+        mock_task_scheduler = MagicMock()
+        mock_task_scheduler.create_task = MagicMock()
+        event_coordinator._task_scheduler = mock_task_scheduler  # type: ignore[attr-defined]
 
         mock_event_bus = MagicMock()
         mock_event_bus.publish = AsyncMock()
@@ -1345,7 +1347,6 @@ class TestCentralEventHandling:
 
         # Set event coordinator on central
         central._event_coordinator = event_coordinator  # type: ignore[attr-defined]
-        central._looper = mock_looper  # type: ignore[attr-defined]
 
         # Mock client_provider for event_coordinator's dependency injection
         mock_client_provider = MagicMock()
@@ -1353,16 +1354,15 @@ class TestCentralEventHandling:
         event_coordinator._client_provider = mock_client_provider  # type: ignore[attr-defined]
 
         # Exercise the path; should complete without exceptions
-        await hmcu.CentralUnit.data_point_event(  # call unbound to avoid missing bound attributes
-            central,
+        await central.data_point_event(
             interface_id="if1",
             channel_address="A:1",
             parameter="STATE",
             value="v",
         )
 
-        # Verify EventBus publish was called via create_task
-        assert mock_looper.create_task.called
+        # Verify EventBus publish was called via create_task on the task_scheduler
+        assert mock_task_scheduler.create_task.called
 
     # Note: Tests for start() and stop() error handling require complex setup
     # and are better suited for integration tests with full central initialization

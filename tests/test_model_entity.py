@@ -83,7 +83,7 @@ class TestDataPointCallbacks:
         event = call_args[0][0]  # First positional argument
         assert event.system_event == "deleteDevices"
         assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
-        assert event.data.get("addresses") == ["VCU2128127"]
+        assert event.data.get("addresses") == ("VCU2128127",)
         unregister_data_point_updated_handler()
         unregister_device_removed_handler()
 
@@ -141,7 +141,7 @@ class TestDataPointCallbacks:
         event = call_args[0][0]  # First positional argument
         assert event.system_event == "deleteDevices"
         assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
-        assert event.data.get("addresses") == ["VCU2128127"]
+        assert event.data.get("addresses") == ("VCU2128127",)
         # Call the unregister handler to clean up
         if unregister_updated:
             unregister_updated()

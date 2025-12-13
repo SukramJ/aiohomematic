@@ -78,7 +78,6 @@ from aiohomematic.async_support import Looper
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.cache_coordinator import CacheCoordinator
 from aiohomematic.central.client_coordinator import ClientCoordinator
-from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.event_bus import (
@@ -133,7 +132,6 @@ from aiohomematic.const import (
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     UN_IGNORE_WILDCARD,
-    BackendSystemEvent,
     BackupData,
     CentralState,
     CentralUnitState,
@@ -222,7 +220,7 @@ class CentralUnit(
 ):
     """Central unit that collects everything to handle communication from/to the backend."""
 
-    def __init__(self, *, central_config: CentralConfig) -> None:  # pylint: disable=super-init-not-called
+    def __init__(self, *, central_config: CentralConfig) -> None:
         """Initialize the central unit."""
         self._state: CentralUnitState = CentralUnitState.NEW
         # Keep the config for the central
@@ -612,9 +610,8 @@ class CentralUnit(
         result = await client.accept_device_in_inbox(device_address=device_address)
         return bool(result)
 
-    @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
-        """Add new devices to central unit (internal use - use device_coordinator for external access)."""
+        """Add new devices (convenience method - delegates to device_coordinator)."""
         await self._device_coordinator.add_new_devices(
             interface_id=interface_id, device_descriptions=device_descriptions
         )
@@ -692,9 +689,8 @@ class CentralUnit(
         """
         return self._hub_coordinator.create_install_mode_dps()
 
-    @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
-        """Handle device data point events."""
+        """Handle data point event (convenience method - delegates to event_coordinator)."""
         await self._event_coordinator.data_point_event(
             interface_id=interface_id,
             channel_address=channel_address,
@@ -706,10 +702,9 @@ class CentralUnit(
         """Delete device (internal use - use device_coordinator for external access)."""
         await self._device_coordinator.delete_device(interface_id=interface_id, device_address=device_address)
 
-    @callback_backend_system(system_event=BackendSystemEvent.DELETE_DEVICES)
-    async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
-        """Delete devices (internal use - use device_coordinator for external access)."""
-        await self._device_coordinator.delete_devices(interface_id=interface_id, addresses=addresses)
+    async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...] | list[str]) -> None:
+        """Delete devices (convenience method - delegates to device_coordinator)."""
+        await self._device_coordinator.delete_devices(interface_id=interface_id, addresses=tuple(addresses))
 
     async def execute_program(self, *, pid: str) -> bool:
         """Execute program (internal use - use hub_coordinator for external access)."""
@@ -1029,11 +1024,6 @@ class CentralUnit(
         Returns a dict of InstallModeDpType by Interface.
         """
         return await self._hub_coordinator.init_install_mode()
-
-    @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
-    def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
-        """Return devices to backend (internal use - use device_coordinator for external access)."""
-        return self._device_coordinator.list_devices(interface_id=interface_id)
 
     @inspector(measure_performance=True)
     async def load_and_refresh_data_point_data(

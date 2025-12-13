@@ -459,6 +459,11 @@ class _FakeCentral2:
         return self._event_bus
 
     @property
+    def event_coordinator(self):  # noqa: D401,ANN001
+        """Return the event coordinator."""
+        return self
+
+    @property
     def listen_port_xml_rpc(self) -> int:  # noqa: D401
         return self._listen_port_xml_rpc
 

@@ -123,7 +123,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
 
             if client := hmcl.get_client(interface_id=interface_id):
                 client.modified_at = datetime.now()
-                client.central.publish_backend_parameter_event(
+                client.central.event_coordinator.publish_backend_parameter_event(
                     interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
                 )
         except Exception as exc:  # pragma: no cover

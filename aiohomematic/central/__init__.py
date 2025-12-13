@@ -74,7 +74,7 @@ from typing import Any, Final
 from aiohttp import ClientSession
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.async_support import Looper, loop_check
+from aiohomematic.async_support import Looper
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.cache_coordinator import CacheCoordinator
 from aiohomematic.central.client_coordinator import ClientCoordinator
@@ -164,7 +164,6 @@ from aiohomematic.exceptions import (
 from aiohomematic.interfaces.central import CentralProtocol, EventBusProvider
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
-    BaseParameterDataPointProtocol,
     CallbackDataPointProtocol,
     ChannelProtocol,
     CustomDataPointProtocol,
@@ -273,7 +272,7 @@ class CentralUnit(
             device_details_provider=self.device_details,
             event_bus_provider=self,
             event_publisher=self._event_coordinator,
-            event_subscription_manager=self,
+            event_subscription_manager=self._event_coordinator,
             file_operations=self,
             parameter_visibility_provider=self.parameter_visibility,
             paramset_description_provider=self.paramset_descriptions,
@@ -306,6 +305,7 @@ class CentralUnit(
             client_coordination=self,
             connection_state_provider=self,
             device_data_refresher=self,
+            event_coordinator=self._event_coordinator,
             hub_data_fetcher=self,
             event_bus_provider=self,
             json_rpc_client_provider=self,
@@ -617,10 +617,6 @@ class CentralUnit(
         result = await client.accept_device_in_inbox(device_address=device_address)
         return bool(result)
 
-    def add_event_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
-        """Add data_point to central event subscription."""
-        self._event_coordinator.add_data_point_subscription(data_point=data_point)
-
     @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Add new devices to central unit."""
@@ -864,10 +860,6 @@ class CentralUnit(
         except AioHomematicException:
             return 0
 
-    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
-        """Return the last event seen for an interface."""
-        return self._event_coordinator.get_last_event_seen_for_interface(interface_id=interface_id)
-
     def get_parameters(
         self,
         *,
@@ -1063,22 +1055,6 @@ class CentralUnit(
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
-    @loop_check
-    def publish_backend_parameter_event(
-        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
-    ) -> None:
-        """
-        Publish backend_parameter callback in central.
-
-        Re-published events from the backend for parameter updates.
-        """
-        self._event_coordinator.publish_backend_parameter_event(
-            interface_id=interface_id,
-            channel_address=channel_address,
-            parameter=parameter,
-            value=value,
-        )
-
     def publish_install_mode_refreshed(self) -> None:
         """Publish HUB_REFRESHED event for install mode data points."""
         self._hub_coordinator.publish_install_mode_refreshed()
@@ -1189,10 +1165,6 @@ class CentralUnit(
             return await client.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
         except AioHomematicException:
             return False
-
-    def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
-        """Set the last event seen for an interface."""
-        self._event_coordinator.set_last_event_seen_for_interface(interface_id=interface_id)
 
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Execute a program on the backend."""

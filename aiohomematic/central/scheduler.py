@@ -25,6 +25,7 @@ from typing import Final
 
 from aiohomematic import i18n
 from aiohomematic.central.event_bus import BackendSystemEventData
+from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.const import (
     DEVICE_FIRMWARE_CHECK_INTERVAL,
     DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
@@ -139,6 +140,7 @@ class BackgroundScheduler:
         client_coordination: ClientCoordination,
         connection_state_provider: ConnectionStateProvider,
         device_data_refresher: DeviceDataRefresher,
+        event_coordinator: EventCoordinator,
         hub_data_fetcher: HubDataFetcher,
         event_bus_provider: EventBusProvider,
         json_rpc_client_provider: JsonRpcClientProvider,
@@ -154,6 +156,7 @@ class BackgroundScheduler:
             client_coordination: Provider for client coordination operations
             connection_state_provider: Provider for connection state access
             device_data_refresher: Provider for device data refresh operations
+            event_coordinator: Event coordinator for event management
             hub_data_fetcher: Provider for hub data fetch operations
             event_bus_provider: Provider for event bus access
             json_rpc_client_provider: Provider for JSON-RPC client access
@@ -165,6 +168,7 @@ class BackgroundScheduler:
         self._client_coordination: Final = client_coordination
         self._connection_state_provider: Final = connection_state_provider
         self._device_data_refresher: Final = device_data_refresher
+        self._event_coordinator: Final = event_coordinator
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._event_bus_provider: Final = event_bus_provider
         self._json_rpc_client_provider: Final = json_rpc_client_provider
@@ -796,7 +800,7 @@ class BackgroundScheduler:
             _LOGGER.debug("REFRESH_CLIENT_DATA: Loading data for %s", self._central_info.name)
             for client in poll_clients:
                 await self._client_coordination.load_and_refresh_data_point_data(interface=client.interface)
-                self._client_coordination.set_last_event_seen_for_interface(interface_id=client.interface_id)
+                self._event_coordinator.set_last_event_seen_for_interface(interface_id=client.interface_id)
 
     async def _refresh_inbox_data(self) -> None:
         """Refresh inbox data."""

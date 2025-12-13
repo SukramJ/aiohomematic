@@ -1322,7 +1322,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     def add_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPointProtocol):
-            self._device.event_subscription_manager.add_event_subscription(data_point=data_point)
+            self._device.event_subscription_manager.add_data_point_subscription(data_point=data_point)
             self._state_path_to_dpk[data_point.state_path] = data_point.dpk
         if isinstance(data_point, CalculatedDataPointProtocol):
             self._calculated_data_points[data_point.dpk] = data_point

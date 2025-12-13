@@ -769,10 +769,6 @@ class ClientCoordination(Protocol):
     async def restart_clients(self) -> None:
         """Restart all clients."""
 
-    @abstractmethod
-    def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
-        """Set the last event seen time for an interface."""
-
 
 @runtime_checkable
 class PrimaryClientProvider(Protocol):
@@ -1170,16 +1166,6 @@ class ClientDependencies(Protocol):
         paramset_key: ParamsetKey,
     ) -> Any | None:
         """Return generic data point."""
-
-    @abstractmethod
-    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
-        """Return last event timestamp for an interface."""
-
-    @abstractmethod
-    def publish_backend_parameter_event(
-        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
-    ) -> None:
-        """Publish backend parameter callback in central."""
 
     @abstractmethod
     async def save_files(

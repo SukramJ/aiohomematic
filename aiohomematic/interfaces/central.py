@@ -399,11 +399,11 @@ class EventSubscriptionManager(Protocol):
     """
     Protocol for managing event subscriptions.
 
-    Implemented by CentralUnit.
+    Implemented by EventCoordinator.
     """
 
     @abstractmethod
-    def add_event_subscription(self, *, data_point: Any) -> None:
+    def add_data_point_subscription(self, *, data_point: Any) -> None:
         """Add an event subscription for a data point."""
 
 
@@ -709,7 +709,6 @@ from aiohomematic.interfaces.client import (  # noqa: E402
     ConnectionStateProvider,
     DeviceLookup,
     JsonRpcClientProvider,
-    LastEventTracker,
     NewDeviceHandler,
     PrimaryClientProvider,
     SessionRecorderProvider,
@@ -729,7 +728,6 @@ class CentralProtocol(
     DeviceDataRefresher,
     DeviceProvider,
     EventBusProvider,
-    EventSubscriptionManager,
     FileOperations,
     HubDataFetcher,
     HubDataPointManager,
@@ -743,7 +741,6 @@ class CentralProtocol(
     ConnectionStateProvider,
     DeviceLookup,
     JsonRpcClientProvider,
-    LastEventTracker,
     NewDeviceHandler,
     PrimaryClientProvider,
     SessionRecorderProvider,

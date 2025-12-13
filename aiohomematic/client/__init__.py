@@ -762,7 +762,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
         # Check event timestamp for all other states (including startup states)
         if (
-            last_events_dt := self.central.get_last_event_seen_for_interface(interface_id=self.interface_id)
+            last_events_dt := self.central.event_coordinator.get_last_event_seen_for_interface(
+                interface_id=self.interface_id
+            )
         ) is not None:
             callback_warn = self._config.central.config.timeout_config.callback_warn_interval
             if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > callback_warn:

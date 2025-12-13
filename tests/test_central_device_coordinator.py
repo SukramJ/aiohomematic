@@ -145,6 +145,10 @@ class _FakeCacheCoordinator:
         self.device_descriptions = MagicMock()
         self.device_descriptions.has_device_descriptions = MagicMock(return_value=True)
         self.device_descriptions.get_raw_device_descriptions = MagicMock(return_value=[])
+        self.device_details = MagicMock()
+        self.data_cache = MagicMock()
+        self.parameter_visibility = MagicMock()
+        self.paramset_descriptions = MagicMock()
         self.remove_device_from_caches = MagicMock()
         self.save_all = AsyncMock()
 
@@ -183,6 +187,7 @@ class _FakeCentral:
         self.device_registry = _FakeDeviceRegistry()
         self.cache_coordinator = _FakeCacheCoordinator()
         self.client_coordinator = _FakeClientCoordinator()
+        self.device_coordinator = MagicMock()
         # Add protocol interface mocks
         self.data_cache = MagicMock()
         self.device_descriptions = MagicMock()
@@ -201,21 +206,19 @@ class TestDeviceCoordinatorBasics:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -227,21 +230,19 @@ class TestDeviceCoordinatorBasics:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -253,21 +254,19 @@ class TestDeviceCoordinatorBasics:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -291,21 +290,19 @@ class TestDeviceCoordinatorGetOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -317,21 +314,19 @@ class TestDeviceCoordinatorGetOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -347,21 +342,19 @@ class TestDeviceCoordinatorGetOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -373,21 +366,19 @@ class TestDeviceCoordinatorGetOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -402,21 +393,19 @@ class TestDeviceCoordinatorGetOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -428,21 +417,19 @@ class TestDeviceCoordinatorGetOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -454,21 +441,19 @@ class TestDeviceCoordinatorGetOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -498,21 +483,19 @@ class TestDeviceCoordinatorRemoveOperations:
         with patch.object(DeviceCoordinator, "delete_devices", new=AsyncMock()) as mock_delete:
             coordinator = DeviceCoordinator(
                 central_info=central,
-                channel_lookup=central,
                 client_provider=central,
                 config_provider=central,
                 coordinator_provider=central,
-                data_cache_provider=central.data_cache,
+                data_cache_provider=central.cache_coordinator.data_cache,
                 data_point_provider=central,
-                device_data_refresher=central,
-                device_description_provider=central.device_descriptions,
-                device_details_provider=central.device_details,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
                 event_bus_provider=central,
                 event_publisher=central,
                 event_subscription_manager=central,
                 file_operations=central,
-                parameter_visibility_provider=central.parameter_visibility,
-                paramset_description_provider=central.paramset_descriptions,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
             await coordinator.delete_device(interface_id="BidCos-RF", device_address="VCU0000001")
@@ -529,21 +512,19 @@ class TestDeviceCoordinatorRemoveOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -556,21 +537,19 @@ class TestDeviceCoordinatorRemoveOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -601,21 +580,19 @@ class TestDeviceCoordinatorRemoveOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -630,21 +607,19 @@ class TestDeviceCoordinatorRemoveOperations:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -676,21 +651,19 @@ class TestDeviceCoordinatorDeviceCreation:
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
             coordinator = DeviceCoordinator(
                 central_info=central,
-                channel_lookup=central,
                 client_provider=central,
                 config_provider=central,
                 coordinator_provider=central,
-                data_cache_provider=central.data_cache,
+                data_cache_provider=central.cache_coordinator.data_cache,
                 data_point_provider=central,
-                device_data_refresher=central,
-                device_description_provider=central.device_descriptions,
-                device_details_provider=central.device_details,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
                 event_bus_provider=central,
                 event_publisher=central,
                 event_subscription_manager=central,
                 file_operations=central,
-                parameter_visibility_provider=central.parameter_visibility,
-                paramset_description_provider=central.paramset_descriptions,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
             await coordinator.add_new_devices_manually(
@@ -713,21 +686,19 @@ class TestDeviceCoordinatorDeviceCreation:
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
             coordinator = DeviceCoordinator(
                 central_info=central,
-                channel_lookup=central,
                 client_provider=central,
                 config_provider=central,
                 coordinator_provider=central,
-                data_cache_provider=central.data_cache,
+                data_cache_provider=central.cache_coordinator.data_cache,
                 data_point_provider=central,
-                device_data_refresher=central,
-                device_description_provider=central.device_descriptions,
-                device_details_provider=central.device_details,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
                 event_bus_provider=central,
                 event_publisher=central,
                 event_subscription_manager=central,
                 file_operations=central,
-                parameter_visibility_provider=central.parameter_visibility,
-                paramset_description_provider=central.paramset_descriptions,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
             # Try to add device that doesn't exist
@@ -751,21 +722,19 @@ class TestDeviceCoordinatorDeviceCreation:
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
             coordinator = DeviceCoordinator(
                 central_info=central,
-                channel_lookup=central,
                 client_provider=central,
                 config_provider=central,
                 coordinator_provider=central,
-                data_cache_provider=central.data_cache,
+                data_cache_provider=central.cache_coordinator.data_cache,
                 data_point_provider=central,
-                device_data_refresher=central,
-                device_description_provider=central.device_descriptions,
-                device_details_provider=central.device_details,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
                 event_bus_provider=central,
                 event_publisher=central,
                 event_subscription_manager=central,
                 file_operations=central,
-                parameter_visibility_provider=central.parameter_visibility,
-                paramset_description_provider=central.paramset_descriptions,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
 
@@ -791,21 +760,19 @@ class TestDeviceCoordinatorDeviceCreation:
         with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
             coordinator = DeviceCoordinator(
                 central_info=central,
-                channel_lookup=central,
                 client_provider=central,
                 config_provider=central,
                 coordinator_provider=central,
-                data_cache_provider=central.data_cache,
+                data_cache_provider=central.cache_coordinator.data_cache,
                 data_point_provider=central,
-                device_data_refresher=central,
-                device_description_provider=central.device_descriptions,
-                device_details_provider=central.device_details,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
                 event_bus_provider=central,
                 event_publisher=central,
                 event_subscription_manager=central,
                 file_operations=central,
-                parameter_visibility_provider=central.parameter_visibility,
-                paramset_description_provider=central.paramset_descriptions,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
             device_descriptions = (
@@ -850,21 +817,19 @@ class TestDeviceCoordinatorFirmwareOperations:
         with patch.object(DeviceCoordinator, "refresh_device_descriptions_and_create_missing_devices", new=AsyncMock()):
             coordinator = DeviceCoordinator(
                 central_info=central,
-                channel_lookup=central,
                 client_provider=central,
                 config_provider=central,
                 coordinator_provider=central,
-                data_cache_provider=central.data_cache,
+                data_cache_provider=central.cache_coordinator.data_cache,
                 data_point_provider=central,
-                device_data_refresher=central,
-                device_description_provider=central.device_descriptions,
-                device_details_provider=central.device_details,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
                 event_bus_provider=central,
                 event_publisher=central,
                 event_subscription_manager=central,
                 file_operations=central,
-                parameter_visibility_provider=central.parameter_visibility,
-                paramset_description_provider=central.paramset_descriptions,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
             await coordinator.refresh_firmware_data()
@@ -879,8 +844,6 @@ class TestDeviceCoordinatorFirmwareOperations:
         central = _FakeCentral()
 
         device = _FakeDevice(address="VCU0000001", is_updatable=True)
-        device.refresh_firmware_data = MagicMock()  # type: ignore[method-assign]
-
         central.device_registry.add_device_sync(device=device)
 
         # Mock refresh_device_descriptions_and_create_missing_devices
@@ -889,27 +852,24 @@ class TestDeviceCoordinatorFirmwareOperations:
         ) as mock_refresh:
             coordinator = DeviceCoordinator(
                 central_info=central,
-                channel_lookup=central,
                 client_provider=central,
                 config_provider=central,
                 coordinator_provider=central,
-                data_cache_provider=central.data_cache,
+                data_cache_provider=central.cache_coordinator.data_cache,
                 data_point_provider=central,
-                device_data_refresher=central,
-                device_description_provider=central.device_descriptions,
-                device_details_provider=central.device_details,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
                 event_bus_provider=central,
                 event_publisher=central,
                 event_subscription_manager=central,
                 file_operations=central,
-                parameter_visibility_provider=central.parameter_visibility,
-                paramset_description_provider=central.paramset_descriptions,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
                 task_scheduler=central.looper,
             )  # type: ignore[arg-type]
             await coordinator.refresh_firmware_data(device_address="VCU0000001")
 
-        # Should have refreshed firmware data for the device
-        device.refresh_firmware_data.assert_called_once()
+        # Should have called refresh_device_descriptions_and_create_missing_devices for the updatable device
         mock_refresh.assert_called_once()
 
 
@@ -922,21 +882,19 @@ class TestDeviceCoordinatorCentralLinks:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -961,21 +919,19 @@ class TestDeviceCoordinatorCentralLinks:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -1003,21 +959,19 @@ class TestDeviceCoordinatorListDevices:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
@@ -1051,21 +1005,19 @@ class TestDeviceCoordinatorIntegration:
         central = _FakeCentral()
         coordinator = DeviceCoordinator(
             central_info=central,
-            channel_lookup=central,
             client_provider=central,
             config_provider=central,
             coordinator_provider=central,
-            data_cache_provider=central.data_cache,
+            data_cache_provider=central.cache_coordinator.data_cache,
             data_point_provider=central,
-            device_data_refresher=central,
-            device_description_provider=central.device_descriptions,
-            device_details_provider=central.device_details,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
             event_bus_provider=central,
             event_publisher=central,
             event_subscription_manager=central,
             file_operations=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 

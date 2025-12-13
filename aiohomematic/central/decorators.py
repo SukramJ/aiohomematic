@@ -46,15 +46,16 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
             return_value = cast(R, func(*args, **kwargs))
             try:
                 unit = args[0]
-                central: hmcu.CentralUnit | None = None
                 looper: Any = None
+                # Check for CentralUnit
                 if isinstance(unit, hmcu.CentralUnit):
-                    central = unit
-                    looper = central.looper
-                if (
-                    central is None
-                    and isinstance(unit, rpc.RPCFunctions)
-                    and (entry := unit.get_central_entry(interface_id=str(args[1])))
+                    looper = unit.looper
+                # Check for coordinator with _task_scheduler
+                elif hasattr(unit, "_task_scheduler"):
+                    looper = unit._task_scheduler  # pylint: disable=protected-access
+                # Check for RPCFunctions
+                elif isinstance(unit, rpc.RPCFunctions) and (
+                    entry := unit.get_central_entry(interface_id=str(args[1]))
                 ):
                     looper = entry.looper
                 if looper:
@@ -123,7 +124,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
 
             if client := hmcl.get_client(interface_id=interface_id):
                 client.modified_at = datetime.now()
-                client.central.publish_backend_parameter_event(
+                client.central.event_coordinator.publish_backend_parameter_event(
                     interface_id=interface_id, channel_address=channel_address, parameter=parameter, value=value
                 )
         except Exception as exc:  # pragma: no cover
@@ -138,13 +139,19 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
             ) from exc
 
     def _schedule_or_exec(*args: Any, **kwargs: Any) -> None:
-        """Schedule event callback on central looper when possible, else execute inline."""
+        """Schedule event callback on looper when possible, else execute inline."""
         try:
-            # Prefer scheduling on the CentralUnit looper when available to avoid blocking hot path
             unit = args[0]
+            looper: Any = None
+            # Check for CentralUnit
             if isinstance(unit, hmcu.CentralUnit):
+                looper = unit.looper
+            # Check for coordinator with _task_scheduler
+            elif hasattr(unit, "_task_scheduler"):
+                looper = unit._task_scheduler  # pylint: disable=protected-access
+            if looper:
                 # Use partial to avoid lambda closure capturing args/kwargs
-                unit.looper.create_task(
+                looper.create_task(
                     target=partial(_async_wrap_sync, _exec_event_callback, *args, **kwargs),
                     name="wrapper_event_callback",
                 )

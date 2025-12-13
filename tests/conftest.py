@@ -127,7 +127,7 @@ async def central_unit_pydevccu_mini(pydevccu_mini: pydevccu.Server) -> CentralU
         yield central
     finally:
         await central.stop()
-        await central.clear_files()
+        await central.cache_coordinator.clear_all()
 
 
 # pydevccu full fixtures
@@ -169,7 +169,7 @@ async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralU
         unsubscribe_homematic_callback()
         unsubscribe_backend_system_callback()
         await central.stop()
-        await central.clear_files()
+        await central.cache_coordinator.clear_all()
 
 
 # Other fixtures

@@ -51,6 +51,7 @@ from typing import TYPE_CHECKING, Final
 
 from aiohomematic.client.circuit_breaker import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
+from aiohomematic.interfaces.central import CentralHealthProtocol, ConnectionHealthProtocol, HealthTrackerProtocol
 
 if TYPE_CHECKING:
     from typing import Any
@@ -67,7 +68,7 @@ _WEIGHT_RECENT_ACTIVITY: Final = 0.3
 
 
 @dataclass(slots=True)
-class ConnectionHealth:
+class ConnectionHealth(ConnectionHealthProtocol):
     """
     Unified health status for a single client connection.
 
@@ -291,7 +292,7 @@ class ConnectionHealth:
 
 
 @dataclass(slots=True)
-class CentralHealth:
+class CentralHealth(CentralHealthProtocol):
     """
     Aggregated health status for the entire central system.
 
@@ -386,6 +387,11 @@ class CentralHealth:
 
         return primary_health.is_available if primary_health else False
 
+    @property
+    def state(self) -> CentralState:
+        """Return current central state."""
+        return self.central_state
+
     def get_client_health(self, *, interface_id: str) -> ConnectionHealth | None:
         """
         Get health for a specific client.
@@ -457,7 +463,7 @@ class CentralHealth:
         self.central_state = state
 
 
-class HealthTracker:
+class HealthTracker(HealthTrackerProtocol):
     """
     Central health tracking coordinator.
 

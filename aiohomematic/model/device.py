@@ -97,11 +97,11 @@ from aiohomematic.interfaces.central import (
     ConfigProvider,
     DataCacheProvider,
     DataPointProvider,
-    DeviceDataRefresher,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    FirmwareDataRefresher,
 )
 from aiohomematic.interfaces.client import ClientProtocol, ClientProvider
 from aiohomematic.interfaces.model import (
@@ -252,7 +252,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         config_provider: ConfigProvider,
         data_cache_provider: DataCacheProvider,
         data_point_provider: DataPointProvider,
-        device_data_refresher: DeviceDataRefresher,
+        device_data_refresher: FirmwareDataRefresher,
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
         event_bus_provider: EventBusProvider,
@@ -464,7 +464,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return None
 
     @property
-    def device_data_refresher(self) -> DeviceDataRefresher:
+    def device_data_refresher(self) -> FirmwareDataRefresher:
         """Return the device data refresher."""
         return self._device_data_refresher
 
@@ -1322,7 +1322,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     def add_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:
         """Add a data_point to a channel."""
         if isinstance(data_point, BaseParameterDataPointProtocol):
-            self._device.event_subscription_manager.add_event_subscription(data_point=data_point)
+            self._device.event_subscription_manager.add_data_point_subscription(data_point=data_point)
             self._state_path_to_dpk[data_point.state_path] = data_point.dpk
         if isinstance(data_point, CalculatedDataPointProtocol):
             self._calculated_data_points[data_point.dpk] = data_point

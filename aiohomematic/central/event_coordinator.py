@@ -21,6 +21,7 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.async_support import loop_check
+from aiohomematic.central.decorators import callback_event
 from aiohomematic.central.event_bus import (
     BackendParameterEvent,
     BackendSystemEventData,
@@ -112,6 +113,7 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
             self._event_bus.subscribe(event_type=DataPointUpdatedEvent, event_key=data_point.dpk, handler=event_handler)
 
+    @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """
         Handle data point event from backend.

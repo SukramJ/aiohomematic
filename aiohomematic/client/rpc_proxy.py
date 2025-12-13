@@ -372,7 +372,6 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         # Close the transport connection, which will force a new connection
         # on the next request. We DO NOT set transport to None because that
         # causes AttributeError - ServerProxy expects the transport to exist.
-        # pylint: disable=protected-access
         if transport := self._ServerProxy__transport:
             with suppress(Exception):  # Best effort cleanup
                 transport.close()

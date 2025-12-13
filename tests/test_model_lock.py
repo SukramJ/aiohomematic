@@ -70,32 +70,32 @@ class TestRfLock:
         )
 
         assert lock.is_locking is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000146:1", parameter="DIRECTION", value=2
         )
         assert lock.is_locking is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000146:1", parameter="DIRECTION", value=0
         )
         assert lock.is_locking is False
 
         assert lock.is_unlocking is False
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000146:1", parameter="DIRECTION", value=1
         )
         assert lock.is_unlocking is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000146:1", parameter="DIRECTION", value=0
         )
         assert lock.is_unlocking is False
 
         assert lock.is_jammed is False
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000146:1", parameter="ERROR", value=2
         )
         assert lock.is_jammed is True
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000146:1", parameter="ERROR", value=0
         )
 
@@ -144,7 +144,7 @@ class TestIpLock:
             value=0,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="LOCK_STATE", value=1
         )
         assert lock.is_locked is True
@@ -156,7 +156,7 @@ class TestIpLock:
             value=1,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="LOCK_STATE", value=2
         )
         assert lock.is_locked is False
@@ -170,21 +170,21 @@ class TestIpLock:
         )
 
         assert lock.is_locking is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="ACTIVITY_STATE", value=2
         )
         assert lock.is_locking is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="ACTIVITY_STATE", value=0
         )
         assert lock.is_locking is False
 
         assert lock.is_unlocking is False
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="ACTIVITY_STATE", value=1
         )
         assert lock.is_unlocking is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="ACTIVITY_STATE", value=0
         )
         assert lock.is_unlocking is False

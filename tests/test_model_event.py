@@ -39,7 +39,7 @@ class TestClickEvent:
         event: ClickEvent = cast(ClickEvent, central.get_event(channel_address="VCU2128127:1", parameter="PRESS_SHORT"))
         assert event.usage == DataPointUsage.EVENT
         assert event.event_type == EventType.KEYPRESS
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:1", parameter="PRESS_SHORT", value=True
         )
         # Wait for async event bus publish to complete
@@ -85,7 +85,7 @@ class TestImpulseEvent:
         )
         assert event.usage == DataPointUsage.EVENT
         assert event.event_type == EventType.IMPULSE
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000263:1", parameter="SEQUENCE_OK", value=True
         )
         # Wait for async event bus publish to complete
@@ -132,7 +132,7 @@ class TestDeviceErrorEvent:
         )
         assert event.usage == DataPointUsage.EVENT
         assert event.event_type == EventType.DEVICE_ERROR
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT", value=True
         )
         # Wait for async event bus publish to complete

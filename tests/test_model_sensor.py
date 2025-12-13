@@ -44,11 +44,11 @@ class TestGenericSensor:
         assert sensor.unit is None
         assert sensor.values == ("CLOSED", "TILTED", "OPEN")
         assert sensor.value is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU7981740:1", parameter="STATE", value=0
         )
         assert sensor.value == "CLOSED"
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU7981740:1", parameter="STATE", value=2
         )
         assert sensor.value == "OPEN"
@@ -78,11 +78,11 @@ class TestGenericSensor:
         assert sensor.unit == "V"
         assert sensor.values is None
         assert sensor.value is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:6", parameter="VOLTAGE", value=120
         )
         assert sensor.value == 120.0
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:6", parameter="VOLTAGE", value=234.00
         )
         assert sensor.value == 234.00
@@ -95,23 +95,23 @@ class TestGenericSensor:
         assert sensor2.unit == "dBm"
         assert sensor2.values is None
         assert sensor2.value is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:0", parameter="RSSI_DEVICE", value=24
         )
         assert sensor2.value == -24
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:0", parameter="RSSI_DEVICE", value=-40
         )
         assert sensor2.value == -40
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:0", parameter="RSSI_DEVICE", value=-160
         )
         assert sensor2.value == -96
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:0", parameter="RSSI_DEVICE", value=160
         )
         assert sensor2.value == -96
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:0", parameter="RSSI_DEVICE", value=400
         )
         assert sensor2.value is None
@@ -147,14 +147,16 @@ class TestSysvarSensor:
     ) -> None:
         """Test SysvarDpSensor value handling with list and float types."""
         central, _, _ = central_client_factory_with_ccu_client
-        sensor: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point(legacy_name="list"))
+        sensor: SysvarDpSensor = cast(SysvarDpSensor, central.hub_coordinator.get_sysvar_data_point(legacy_name="list"))
         assert sensor.usage == DataPointUsage.DATA_POINT
         assert sensor.available is True
         assert sensor.unit is None
         assert sensor.values == ("v1", "v2", "v3")
         assert sensor.value == "v1"
 
-        sensor2: SysvarDpSensor = cast(SysvarDpSensor, central.get_sysvar_data_point(legacy_name="float"))
+        sensor2: SysvarDpSensor = cast(
+            SysvarDpSensor, central.hub_coordinator.get_sysvar_data_point(legacy_name="float")
+        )
         assert sensor2.usage == DataPointUsage.DATA_POINT
         assert sensor2.unit is None
         assert sensor2.values is None

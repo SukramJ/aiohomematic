@@ -62,11 +62,11 @@ class TestDataPointCallbacks:
         unregister_device_removed_handler = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
         )
         assert switch.value is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
         )
         assert switch.value is False
@@ -74,7 +74,9 @@ class TestDataPointCallbacks:
         import asyncio
 
         await asyncio.sleep(0.1)
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
+        await central.device_coordinator.delete_devices(
+            interface_id=const.INTERFACE_ID, addresses=[switch.device.address]
+        )
         # Wait for async event bus publish to complete for delete events
         await asyncio.sleep(0.1)
         # Verify the system event mock received a BackendSystemEventData event
@@ -120,11 +122,11 @@ class TestDataPointCallbacks:
         unregister_removed = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=1
         )
         assert switch.value is True
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:4", parameter="STATE", value=0
         )
         assert switch.value is False
@@ -132,7 +134,9 @@ class TestDataPointCallbacks:
         import asyncio
 
         await asyncio.sleep(0.1)
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=[switch.device.address])
+        await central.device_coordinator.delete_devices(
+            interface_id=const.INTERFACE_ID, addresses=[switch.device.address]
+        )
         # Wait for async event bus publish to complete for delete events
         await asyncio.sleep(0.1)
         # Verify the system event mock received a BackendSystemEventData event

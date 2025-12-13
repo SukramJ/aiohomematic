@@ -98,21 +98,23 @@ class TestCentralBasics:
         """Test central basics."""
         central, client, _ = central_client_factory_with_homegear_client
         assert central.url == f"http://{LOCAL_HOST}"
-        assert central.is_alive is True
+        assert central.client_coordinator.is_alive is True
         assert central.listen_ip_addr == LOCAL_HOST
         assert central.supports_ping_pong is False
         assert central.system_information.serial == "BidCos-RF_SN0815"
         assert central.version == "pydevccu 0.1.17"
         system_information = await central.validate_config_and_get_system_information()
         assert system_information.serial == "BidCos-RF_SN0815"
-        device = central.get_device(address="VCU2128127")
+        device = central.device_coordinator.get_device(address="VCU2128127")
         assert device
         dps = central.get_readable_generic_data_points()
         assert dps
-        await central.refresh_firmware_data(device_address="VCU2128127")
-        await central.refresh_firmware_data()
-        await central.refresh_firmware_data_by_state(device_firmware_states=DeviceFirmwareState.NEW_FIRMWARE_AVAILABLE)
-        await central.restart_clients()
+        await central.device_coordinator.refresh_firmware_data(device_address="VCU2128127")
+        await central.device_coordinator.refresh_firmware_data()
+        await central.device_coordinator.refresh_firmware_data_by_state(
+            device_firmware_states=DeviceFirmwareState.NEW_FIRMWARE_AVAILABLE
+        )
+        await central.client_coordinator.restart_clients()
 
         await central.stop()
         assert central._has_active_threads is False
@@ -136,7 +138,7 @@ class TestCentralBasics:
     ) -> None:
         """Test device export."""
         central, _, _ = central_client_factory_with_homegear_client
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         await device.export_device_definition()
 
     @pytest.mark.asyncio
@@ -217,7 +219,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HmIP-BROLL", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -268,7 +270,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HmIP-eTRV-2", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -309,7 +311,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HM-TC-IT-WM-W-EU", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -396,7 +398,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HM-ES-PMSw1-Pl", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -586,7 +588,7 @@ class TestCentralDataPointsByCategory:
     ) -> None:
         """Test hub_data_points_by_category."""
         central, _, _ = central_client_factory_with_ccu_client
-        ebp_sensor = central.get_hub_data_points(category=DataPointCategory.HUB_SENSOR)
+        ebp_sensor = central.hub_coordinator.get_hub_data_points(category=DataPointCategory.HUB_SENSOR)
         assert ebp_sensor
         assert len(ebp_sensor) == 4
 
@@ -594,18 +596,20 @@ class TestCentralDataPointsByCategory:
             """Handle device state changes."""
 
         ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
-        ebp_sensor2 = central.get_hub_data_points(
+        ebp_sensor2 = central.hub_coordinator.get_hub_data_points(
             category=DataPointCategory.HUB_SENSOR,
             registered=False,
         )
         assert ebp_sensor2
         assert len(ebp_sensor2) == 3
 
-        ebp_sensor3 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON)
+        ebp_sensor3 = central.hub_coordinator.get_hub_data_points(category=DataPointCategory.HUB_BUTTON)
         assert ebp_sensor3
         assert len(ebp_sensor3) == 2
         ebp_sensor3[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
-        ebp_sensor4 = central.get_hub_data_points(category=DataPointCategory.HUB_BUTTON, registered=False)
+        ebp_sensor4 = central.hub_coordinator.get_hub_data_points(
+            category=DataPointCategory.HUB_BUTTON, registered=False
+        )
         assert ebp_sensor4
         assert len(ebp_sensor4) == 1
 
@@ -631,18 +635,25 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test add_device."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central.devices) == 1
+        assert len(central.device_registry.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        )
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
-        await central.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
-        assert len(central.devices) == 2
+        await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
+        assert len(central.device_registry.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
-        await central.add_new_devices(interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc)
-        assert len(central.devices) == 2
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
+            == 20
+        )
+        await central.device_coordinator.add_new_devices(
+            interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc
+        )
+        assert len(central.device_registry.devices) == 2
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -662,16 +673,21 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test device delete_device."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central.devices) == 2
+        assert len(central.device_registry.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
+            == 20
+        )
 
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
-        assert len(central.devices) == 1
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
+        assert len(central.device_registry.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -700,23 +716,29 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test device delete."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central.get_virtual_remotes()) == 1
+        assert len(central.device_coordinator.get_virtual_remotes()) == 1
 
         assert central.device_coordinator.get_device(address="VCU0000057")
 
-        await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
+        await central.device_coordinator.delete_device(
+            interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID"
+        )
 
-        assert len(central.devices) == 3
+        assert len(central.device_registry.devices) == 3
         assert len(central.get_data_points()) == 350
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"])
-        assert len(central.devices) == 1
+        await central.device_coordinator.delete_devices(
+            interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"]
+        )
+        assert len(central.device_registry.devices) == 1
         assert len(central.get_data_points()) == 100
-        await central.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
-        assert len(central.devices) == 0
+        await central.device_coordinator.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
+        assert len(central.device_registry.devices) == 0
         assert len(central.get_data_points()) == 0
-        assert central.get_virtual_remotes() == ()
+        assert central.device_coordinator.get_virtual_remotes() == ()
 
-        await central.delete_device(interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID")
+        await central.device_coordinator.delete_device(
+            interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID"
+        )
 
 
 class TestCentralCallbacksAndServices:
@@ -778,11 +800,11 @@ class TestCentralCallbacksAndServices:
     ) -> None:
         """Test central fetch sysvar and programs."""
         central, mock_client, _ = central_client_factory_with_homegear_client
-        await central.fetch_program_data(scheduled=True)
+        await central.hub_coordinator.fetch_program_data(scheduled=True)
         # Check that get_all_programs was called (not necessarily last due to handler delegation)
         assert call.get_all_programs(markers=()) in mock_client.method_calls
 
-        await central.fetch_sysvar_data(scheduled=True)
+        await central.hub_coordinator.fetch_sysvar_data(scheduled=True)
         # Check that get_all_system_variables was called
         assert call.get_all_system_variables(markers=()) in mock_client.method_calls
 
@@ -792,17 +814,17 @@ class TestCentralCallbacksAndServices:
         await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
         assert len(mock_client.method_calls) == init_len_method_calls + 11
 
-        await central.get_system_variable(legacy_name="SysVar_Name")
+        await central.hub_coordinator.get_system_variable(legacy_name="SysVar_Name")
         assert mock_client.method_calls[-1] == call.get_system_variable(name="SysVar_Name")
 
         assert len(mock_client.method_calls) == init_len_method_calls + 12
-        await central.set_system_variable(legacy_name="alarm", value=True)
+        await central.hub_coordinator.set_system_variable(legacy_name="alarm", value=True)
         assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm", value=True)
         assert len(mock_client.method_calls) == init_len_method_calls + 13
-        await central.set_system_variable(legacy_name="SysVar_Name", value=True)
+        await central.hub_coordinator.set_system_variable(legacy_name="SysVar_Name", value=True)
         assert len(mock_client.method_calls) == init_len_method_calls + 13
 
-        await central.get_client(interface_id=const.INTERFACE_ID).set_value(
+        await central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).set_value(
             channel_address="123",
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL",
@@ -817,7 +839,7 @@ class TestCentralCallbacksAndServices:
         assert len(mock_client.method_calls) == init_len_method_calls + 14
 
         with pytest.raises(AioHomematicException):
-            await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
+            await central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
                 channel_address="123",
                 paramset_key=ParamsetKey.VALUES,
                 parameter="LEVEL",
@@ -825,7 +847,7 @@ class TestCentralCallbacksAndServices:
             )
         assert len(mock_client.method_calls) == init_len_method_calls + 14
 
-        await central.get_client(interface_id=const.INTERFACE_ID).put_paramset(
+        await central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).put_paramset(
             channel_address="123",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL": 1.0},
@@ -835,7 +857,7 @@ class TestCentralCallbacksAndServices:
         )
         assert len(mock_client.method_calls) == init_len_method_calls + 15
         with pytest.raises(AioHomematicException):
-            await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
+            await central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
                 channel_address="123",
                 paramset_key_or_link_address=ParamsetKey.VALUES,
                 values={"LEVEL": 1.0},
@@ -853,23 +875,23 @@ class TestCentralCallbacksAndServices:
         """Test central other methods."""
         central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
         try:
-            assert central.all_clients_active is False
+            assert central.client_coordinator.all_clients_active is False
 
             with pytest.raises(NoClientsException):
                 await central.validate_config_and_get_system_information()
 
             with pytest.raises(AioHomematicException):
-                central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID")
+                central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID")
 
             await central.start()
-            assert central.all_clients_active is False
+            assert central.client_coordinator.all_clients_active is False
 
             assert central.available is True
             assert central.system_information.serial is None
-            assert len(central.devices) == 0
+            assert len(central.device_registry.devices) == 0
             assert len(central.get_data_points()) == 0
 
-            assert await central.get_system_variable(legacy_name="SysVar_Name") is None
+            assert await central.hub_coordinator.get_system_variable(legacy_name="SysVar_Name") is None
             assert central.device_coordinator.get_device(address="VCU4264293") is None
         finally:
             await central.stop()
@@ -937,7 +959,7 @@ class TestCentralPingPong:
         await client.check_connection_availability(handle_ping_pong=True)
         assert client.ping_pong_cache._pending_pong_count == 1
         for token_stored in list(client.ping_pong_cache._pending_pongs):
-            await central.data_point_event(
+            await central.event_coordinator.data_point_event(
                 interface_id=interface_id,
                 channel_address="",
                 parameter=Parameter.PONG,
@@ -967,7 +989,7 @@ class TestCentralPingPong:
         count = 0
         max_count = PING_PONG_MISMATCH_COUNT + 1
         while count < max_count:
-            await central.data_point_event(
+            await central.event_coordinator.data_point_event(
                 interface_id=interface_id,
                 channel_address="",
                 parameter=Parameter.PONG,
@@ -999,11 +1021,15 @@ class TestCentralCaches:
     ) -> None:
         """Test central cache."""
         central, client, _ = central_client_factory_with_homegear_client
-        assert len(central.device_descriptions._raw_device_descriptions[client.interface_id]) == 20
-        assert len(central.paramset_descriptions._raw_paramset_descriptions[client.interface_id]) == 20
-        await central.clear_files()
-        assert central.device_descriptions._raw_device_descriptions.get(client.interface_id) is None
-        assert central.paramset_descriptions._raw_paramset_descriptions.get(client.interface_id) is None
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions[client.interface_id]) == 20
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions[client.interface_id]) == 20
+        )
+        await central.cache_coordinator.clear_all()
+        assert central.cache_coordinator.device_descriptions._raw_device_descriptions.get(client.interface_id) is None
+        assert (
+            central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(client.interface_id) is None
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -1023,12 +1049,12 @@ class TestCentralCaches:
     ) -> None:
         """Test central getter."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert central.get_device(address="123") is None
+        assert central.device_coordinator.get_device(address="123") is None
         assert central.get_custom_data_point(address="123", channel_no=1) is None
         assert central.get_generic_data_point(channel_address="123", parameter=1) is None
         assert central.get_event(channel_address="123", parameter=1) is None
-        assert central.get_program_data_point(pid="123") is None
-        assert central.get_sysvar_data_point(legacy_name="123") is None
+        assert central.hub_coordinator.get_program_data_point(pid="123") is None
+        assert central.hub_coordinator.get_sysvar_data_point(legacy_name="123") is None
 
 
 class TestSchedulerJob:
@@ -1319,10 +1345,11 @@ class TestCentralEventHandling:
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         """
-        Central.data_point_event should complete without raising exceptions.
+        central.event_coordinator.data_point_event should complete without raising exceptions.
 
         Note: Legacy callback exception handling has been removed. Events are now
         handled via EventBus. This test verifies data_point_event completes successfully.
+        The @callback_event decorator is now on EventCoordinator.data_point_event.
         """
         from unittest.mock import AsyncMock, MagicMock
 
@@ -1335,9 +1362,10 @@ class TestCentralEventHandling:
         event_coordinator = EventCoordinator.__new__(EventCoordinator)  # type: ignore[call-arg]
         event_coordinator._last_event_seen_for_interface = {}  # type: ignore[attr-defined]
 
-        # Mock looper and event_bus to prevent AttributeError during arg evaluation
-        mock_looper = MagicMock()
-        mock_looper.create_task = MagicMock()
+        # Mock task_scheduler for decorator (decorator is now on EventCoordinator.data_point_event)
+        mock_task_scheduler = MagicMock()
+        mock_task_scheduler.create_task = MagicMock()
+        event_coordinator._task_scheduler = mock_task_scheduler  # type: ignore[attr-defined]
 
         mock_event_bus = MagicMock()
         mock_event_bus.publish = AsyncMock()
@@ -1345,7 +1373,6 @@ class TestCentralEventHandling:
 
         # Set event coordinator on central
         central._event_coordinator = event_coordinator  # type: ignore[attr-defined]
-        central._looper = mock_looper  # type: ignore[attr-defined]
 
         # Mock client_provider for event_coordinator's dependency injection
         mock_client_provider = MagicMock()
@@ -1353,16 +1380,15 @@ class TestCentralEventHandling:
         event_coordinator._client_provider = mock_client_provider  # type: ignore[attr-defined]
 
         # Exercise the path; should complete without exceptions
-        await hmcu.CentralUnit.data_point_event(  # call unbound to avoid missing bound attributes
-            central,
+        await central.event_coordinator.data_point_event(
             interface_id="if1",
             channel_address="A:1",
             parameter="STATE",
             value="v",
         )
 
-        # Verify EventBus publish was called via create_task
-        assert mock_looper.create_task.called
+        # Verify EventBus publish was called via create_task on the task_scheduler
+        assert mock_task_scheduler.create_task.called
 
     # Note: Tests for start() and stop() error handling require complex setup
     # and are better suited for integration tests with full central initialization

@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 import pytest
 
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob
-from aiohomematic.const import BackendSystemEvent, CentralUnitState
+from aiohomematic.const import BackendSystemEvent, CentralState
 
 
 class TestSchedulerJobBasics:
@@ -129,9 +129,11 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -161,9 +163,11 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -197,9 +201,11 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -234,9 +240,11 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -272,9 +280,11 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -304,9 +314,11 @@ class TestBackgroundSchedulerBasics:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -337,9 +349,11 @@ class TestBackgroundSchedulerEventHandling:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -371,9 +385,11 @@ class TestBackgroundSchedulerEventHandling:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -414,9 +430,11 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -447,9 +465,11 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -482,9 +502,11 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -513,9 +535,11 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -549,9 +573,11 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -593,9 +619,11 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -620,7 +648,8 @@ class TestBackgroundSchedulerJobExecution:
         central.config.enable_device_firmware_check = True
         central.config.enable_program_scan = True
         central.available = True
-        central.fetch_program_data = AsyncMock()
+        central.hub_coordinator = MagicMock()
+        central.hub_coordinator.fetch_program_data = AsyncMock()
 
         central.connection_state = MagicMock()
         central.connection_state.has_any_issue = False
@@ -628,10 +657,12 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
-            hub_data_fetcher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
+            hub_data_fetcher=central.hub_coordinator,
             event_bus_provider=central,
             json_rpc_client_provider=central,
             state_provider=central,
@@ -640,7 +671,7 @@ class TestBackgroundSchedulerJobExecution:
 
         await scheduler._refresh_program_data()
 
-        central.fetch_program_data.assert_called_once()
+        central.hub_coordinator.fetch_program_data.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_refresh_sysvar_data(self) -> None:
@@ -655,7 +686,8 @@ class TestBackgroundSchedulerJobExecution:
         central.config.enable_device_firmware_check = True
         central.config.enable_sysvar_scan = True
         central.available = True
-        central.fetch_sysvar_data = AsyncMock()
+        central.hub_coordinator = MagicMock()
+        central.hub_coordinator.fetch_sysvar_data = AsyncMock()
 
         central.connection_state = MagicMock()
         central.connection_state.has_any_issue = False
@@ -663,10 +695,12 @@ class TestBackgroundSchedulerJobExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
-            hub_data_fetcher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
+            hub_data_fetcher=central.hub_coordinator,
             event_bus_provider=central,
             json_rpc_client_provider=central,
             state_provider=central,
@@ -675,7 +709,7 @@ class TestBackgroundSchedulerJobExecution:
 
         await scheduler._refresh_sysvar_data()
 
-        central.fetch_sysvar_data.assert_called_once()
+        central.hub_coordinator.fetch_sysvar_data.assert_called_once()
 
 
 class TestSchedulerJobExecution:
@@ -732,7 +766,7 @@ class TestSchedulerLoopExecution:
         central.config.periodic_refresh_interval = 3600  # Very long interval
         central.config.sys_scan_interval = 3600
         central.config.enable_device_firmware_check = False
-        central.state = CentralUnitState.RUNNING
+        central.state = CentralState.RUNNING
         central.available = False
 
         executions: list[str] = []
@@ -746,9 +780,11 @@ class TestSchedulerLoopExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -777,16 +813,18 @@ class TestSchedulerLoopExecution:
         central.config.periodic_refresh_interval = 60
         central.config.sys_scan_interval = 300
         central.config.enable_device_firmware_check = True
-        central.state = CentralUnitState.INITIALIZING
+        central.state = CentralState.INITIALIZING
         central.connection_state = MagicMock()
         central.connection_state.has_any_issue = False
 
         BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -816,9 +854,11 @@ class TestSchedulerLoopExecution:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -861,9 +901,11 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -896,9 +938,11 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -930,9 +974,11 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -965,21 +1011,23 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
             state_provider=central,
         )
         assert scheduler.devices_created is False
-        central.fetch_program_data = AsyncMock()
+        central.hub_coordinator.fetch_program_data = AsyncMock()
 
         await scheduler._refresh_program_data()
 
         # Should not call the method until devices are created
-        central.fetch_program_data.assert_not_called()
+        central.hub_coordinator.fetch_program_data.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_refresh_program_data_skips_when_disabled(self) -> None:
@@ -1001,20 +1049,22 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
             state_provider=central,
         )
-        central.fetch_program_data = AsyncMock()
+        central.hub_coordinator.fetch_program_data = AsyncMock()
 
         await scheduler._refresh_program_data()
 
         # Should not call the method
-        central.fetch_program_data.assert_not_called()
+        central.hub_coordinator.fetch_program_data.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_refresh_sysvar_data_skips_when_devices_not_created(self) -> None:
@@ -1036,21 +1086,23 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
             state_provider=central,
         )
         assert scheduler.devices_created is False
-        central.fetch_sysvar_data = AsyncMock()
+        central.hub_coordinator.fetch_sysvar_data = AsyncMock()
 
         await scheduler._refresh_sysvar_data()
 
         # Should not call the method until devices are created
-        central.fetch_sysvar_data.assert_not_called()
+        central.hub_coordinator.fetch_sysvar_data.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_refresh_sysvar_data_skips_when_disabled(self) -> None:
@@ -1072,20 +1124,22 @@ class TestSchedulerJobFiltering:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
             state_provider=central,
         )
-        central.fetch_sysvar_data = AsyncMock()
+        central.hub_coordinator.fetch_sysvar_data = AsyncMock()
 
         await scheduler._refresh_sysvar_data()
 
         # Should not call the method
-        central.fetch_sysvar_data.assert_not_called()
+        central.hub_coordinator.fetch_sysvar_data.assert_not_called()
 
 
 class TestSchedulerFirmwareChecks:
@@ -1111,9 +1165,11 @@ class TestSchedulerFirmwareChecks:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -1145,9 +1201,11 @@ class TestSchedulerFirmwareChecks:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -1179,9 +1237,11 @@ class TestSchedulerFirmwareChecks:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,
@@ -1293,9 +1353,11 @@ class TestSchedulerErrorRecovery:
         scheduler = BackgroundScheduler(
             central_info=central,
             config_provider=central,
-            client_coordination=central,
+            client_coordinator=central,
             connection_state_provider=central,
             device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
             json_rpc_client_provider=central,

@@ -235,7 +235,9 @@ class HomematicAPI:
     def is_connected(self) -> bool:
         """Return True if connected to the backend."""
         return (
-            self._central is not None and self._central.has_clients and not self._central.connection_state.has_any_issue
+            self._central is not None
+            and self._central.client_coordinator.has_clients
+            and not self._central.connection_state.has_any_issue
         )
 
     def get_device(self, *, address: str) -> DeviceProtocol | None:
@@ -254,7 +256,7 @@ class HomematicAPI:
                 print(f"Found: {device.name}")
 
         """
-        return self.central.get_device(address=address)
+        return self.central.device_coordinator.get_device(address=address)
 
     def list_devices(self) -> Iterable[DeviceProtocol]:
         """
@@ -268,7 +270,7 @@ class HomematicAPI:
                 print(f"{device.address}: {device.name} ({device.model})")
 
         """
-        return self.central.devices
+        return self.central.device_registry.devices
 
     async def read_value(
         self,
@@ -299,10 +301,10 @@ class HomematicAPI:
 
         """
         device_address = get_device_address(address=channel_address)
-        if (device := self.central.get_device(address=device_address)) is None:
+        if (device := self.central.device_coordinator.get_device(address=device_address)) is None:
             msg = f"Device not found for address: {device_address}"
             raise ValueError(msg)
-        client = self.central.get_client(interface_id=device.interface_id)
+        client = self.central.client_coordinator.get_client(interface_id=device.interface_id)
         return await self._do_get_value(
             client=client,
             channel_address=channel_address,
@@ -317,7 +319,7 @@ class HomematicAPI:
         This fetches the latest values from all connected devices.
         Each client fetch automatically retries on transient network errors.
         """
-        for client in self.central.clients:
+        for client in self.central.client_coordinator.clients:
             await self._do_fetch_all_device_data(client=client)
 
     async def start(self) -> None:
@@ -401,10 +403,10 @@ class HomematicAPI:
 
         """
         device_address = get_device_address(address=channel_address)
-        if (device := self.central.get_device(address=device_address)) is None:
+        if (device := self.central.device_coordinator.get_device(address=device_address)) is None:
             msg = f"Device not found for address: {device_address}"
             raise ValueError(msg)
-        client = self.central.get_client(interface_id=device.interface_id)
+        client = self.central.client_coordinator.get_client(interface_id=device.interface_id)
         await self._do_set_value(
             client=client,
             channel_address=channel_address,

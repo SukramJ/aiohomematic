@@ -25,12 +25,12 @@ class TestCentralPyDevCCU:
         assert central
         assert central.name == const.CENTRAL_NAME
         assert central.model == "PyDevCCU"
-        assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
-        assert central.primary_client.model == "PyDevCCU"
-        assert len(central.devices) == 396
+        assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
+        assert central.client_coordinator.primary_client.model == "PyDevCCU"
+        assert len(central.device_registry.devices) == 396
 
         data = {}
-        for device in central.devices:
+        for device in central.device_registry.devices:
             if device.model in ("HmIP-BSM", "HmIP-BDT", "HmIP-PSM", "HmIP-FSM", "HmIP-WSM", "HmIP-SMO230-A"):
                 assert device.has_sub_devices is False
             if device.model in ("HmIP-DRSI4", "HmIP-DRDI3", "HmIP-BSL"):
@@ -48,7 +48,7 @@ class TestCentralPyDevCCU:
 
         # channel.type_name, device.model
         channel_type_device = {}
-        for device in central.devices:
+        for device in central.device_registry.devices:
             for channel in device.channels.values():
                 if channel.no is None:
                     continue
@@ -60,7 +60,7 @@ class TestCentralPyDevCCU:
 
         # channel.type_name, parameter, device.model
         channel_parameter_devices = {}
-        for device in central.devices:
+        for device in central.device_registry.devices:
             for channel in device.channels.values():
                 if channel.no is None:
                     continue
@@ -77,7 +77,7 @@ class TestCentralPyDevCCU:
 
         custom_dps = []
         channel_type_names = set()
-        for device in central.devices:
+        for device in central.device_registry.devices:
             custom_dps.extend(device.custom_data_points)
             for channel in device.channels.values():
                 channel_type_names.add(channel.type_name)
@@ -130,7 +130,7 @@ class TestCentralPyDevCCU:
                 usage_types[dp.usage] = counter + 1
 
         # check __dict__ / __slots__
-        for device in central.devices:
+        for device in central.device_registry.devices:
             assert hasattr(device, "__dict__") is False
             assert hasattr(device.value_cache, "__dict__") is False
 
@@ -146,9 +146,9 @@ class TestCentralPyDevCCU:
                 assert hasattr(cc, "__dict__") is False
             if device.update_data_point:
                 assert hasattr(device.update_data_point, "__dict__") is False
-        for prg in central.program_data_points:
+        for prg in central.hub_coordinator.program_data_points:
             assert hasattr(prg, "__dict__") is False
-        for sv in central.sysvar_data_points:
+        for sv in central.hub_coordinator.sysvar_data_points:
             assert hasattr(sv, "__dict__") is False
 
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 275
@@ -161,14 +161,16 @@ class TestCentralPyDevCCU:
         assert len(data_point_types) == 6
         assert len(parameters) == 239
 
-        assert len(central.devices) == 396
+        assert len(central.device_registry.devices) == 396
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-        assert len(central.devices) == 393
-        del_addresses = list(central.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID))
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
+        assert len(central.device_registry.devices) == 393
+        del_addresses = list(
+            central.cache_coordinator.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID)
+        )
         del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
-        await central.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
-        assert len(central.devices) == 0
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
+        assert len(central.device_registry.devices) == 0
         assert len(central.get_data_points(exclude_no_create=False)) == 0
 
     @pytest.mark.enable_socket
@@ -179,9 +181,9 @@ class TestCentralPyDevCCU:
         assert central
         assert central.name == const.CENTRAL_NAME
         assert central.model == "PyDevCCU"
-        assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
-        assert central.primary_client.model == "PyDevCCU"
-        assert len(central.devices) == 2
+        assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
+        assert central.client_coordinator.primary_client.model == "PyDevCCU"
+        assert len(central.device_registry.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 70
 
         usage_types: dict[DataPointUsage, int] = {}

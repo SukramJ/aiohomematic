@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from aiohomematic.const import (
     BackupData,
     CallSource,
+    CentralState,
     ClientState,
     DataPointKey,
     DeviceDescription,
@@ -57,12 +58,14 @@ from aiohomematic.interfaces.operations import TaskScheduler
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
+    from aiohomematic.central.cache_coordinator import CacheCoordinator
+    from aiohomematic.central.device_coordinator import DeviceCoordinator
+    from aiohomematic.central.device_registry import DeviceRegistry
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
-    from aiohomematic.interfaces import ChannelProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
-    from aiohomematic.store import ParamsetDescriptionCache, SessionRecorder
+    from aiohomematic.store import SessionRecorder
 
 
 # =============================================================================
@@ -762,16 +765,8 @@ class ClientCoordination(Protocol):
         """Get client by interface_id or interface type."""
 
     @abstractmethod
-    async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:
-        """Load and refresh data point data for an interface."""
-
-    @abstractmethod
     async def restart_clients(self) -> None:
         """Restart all clients."""
-
-    @abstractmethod
-    def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
-        """Set the last event seen time for an interface."""
 
 
 @runtime_checkable
@@ -1061,6 +1056,11 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
+    def cache_coordinator(self) -> CacheCoordinator:
+        """Get cache coordinator."""
+
+    @property
+    @abstractmethod
     def callback_ip_addr(self) -> str:
         """Return callback IP address."""
 
@@ -1076,23 +1076,13 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
-    def data_cache(self) -> DataCacheWriter:
-        """Return data cache."""
+    def device_coordinator(self) -> DeviceCoordinator:
+        """Return the device coordinator."""
 
     @property
     @abstractmethod
-    def device_descriptions(self) -> DeviceDescriptionsAccess:
-        """Return device descriptions cache."""
-
-    @property
-    @abstractmethod
-    def device_details(self) -> DeviceDetailsWriter:
-        """Return device details."""
-
-    @property
-    @abstractmethod
-    def devices(self) -> tuple[DeviceProtocol, ...]:
-        """Return all devices."""
+    def device_registry(self) -> DeviceRegistry:
+        """Return the device registry."""
 
     @property
     @abstractmethod
@@ -1136,30 +1126,8 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
-    def paramset_descriptions(self) -> ParamsetDescriptionCache:
-        """Return paramset descriptions cache."""
-
-    @property
-    @abstractmethod
-    def recorder(self) -> SessionRecorder:
-        """Return session recorder."""
-
-    @abstractmethod
-    async def add_new_devices(
-        self,
-        *,
-        interface_id: str,
-        device_descriptions: tuple[DeviceDescription, ...],
-    ) -> None:
-        """Add new devices from the backend."""
-
-    @abstractmethod
-    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
-        """Return channel by address."""
-
-    @abstractmethod
-    def get_device(self, *, address: str) -> DeviceProtocol | None:
-        """Return device by address."""
+    def state(self) -> CentralState:
+        """Return the current central state from the state machine."""
 
     @abstractmethod
     def get_generic_data_point(
@@ -1170,16 +1138,6 @@ class ClientDependencies(Protocol):
         paramset_key: ParamsetKey,
     ) -> Any | None:
         """Return generic data point."""
-
-    @abstractmethod
-    def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
-        """Return last event timestamp for an interface."""
-
-    @abstractmethod
-    def publish_backend_parameter_event(
-        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
-    ) -> None:
-        """Publish backend parameter callback in central."""
 
     @abstractmethod
     async def save_files(

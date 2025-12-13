@@ -38,9 +38,9 @@ class TestCentralErrorScenarios:
         central, _, _ = central_client_factory_with_ccu_client
 
         # Get existing interface IDs
-        for client in central.clients:
+        for client in central.client_coordinator.clients:
             # Try to get client by its interface_id
-            found_client = central.get_client(interface_id=client.interface_id)
+            found_client = central.client_coordinator.get_client(interface_id=client.interface_id)
             assert found_client is not None
 
     @pytest.mark.asyncio
@@ -63,7 +63,7 @@ class TestCentralErrorScenarios:
         central, _, _ = central_client_factory_with_ccu_client
 
         # Try to remove non-existent program
-        central.remove_program_button(pid="nonexistent_program_id")
+        central.hub_coordinator.remove_program_button(pid="nonexistent_program_id")
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -89,7 +89,7 @@ class TestCentralErrorScenarios:
         mock_device.address = "NONEXISTENT_DEVICE"
 
         # Should not raise an error
-        await central.remove_device(device=mock_device)
+        await central.device_coordinator.remove_device(device=mock_device)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -111,7 +111,7 @@ class TestCentralErrorScenarios:
         central, _, _ = central_client_factory_with_homegear_client
 
         # Try to remove non-existent sysvar
-        central.remove_sysvar_data_point(vid="nonexistent_sysvar_id")
+        central.hub_coordinator.remove_sysvar_data_point(vid="nonexistent_sysvar_id")
 
         # Should not raise an error
 
@@ -138,10 +138,10 @@ class TestDeviceErrorScenarios:
         """Test getting a channel that doesn't exist."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             # Try to get a channel that doesn't exist
-            channel = device.get_channel(channel_no=9999)
+            channel = central.device_coordinator.get_channel(channel_no=9999)
             assert channel is None
 
     @pytest.mark.asyncio
@@ -163,10 +163,10 @@ class TestDeviceErrorScenarios:
         """Test getting channels by type when none match."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             # Try to get channels by a type that doesn't exist
-            channels = device.get_channels_by_type(channel_type="NONEXISTENT_TYPE")
+            channels = central.device_coordinator.get_channels_by_type(channel_type="NONEXISTENT_TYPE")
             assert isinstance(channels, list)
             assert len(channels) == 0
 
@@ -193,7 +193,7 @@ class TestDataPointErrorScenarios:
         """Test loading data point value with collector."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             collector = CallParameterCollector()
             for channel in list(device.channels.values())[:1]:
@@ -227,7 +227,7 @@ class TestDataPointErrorScenarios:
         """Test sending invalid value that fails validation."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
@@ -260,7 +260,7 @@ class TestClientErrorScenarios:
         """Test client ping pong support check."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
-        for client in central.clients:
+        for client in central.client_coordinator.clients:
             # Check if client supports ping pong
             if hasattr(client, "supports_ping_pong"):
                 supports = client.supports_ping_pong
@@ -289,12 +289,12 @@ class TestParameterVisibility:
         """Test checking if parameters are hidden."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
                     # Check if parameter is hidden
-                    is_hidden = central.parameter_visibility.parameter_is_hidden(
+                    is_hidden = central.cache_coordinator.parameter_visibility.parameter_is_hidden(
                         channel_address=channel.address,
                         paramset_key=ParamsetKey.VALUES,
                         parameter=dp.parameter,
@@ -324,7 +324,7 @@ class TestCentralUtilities:
         """Test accessing devices collection."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        devices = central.devices
+        devices = central.device_registry.devices
         assert isinstance(devices, (list, tuple))
 
 
@@ -350,7 +350,7 @@ class TestDeviceUtilities:
         """Test clearing device collections."""
         central, _, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             # Clear all collections
             device.clear_all_collections()
@@ -374,10 +374,10 @@ class TestDeviceUtilities:
         """Test refreshing device firmware data."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             with contextlib.suppress(Exception):
-                await central.refresh_firmware_data(device_address=device.address)
+                await central.device_coordinator.refresh_firmware_data(device_address=device.address)
                 # May fail with mock client
 
 
@@ -403,7 +403,7 @@ class TestEventSubscriptions:
         """Test that device removed events are published for data points."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
-        device = central.get_device(address="VCU6354483")
+        device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
@@ -434,6 +434,6 @@ class TestCentralCollections:
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         # Access clients collection
-        clients = central.clients
+        clients = central.client_coordinator.clients
         assert isinstance(clients, (list, tuple))
         assert len(clients) > 0

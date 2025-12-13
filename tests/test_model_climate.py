@@ -112,7 +112,7 @@ class TestCustomDpSimpleRfThermostat:
         assert climate.target_temperature_step == 0.5
 
         assert climate.current_humidity is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000054:1", parameter="HUMIDITY", value=75
         )
         assert climate.current_humidity == 75
@@ -130,7 +130,7 @@ class TestCustomDpSimpleRfThermostat:
         assert climate.target_temperature == 12.0
 
         assert climate.current_temperature is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000054:1", parameter="TEMPERATURE", value=11.0
         )
         assert climate.current_temperature == 11.0
@@ -140,7 +140,7 @@ class TestCustomDpSimpleRfThermostat:
         assert climate.profile == ClimateProfile.NONE
         assert climate.profiles == (ClimateProfile.NONE,)
         assert climate.activity is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000054:1", parameter="TEMPERATURE", value=11.0
         )
 
@@ -209,11 +209,11 @@ class TestCustomDpRfThermostat:
         assert climate.target_temperature_step == 0.5
         assert climate.profile == ClimateProfile.NONE
         assert climate.activity is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="VALVE_STATE", value=10
         )
         assert climate.activity == ClimateActivity.HEAT
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="VALVE_STATE", value=0
         )
         assert climate.activity == ClimateActivity.IDLE
@@ -230,7 +230,7 @@ class TestCustomDpRfThermostat:
         assert climate.target_temperature == 12.0
 
         assert climate.current_temperature is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="ACTUAL_TEMPERATURE", value=11.0
         )
         assert climate.current_temperature == 11.0
@@ -245,7 +245,7 @@ class TestCustomDpRfThermostat:
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000050:4",
             parameter="CONTROL_MODE",
@@ -272,10 +272,10 @@ class TestCustomDpRfThermostat:
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="CONTROL_MODE", value=0
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="SET_TEMPERATURE", value=24.0
         )
         assert climate.mode == ClimateMode.AUTO
@@ -295,11 +295,11 @@ class TestCustomDpRfThermostat:
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="CONTROL_MODE", value=3
         )
         assert climate.profile == ClimateProfile.BOOST
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="CONTROL_MODE", value=2
         )
         assert climate.profile == ClimateProfile.AWAY
@@ -320,7 +320,7 @@ class TestCustomDpRfThermostat:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="CONTROL_MODE", value=3
         )
         call_count = len(mock_client.method_calls)
@@ -423,7 +423,7 @@ class TestCustomDpRfThermostat:
         assert climate.target_temperature == 12.0
 
         assert climate.current_temperature is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000341:2", parameter="ACTUAL_TEMPERATURE", value=11.0
         )
         assert climate.current_temperature == 11.0
@@ -438,7 +438,7 @@ class TestCustomDpRfThermostat:
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000341:2",
             parameter="CONTROL_MODE",
@@ -476,13 +476,13 @@ class TestCustomDpRfThermostat:
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000341:2",
             parameter="CONTROL_MODE",
             value=_ModeHmIP.AUTO.value,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000341:2", parameter="SET_TEMPERATURE", value=24.0
         )
         assert climate.mode == ClimateMode.AUTO
@@ -496,13 +496,13 @@ class TestCustomDpRfThermostat:
             value=climate._temperature_for_heat_mode,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000341:2",
             parameter="CONTROL_MODE",
             value=_ModeHmIP.MANU.value,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000341:2",
             parameter="SET_TEMPERATURE",
@@ -518,13 +518,13 @@ class TestCustomDpRfThermostat:
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000341:2",
             parameter="CONTROL_MODE",
             value=_ModeHmIP.AUTO.value,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000341:2", parameter="SET_TEMPERATURE", value=24.0
         )
         assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
@@ -545,11 +545,11 @@ class TestCustomDpRfThermostat:
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000341:2", parameter="CONTROL_MODE", value=3
         )
         assert climate.profile == ClimateProfile.BOOST
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000341:2", parameter="CONTROL_MODE", value=2
         )
         assert climate.profile == ClimateProfile.AWAY
@@ -570,7 +570,7 @@ class TestCustomDpRfThermostat:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000341:2", parameter="CONTROL_MODE", value=3
         )
         call_count = len(mock_client.method_calls)
@@ -693,9 +693,9 @@ class TestCustomDpIpThermostat:
         climate._dp_level = DpDummy(channel=climate._channel, param_field=Field.LEVEL)
 
         # Point link peer to channel 9 which exposes a usable STATE
-        device = central.get_device(address="VCU1769958")
+        device = central.device_coordinator.get_device(address="VCU1769958")
         peer_address = f"{device.address}:9"
-        peer_channel = central.get_channel(channel_address=peer_address)
+        peer_channel = central.device_coordinator.get_channel(channel_address=peer_address)
         peer_channel._link_target_categories = (DataPointCategory.CLIMATE,)
         climate._channel._link_peer_addresses = (peer_address,)  # type: ignore[attr-defined]
         # Publish peer-changed so the thermostat refreshes its peer DP references
@@ -705,7 +705,7 @@ class TestCustomDpIpThermostat:
         assert climate.activity == ClimateActivity.IDLE
 
         # Set peer STATE to ON → activity should be HEAT
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address=peer_address,
             parameter=Parameter.STATE,
@@ -715,7 +715,7 @@ class TestCustomDpIpThermostat:
         assert climate.activity == ClimateActivity.HEAT
 
         # Set peer STATE to OFF → activity should be IDLE (unless target temp forces OFF)
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address=peer_address,
             parameter=Parameter.STATE,
@@ -776,17 +776,17 @@ class TestCustomDpIpThermostat:
         assert climate.supports_profiles is True
         assert climate.target_temperature_step == 0.5
         assert climate.activity == ClimateActivity.IDLE
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:9", parameter="STATE", value=1
         )
         assert climate.activity == ClimateActivity.HEAT
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:9", parameter="STATE", value=0
         )
         assert climate.activity == ClimateActivity.IDLE
         assert climate._old_manu_setpoint is None
         assert climate.current_humidity is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:1", parameter="HUMIDITY", value=75
         )
         assert climate.current_humidity == 75
@@ -803,7 +803,7 @@ class TestCustomDpIpThermostat:
         assert climate.target_temperature == 12.0
 
         assert climate.current_temperature is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:1", parameter="ACTUAL_TEMPERATURE", value=11.0
         )
         assert climate.current_temperature == 11.0
@@ -837,13 +837,13 @@ class TestCustomDpIpThermostat:
             value=19.5,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_TEMPERATURE",
             value=19.5,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_MODE",
@@ -866,7 +866,7 @@ class TestCustomDpIpThermostat:
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:1", parameter="BOOST_MODE", value=1
         )
         assert climate.profile == ClimateProfile.BOOST
@@ -878,13 +878,13 @@ class TestCustomDpIpThermostat:
             values={"BOOST_MODE": False, "CONTROL_MODE": 0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_MODE",
             value=_ModeHmIP.AUTO.value,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:1", parameter="BOOST_MODE", value=1
         )
         assert climate.mode == ClimateMode.AUTO
@@ -911,13 +911,13 @@ class TestCustomDpIpThermostat:
             wait_for_callback=None,
         )
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_TEMPERATURE",
             value=19.5,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_MODE",
@@ -933,7 +933,7 @@ class TestCustomDpIpThermostat:
             values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 19.5},
             wait_for_callback=None,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_MODE",
@@ -941,7 +941,7 @@ class TestCustomDpIpThermostat:
         )
         assert climate.profile == ClimateProfile.AWAY
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_MODE",
@@ -995,14 +995,14 @@ class TestCustomDpIpThermostat:
             },
         )
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:1", parameter="BOOST_MODE", value=1
         )
         call_count = len(mock_client.method_calls)
         await climate.set_profile(profile=ClimateProfile.BOOST)
         assert call_count == len(mock_client.method_calls)
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU1769958:1",
             parameter="SET_POINT_TEMPERATURE",
@@ -1065,19 +1065,19 @@ class TestCustomDpIpThermostat:
         assert climate.supports_profiles is True
         assert climate.target_temperature_step == 0.5
         assert climate.activity == ClimateActivity.IDLE
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:3", parameter="STATE", value=1
         )
         await central.looper.block_till_done()
         assert climate.activity == ClimateActivity.HEAT
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:3", parameter="STATE", value=0
         )
         await central.looper.block_till_done()
         assert climate.activity == ClimateActivity.IDLE
         assert climate._old_manu_setpoint is None
         assert climate.current_humidity is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="HUMIDITY", value=75
         )
         await central.looper.block_till_done()
@@ -1096,7 +1096,7 @@ class TestCustomDpIpThermostat:
         assert climate.target_temperature == 12.0
 
         assert climate.current_temperature is None
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="ACTUAL_TEMPERATURE", value=11.0
         )
         await central.looper.block_till_done()
@@ -1131,13 +1131,13 @@ class TestCustomDpIpThermostat:
             value=19.5,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_TEMPERATURE",
             value=19.5,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_MODE",
@@ -1160,7 +1160,7 @@ class TestCustomDpIpThermostat:
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="BOOST_MODE", value=1
         )
         assert climate.profile == ClimateProfile.BOOST
@@ -1172,13 +1172,13 @@ class TestCustomDpIpThermostat:
             values={"BOOST_MODE": False, "CONTROL_MODE": 0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_MODE",
             value=_ModeHmIP.AUTO.value,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="BOOST_MODE", value=1
         )
         assert climate.mode == ClimateMode.AUTO
@@ -1205,13 +1205,13 @@ class TestCustomDpIpThermostat:
             wait_for_callback=None,
         )
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_TEMPERATURE",
             value=19.5,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_MODE",
@@ -1227,7 +1227,7 @@ class TestCustomDpIpThermostat:
             values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 19.5},
             wait_for_callback=None,
         )
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_MODE",
@@ -1235,7 +1235,7 @@ class TestCustomDpIpThermostat:
         )
         assert climate.profile == ClimateProfile.AWAY
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_MODE",
@@ -1289,14 +1289,14 @@ class TestCustomDpIpThermostat:
             },
         )
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="BOOST_MODE", value=1
         )
         call_count = len(mock_client.method_calls)
         await climate.set_profile(profile=ClimateProfile.BOOST)
         assert call_count == len(mock_client.method_calls)
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU4105035:8",
             parameter="SET_POINT_TEMPERATURE",
@@ -1665,7 +1665,7 @@ class TestScheduleCache:
         callback_called = False
 
         # Simulate CONFIG_PENDING event (True then False to trigger reload)
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000341:0",
             parameter=Parameter.CONFIG_PENDING,
@@ -1678,7 +1678,7 @@ class TestScheduleCache:
         callback_called = False
 
         # Now simulate CONFIG_PENDING = False (should trigger reload and cache schedules)
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU0000341:0",
             parameter=Parameter.CONFIG_PENDING,

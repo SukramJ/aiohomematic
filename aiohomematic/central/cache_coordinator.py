@@ -20,7 +20,7 @@ from typing import Final
 
 from aiohomematic.const import DataOperationResult, Interface
 from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, DataPointProvider, DeviceProvider
-from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
+from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider, SessionRecorderProvider
 from aiohomematic.interfaces.model import DeviceRemovalInfo
 from aiohomematic.interfaces.operations import TaskScheduler
 from aiohomematic.store import (
@@ -35,7 +35,7 @@ from aiohomematic.store import (
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CacheCoordinator:
+class CacheCoordinator(SessionRecorderProvider):
     """Coordinator for all cache operations in the central unit."""
 
     __slots__ = (

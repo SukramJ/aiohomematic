@@ -9,14 +9,13 @@ to the full CentralUnit implementation.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Awaitable, Mapping
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
     BackendSystemEvent,
     BackupData,
-    CentralUnitState,
-    DeviceDescription,
+    CentralState,
     DeviceFirmwareState,
     EventKey,
     EventType,
@@ -27,7 +26,10 @@ from aiohomematic.const import (
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig
+    from aiohomematic.central.client_coordinator import ClientCoordinator
+    from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.interfaces.model import (
         CallbackDataPointProtocol,
         ChannelProtocol,
@@ -67,6 +69,11 @@ class CentralInfo(Protocol):
     def name(self) -> str:
         """Get central name."""
 
+    @property
+    @abstractmethod
+    def state(self) -> CentralState:
+        """Return the current central state from the state machine."""
+
 
 @runtime_checkable
 class CentralUnitStateProvider(Protocol):
@@ -78,7 +85,7 @@ class CentralUnitStateProvider(Protocol):
 
     @property
     @abstractmethod
-    def state(self) -> CentralUnitState:
+    def state(self) -> CentralState:
         """Get current central state."""
 
 
@@ -274,11 +281,11 @@ class FileOperations(Protocol):
 
 
 @runtime_checkable
-class DeviceDataRefresher(Protocol):
+class FirmwareDataRefresher(Protocol):
     """
-    Protocol for refreshing device data.
+    Protocol for refreshing firmware data.
 
-    Implemented by CentralUnit.
+    Implemented by DeviceCoordinator.
     """
 
     @abstractmethod
@@ -292,6 +299,18 @@ class DeviceDataRefresher(Protocol):
         device_firmware_states: tuple[DeviceFirmwareState, ...],
     ) -> None:
         """Refresh device firmware data for devices in specific states."""
+
+
+class DeviceDataRefresher(Protocol):
+    """
+    Protocol for refreshing device data.
+
+    Implemented by CentralUnit.
+    """
+
+    @abstractmethod
+    async def load_and_refresh_data_point_data(self, *, interface: Interface) -> None:
+        """Load and refresh data point data for an interface."""
 
 
 @runtime_checkable
@@ -399,11 +418,11 @@ class EventSubscriptionManager(Protocol):
     """
     Protocol for managing event subscriptions.
 
-    Implemented by CentralUnit.
+    Implemented by EventCoordinator.
     """
 
     @abstractmethod
-    def add_event_subscription(self, *, data_point: Any) -> None:
+    def add_data_point_subscription(self, *, data_point: Any) -> None:
         """Add an event subscription for a data point."""
 
 
@@ -420,30 +439,23 @@ class RpcServerCentralProtocol(Protocol):
 
     @property
     @abstractmethod
+    def client_coordinator(self) -> ClientCoordinator:
+        """Return the client coordinator."""
+
+    @property
+    @abstractmethod
+    def device_coordinator(self) -> DeviceCoordinator:
+        """Return the device coordinator."""
+
+    @property
+    @abstractmethod
+    def event_coordinator(self) -> EventCoordinator:
+        """Return the event coordinator."""
+
+    @property
+    @abstractmethod
     def name(self) -> str:
         """Return the central name."""
-
-    @abstractmethod
-    async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[dict[str, Any], ...]) -> None:
-        """Add new devices from the backend."""
-
-    @abstractmethod
-    def data_point_event(
-        self, *, interface_id: str, channel_address: str, parameter: str, value: Any
-    ) -> Awaitable[None] | Awaitable[Awaitable[None]]:
-        """Handle a data point event from the backend."""
-
-    @abstractmethod
-    async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
-        """Delete devices by addresses."""
-
-    @abstractmethod
-    def has_client(self, *, interface_id: str) -> bool:
-        """Check if a client exists for the given interface."""
-
-    @abstractmethod
-    def list_devices(self, *, interface_id: str) -> tuple[DeviceDescription, ...]:
-        """Return device descriptions for the interface."""
 
 
 @runtime_checkable
@@ -480,8 +492,6 @@ class CentralStateMachineProtocol(Protocol):
     Provides access to the overall system state and state transitions.
     Implemented by CentralStateMachine.
     """
-
-    from aiohomematic.const import CentralState  # noqa: PLC0415
 
     @property
     @abstractmethod
@@ -606,8 +616,6 @@ class CentralHealthProtocol(Protocol):
     Implemented by CentralHealth.
     """
 
-    from aiohomematic.const import CentralState  # noqa: PLC0415
-
     @property
     @abstractmethod
     def all_clients_healthy(self) -> bool:
@@ -617,11 +625,6 @@ class CentralHealthProtocol(Protocol):
     @abstractmethod
     def any_client_healthy(self) -> bool:
         """Check if at least one client is healthy."""
-
-    @property
-    @abstractmethod
-    def central_state(self) -> CentralState:
-        """Return current central state."""
 
     @property
     @abstractmethod
@@ -647,6 +650,11 @@ class CentralHealthProtocol(Protocol):
     @abstractmethod
     def primary_client_healthy(self) -> bool:
         """Check if the primary client is healthy."""
+
+    @property
+    @abstractmethod
+    def state(self) -> CentralState:
+        """Return current central state."""
 
     @abstractmethod
     def get_client_health(self, *, interface_id: str) -> ConnectionHealthProtocol | None:
@@ -702,17 +710,10 @@ class HealthProvider(Protocol):
 # circular import issues while allowing proper inheritance.
 from aiohomematic.interfaces.client import (  # noqa: E402
     CallbackAddressProvider,
-    ClientCoordination,
     ClientDependencies,
     ClientFactory,
-    ClientProvider,
     ConnectionStateProvider,
-    DeviceLookup,
     JsonRpcClientProvider,
-    LastEventTracker,
-    NewDeviceHandler,
-    PrimaryClientProvider,
-    SessionRecorderProvider,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProvider  # noqa: E402
 
@@ -723,30 +724,19 @@ class CentralProtocol(
     BackupProvider,
     CentralInfo,
     CentralUnitStateProvider,
-    ChannelLookup,
     ConfigProvider,
     DataPointProvider,
     DeviceDataRefresher,
     DeviceProvider,
     EventBusProvider,
-    EventSubscriptionManager,
     FileOperations,
-    HubDataFetcher,
-    HubDataPointManager,
     SystemInfoProvider,
     # From interfaces/client.py
     CallbackAddressProvider,
-    ClientCoordination,
     ClientDependencies,
     ClientFactory,
-    ClientProvider,
     ConnectionStateProvider,
-    DeviceLookup,
     JsonRpcClientProvider,
-    LastEventTracker,
-    NewDeviceHandler,
-    PrimaryClientProvider,
-    SessionRecorderProvider,
     # From interfaces/coordinators.py
     CoordinatorProvider,
     Protocol,
@@ -768,39 +758,30 @@ class CentralProtocol(
 
     **Event System:**
         - EventBusProvider: Access to the central event bus
-        - EventPublisher: Publishing backend and Homematic events
-        - EventSubscriptionManager: Managing event subscriptions
-        - LastEventTracker: Tracking last event timestamps
 
     **Cache & Data Access:**
         - DataPointProvider: Find data points
-        - DeviceProvider: Access device registry
-        - ChannelLookup: Find channels by address
-        - DeviceLookup: Find devices by address
+        - DeviceProvider: Access device registry (internal use)
         - FileOperations: File I/O operations
 
     **Device Operations:**
         - DeviceDataRefresher: Refresh device data from backend
-        - NewDeviceHandler: Handle new device discovery
         - BackupProvider: Backup operations
 
     **Hub Operations:**
         - HubDataFetcher: Fetch hub data
         - HubDataPointManager: Manage hub data points
 
-    **Client Management:**
-        - ClientProvider: Lookup clients by interface_id
+    **Client Management (via CoordinatorProvider.client_coordinator):**
         - ClientFactory: Create new client instances
         - ClientDependencies: Dependencies for clients
-        - ClientCoordination: Client coordination operations
-        - PrimaryClientProvider: Access to primary client
         - JsonRpcClientProvider: JSON-RPC client access
         - ConnectionStateProvider: Connection state information
         - CallbackAddressProvider: Callback address management
         - SessionRecorderProvider: Session recording access
 
     **Coordinators:**
-        - CoordinatorProvider: Access to coordinators
+        - CoordinatorProvider: Access to coordinators (client_coordinator, event_coordinator, etc.)
     """
 
     __slots__ = ()

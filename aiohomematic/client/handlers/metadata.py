@@ -132,7 +132,7 @@ class MetadataHandler(BaseHandler, MetadataOperations):
 
         functions: dict[str, set[str]] = {}
         rega_ids_function = await self._json_rpc_client.get_all_channel_rega_ids_function()
-        for address, rega_id in self._central.device_details.device_channel_rega_ids.items():
+        for address, rega_id in self._central.cache_coordinator.device_details.device_channel_rega_ids.items():
             if sections := rega_ids_function.get(rega_id):
                 if address not in functions:
                     functions[address] = set()
@@ -157,7 +157,7 @@ class MetadataHandler(BaseHandler, MetadataOperations):
 
         rooms: dict[str, set[str]] = {}
         rega_ids_room = await self._json_rpc_client.get_all_channel_rega_ids_room()
-        for address, rega_id in self._central.device_details.device_channel_rega_ids.items():
+        for address, rega_id in self._central.cache_coordinator.device_details.device_channel_rega_ids.items():
             if names := rega_ids_room.get(rega_id):
                 if address not in rooms:
                     rooms[address] = set()

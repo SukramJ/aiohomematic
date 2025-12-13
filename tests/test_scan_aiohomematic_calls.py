@@ -15,7 +15,7 @@ class TestShouldIncludeMethod:
         code = """
 from aiohomematic.central import CentralUnit
 central: CentralUnit
-x = central.devices.get("key")
+x = central.device_registry.devices.get("key")
 """
         p = tmp_path / "sample.py"
         p.write_text(code, encoding="utf-8")

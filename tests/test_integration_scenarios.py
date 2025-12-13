@@ -43,7 +43,7 @@ class TestDeviceDiscoveryWorkflow:
         """Test that device channels have data points after discovery."""
         central, client, factory = central_client_factory_with_homegear_client
 
-        devices = list(central.devices)
+        devices = list(central.device_registry.devices)
         assert len(devices) > 0
 
         # Find a device with channels
@@ -79,7 +79,7 @@ class TestDeviceDiscoveryWorkflow:
         central, client, factory = central_client_factory_with_homegear_client
 
         # Verify devices were discovered
-        devices = list(central.devices)
+        devices = list(central.device_registry.devices)
         assert len(devices) > 0
 
         # Verify device properties are populated
@@ -108,7 +108,7 @@ class TestDeviceDiscoveryWorkflow:
         """Test retrieving a specific device by address."""
         central, client, factory = central_client_factory_with_homegear_client
 
-        devices = list(central.devices)
+        devices = list(central.device_registry.devices)
         assert len(devices) > 0
 
         # Get first device's address
@@ -116,7 +116,7 @@ class TestDeviceDiscoveryWorkflow:
         address = first_device.address
 
         # Retrieve by address
-        retrieved = central.get_device(address=address)
+        retrieved = central.device_coordinator.get_device(address=address)
         assert retrieved is not None
         assert retrieved.address == address
         assert retrieved.model == first_device.model
@@ -141,7 +141,7 @@ class TestDeviceDiscoveryWorkflow:
         central, client, factory = central_client_factory_with_homegear_client
 
         # Try to get non-existent device
-        result = central.get_device(address="NONEXISTENT123")
+        result = central.device_coordinator.get_device(address="NONEXISTENT123")
         assert result is None
 
 

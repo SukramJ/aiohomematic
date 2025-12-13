@@ -98,7 +98,7 @@ class TestGenericNumber:
             value=0.3,
         )
         assert efloat.value == 0.3
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000011:3", parameter="LEVEL", value=0.5
         )
         assert efloat.value == 0.5
@@ -156,7 +156,7 @@ class TestGenericNumber:
         )
         assert einteger.value == 1
 
-        await central.data_point_event(
+        await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4984404:1", parameter="SET_POINT_MODE", value=2
         )
         assert einteger.value == 2
@@ -198,7 +198,7 @@ class TestSysvarNumber:
         central, mock_client, _ = central_client_factory_with_ccu_client
         enumber: SysvarDpNumber = cast(
             SysvarDpNumber,
-            central.get_sysvar_data_point(legacy_name="float_ext"),
+            central.hub_coordinator.get_sysvar_data_point(legacy_name="float_ext"),
         )
         assert enumber.usage == DataPointUsage.DATA_POINT
         assert enumber.unit == "°C"
@@ -235,7 +235,7 @@ class TestSysvarNumber:
         central, mock_client, _ = central_client_factory_with_homegear_client
         enumber: SysvarDpNumber = cast(
             SysvarDpNumber,
-            central.get_sysvar_data_point(legacy_name="integer_ext"),
+            central.hub_coordinator.get_sysvar_data_point(legacy_name="integer_ext"),
         )
         assert enumber.usage == DataPointUsage.DATA_POINT
 

@@ -23,27 +23,28 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
+from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
     BackendSystemEvent,
     DataPointCategory,
     DeviceDescription,
+    DeviceFirmwareState,
     SourceOfDeviceCreation,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.central import (
     CentralInfo,
-    ChannelLookup,
     ConfigProvider,
     DataCacheProvider,
     DataPointProvider,
-    DeviceDataRefresher,
     EventBusProvider,
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    FirmwareDataRefresher,
 )
 from aiohomematic.interfaces.client import ClientProvider, DeviceDiscoveryAndMetadata, DeviceDiscoveryWithIdentity
 from aiohomematic.interfaces.coordinators import CoordinatorProvider
@@ -71,12 +72,11 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class DeviceCoordinator:
+class DeviceCoordinator(FirmwareDataRefresher):
     """Coordinator for device lifecycle and operations."""
 
     __slots__ = (
         "_central_info",
-        "_channel_lookup",
         "_client_provider",
         "_config_provider",
         "_coordinator_provider",
@@ -84,7 +84,6 @@ class DeviceCoordinator:
         "_data_point_provider",
         "_delayed_device_descriptions",
         "_device_add_semaphore",
-        "_device_data_refresher",
         "_device_description_provider",
         "_device_details_provider",
         "_event_bus_provider",
@@ -100,13 +99,11 @@ class DeviceCoordinator:
         self,
         *,
         central_info: CentralInfo,
-        channel_lookup: ChannelLookup,
         client_provider: ClientProvider,
         config_provider: ConfigProvider,
         coordinator_provider: CoordinatorProvider,
         data_cache_provider: DataCacheProvider,
         data_point_provider: DataPointProvider,
-        device_data_refresher: DeviceDataRefresher,
         device_description_provider: DeviceDescriptionProvider,
         device_details_provider: DeviceDetailsProvider,
         event_bus_provider: EventBusProvider,
@@ -123,13 +120,11 @@ class DeviceCoordinator:
         Args:
         ----
             central_info: Provider for central system information
-            channel_lookup: Provider for channel lookup operations
             client_provider: Provider for client access
             config_provider: Provider for configuration access
             coordinator_provider: Provider for accessing other coordinators
             data_cache_provider: Provider for data cache access
             data_point_provider: Provider for data point access
-            device_data_refresher: Provider for device data refresh operations
             device_description_provider: Provider for device descriptions
             device_details_provider: Provider for device details
             event_bus_provider: Provider for event bus access
@@ -142,13 +137,11 @@ class DeviceCoordinator:
 
         """
         self._central_info: Final = central_info
-        self._channel_lookup = channel_lookup
         self._client_provider = client_provider
         self._config_provider: Final = config_provider
         self._coordinator_provider: Final = coordinator_provider
         self._data_cache_provider = data_cache_provider
         self._data_point_provider = data_point_provider
-        self._device_data_refresher = device_data_refresher
         self._device_description_provider = device_description_provider
         self._device_details_provider = device_details_provider
         self._event_bus_provider = event_bus_provider
@@ -171,6 +164,7 @@ class DeviceCoordinator:
         """Return all devices."""
         return self.device_registry.devices
 
+    @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """
         Add new devices to central unit (callback from backend).
@@ -353,12 +347,12 @@ class DeviceCoordinator:
                         interface_id=interface_id,
                         device_address=device_address,
                         central_info=self._central_info,
-                        channel_lookup=self._channel_lookup,
+                        channel_lookup=self,
                         client_provider=self._client_provider,
                         config_provider=self._config_provider,
                         data_cache_provider=self._data_cache_provider,
                         data_point_provider=self._data_point_provider,
-                        device_data_refresher=self._device_data_refresher,
+                        device_data_refresher=self,
                         device_description_provider=self._device_description_provider,
                         device_details_provider=self._device_details_provider,
                         event_bus_provider=self._event_bus_provider,
@@ -426,6 +420,7 @@ class DeviceCoordinator:
 
         await self.delete_devices(interface_id=interface_id, addresses=(device_address, *tuple(device.channels.keys())))
 
+    @callback_backend_system(system_event=BackendSystemEvent.DELETE_DEVICES)
     async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
         """
         Delete multiple devices from central.
@@ -500,6 +495,7 @@ class DeviceCoordinator:
         """
         return self.device_registry.identify_channel(text=text)
 
+    @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
     def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
         """
         Return already existing devices to the backend.
@@ -588,6 +584,16 @@ class DeviceCoordinator:
             for device in self.devices:
                 if device.is_updatable:
                     device.refresh_firmware_data()
+
+    @inspector(re_raise=False)
+    async def refresh_firmware_data_by_state(self, *, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
+        """Refresh firmware by state (internal use - use device_coordinator for external access)."""
+        for device in [
+            device_in_state
+            for device_in_state in self.devices
+            if device_in_state.firmware_update_state in device_firmware_states
+        ]:
+            await self.refresh_firmware_data(device_address=device.address)
 
     @inspector
     async def remove_central_links(self) -> None:

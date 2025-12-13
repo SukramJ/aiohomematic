@@ -276,6 +276,20 @@ class _FakeCentral:
         self._callback_ip_addr = "127.0.0.1"
 
     @property
+    def cache_coordinator(self):  # noqa: D401,ANN201
+        """Return a mock cache coordinator."""
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            device_details=self.device_details,
+            paramset_descriptions=self.paramset_descriptions,
+            data_cache=self.data_cache,
+            device_descriptions=SimpleNamespace(
+                get_device_descriptions=lambda **kwargs: [],
+            ),
+        )
+
+    @property
     def callback_ip_addr(self) -> str:  # noqa: D401
         return self._callback_ip_addr
 
@@ -450,13 +464,48 @@ class _FakeCentral2:
         self.looper = SimpleNamespace(create_task=lambda **kwargs: None)  # type: ignore[misc]
 
     @property
+    def cache_coordinator(self):  # noqa: D401,ANN201
+        """Return a mock cache coordinator."""
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            device_details=self.device_details,
+            paramset_descriptions=self.paramset_descriptions,
+            data_cache=self.data_cache,
+            device_descriptions=SimpleNamespace(
+                get_device_descriptions=lambda **kwargs: [],
+            ),
+        )
+
+    @property
     def callback_ip_addr(self) -> str:  # noqa: D401
         return self._callback_ip_addr
+
+    @property
+    def device_coordinator(self):  # noqa: D401,ANN001
+        """Return the device coordinator."""
+        return self
+
+    @property
+    def device_registry(self):  # noqa: D401,ANN001
+        """Return a mock device registry."""
+        if not hasattr(self, "_device_registry"):
+            from types import SimpleNamespace
+
+            self._device_registry = SimpleNamespace(
+                devices=tuple(self._devices.values()),
+            )
+        return self._device_registry
 
     @property
     def event_bus(self):  # noqa: D401,ANN001
         """Return the event bus."""
         return self._event_bus
+
+    @property
+    def event_coordinator(self):  # noqa: D401,ANN001
+        """Return the event coordinator."""
+        return self
 
     @property
     def listen_port_xml_rpc(self) -> int:  # noqa: D401
@@ -668,7 +717,7 @@ class TestClientClasses:
         # JSON-based methods through FakeJsonRpcClient
         await client_ccu.fetch_device_details()
         await client_ccu.fetch_all_device_data()
-        assert central.data_cache.last_added[0] == Interface.BIDCOS_RF  # type: ignore[index]
+        assert central.cache_coordinator.data_cache.last_added[0] == Interface.BIDCOS_RF  # type: ignore[index]
 
         assert await client_ccu.check_connection_availability(handle_ping_pong=False) is True
         assert await client_ccu.execute_program(pid="p1") is True
@@ -989,7 +1038,7 @@ class TestClientProxyLifecycle:
         mock_device = MagicMock()
         mock_device.set_forced_availability = MagicMock()
         mock_device.interface_id = "c-BidCos-RF"  # Matches client's interface_id
-        central.devices = (mock_device,)
+        central.device_registry.devices = (mock_device,)
 
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         ccfg = ClientConfig(central=central, interface_config=iface_cfg)
@@ -1241,7 +1290,7 @@ class TestClientFirmwareAndUpdates:
         def _find_device_description(interface_id: str, device_address: str):  # noqa: ARG002
             return None
 
-        central.device_descriptions = SimpleNamespace(
+        central.cache_coordinator.device_descriptions = SimpleNamespace(
             get_device_descriptions=lambda interface_id: ("i",),  # type: ignore[misc]
             find_device_description=_find_device_description,
         )
@@ -1255,7 +1304,7 @@ class TestClientVirtualRemote:
     """Test virtual remote device retrieval."""
 
     def test_get_virtual_remote_returns_device(self) -> None:
-        """Client.get_virtual_remote should return matching virtual remote device from central.devices."""
+        """Client.get_virtual_remote should return matching virtual remote device from central.device_registry.devices."""
         from aiohomematic.const import VIRTUAL_REMOTE_MODELS
 
         central = _FakeCentral2()
@@ -1268,7 +1317,7 @@ class TestClientVirtualRemote:
         # Add a device with the expected model and matching interface_id
         vr_model = VIRTUAL_REMOTE_MODELS[0] if VIRTUAL_REMOTE_MODELS else "HM-RCV-50"
         dev = SimpleNamespace(interface_id=client.interface_id, model=vr_model)
-        central.devices = (dev,)
+        central.device_registry.devices = (dev,)
 
         vr = client.get_virtual_remote()
         assert vr is dev
@@ -1307,9 +1356,12 @@ class TestClientRegistry:
         """get_client should return a client when CENTRAL_INSTANCES contains a matching central."""
         dummy_client = object()
 
-        fake_central = SimpleNamespace(
+        fake_client_coordinator = SimpleNamespace(
             has_client=lambda interface_id: interface_id == "iid",
             get_client=lambda interface_id: dummy_client if interface_id == "iid" else None,
+        )
+        fake_central = SimpleNamespace(
+            client_coordinator=fake_client_coordinator,
         )
 
         import aiohomematic.central as hmcu

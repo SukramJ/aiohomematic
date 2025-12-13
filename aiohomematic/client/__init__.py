@@ -652,7 +652,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def get_virtual_remote(self) -> DeviceProtocol | None:
         """Get the virtual remote for the Client."""
         for model in VIRTUAL_REMOTE_MODELS:
-            for device in self.central.devices:
+            for device in self.central.device_registry.devices:
                 if device.interface_id == self.interface_id and device.model == model:
                     return device
         return None
@@ -688,7 +688,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._state_machine.transition_to(target=ClientState.CONNECTING)
         if not self.supports_rpc_callback:
             if device_descriptions := await self.list_devices():
-                await self.central.add_new_devices(
+                await self.central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
                 )
                 self._state_machine.transition_to(target=ClientState.CONNECTED)
@@ -762,7 +762,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
         # Check event timestamp for all other states (including startup states)
         if (
-            last_events_dt := self.central.get_last_event_seen_for_interface(interface_id=self.interface_id)
+            last_events_dt := self.central.event_coordinator.get_last_event_seen_for_interface(
+                interface_id=self.interface_id
+            )
         ) is not None:
             callback_warn = self._config.central.config.timeout_config.callback_warn_interval
             if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > callback_warn:
@@ -1085,7 +1087,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         # entities show unavailable during connection failures.
         # Only skip updates when already in matching available state.
         if not available or self._state_machine.is_available != available:
-            for device in self.central.devices:
+            for device in self.central.device_registry.devices:
                 if device.interface_id == self.interface_id:
                     device.set_forced_availability(forced_availability=forced_availability)
             _LOGGER.debug(
@@ -1381,7 +1383,7 @@ class ClientJsonCCU(ClientCCU):
         parameter: str,
     ) -> ParameterType | None:
         """Return the parameter type for a given parameter."""
-        if parameter_data := self.central.paramset_descriptions.get_parameter_data(
+        if parameter_data := self.central.cache_coordinator.paramset_descriptions.get_parameter_data(
             interface_id=self.interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -1551,9 +1553,11 @@ class ClientHomegear(ClientCCU):
     async def fetch_device_details(self) -> None:
         """Get all names from metadata (Homegear)."""
         _LOGGER.debug("FETCH_DEVICE_DETAILS: Fetching names via Metadata")
-        for address in self.central.device_descriptions.get_device_descriptions(interface_id=self.interface_id):
+        for address in self.central.cache_coordinator.device_descriptions.get_device_descriptions(
+            interface_id=self.interface_id
+        ):
             try:
-                self.central.device_details.add_name(
+                self.central.cache_coordinator.device_details.add_name(
                     address=address,
                     name=await self._proxy_read.getMetadata(address, _NAME),
                 )
@@ -1693,7 +1697,7 @@ class ClientConfig:
             headers=xml_rpc_headers,
             tls=config.tls,
             verify_tls=config.verify_tls,
-            session_recorder=self.central.recorder,
+            session_recorder=self.central.cache_coordinator.recorder,
         )
         await xml_proxy.do_init()
         return xml_proxy
@@ -1769,6 +1773,6 @@ async def create_client(
 def get_client(interface_id: str) -> ClientProtocol | None:
     """Return client by interface_id."""
     for central in hmcu.CENTRAL_INSTANCES.values():
-        if central.has_client(interface_id=interface_id):
-            return central.get_client(interface_id=interface_id)
+        if central.client_coordinator.has_client(interface_id=interface_id):
+            return central.client_coordinator.get_client(interface_id=interface_id)
     return None

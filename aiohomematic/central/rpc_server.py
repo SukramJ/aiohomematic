@@ -39,7 +39,9 @@ class RPCFunctions:
         """Delete devices send from the backend."""
         if entry := self.get_central_entry(interface_id=interface_id):
             entry.looper.create_task(
-                target=lambda: entry.central.delete_devices(interface_id=interface_id, addresses=tuple(addresses)),
+                target=lambda: entry.central.device_coordinator.delete_devices(
+                    interface_id=interface_id, addresses=tuple(addresses)
+                ),
                 name=f"deleteDevices-{interface_id}",
             )
 
@@ -71,7 +73,7 @@ class RPCFunctions:
         """If a device publishes some sort event, we will handle it here."""
         if entry := self.get_central_entry(interface_id=interface_id):
             entry.looper.create_task(
-                target=lambda: entry.central.data_point_event(
+                target=lambda: entry.central.event_coordinator.data_point_event(
                     interface_id=interface_id,
                     channel_address=channel_address,
                     parameter=parameter,
@@ -88,7 +90,8 @@ class RPCFunctions:
         """Return already existing devices to the backend."""
         if entry := self.get_central_entry(interface_id=interface_id):
             return [
-                dict(device_description) for device_description in entry.central.list_devices(interface_id=interface_id)
+                dict(device_description)
+                for device_description in entry.central.device_coordinator.list_devices(interface_id=interface_id)
             ]
         return []
 
@@ -96,7 +99,7 @@ class RPCFunctions:
         """Add new devices send from the backend."""
         if entry := self.get_central_entry(interface_id=interface_id):
             entry.looper.create_task(
-                target=entry.central.add_new_devices(
+                target=entry.central.device_coordinator.add_new_devices(
                     interface_id=interface_id, device_descriptions=tuple(device_descriptions)
                 ),
                 name=f"newDevices-{interface_id}",
@@ -233,7 +236,7 @@ class RpcServer(threading.Thread):
     def get_central_entry(self, *, interface_id: str) -> _CentralEntry | None:
         """Return a central entry by interface_id."""
         for entry in self._centrals.values():
-            if entry.central.has_client(interface_id=interface_id):
+            if entry.central.client_coordinator.has_client(interface_id=interface_id):
                 return entry
         return None
 

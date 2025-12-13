@@ -117,7 +117,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperations):
             _LOGGER.debug("UPDATE_DEVICE_FIRMWARE: Not supported by client for %s", self._interface_id)
             return False
 
-        if device := self._central.get_device(address=device_address):
+        if device := self._central.device_coordinator.get_device(address=device_address):
             _LOGGER.info(
                 i18n.tr(
                     "log.client.update_device_firmware.try",

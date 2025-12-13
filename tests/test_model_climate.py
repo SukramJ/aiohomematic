@@ -695,7 +695,7 @@ class TestCustomDpIpThermostat:
         # Point link peer to channel 9 which exposes a usable STATE
         device = central.device_coordinator.get_device(address="VCU1769958")
         peer_address = f"{device.address}:9"
-        peer_channel = central.get_channel(channel_address=peer_address)
+        peer_channel = central.device_coordinator.get_channel(channel_address=peer_address)
         peer_channel._link_target_categories = (DataPointCategory.CLIMATE,)
         climate._channel._link_peer_addresses = (peer_address,)  # type: ignore[attr-defined]
         # Publish peer-changed so the thermostat refreshes its peer DP references

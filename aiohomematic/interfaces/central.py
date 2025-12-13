@@ -280,7 +280,7 @@ class FirmwareDataRefresher(Protocol):
     """
     Protocol for refreshing firmware data.
 
-    Implemented by DeviceCoordinator and CentralUnit.
+    Implemented by DeviceCoordinator.
     """
 
     @abstractmethod
@@ -296,7 +296,7 @@ class FirmwareDataRefresher(Protocol):
         """Refresh device firmware data for devices in specific states."""
 
 
-class DeviceDataRefresher(FirmwareDataRefresher, Protocol):
+class DeviceDataRefresher(Protocol):
     """
     Protocol for refreshing device data.
 
@@ -712,7 +712,6 @@ from aiohomematic.interfaces.client import (  # noqa: E402
     ClientDependencies,
     ClientFactory,
     ConnectionStateProvider,
-    DeviceLookup,
     JsonRpcClientProvider,
     SessionRecorderProvider,
 )
@@ -737,7 +736,6 @@ class CentralProtocol(
     ClientDependencies,
     ClientFactory,
     ConnectionStateProvider,
-    DeviceLookup,
     JsonRpcClientProvider,
     SessionRecorderProvider,
     # From interfaces/coordinators.py
@@ -764,9 +762,7 @@ class CentralProtocol(
 
     **Cache & Data Access:**
         - DataPointProvider: Find data points
-        - DeviceProvider: Access device registry
-        - ChannelLookup: Find channels by address
-        - DeviceLookup: Find devices by address
+        - DeviceProvider: Access device registry (internal use)
         - FileOperations: File I/O operations
 
     **Device Operations:**

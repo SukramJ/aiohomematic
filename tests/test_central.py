@@ -109,9 +109,11 @@ class TestCentralBasics:
         assert device
         dps = central.get_readable_generic_data_points()
         assert dps
-        await central.refresh_firmware_data(device_address="VCU2128127")
-        await central.refresh_firmware_data()
-        await central.refresh_firmware_data_by_state(device_firmware_states=DeviceFirmwareState.NEW_FIRMWARE_AVAILABLE)
+        await central.device_coordinator.refresh_firmware_data(device_address="VCU2128127")
+        await central.device_coordinator.refresh_firmware_data()
+        await central.device_coordinator.refresh_firmware_data_by_state(
+            device_firmware_states=DeviceFirmwareState.NEW_FIRMWARE_AVAILABLE
+        )
         await central.client_coordinator.restart_clients()
 
         await central.stop()
@@ -714,7 +716,7 @@ class TestCentralDeviceManagement:
     ) -> None:
         """Test device delete."""
         central, _, _ = central_client_factory_with_homegear_client
-        assert len(central.get_virtual_remotes()) == 1
+        assert len(central.device_coordinator.get_virtual_remotes()) == 1
 
         assert central.device_coordinator.get_device(address="VCU0000057")
 
@@ -732,7 +734,7 @@ class TestCentralDeviceManagement:
         await central.device_coordinator.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
         assert len(central.device_registry.devices) == 0
         assert len(central.get_data_points()) == 0
-        assert central.get_virtual_remotes() == ()
+        assert central.device_coordinator.get_virtual_remotes() == ()
 
         await central.device_coordinator.delete_device(
             interface_id=const.INTERFACE_ID, device_address="NOT_A_DEVICE_ID"

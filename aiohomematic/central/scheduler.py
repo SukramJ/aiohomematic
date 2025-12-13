@@ -47,6 +47,7 @@ from aiohomematic.interfaces.central import (
     ConfigProvider,
     DeviceDataRefresher,
     EventBusProvider,
+    FirmwareDataRefresher,
     HubDataFetcher,
 )
 from aiohomematic.interfaces.client import ConnectionStateProvider, JsonRpcClientProvider
@@ -141,6 +142,7 @@ class BackgroundScheduler:
         client_coordinator: ClientCoordinator,
         connection_state_provider: ConnectionStateProvider,
         device_data_refresher: DeviceDataRefresher,
+        firmware_data_refresher: FirmwareDataRefresher,
         event_coordinator: EventCoordinator,
         hub_data_fetcher: HubDataFetcher,
         event_bus_provider: EventBusProvider,
@@ -157,6 +159,7 @@ class BackgroundScheduler:
             client_coordinator: Client coordinator for client operations
             connection_state_provider: Provider for connection state access
             device_data_refresher: Provider for device data refresh operations
+            firmware_data_refresher: Provider for firmware data refresh operations
             event_coordinator: Event coordinator for event management
             hub_data_fetcher: Provider for hub data fetch operations
             event_bus_provider: Provider for event bus access
@@ -169,6 +172,7 @@ class BackgroundScheduler:
         self._client_coordinator: Final = client_coordinator
         self._connection_state_provider: Final = connection_state_provider
         self._device_data_refresher: Final = device_data_refresher
+        self._firmware_data_refresher: Final = firmware_data_refresher
         self._event_coordinator: Final = event_coordinator
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._event_bus_provider: Final = event_bus_provider
@@ -395,7 +399,7 @@ class BackgroundScheduler:
             "FETCH_DEVICE_FIRMWARE_UPDATE_DATA: Scheduled fetching for %s",
             self._central_info.name,
         )
-        await self._device_data_refresher.refresh_firmware_data()
+        await self._firmware_data_refresher.refresh_firmware_data()
 
     async def _fetch_device_firmware_update_data_in_delivery(self) -> None:
         """Fetch firmware update data for devices in delivery state."""
@@ -410,7 +414,7 @@ class BackgroundScheduler:
             "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_DELIVERY: For delivering devices for %s",
             self._central_info.name,
         )
-        await self._device_data_refresher.refresh_firmware_data_by_state(
+        await self._firmware_data_refresher.refresh_firmware_data_by_state(
             device_firmware_states=(
                 DeviceFirmwareState.DELIVER_FIRMWARE_IMAGE,
                 DeviceFirmwareState.LIVE_DELIVER_FIRMWARE_IMAGE,
@@ -430,7 +434,7 @@ class BackgroundScheduler:
             "FETCH_DEVICE_FIRMWARE_UPDATE_DATA_IN_UPDATE: For updating devices for %s",
             self._central_info.name,
         )
-        await self._device_data_refresher.refresh_firmware_data_by_state(
+        await self._firmware_data_refresher.refresh_firmware_data_by_state(
             device_firmware_states=(
                 DeviceFirmwareState.READY_FOR_UPDATE,
                 DeviceFirmwareState.DO_UPDATE_PENDING,

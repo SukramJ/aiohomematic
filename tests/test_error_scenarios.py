@@ -89,7 +89,7 @@ class TestCentralErrorScenarios:
         mock_device.address = "NONEXISTENT_DEVICE"
 
         # Should not raise an error
-        await central.remove_device(device=mock_device)
+        await central.device_coordinator.remove_device(device=mock_device)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -377,7 +377,7 @@ class TestDeviceUtilities:
         device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
             with contextlib.suppress(Exception):
-                await central.refresh_firmware_data(device_address=device.address)
+                await central.device_coordinator.refresh_firmware_data(device_address=device.address)
                 # May fail with mock client
 
 

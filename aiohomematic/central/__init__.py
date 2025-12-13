@@ -138,7 +138,6 @@ from aiohomematic.const import (
     ClientState,
     DataPointCategory,
     DescriptionMarker,
-    DeviceFirmwareState,
     EventType,
     Interface,
     Operations,
@@ -162,7 +161,6 @@ from aiohomematic.interfaces.central import CentralProtocol, EventBusProvider
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
-    ChannelProtocol,
     CustomDataPointProtocol,
     DeviceProtocol,
     GenericDataPointProtocol,
@@ -290,6 +288,7 @@ class CentralUnit(
             client_coordinator=self._client_coordinator,
             connection_state_provider=self,
             device_data_refresher=self,
+            firmware_data_refresher=self._device_coordinator,
             event_coordinator=self._event_coordinator,
             hub_data_fetcher=self._hub_coordinator,
             event_bus_provider=self,
@@ -339,7 +338,7 @@ class CentralUnit(
 
     @property
     def available(self) -> bool:
-        """Return availability (internal use - use client_coordinator for external access)."""
+        """Return availability (internal use - use client_coordinator.available for external access)."""
         return self._client_coordinator.available
 
     @property
@@ -389,7 +388,7 @@ class CentralUnit(
 
     @property
     def devices(self) -> tuple[DeviceProtocol, ...]:
-        """Return all devices."""
+        """Return all devices (internal use - use device_registry.devices for external access)."""
         return self._device_registry.devices
 
     @property
@@ -428,7 +427,7 @@ class CentralUnit(
 
     @property
     def interfaces(self) -> frozenset[Interface]:
-        """Return all interfaces (internal use - use client_coordinator for external access)."""
+        """Return all interfaces (internal use - use client_coordinator.interfaces for external access)."""
         return self._client_coordinator.interfaces
 
     @property
@@ -455,7 +454,7 @@ class CentralUnit(
 
     @property
     def recorder(self) -> SessionRecorder:
-        """Return the session recorder (internal use - use cache_coordinator for external access)."""
+        """Return the session recorder (internal use - use cache_coordinator.recorder for external access)."""
         return self._cache_coordinator.recorder
 
     @property
@@ -564,10 +563,6 @@ class CentralUnit(
             interface_config=interface_config,
         )
 
-    def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
-        """Return channel by address."""
-        return self._device_coordinator.get_channel(channel_address=channel_address)
-
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
         """Return the hm custom_data_point."""
         if device := self._device_coordinator.get_device(address=address):
@@ -598,10 +593,6 @@ class CentralUnit(
                 device.get_data_points(category=category, exclude_no_create=exclude_no_create, registered=registered)
             )
         return tuple(all_data_points)
-
-    def get_device(self, *, address: str) -> DeviceProtocol | None:
-        """Return device by address."""
-        return self._device_coordinator.get_device(address=address)
 
     def get_event(
         self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
@@ -809,10 +800,6 @@ class CentralUnit(
             )
         return candidates
 
-    def get_virtual_remotes(self) -> tuple[DeviceProtocol, ...]:
-        """Return all virtual remote devices."""
-        return self._device_coordinator.get_virtual_remotes()
-
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
         Initialize install mode data points (internal use - use hub_coordinator for external access).
@@ -837,18 +824,6 @@ class CentralUnit(
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
-    async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
-        """Refresh firmware data for devices."""
-        await self._device_coordinator.refresh_firmware_data(device_address=device_address)
-
-    async def refresh_firmware_data_by_state(self, *, device_firmware_states: tuple[DeviceFirmwareState, ...]) -> None:
-        """Refresh firmware data for devices by state."""
-        await self._device_coordinator.refresh_firmware_data_by_state(device_firmware_states=device_firmware_states)
-
-    async def remove_device(self, *, device: DeviceProtocol) -> None:
-        """Remove device from central."""
-        await self._device_coordinator.remove_device(device=device)
-
     async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
         """
         Rename a device on the CCU.
@@ -862,7 +837,7 @@ class CentralUnit(
             True if the device was successfully renamed, False otherwise.
 
         """
-        if (device := self.get_device(address=device_address)) is None:
+        if (device := self._device_coordinator.get_device(address=device_address)) is None:
             _LOGGER.warning(
                 i18n.tr("log.central.rename_device.not_found", device_address=device_address, name=self.name)
             )

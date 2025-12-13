@@ -44,6 +44,7 @@ from aiohomematic.interfaces.central import (
     EventPublisher,
     EventSubscriptionManager,
     FileOperations,
+    FirmwareDataRefresher,
 )
 from aiohomematic.interfaces.client import ClientProvider, DeviceDiscoveryAndMetadata, DeviceDiscoveryWithIdentity
 from aiohomematic.interfaces.coordinators import CoordinatorProvider
@@ -71,7 +72,7 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class DeviceCoordinator:
+class DeviceCoordinator(FirmwareDataRefresher):
     """Coordinator for device lifecycle and operations."""
 
     __slots__ = (

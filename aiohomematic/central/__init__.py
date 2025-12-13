@@ -989,9 +989,7 @@ class CentralUnit(
         if self.state == CentralState.STOPPED:
             _LOGGER.debug("STOP: Central %s is already stopped", self.name)
             return
-        if self.state != CentralState.RUNNING:
-            _LOGGER.debug("STOP: Central %s not started", self.name)
-            return
+
         # Transition to STOPPED directly (no intermediate STOPPING state in CentralState)
         _LOGGER.debug("STOP: Stopping Central %s", self.name)
 

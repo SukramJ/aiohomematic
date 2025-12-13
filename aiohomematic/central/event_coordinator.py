@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from functools import partial
 import logging
-from typing import Any, Final, cast
+from typing import Any, Final
 
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.event_bus import (
@@ -28,26 +28,17 @@ from aiohomematic.central.event_bus import (
     EventBus,
     HomematicEvent,
 )
-from aiohomematic.const import (
-    BackendSystemEvent,
-    DataPointKey,
-    EventKey,
-    EventType,
-    InterfaceEventType,
-    Parameter,
-    ParamsetKey,
-)
+from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, Parameter, ParamsetKey
 from aiohomematic.interfaces.central import EventBusProvider, EventPublisher
-from aiohomematic.interfaces.client import ClientProvider, InterfaceEventPublisher, LastEventTracker
+from aiohomematic.interfaces.client import ClientProvider, LastEventTracker
 from aiohomematic.interfaces.model import BaseParameterDataPointProtocol, GenericDataPointProtocol, GenericEventProtocol
 from aiohomematic.interfaces.operations import TaskScheduler
-from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 
 
-class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker, InterfaceEventPublisher):
+class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
     """Coordinator for event subscription and handling."""
 
     __slots__ = (
@@ -280,36 +271,6 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker, Inter
         self._task_scheduler.create_task(
             target=partial(_publish_homematic_event),
             name=f"event-bus-homematic-{event_type}",
-        )
-
-    @loop_check
-    def publish_interface_event(
-        self,
-        *,
-        interface_id: str,
-        interface_event_type: InterfaceEventType,
-        data: dict[str, Any],
-    ) -> None:
-        """
-        Publish an event about the interface status.
-
-        Args:
-        ----
-            interface_id: Interface identifier
-            interface_event_type: Type of interface event
-            data: Event data
-
-        """
-        data = data or {}
-        event_data: dict[str, Any] = {
-            EventKey.INTERFACE_ID: interface_id,
-            EventKey.TYPE: interface_event_type,
-            EventKey.DATA: data,
-        }
-
-        self.publish_homematic_event(
-            event_type=EventType.INTERFACE,
-            event_data=cast(dict[EventKey, Any], INTERFACE_EVENT_SCHEMA(event_data)),
         )
 
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:

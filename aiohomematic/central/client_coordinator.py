@@ -20,13 +20,7 @@ import logging
 from typing import Final
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.const import (
-    PRIMARY_CLIENT_CANDIDATE_INTERFACES,
-    EventKey,
-    Interface,
-    InterfaceEventType,
-    ProxyInitState,
-)
+from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, Interface, ProxyInitState
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, SystemInfoProvider
 from aiohomematic.interfaces.client import ClientFactory, ClientProtocol, ClientProvider
@@ -277,12 +271,6 @@ class ClientCoordinator(ClientProvider):
                 self._clients[client.interface_id] = client
                 return True
         except BaseHomematicException as bhexc:  # pragma: no cover
-            self._coordinator_provider.event_coordinator.publish_interface_event(
-                interface_id=interface_config.interface_id,
-                interface_event_type=InterfaceEventType.PROXY,
-                data={EventKey.AVAILABLE: False},
-            )
-
             _LOGGER.error(
                 i18n.tr(
                     "log.central.create_client.no_connection",

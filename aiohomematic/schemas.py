@@ -10,7 +10,7 @@ from __future__ import annotations
 import voluptuous as vol
 
 from aiohomematic import validator as val
-from aiohomematic.const import EventKey, InterfaceEventType
+from aiohomematic.const import EventKey
 
 EVENT_DATA_SCHEMA = vol.Schema(
     {
@@ -20,15 +20,5 @@ EVENT_DATA_SCHEMA = vol.Schema(
         vol.Required(str(EventKey.INTERFACE_ID)): str,
         vol.Required(str(EventKey.PARAMETER)): str,
         vol.Optional(str(EventKey.VALUE)): vol.Any(bool, int),
-    }
-)
-
-INTERFACE_EVENT_SCHEMA = vol.Schema(
-    {
-        vol.Required(str(EventKey.INTERFACE_ID)): str,
-        vol.Required(str(EventKey.TYPE)): InterfaceEventType,
-        vol.Required(str(EventKey.DATA)): vol.Schema(
-            {vol.Required(vol.Any(EventKey)): vol.Schema(vol.Any(str, int, bool))}
-        ),
     }
 )

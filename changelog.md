@@ -1,3 +1,22 @@
+# Version 2025.12.26 (2025-12-13)
+
+## What's Changed
+
+### Breaking Changes
+
+- Remove `InterfaceEvent` class and `InterfaceEventType` enum - replaced with typed events
+- Remove `EventType.INTERFACE` and `EventType.DEVICE_AVAILABILITY` enum values
+- Remove `publish_interface_event` method from `CentralUnit` and `EventCoordinator`
+- Remove `InterfaceEventPublisher` protocol from interfaces
+- Remove `INTERFACE_EVENT_SCHEMA` from schemas
+
+### New Features
+
+- Add `FetchDataFailedEvent` - typed event for data fetch failures (replaces `InterfaceEventType.FETCH_DATA`)
+- Add `PingPongMismatchEvent` - typed event for ping/pong mismatches with `PingPongMismatchType` enum (`PENDING`, `UNKNOWN`)
+- Add `DeviceAvailabilityChangedEvent` - typed event for device availability changes (replaces `EventType.DEVICE_AVAILABILITY`)
+- Add `PingPongMismatchType` enum with `PENDING` and `UNKNOWN` values
+
 # Version 2025.12.25 (2025-12-12)
 
 ## What's Changed

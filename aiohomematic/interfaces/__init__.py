@@ -23,7 +23,6 @@ Protocol Categories
 
     - `EventBusProvider`: Access to the central event bus
     - `EventPublisher`: Publishing backend and Homematic events
-    - `InterfaceEventPublisher`: Interface-specific event publishing
     - `EventSubscriptionManager`: Managing event subscriptions
     - `LastEventTracker`: Tracking last event timestamps
 
@@ -206,7 +205,6 @@ from aiohomematic.interfaces.client import (
     DeviceDiscoveryOperations,
     DeviceLookup,
     FirmwareOperations,
-    InterfaceEventPublisher,
     JsonRpcClientProvider,
     LastEventTracker,
     LinkOperations,
@@ -286,7 +284,6 @@ __all__ = [
     "EventBusProvider",
     "EventPublisher",
     "EventSubscriptionManager",
-    "InterfaceEventPublisher",
     "LastEventTracker",
     # Cache Read (Providers)
     "DataCacheProvider",

@@ -52,7 +52,11 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
-from aiohomematic.central.event_bus import ClientStateChangedEvent, ConnectionStateChangedEvent
+from aiohomematic.central.event_bus import (
+    CallbackStateChangedEvent,
+    ClientStateChangedEvent,
+    ConnectionStateChangedEvent,
+)
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
 from aiohomematic.client.handlers import (
     BackupHandler,
@@ -87,11 +91,9 @@ from aiohomematic.const import (
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,
-    EventKey,
     ForcedDeviceAvailability,
     InboxDeviceData,
     Interface,
-    InterfaceEventType,
     ParameterData,
     ParameterType,
     ParamsetKey,
@@ -192,7 +194,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._is_callback_alive: bool = True
         self._reconnect_attempts: int = 0
         self._ping_pong_cache: Final = PingPongCache(
-            event_publisher=client_config.central,
+            event_bus_provider=client_config.central,
             central_info=client_config.central,
             interface_id=client_config.interface_id,
             connection_state=client_config.central.connection_state,
@@ -765,13 +767,13 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             callback_warn = self._config.central.config.timeout_config.callback_warn_interval
             if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > callback_warn:
                 if self._is_callback_alive:
-                    self.central.publish_interface_event(
-                        interface_id=self.interface_id,
-                        interface_event_type=InterfaceEventType.CALLBACK,
-                        data={
-                            EventKey.AVAILABLE: False,
-                            EventKey.SECONDS_SINCE_LAST_EVENT: int(seconds_since_last_event),
-                        },
+                    self.central.event_bus.publish_sync(
+                        event=CallbackStateChangedEvent(
+                            timestamp=datetime.now(),
+                            interface_id=self.interface_id,
+                            alive=False,
+                            seconds_since_last_event=int(seconds_since_last_event),
+                        )
                     )
                     self._is_callback_alive = False
                 _LOGGER.error(
@@ -784,10 +786,13 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 return False
 
             if not self._is_callback_alive:
-                self.central.publish_interface_event(
-                    interface_id=self.interface_id,
-                    interface_event_type=InterfaceEventType.CALLBACK,
-                    data={EventKey.AVAILABLE: True},
+                self.central.event_bus.publish_sync(
+                    event=CallbackStateChangedEvent(
+                        timestamp=datetime.now(),
+                        interface_id=self.interface_id,
+                        alive=True,
+                        seconds_since_last_event=None,
+                    )
                 )
                 self._is_callback_alive = True
         return True
@@ -1088,11 +1093,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 "available" if available else "unavailable",
                 self.interface_id,
             )
-        self.central.publish_interface_event(
-            interface_id=self.interface_id,
-            interface_event_type=InterfaceEventType.PROXY,
-            data={EventKey.AVAILABLE: available},
-        )
 
     def _on_client_state_change(self, *, old_state: ClientState, new_state: ClientState) -> None:
         """Handle client state machine transitions by emitting events."""

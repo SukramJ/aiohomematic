@@ -788,25 +788,6 @@ class PrimaryClientProvider(Protocol):
 
 
 @runtime_checkable
-class InterfaceEventPublisher(Protocol):
-    """
-    Protocol for publishing interface-level events.
-
-    Implemented by CentralUnit.
-    """
-
-    @abstractmethod
-    def publish_interface_event(
-        self,
-        *,
-        interface_id: str,
-        interface_event_type: Any,
-        data: dict[Any, Any],
-    ) -> None:
-        """Publish an interface event."""
-
-
-@runtime_checkable
 class LastEventTracker(Protocol):
     """
     Protocol for tracking last event times per interface.
@@ -1201,16 +1182,6 @@ class ClientDependencies(Protocol):
     @abstractmethod
     def publish_homematic_event(self, *, event_type: Any, event_data: dict[Any, Any]) -> None:
         """Publish a Homematic event."""
-
-    @abstractmethod
-    def publish_interface_event(
-        self,
-        *,
-        interface_id: str,
-        interface_event_type: Any,
-        data: dict[Any, Any],
-    ) -> None:
-        """Publish an interface event."""
 
     @abstractmethod
     async def save_files(

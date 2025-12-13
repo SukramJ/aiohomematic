@@ -107,6 +107,7 @@ from aiohomematic.const import (
     EventKey,
     EventType,
     ParamsetKey,
+    PingPongMismatchType,
 )
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -297,24 +298,6 @@ class SysvarUpdatedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class InterfaceEvent(Event):
-    """
-    Interface-level event (connection state changes, etc.).
-
-    Key is interface_id.
-    """
-
-    interface_id: str
-    event_type: str
-    data: dict[str, Any]
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-@dataclass(frozen=True, slots=True)
 class DeviceUpdatedEvent(Event):
     """
     Device state has been updated.
@@ -420,6 +403,30 @@ class ConnectionStateChangedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
+class CallbackStateChangedEvent(Event):
+    """
+    Callback channel state has changed for an interface.
+
+    Published when the CCU callback channel becomes alive or dead.
+    This replaces the legacy InterfaceEvent with InterfaceEventType.CALLBACK.
+
+    The callback channel is considered alive when events are received from the CCU.
+    If no events are received for a configured timeout period, it is considered dead.
+
+    Key is interface_id.
+    """
+
+    interface_id: str
+    alive: bool
+    seconds_since_last_event: int | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
 class ClientStateChangedEvent(Event):
     """
     Client state machine state has changed.
@@ -455,6 +462,66 @@ class CentralStateChangedEvent(Event):
     def key(self) -> Any:
         """Key identifier for this event."""
         return None
+
+
+@dataclass(frozen=True, slots=True)
+class FetchDataFailedEvent(Event):
+    """
+    Data fetch operation failed for an interface.
+
+    Published when refreshing device data from backend fails.
+    Key is interface_id.
+    """
+
+    interface_id: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class PingPongMismatchEvent(Event):
+    """
+    PING/PONG mismatch detected for an interface.
+
+    Published when:
+    - PENDING: A PING was sent but no PONG was received in time
+    - UNKNOWN: A PONG was received without a matching PING
+
+    Key is interface_id.
+    """
+
+    interface_id: str
+    mismatch_type: PingPongMismatchType
+    mismatch_count: int
+    acceptable: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceAvailabilityChangedEvent(Event):
+    """
+    Device availability has changed.
+
+    Published when UN_REACH or STICKY_UN_REACH parameter changes.
+    Key is device_address.
+    """
+
+    device_address: str
+    channel_address: str
+    parameter: str
+    available: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.device_address
 
 
 class EventBus:

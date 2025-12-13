@@ -9,15 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aiohomematic.central.event_coordinator import EventCoordinator
-from aiohomematic.const import (
-    BackendSystemEvent,
-    DataPointKey,
-    EventKey,
-    EventType,
-    InterfaceEventType,
-    Parameter,
-    ParamsetKey,
-)
+from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, Parameter, ParamsetKey
 from aiohomematic.model.generic import GenericDataPoint
 
 
@@ -249,21 +241,6 @@ class TestEventCoordinatorEmitMethods:
         coordinator.publish_homematic_event(
             event_type=EventType.KEYPRESS,
             event_data={EventKey.INTERFACE_ID: "BidCos-RF", EventKey.ADDRESS: "VCU0000001:1"},
-        )
-
-        # Should have created a task to publish to EventBus
-        assert len(central.looper.tasks) == 1
-        assert "event-bus-homematic" in central.looper.tasks[0]["name"]
-
-    def test_publish_interface_event(self) -> None:
-        """Publish interface event should publish to EventBus."""
-        central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
-
-        coordinator.publish_interface_event(
-            interface_id="BidCos-RF",
-            interface_event_type=InterfaceEventType.CALLBACK,
-            data={EventKey.AVAILABLE: True},
         )
 
         # Should have created a task to publish to EventBus

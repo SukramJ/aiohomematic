@@ -34,6 +34,8 @@ from aiohomematic import i18n
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
+
+from aiohomematic.central.event_bus import PingPongMismatchEvent
 from aiohomematic.const import (
     COMMAND_CACHE_MAX_SIZE,
     COMMAND_CACHE_WARNING_THRESHOLD,
@@ -48,11 +50,9 @@ from aiohomematic.const import (
     PING_PONG_MISMATCH_COUNT_TTL,
     CallSource,
     DataPointKey,
-    EventKey,
-    EventType,
     Interface,
-    InterfaceEventType,
     ParamsetKey,
+    PingPongMismatchType,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
 from aiohomematic.interfaces.central import (
@@ -60,12 +60,11 @@ from aiohomematic.interfaces.central import (
     DataCacheProvider,
     DataPointProvider,
     DeviceProvider,
-    EventPublisher,
+    EventBusProvider,
 )
 from aiohomematic.interfaces.client import ClientProvider, DataCacheWriter, DeviceDetailsWriter, PrimaryClientProvider
 from aiohomematic.interfaces.model import DeviceRemovalInfo
 from aiohomematic.interfaces.operations import DeviceDetailsProvider
-from aiohomematic.schemas import INTERFACE_EVENT_SCHEMA
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -542,7 +541,7 @@ class PingPongCache:
         "_allowed_delta",
         "_central_info",
         "_connection_state",
-        "_event_publisher",
+        "_event_bus_provider",
         "_interface_id",
         "_pending_pong_logged",
         "_pending_pongs",
@@ -557,7 +556,7 @@ class PingPongCache:
     def __init__(
         self,
         *,
-        event_publisher: EventPublisher,
+        event_bus_provider: EventBusProvider,
         central_info: CentralInfo,
         interface_id: str,
         connection_state: CentralConnectionState | None = None,
@@ -566,7 +565,7 @@ class PingPongCache:
     ):
         """Initialize the cache with ttl."""
         assert ttl > 0
-        self._event_publisher: Final = event_publisher
+        self._event_bus_provider: Final = event_bus_provider
         self._central_info: Final = central_info
         self._interface_id: Final = interface_id
         self._connection_state: Final = connection_state
@@ -623,7 +622,7 @@ class PingPongCache:
             self._pending_seen_at.pop(pong_token, None)
             self._cleanup_pending_pongs()
             count = self._pending_pong_count
-            self._check_and_publish_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+            self._check_and_publish_pong_event(mismatch_type=PingPongMismatchType.PENDING)
             _LOGGER.debug(
                 "PING PONG CACHE: Reduce pending PING count: %s - %i for token: %s",
                 self._interface_id,
@@ -636,7 +635,7 @@ class PingPongCache:
             self._unknown_seen_at[pong_token] = time.monotonic()
             self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
-            self._check_and_publish_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
+            self._check_and_publish_pong_event(mismatch_type=PingPongMismatchType.UNKNOWN)
             _LOGGER.debug(
                 "PING PONG CACHE: Increase unknown PONG count: %s - %i for token: %s",
                 self._interface_id,
@@ -664,7 +663,7 @@ class PingPongCache:
         # but always publish when crossing the high threshold.
         count = self._pending_pong_count
         if (count > self._allowed_delta) or (count % 2 == 0):
-            self._check_and_publish_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+            self._check_and_publish_pong_event(mismatch_type=PingPongMismatchType.PENDING)
         _LOGGER.debug(
             "PING PONG CACHE: Increase pending PING count: %s - %i for token: %s",
             self._interface_id,
@@ -672,40 +671,32 @@ class PingPongCache:
             ping_token,
         )
 
-    def _check_and_publish_pong_event(self, *, event_type: InterfaceEventType) -> None:
+    def _check_and_publish_pong_event(self, *, mismatch_type: PingPongMismatchType) -> None:
         """Publish an event about the pong status."""
 
         def _publish_event(mismatch_count: int) -> None:
             """Publish event."""
-            self._event_publisher.publish_homematic_event(
-                event_type=EventType.INTERFACE,
-                event_data=cast(
-                    dict[EventKey, Any],
-                    INTERFACE_EVENT_SCHEMA(
-                        {
-                            EventKey.INTERFACE_ID: self._interface_id,
-                            EventKey.TYPE: event_type,
-                            EventKey.DATA: {
-                                EventKey.CENTRAL_NAME: self._central_info.name,
-                                EventKey.PONG_MISMATCH_ACCEPTABLE: mismatch_count <= self._allowed_delta,
-                                EventKey.PONG_MISMATCH_COUNT: mismatch_count,
-                            },
-                        }
-                    ),
-                ),
+            self._event_bus_provider.event_bus.publish_sync(
+                event=PingPongMismatchEvent(
+                    timestamp=datetime.now(),
+                    interface_id=self._interface_id,
+                    mismatch_type=mismatch_type,
+                    mismatch_count=mismatch_count,
+                    acceptable=mismatch_count <= self._allowed_delta,
+                )
             )
             _LOGGER.debug(
                 "PING PONG CACHE: Emitting event %s for %s with mismatch_count: %i with %i acceptable",
-                event_type,
+                mismatch_type,
                 self._interface_id,
                 mismatch_count,
                 self._allowed_delta,
             )
 
-        if event_type == InterfaceEventType.PENDING_PONG:
+        if mismatch_type == PingPongMismatchType.PENDING:
             self._cleanup_pending_pongs()
             if (count := self._pending_pong_count) > self._allowed_delta:
-                # Publish interface event to inform subscribers about high pending pong count.
+                # Publish event to inform subscribers about high pending pong count.
                 _publish_event(mismatch_count=count)
                 if self._pending_pong_logged is False:
                     _LOGGER.warning(
@@ -723,11 +714,11 @@ class PingPongCache:
                 self._pending_pong_logged = False
             elif count > 0 and count % 2 == 0:
                 _publish_event(mismatch_count=count)
-        elif event_type == InterfaceEventType.UNKNOWN_PONG:
+        elif mismatch_type == PingPongMismatchType.UNKNOWN:
             self._cleanup_unknown_pongs()
             count = self._unknown_pong_count
             if self._unknown_pong_count > self._allowed_delta:
-                # Publish interface event to inform subscribers about high unknown pong count.
+                # Publish event to inform subscribers about high unknown pong count.
                 _publish_event(mismatch_count=count)
                 if self._unknown_pong_logged is False:
                     _LOGGER.warning(
@@ -832,9 +823,9 @@ class PingPongCache:
                     self._unknown_seen_at.pop(token, None)
 
                 # Re-publish events to reflect new counts (respecting existing throttling)
-                self._check_and_publish_pong_event(event_type=InterfaceEventType.PENDING_PONG)
+                self._check_and_publish_pong_event(mismatch_type=PingPongMismatchType.PENDING)
                 if self._unknown_pong_count != unknown_before:
-                    self._check_and_publish_pong_event(event_type=InterfaceEventType.UNKNOWN_PONG)
+                    self._check_and_publish_pong_event(mismatch_type=PingPongMismatchType.UNKNOWN)
 
                 _LOGGER.debug(
                     "PING PONG CACHE: Retry reconciled PONG on %s for token: %s (pending now: %i, unknown now: %i)",

@@ -41,7 +41,12 @@ from unittest.mock import MagicMock, Mock, patch
 from aiohttp import ClientSession
 
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.central.event_bus import BackendSystemEventData, HomematicEvent
+from aiohomematic.central.event_bus import (
+    BackendSystemEventData,
+    FetchDataFailedEvent,
+    HomematicEvent,
+    PingPongMismatchEvent,
+)
 from aiohomematic.client import ClientConfig, InterfaceConfig
 from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, OptionalSettings
 from aiohomematic.interfaces.client import ClientProtocol
@@ -146,6 +151,14 @@ class FactoryWithClient:
             """Handle homematic events."""
             self.ha_event_mock(event)
 
+        def _pingpong_event_handler(event: PingPongMismatchEvent) -> None:
+            """Handle ping-pong mismatch events."""
+            self.ha_event_mock(event)
+
+        def _fetch_failed_event_handler(event: FetchDataFailedEvent) -> None:
+            """Handle fetch data failed events."""
+            self.ha_event_mock(event)
+
         self._event_bus_unsubscribe_callbacks.append(
             central.event_bus.subscribe(
                 event_type=BackendSystemEventData, event_key=None, handler=_system_event_handler
@@ -153,6 +166,16 @@ class FactoryWithClient:
         )
         self._event_bus_unsubscribe_callbacks.append(
             central.event_bus.subscribe(event_type=HomematicEvent, event_key=None, handler=_ha_event_handler)
+        )
+        self._event_bus_unsubscribe_callbacks.append(
+            central.event_bus.subscribe(
+                event_type=PingPongMismatchEvent, event_key=None, handler=_pingpong_event_handler
+            )
+        )
+        self._event_bus_unsubscribe_callbacks.append(
+            central.event_bus.subscribe(
+                event_type=FetchDataFailedEvent, event_key=None, handler=_fetch_failed_event_handler
+            )
         )
 
         assert central

@@ -145,7 +145,6 @@ from aiohomematic.const import (
     EventKey,
     EventType,
     Interface,
-    InterfaceEventType,
     Operations,
     OptionalSettings,
     ParamsetKey,
@@ -207,7 +206,6 @@ __all__ = [
     "DeviceRegistry",
     "EventBatch",
     "EventPriority",
-    "INTERFACE_EVENT_SCHEMA",
     "_SchedulerJob",
 ]
 
@@ -1103,21 +1101,6 @@ class CentralUnit(
     def publish_install_mode_refreshed(self) -> None:
         """Publish HUB_REFRESHED event for install mode data points."""
         self._hub_coordinator.publish_install_mode_refreshed()
-
-    @loop_check
-    def publish_interface_event(
-        self,
-        *,
-        interface_id: str,
-        interface_event_type: InterfaceEventType,
-        data: dict[str, Any],
-    ) -> None:
-        """Publish an event about the interface status."""
-        self._event_coordinator.publish_interface_event(
-            interface_id=interface_id,
-            interface_event_type=interface_event_type,
-            data=data,
-        )
 
     @inspector(re_raise=False)
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:

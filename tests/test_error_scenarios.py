@@ -38,9 +38,9 @@ class TestCentralErrorScenarios:
         central, _, _ = central_client_factory_with_ccu_client
 
         # Get existing interface IDs
-        for client in central.clients:
+        for client in central.client_coordinator.clients:
             # Try to get client by its interface_id
-            found_client = central.get_client(interface_id=client.interface_id)
+            found_client = central.client_coordinator.get_client(interface_id=client.interface_id)
             assert found_client is not None
 
     @pytest.mark.asyncio
@@ -260,7 +260,7 @@ class TestClientErrorScenarios:
         """Test client ping pong support check."""
         central, mock_client, _ = central_client_factory_with_ccu_client
 
-        for client in central.clients:
+        for client in central.client_coordinator.clients:
             # Check if client supports ping pong
             if hasattr(client, "supports_ping_pong"):
                 supports = client.supports_ping_pong
@@ -294,7 +294,7 @@ class TestParameterVisibility:
             for channel in list(device.channels.values())[:1]:
                 for dp in list(channel.data_points.values())[:1]:
                     # Check if parameter is hidden
-                    is_hidden = central.parameter_visibility.parameter_is_hidden(
+                    is_hidden = central.cache_coordinator.parameter_visibility.parameter_is_hidden(
                         channel_address=channel.address,
                         paramset_key=ParamsetKey.VALUES,
                         parameter=dp.parameter,
@@ -434,6 +434,6 @@ class TestCentralCollections:
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         # Access clients collection
-        clients = central.clients
+        clients = central.client_coordinator.clients
         assert isinstance(clients, (list, tuple))
         assert len(clients) > 0

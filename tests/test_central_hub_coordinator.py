@@ -130,6 +130,16 @@ class _FakeCentral:
         self.parameter_visibility = MagicMock()
 
     @property
+    def cache_coordinator(self):  # noqa: D401,ANN201
+        """Return a mock cache coordinator."""
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            paramset_descriptions=self.paramset_descriptions,
+            parameter_visibility=self.parameter_visibility,
+        )
+
+    @property
     def clients(self) -> tuple[_FakeClient, ...]:
         """Return all clients."""
         return self._clients
@@ -167,8 +177,8 @@ class TestHubCoordinatorBasics:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -187,8 +197,8 @@ class TestHubCoordinatorBasics:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -211,8 +221,8 @@ class TestHubCoordinatorBasics:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -238,8 +248,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -262,8 +272,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -284,8 +294,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -304,8 +314,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -327,8 +337,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -349,8 +359,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -371,8 +381,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -390,8 +400,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -422,8 +432,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -444,8 +454,8 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -467,8 +477,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -498,8 +508,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -522,8 +532,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -544,8 +554,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -563,8 +573,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -585,8 +595,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -607,8 +617,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -626,8 +636,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -657,8 +667,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -677,8 +687,8 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -706,8 +716,8 @@ class TestHubCoordinatorGetHubDataPoints:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -732,8 +742,8 @@ class TestHubCoordinatorGetHubDataPoints:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -764,8 +774,8 @@ class TestHubCoordinatorGetHubDataPoints:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -794,8 +804,8 @@ class TestHubCoordinatorInitHub:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -825,8 +835,8 @@ class TestHubCoordinatorIntegration:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
@@ -862,8 +872,8 @@ class TestHubCoordinatorIntegration:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
-            parameter_visibility_provider=central.parameter_visibility,
-            paramset_description_provider=central.paramset_descriptions,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             primary_client_provider=central,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]

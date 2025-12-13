@@ -276,6 +276,20 @@ class _FakeCentral:
         self._callback_ip_addr = "127.0.0.1"
 
     @property
+    def cache_coordinator(self):  # noqa: D401,ANN201
+        """Return a mock cache coordinator."""
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            device_details=self.device_details,
+            paramset_descriptions=self.paramset_descriptions,
+            data_cache=self.data_cache,
+            device_descriptions=SimpleNamespace(
+                get_device_descriptions=lambda **kwargs: [],
+            ),
+        )
+
+    @property
     def callback_ip_addr(self) -> str:  # noqa: D401
         return self._callback_ip_addr
 
@@ -448,6 +462,20 @@ class _FakeCentral2:
             self.config.interfaces_requiring_periodic_refresh = {Interface.BIDCOS_RF}
 
         self.looper = SimpleNamespace(create_task=lambda **kwargs: None)  # type: ignore[misc]
+
+    @property
+    def cache_coordinator(self):  # noqa: D401,ANN201
+        """Return a mock cache coordinator."""
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            device_details=self.device_details,
+            paramset_descriptions=self.paramset_descriptions,
+            data_cache=self.data_cache,
+            device_descriptions=SimpleNamespace(
+                get_device_descriptions=lambda **kwargs: [],
+            ),
+        )
 
     @property
     def callback_ip_addr(self) -> str:  # noqa: D401
@@ -673,7 +701,7 @@ class TestClientClasses:
         # JSON-based methods through FakeJsonRpcClient
         await client_ccu.fetch_device_details()
         await client_ccu.fetch_all_device_data()
-        assert central.data_cache.last_added[0] == Interface.BIDCOS_RF  # type: ignore[index]
+        assert central.cache_coordinator.data_cache.last_added[0] == Interface.BIDCOS_RF  # type: ignore[index]
 
         assert await client_ccu.check_connection_availability(handle_ping_pong=False) is True
         assert await client_ccu.execute_program(pid="p1") is True
@@ -1246,7 +1274,7 @@ class TestClientFirmwareAndUpdates:
         def _find_device_description(interface_id: str, device_address: str):  # noqa: ARG002
             return None
 
-        central.device_descriptions = SimpleNamespace(
+        central.cache_coordinator.device_descriptions = SimpleNamespace(
             get_device_descriptions=lambda interface_id: ("i",),  # type: ignore[misc]
             find_device_description=_find_device_description,
         )

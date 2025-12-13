@@ -35,8 +35,8 @@ class TestCentralFullSession:
         assert central
         assert central.name == const.CENTRAL_NAME
         assert central.model == "PyDevCCU"
-        assert central.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
-        assert central.primary_client.model == "PyDevCCU"
+        assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
+        assert central.client_coordinator.primary_client.model == "PyDevCCU"
         assert len(central.devices) == 395
 
         data = {}
@@ -182,7 +182,9 @@ class TestCentralFullSession:
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
         assert len(central.devices) == 392
-        del_addresses = list(central.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID))
+        del_addresses = list(
+            central.cache_coordinator.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID)
+        )
         del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
         assert len(central.devices) == 0

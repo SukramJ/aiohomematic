@@ -173,14 +173,7 @@ from aiohomematic.interfaces.model import (
 )
 from aiohomematic.model.hub import InstallModeDpType, ProgramDpType
 from aiohomematic.property_decorators import info_property
-from aiohomematic.store import (
-    CentralDataCache,
-    DeviceDescriptionCache,
-    DeviceDetailsCache,
-    ParameterVisibilityCache,
-    ParamsetDescriptionCache,
-    SessionRecorder,
-)
+from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
@@ -236,45 +229,6 @@ class CentralUnit(
         self._json_rpc_client: AioJsonRpcAioHttpClient | None = None
 
         # Initialize coordinators
-        self._cache_coordinator: Final = CacheCoordinator(
-            central_info=self,
-            client_provider=self,
-            config_provider=self,
-            data_point_provider=self,
-            device_provider=self,
-            primary_client_provider=self,
-            session_recorder_active=self.config.session_recorder_start,
-            task_scheduler=self.looper,
-        )
-        self._event_coordinator: Final = EventCoordinator(
-            client_provider=self,
-            task_scheduler=self.looper,
-        )
-
-        self._connection_state: Final = CentralConnectionState(event_bus_provider=self)
-        self._device_registry: Final = DeviceRegistry(
-            central_info=self,
-            client_provider=self,
-        )
-        self._device_coordinator: Final = DeviceCoordinator(
-            central_info=self,
-            channel_lookup=self,
-            client_provider=self,
-            config_provider=self,
-            coordinator_provider=self,
-            data_cache_provider=self.data_cache,
-            data_point_provider=self,
-            device_data_refresher=self,
-            device_description_provider=self.device_descriptions,
-            device_details_provider=self.device_details,
-            event_bus_provider=self,
-            event_publisher=self._event_coordinator,
-            event_subscription_manager=self._event_coordinator,
-            file_operations=self,
-            parameter_visibility_provider=self.parameter_visibility,
-            paramset_description_provider=self.paramset_descriptions,
-            task_scheduler=self.looper,
-        )
         self._client_coordinator: Final = ClientCoordinator(
             client_factory=self,
             central_info=self,
@@ -282,16 +236,55 @@ class CentralUnit(
             coordinator_provider=self,
             system_info_provider=self,
         )
+        self._cache_coordinator: Final = CacheCoordinator(
+            central_info=self,
+            client_provider=self._client_coordinator,
+            config_provider=self,
+            data_point_provider=self,
+            device_provider=self,
+            primary_client_provider=self._client_coordinator,
+            session_recorder_active=self.config.session_recorder_start,
+            task_scheduler=self.looper,
+        )
+        self._event_coordinator: Final = EventCoordinator(
+            client_provider=self._client_coordinator,
+            task_scheduler=self.looper,
+        )
+
+        self._connection_state: Final = CentralConnectionState(event_bus_provider=self)
+        self._device_registry: Final = DeviceRegistry(
+            central_info=self,
+            client_provider=self._client_coordinator,
+        )
+        self._device_coordinator: Final = DeviceCoordinator(
+            central_info=self,
+            channel_lookup=self,
+            client_provider=self._client_coordinator,
+            config_provider=self,
+            coordinator_provider=self,
+            data_cache_provider=self._cache_coordinator.data_cache,
+            data_point_provider=self,
+            device_data_refresher=self,
+            device_description_provider=self._cache_coordinator.device_descriptions,
+            device_details_provider=self._cache_coordinator.device_details,
+            event_bus_provider=self,
+            event_publisher=self._event_coordinator,
+            event_subscription_manager=self._event_coordinator,
+            file_operations=self,
+            parameter_visibility_provider=self._cache_coordinator.parameter_visibility,
+            paramset_description_provider=self._cache_coordinator.paramset_descriptions,
+            task_scheduler=self.looper,
+        )
         self._hub_coordinator: Final = HubCoordinator(
             central_info=self,
             channel_lookup=self,
-            client_provider=self,
+            client_provider=self._client_coordinator,
             config_provider=self,
             event_bus_provider=self,
             event_publisher=self._event_coordinator,
-            parameter_visibility_provider=self.parameter_visibility,
-            paramset_description_provider=self.paramset_descriptions,
-            primary_client_provider=self,
+            parameter_visibility_provider=self._cache_coordinator.parameter_visibility,
+            paramset_description_provider=self._cache_coordinator.paramset_descriptions,
+            primary_client_provider=self._client_coordinator,
             task_scheduler=self.looper,
         )
 
@@ -350,11 +343,6 @@ class CentralUnit(
         )
 
     @property
-    def all_clients_active(self) -> bool:
-        """Check if all clients are active (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.all_clients_active
-
-    @property
     def available(self) -> bool:
         """Return availability (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.available
@@ -385,11 +373,6 @@ class CentralUnit(
         return self._client_coordinator
 
     @property
-    def clients(self) -> tuple[ClientProtocol, ...]:
-        """Return all clients (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.clients
-
-    @property
     def config(self) -> CentralConfig:
         """Return central config."""
         return self._config
@@ -400,24 +383,9 @@ class CentralUnit(
         return self._connection_state
 
     @property
-    def data_cache(self) -> CentralDataCache:
-        """Return data cache (internal use - use cache_coordinator for external access)."""
-        return self._cache_coordinator.data_cache
-
-    @property
     def device_coordinator(self) -> DeviceCoordinator:
         """Return the device coordinator."""
         return self._device_coordinator
-
-    @property
-    def device_descriptions(self) -> DeviceDescriptionCache:
-        """Return device descriptions (internal use - use cache_coordinator for external access)."""
-        return self._cache_coordinator.device_descriptions
-
-    @property
-    def device_details(self) -> DeviceDetailsCache:
-        """Return device details (internal use - use cache_coordinator for external access)."""
-        return self._cache_coordinator.device_details
 
     @property
     def device_registry(self) -> DeviceRegistry:
@@ -449,11 +417,6 @@ class CentralUnit(
         return self._event_coordinator
 
     @property
-    def has_clients(self) -> bool:
-        """Check if clients exist (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.has_clients
-
-    @property
     def health(self) -> CentralHealth:
         """Return the aggregated central health."""
         return self._health_tracker.health
@@ -474,19 +437,9 @@ class CentralUnit(
         return self._hub_coordinator.install_mode_dps
 
     @property
-    def interface_ids(self) -> frozenset[str]:
-        """Return all interface IDs (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.interface_ids
-
-    @property
     def interfaces(self) -> frozenset[Interface]:
         """Return all interfaces (internal use - use client_coordinator for external access)."""
         return self._client_coordinator.interfaces
-
-    @property
-    def is_alive(self) -> bool:
-        """Return if XmlRPC-Server is alive (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.is_alive
 
     @property
     def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
@@ -511,28 +464,13 @@ class CentralUnit(
         return self._looper
 
     @property
-    def parameter_visibility(self) -> ParameterVisibilityCache:
-        """Return parameter visibility (internal use - use cache_coordinator for external access)."""
-        return self._cache_coordinator.parameter_visibility
-
-    @property
-    def paramset_descriptions(self) -> ParamsetDescriptionCache:
-        """Return paramset descriptions (internal use - use cache_coordinator for external access)."""
-        return self._cache_coordinator.paramset_descriptions
-
-    @property
-    def primary_client(self) -> ClientProtocol | None:
-        """Return the primary client (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.primary_client
-
-    @property
     def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
         """Return program data points (internal use - use hub_coordinator for external access)."""
         return self._hub_coordinator.program_data_points
 
     @property
     def recorder(self) -> SessionRecorder:
-        """Return session recorder (internal use - use cache_coordinator for external access)."""
+        """Return the session recorder (internal use - use cache_coordinator for external access)."""
         return self._cache_coordinator.recorder
 
     @property
@@ -628,10 +566,6 @@ class CentralUnit(
         """Add sysvar data point (internal use - use hub_coordinator for external access)."""
         self._hub_coordinator.add_sysvar_data_point(sysvar_data_point=sysvar_data_point)
 
-    async def clear_files(self) -> None:
-        """Clear all files (internal use - use cache_coordinator for external access)."""
-        await self._cache_coordinator.clear_all()
-
     async def create_backup_and_download(self) -> BackupData | None:
         """
         Create a backup on the CCU and download it.
@@ -714,10 +648,6 @@ class CentralUnit(
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:
         """Return channel (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.get_channel(channel_address=channel_address)
-
-    def get_client(self, *, interface_id: str | None = None, interface: Interface | None = None) -> ClientProtocol:
-        """Return a client (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.get_client(interface_id=interface_id, interface=interface)
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
         """Return the hm custom_data_point."""
@@ -848,11 +778,11 @@ class CentralUnit(
         for op in operations:
             op_mask |= int(op)
 
-        raw_psd = self.paramset_descriptions.raw_paramset_descriptions
+        raw_psd = self._cache_coordinator.paramset_descriptions.raw_paramset_descriptions
         ignore_set = IGNORE_FOR_UN_IGNORE_PARAMETERS
 
         # Prepare optional helpers only if needed
-        get_model = self.device_descriptions.get_model if full_format else None
+        get_model = self._cache_coordinator.device_descriptions.get_model if full_format else None
         model_cache: dict[str, str | None] = {}
         channel_no_cache: dict[str, int | None] = {}
 
@@ -984,10 +914,6 @@ class CentralUnit(
         """Get virtual remotes (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.get_virtual_remotes()
 
-    def has_client(self, *, interface_id: str) -> bool:
-        """Check if client exists (internal use - use client_coordinator for external access)."""
-        return self._client_coordinator.has_client(interface_id=interface_id)
-
     def identify_channel(self, *, text: str) -> ChannelProtocol | None:
         """Identify channel (internal use - use device_coordinator for external access)."""
         return self._device_coordinator.identify_channel(text=text)
@@ -1011,8 +937,8 @@ class CentralUnit(
     ) -> None:
         """Refresh data_point data."""
         if paramset_key != ParamsetKey.MASTER:
-            await self.data_cache.load(interface=interface)
-        await self.data_cache.refresh_data_point_data(
+            await self._cache_coordinator.data_cache.load(interface=interface)
+        await self._cache_coordinator.data_cache.refresh_data_point_data(
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
         )
 
@@ -1741,7 +1667,7 @@ class CentralConfig:
             client_session=self.client_session,
             tls=self.tls,
             verify_tls=self.verify_tls,
-            session_recorder=central.recorder,
+            session_recorder=central.cache_coordinator.recorder,
         )
 
 

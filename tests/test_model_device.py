@@ -181,22 +181,22 @@ class TestDeviceAvailability:
         central, _, _ = central_client_factory_with_homegear_client
         device = central.get_device(address="VCU2128127")
         assert device._dp_config_pending.value is False
-        cache_hash = central.paramset_descriptions.content_hash
-        last_save_triggered = central.paramset_descriptions.last_save_triggered
+        cache_hash = central.cache_coordinator.paramset_descriptions.content_hash
+        last_save_triggered = central.cache_coordinator.paramset_descriptions.last_save_triggered
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="CONFIG_PENDING", value=True
         )
         assert device._dp_config_pending.value is True
-        assert cache_hash == central.paramset_descriptions.content_hash
-        assert last_save_triggered == central.paramset_descriptions.last_save_triggered
+        assert cache_hash == central.cache_coordinator.paramset_descriptions.content_hash
+        assert last_save_triggered == central.cache_coordinator.paramset_descriptions.last_save_triggered
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="CONFIG_PENDING", value=False
         )
         assert device._dp_config_pending.value is False
         await asyncio.sleep(2)
         # Save triggered, but data not changed
-        assert cache_hash == central.paramset_descriptions.content_hash
-        assert last_save_triggered != central.paramset_descriptions.last_save_triggered
+        assert cache_hash == central.cache_coordinator.paramset_descriptions.content_hash
+        assert last_save_triggered != central.cache_coordinator.paramset_descriptions.last_save_triggered
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

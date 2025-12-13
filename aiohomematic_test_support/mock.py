@@ -347,7 +347,7 @@ def get_xml_rpc_proxy(  # noqa: C901
         ) -> None:
             """Set a paramset."""
             if self._central and paramset_key == ParamsetKey.VALUES:
-                interface_id = self._central.primary_client.interface_id  # type: ignore[union-attr]
+                interface_id = self._central.client_coordinator.primary_client.interface_id  # type: ignore[union-attr]
                 for param, value in values.items():
                     await self._central.event_coordinator.data_point_event(
                         interface_id=interface_id, channel_address=channel_address, parameter=param, value=value
@@ -357,7 +357,7 @@ def get_xml_rpc_proxy(  # noqa: C901
             """Set a value."""
             if self._central:
                 await self._central.event_coordinator.data_point_event(
-                    interface_id=self._central.primary_client.interface_id,  # type: ignore[union-attr]
+                    interface_id=self._central.client_coordinator.primary_client.interface_id,  # type: ignore[union-attr]
                     channel_address=channel_address,
                     parameter=parameter,
                     value=value,

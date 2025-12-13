@@ -118,7 +118,9 @@ class DeviceOperationsHandler(
                     "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
                     self._interface,
                 )
-                self._central.data_cache.add_data(interface=self._interface, all_device_data=all_device_data)
+                self._central.cache_coordinator.data_cache.add_data(
+                    interface=self._interface, all_device_data=all_device_data
+                )
                 return
         except ClientException:
             self._central.event_bus.publish_sync(
@@ -163,13 +165,19 @@ class DeviceOperationsHandler(
                     continue
 
                 device_address = device[_JSON_ADDRESS]
-                self._central.device_details.add_interface(address=device_address, interface=Interface(interface))
-                self._central.device_details.add_name(address=device_address, name=device[_JSON_NAME])
-                self._central.device_details.add_address_rega_id(address=device_address, rega_id=int(device[_JSON_ID]))
+                self._central.cache_coordinator.device_details.add_interface(
+                    address=device_address, interface=Interface(interface)
+                )
+                self._central.cache_coordinator.device_details.add_name(address=device_address, name=device[_JSON_NAME])
+                self._central.cache_coordinator.device_details.add_address_rega_id(
+                    address=device_address, rega_id=int(device[_JSON_ID])
+                )
                 for channel in device.get(_JSON_CHANNELS, []):
                     channel_address = channel[_JSON_ADDRESS]
-                    self._central.device_details.add_name(address=channel_address, name=channel[_JSON_NAME])
-                    self._central.device_details.add_address_rega_id(
+                    self._central.cache_coordinator.device_details.add_name(
+                        address=channel_address, name=channel[_JSON_NAME]
+                    )
+                    self._central.cache_coordinator.device_details.add_address_rega_id(
                         address=channel_address, rega_id=int(channel[_JSON_ID])
                     )
         else:
@@ -190,7 +198,7 @@ class DeviceOperationsHandler(
         if paramset_description := await self._get_paramset_description(
             address=channel_address, paramset_key=paramset_key
         ):
-            self._central.paramset_descriptions.add(
+            self._central.cache_coordinator.paramset_descriptions.add(
                 interface_id=self._interface_id,
                 channel_address=channel_address,
                 paramset_key=paramset_key,
@@ -215,7 +223,7 @@ class DeviceOperationsHandler(
         for address, paramsets in data.items():
             _LOGGER.debug("FETCH_PARAMSET_DESCRIPTIONS for %s", address)
             for paramset_key, paramset_description in paramsets.items():
-                self._central.paramset_descriptions.add(
+                self._central.cache_coordinator.paramset_descriptions.add(
                     interface_id=self._interface_id,
                     channel_address=address,
                     paramset_key=paramset_key,
@@ -755,14 +763,16 @@ class DeviceOperationsHandler(
             device_address: Device address without channel suffix (e.g., "VCU0000001").
 
         """
-        if not self._central.device_descriptions.get_device_descriptions(interface_id=self._interface_id):
+        if not self._central.cache_coordinator.device_descriptions.get_device_descriptions(
+            interface_id=self._interface_id
+        ):
             _LOGGER.warning(  # i18n-log: ignore
                 "UPDATE_PARAMSET_DESCRIPTIONS failed: Interface missing in central cache. Not updating paramsets for %s",
                 device_address,
             )
             return
 
-        if device_description := self._central.device_descriptions.find_device_description(
+        if device_description := self._central.cache_coordinator.device_descriptions.find_device_description(
             interface_id=self._interface_id, device_address=device_address
         ):
             await self.fetch_paramset_descriptions(device_description=device_description)
@@ -837,7 +847,7 @@ class DeviceOperationsHandler(
             ValidationException: If value is outside MIN/MAX bounds.
 
         """
-        if parameter_data := self._central.paramset_descriptions.get_parameter_data(
+        if parameter_data := self._central.cache_coordinator.paramset_descriptions.get_parameter_data(
             interface_id=self._interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -927,7 +937,7 @@ class DeviceOperationsHandler(
         parameter: str,
     ) -> ParameterType | None:
         """Return the parameter's TYPE field from its description, or None if not found."""
-        if parameter_data := self._central.paramset_descriptions.get_parameter_data(
+        if parameter_data := self._central.cache_coordinator.paramset_descriptions.get_parameter_data(
             interface_id=self._interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,

@@ -98,7 +98,7 @@ class TestCentralBasics:
         """Test central basics."""
         central, client, _ = central_client_factory_with_homegear_client
         assert central.url == f"http://{LOCAL_HOST}"
-        assert central.is_alive is True
+        assert central.client_coordinator.is_alive is True
         assert central.listen_ip_addr == LOCAL_HOST
         assert central.supports_ping_pong is False
         assert central.system_information.serial == "BidCos-RF_SN0815"
@@ -217,7 +217,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HmIP-BROLL", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -268,7 +268,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HmIP-eTRV-2", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -309,7 +309,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HM-TC-IT-WM-W-EU", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -396,7 +396,7 @@ class TestCentralUnIgnore:
         try:
             channel = _FakeChannel(model="HM-ES-PMSw1-Pl", no=channel_no)
             assert (
-                central.parameter_visibility.parameter_is_un_ignored(
+                central.cache_coordinator.parameter_visibility.parameter_is_un_ignored(
                     channel=channel,
                     paramset_key=paramset_key,
                     parameter=parameter,
@@ -633,14 +633,19 @@ class TestCentralDeviceManagement:
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        )
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
         await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
         assert len(central.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
+            == 20
+        )
         await central.device_coordinator.add_new_devices(
             interface_id="NOT_ANINTERFACE_ID", device_descriptions=dev_desc
         )
@@ -666,14 +671,19 @@ class TestCentralDeviceManagement:
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.devices) == 2
         assert len(central.get_data_points(exclude_no_create=False)) == 64
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 20
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
+            == 20
+        )
 
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
         assert len(central.devices) == 1
         assert len(central.get_data_points(exclude_no_create=False)) == 33
-        assert len(central.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
-        assert len(central.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -810,7 +820,7 @@ class TestCentralCallbacksAndServices:
         await central.set_system_variable(legacy_name="SysVar_Name", value=True)
         assert len(mock_client.method_calls) == init_len_method_calls + 13
 
-        await central.get_client(interface_id=const.INTERFACE_ID).set_value(
+        await central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).set_value(
             channel_address="123",
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL",
@@ -825,7 +835,7 @@ class TestCentralCallbacksAndServices:
         assert len(mock_client.method_calls) == init_len_method_calls + 14
 
         with pytest.raises(AioHomematicException):
-            await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
+            await central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
                 channel_address="123",
                 paramset_key=ParamsetKey.VALUES,
                 parameter="LEVEL",
@@ -833,7 +843,7 @@ class TestCentralCallbacksAndServices:
             )
         assert len(mock_client.method_calls) == init_len_method_calls + 14
 
-        await central.get_client(interface_id=const.INTERFACE_ID).put_paramset(
+        await central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).put_paramset(
             channel_address="123",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL": 1.0},
@@ -843,7 +853,7 @@ class TestCentralCallbacksAndServices:
         )
         assert len(mock_client.method_calls) == init_len_method_calls + 15
         with pytest.raises(AioHomematicException):
-            await central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
+            await central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
                 channel_address="123",
                 paramset_key_or_link_address=ParamsetKey.VALUES,
                 values={"LEVEL": 1.0},
@@ -861,16 +871,16 @@ class TestCentralCallbacksAndServices:
         """Test central other methods."""
         central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
         try:
-            assert central.all_clients_active is False
+            assert central.client_coordinator.all_clients_active is False
 
             with pytest.raises(NoClientsException):
                 await central.validate_config_and_get_system_information()
 
             with pytest.raises(AioHomematicException):
-                central.get_client(interface_id="NOT_A_VALID_INTERFACE_ID")
+                central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID")
 
             await central.start()
-            assert central.all_clients_active is False
+            assert central.client_coordinator.all_clients_active is False
 
             assert central.available is True
             assert central.system_information.serial is None
@@ -1007,11 +1017,15 @@ class TestCentralCaches:
     ) -> None:
         """Test central cache."""
         central, client, _ = central_client_factory_with_homegear_client
-        assert len(central.device_descriptions._raw_device_descriptions[client.interface_id]) == 20
-        assert len(central.paramset_descriptions._raw_paramset_descriptions[client.interface_id]) == 20
-        await central.clear_files()
-        assert central.device_descriptions._raw_device_descriptions.get(client.interface_id) is None
-        assert central.paramset_descriptions._raw_paramset_descriptions.get(client.interface_id) is None
+        assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions[client.interface_id]) == 20
+        assert (
+            len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions[client.interface_id]) == 20
+        )
+        await central.cache_coordinator.clear_all()
+        assert central.cache_coordinator.device_descriptions._raw_device_descriptions.get(client.interface_id) is None
+        assert (
+            central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(client.interface_id) is None
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

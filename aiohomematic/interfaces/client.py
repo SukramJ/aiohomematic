@@ -57,13 +57,14 @@ from aiohomematic.interfaces.operations import TaskScheduler
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
+    from aiohomematic.central.cache_coordinator import CacheCoordinator
     from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
     from aiohomematic.interfaces import ChannelProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
-    from aiohomematic.store import ParamsetDescriptionCache, SessionRecorder
+    from aiohomematic.store import SessionRecorder
 
 
 # =============================================================================
@@ -1054,6 +1055,11 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
+    def cache_coordinator(self) -> CacheCoordinator:
+        """Get cache coordinator."""
+
+    @property
+    @abstractmethod
     def callback_ip_addr(self) -> str:
         """Return callback IP address."""
 
@@ -1069,23 +1075,8 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
-    def data_cache(self) -> DataCacheWriter:
-        """Return data cache."""
-
-    @property
-    @abstractmethod
     def device_coordinator(self) -> DeviceCoordinator:
         """Return the device coordinator."""
-
-    @property
-    @abstractmethod
-    def device_descriptions(self) -> DeviceDescriptionsAccess:
-        """Return device descriptions cache."""
-
-    @property
-    @abstractmethod
-    def device_details(self) -> DeviceDetailsWriter:
-        """Return device details."""
 
     @property
     @abstractmethod
@@ -1131,16 +1122,6 @@ class ClientDependencies(Protocol):
     @abstractmethod
     def name(self) -> str:
         """Return central name."""
-
-    @property
-    @abstractmethod
-    def paramset_descriptions(self) -> ParamsetDescriptionCache:
-        """Return paramset descriptions cache."""
-
-    @property
-    @abstractmethod
-    def recorder(self) -> SessionRecorder:
-        """Return session recorder."""
 
     @abstractmethod
     def get_channel(self, *, channel_address: str) -> ChannelProtocol | None:

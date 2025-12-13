@@ -246,14 +246,14 @@ async def get_central_client_factory(
         un_ignore_list=un_ignore_list,
     )
     central = await factory.get_default_central()
-    client = central.primary_client
+    client = central.client_coordinator.primary_client
     assert client
     try:
         yield central, client, factory
     finally:
         factory.cleanup_event_bus_subscriptions()
         await central.stop()
-        await central.clear_files()
+        await central.cache_coordinator.clear_all()
 
 
 async def get_pydev_ccu_central_unit_full(

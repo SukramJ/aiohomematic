@@ -1383,7 +1383,7 @@ class ClientJsonCCU(ClientCCU):
         parameter: str,
     ) -> ParameterType | None:
         """Return the parameter type for a given parameter."""
-        if parameter_data := self.central.paramset_descriptions.get_parameter_data(
+        if parameter_data := self.central.cache_coordinator.paramset_descriptions.get_parameter_data(
             interface_id=self.interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -1553,9 +1553,11 @@ class ClientHomegear(ClientCCU):
     async def fetch_device_details(self) -> None:
         """Get all names from metadata (Homegear)."""
         _LOGGER.debug("FETCH_DEVICE_DETAILS: Fetching names via Metadata")
-        for address in self.central.device_descriptions.get_device_descriptions(interface_id=self.interface_id):
+        for address in self.central.cache_coordinator.device_descriptions.get_device_descriptions(
+            interface_id=self.interface_id
+        ):
             try:
-                self.central.device_details.add_name(
+                self.central.cache_coordinator.device_details.add_name(
                     address=address,
                     name=await self._proxy_read.getMetadata(address, _NAME),
                 )
@@ -1695,7 +1697,7 @@ class ClientConfig:
             headers=xml_rpc_headers,
             tls=config.tls,
             verify_tls=config.verify_tls,
-            session_recorder=self.central.recorder,
+            session_recorder=self.central.cache_coordinator.recorder,
         )
         await xml_proxy.do_init()
         return xml_proxy

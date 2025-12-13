@@ -38,7 +38,7 @@ class TestPersistentCacheEdgeCases:
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         # Get the cache from central
-        cache = central.paramset_descriptions
+        cache = central.cache_coordinator.paramset_descriptions
 
         # Try to save the cache
         with contextlib.suppress(Exception):
@@ -70,7 +70,7 @@ class TestParameterVisibilityEdgeCases:
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         # Get the parameter visibility cache
-        cache = central.parameter_visibility
+        cache = central.cache_coordinator.parameter_visibility
 
         # Try to save the cache
         with contextlib.suppress(Exception):
@@ -101,11 +101,11 @@ class TestParamsetDescriptionEdgeCases:
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         # Get the first client's interface_id
-        assert central.clients
-        interface_id = central.clients[0].interface_id
+        assert central.client_coordinator.clients
+        interface_id = central.client_coordinator.clients[0].interface_id
 
         # Try to get a non-existent paramset description
-        desc = central.paramset_descriptions.get_paramset_descriptions(
+        desc = central.cache_coordinator.paramset_descriptions.get_paramset_descriptions(
             interface_id=interface_id,
             channel_address="NONEXISTENT:1",
             paramset_key=ParamsetKey.VALUES,
@@ -138,6 +138,6 @@ class TestDeviceDetailsEdgeCases:
         central, mock_client, _ = central_client_factory_with_ccu_client
 
         # Try to get details for non-existent device
-        name = central.device_details.get_name(address="NONEXISTENT_DEVICE")
+        name = central.cache_coordinator.device_details.get_name(address="NONEXISTENT_DEVICE")
         # Should return None
         assert name is None

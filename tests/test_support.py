@@ -245,7 +245,7 @@ class TestNamingHelpers:
         assert name_data.full_name == "HmIP-BSM_VCU2128127 vch4"
         assert name_data.name == "vch4"
 
-        central.device_details.add_name(address=f"{device.address}:5", name="Roof")
+        central.cache_coordinator.device_details.add_name(address=f"{device.address}:5", name="Roof")
         channel5 = device.get_channel(channel_address=f"{device.address}:5")
         name_data = get_custom_data_point_name(
             channel=channel5,
@@ -303,7 +303,7 @@ class TestNamingHelpers:
         assert name_data.full_name == "HmIP-BSM_VCU2128127 Level"
         assert name_data.name == "Level"
 
-        central.device_details.add_name(address=f"{device.address}:5", name="Roof")
+        central.cache_coordinator.device_details.add_name(address=f"{device.address}:5", name="Roof")
         channel5 = device.get_channel(channel_address=f"{device.address}:5")
         name_data = get_data_point_name_data(channel=channel5, parameter="LEVEL")
         assert name_data.full_name == "HmIP-BSM_VCU2128127 Roof Level"
@@ -337,14 +337,18 @@ class TestNamingHelpers:
         central, _, _ = central_client_factory_with_homegear_client
         assert (
             get_device_name(
-                device_details_provider=central.device_details, device_address="VCU2128127", model="HmIP-BSM"
+                device_details_provider=central.cache_coordinator.device_details,
+                device_address="VCU2128127",
+                model="HmIP-BSM",
             )
             == "HmIP-BSM_VCU2128127"
         )
-        central.device_details.add_name(address="VCU2128127", name="Roof")
+        central.cache_coordinator.device_details.add_name(address="VCU2128127", name="Roof")
         assert (
             get_device_name(
-                device_details_provider=central.device_details, device_address="VCU2128127", model="HmIP-BSM"
+                device_details_provider=central.cache_coordinator.device_details,
+                device_address="VCU2128127",
+                model="HmIP-BSM",
             )
             == "Roof"
         )
@@ -375,7 +379,7 @@ class TestNamingHelpers:
         assert name_data.name == "ch4 Level"
         assert name_data.full_name == "HmIP-BSM_VCU2128127 ch4 Level"
 
-        central.device_details.add_name(address=f"{device.address}:5", name="Roof")
+        central.cache_coordinator.device_details.add_name(address=f"{device.address}:5", name="Roof")
         channel5 = device.get_channel(channel_address=f"{device.address}:5")
         name_data = get_event_name(channel=channel5, parameter="LEVEL")
         assert name_data.channel_name == "Roof"

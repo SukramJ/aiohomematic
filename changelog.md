@@ -7,6 +7,7 @@
 - Fix central incorrectly transitioning to RUNNING during startup with empty client list: `all()` returns True for empty iterables, causing premature RUNNING state before clients are registered
 - Fix central incorrectly transitioning to DEGRADED when all clients are connected: Missing `not all_connected` check in `start()` method allowed transition to DEGRADED even when all clients were CONNECTED
 - Fix scheduler not starting when central is in DEGRADED state: Now starts when central is operational (RUNNING or DEGRADED)
+- Fix HealthTracker not tracking clients: Clients were never registered with the health tracker after creation, causing `update_client_health()` to be a no-op. Now clients are properly registered during `start()` and unregistered during `stop()`
 
 ### Improvements
 

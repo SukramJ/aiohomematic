@@ -941,6 +941,8 @@ class CentralUnit(
 
         if self._config.start_direct:
             if await self._client_coordinator.start_clients():
+                # Register clients with health tracker after successful start
+                self._register_clients_with_health_tracker()
                 for client in self._client_coordinator.clients:
                     await self._device_coordinator.refresh_device_descriptions_and_create_missing_devices(
                         client=client,
@@ -950,6 +952,8 @@ class CentralUnit(
             if await self._client_coordinator.start_clients() and (
                 new_device_addresses := self._device_coordinator.check_for_new_device_addresses()
             ):
+                # Register clients with health tracker after successful start
+                self._register_clients_with_health_tracker()
                 await self._device_coordinator.create_devices(
                     new_device_addresses=new_device_addresses,
                     source=SourceOfDeviceCreation.CACHE,
@@ -1001,6 +1005,8 @@ class CentralUnit(
 
         await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
         await self._stop_scheduler()
+        # Unregister clients from health tracker before stopping them
+        self._unregister_clients_from_health_tracker()
         await self._client_coordinator.stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()
@@ -1145,6 +1151,27 @@ class CentralUnit(
                     reason="all clients disconnected",
                 )
 
+    def _register_clients_with_health_tracker(self) -> None:
+        """Register all clients with the health tracker for unified health monitoring."""
+        for client in self._client_coordinator.clients:
+            self._health_tracker.register_client(
+                interface_id=client.interface_id,
+                interface=client.interface,
+            )
+            _LOGGER.debug(
+                "HEALTH_TRACKER: Registered client %s (%s)",
+                client.interface_id,
+                client.interface,
+            )
+
+        # Set primary interface if we have a primary client
+        if primary_client := self._client_coordinator.primary_client:
+            self._health_tracker.set_primary_interface(interface=primary_client.interface)
+            _LOGGER.debug(
+                "HEALTH_TRACKER: Set primary interface to %s",
+                primary_client.interface,
+            )
+
     def _start_scheduler(self) -> None:
         """Start the background scheduler."""
         _LOGGER.debug(
@@ -1164,6 +1191,15 @@ class CentralUnit(
             "STOP_SCHEDULER: Stopped scheduler for %s",
             self.name,
         )
+
+    def _unregister_clients_from_health_tracker(self) -> None:
+        """Unregister all clients from the health tracker during shutdown."""
+        for client in self._client_coordinator.clients:
+            self._health_tracker.unregister_client(interface_id=client.interface_id)
+            _LOGGER.debug(
+                "HEALTH_TRACKER: Unregistered client %s",
+                client.interface_id,
+            )
 
 
 class CentralConfig:

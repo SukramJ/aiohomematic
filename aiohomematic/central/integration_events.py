@@ -130,7 +130,7 @@ class SystemStatusEvent(Event):
 
     # Lifecycle
     central_state: CentralState | None = None
-    """Central unit state change (STARTING, RUNNING, STOPPING, STOPPED, FAILED)."""
+    """Central unit state change (STARTING, INITIALIZING, RUNNING, DEGRADED, RECOVERING, FAILED, STOPPED)."""
 
     # Infrastructure
     connection_state: tuple[str, bool] | None = None

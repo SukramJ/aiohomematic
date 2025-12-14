@@ -848,9 +848,14 @@ class BackgroundScheduler:
         """Execute the main scheduler loop that runs jobs based on their schedule."""
         connection_issue_logged = False
         while self.is_active:
-            # Wait until central is running
-            if self._state_provider.state != CentralState.RUNNING:
-                _LOGGER.debug("Scheduler: Waiting until central %s is started", self._central_info.name)
+            # Wait until central is operational (RUNNING or DEGRADED)
+            # DEGRADED means at least one interface is working, so scheduler should run
+            if (current_state := self._state_provider.state) not in (CentralState.RUNNING, CentralState.DEGRADED):
+                _LOGGER.debug(
+                    "Scheduler: Waiting until central %s is operational (current: %s)",
+                    self._central_info.name,
+                    current_state.value,
+                )
                 await asyncio.sleep(SCHEDULER_NOT_STARTED_SLEEP)
                 continue
 

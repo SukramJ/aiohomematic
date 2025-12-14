@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -463,3 +464,77 @@ class TestSystemStatusEvent:
         assert event.connection_state[0] == "test-id"
         assert event.connection_state[1] is True
         assert event.key is None  # Global event
+
+
+class TestHealthTrackerIntegration:
+    """Tests for HealthTracker integration with CentralUnit."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (None, True, None, None),
+        ],
+    )
+    async def test_clients_registered_with_health_tracker_on_start(
+        self, central_client_factory_with_homegear_client: Any
+    ) -> None:
+        """Test that clients are registered with health tracker when central starts."""
+        central, _, _ = central_client_factory_with_homegear_client
+
+        # Verify clients exist
+        clients = central.client_coordinator.clients
+        assert len(clients) > 0
+
+        # Verify each client is registered with health tracker
+        for client in clients:
+            health = central.health_tracker.get_client_health(interface_id=client.interface_id)
+            assert health is not None, f"Client {client.interface_id} not registered with health tracker"
+            assert health.interface == client.interface
+            assert health.interface_id == client.interface_id
+
+        # Verify primary interface is set if we have a primary client
+        if primary_client := central.client_coordinator.primary_client:
+            assert central.health.primary_interface == primary_client.interface
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (None, True, None, None),
+        ],
+    )
+    async def test_health_tracker_update_client_health_works_after_registration(
+        self, central_client_factory_with_homegear_client: Any
+    ) -> None:
+        """Test that update_client_health properly updates registered clients."""
+        central, _, _ = central_client_factory_with_homegear_client
+
+        # Get first client
+        client = central.client_coordinator.clients[0]
+
+        # Get current health
+        health = central.health_tracker.get_client_health(interface_id=client.interface_id)
+        assert health is not None
+
+        # Simulate a state change update
+        central.health_tracker.update_client_health(
+            interface_id=client.interface_id,
+            old_state=ClientState.CONNECTED,
+            new_state=ClientState.DISCONNECTED,
+        )
+
+        # Verify health was updated
+        health = central.health_tracker.get_client_health(interface_id=client.interface_id)
+        assert health is not None
+        assert health.client_state == ClientState.DISCONNECTED

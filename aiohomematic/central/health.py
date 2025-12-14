@@ -513,6 +513,39 @@ class HealthTracker(HealthTrackerProtocol):
         """
         return self._central_health.get_client_health(interface_id=interface_id)
 
+    def record_event_received(self, *, interface_id: str) -> None:
+        """
+        Record that an event was received for an interface.
+
+        Args:
+            interface_id: The interface ID that received the event
+
+        """
+        if (health := self._central_health.get_client_health(interface_id=interface_id)) is not None:
+            health.record_event_received()
+
+    def record_failed_request(self, *, interface_id: str) -> None:
+        """
+        Record a failed RPC request for an interface.
+
+        Args:
+            interface_id: The interface ID where the request failed
+
+        """
+        if (health := self._central_health.get_client_health(interface_id=interface_id)) is not None:
+            health.record_failed_request()
+
+    def record_successful_request(self, *, interface_id: str) -> None:
+        """
+        Record a successful RPC request for an interface.
+
+        Args:
+            interface_id: The interface ID where the request succeeded
+
+        """
+        if (health := self._central_health.get_client_health(interface_id=interface_id)) is not None:
+            health.record_successful_request()
+
     def register_client(
         self,
         *,

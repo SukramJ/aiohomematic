@@ -1,3 +1,28 @@
+# Version 2025.12.28 (2025-12-14)
+
+## What's Changed
+
+### Bug Fixes
+
+- Fix central incorrectly transitioning to RUNNING during startup with empty client list: `all()` returns True for empty iterables, causing premature RUNNING state before clients are registered
+- Fix central incorrectly transitioning to DEGRADED when all clients are connected: Missing `not all_connected` check in `start()` method allowed transition to DEGRADED even when all clients were CONNECTED
+- Fix scheduler not starting when central is in DEGRADED state: Now starts when central is operational (RUNNING or DEGRADED)
+- Fix HealthTracker not tracking clients: Clients were never registered with the health tracker after creation, causing `update_client_health()` to be a no-op. Now clients are properly registered during `start()` and unregistered during `stop()`
+
+### Improvements
+
+- Enhance state transition logging:
+
+  - DEGRADED state now shows which clients are not connected (e.g., "clients not connected: Otto-Dev-929-BidCos-RF")
+  - Client state machine now includes reason in log messages (e.g., "proxy initialized", "connection check failed")
+  - Important client transitions (CONNECTED, DISCONNECTED, FAILED) now log at INFO level
+  - Scheduler waiting message now shows current state
+
+- Automatic health data updates:
+  - Events received from backend now automatically update `last_event_received` in health tracker
+  - RPC request success/failure automatically tracked via circuit breaker callbacks
+  - Health tracker now provides accurate `can_receive_events`, `consecutive_failures`, `last_successful_request`, `last_failed_request` metrics
+
 # Version 2025.12.27 (2025-12-14)
 
 ## What's Changed

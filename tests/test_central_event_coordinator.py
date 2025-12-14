@@ -79,6 +79,37 @@ class _FakeClient:
         self.ping_pong_cache.handle_received_pong = MagicMock()
 
 
+class _FakeHealthTracker:
+    """Minimal fake HealthTracker for testing."""
+
+    def record_event_received(self, *, interface_id: str) -> None:
+        """Record that an event was received."""
+
+    def record_failed_request(self, *, interface_id: str) -> None:
+        """Record a failed request."""
+
+    def record_successful_request(self, *, interface_id: str) -> None:
+        """Record a successful request."""
+
+
+class _FakeEventBus:
+    """Minimal fake EventBus for testing."""
+
+    def __init__(self) -> None:
+        """Initialize a fake event bus."""
+        self._subscriptions: dict[str, list[Any]] = {}
+
+    def clear_subscriptions(self, *, event_type: type | None = None) -> None:
+        """Clear subscriptions."""
+
+    async def publish(self, event: Any) -> None:
+        """Publish an event."""
+
+    def subscribe(self, *, event_type: type, handler: Any, event_key: Any = None) -> Any:
+        """Subscribe to an event type."""
+        return lambda: None
+
+
 class _FakeCentral:
     """Minimal fake CentralUnit for testing."""
 
@@ -87,6 +118,8 @@ class _FakeCentral:
         self.name = name
         self.looper = _FakeLooper()
         self._clients: dict[str, _FakeClient] = {}
+        self.event_bus = _FakeEventBus()
+        self.health_tracker = _FakeHealthTracker()
 
     def get_client(self, *, interface_id: str) -> _FakeClient | None:
         """Get client by interface ID."""
@@ -103,7 +136,12 @@ class TestEventCoordinatorBasics:
     def test_event_bus_property(self) -> None:
         """Event bus property should return the event bus instance."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         event_bus = coordinator.event_bus
         assert event_bus is not None
@@ -112,7 +150,12 @@ class TestEventCoordinatorBasics:
     def test_event_coordinator_initialization(self) -> None:
         """EventCoordinator should initialize with central instance."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         assert coordinator._client_provider == central
         assert coordinator._event_bus is not None
@@ -125,7 +168,12 @@ class TestEventCoordinatorDataPointSubscription:
     def test_add_data_point_subscription(self) -> None:
         """Add data point subscription should register with EventBus."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         dpk = DataPointKey(
             interface_id="BidCos-RF",
@@ -146,7 +194,12 @@ class TestEventCoordinatorDataPointEvent:
     async def test_data_point_event_no_client(self) -> None:
         """Data point event should return early when client doesn't exist."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         await coordinator.data_point_event(
             interface_id="NonExistent",
@@ -173,7 +226,12 @@ class TestEventCoordinatorDataPointEvent:
         client = _FakeClient(supports_ping_pong=True)
         central._clients["BidCos-RF"] = client
 
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         await coordinator.data_point_event(
             interface_id="BidCos-RF",
@@ -192,7 +250,12 @@ class TestEventCoordinatorDataPointEvent:
         central = _FakeCentral()
         central._clients["BidCos-RF"] = _FakeClient()
 
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         # Mock EventBus publish to verify it's called
         coordinator._event_bus.publish = AsyncMock()
@@ -214,7 +277,12 @@ class TestEventCoordinatorEmitMethods:
     def test_publish_backend_parameter_handler(self) -> None:
         """Publish backend parameter callback should publish to EventBus."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         coordinator.publish_backend_parameter_event(
             interface_id="BidCos-RF",
@@ -230,7 +298,12 @@ class TestEventCoordinatorEmitMethods:
     def test_publish_backend_system_handler(self) -> None:
         """Publish backend system callback should publish to EventBus."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         coordinator.publish_backend_system_event(
             system_event=BackendSystemEvent.DEVICES_CREATED,
@@ -245,7 +318,12 @@ class TestEventCoordinatorEmitMethods:
     def test_publish_homematic_handler(self) -> None:
         """Publish Homematic callback should publish to EventBus."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         coordinator.publish_homematic_event(
             event_type=EventType.KEYPRESS,
@@ -268,7 +346,12 @@ class TestEventCoordinatorLastEventSeen:
     def test_get_last_event_seen_for_interface_none(self) -> None:
         """Get last event seen should return None when no event has been seen."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         last_event = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
         assert last_event is None
@@ -276,7 +359,12 @@ class TestEventCoordinatorLastEventSeen:
     def test_set_last_event_seen_for_interface(self) -> None:
         """Set last event seen should update the timestamp."""
         central = _FakeCentral()
-        coordinator = EventCoordinator(client_provider=central, task_scheduler=central.looper)  # type: ignore[arg-type]
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
 
         coordinator.set_last_event_seen_for_interface(interface_id="BidCos-RF")
 

@@ -215,12 +215,27 @@ class CentralUnit(
         self._xml_rpc_server: rpc.XmlRpcServer | None = None
         self._json_rpc_client: AioJsonRpcAioHttpClient | None = None
 
+        # Initialize event bus and state machine early (needed by coordinators)
+        self._event_bus: Final = EventBus(
+            enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG),
+            task_scheduler=self.looper,
+        )
+        self._central_state_machine: Final = CentralStateMachine(
+            central_name=self._config.name,
+            event_bus=self._event_bus,
+        )
+        self._health_tracker: Final = HealthTracker(
+            central_name=self._config.name,
+            state_machine=self._central_state_machine,
+        )
+
         # Initialize coordinators
         self._client_coordinator: Final = ClientCoordinator(
             client_factory=self,
             central_info=self,
             config_provider=self,
             coordinator_provider=self,
+            health_tracker=self._health_tracker,
             system_info_provider=self,
         )
         self._cache_coordinator: Final = CacheCoordinator(
@@ -235,6 +250,8 @@ class CentralUnit(
         )
         self._event_coordinator: Final = EventCoordinator(
             client_provider=self._client_coordinator,
+            event_bus=self._event_bus,
+            health_tracker=self._health_tracker,
             task_scheduler=self.looper,
         )
 
@@ -288,17 +305,8 @@ class CentralUnit(
             state_provider=self,
         )
 
-        # Initialize central state machine and health tracking
-        self._central_state_machine: Final = CentralStateMachine(
-            central_name=self.name,
-            event_bus=self.event_bus,
-        )
-        self._health_tracker: Final = HealthTracker(
-            central_name=self.name,
-            state_machine=self._central_state_machine,
-        )
         self._recovery_coordinator: Final = RecoveryCoordinator(
-            central_name=self.name,
+            central_name=self._config.name,
             state_machine=self._central_state_machine,
             health_tracker=self._health_tracker,
         )
@@ -390,7 +398,7 @@ class CentralUnit(
             central.event_bus.subscribe(DataPointUpdatedEvent, my_handler)
 
         """
-        return self._event_coordinator.event_bus
+        return self._event_bus
 
     @property
     def event_coordinator(self) -> EventCoordinator:
@@ -421,7 +429,10 @@ class CentralUnit(
     def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
         """Return the json rpc client."""
         if not self._json_rpc_client:
-            self._json_rpc_client = self._config.create_json_rpc_client(central=self)
+            self._json_rpc_client = self._config.create_json_rpc_client(
+                central=self,
+                health_record_callback=self._client_coordinator.on_health_record,
+            )
         return self._json_rpc_client
 
     @property
@@ -524,6 +535,7 @@ class CentralUnit(
         self,
         *,
         interface_config: hmcl.InterfaceConfig,
+        health_record_callback: hmcl.HealthRecordCallback | None = None,
     ) -> ClientProtocol:
         """
         Create a client for the given interface configuration.
@@ -534,6 +546,7 @@ class CentralUnit(
         Args:
         ----
             interface_config: Configuration for the interface
+            health_record_callback: Optional callback for health tracking
 
         Returns:
         -------
@@ -543,6 +556,7 @@ class CentralUnit(
         return await hmcl.create_client(
             central=self,
             interface_config=interface_config,
+            health_record_callback=health_record_callback,
         )
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
@@ -957,20 +971,31 @@ class CentralUnit(
             if self._config.enable_xml_rpc_server:
                 self._start_scheduler()
 
-        _LOGGER.debug("START: Central %s is %s", self.name, self.state)
-
         # Transition central state machine based on client status
-        all_connected = all(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
+        clients = self._client_coordinator.clients
+        _LOGGER.debug(
+            "START: Central %s is %s, clients: %s",
+            self.name,
+            self.state,
+            {c.interface_id: c.state.value for c in clients},
+        )
+        # Note: all() returns True for empty iterables, so we must check clients exist
+        all_connected = bool(clients) and all(client.state == ClientState.CONNECTED for client in clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in clients)
         if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
             self._central_state_machine.transition_to(
                 target=CentralState.RUNNING,
                 reason="all clients connected",
             )
-        elif any_connected and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
+        elif (
+            any_connected
+            and not all_connected
+            and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED)
+        ):
+            disconnected = [c.interface_id for c in clients if c.state != ClientState.CONNECTED]
             self._central_state_machine.transition_to(
                 target=CentralState.DEGRADED,
-                reason="some clients not connected",
+                reason=f"clients not connected: {', '.join(disconnected)}",
             )
         elif not any_connected and self._central_state_machine.can_transition_to(target=CentralState.FAILED):
             self._central_state_machine.transition_to(
@@ -1103,8 +1128,10 @@ class CentralUnit(
         )
 
         # Determine overall central state based on all client states
-        all_connected = all(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
+        clients = self._client_coordinator.clients
+        # Note: all() returns True for empty iterables, so we must check clients exist
+        all_connected = bool(clients) and all(client.state == ClientState.CONNECTED for client in clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in clients)
 
         # Only transition if central is in a state that allows it
         if (current_state := self._central_state_machine.state) not in (CentralState.STARTING, CentralState.STOPPED):
@@ -1116,9 +1143,10 @@ class CentralUnit(
             elif any_connected and not all_connected and current_state == CentralState.RUNNING:
                 # Only transition to DEGRADED from RUNNING when some (but not all) clients connected
                 if self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
+                    disconnected = [c.interface_id for c in clients if c.state != ClientState.CONNECTED]
                     self._central_state_machine.transition_to(
                         target=CentralState.DEGRADED,
-                        reason=f"client {interface_id} disconnected",
+                        reason=f"clients not connected: {', '.join(disconnected)}",
                     )
             elif (
                 not any_connected
@@ -1474,7 +1502,12 @@ class CentralConfig:
             url = f"{url}:{self.json_port}"
         return f"{url}"
 
-    def create_json_rpc_client(self, *, central: CentralUnit) -> AioJsonRpcAioHttpClient:
+    def create_json_rpc_client(
+        self,
+        *,
+        central: CentralUnit,
+        health_record_callback: hmcl.HealthRecordCallback | None = None,
+    ) -> AioJsonRpcAioHttpClient:
         """Create a json rpc client."""
         return AioJsonRpcAioHttpClient(
             username=self.username,
@@ -1485,6 +1518,7 @@ class CentralConfig:
             tls=self.tls,
             verify_tls=self.verify_tls,
             session_recorder=central.cache_coordinator.recorder,
+            health_record_callback=health_record_callback,
         )
 
 

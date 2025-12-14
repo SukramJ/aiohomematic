@@ -1,3 +1,11 @@
+# Version 2025.12.27 (2025-12-14)
+
+## What's Changed
+
+### Bug Fixes
+
+- Fix firmware data not updating after refresh: Device descriptions cache was not being updated for existing devices during `refresh_firmware_data()` calls (both ad-hoc service calls and periodic checks). The cache update was skipped because the code incorrectly returned early when no "new" devices were found, even though existing device descriptions needed updating.
+
 # Version 2025.12.26 (2025-12-14)
 
 ## What's Changed

@@ -680,12 +680,18 @@ class DeviceCoordinator(FirmwareDataRefresher):
             return
 
         async with self._device_add_semaphore:
-            if not (
-                new_device_descriptions := self._identify_new_device_descriptions(
-                    device_descriptions=device_descriptions, interface_id=interface_id
-                )
-            ):
-                _LOGGER.debug("ADD_NEW_DEVICES: Nothing to add for interface_id %s", interface_id)
+            new_device_descriptions = self._identify_new_device_descriptions(
+                device_descriptions=device_descriptions, interface_id=interface_id
+            )
+
+            # For REFRESH operations, we need to update the cache even for existing devices
+            # (e.g., firmware data may have changed)
+            descriptions_to_cache = (
+                device_descriptions if source == SourceOfDeviceCreation.REFRESH else new_device_descriptions
+            )
+
+            if not descriptions_to_cache:
+                _LOGGER.debug("ADD_NEW_DEVICES: Nothing to add/update for interface_id %s", interface_id)
                 return
 
             # Here we block the automatic creation of new devices, if required
@@ -701,12 +707,14 @@ class DeviceCoordinator(FirmwareDataRefresher):
 
             client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
             save_descriptions = False
-            for dev_desc in new_device_descriptions:
+            for dev_desc in descriptions_to_cache:
                 try:
                     self._coordinator_provider.cache_coordinator.device_descriptions.add_device(
                         interface_id=interface_id, device_description=dev_desc
                     )
-                    await client.fetch_paramset_descriptions(device_description=dev_desc)
+                    # Only fetch paramset descriptions for new devices (not needed for refresh)
+                    if source != SourceOfDeviceCreation.REFRESH or dev_desc in new_device_descriptions:
+                        await client.fetch_paramset_descriptions(device_description=dev_desc)
                     save_descriptions = True
                 except Exception as exc:  # pragma: no cover
                     save_descriptions = False

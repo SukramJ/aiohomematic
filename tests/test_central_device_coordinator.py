@@ -81,6 +81,10 @@ class _FakeDeviceRegistry:
             address = address.split(":")[0]
         return self._devices.get(address)
 
+    def get_device_addresses(self) -> frozenset[str]:
+        """Return all device addresses."""
+        return frozenset(self._devices.keys())
+
     def get_virtual_remotes(self) -> tuple[_FakeDevice, ...]:
         """Get virtual remotes."""
         return ()
@@ -114,10 +118,14 @@ class _FakeClient:
     def __init__(self, *, interface_id: str) -> None:
         """Initialize a fake client."""
         self.interface_id = interface_id
+        self._device_description_override: DeviceDescription | None = None
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the inbox."""
         return True
+
+    async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
+        """Fetch paramset descriptions for a device."""
 
     async def get_all_device_descriptions(
         self,
@@ -136,15 +144,76 @@ class _FakeClient:
             )
         return ()
 
+    async def get_device_description(self, *, address: str) -> DeviceDescription | None:
+        """Get device description for a specific address."""
+        if self._device_description_override and self._device_description_override.get("ADDRESS") == address:
+            return self._device_description_override
+        if address == "VCU0000001":
+            return {
+                "ADDRESS": "VCU0000001",
+                "TYPE": "HM-LC-Sw1-Pl",
+                "PARAMSETS": ["MASTER", "VALUES"],
+                "FIRMWARE": "1.0",
+            }
+        return None
+
+
+class _FakeDeviceDescriptionsCache:
+    """Minimal fake DeviceDescriptionsCache for testing."""
+
+    def __init__(self) -> None:
+        """Initialize fake device descriptions cache."""
+        self._cache: dict[str, dict[str, DeviceDescription]] = {}  # interface_id -> {address -> description}
+
+    def add_device(self, *, interface_id: str, device_description: DeviceDescription) -> None:
+        """Add device description to cache."""
+        if interface_id not in self._cache:
+            self._cache[interface_id] = {}
+        address = device_description.get("ADDRESS", "")
+        self._cache[interface_id][address] = device_description
+
+    def add_device_descriptions(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
+        """Add multiple device descriptions to cache."""
+        for description in device_descriptions:
+            self.add_device(interface_id=interface_id, device_description=description)
+
+    def get_addresses(self, *, interface_id: str | None = None) -> frozenset[str]:
+        """Return addresses by interface as a set."""
+        if interface_id:
+            if interface_id in self._cache:
+                return frozenset(self._cache[interface_id].keys())
+            return frozenset()
+        return frozenset(addr for iid in self._cache for addr in self._cache[iid])
+
+    def get_device_description(self, *, interface_id: str, address: str) -> DeviceDescription | None:
+        """Get device description from cache."""
+        if interface_id in self._cache:
+            return self._cache[interface_id].get(address)
+        return None
+
+    def get_device_descriptions(self, *, interface_id: str) -> dict[str, DeviceDescription]:
+        """Get all device descriptions for interface as a mapping."""
+        if interface_id in self._cache:
+            return self._cache[interface_id]
+        return {}
+
+    def get_raw_device_descriptions(self, *, interface_id: str) -> tuple[DeviceDescription, ...]:
+        """Get all raw device descriptions for interface."""
+        if interface_id in self._cache:
+            return tuple(self._cache[interface_id].values())
+        return ()
+
+    def has_device_descriptions(self, *, interface_id: str) -> bool:
+        """Check if device descriptions exist for interface."""
+        return interface_id in self._cache and len(self._cache[interface_id]) > 0
+
 
 class _FakeCacheCoordinator:
     """Minimal fake CacheCoordinator for testing."""
 
     def __init__(self) -> None:
         """Initialize fake cache coordinator."""
-        self.device_descriptions = MagicMock()
-        self.device_descriptions.has_device_descriptions = MagicMock(return_value=True)
-        self.device_descriptions.get_raw_device_descriptions = MagicMock(return_value=[])
+        self.device_descriptions = _FakeDeviceDescriptionsCache()
         self.device_details = MagicMock()
         self.data_cache = MagicMock()
         self.parameter_visibility = MagicMock()
@@ -178,6 +247,14 @@ class _FakeClientCoordinator:
         return interface_id in self._clients
 
 
+class _FakeConfig:
+    """Minimal fake Config for testing."""
+
+    def __init__(self) -> None:
+        """Initialize a fake config."""
+        self.delay_new_device_creation = False
+
+
 class _FakeCentral:
     """Minimal fake CentralUnit for testing."""
 
@@ -188,6 +265,7 @@ class _FakeCentral:
         self.cache_coordinator = _FakeCacheCoordinator()
         self.client_coordinator = _FakeClientCoordinator()
         self.device_coordinator = MagicMock()
+        self.config = _FakeConfig()
         # Add protocol interface mocks
         self.data_cache = MagicMock()
         self.device_descriptions = MagicMock()
@@ -871,6 +949,54 @@ class TestDeviceCoordinatorFirmwareOperations:
 
         # Should have called refresh_device_descriptions_and_create_missing_devices for the updatable device
         mock_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_refresh_firmware_data_updates_cache_for_existing_devices(self) -> None:
+        """Refresh firmware data should update cache even for existing devices."""
+        central = _FakeCentral()
+
+        client = _FakeClient(interface_id="BidCos-RF")
+        central.client_coordinator.add_client(client=client)
+
+        device = _FakeDevice(address="VCU0000001", is_updatable=True)
+        device.client = client  # Link device to client
+        central.device_registry.add_device_sync(device=device)
+
+        # Add device to device descriptions cache (simulating existing device with old firmware)
+        central.cache_coordinator.device_descriptions.add_device(
+            interface_id="BidCos-RF",
+            device_description={"ADDRESS": "VCU0000001", "TYPE": "HM-Test", "FIRMWARE": "1.0"},
+        )
+
+        coordinator = DeviceCoordinator(
+            central_info=central,
+            client_provider=central,
+            config_provider=central,
+            coordinator_provider=central,
+            data_cache_provider=central.cache_coordinator.data_cache,
+            data_point_provider=central,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
+            event_bus_provider=central,
+            event_publisher=central,
+            event_subscription_manager=central,
+            file_operations=central,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        # Set client to return updated firmware version
+        client._device_description_override = {"ADDRESS": "VCU0000001", "TYPE": "HM-Test", "FIRMWARE": "2.0"}
+
+        # Refresh firmware data for specific device
+        await coordinator.refresh_firmware_data(device_address="VCU0000001")
+
+        # Verify cache was updated with new firmware version
+        cached_description = central.cache_coordinator.device_descriptions.get_device_description(
+            interface_id="BidCos-RF", address="VCU0000001"
+        )
+        assert cached_description["FIRMWARE"] == "2.0"
 
 
 class TestDeviceCoordinatorCentralLinks:

@@ -13,7 +13,7 @@ import logging
 from typing import Any, Final, TypeAlias
 
 from aiohomematic import i18n
-from aiohomematic.central.event_bus import DeviceAvailabilityChangedEvent
+from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
@@ -82,12 +82,10 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         ):
             self._device.publish_device_updated_event()
             self._event_bus_provider.event_bus.publish_sync(
-                event=DeviceAvailabilityChangedEvent(
+                event=DeviceLifecycleEvent(
                     timestamp=datetime.now(),
-                    device_address=self._device.address,
-                    channel_address=self._channel.address,
-                    parameter=self._parameter,
-                    available=new_value is False,  # UN_REACH=True means unavailable
+                    event_type=DeviceLifecycleEventType.AVAILABILITY_CHANGED,
+                    availability_changes=((self._device.address, new_value is False),),
                 )
             )
 

@@ -1,4 +1,48 @@
-# Version 2025.12.25 (2025-12-12)
+# Version 2025.12.26 (2025-12-14)
+
+## What's Changed
+
+### Breaking Changes
+
+- Replace 9 legacy events with 4 focused integration events:
+  - Remove `BackendSystemEventData` - replaced by `DeviceLifecycleEvent` and `DataPointsCreatedEvent`
+  - Remove `CallbackStateChangedEvent` - replaced by `SystemStatusEvent.callback_state`
+  - Remove `CentralStateChangedEvent` - replaced by `SystemStatusEvent.central_state`
+  - Remove `ClientStateChangedEvent` - replaced by `SystemStatusEvent.client_state`
+  - Remove `ConnectionStateChangedEvent` - replaced by `SystemStatusEvent.connection_state`
+  - Remove `DeviceAvailabilityChangedEvent` - replaced by `DeviceLifecycleEvent.availability_changes`
+  - Remove `FetchDataFailedEvent` - replaced by `SystemStatusEvent.issues`
+  - Remove `HomematicEvent` - replaced by `DeviceTriggerEvent`
+  - Remove `PingPongMismatchEvent` - replaced by `SystemStatusEvent.issues`
+
+### New Features
+
+- Add `SystemStatusEvent` - aggregated event for all infrastructure and lifecycle state changes
+  - `central_state: CentralState | None` - central unit state changes
+  - `connection_state: tuple[str, bool] | None` - connection state (interface_id, connected)
+  - `client_state: tuple[str, ClientState, ClientState] | None` - client state (interface_id, old, new)
+  - `callback_state: tuple[str, bool] | None` - callback server state (interface_id, alive)
+  - `issues: tuple[IntegrationIssue, ...]` - issues for user notification
+- Add `DeviceLifecycleEvent` - aggregated event for device lifecycle and availability
+  - `event_type: DeviceLifecycleEventType` - CREATED, UPDATED, REMOVED, AVAILABILITY_CHANGED
+  - `device_addresses: tuple[str, ...]` - affected device addresses
+  - `availability_changes: tuple[tuple[str, bool], ...]` - availability changes
+  - `includes_virtual_remotes: bool` - whether virtual remotes are included
+- Add `DataPointsCreatedEvent` - event for new data points (entity discovery)
+  - `new_data_points: tuple[tuple[DataPointCategory, tuple[BaseDataPoint, ...]], ...]`
+- Add `DeviceTriggerEvent` - event for device triggers (button press, sensor trigger)
+  - `interface_id: str` - interface identifier
+  - `channel_address: str` - device address (not channel address)
+  - `parameter: str` - parameter name (e.g., PRESS_SHORT)
+  - `value: str | int | float | bool` - event value
+- Add `IntegrationIssue` dataclass for user-facing issues with severity, issue_id, translation_key
+- Add `DeviceLifecycleEventType` enum with CREATED, UPDATED, REMOVED, AVAILABILITY_CHANGED values
+
+### Migration Guide
+
+See `docs/migrations/event_migration_2025_12.md` for detailed migration instructions.
+
+# Version 2025.12.25 (2025-12-13)
 
 ## What's Changed
 

@@ -259,9 +259,10 @@ class TestConnectionStateWorkflow:
 
     @pytest.mark.asyncio
     async def test_connection_state_event_on_issue(self) -> None:
-        """Test that ConnectionStateChangedEvent is published on issues."""
+        """Test that SystemStatusEvent with connection_state is published on issues."""
         from aiohomematic.central import CentralConnectionState
-        from aiohomematic.central.event_bus import ConnectionStateChangedEvent, EventBus
+        from aiohomematic.central.event_bus import EventBus
+        from aiohomematic.central.integration_events import SystemStatusEvent
         from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 
         # Create event bus and mock provider
@@ -273,14 +274,15 @@ class TestConnectionStateWorkflow:
                 return event_bus
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
-        received_events: list[ConnectionStateChangedEvent] = []
+        received_events: list[SystemStatusEvent] = []
 
-        def on_state_change(event: ConnectionStateChangedEvent) -> None:
-            received_events.append(event)
+        def on_state_change(event: SystemStatusEvent) -> None:
+            if event.connection_state:  # Filter for connection state events
+                received_events.append(event)
 
         # Subscribe to events
         unsubscribe = event_bus.subscribe(
-            event_type=ConnectionStateChangedEvent,
+            event_type=SystemStatusEvent,
             event_key=None,  # Subscribe to all events
             handler=on_state_change,
         )
@@ -296,8 +298,9 @@ class TestConnectionStateWorkflow:
 
         # Verify event was published
         assert len(received_events) == 1
-        assert received_events[0].interface_id == "HmIP-RF"
-        assert received_events[0].connected is False
+        assert received_events[0].connection_state is not None
+        assert received_events[0].connection_state[0] == "HmIP-RF"
+        assert received_events[0].connection_state[1] is False
 
         # Remove issue
         state.remove_issue(issuer=mock_issuer, iid="HmIP-RF")
@@ -305,8 +308,9 @@ class TestConnectionStateWorkflow:
 
         # Verify event for reconnection
         assert len(received_events) == 2
-        assert received_events[1].interface_id == "HmIP-RF"
-        assert received_events[1].connected is True
+        assert received_events[1].connection_state is not None
+        assert received_events[1].connection_state[0] == "HmIP-RF"
+        assert received_events[1].connection_state[1] is True
 
         # Unsubscribe and verify no more calls
         unsubscribe()

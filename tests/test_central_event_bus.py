@@ -8,15 +8,9 @@ from datetime import datetime
 
 import pytest
 
-from aiohomematic.central.event_bus import (
-    BackendParameterEvent,
-    BackendSystemEventData,
-    DataPointUpdatedEvent,
-    EventBus,
-    HomematicEvent,
-    SysvarUpdatedEvent,
-)
-from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, ParamsetKey
+from aiohomematic.central.event_bus import BackendParameterEvent, DataPointUpdatedEvent, EventBus, SysvarUpdatedEvent
+from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType, DeviceTriggerEvent
+from aiohomematic.const import DataPointKey, ParamsetKey
 
 
 class TestEventBus:
@@ -28,19 +22,19 @@ class TestEventBus:
         bus = EventBus()
         calls = []
 
-        async def failing_async_handler(event: BackendSystemEventData) -> None:
+        async def failing_async_handler(event: DeviceLifecycleEvent) -> None:
             raise RuntimeError("Async failure")
 
-        async def working_async_handler(event: BackendSystemEventData) -> None:
+        async def working_async_handler(event: DeviceLifecycleEvent) -> None:
             calls.append(event)
 
-        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=failing_async_handler)
-        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=working_async_handler)
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=failing_async_handler)
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=working_async_handler)
 
-        event = BackendSystemEventData(
+        event = DeviceLifecycleEvent(
             timestamp=datetime.now(),
-            system_event=BackendSystemEvent.DEVICES_CREATED,
-            data={"device_count": 5},
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
         )
 
         await bus.publish(event=event)
@@ -186,21 +180,23 @@ class TestEventBus:
         handler1_calls = []
         handler2_calls = []
 
-        def failing_handler(event: HomematicEvent) -> None:
+        def failing_handler(event: DeviceTriggerEvent) -> None:
             handler1_calls.append(event)
             raise ValueError("Handler failed!")
 
-        def working_handler(event: HomematicEvent) -> None:
+        def working_handler(event: DeviceTriggerEvent) -> None:
             handler2_calls.append(event)
 
-        # HomematicEvent key is None
-        bus.subscribe(event_type=HomematicEvent, event_key=None, handler=failing_handler)
-        bus.subscribe(event_type=HomematicEvent, event_key=None, handler=working_handler)
+        # DeviceTriggerEvent key is None
+        bus.subscribe(event_type=DeviceTriggerEvent, event_key=None, handler=failing_handler)
+        bus.subscribe(event_type=DeviceTriggerEvent, event_key=None, handler=working_handler)
 
-        event = HomematicEvent(
+        event = DeviceTriggerEvent(
             timestamp=datetime.now(),
-            event_type=EventType.KEYPRESS,
-            event_data={EventKey.ADDRESS: "VCU0000001:1"},
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            parameter="PRESS_SHORT",
+            value=True,
         )
 
         # Should not raise despite failing_handler
@@ -275,10 +271,12 @@ class TestEventBus:
         """Publishing with no subscribers should not raise errors."""
         bus = EventBus()
 
-        event = HomematicEvent(
+        event = DeviceTriggerEvent(
             timestamp=datetime.now(),
-            event_type=EventType.KEYPRESS,
-            event_data={EventKey.ADDRESS: "HmIP-RF:1"},
+            interface_id="HmIP-RF",
+            channel_address="VCU0000001:1",
+            parameter="PRESS_SHORT",
+            value=True,
         )
 
         # Should not raise
@@ -459,16 +457,16 @@ class TestDataPointKey:
 class TestEventImmutability:
     """Test that events are immutable."""
 
-    def test_backend_system_event_immutability(self) -> None:
-        """BackendSystemEventData should be immutable."""
-        event = BackendSystemEventData(
+    def test_device_lifecycle_event_immutability(self) -> None:
+        """DeviceLifecycleEvent should be immutable."""
+        event = DeviceLifecycleEvent(
             timestamp=datetime.now(),
-            system_event=BackendSystemEvent.DEVICES_CREATED,
-            data={"count": 5},
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
         )
 
         with pytest.raises(AttributeError):
-            event.system_event = BackendSystemEvent.DELETE_DEVICES  # type: ignore[misc]
+            event.event_type = DeviceLifecycleEventType.REMOVED  # type: ignore[misc]
 
     def test_event_immutability(self) -> None:
         """Events should be frozen dataclasses (immutable)."""
@@ -762,21 +760,21 @@ class TestEventBusIntegration:
 
         # Simulate Home Assistant integration subscribing to events
         ha_datapoint_updates = []
-        ha_backend_events = []
+        ha_lifecycle_events = []
 
         async def ha_datapoint_handler(event: DataPointUpdatedEvent) -> None:
             ha_datapoint_updates.append(event)
 
-        async def ha_backend_handler(event: BackendSystemEventData) -> None:
-            ha_backend_events.append(event)
+        async def ha_lifecycle_handler(event: DeviceLifecycleEvent) -> None:
+            ha_lifecycle_events.append(event)
 
         # Simulate internal monitoring
-        monitoring_all_events: list[DataPointUpdatedEvent | BackendSystemEventData] = []
+        monitoring_all_events: list[DataPointUpdatedEvent | DeviceLifecycleEvent] = []
 
         def monitor_datapoint(event: DataPointUpdatedEvent) -> None:
             monitoring_all_events.append(event)
 
-        def monitor_backend(event: BackendSystemEventData) -> None:
+        def monitor_lifecycle(event: DeviceLifecycleEvent) -> None:
             monitoring_all_events.append(event)
 
         # Create dpks for 3 devices - DataPointUpdatedEvent key is dpk
@@ -795,9 +793,9 @@ class TestEventBusIntegration:
             bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=ha_datapoint_handler)
             bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=monitor_datapoint)
 
-        # BackendSystemEventData key is None
-        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=ha_backend_handler)
-        bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=monitor_backend)
+        # DeviceLifecycleEvent key is None
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=ha_lifecycle_handler)
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=monitor_lifecycle)
 
         # Simulate device updates
         for i, dpk in enumerate(dpks):
@@ -810,22 +808,22 @@ class TestEventBusIntegration:
             await bus.publish(event=event)
 
         # Simulate system event
-        system_event = BackendSystemEventData(
+        lifecycle_event = DeviceLifecycleEvent(
             timestamp=datetime.now(),
-            system_event=BackendSystemEvent.DEVICES_CREATED,
-            data={"count": 3},
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001", "VCU0000002", "VCU0000003"),
         )
-        await bus.publish(event=system_event)
+        await bus.publish(event=lifecycle_event)
 
         # Verify all events were received
         assert len(ha_datapoint_updates) == 3
-        assert len(ha_backend_events) == 1
-        assert len(monitoring_all_events) == 4  # 3 datapoint + 1 backend
+        assert len(ha_lifecycle_events) == 1
+        assert len(monitoring_all_events) == 4  # 3 datapoint + 1 lifecycle
 
         # Verify stats
         stats = bus.get_event_stats()
         assert stats["DataPointUpdatedEvent"] == 3
-        assert stats["BackendSystemEventData"] == 1
+        assert stats["DeviceLifecycleEvent"] == 1
 
     @pytest.mark.asyncio
     async def test_multiple_event_types_independent(self) -> None:

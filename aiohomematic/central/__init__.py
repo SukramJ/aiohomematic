@@ -80,13 +80,7 @@ from aiohomematic.central.cache_coordinator import CacheCoordinator
 from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
-from aiohomematic.central.event_bus import (
-    ClientStateChangedEvent,
-    ConnectionStateChangedEvent,
-    EventBatch,
-    EventBus,
-    EventPriority,
-)
+from aiohomematic.central.event_bus import EventBatch, EventBus, EventPriority
 from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.central.health import (  # noqa: F401 - ConnectionHealth used for re-export
     CentralHealth,
@@ -94,6 +88,7 @@ from aiohomematic.central.health import (  # noqa: F401 - ConnectionHealth used 
     HealthTracker,
 )
 from aiohomematic.central.hub_coordinator import HubCoordinator
+from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.central.recovery import (  # noqa: F401 - RecoveryResult used for re-export
     RecoveryCoordinator,
     RecoveryResult,
@@ -308,11 +303,11 @@ class CentralUnit(
             health_tracker=self._health_tracker,
         )
 
-        # Subscribe to client state changes to update central state machine
+        # Subscribe to system status events to update central state machine
         self.event_bus.subscribe(
-            event_type=ClientStateChangedEvent,
-            event_key=None,  # Subscribe to all client state changes
-            handler=self._on_client_state_changed,
+            event_type=SystemStatusEvent,
+            event_key=None,  # Subscribe to all system status events
+            handler=self._on_system_status_event,
         )
 
         self._version: str | None = None
@@ -1092,13 +1087,19 @@ class CentralUnit(
                 await asyncio.sleep(timeout_cfg.rpc_timeout / 10)
         return ip_addr
 
-    def _on_client_state_changed(self, *, event: ClientStateChangedEvent) -> None:
-        """Handle client state changes and update central state machine accordingly."""
+    def _on_system_status_event(self, *, event: SystemStatusEvent) -> None:
+        """Handle system status events and update central state machine accordingly."""
+        # Only handle client state changes
+        if event.client_state is None:
+            return
+
+        interface_id, old_state, new_state = event.client_state
+
         # Update health tracker with new client state
         self._health_tracker.update_client_health(
-            interface_id=event.interface_id,
-            old_state=event.old_state,
-            new_state=event.new_state,
+            interface_id=interface_id,
+            old_state=old_state,
+            new_state=new_state,
         )
 
         # Determine overall central state based on all client states
@@ -1110,14 +1111,14 @@ class CentralUnit(
             if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
                 self._central_state_machine.transition_to(
                     target=CentralState.RUNNING,
-                    reason=f"all clients connected (triggered by {event.interface_id})",
+                    reason=f"all clients connected (triggered by {interface_id})",
                 )
             elif any_connected and not all_connected and current_state == CentralState.RUNNING:
                 # Only transition to DEGRADED from RUNNING when some (but not all) clients connected
                 if self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
                     self._central_state_machine.transition_to(
                         target=CentralState.DEGRADED,
-                        reason=f"client {event.interface_id} disconnected",
+                        reason=f"client {interface_id} disconnected",
                     )
             elif (
                 not any_connected
@@ -1492,7 +1493,7 @@ class CentralConnectionState:
     Track connection status for the central unit.
 
     Manages connection issues per transport (JSON-RPC and XML-RPC proxies),
-    publishing ConnectionStateChangedEvent via EventBus for state changes.
+    publishing SystemStatusEvent via EventBus for state changes.
     """
 
     def __init__(self, *, event_bus_provider: EventBusProvider | None = None) -> None:
@@ -1612,13 +1613,12 @@ class CentralConnectionState:
         return removed
 
     def _publish_state_change(self, *, interface_id: str, connected: bool) -> None:
-        """Publish ConnectionStateChangedEvent via EventBus."""
+        """Publish SystemStatusEvent via EventBus."""
         if self._event_bus_provider is None:
             return
-        event = ConnectionStateChangedEvent(
+        event = SystemStatusEvent(
             timestamp=datetime.now(),
-            interface_id=interface_id,
-            connected=connected,
+            connection_state=(interface_id, connected),
         )
         self._event_bus_provider.event_bus.publish_sync(event=event)
 

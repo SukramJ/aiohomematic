@@ -35,7 +35,7 @@ from aiohomematic import i18n
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
 
-from aiohomematic.central.event_bus import PingPongMismatchEvent
+from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusEvent
 from aiohomematic.const import (
     COMMAND_CACHE_MAX_SIZE,
     COMMAND_CACHE_WARNING_THRESHOLD,
@@ -676,13 +676,21 @@ class PingPongCache:
 
         def _publish_event(mismatch_count: int) -> None:
             """Publish event."""
+            acceptable = mismatch_count <= self._allowed_delta
+            issue = IntegrationIssue(
+                severity="warning" if acceptable else "error",
+                issue_id=f"ping_pong_mismatch_{self._interface_id}",
+                translation_key="issue.ping_pong_mismatch",
+                translation_placeholders=(
+                    ("interface_id", self._interface_id),
+                    ("mismatch_type", mismatch_type.value),
+                    ("mismatch_count", str(mismatch_count)),
+                ),
+            )
             self._event_bus_provider.event_bus.publish_sync(
-                event=PingPongMismatchEvent(
+                event=SystemStatusEvent(
                     timestamp=datetime.now(),
-                    interface_id=self._interface_id,
-                    mismatch_type=mismatch_type,
-                    mismatch_count=mismatch_count,
-                    acceptable=mismatch_count <= self._allowed_delta,
+                    issues=(issue,),
                 )
             )
             _LOGGER.debug(

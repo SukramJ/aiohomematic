@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import CallSource, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters
 from aiohomematic.model.generic import DpSensor, DpSwitch
@@ -79,13 +80,19 @@ class TestDataPointCallbacks:
         )
         # Wait for async event bus publish to complete for delete events
         await asyncio.sleep(0.1)
-        # Verify the system event mock received a BackendSystemEventData event
+        # Verify the system event mock received a DeviceLifecycleEvent
         assert factory.system_event_mock.called
-        call_args = factory.system_event_mock.call_args_list[-1]
-        event = call_args[0][0]  # First positional argument
-        assert event.system_event == "deleteDevices"
-        assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
-        assert event.data.get("addresses") == ["VCU2128127"]
+        # Find the last DeviceLifecycleEvent with REMOVED type
+        device_lifecycle_events = [
+            call[0][0]
+            for call in factory.system_event_mock.call_args_list
+            if isinstance(call[0][0], DeviceLifecycleEvent)
+            and call[0][0].event_type == DeviceLifecycleEventType.REMOVED
+        ]
+        assert len(device_lifecycle_events) >= 1
+        event = device_lifecycle_events[-1]
+        assert event.event_type == DeviceLifecycleEventType.REMOVED
+        assert "VCU2128127" in event.device_addresses
         unregister_data_point_updated_handler()
         unregister_device_removed_handler()
 
@@ -139,13 +146,19 @@ class TestDataPointCallbacks:
         )
         # Wait for async event bus publish to complete for delete events
         await asyncio.sleep(0.1)
-        # Verify the system event mock received a BackendSystemEventData event
+        # Verify the system event mock received a DeviceLifecycleEvent
         assert factory.system_event_mock.called
-        call_args = factory.system_event_mock.call_args_list[-1]
-        event = call_args[0][0]  # First positional argument
-        assert event.system_event == "deleteDevices"
-        assert event.data.get("interface_id") == "CentralTest-BidCos-RF"
-        assert event.data.get("addresses") == ["VCU2128127"]
+        # Find the last DeviceLifecycleEvent with REMOVED type
+        device_lifecycle_events = [
+            call[0][0]
+            for call in factory.system_event_mock.call_args_list
+            if isinstance(call[0][0], DeviceLifecycleEvent)
+            and call[0][0].event_type == DeviceLifecycleEventType.REMOVED
+        ]
+        assert len(device_lifecycle_events) >= 1
+        event = device_lifecycle_events[-1]
+        assert event.event_type == DeviceLifecycleEventType.REMOVED
+        assert "VCU2128127" in event.device_addresses
         # Call the unregister handler to clean up
         if unregister_updated:
             unregister_updated()

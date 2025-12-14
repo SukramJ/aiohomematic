@@ -37,6 +37,85 @@ class MethodCall(NamedTuple):
     context: str  # The full attribute chain or variable type hint
 
 
+# Home Assistant specific methods to filter out (false positives)
+HOME_ASSISTANT_METHODS = frozenset(
+    {
+        # Home Assistant Device Registry
+        "async_get",
+        "async_get_device",
+        "async_get_or_create",
+        "async_remove_device",
+        "async_update_device",
+        # Home Assistant Entity Registry
+        "async_get_entity_id",
+        "async_get_entity",
+        # Home Assistant Config Entry
+        "async_setup_entry",
+        "async_unload_entry",
+        "async_remove_entry",
+        "async_reload_entry",
+        # Home Assistant Triggers/Actions
+        "async_attach_trigger",
+        "async_call_action_from_config",
+        "async_get_actions",
+        "async_get_action_capabilities",
+        "async_get_triggers",
+        "async_get_trigger_capabilities",
+        # Home Assistant Diagnostics
+        "async_get_config_entry_diagnostics",
+        "async_get_device_diagnostics",
+        # Home Assistant generic async methods
+        "async_setup",
+        "async_setup_platform",
+        "async_forward_entry_setups",
+        "async_forward_entry_setup",
+        "async_unload_platforms",
+        # Other Home Assistant specific
+        "async_step_user",
+        "async_step_import",
+        "async_step_reauth",
+        "async_step_central",
+        "async_step_central_error",
+        "async_added_to_hass",
+        "async_will_remove_from_hass",
+        "async_device_update",
+        "async_get_last_number_data",
+        "async_get_last_sensor_data",
+        # Home Assistant properties/attributes (not methods but detected as such)
+        "entry_id",
+        "runtime_data",
+        "native_value",  # Sensor attribute
+        "device_info",
+        "entity_description",
+        "should_poll",
+        "translation_key",
+        "context",  # ConfigFlow context attribute
+        # Home Assistant device registry attributes
+        "config_entries",  # DeviceEntry.config_entries
+        "device_class",  # DeviceEntry.device_class (not DataPoint.device_class)
+        "identifiers",  # DeviceEntry.identifiers
+        "name_by_user",  # DeviceEntry.name_by_user
+        "id",  # DeviceEntry.id
+        "ensure_via_device_exists",  # HA helper method
+        # Other HA-specific attributes
+        "channel_name",  # HA event attribute
+        "data_point",  # HA wrapper attribute (not aiohomematic)
+        "start_central",  # HA config flow helper
+        "stop_central",  # HA config flow helper
+        "enable_sub_devices",  # HA-specific device management
+        # HA control_unit wrapper methods
+        "get_new_data_points",  # HA control_unit wrapper
+        "get_new_hub_data_points",  # HA control_unit wrapper
+        "async_get_clientsession",  # HA client session wrapper
+        # HA-specific SSDP/UPnP attributes (not in aiohomematic)
+        "ssdp_location",  # HA SSDP discovery
+        "upnp",  # HA UPnP discovery
+        "SsdpServiceInfo",  # HA SSDP service info type
+        # HA parameter name wrapper
+        "parameter_name",  # HA parameter name attribute (uses .parameter in aiohomematic)
+    }
+)
+
 # Common Python methods to filter out (false positives)
 PYTHON_BUILTINS = frozenset(
     {
@@ -440,9 +519,29 @@ class AioHomematicCallScanner(ast.NodeVisitor):
 
         return "Unknown", "aiohomematic.?.Unknown"
 
+    # Home Assistant variable name patterns to exclude (exact matches)
+    HA_VARIABLE_PATTERNS: tuple[str, ...] = (
+        "device_registry",
+        "entity_registry",
+        "config_entry",
+        "config_entries",
+        "hass",
+        "entry",
+        "platform",
+        "trigger_data",
+        "trigger_info",
+        "action_data",
+        "event_trigger",
+    )
+
     def _is_aiohomematic_variable(self, name: str) -> bool:
         """Check if a variable name suggests it's an aiohomematic object."""
         name_lower = name.lower()
+
+        # Exclude Home Assistant specific variable names
+        if name_lower in self.HA_VARIABLE_PATTERNS:
+            return False
+
         # Check variable name patterns
         for pattern in self.AIOHOMEMATIC_PATTERNS:
             if pattern in name_lower:
@@ -479,6 +578,9 @@ class AioHomematicCallScanner(ast.NodeVisitor):
         if not self.include_constants and (
             method_name.isupper() or (method_name.replace("_", "").isupper() and "_" in method_name)
         ):
+            return False
+        # Skip Home Assistant specific methods
+        if method_name in HOME_ASSISTANT_METHODS:
             return False
         if self.include_builtins:
             return True
@@ -613,6 +715,77 @@ def scan_directory(
     return all_calls
 
 
+def build_aiohomematic_method_index(aiohomematic_path: Path) -> set[str]:
+    """Build an index of all methods/properties defined in aiohomematic."""
+    methods: set[str] = set()
+
+    for py_file in aiohomematic_path.rglob("*.py"):
+        if "__pycache__" in str(py_file):
+            continue
+        try:
+            source = py_file.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=str(py_file))
+
+            # Walk through classes to find methods and properties
+            for node in ast.walk(tree):
+                # Method definitions (including __init__, properties, etc.)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    methods.add(node.name)
+
+                    # Check for @property decorator
+                    for decorator in node.decorator_list:
+                        if isinstance(decorator, ast.Name) and decorator.id == "property":
+                            methods.add(node.name)
+                        elif (
+                            isinstance(decorator, ast.Attribute)
+                            and decorator.attr
+                            in (
+                                "setter",
+                                "deleter",
+                                "getter",
+                            )
+                            and isinstance(decorator.value, ast.Name)
+                        ):
+                            methods.add(decorator.value.id)
+
+                # Class-level assignments (could be attributes accessed as properties)
+                elif isinstance(node, ast.ClassDef):
+                    for item in node.body:
+                        if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                            # Type-annotated class attributes
+                            methods.add(item.target.id)
+                        elif isinstance(item, ast.Assign):
+                            for target in item.targets:
+                                if isinstance(target, ast.Name):
+                                    methods.add(target.id)
+
+        except (SyntaxError, Exception):
+            continue
+
+    return methods
+
+
+def verify_methods_exist(
+    calls: list[MethodCall],
+    aiohomematic_path: Path,
+) -> tuple[list[MethodCall], list[MethodCall]]:
+    """Verify which methods actually exist in aiohomematic."""
+    print("Building aiohomematic method index...", file=sys.stderr)
+    method_index = build_aiohomematic_method_index(aiohomematic_path)
+    print(f"Found {len(method_index)} methods/properties in aiohomematic", file=sys.stderr)
+
+    verified_calls: list[MethodCall] = []
+    unverified_calls: list[MethodCall] = []
+
+    for call in calls:
+        if call.method_name in method_index:
+            verified_calls.append(call)
+        else:
+            unverified_calls.append(call)
+
+    return verified_calls, unverified_calls
+
+
 def group_by_class(calls: list[MethodCall]) -> dict[str, dict[str, set[str]]]:
     """Group methods by their full class path."""
     # full_class -> {method_name -> set of file:line locations}
@@ -634,7 +807,7 @@ def main() -> None:
 Examples:
     %(prog)s ../homematicip_local/custom_components/homematicip_local
     %(prog)s /path/to/project --verbose
-    %(prog)s . --output methods.txt
+    %(prog)s . --output methods.txt --verify-methods
         """,
     )
     parser.add_argument("path", type=Path, help="Path to scan for aiohomematic calls")
@@ -656,12 +829,40 @@ Examples:
         help="Include constants and enum values (ALL_CAPS names)",
     )
     parser.add_argument("--show-all", action="store_true", help="Show all occurrences with locations")
+    parser.add_argument(
+        "--verify-methods",
+        action="store_true",
+        help="Verify that detected methods actually exist in aiohomematic",
+    )
+    parser.add_argument(
+        "--aiohomematic-path",
+        type=Path,
+        help="Path to aiohomematic repository (for method verification)",
+    )
+    parser.add_argument(
+        "--show-unverified",
+        action="store_true",
+        help="Show methods that could not be verified (requires --verify-methods)",
+    )
 
     args = parser.parse_args()
 
     if not args.path.exists():
         print(f"Error: Path does not exist: {args.path}", file=sys.stderr)
         sys.exit(1)
+
+    # Determine aiohomematic path for verification
+    aiohomematic_path = args.aiohomematic_path
+    if args.verify_methods and not aiohomematic_path:
+        # Try to find aiohomematic relative to the script
+        script_dir = Path(__file__).parent.parent
+        if (script_dir / "aiohomematic").exists():
+            aiohomematic_path = script_dir / "aiohomematic"
+        else:
+            print(
+                "Error: --verify-methods requires --aiohomematic-path or script in aiohomematic repo", file=sys.stderr
+            )
+            sys.exit(1)
 
     print(f"Scanning {args.path} for aiohomematic calls...", file=sys.stderr)
 
@@ -684,12 +885,24 @@ Examples:
         print("No aiohomematic calls found.", file=sys.stderr)
         sys.exit(0)
 
+    # Verify methods if requested
+    unverified_calls: list[MethodCall] = []
+    if args.verify_methods:
+        calls, unverified_calls = verify_methods_exist(calls, aiohomematic_path)
+        print(f"Verified {len(calls)} calls, {len(unverified_calls)} unverified", file=sys.stderr)
+
     # Prepare output
     output_lines: list[str] = []
     grouped = group_by_class(calls)
 
     total_methods = sum(len(methods) for methods in grouped.values())
-    output_lines.append(f"Found {len(calls)} calls to {total_methods} unique methods in {len(grouped)} classes:\n")
+    if args.verify_methods:
+        output_lines.append(
+            f"Found {len(calls)} verified calls to {total_methods} unique methods in {len(grouped)} classes "
+            f"({len(unverified_calls)} unverified calls filtered out):\n"
+        )
+    else:
+        output_lines.append(f"Found {len(calls)} calls to {total_methods} unique methods in {len(grouped)} classes:\n")
 
     if args.show_all:
         # Show all occurrences with locations
@@ -715,10 +928,38 @@ Examples:
 
         # Summary
         output_lines.append(f"\n\n{'=' * 70}")
-        output_lines.append(
-            f"SUMMARY: {len(calls)} total calls, {total_methods} unique methods, {len(grouped)} classes"
-        )
+        if args.verify_methods:
+            output_lines.append(
+                f"SUMMARY: {len(calls)} verified calls, {total_methods} unique methods, {len(grouped)} classes, "
+                f"{len(unverified_calls)} unverified calls filtered"
+            )
+        else:
+            output_lines.append(
+                f"SUMMARY: {len(calls)} total calls, {total_methods} unique methods, {len(grouped)} classes"
+            )
         output_lines.append("=" * 70)
+
+    # Show unverified calls if requested
+    if args.show_unverified and unverified_calls:
+        unverified_grouped = group_by_class(unverified_calls)
+        output_lines.append(f"\n\n{'=' * 70}")
+        output_lines.append("UNVERIFIED METHODS (not found in aiohomematic)")
+        output_lines.append("=" * 70)
+
+        for full_class in sorted(unverified_grouped.keys()):
+            methods = unverified_grouped[full_class]
+            output_lines.append(f"\n{full_class} ({len(methods)} methods):")
+            output_lines.append("-" * 70)
+
+            for method_name in sorted(methods.keys()):
+                locations = methods[method_name]
+                if args.verbose:
+                    output_lines.append(f"  {method_name}")
+                    output_lines.extend(f"    -> {loc}" for loc in sorted(locations)[:3])
+                    if len(locations) > 3:
+                        output_lines.append(f"    -> ... and {len(locations) - 3} more")
+                else:
+                    output_lines.append(f"  {method_name}")
 
     # Output
     output_text = "\n".join(output_lines)

@@ -11,7 +11,7 @@ import pydevccu
 import pytest
 
 from aiohomematic.central import CentralUnit
-from aiohomematic.central.event_bus import BackendSystemEventData, HomematicEvent
+from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceTriggerEvent
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import (
@@ -148,26 +148,26 @@ def pydevccu_full() -> pydevccu.Server:
 async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
 
-    def homematic_callback(event: HomematicEvent) -> None:
-        """Do dummy homematic_handler."""
+    def device_trigger_callback(event: DeviceTriggerEvent) -> None:
+        """Do dummy device trigger handler."""
 
-    def backend_system_callback(event: BackendSystemEventData) -> None:
-        """Do dummy backend_system_handler."""
+    def device_lifecycle_callback(event: DeviceLifecycleEvent) -> None:
+        """Do dummy device lifecycle handler."""
 
     central = await get_pydev_ccu_central_unit_full(port=const.CCU_PORT)
 
-    unsubscribe_homematic_callback = central.event_bus.subscribe(
-        event_type=HomematicEvent, event_key=None, handler=homematic_callback
+    unsubscribe_device_trigger_callback = central.event_bus.subscribe(
+        event_type=DeviceTriggerEvent, event_key=None, handler=device_trigger_callback
     )
-    unsubscribe_backend_system_callback = central.event_bus.subscribe(
-        event_type=BackendSystemEventData, event_key=None, handler=backend_system_callback
+    unsubscribe_device_lifecycle_callback = central.event_bus.subscribe(
+        event_type=DeviceLifecycleEvent, event_key=None, handler=device_lifecycle_callback
     )
 
     try:
         yield central
     finally:
-        unsubscribe_homematic_callback()
-        unsubscribe_backend_system_callback()
+        unsubscribe_device_trigger_callback()
+        unsubscribe_device_lifecycle_callback()
         await central.stop()
         await central.cache_coordinator.clear_all()
 

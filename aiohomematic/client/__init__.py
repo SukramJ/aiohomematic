@@ -52,11 +52,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
-from aiohomematic.central.event_bus import (
-    CallbackStateChangedEvent,
-    ClientStateChangedEvent,
-    ConnectionStateChangedEvent,
-)
+from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
 from aiohomematic.client.handlers import (
     BackupHandler,
@@ -208,9 +204,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         # This prevents stale pending pongs from causing false mismatch alarms
         # after CCU restart when PINGs sent during downtime cannot be answered.
         client_config.central.event_bus.subscribe(
-            event_type=ConnectionStateChangedEvent,
-            event_key=client_config.interface_id,
-            handler=self._on_connection_state_changed,
+            event_type=SystemStatusEvent,
+            event_key=None,
+            handler=self._on_system_status_event,
         )
 
         # Handler instances (initialized after proxy setup in init_client)
@@ -770,11 +766,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > callback_warn:
                 if self._is_callback_alive:
                     self.central.event_bus.publish_sync(
-                        event=CallbackStateChangedEvent(
+                        event=SystemStatusEvent(
                             timestamp=datetime.now(),
-                            interface_id=self.interface_id,
-                            alive=False,
-                            seconds_since_last_event=int(seconds_since_last_event),
+                            callback_state=(self.interface_id, False),
                         )
                     )
                     self._is_callback_alive = False
@@ -789,11 +783,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
             if not self._is_callback_alive:
                 self.central.event_bus.publish_sync(
-                    event=CallbackStateChangedEvent(
+                    event=SystemStatusEvent(
                         timestamp=datetime.now(),
-                        interface_id=self.interface_id,
-                        alive=True,
-                        seconds_since_last_event=None,
+                        callback_state=(self.interface_id, True),
                     )
                 )
                 self._is_callback_alive = True
@@ -1099,17 +1091,15 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def _on_client_state_change(self, *, old_state: ClientState, new_state: ClientState) -> None:
         """Handle client state machine transitions by emitting events."""
         self._config.central.event_bus.publish_sync(
-            event=ClientStateChangedEvent(
+            event=SystemStatusEvent(
                 timestamp=datetime.now(),
-                interface_id=self.interface_id,
-                old_state=old_state,
-                new_state=new_state,
+                client_state=(self.interface_id, old_state, new_state),
             )
         )
 
-    def _on_connection_state_changed(self, *, event: ConnectionStateChangedEvent) -> None:
-        """Handle connection state changes to clear ping/pong cache on reconnect."""
-        if event.connected:
+    def _on_system_status_event(self, *, event: SystemStatusEvent) -> None:
+        """Handle system status events to clear ping/pong cache on reconnect."""
+        if event.connection_state and event.connection_state[0] == self.interface_id and event.connection_state[1]:
             # Clear stale ping/pong state when connection is restored.
             # PINGs sent during CCU downtime cannot receive PONGs, so the cache
             # would contain stale entries that cause false mismatch alarms.

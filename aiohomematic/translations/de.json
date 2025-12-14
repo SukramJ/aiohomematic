@@ -111,6 +111,8 @@
   "exception.validator.paramset_key.invalid": "PARAMSET_KEY ist ungültig",
   "exception.validator.password.invalid": "Password ist ungültig",
   "exception.validator.undefined_in_lists": "DataPointCategory.UNDEFINED darf nicht in BLOCKED_CATEGORIES/CATEGORIES/HUB_CATEGORIES enthalten sein",
+  "issue.fetch_data_failed": "Abrufen von Gerätedaten von Interface {interface_id} fehlgeschlagen",
+  "issue.ping_pong_mismatch": "Ping-Pong-Diskrepanz auf {interface_id} erkannt ({mismatch_type}: {mismatch_count} Abweichungen)",
   "log.backend_detection.detect_backend.backend_type": "DETECT_BACKEND: Erkannter Backend-Typ: {backend}",
   "log.backend_detection.detect_backend.found_interfaces": "DETECT_BACKEND: Interfaces via JSON-RPC gefunden: {interfaces}",
   "log.backend_detection.detect_backend.found_version": "DETECT_BACKEND: Version '{version}' auf Port {port} gefunden",

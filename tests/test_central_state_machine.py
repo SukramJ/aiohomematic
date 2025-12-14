@@ -9,8 +9,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from aiohomematic.central.event_bus import CentralStateChangedEvent, ClientStateChangedEvent, EventBus
+from aiohomematic.central.event_bus import EventBus
 from aiohomematic.central.health import CentralHealth, ConnectionHealth, HealthTracker
+from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.central.recovery import DataLoadStage, RecoveryCoordinator, RecoveryResult
 from aiohomematic.central.state_machine import (
     VALID_CENTRAL_TRANSITIONS,
@@ -54,9 +55,8 @@ class TestCentralStateMachine:
         event_bus.publish_sync.assert_called_once()
         call_args = event_bus.publish_sync.call_args
         event = call_args.kwargs["event"]
-        assert isinstance(event, CentralStateChangedEvent)
-        assert event.old_state == CentralState.STARTING
-        assert event.new_state == CentralState.INITIALIZING
+        assert isinstance(event, SystemStatusEvent)
+        assert event.central_state == CentralState.INITIALIZING
 
     def test_initial_state(self) -> None:
         """Test that the initial state is STARTING."""
@@ -425,37 +425,41 @@ class TestRecoveryCoordinator:
         assert state.consecutive_failures == 0
 
 
-class TestClientStateChangedEvent:
-    """Tests for ClientStateChangedEvent."""
+class TestSystemStatusEvent:
+    """Tests for SystemStatusEvent."""
 
-    def test_event_properties(self) -> None:
-        """Test event properties."""
-        event = ClientStateChangedEvent(
+    def test_event_with_central_state(self) -> None:
+        """Test event with central state."""
+        event = SystemStatusEvent(
             timestamp=datetime.now(),
-            interface_id="test-id",
-            old_state=ClientState.CONNECTING,
-            new_state=ClientState.CONNECTED,
+            central_state=CentralState.RUNNING,
         )
 
-        assert event.interface_id == "test-id"
-        assert event.old_state == ClientState.CONNECTING
-        assert event.new_state == ClientState.CONNECTED
-        assert event.key == "test-id"
+        assert event.central_state == CentralState.RUNNING
+        assert event.client_state is None
+        assert event.key is None  # Global event
 
-
-class TestCentralStateChangedEvent:
-    """Tests for CentralStateChangedEvent."""
-
-    def test_event_properties(self) -> None:
-        """Test event properties."""
-        event = CentralStateChangedEvent(
+    def test_event_with_client_state(self) -> None:
+        """Test event with client state."""
+        event = SystemStatusEvent(
             timestamp=datetime.now(),
-            old_state=CentralState.INITIALIZING,
-            new_state=CentralState.RUNNING,
-            reason="all clients connected",
+            client_state=("test-id", ClientState.CONNECTING, ClientState.CONNECTED),
         )
 
-        assert event.old_state == CentralState.INITIALIZING
-        assert event.new_state == CentralState.RUNNING
-        assert event.reason == "all clients connected"
+        assert event.client_state is not None
+        assert event.client_state[0] == "test-id"
+        assert event.client_state[1] == ClientState.CONNECTING
+        assert event.client_state[2] == ClientState.CONNECTED
+        assert event.key is None  # Global event
+
+    def test_event_with_connection_state(self) -> None:
+        """Test event with connection state."""
+        event = SystemStatusEvent(
+            timestamp=datetime.now(),
+            connection_state=("test-id", True),
+        )
+
+        assert event.connection_state is not None
+        assert event.connection_state[0] == "test-id"
+        assert event.connection_state[1] is True
         assert event.key is None  # Global event

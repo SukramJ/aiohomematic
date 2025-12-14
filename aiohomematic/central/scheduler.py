@@ -25,8 +25,8 @@ from typing import Final
 
 from aiohomematic import i18n
 from aiohomematic.central.client_coordinator import ClientCoordinator
-from aiohomematic.central.event_bus import BackendSystemEventData
 from aiohomematic.central.event_coordinator import EventCoordinator
+from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import (
     DEVICE_FIRMWARE_CHECK_INTERVAL,
     DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
@@ -35,7 +35,6 @@ from aiohomematic.const import (
     SCHEDULER_NOT_STARTED_SLEEP,
     SYSTEM_UPDATE_CHECK_INTERVAL,
     Backend,
-    BackendSystemEvent,
     CentralState,
     DeviceFirmwareState,
     Interface,
@@ -192,12 +191,12 @@ class BackgroundScheduler:
         # Track when first RPC check (listMethods) passed - start of warmup phase
         self._rpc_check_passed_at: datetime | None = None
 
-        # Subscribe to DEVICES_CREATED event
-        def _event_handler(*, event: BackendSystemEventData) -> None:
-            self._on_backend_system_event(event=event)
+        # Subscribe to DeviceLifecycleEvent for CREATED events
+        def _event_handler(*, event: DeviceLifecycleEvent) -> None:
+            self._on_device_lifecycle_event(event=event)
 
         self._unsubscribe_callback = self._event_bus_provider.event_bus.subscribe(
-            event_type=BackendSystemEventData,
+            event_type=DeviceLifecycleEvent,
             event_key=None,
             handler=_event_handler,
         )
@@ -782,16 +781,16 @@ class BackgroundScheduler:
                     self._central_info.name,
                 )
 
-    def _on_backend_system_event(self, *, event: BackendSystemEventData) -> None:
+    def _on_device_lifecycle_event(self, *, event: DeviceLifecycleEvent) -> None:
         """
-        Handle backend system events.
+        Handle device lifecycle events.
 
         Args:
         ----
-            event: BackendSystemEventData instance
+            event: DeviceLifecycleEvent instance
 
         """
-        if event.system_event == BackendSystemEvent.DEVICES_CREATED:
+        if event.event_type == DeviceLifecycleEventType.CREATED:
             self._devices_created_event.set()
 
     async def _refresh_client_data(self) -> None:

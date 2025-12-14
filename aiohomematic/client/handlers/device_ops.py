@@ -12,7 +12,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
-from aiohomematic.central.event_bus import FetchDataFailedEvent
+from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusEvent
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.const import (
@@ -109,7 +109,7 @@ class DeviceOperationsHandler(
         Raises
         ------
             ClientException: If the JSON-RPC call fails. Also publishes a
-                FetchDataFailedEvent.
+                SystemStatusEvent with an IntegrationIssue.
 
         """
         try:
@@ -123,10 +123,16 @@ class DeviceOperationsHandler(
                 )
                 return
         except ClientException:
+            issue = IntegrationIssue(
+                severity="error",
+                issue_id=f"fetch_data_failed_{self._interface_id}",
+                translation_key="issue.fetch_data_failed",
+                translation_placeholders=(("interface_id", self._interface_id),),
+            )
             self._central.event_bus.publish_sync(
-                event=FetchDataFailedEvent(
+                event=SystemStatusEvent(
                     timestamp=datetime.now(),
-                    interface_id=self._interface_id,
+                    issues=(issue,),
                 )
             )
             raise

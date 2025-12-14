@@ -41,14 +41,15 @@ from unittest.mock import MagicMock, Mock, patch
 from aiohttp import ClientSession
 
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.central.event_bus import (
-    BackendSystemEventData,
-    FetchDataFailedEvent,
-    HomematicEvent,
-    PingPongMismatchEvent,
+from aiohomematic.central.integration_events import (
+    DataPointsCreatedEvent,
+    DeviceLifecycleEvent,
+    DeviceLifecycleEventType,
+    DeviceTriggerEvent,
+    SystemStatusEvent,
 )
 from aiohomematic.client import ClientConfig, InterfaceConfig
-from aiohomematic.const import LOCAL_HOST, BackendSystemEvent, Interface, OptionalSettings
+from aiohomematic.const import LOCAL_HOST, Interface, OptionalSettings
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.mock import SessionPlayer, get_client_session, get_mock, get_xml_rpc_proxy
@@ -143,38 +144,40 @@ class FactoryWithClient:
         ).create_central()
 
         # Subscribe to events via event bus
-        def _system_event_handler(event: BackendSystemEventData) -> None:
-            """Handle backend system events."""
+        def _device_lifecycle_event_handler(event: DeviceLifecycleEvent) -> None:
+            """Handle device lifecycle events."""
             self.system_event_mock(event)
 
-        def _ha_event_handler(event: HomematicEvent) -> None:
-            """Handle homematic events."""
+        def _data_points_created_event_handler(event: DataPointsCreatedEvent) -> None:
+            """Handle data points created events."""
+            self.system_event_mock(event)
+
+        def _device_trigger_event_handler(event: DeviceTriggerEvent) -> None:
+            """Handle device trigger events."""
             self.ha_event_mock(event)
 
-        def _pingpong_event_handler(event: PingPongMismatchEvent) -> None:
-            """Handle ping-pong mismatch events."""
-            self.ha_event_mock(event)
-
-        def _fetch_failed_event_handler(event: FetchDataFailedEvent) -> None:
-            """Handle fetch data failed events."""
+        def _system_status_event_handler(event: SystemStatusEvent) -> None:
+            """Handle system status events (issues, state changes)."""
             self.ha_event_mock(event)
 
         self._event_bus_unsubscribe_callbacks.append(
             central.event_bus.subscribe(
-                event_type=BackendSystemEventData, event_key=None, handler=_system_event_handler
-            )
-        )
-        self._event_bus_unsubscribe_callbacks.append(
-            central.event_bus.subscribe(event_type=HomematicEvent, event_key=None, handler=_ha_event_handler)
-        )
-        self._event_bus_unsubscribe_callbacks.append(
-            central.event_bus.subscribe(
-                event_type=PingPongMismatchEvent, event_key=None, handler=_pingpong_event_handler
+                event_type=DeviceLifecycleEvent, event_key=None, handler=_device_lifecycle_event_handler
             )
         )
         self._event_bus_unsubscribe_callbacks.append(
             central.event_bus.subscribe(
-                event_type=FetchDataFailedEvent, event_key=None, handler=_fetch_failed_event_handler
+                event_type=DataPointsCreatedEvent, event_key=None, handler=_data_points_created_event_handler
+            )
+        )
+        self._event_bus_unsubscribe_callbacks.append(
+            central.event_bus.subscribe(
+                event_type=DeviceTriggerEvent, event_key=None, handler=_device_trigger_event_handler
+            )
+        )
+        self._event_bus_unsubscribe_callbacks.append(
+            central.event_bus.subscribe(
+                event_type=SystemStatusEvent, event_key=None, handler=_system_status_event_handler
             )
         )
 
@@ -264,9 +267,9 @@ async def get_pydev_ccu_central_unit_full(
     """Create and yield central, after all devices have been created."""
     device_event = asyncio.Event()
 
-    def system_event_handler(event: BackendSystemEventData) -> None:
-        """Handle backend system events."""
-        if event.system_event == BackendSystemEvent.DEVICES_CREATED:
+    def device_lifecycle_event_handler(event: DeviceLifecycleEvent) -> None:
+        """Handle device lifecycle events."""
+        if event.event_type == DeviceLifecycleEventType.CREATED:
             device_event.set()
 
     interface_configs = {
@@ -288,7 +291,7 @@ async def get_pydev_ccu_central_unit_full(
         program_markers=(),
         sysvar_markers=(),
     ).create_central()
-    central.event_bus.subscribe(event_type=BackendSystemEventData, event_key=None, handler=system_event_handler)
+    central.event_bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=device_lifecycle_event_handler)
     await central.start()
 
     # Wait up to 60 seconds for the DEVICES_CREATED event which signals that all devices are available

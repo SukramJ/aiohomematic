@@ -18,9 +18,31 @@ from freezegun import freeze_time
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.event_bus import EventBus, PingPongMismatchEvent
+from aiohomematic.central.event_bus import EventBus
+from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.const import ParamsetKey, PingPongMismatchType
 from aiohomematic.store import CommandCache, PingPongCache
+
+
+def get_ping_pong_info(event: SystemStatusEvent) -> tuple[str | None, str | None, int | None, bool]:
+    """
+    Extract ping pong mismatch info from SystemStatusEvent.
+
+    Returns (interface_id, mismatch_type, mismatch_count, acceptable).
+    """
+    if not event.issues:
+        return (None, None, None, True)
+
+    for issue in event.issues:
+        if issue.issue_id.startswith("ping_pong_mismatch_"):
+            placeholders = dict(issue.translation_placeholders)
+            interface_id = placeholders.get("interface_id")
+            mismatch_type = placeholders.get("mismatch_type")
+            mismatch_count = int(placeholders.get("mismatch_count", "0"))
+            acceptable = issue.severity == "warning"
+            return (interface_id, mismatch_type, mismatch_count, acceptable)
+
+    return (None, None, None, True)
 
 
 class _CapturingEventBus(EventBus):
@@ -28,11 +50,11 @@ class _CapturingEventBus(EventBus):
 
     def __init__(self) -> None:
         super().__init__()
-        self.captured_events: list[PingPongMismatchEvent] = []
+        self.captured_events: list[SystemStatusEvent] = []
 
     def publish_sync(self, *, event: Any) -> None:
-        """Capture PingPongMismatchEvents before publishing."""
-        if isinstance(event, PingPongMismatchEvent):
+        """Capture SystemStatusEvents before publishing."""
+        if isinstance(event, SystemStatusEvent):
             self.captured_events.append(event)
         super().publish_sync(event=event)
 
@@ -54,7 +76,7 @@ class CentralStub:
         return self._event_bus
 
     @property
-    def events(self) -> list[PingPongMismatchEvent]:
+    def events(self) -> list[SystemStatusEvent]:
         """Return captured events."""
         return self._event_bus.captured_events
 
@@ -186,8 +208,13 @@ class TestPingPongCache:
         # Drop to low by acknowledging one pong
         ppc.handle_received_pong(pong_token=ts1)
 
-        pend_events = [e for e in central.events if e.mismatch_type == PingPongMismatchType.PENDING]
-        mismatch_counts = [e.mismatch_count for e in pend_events]
+        # Extract pending events and their mismatch counts
+        pend_events = [
+            get_ping_pong_info(e)
+            for e in central.events
+            if get_ping_pong_info(e)[1] == PingPongMismatchType.PENDING.value
+        ]
+        mismatch_counts = [info[2] for info in pend_events]
 
         # There must be one event with mismatch 2 (high), and exactly one reset (0)
         assert 2 in mismatch_counts
@@ -195,8 +222,12 @@ class TestPingPongCache:
 
         # Reducing further to 0 should not emit another reset event
         ppc.handle_received_pong(pong_token=ts2)
-        pend_events_after = [e for e in central.events if e.mismatch_type == PingPongMismatchType.PENDING]
-        mismatch_counts_after = [e.mismatch_count for e in pend_events_after]
+        pend_events_after = [
+            get_ping_pong_info(e)
+            for e in central.events
+            if get_ping_pong_info(e)[1] == PingPongMismatchType.PENDING.value
+        ]
+        mismatch_counts_after = [info[2] for info in pend_events_after]
         assert mismatch_counts_after.count(0) == 1
 
     def test_pingpongcache_retry_coalesces_single_task(self) -> None:
@@ -299,21 +330,29 @@ class TestPingPongCache:
         )
 
         # Central stub should have a single interface event about pending mismatch
-        pend_events = [e for e in central.events if e.mismatch_type == PingPongMismatchType.PENDING]
+        pend_events = [
+            get_ping_pong_info(e)
+            for e in central.events
+            if get_ping_pong_info(e)[1] == PingPongMismatchType.PENDING.value
+        ]
         assert len(pend_events) >= 1
-        last_event = pend_events[-1]
-        assert last_event.interface_id == "ifX"
-        assert last_event.mismatch_type == PingPongMismatchType.PENDING
-        assert last_event.acceptable is False
-        assert last_event.mismatch_count == ppc._pending_pong_count
+        last_info = pend_events[-1]
+        assert last_info[0] == "ifX"
+        assert last_info[1] == PingPongMismatchType.PENDING.value
+        assert last_info[3] is False  # acceptable
+        assert last_info[2] == ppc._pending_pong_count
 
         # Now resolve one by receiving matching pong — count decreases and another event should publish
         last_token = next(iter(ppc._pending_pongs))  # access for test only
         ppc.handle_received_pong(pong_token=last_token)
 
         # When counts drop to low, an event with mismatch 0 should be published
-        pend_events = [e for e in central.events if e.mismatch_type == PingPongMismatchType.PENDING]
-        assert any(e.mismatch_count == 0 for e in pend_events)
+        pend_events = [
+            get_ping_pong_info(e)
+            for e in central.events
+            if get_ping_pong_info(e)[1] == PingPongMismatchType.PENDING.value
+        ]
+        assert any(info[2] == 0 for info in pend_events)
 
         # Unknown pong path: send a pong we never pinged
         with caplog.at_level("WARNING"):
@@ -333,9 +372,13 @@ class TestPingPongCache:
         for i in range(1, 6):
             ppc.handle_send_ping(ping_token=str(datetime.now() + timedelta(seconds=i)))
 
-        pend_events = [e for e in central.events if e.mismatch_type == PingPongMismatchType.PENDING]
+        pend_events = [
+            get_ping_pong_info(e)
+            for e in central.events
+            if get_ping_pong_info(e)[1] == PingPongMismatchType.PENDING.value
+        ]
         # Extract the mismatch counts for these events
-        counts = [e.mismatch_count for e in pend_events]
+        counts = [info[2] for info in pend_events]
         # Expect events only for even counts up to 4
         assert counts == [2, 4]
 
@@ -361,10 +404,14 @@ class TestPingPongCache:
         )
 
         # An UNKNOWN_PONG interface event should have been published
-        unk_events = [e for e in central.events if e.mismatch_type == PingPongMismatchType.UNKNOWN]
+        unk_events = [
+            get_ping_pong_info(e)
+            for e in central.events
+            if get_ping_pong_info(e)[1] == PingPongMismatchType.UNKNOWN.value
+        ]
         assert len(unk_events) >= 1
-        last_event = unk_events[-1]
-        assert last_event.interface_id == "ifU"
-        assert last_event.mismatch_type == PingPongMismatchType.UNKNOWN
-        assert last_event.acceptable is False
-        assert last_event.mismatch_count == ppc._unknown_pong_count
+        last_info = unk_events[-1]
+        assert last_info[0] == "ifU"
+        assert last_info[1] == PingPongMismatchType.UNKNOWN.value
+        assert last_info[3] is False  # acceptable
+        assert last_info[2] == ppc._unknown_pong_count

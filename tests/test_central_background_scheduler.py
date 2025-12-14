@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 import pytest
 
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob
-from aiohomematic.const import BackendSystemEvent, CentralState
+from aiohomematic.const import CentralState
 
 
 class TestSchedulerJobBasics:
@@ -333,8 +333,12 @@ class TestBackgroundSchedulerBasics:
 class TestBackgroundSchedulerEventHandling:
     """Test BackgroundScheduler event handling."""
 
-    def test_on_backend_system_event_devices_created(self) -> None:
-        """BackgroundScheduler should track DEVICES_CREATED event."""
+    def test_on_device_lifecycle_event_created(self) -> None:
+        """BackgroundScheduler should track DeviceLifecycleEvent with CREATED type."""
+        from datetime import datetime
+
+        from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
+
         central = MagicMock()
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
@@ -361,16 +365,23 @@ class TestBackgroundSchedulerEventHandling:
         )
         assert scheduler.devices_created is False
 
-        # Create a mock event
-        event = MagicMock()
-        event.system_event = BackendSystemEvent.DEVICES_CREATED
+        # Create a DeviceLifecycleEvent with CREATED type
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
 
-        scheduler._on_backend_system_event(event=event)
+        scheduler._on_device_lifecycle_event(event=event)
 
         assert scheduler.devices_created is True
 
-    def test_on_backend_system_event_other_events(self) -> None:
-        """BackgroundScheduler should ignore non-DEVICES_CREATED events."""
+    def test_on_device_lifecycle_event_other_types(self) -> None:
+        """BackgroundScheduler should ignore non-CREATED DeviceLifecycleEvent types."""
+        from datetime import datetime
+
+        from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
+
         central = MagicMock()
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
@@ -397,11 +408,14 @@ class TestBackgroundSchedulerEventHandling:
         )
         assert scheduler.devices_created is False
 
-        # Create a mock event with different system event
-        event = MagicMock()
-        event.system_event = BackendSystemEvent.DELETE_DEVICES
+        # Create a DeviceLifecycleEvent with REMOVED type
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.REMOVED,
+            device_addresses=("VCU0000001",),
+        )
 
-        scheduler._on_backend_system_event(event=event)
+        scheduler._on_device_lifecycle_event(event=event)
 
         assert scheduler.devices_created is False
 

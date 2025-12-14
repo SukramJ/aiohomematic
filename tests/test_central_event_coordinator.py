@@ -239,7 +239,8 @@ class TestEventCoordinatorEmitMethods:
 
         # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
-        assert "event-bus-backend-system" in central.looper.tasks[0]["name"]
+        # Task name now reflects the specific event type
+        assert "event-bus-devices-created" in central.looper.tasks[0]["name"]
 
     def test_publish_homematic_handler(self) -> None:
         """Publish Homematic callback should publish to EventBus."""
@@ -248,12 +249,17 @@ class TestEventCoordinatorEmitMethods:
 
         coordinator.publish_homematic_event(
             event_type=EventType.KEYPRESS,
-            event_data={EventKey.INTERFACE_ID: "BidCos-RF", EventKey.ADDRESS: "VCU0000001:1"},
+            event_data={
+                EventKey.INTERFACE_ID: "BidCos-RF",
+                EventKey.ADDRESS: "VCU0000001",
+                EventKey.PARAMETER: "PRESS_SHORT",
+            },
         )
 
         # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
-        assert "event-bus-homematic" in central.looper.tasks[0]["name"]
+        # Task name now includes address and parameter
+        assert "event-bus-device-trigger-VCU0000001-PRESS_SHORT" in central.looper.tasks[0]["name"]
 
 
 class TestEventCoordinatorLastEventSeen:

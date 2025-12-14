@@ -319,15 +319,13 @@ class CentralStateMachine(CentralStateMachineProtocol):
             reason: Reason for the transition
 
         """
-        # Import here to avoid circular dependency (event_bus imports CentralState from const)
-        from aiohomematic.central.event_bus import CentralStateChangedEvent  # noqa: PLC0415
+        # Import here to avoid circular dependency
+        from aiohomematic.central.integration_events import SystemStatusEvent  # noqa: PLC0415
 
         if self._event_bus is not None:
             self._event_bus.publish_sync(
-                event=CentralStateChangedEvent(
+                event=SystemStatusEvent(
                     timestamp=self._last_state_change,
-                    old_state=old_state,
-                    new_state=new_state,
-                    reason=reason,
+                    central_state=new_state,
                 )
             )

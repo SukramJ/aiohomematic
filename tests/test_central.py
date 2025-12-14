@@ -12,7 +12,7 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.central import CentralConfig, _SchedulerJob, check_config as central_check_config
-from aiohomematic.central.event_bus import PingPongMismatchEvent
+from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
@@ -25,7 +25,6 @@ from aiohomematic.const import (
     Operations,
     Parameter,
     ParamsetKey,
-    PingPongMismatchType,
 )
 from aiohomematic.exceptions import (
     AioHomematicConfigException,
@@ -764,23 +763,30 @@ class TestCentralCallbacksAndServices:
         import asyncio
         from datetime import datetime
 
-        from aiohomematic.central.event_bus import FetchDataFailedEvent
+        from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusEvent
 
         central, _, factory = central_client_factory_with_homegear_client
+        issue = IntegrationIssue(
+            severity="error",
+            issue_id="fetch_data_failed_SOME_ID",
+            translation_key="issue.fetch_data_failed",
+            translation_placeholders=(("interface_id", "SOME_ID"),),
+        )
         central.event_bus.publish_sync(
-            event=FetchDataFailedEvent(
+            event=SystemStatusEvent(
                 timestamp=datetime.now(),
-                interface_id="SOME_ID",
+                issues=(issue,),
             )
         )
         # Wait for async event bus publish to complete
         await asyncio.sleep(0.1)
-        # Verify that the ha_event_mock received a FetchDataFailedEvent
+        # Verify that the ha_event_mock received a SystemStatusEvent with an issue
         assert factory.ha_event_mock.called
         call_args = factory.ha_event_mock.call_args_list[-1]
         event = call_args[0][0]  # First positional argument
-        assert isinstance(event, FetchDataFailedEvent)
-        assert event.interface_id == "SOME_ID"
+        assert isinstance(event, SystemStatusEvent)
+        assert len(event.issues) == 1
+        assert event.issues[0].issue_id == "fetch_data_failed_SOME_ID"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -929,15 +935,15 @@ class TestCentralPingPong:
         assert client.ping_pong_cache._pending_pong_count == max_count
         # Wait for async event bus publish to complete
         await asyncio.sleep(0.1)
-        # Verify the ha_event_mock received a PingPongMismatchEvent with the correct data
+        # Verify the ha_event_mock received a SystemStatusEvent with an IntegrationIssue
         assert factory.ha_event_mock.called
         call_args = factory.ha_event_mock.call_args_list[-1]
         event = call_args[0][0]  # First positional argument
-        assert isinstance(event, PingPongMismatchEvent)
-        assert event.interface_id == "CentralTest-BidCos-RF"
-        assert event.mismatch_type == PingPongMismatchType.PENDING
-        assert event.acceptable is False
-        assert event.mismatch_count == 16
+        assert isinstance(event, SystemStatusEvent)
+        assert len(event.issues) == 1
+        issue = event.issues[0]
+        assert "ping_pong_mismatch" in issue.issue_id
+        assert issue.severity == "error"  # Not acceptable means error severity
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

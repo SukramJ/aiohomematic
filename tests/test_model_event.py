@@ -6,6 +6,7 @@ from typing import cast
 
 import pytest
 
+from aiohomematic.central.integration_events import DeviceTriggerEvent
 from aiohomematic.const import DataPointUsage, EventType
 from aiohomematic.model.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
 from aiohomematic_test_support import const
@@ -46,17 +47,19 @@ class TestClickEvent:
         import asyncio
 
         await asyncio.sleep(0.1)
-        # Verify the ha_event_mock received a HomematicEvent with the correct data
+        # Verify the ha_event_mock received a DeviceTriggerEvent with the correct data
         assert factory.ha_event_mock.called
-        call_args = factory.ha_event_mock.call_args_list[-1]
-        event_obj = call_args[0][0]  # First positional argument
-        assert event_obj.event_type == "homematic.keypress"
-        assert event_obj.event_data["interface_id"] == const.INTERFACE_ID
-        assert event_obj.event_data["address"] == "VCU2128127"
-        assert event_obj.event_data["channel_no"] == 1
-        assert event_obj.event_data["model"] == "HmIP-BSM"
-        assert event_obj.event_data["parameter"] == "PRESS_SHORT"
-        assert event_obj.event_data["value"] is True
+        # Find DeviceTriggerEvent calls
+        trigger_events = [
+            call[0][0] for call in factory.ha_event_mock.call_args_list if isinstance(call[0][0], DeviceTriggerEvent)
+        ]
+        assert len(trigger_events) >= 1
+        event_obj = trigger_events[-1]
+        assert event_obj.interface_id == const.INTERFACE_ID
+        # channel_address is the device address from EventKey.ADDRESS in get_event_data()
+        assert event_obj.channel_address == "VCU2128127"
+        assert event_obj.parameter == "PRESS_SHORT"
+        assert event_obj.value is True
 
 
 class TestImpulseEvent:
@@ -92,17 +95,19 @@ class TestImpulseEvent:
         import asyncio
 
         await asyncio.sleep(0.1)
-        # Verify the ha_event_mock received a HomematicEvent with the correct data
+        # Verify the ha_event_mock received a DeviceTriggerEvent with the correct data
         assert factory.ha_event_mock.called
-        call_args = factory.ha_event_mock.call_args_list[-1]
-        event_obj = call_args[0][0]  # First positional argument
-        assert event_obj.event_type == "homematic.impulse"
-        assert event_obj.event_data["interface_id"] == const.INTERFACE_ID
-        assert event_obj.event_data["address"] == "VCU0000263"
-        assert event_obj.event_data["channel_no"] == 1
-        assert event_obj.event_data["model"] == "HM-Sen-EP"
-        assert event_obj.event_data["parameter"] == "SEQUENCE_OK"
-        assert event_obj.event_data["value"] is True
+        # Find DeviceTriggerEvent calls
+        trigger_events = [
+            call[0][0] for call in factory.ha_event_mock.call_args_list if isinstance(call[0][0], DeviceTriggerEvent)
+        ]
+        assert len(trigger_events) >= 1
+        event_obj = trigger_events[-1]
+        assert event_obj.interface_id == const.INTERFACE_ID
+        # channel_address is the device address from EventKey.ADDRESS in get_event_data()
+        assert event_obj.channel_address == "VCU0000263"
+        assert event_obj.parameter == "SEQUENCE_OK"
+        assert event_obj.value is True
 
 
 class TestDeviceErrorEvent:
@@ -139,14 +144,16 @@ class TestDeviceErrorEvent:
         import asyncio
 
         await asyncio.sleep(0.1)
-        # Verify the ha_event_mock received a HomematicEvent with the correct data
+        # Verify the ha_event_mock received a DeviceTriggerEvent with the correct data
         assert factory.ha_event_mock.called
-        call_args = factory.ha_event_mock.call_args_list[-1]
-        event_obj = call_args[0][0]  # First positional argument
-        assert event_obj.event_type == "homematic.device_error"
-        assert event_obj.event_data["interface_id"] == const.INTERFACE_ID
-        assert event_obj.event_data["address"] == "VCU2128127"
-        assert event_obj.event_data["channel_no"] == 0
-        assert event_obj.event_data["model"] == "HmIP-BSM"
-        assert event_obj.event_data["parameter"] == "ERROR_OVERHEAT"
-        assert event_obj.event_data["value"] is True
+        # Find DeviceTriggerEvent calls
+        trigger_events = [
+            call[0][0] for call in factory.ha_event_mock.call_args_list if isinstance(call[0][0], DeviceTriggerEvent)
+        ]
+        assert len(trigger_events) >= 1
+        event_obj = trigger_events[-1]
+        assert event_obj.interface_id == const.INTERFACE_ID
+        # channel_address is the device address from EventKey.ADDRESS in get_event_data()
+        assert event_obj.channel_address == "VCU2128127"
+        assert event_obj.parameter == "ERROR_OVERHEAT"
+        assert event_obj.value is True

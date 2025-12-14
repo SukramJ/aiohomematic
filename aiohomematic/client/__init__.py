@@ -458,7 +458,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""
         if not self.supports_rpc_callback:
-            self._state_machine.transition_to(target=ClientState.DISCONNECTED)
+            self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="no callback support")
             return ProxyInitState.DE_INIT_SUCCESS
 
         if self.modified_at == INIT_DATETIME:
@@ -470,7 +470,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         try:
             _LOGGER.debug("PROXY_DE_INIT: init('%s')", self._config.init_url)
             await self._proxy.init(self._config.init_url)
-            self._state_machine.transition_to(target=ClientState.DISCONNECTED)
+            self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="proxy de-initialized")
         except BaseHomematicException as bhexc:
             _LOGGER.warning(  # i18n-log: ignore
                 "PROXY_DE_INIT failed: %s [%s] Unable to de-initialize proxy for %s",
@@ -687,9 +687,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 await self.central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
                 )
-                self._state_machine.transition_to(target=ClientState.CONNECTED)
+                self._state_machine.transition_to(
+                    target=ClientState.CONNECTED, reason="proxy initialized (no callback)"
+                )
                 return ProxyInitState.INIT_SUCCESS
-            self._state_machine.transition_to(target=ClientState.FAILED)
+            self._state_machine.transition_to(target=ClientState.FAILED, reason="device listing failed")
             # Mark devices as unavailable when device listing fails
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             return ProxyInitState.INIT_FAILED
@@ -697,7 +699,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             _LOGGER.debug("PROXY_INIT: init('%s', '%s')", self._config.init_url, self.interface_id)
             self._ping_pong_cache.clear()
             await self._proxy.init(self._config.init_url, self.interface_id)
-            self._state_machine.transition_to(target=ClientState.CONNECTED)
+            self._state_machine.transition_to(target=ClientState.CONNECTED, reason="proxy initialized")
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
             # Clear any stale connection issues from failed attempts during reconnection
             # This ensures subsequent RPC calls are not blocked
@@ -738,7 +740,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 self.interface_id,
             )
             self.modified_at = INIT_DATETIME
-            self._state_machine.transition_to(target=ClientState.FAILED)
+            self._state_machine.transition_to(target=ClientState.FAILED, reason="proxy init failed")
             # Mark devices as unavailable when proxy init fails
             # This ensures entities show unavailable during CCU restart/recovery
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
@@ -808,7 +810,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             # Update state machine to reflect connection loss
             if self._state_machine.state == ClientState.CONNECTED:
-                self._state_machine.transition_to(target=ClientState.DISCONNECTED)
+                self._state_machine.transition_to(
+                    target=ClientState.DISCONNECTED, reason="connection check failed (>3 errors)"
+                )
             return False
         if not self.supports_push_updates:
             return True
@@ -969,11 +973,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     async def stop(self) -> None:
         """Stop depending services."""
-        self._state_machine.transition_to(target=ClientState.STOPPING)
+        self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")
         if self.supports_rpc_callback:
             await self._proxy.stop()
             await self._proxy_read.stop()
-        self._state_machine.transition_to(target=ClientState.STOPPED)
+        self._state_machine.transition_to(target=ClientState.STOPPED, reason="services stopped")
 
     async def trigger_firmware_update(self) -> bool:
         """Trigger the CCU firmware update process."""

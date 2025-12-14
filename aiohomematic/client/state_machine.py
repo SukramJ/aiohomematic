@@ -208,13 +208,14 @@ class ClientStateMachine:
             old_state.value,
         )
 
-    def transition_to(self, *, target: ClientState, force: bool = False) -> None:
+    def transition_to(self, *, target: ClientState, reason: str = "", force: bool = False) -> None:
         """
         Transition to a new state.
 
         Args:
         ----
             target: Target state to transition to
+            reason: Human-readable reason for the transition
             force: If True, skip validation (use with caution)
 
         Raises:
@@ -232,18 +233,29 @@ class ClientStateMachine:
         old_state = self._state
         self._state = target
 
-        _LOGGER.debug(
-            "STATE_MACHINE: %s: %s -> %s",
-            self._interface_id,
-            old_state.value,
-            target.value,
-        )
+        # Log at INFO level for important transitions, DEBUG for others
+        if target in (ClientState.CONNECTED, ClientState.DISCONNECTED, ClientState.FAILED):
+            _LOGGER.info(  # i18n-log: ignore
+                "CLIENT_STATE: %s: %s -> %s%s",
+                self._interface_id,
+                old_state.value,
+                target.value,
+                f" ({reason})" if reason else "",
+            )
+        else:
+            _LOGGER.debug(
+                "CLIENT_STATE: %s: %s -> %s%s",
+                self._interface_id,
+                old_state.value,
+                target.value,
+                f" ({reason})" if reason else "",
+            )
 
         if self.on_state_change is not None:
             try:
                 self.on_state_change(old_state=old_state, new_state=target)
             except Exception:
                 _LOGGER.exception(  # i18n-log: ignore
-                    "STATE_MACHINE: Error in state change callback for %s",
+                    "CLIENT_STATE: Error in state change callback for %s",
                     self._interface_id,
                 )

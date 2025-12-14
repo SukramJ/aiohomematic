@@ -53,7 +53,7 @@ from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.central.integration_events import SystemStatusEvent
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState, HealthRecordCallback
 from aiohomematic.client.handlers import (
     BackupHandler,
     DeviceOperationsHandler,
@@ -120,6 +120,7 @@ __all__ = [
     "ClientConfig",
     "ClientState",
     "ClientStateMachine",
+    "HealthRecordCallback",
     "InterfaceConfig",
     "InvalidStateTransitionError",
     "RequestCoalescer",
@@ -667,11 +668,13 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 self._proxy = await self._config.create_rpc_proxy(
                     interface=self.interface,
                     auth_enabled=self.system_information.auth_enabled,
+                    health_record_callback=self._config.health_record_callback,
                 )
                 self._proxy_read = await self._config.create_rpc_proxy(
                     interface=self.interface,
                     auth_enabled=self.system_information.auth_enabled,
                     max_workers=self._config.max_read_workers,
+                    health_record_callback=self._config.health_record_callback,
                 )
                 self._init_handlers()
             self._state_machine.transition_to(target=ClientState.INITIALIZED)
@@ -1598,9 +1601,11 @@ class ClientConfig:
         *,
         central: ClientDependencies,
         interface_config: InterfaceConfig,
+        health_record_callback: HealthRecordCallback | None = None,
     ) -> None:
         """Initialize the config."""
         self.central: Final[ClientDependencies] = central
+        self.health_record_callback: Final = health_record_callback
         self.version: str = "0"
         self.system_information = SystemInformation()
         self.interface_config: Final = interface_config
@@ -1661,17 +1666,30 @@ class ClientConfig:
             ) from exc
 
     async def create_rpc_proxy(
-        self, *, interface: Interface, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
+        self,
+        *,
+        interface: Interface,
+        auth_enabled: bool | None = None,
+        max_workers: int = DEFAULT_MAX_WORKERS,
+        health_record_callback: HealthRecordCallback | None = None,
     ) -> BaseRpcProxy:
         """Return a RPC proxy for the backend communication."""
-        return await self._create_xml_rpc_proxy(auth_enabled=auth_enabled, max_workers=max_workers)
+        return await self._create_xml_rpc_proxy(
+            auth_enabled=auth_enabled,
+            max_workers=max_workers,
+            health_record_callback=health_record_callback,
+        )
 
     async def _create_simple_rpc_proxy(self, *, interface: Interface) -> BaseRpcProxy:
         """Return a RPC proxy for the backend communication."""
         return await self._create_xml_rpc_proxy(auth_enabled=True, max_workers=0)
 
     async def _create_xml_rpc_proxy(
-        self, *, auth_enabled: bool | None = None, max_workers: int = DEFAULT_MAX_WORKERS
+        self,
+        *,
+        auth_enabled: bool | None = None,
+        max_workers: int = DEFAULT_MAX_WORKERS,
+        health_record_callback: HealthRecordCallback | None = None,
     ) -> AioXmlRpcProxy:
         """Return a XmlRPC proxy for the backend communication."""
         config = self.central.config
@@ -1692,6 +1710,7 @@ class ClientConfig:
             tls=config.tls,
             verify_tls=config.verify_tls,
             session_recorder=self.central.cache_coordinator.recorder,
+            health_record_callback=health_record_callback,
         )
         await xml_proxy.do_init()
         return xml_proxy
@@ -1759,9 +1778,14 @@ class InterfaceConfig:
 async def create_client(
     central: ClientDependencies,
     interface_config: InterfaceConfig,
+    health_record_callback: HealthRecordCallback | None = None,
 ) -> ClientProtocol:
     """Return a new client for with a given interface_config."""
-    return await ClientConfig(central=central, interface_config=interface_config).create_client()
+    return await ClientConfig(
+        central=central,
+        interface_config=interface_config,
+        health_record_callback=health_record_callback,
+    ).create_client()
 
 
 def get_client(interface_id: str) -> ClientProtocol | None:

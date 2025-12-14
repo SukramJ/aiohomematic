@@ -215,12 +215,27 @@ class CentralUnit(
         self._xml_rpc_server: rpc.XmlRpcServer | None = None
         self._json_rpc_client: AioJsonRpcAioHttpClient | None = None
 
+        # Initialize event bus and state machine early (needed by coordinators)
+        self._event_bus: Final = EventBus(
+            enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG),
+            task_scheduler=self.looper,
+        )
+        self._central_state_machine: Final = CentralStateMachine(
+            central_name=self._config.name,
+            event_bus=self._event_bus,
+        )
+        self._health_tracker: Final = HealthTracker(
+            central_name=self._config.name,
+            state_machine=self._central_state_machine,
+        )
+
         # Initialize coordinators
         self._client_coordinator: Final = ClientCoordinator(
             client_factory=self,
             central_info=self,
             config_provider=self,
             coordinator_provider=self,
+            health_tracker=self._health_tracker,
             system_info_provider=self,
         )
         self._cache_coordinator: Final = CacheCoordinator(
@@ -235,6 +250,8 @@ class CentralUnit(
         )
         self._event_coordinator: Final = EventCoordinator(
             client_provider=self._client_coordinator,
+            event_bus=self._event_bus,
+            health_tracker=self._health_tracker,
             task_scheduler=self.looper,
         )
 
@@ -288,17 +305,8 @@ class CentralUnit(
             state_provider=self,
         )
 
-        # Initialize central state machine and health tracking
-        self._central_state_machine: Final = CentralStateMachine(
-            central_name=self.name,
-            event_bus=self.event_bus,
-        )
-        self._health_tracker: Final = HealthTracker(
-            central_name=self.name,
-            state_machine=self._central_state_machine,
-        )
         self._recovery_coordinator: Final = RecoveryCoordinator(
-            central_name=self.name,
+            central_name=self._config.name,
             state_machine=self._central_state_machine,
             health_tracker=self._health_tracker,
         )
@@ -390,7 +398,7 @@ class CentralUnit(
             central.event_bus.subscribe(DataPointUpdatedEvent, my_handler)
 
         """
-        return self._event_coordinator.event_bus
+        return self._event_bus
 
     @property
     def event_coordinator(self) -> EventCoordinator:
@@ -421,7 +429,10 @@ class CentralUnit(
     def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
         """Return the json rpc client."""
         if not self._json_rpc_client:
-            self._json_rpc_client = self._config.create_json_rpc_client(central=self)
+            self._json_rpc_client = self._config.create_json_rpc_client(
+                central=self,
+                health_record_callback=self._client_coordinator.on_health_record,
+            )
         return self._json_rpc_client
 
     @property
@@ -524,6 +535,7 @@ class CentralUnit(
         self,
         *,
         interface_config: hmcl.InterfaceConfig,
+        health_record_callback: hmcl.HealthRecordCallback | None = None,
     ) -> ClientProtocol:
         """
         Create a client for the given interface configuration.
@@ -534,6 +546,7 @@ class CentralUnit(
         Args:
         ----
             interface_config: Configuration for the interface
+            health_record_callback: Optional callback for health tracking
 
         Returns:
         -------
@@ -543,6 +556,7 @@ class CentralUnit(
         return await hmcl.create_client(
             central=self,
             interface_config=interface_config,
+            health_record_callback=health_record_callback,
         )
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
@@ -941,8 +955,6 @@ class CentralUnit(
 
         if self._config.start_direct:
             if await self._client_coordinator.start_clients():
-                # Register clients with health tracker after successful start
-                self._register_clients_with_health_tracker()
                 for client in self._client_coordinator.clients:
                     await self._device_coordinator.refresh_device_descriptions_and_create_missing_devices(
                         client=client,
@@ -952,8 +964,6 @@ class CentralUnit(
             if await self._client_coordinator.start_clients() and (
                 new_device_addresses := self._device_coordinator.check_for_new_device_addresses()
             ):
-                # Register clients with health tracker after successful start
-                self._register_clients_with_health_tracker()
                 await self._device_coordinator.create_devices(
                     new_device_addresses=new_device_addresses,
                     source=SourceOfDeviceCreation.CACHE,
@@ -1005,8 +1015,6 @@ class CentralUnit(
 
         await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
         await self._stop_scheduler()
-        # Unregister clients from health tracker before stopping them
-        self._unregister_clients_from_health_tracker()
         await self._client_coordinator.stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()
@@ -1151,27 +1159,6 @@ class CentralUnit(
                     reason="all clients disconnected",
                 )
 
-    def _register_clients_with_health_tracker(self) -> None:
-        """Register all clients with the health tracker for unified health monitoring."""
-        for client in self._client_coordinator.clients:
-            self._health_tracker.register_client(
-                interface_id=client.interface_id,
-                interface=client.interface,
-            )
-            _LOGGER.debug(
-                "HEALTH_TRACKER: Registered client %s (%s)",
-                client.interface_id,
-                client.interface,
-            )
-
-        # Set primary interface if we have a primary client
-        if primary_client := self._client_coordinator.primary_client:
-            self._health_tracker.set_primary_interface(interface=primary_client.interface)
-            _LOGGER.debug(
-                "HEALTH_TRACKER: Set primary interface to %s",
-                primary_client.interface,
-            )
-
     def _start_scheduler(self) -> None:
         """Start the background scheduler."""
         _LOGGER.debug(
@@ -1191,15 +1178,6 @@ class CentralUnit(
             "STOP_SCHEDULER: Stopped scheduler for %s",
             self.name,
         )
-
-    def _unregister_clients_from_health_tracker(self) -> None:
-        """Unregister all clients from the health tracker during shutdown."""
-        for client in self._client_coordinator.clients:
-            self._health_tracker.unregister_client(interface_id=client.interface_id)
-            _LOGGER.debug(
-                "HEALTH_TRACKER: Unregistered client %s",
-                client.interface_id,
-            )
 
 
 class CentralConfig:
@@ -1524,7 +1502,12 @@ class CentralConfig:
             url = f"{url}:{self.json_port}"
         return f"{url}"
 
-    def create_json_rpc_client(self, *, central: CentralUnit) -> AioJsonRpcAioHttpClient:
+    def create_json_rpc_client(
+        self,
+        *,
+        central: CentralUnit,
+        health_record_callback: hmcl.HealthRecordCallback | None = None,
+    ) -> AioJsonRpcAioHttpClient:
         """Create a json rpc client."""
         return AioJsonRpcAioHttpClient(
             username=self.username,
@@ -1535,6 +1518,7 @@ class CentralConfig:
             tls=self.tls,
             verify_tls=self.verify_tls,
             session_recorder=central.cache_coordinator.recorder,
+            health_record_callback=health_record_callback,
         )
 
 

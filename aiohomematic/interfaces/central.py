@@ -686,6 +686,30 @@ class HealthTrackerProtocol(Protocol):
     def get_client_health(self, *, interface_id: str) -> ConnectionHealthProtocol | None:
         """Get health for a specific client."""
 
+    @abstractmethod
+    def record_event_received(self, *, interface_id: str) -> None:
+        """Record that an event was received for an interface."""
+
+    @abstractmethod
+    def record_failed_request(self, *, interface_id: str) -> None:
+        """Record a failed RPC request for an interface."""
+
+    @abstractmethod
+    def record_successful_request(self, *, interface_id: str) -> None:
+        """Record a successful RPC request for an interface."""
+
+    @abstractmethod
+    def register_client(self, *, interface_id: str, interface: Interface) -> ConnectionHealthProtocol:
+        """Register a client for health tracking."""
+
+    @abstractmethod
+    def set_primary_interface(self, *, interface: Interface) -> None:
+        """Set the primary interface for health tracking."""
+
+    @abstractmethod
+    def unregister_client(self, *, interface_id: str) -> None:
+        """Unregister a client from health tracking."""
+
 
 @runtime_checkable
 class HealthProvider(Protocol):

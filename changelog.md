@@ -12,10 +12,16 @@
 ### Improvements
 
 - Enhance state transition logging:
+
   - DEGRADED state now shows which clients are not connected (e.g., "clients not connected: Otto-Dev-929-BidCos-RF")
   - Client state machine now includes reason in log messages (e.g., "proxy initialized", "connection check failed")
   - Important client transitions (CONNECTED, DISCONNECTED, FAILED) now log at INFO level
   - Scheduler waiting message now shows current state
+
+- Automatic health data updates:
+  - Events received from backend now automatically update `last_event_received` in health tracker
+  - RPC request success/failure automatically tracked via circuit breaker callbacks
+  - Health tracker now provides accurate `can_receive_events`, `consecutive_failures`, `last_successful_request`, `last_failed_request` metrics
 
 # Version 2025.12.27 (2025-12-14)
 

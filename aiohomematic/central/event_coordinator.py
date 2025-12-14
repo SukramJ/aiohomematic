@@ -42,7 +42,7 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
 )
-from aiohomematic.interfaces.central import EventBusProvider, EventPublisher
+from aiohomematic.interfaces.central import EventBusProvider, EventPublisher, HealthTrackerProtocol
 from aiohomematic.interfaces.client import ClientProvider, LastEventTracker
 from aiohomematic.interfaces.model import BaseParameterDataPointProtocol, GenericDataPointProtocol, GenericEventProtocol
 from aiohomematic.interfaces.operations import TaskScheduler
@@ -57,6 +57,7 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
     __slots__ = (
         "_client_provider",
         "_event_bus",
+        "_health_tracker",
         "_last_event_seen_for_interface",
         "_task_scheduler",
     )
@@ -65,6 +66,8 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
         self,
         *,
         client_provider: ClientProvider,
+        event_bus: EventBus,
+        health_tracker: HealthTrackerProtocol,
         task_scheduler: TaskScheduler,
     ) -> None:
         """
@@ -73,17 +76,15 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
         Args:
         ----
             client_provider: Provider for client access
+            event_bus: EventBus for event subscription and publishing
+            health_tracker: Health tracker for recording events
             task_scheduler: Provider for task scheduling
 
         """
         self._client_provider: Final = client_provider
+        self._event_bus: Final = event_bus
+        self._health_tracker: Final = health_tracker
         self._task_scheduler: Final = task_scheduler
-
-        # Initialize event bus with task scheduler for proper task lifecycle management
-        self._event_bus: Final = EventBus(
-            enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG),
-            task_scheduler=task_scheduler,
-        )
 
         # Store last event seen datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
@@ -308,6 +309,9 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
         """
         self._last_event_seen_for_interface[interface_id] = datetime.now()
+
+        # Update health tracker with event received
+        self._health_tracker.record_event_received(interface_id=interface_id)
 
     def _emit_device_removed_event(self, *, timestamp: datetime, **kwargs: Any) -> None:
         """Emit DeviceLifecycleEvent for DELETE_DEVICES."""

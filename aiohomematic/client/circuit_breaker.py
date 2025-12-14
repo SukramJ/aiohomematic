@@ -67,6 +67,17 @@ from aiohomematic import i18n
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
 
+# Protocol for health recording callback (uses keyword-only args per project convention)
+from typing import Protocol
+
+
+class HealthRecordCallback(Protocol):
+    """Protocol for health recording callbacks."""
+
+    def __call__(self, *, interface_id: str, success: bool) -> None:
+        """Record health status for an interface."""
+
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 
@@ -144,6 +155,7 @@ class CircuitBreaker:
         interface_id: str,
         connection_state: CentralConnectionState | None = None,
         issuer: Any = None,
+        health_record_callback: HealthRecordCallback | None = None,
     ) -> None:
         """
         Initialize the circuit breaker.
@@ -154,12 +166,14 @@ class CircuitBreaker:
             interface_id: Interface identifier for logging and CentralConnectionState
             connection_state: Optional CentralConnectionState for integration
             issuer: Optional issuer object for CentralConnectionState
+            health_record_callback: Optional callback for health tracking (interface_id, success)
 
         """
         self._config: Final = config or CircuitBreakerConfig()
         self._interface_id: Final = interface_id
         self._connection_state = connection_state
         self._issuer = issuer
+        self._health_record_callback = health_record_callback
 
         self._state: CircuitState = CircuitState.CLOSED
         self._failure_count: int = 0
@@ -223,6 +237,10 @@ class CircuitBreaker:
             # Any failure in HALF_OPEN goes back to OPEN
             self._transition_to(new_state=CircuitState.OPEN)
 
+        # Notify health tracker
+        if self._health_record_callback:
+            self._health_record_callback(interface_id=self._interface_id, success=False)
+
     def record_rejection(self) -> None:
         """Record a rejected request (circuit is open)."""
         self._metrics.total_requests += 1
@@ -244,6 +262,10 @@ class CircuitBreaker:
             self._success_count += 1
             if self._success_count >= self._config.success_threshold:
                 self._transition_to(new_state=CircuitState.CLOSED)
+
+        # Notify health tracker
+        if self._health_record_callback:
+            self._health_record_callback(interface_id=self._interface_id, success=True)
 
     def reset(self) -> None:
         """Reset the circuit breaker to initial state."""

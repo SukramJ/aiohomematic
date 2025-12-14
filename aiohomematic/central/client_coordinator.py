@@ -22,7 +22,7 @@ from typing import Final
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, Interface, ProxyInitState
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, SystemInfoProvider
+from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, HealthTrackerProtocol, SystemInfoProvider
 from aiohomematic.interfaces.client import ClientFactory, ClientProtocol, ClientProvider
 from aiohomematic.interfaces.coordinators import CoordinatorProvider
 from aiohomematic.support import extract_exc_args
@@ -40,6 +40,7 @@ class ClientCoordinator(ClientProvider):
         "_clients_started",
         "_config_provider",
         "_coordinator_provider",
+        "_health_tracker",
         "_primary_client",
         "_system_info_provider",
     )
@@ -51,6 +52,7 @@ class ClientCoordinator(ClientProvider):
         central_info: CentralInfo,
         config_provider: ConfigProvider,
         coordinator_provider: CoordinatorProvider,
+        health_tracker: HealthTrackerProtocol,
         system_info_provider: SystemInfoProvider,
     ) -> None:
         """
@@ -62,6 +64,7 @@ class ClientCoordinator(ClientProvider):
             central_info: Provider for central system information
             config_provider: Provider for configuration access
             coordinator_provider: Provider for accessing other coordinators
+            health_tracker: Health tracker for client health monitoring
             system_info_provider: Provider for system information
 
         """
@@ -69,6 +72,7 @@ class ClientCoordinator(ClientProvider):
         self._central_info: Final = central_info
         self._config_provider: Final = config_provider
         self._coordinator_provider: Final = coordinator_provider
+        self._health_tracker: Final = health_tracker
         self._system_info_provider: Final = system_info_provider
 
         # {interface_id, client}
@@ -197,6 +201,21 @@ class ClientCoordinator(ClientProvider):
         """
         return interface_id in self._clients
 
+    def on_health_record(self, *, interface_id: str, success: bool) -> None:
+        """
+        Handle health recording callback from circuit breakers.
+
+        Args:
+        ----
+            interface_id: Interface identifier
+            success: True if request succeeded, False if failed
+
+        """
+        if success:
+            self._health_tracker.record_successful_request(interface_id=interface_id)
+        else:
+            self._health_tracker.record_failed_request(interface_id=interface_id)
+
     async def restart_clients(self) -> None:
         """Restart all clients."""
         _LOGGER.debug("RESTART_CLIENTS: Restarting clients for %s", self._central_info.name)
@@ -221,6 +240,14 @@ class ClientCoordinator(ClientProvider):
         if not await self._create_clients():
             return False
 
+        # Set primary interface on health tracker after all clients are created
+        if primary_client := self.primary_client:
+            self._health_tracker.set_primary_interface(interface=primary_client.interface)
+            _LOGGER.debug(
+                "START_CLIENTS: Set primary interface to %s on health tracker",
+                primary_client.interface,
+            )
+
         # Load caches after clients are created
         await self._coordinator_provider.cache_coordinator.load_all()
 
@@ -237,6 +264,11 @@ class ClientCoordinator(ClientProvider):
         """Stop all clients."""
         _LOGGER.debug("STOP_CLIENTS: Stopping clients for %s", self._central_info.name)
         await self._de_init_clients()
+
+        # Unregister clients from health tracker before stopping
+        for client in self._clients.values():
+            self._health_tracker.unregister_client(interface_id=client.interface_id)
+            _LOGGER.debug("STOP_CLIENTS: Unregistered client %s from health tracker", client.interface_id)
 
         for client in self._clients.values():
             _LOGGER.debug("STOP_CLIENTS: Stopping %s", client.interface_id)
@@ -262,6 +294,7 @@ class ClientCoordinator(ClientProvider):
         try:
             if client := await self._client_factory.create_client_instance(
                 interface_config=interface_config,
+                health_record_callback=self.on_health_record,
             ):
                 _LOGGER.debug(
                     "CREATE_CLIENT: Adding client %s to %s",
@@ -269,6 +302,16 @@ class ClientCoordinator(ClientProvider):
                     self._central_info.name,
                 )
                 self._clients[client.interface_id] = client
+
+                # Register client with health tracker
+                self._health_tracker.register_client(
+                    interface_id=client.interface_id,
+                    interface=client.interface,
+                )
+                _LOGGER.debug(
+                    "CREATE_CLIENT: Registered client %s with health tracker",
+                    client.interface_id,
+                )
                 return True
         except BaseHomematicException as bhexc:  # pragma: no cover
             _LOGGER.error(

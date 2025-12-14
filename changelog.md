@@ -1,3 +1,13 @@
+# Version 2025.12.28 (2025-12-14)
+
+## What's Changed
+
+### Bug Fixes
+
+- Fix central incorrectly transitioning to RUNNING during startup with empty client list: `all()` returns True for empty iterables, causing premature RUNNING state before clients are registered
+- Fix central incorrectly transitioning to DEGRADED when all clients are connected: Missing `not all_connected` check in `start()` method allowed transition to DEGRADED even when all clients were CONNECTED
+- Improve state transition logging: DEGRADED state now shows which clients are not connected (e.g., "clients not connected: Otto-Dev-929-BidCos-RF")
+
 # Version 2025.12.27 (2025-12-14)
 
 ## What's Changed

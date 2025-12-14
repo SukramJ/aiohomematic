@@ -957,20 +957,31 @@ class CentralUnit(
             if self._config.enable_xml_rpc_server:
                 self._start_scheduler()
 
-        _LOGGER.debug("START: Central %s is %s", self.name, self.state)
-
         # Transition central state machine based on client status
-        all_connected = all(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
+        clients = self._client_coordinator.clients
+        _LOGGER.debug(
+            "START: Central %s is %s, clients: %s",
+            self.name,
+            self.state,
+            {c.interface_id: c.state.value for c in clients},
+        )
+        # Note: all() returns True for empty iterables, so we must check clients exist
+        all_connected = bool(clients) and all(client.state == ClientState.CONNECTED for client in clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in clients)
         if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
             self._central_state_machine.transition_to(
                 target=CentralState.RUNNING,
                 reason="all clients connected",
             )
-        elif any_connected and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
+        elif (
+            any_connected
+            and not all_connected
+            and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED)
+        ):
+            disconnected = [c.interface_id for c in clients if c.state != ClientState.CONNECTED]
             self._central_state_machine.transition_to(
                 target=CentralState.DEGRADED,
-                reason="some clients not connected",
+                reason=f"clients not connected: {', '.join(disconnected)}",
             )
         elif not any_connected and self._central_state_machine.can_transition_to(target=CentralState.FAILED):
             self._central_state_machine.transition_to(
@@ -1103,8 +1114,10 @@ class CentralUnit(
         )
 
         # Determine overall central state based on all client states
-        all_connected = all(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in self._client_coordinator.clients)
+        clients = self._client_coordinator.clients
+        # Note: all() returns True for empty iterables, so we must check clients exist
+        all_connected = bool(clients) and all(client.state == ClientState.CONNECTED for client in clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in clients)
 
         # Only transition if central is in a state that allows it
         if (current_state := self._central_state_machine.state) not in (CentralState.STARTING, CentralState.STOPPED):
@@ -1116,9 +1129,10 @@ class CentralUnit(
             elif any_connected and not all_connected and current_state == CentralState.RUNNING:
                 # Only transition to DEGRADED from RUNNING when some (but not all) clients connected
                 if self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
+                    disconnected = [c.interface_id for c in clients if c.state != ClientState.CONNECTED]
                     self._central_state_machine.transition_to(
                         target=CentralState.DEGRADED,
-                        reason=f"client {interface_id} disconnected",
+                        reason=f"clients not connected: {', '.join(disconnected)}",
                     )
             elif (
                 not any_connected
